@@ -17,7 +17,7 @@ const selectionOf = (variant) => Object.fromEntries(
  * Create / edit one variant. On create you can set its base selling unit and
  * price in the same step (prices are in the product's currency).
  */
-export default function VariantForm({ variant, currencyCode, defaultUnitId = null, onClose }) {
+export default function VariantForm({ variant, currencyCode, defaultUnitId = null, tracksExpiry = false, onClose }) {
   const { options, variants, createVariant, updateVariant, createUnit, updateUnit, variantByCombination, actionLoading } = useProductVariantStore();
   const { unitById } = useUomStore();
   const existingBase = variant?.units?.find((u) => u.role === 'base') ?? null;
@@ -28,6 +28,7 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
     sku: variant?.sku ?? '',
     barcode: variant?.barcode ?? '',
     stock_quantity: variant?.stock_quantity != null ? Number(variant.stock_quantity) : 0,
+    opening_cost: '', opening_batch_no: '', opening_expiry_date: '',
     status: variant?.status ?? 'active',
     is_default: variant?.is_default ?? variants.length === 0,
   });
@@ -64,11 +65,19 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
       name: form.name.trim() || autoName || null,
       sku: form.sku.trim() || null,
       barcode: form.barcode.trim() || null,
-      stock_quantity: Number(form.stock_quantity) || 0,
       status: form.status,
       ...(optionsWithValues.length ? { option_value_ids: selection } : {}),
     };
     if (!editing) {
+      // a quantity is only typed on a new variant: it arrives as an Opening stock voucher (cost needed); later it moves with vouchers, counts, write-offs and transfers
+      const qty = Number(form.stock_quantity) || 0;
+      payload.stock_quantity = qty;
+      if (qty > 0) {
+        if (form.opening_cost === '') { setFormError('Enter what each unit cost (0 if it was free).'); return; }
+        if (tracksExpiry && (!form.opening_batch_no || !form.opening_expiry_date)) { setFormError('This item expires: enter the batch number and expiry date.'); return; }
+        payload.opening_cost = Number(form.opening_cost);
+        if (tracksExpiry) { payload.opening_batch_no = form.opening_batch_no; payload.opening_expiry_date = form.opening_expiry_date; }
+      }
       payload.is_default = form.is_default;
       if (baseUnit.unit_id) {
         payload.base_unit = {
@@ -137,9 +146,18 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
           </FormGrid>
 
           <FormGrid min={150}>
-            <Field label="Stock (base units)" htmlFor="v-stock" error={errors.stock_quantity}>
-              <NumberInput id="v-stock" min="0" step="any" value={form.stock_quantity} onChange={(e) => set('stock_quantity')(e.target.value)} />
-            </Field>
+            {editing ? (
+              <Field label="Stock (base units)" hint="Not typed in: it moves with purchases, sales, stock counts, write-offs and transfers.">
+                <div style={{ minHeight: 38, display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <strong>{Number(variant.stock_quantity ?? 0)}</strong>
+                  <a href="/admin/stock/counts" style={{ fontSize: '0.8rem', fontWeight: 700 }}>Adjust stock</a>
+                </div>
+              </Field>
+            ) : (
+              <Field label="Opening stock (base units)" htmlFor="v-stock" error={errors.stock_quantity} hint="What you hold now, entered as an Opening stock voucher.">
+                <NumberInput id="v-stock" min="0" step="any" value={form.stock_quantity} onChange={(e) => set('stock_quantity')(e.target.value)} />
+              </Field>
+            )}
             <Field label="Status" htmlFor="v-status" error={errors.status}>
               <SelectInput id="v-status" value={form.status} onChange={(e) => set('status')(e.target.value)}>
                 <option value="active">Active</option>
@@ -148,6 +166,13 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
               </SelectInput>
             </Field>
           </FormGrid>
+          {!editing && Number(form.stock_quantity) > 0 && (
+            <FormGrid min={150}>
+              <Field label="Cost per unit *" htmlFor="v-cost" hint="Base currency. 0 if it was free."><NumberInput id="v-cost" min="0" step="any" value={form.opening_cost} onChange={(e) => set('opening_cost')(e.target.value)} /></Field>
+              {tracksExpiry && <Field label="Batch number *" htmlFor="v-batch"><TextInput id="v-batch" value={form.opening_batch_no} onChange={(e) => set('opening_batch_no')(e.target.value)} /></Field>}
+              {tracksExpiry && <Field label="Expiry date *" htmlFor="v-exp"><TextInput id="v-exp" type="date" value={form.opening_expiry_date} onChange={(e) => set('opening_expiry_date')(e.target.value)} /></Field>}
+            </FormGrid>
+          )}
 
           {(
             <div style={{ padding: 14, borderRadius: 10, border: `1.5px solid ${colors.tint(0.15)}`, background: colors.tint(0.02) }}>

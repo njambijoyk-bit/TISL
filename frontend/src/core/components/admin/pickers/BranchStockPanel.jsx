@@ -1,22 +1,21 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { MapPin, Save, RefreshCw, Info } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { MapPin, Info } from 'lucide-react';
 import productsAPI from '../../../../_shared/api/products';
 import useProductVariantStore from '../../../../_shared/store/productVariantStore';
-import toast from 'react-hot-toast';
 
 /**
- * Per-branch stock for a product's variants (multi-location).
+ * Per-branch stock for a product's variants (multi-location). Read-only: quantities are not typed in, they move with purchases,
+ * sales, stock counts, write-offs and transfers (a quantity typed here left no movement and nothing in the books).
  *
  * Rows = variants, columns = active branches. Branches differ by quantity only —
  * price is set per variant, not per branch. The product's total stock is
  * auto-calculated from these numbers. Renders nothing when there's a single
  * branch (nothing to split) or the product has no variants yet.
  */
-export default function BranchStockPanel({ productId, readOnly = false, embedded = false, onSaved }) {
+export default function BranchStockPanel({ productId, embedded = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
   const [stock, setStock] = useState({});   // { `${variantId}:${locId}`: qty }
 
   // A signature of the editor's current variants — changes whenever options or
@@ -47,36 +46,6 @@ export default function BranchStockPanel({ productId, readOnly = false, embedded
   // Reload on mount and whenever the variant set changes in the editor.
   useEffect(() => { load(); }, [load, variantSignature]);
 
-  const setQty = (variantId, locId, val) =>
-    setStock((s) => ({ ...s, [`${variantId}:${locId}`]: val }));
-
-  const save = async () => {
-    const rows = [];
-    (data.variants || []).forEach((v) => {
-      (data.locations || []).forEach((l) => {
-        const raw = stock[`${v.id}:${l.id}`];
-        if (raw !== '' && raw !== null && raw !== undefined) {
-          rows.push({ variant_id: v.id, location_id: l.id, quantity: Number(raw) || 0 });
-        }
-      });
-    });
-    setSaving(true); setError(null);
-    try {
-      const res = await productsAPI.saveBranchStock(productId, { stock: rows });
-      if (res.ok === false) throw new Error(res.message);
-      toast.success(res.message || 'Saved.');
-      load();
-      onSaved?.();
-      // variants table + product stock read the same numbers — refresh them too
-      useProductVariantStore.getState().refreshVariants();
-    } catch (e) {
-      const d = e.response?.data;
-      const msg = [d?.message || e.message || 'Could not save.', d?.errors && Object.values(d.errors).flat()[0], d?.error].filter(Boolean).join(' — ');
-      setError(msg);
-      toast.error(msg);
-    } finally { setSaving(false); }
-  };
-
   if (loading || !data) return null;
 
   const { locations = [], variants = [] } = data;
@@ -91,7 +60,6 @@ export default function BranchStockPanel({ productId, readOnly = false, embedded
 
   const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid #eee' };
   const td = { padding: '6px 10px', borderBottom: '1px solid #f6f6f6' };
-  const cell = { width: 90, padding: '6px 8px', borderRadius: 7, border: '1px solid #e5e7eb', fontSize: '0.82rem', fontFamily: 'inherit' };
 
   return (
     <div style={embedded
@@ -107,7 +75,7 @@ export default function BranchStockPanel({ productId, readOnly = false, embedded
       {!embedded && (
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', padding: '10px 12px', borderRadius: 9, fontSize: '0.78rem', color: '#4b5563' }}>
         <Info size={15} style={{ flexShrink: 0, marginTop: 1, color: 'var(--color-primary-500)' }} />
-        <span>Quantity per variant, per branch. A blank branch means the variant isn't sold there. The product's total stock is calculated from these automatically.</span>
+        <span>Quantity per variant, per branch. It is not typed in: it moves with purchases, sales, stock counts, write-offs and transfers. To change it use <Link to="/admin/stock/counts">a stock count</Link> (shortage or surplus), <Link to="/admin/purchases/new">a purchase</Link> (stock arrived) or <Link to="/admin/stock/transfers">a transfer</Link> (between branches).</span>
       </div>
       )}
 
@@ -127,13 +95,7 @@ export default function BranchStockPanel({ productId, readOnly = false, embedded
                 </td>
                 {locations.map((l) => (
                   <td key={l.id} style={{ ...td, textAlign: 'center' }}>
-                    <input
-                      type="number" min="0" step="1" disabled={readOnly}
-                      value={stock[`${v.id}:${l.id}`] ?? ''}
-                      onChange={(e) => setQty(v.id, l.id, e.target.value)}
-                      placeholder="—"
-                      style={cell}
-                    />
+                    <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{stock[`${v.id}:${l.id}`] === '' || stock[`${v.id}:${l.id}`] == null ? '—' : stock[`${v.id}:${l.id}`]}</span>
                   </td>
                 ))}
               </tr>
@@ -142,16 +104,6 @@ export default function BranchStockPanel({ productId, readOnly = false, embedded
         </table>
       </div>
 
-      {error && <p role="alert" style={{ margin: 0, padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.8rem' }}>{error}</p>}
-
-      {!readOnly && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={save} disabled={saving}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 18px', borderRadius: 9, border: 'none', background: 'var(--color-primary-600)', color: 'white', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-            {saving ? <RefreshCw size={15} /> : <Save size={15} />} Save branch stock
-          </button>
-        </div>
-      )}
     </div>
   );
 }

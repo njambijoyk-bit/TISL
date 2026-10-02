@@ -175,9 +175,8 @@ class VariantStockService
                 ['product_variant_id' => $variant->id, 'location_id' => $loc->id],
                 ['quantity' => 0]
             );
-            if ($loc->id === $main->id && $row->wasRecentlyCreated && $mainQty > 0) {
-                $this->setBranchStock($variant->id, $loc->id, $mainQty);   // the entered stock arrives as a batch
-            }
+            // The quantity entered with a new item no longer lands here as a batch with no movement: the Opening stock voucher
+            // (OpeningStockService) brings it in. $mainQty is kept for old callers and ignored.
         }
         $variant->loadMissing('product');
         if ($variant->product) {

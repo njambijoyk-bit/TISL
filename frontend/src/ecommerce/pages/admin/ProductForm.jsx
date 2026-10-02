@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { productsAPI, categoriesAPI, brandsAPI } from '../../../_shared/api/index';
 import toast from 'react-hot-toast';
 import ProductSelectorModalAdmin from '../../../core/components/admin/pickers/ProductSelectorModalAdmin';
@@ -331,7 +331,7 @@ export default function ProductForm() {
   const [formData, setFormData] = useState({
     name: searchParams.get('name') || '', sku: '', type: '', category_id: '', brand_id: '',
     price: '', original_price: '', price_is_negotiable: false, currency_id: '', default_unit_id: '', alternate_unit_id: '',
-    stock_quantity: '', in_stock: true, is_for_sale: true, track_expiry: false, has_variants: false,
+    stock_quantity: '', opening_cost: '', opening_batch_no: '', opening_expiry_date: '', in_stock: true, is_for_sale: true, track_expiry: false, has_variants: false,
     short_description: '', description: '',
     badge: '', is_featured: false, is_new: false, on_sale: false,
     status: 'active', is_visible: true,
@@ -573,6 +573,10 @@ export default function ProductForm() {
     }
     if (!formData.sales_ledger_id) { fail('Choose a sales account', ['Tax → Sales account. It decides the tax charged when this product is sold.']); setActiveTab('tax'); return; }
     if (!formData.default_unit_id) { fail('Pick the product\'s stock unit', ['Pricing & stock → Stock unit. All variant stock is counted in it.']); setActiveTab('pricing'); return; }
+    if (isCreate && Number(formData.stock_quantity) > 0) {
+      if (formData.opening_cost === '') { fail('Enter what each unit cost', ['Pricing & stock → Cost per unit. The stock you start with is valued at it (0 if it was free).']); setActiveTab('pricing'); return; }
+      if (formData.track_expiry && (!formData.opening_batch_no || !formData.opening_expiry_date)) { fail('Enter the batch number and expiry date', ['This item expires: the stock you start with needs a batch number and an expiry date.']); setActiveTab('pricing'); return; }
+    }
     setSaveError(null);
     try {
       setLoading(true);
@@ -588,7 +592,13 @@ export default function ProductForm() {
       str('default_unit_id', formData.default_unit_id);
       str('alternate_unit_id', formData.alternate_unit_id);
       bool('price_is_negotiable', formData.price_is_negotiable);
-      str('stock_quantity', formData.stock_quantity || '0');
+      if (isCreate) {   // a quantity is only typed when the item is created: it arrives as an Opening stock voucher. Later it moves with vouchers, counts, write-offs and transfers.
+        str('stock_quantity', formData.stock_quantity || '0');
+        if (Number(formData.stock_quantity) > 0) {
+          str('opening_cost', formData.opening_cost);
+          if (formData.track_expiry) { str('opening_batch_no', formData.opening_batch_no); str('opening_expiry_date', formData.opening_expiry_date); }
+        }
+      }
       bool('in_stock', formData.in_stock);
       bool('is_for_sale', formData.is_for_sale); bool('track_expiry', formData.track_expiry);
       str('description', formData.description); str('short_description', formData.short_description);
@@ -902,19 +912,43 @@ export default function ProductForm() {
                 <Field label={`Original price (${priceCurrencyCode}, excl. tax)`} hint={!isView ? 'Used for showing discounts' : undefined}>
                   <StyledInput type="number" name="original_price" value={formData.original_price} onChange={handleChange} disabled={isView} placeholder="0.00" step="0.01" min="0" />
                 </Field>
-                <Field
-                  label="Stock quantity"
-                  hint={formData.has_variants ? 'Auto-calculated from variant stock' : (!isView ? 'Leave empty if not tracking' : undefined)}
-                >
-                  <StyledInput
-                    type="number" name="stock_quantity"
-                    value={formData.stock_quantity}
-                    onChange={handleChange}
-                    disabled={isView || formData.has_variants}
-                    placeholder={formData.has_variants ? 'From variants' : 'Optional'}
-                    min="0"
-                  />
-                </Field>
+                {isCreate ? (
+                  <>
+                    <Field
+                      label="Opening stock quantity"
+                      hint={formData.has_variants ? 'Add stock on each variant after the product is saved' : 'What you hold now. It is entered as an Opening stock voucher. Leave empty if none.'}
+                    >
+                      <StyledInput
+                        type="number" name="stock_quantity" value={formData.stock_quantity} onChange={handleChange}
+                        disabled={formData.has_variants} placeholder={formData.has_variants ? 'From variants' : 'Optional'} min="0" step="any"
+                      />
+                    </Field>
+                    {Number(formData.stock_quantity) > 0 && !formData.has_variants && (
+                      <>
+                        <Field label="Cost per unit (base currency) *" hint="What each unit cost you. 0 if it was free.">
+                          <StyledInput type="number" name="opening_cost" value={formData.opening_cost} onChange={handleChange} placeholder="0.00" step="0.0001" min="0" />
+                        </Field>
+                        {formData.track_expiry && (
+                          <>
+                            <Field label="Batch number *"><StyledInput name="opening_batch_no" value={formData.opening_batch_no} onChange={handleChange} placeholder="e.g. B-2026-01" /></Field>
+                            <Field label="Expiry date *"><StyledInput type="date" name="opening_expiry_date" value={formData.opening_expiry_date} onChange={handleChange} /></Field>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <Field
+                    label="Stock quantity"
+                    hint="Not typed in: it moves with purchases, sales, stock counts, write-offs and transfers."
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minHeight: 38 }}>
+                      <strong style={{ fontSize: '1rem' }}>{formData.stock_quantity === '' ? 0 : formData.stock_quantity}</strong>
+                      <Link to="/admin/stock/counts" style={{ fontSize: '0.8rem', fontWeight: 700 }}>Adjust stock (count)</Link>
+                      <Link to="/admin/purchases/new" style={{ fontSize: '0.8rem', fontWeight: 700 }}>Receive stock (purchase)</Link>
+                    </div>
+                  </Field>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <Toggle
                     checked={formData.price_is_negotiable}
@@ -1110,7 +1144,7 @@ export default function ProductForm() {
                     the old list stops being used once the first variant is saved.
                   </div>
                 )}
-                <VariantEditor key={variantEditorKey} defaultUnitId={formData.default_unit_id || null} alternateUnitId={formData.alternate_unit_id || null} productId={Number(id)} currencyCode={priceCurrencyCode} readOnly={isView} />
+                <VariantEditor key={variantEditorKey} tracksExpiry={Boolean(formData.track_expiry)} defaultUnitId={formData.default_unit_id || null} alternateUnitId={formData.alternate_unit_id || null} productId={Number(id)} currencyCode={priceCurrencyCode} readOnly={isView} />
                 {/* Per-branch stock — only renders when there is more than one branch */}
                 <BranchStockPanel productId={Number(id)} readOnly={isView} />
               </>

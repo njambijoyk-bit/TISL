@@ -315,6 +315,11 @@ class ProductController extends Controller
                 ? filter_var($request->track_expiry, FILTER_VALIDATE_BOOLEAN)
                 : false;
 
+            // Quantity typed on a new item: it needs a cost (and batch details for an item that expires), and arrives as an Opening stock voucher.
+            $opening = app(\App\Services\Stock\OpeningStockService::class);
+            $opening->assertEntered($request, $trackExpiry);
+            DB::beginTransaction();
+
             // Create product
             $product = Product::create([
                 'name' => $request->name,
@@ -331,7 +336,7 @@ class ProductController extends Controller
                 'original_price' => $request->original_price,
                 'price_is_negotiable' => $priceNegotiable,
                 'in_stock' => $inStock,
-                'stock_quantity' => $request->stock_quantity ?? 0,
+                'stock_quantity' => 0,   // never typed in: the opening stock voucher below puts it there
                 'description' => $request->description,
                 'short_description' => $request->short_description,
                 'main_image' => $mainImagePath,
@@ -359,16 +364,30 @@ class ProductController extends Controller
 
             // Every product starts with a "Standard" variant: product SKU, price and
             // stock unit, so it can be sold (and stocked per branch) straight away.
-            if ($product->default_unit_id) {
-                app(VariantStockService::class)->ensureDefaultVariant($product);
+            if ($product->default_unit_id || $opening->wants($request)) {
+                $variant = app(VariantStockService::class)->ensureDefaultVariant($product);
+                if ($opening->wants($request)) {
+                    $opening->postFromRequest($variant, $request, Auth::user());
+                }
             }
+            DB::commit();
 
             return response()->json([
                 'message' => 'Product created successfully',
                 'product' => $product->load(['brand', 'category'])
             ], 201);
 
+        } catch (\App\Services\Books\BooksException $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['stock_quantity' => [$e->getMessage()]]], 422);
         } catch (\Exception $e) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+
             return response()->json([
                 'message' => 'Failed to create product',
                 'error' => $e->getMessage()
@@ -841,10 +860,7 @@ class ProductController extends Controller
                 $product->currency_id = $request->currency_id ?: app(CurrencyConversionService::class)->getBaseCurrency()->id;
             }
             if ($request->has('original_price')) $product->original_price = $request->original_price;
-            if ($request->has('stock_quantity')) {
-                $product->stock_quantity = $request->stock_quantity;
-                $product->in_stock = $request->stock_quantity > 0;
-            }
+            // stock_quantity is deliberately not read here: stock moves with vouchers, counts, write-offs and transfers (Adjust stock)
             if ($request->has('description')) $product->description = $request->description;
             if ($request->has('short_description')) $product->short_description = $request->short_description;
             if ($request->has('badge')) $product->badge = $request->badge;
@@ -1255,28 +1271,10 @@ public function related($id)
      */
     public function saveBranchStock(Request $request, $id, VariantStockService $stock)
     {
-        $product = Product::findOrFail($id);
-
-        $data = $request->validate([
-            'stock'                  => 'array',
-            'stock.*.variant_id'     => 'required|integer|exists:product_variants,id',
-            'stock.*.location_id'    => 'required|integer|exists:locations,id',
-            'stock.*.quantity'       => 'required|numeric|min:0',
-        ]);
-
-        $variantIds = $product->productVariants()->pluck('id')->all();
-
-        DB::transaction(function () use ($product, $data, $variantIds, $stock) {
-            foreach ($data['stock'] ?? [] as $row) {
-                if (!in_array((int) $row['variant_id'], $variantIds, true)) {
-                    continue; // ignore variants that aren't this product's
-                }
-                $stock->setBranchStock((int) $row['variant_id'], (int) $row['location_id'], (float) $row['quantity']);
-            }
-            $stock->recomputeCaches($product);
-        });
-
-        return response()->json(['ok' => true, 'message' => 'Branch stock saved.']);
+        // Quantities are not typed any more: that left no movement and no entry in the books. Use a stock count, a purchase, a write-off or a transfer.
+        return response()->json([
+            'message' => 'Stock is not typed in. Use Adjust stock: a stock count for a shortage or surplus, a purchase or goods received note for stock that arrived, a write-off for damage, a transfer between branches.',
+        ], 422);
     }
 
     /**

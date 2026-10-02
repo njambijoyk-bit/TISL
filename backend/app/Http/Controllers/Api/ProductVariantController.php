@@ -377,8 +377,16 @@ class ProductVariantController extends Controller
             }
         }
 
+        // A quantity typed on a new variant needs a cost, and arrives as an Opening stock voucher
+        $opening = app(\App\Services\Stock\OpeningStockService::class);
         try {
-            $variant = DB::transaction(function () use ($request, $product, $optionValueIdsByOptionId) {
+            $opening->assertEntered($request, (bool) $product->track_expiry);
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['stock_quantity' => [$e->getMessage()]]], 422);
+        }
+
+        try {
+            $variant = DB::transaction(function () use ($request, $product, $optionValueIdsByOptionId, $opening) {
                 $variant = $product->productVariants()->create([
                     'sku'                 => filled($request->sku) ? $request->sku : app(\App\Services\SkuGenerator::class)->variant((string) $product->sku),
                     'barcode'             => $request->barcode,
@@ -387,7 +395,7 @@ class ProductVariantController extends Controller
                     'is_default'          => $request->boolean('is_default'),
                     'net_content_qty'     => $request->net_content_qty,
                     'net_content_unit_id' => $request->net_content_unit_id,
-                    'stock_quantity'      => $request->stock_quantity ?? 0,
+                    'stock_quantity'      => 0,   // never typed in: the opening stock voucher below puts it there
                     'status'              => $request->status ?? ProductVariant::STATUS_ACTIVE,
                 ]);
 
@@ -415,12 +423,18 @@ class ProductVariantController extends Controller
                     $product->forceFill(['has_variants' => true])->save();
                 }
 
+                if ($opening->wants($request)) {
+                    $opening->postFromRequest($variant->load('units'), $request, $request->user());
+                }
+
                 return $variant;
             });
 
             $variant->load(['units', 'optionValues.option']);
 
             return response()->json(['variant' => $this->formatVariant($variant)], 201);
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage(), 'errors' => ['stock_quantity' => [$e->getMessage()]]], 422);
         } catch (QueryException $e) {
             if ($this->isDuplicateKey($e)) {
                 return response()->json(['message' => 'A variant with this exact option combination already exists for this product.'], 422);
@@ -471,7 +485,7 @@ class ProductVariantController extends Controller
             DB::transaction(function () use ($request, $variant, $optionValueIdsByOptionId) {
                 $variant->fill($request->only([
                     'sku', 'barcode', 'name', 'net_content_qty',
-                    'net_content_unit_id', 'stock_quantity', 'status',
+                    'net_content_unit_id', 'status',   // stock_quantity is not typed in: it moves with vouchers, counts, write-offs and transfers
                 ]));
 
                 if ($optionValueIdsByOptionId !== null) {

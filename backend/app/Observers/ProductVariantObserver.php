@@ -20,15 +20,11 @@ class ProductVariantObserver
     }
 
     /**
-     * Editing a variant's stock in the variant form must reach the branch rows
-     * (the source of truth) and the product total, like creation does.
+     * A variant's quantity is not edited by hand: it moves with vouchers, stock counts, write-offs and transfers, and the
+     * figure on the variant is only a cache of the batches. Nothing to do on update.
      */
     public function updated(ProductVariant $variant): void
     {
-        if (! $variant->wasChanged('stock_quantity')) {
-            return;
-        }
-        $this->stock->applyVariantTotal($variant, (float) $variant->stock_quantity);
     }
 
     public function deleted(ProductVariant $variant): void
