@@ -7,7 +7,7 @@ import {
   Database, GitBranch, BookOpen, Banknote, ListTree, TrendingUp,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
-import { FINANCE_READ } from '../lib/roles';
+import { FINANCE_READ, FINANCE_WRITE } from '../lib/roles';
 
 /**
  * The admin navigation — the single source for the sidebar, the section tabs
@@ -187,6 +187,13 @@ export const ADMIN_NAV = [
         ],
       },
       { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
+      {
+        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: FINANCE_WRITE, keywords: 'salary payslip paye nssf deductions wages',
+        tabs: [
+          { title: 'Runs', path: '/admin/payroll', exact: true },
+          { title: 'Settings', path: '/admin/payroll/settings' },
+        ],
+      },
       { id: 'publications', title: 'Publications', icon: Newspaper, color: 'var(--color-primary-500)', path: '/admin/settings/publications', keywords: 'blog news brochures' },
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',

@@ -1033,6 +1033,26 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/subscription/rotate', [$c, 'rotate']);
         });
 
+        // Payroll: runs, payslips, and the editable components (admin, super admin, finance)
+        Route::prefix('payroll')->middleware('role:admin,super_admin,finance')->group(function () {
+            $c = \App\Http\Controllers\Api\PayrollController::class;
+            Route::get('/',                          [$c, 'index']);
+            Route::post('/runs',                     [$c, 'create']);
+            Route::get('/runs/{id}',                 [$c, 'show'])->whereNumber('id');
+            Route::post('/runs/{id}/refresh',        [$c, 'refresh'])->whereNumber('id');
+            Route::post('/runs/{id}/adjust',         [$c, 'adjust'])->whereNumber('id');
+            Route::post('/runs/{id}/approve',        [$c, 'approve'])->whereNumber('id');
+            Route::post('/runs/{id}/pay',            [$c, 'pay'])->whereNumber('id');
+            Route::post('/runs/{id}/cancel',         [$c, 'cancel'])->whereNumber('id');
+            Route::get('/runs/{id}/csv',             [$c, 'csv'])->whereNumber('id');
+            Route::get('/settings',                  [$c, 'settings']);
+            Route::put('/settings',                  [$c, 'saveSettings']);
+            Route::post('/components',               [$c, 'saveComponent']);
+            Route::put('/components/{id}',           [$c, 'saveComponent'])->whereNumber('id');
+            Route::delete('/components/{id}',        [$c, 'deleteComponent'])->whereNumber('id');
+            Route::put('/items/{userId}',            [$c, 'saveItems'])->whereNumber('userId');
+        });
+
         // Attendance: sign in/out, the staff calendar, marking and verifying, disputes (the service decides who may do what)
         Route::prefix('attendance')->group(function () {
             $c = \App\Http\Controllers\Api\AttendanceController::class;
