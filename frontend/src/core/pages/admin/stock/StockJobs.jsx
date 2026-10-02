@@ -126,7 +126,7 @@ function InvoiceJobModal({ job, onClose, onDone }) {
               {job.invoice_lines.length === 0 && <tr><td colSpan={3} style={{ ...td, color: colors.textMuted }}>The job holds no materials.</td></tr>}
               {job.invoice_lines.map((m, i) => (
                 <tr key={i}><td style={td}>{m.name}</td><td style={{ ...td, textAlign: 'right' }}>{m.quantity}</td>
-                  <td style={{ ...td, textAlign: 'right' }}>{m.price != null ? `${money(m.price)} (typed on the job)` : m.system_price != null ? `${money(m.system_price)} (system price)` : '—'}</td></tr>
+                  <td style={{ ...td, textAlign: 'right' }}>{m.price != null ? (m.system_price != null && Math.abs(m.price - m.system_price) > 0.0001 ? `${money(m.price)} (set on the job; system ${money(m.system_price)})` : money(m.price)) : m.system_price != null ? `${money(m.system_price)} (current price)` : '—'}</td></tr>
               ))}
             </tbody>
           </table>
@@ -174,7 +174,7 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
     setBusy(true);
     try { const res = await fn(); toast.success(res.message); onChanged(); if (close) onClose(); else load(); return true; } catch (x) { toast.error(errMsg(x, 'Could not do that')); return false; } finally { setBusy(false); }
   };
-  const add = (r) => setItems((xs) => (xs.some((x) => x.variant_id === r.variant_id) ? xs : [...xs, { variant_id: r.variant_id, name: nm(r), quantity: 1, price: '' }]));
+  const add = (r) => setItems((xs) => (xs.some((x) => x.variant_id === r.variant_id) ? xs : [...xs, { variant_id: r.variant_id, name: nm(r), quantity: 1, price: r.base_price != null ? String(r.base_price) : '', systemPrice: r.base_price ?? null }]));
   const open = j?.status === 'open' && canWrite;
   return (
     <Modal title={j ? `${j.number} — ${j.title}` : 'Job'} subtitle={j ? `${j.location}${j.customer ? ` · ${j.customer}` : ''} · ${j.status}` : ''} onClose={onClose} width={760}>
@@ -187,7 +187,7 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
                 <tr key={l.id}>
                   <td style={td}>{nm(l)}</td><td style={td}>{l.batch_no ?? '—'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{l.quantity}</td><td style={{ ...td, textAlign: 'right' }}>{money(l.cost)}</td>
-                  <td style={{ ...td, textAlign: 'right', color: l.sale_price != null ? undefined : colors.textFaint }}>{l.sale_price != null ? `${money(l.sale_price)} (typed)` : 'system price'}</td>
+                  <td style={{ ...td, textAlign: 'right', color: l.sale_price != null ? undefined : colors.textFaint }}>{l.sale_price != null ? money(l.sale_price) : l.system_price != null ? `${money(l.system_price)} (current price)` : 'no price'}</td>
                   <td style={td}>{open && <button type="button" style={small} disabled={busy} onClick={() => run(() => stockJobsAPI.returnLine(id, l.id))}>Return to stock</button>}</td>
                 </tr>
               ))}</tbody>
@@ -196,12 +196,12 @@ function JobSheet({ id, canWrite, onClose, onChanged }) {
           <p style={{ margin: 0, fontSize: '0.85rem' }}>Held as work in progress: <strong>{money(j.cost)}</strong></p>
           {open && (
             <div style={{ display: 'grid', gap: 8 }}>
-              <Field label="Issue more materials"><VariantPicker onPick={add} placeholder="Search a material to issue…" /></Field>
+              <Field label="Issue more materials" hint="Each material shows its price in the system. Change it if this job is charged differently; the invoice uses the price you leave here."><VariantPicker onPick={add} placeholder="Search a material to issue…" /></Field>
               {items.map((i) => (
                 <div key={i.variant_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ flex: 1, fontSize: '0.82rem' }}>{i.name}</span>
                   <div style={{ width: 110 }}><NumberInput min="0.0001" step="any" value={i.quantity} aria-label={`Quantity of ${i.name}`} onChange={(e) => setItems((xs) => xs.map((x) => (x.variant_id === i.variant_id ? { ...x, quantity: e.target.value } : x)))} /></div>
-                  <div style={{ width: 150 }}><NumberInput min="0" step="any" value={i.price} placeholder="System price" title="The price the invoice charges per unit (base currency). Leave empty to use the price in the system; type one for an item with no price or a one-off price." aria-label={`Selling price of ${i.name}`} onChange={(e) => setItems((xs) => xs.map((x) => (x.variant_id === i.variant_id ? { ...x, price: e.target.value } : x)))} /></div>
+                  <div style={{ width: 150 }}><NumberInput min="0" step="any" value={i.price} placeholder={i.systemPrice == null ? 'No price — enter one' : 'Price'} title={i.systemPrice != null ? `Price in the system: ${money(i.systemPrice)}. Change it if this job is charged differently.` : 'This item has no price in the system: enter what to charge per unit.'} aria-label={`Selling price of ${i.name}`} onChange={(e) => setItems((xs) => xs.map((x) => (x.variant_id === i.variant_id ? { ...x, price: e.target.value } : x)))} /></div>
                   <button type="button" aria-label="Remove" onClick={() => setItems((xs) => xs.filter((x) => x.variant_id !== i.variant_id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
                 </div>
               ))}

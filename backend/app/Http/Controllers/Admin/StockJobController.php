@@ -28,9 +28,9 @@ class StockJobController extends Controller
         $j = StockJob::findOrFail($id);
         $lines = DB::table('stock_job_lines as l')->join('product_variants as pv', 'pv.id', '=', 'l.variant_id')->join('products as p', 'p.id', '=', 'pv.product_id')
             ->leftJoin('stock_batches as sb', 'sb.id', '=', 'l.batch_id')->where('l.job_id', $j->id)->orderBy('l.id')
-            ->get(array_merge(['l.id', 'p.name as product', 'pv.name as variant', 'sb.batch_no', 'l.quantity', 'l.unit_cost', 'l.issued_at'], \Illuminate\Support\Facades\Schema::hasColumn('stock_job_lines', 'sale_price') ? ['l.sale_price'] : []))
+            ->get(array_merge(['l.id', 'l.variant_id', 'p.name as product', 'pv.name as variant', 'sb.batch_no', 'l.quantity', 'l.unit_cost', 'l.issued_at'], \Illuminate\Support\Facades\Schema::hasColumn('stock_job_lines', 'sale_price') ? ['l.sale_price'] : []))
             ->map(fn ($r) => ['id' => (int) $r->id, 'product' => $r->product, 'variant' => $r->variant, 'batch_no' => $r->batch_no, 'quantity' => (float) $r->quantity, 'unit_cost' => (float) $r->unit_cost,
-                'cost' => round((float) $r->quantity * (float) $r->unit_cost, 2), 'sale_price' => isset($r->sale_price) && $r->sale_price !== null ? (float) $r->sale_price : null, 'issued_at' => (string) $r->issued_at])->values();
+                'cost' => round((float) $r->quantity * (float) $r->unit_cost, 2), 'sale_price' => isset($r->sale_price) && $r->sale_price !== null ? (float) $r->sale_price : null, 'system_price' => $this->jobs->systemPrice((int) $r->variant_id), 'issued_at' => (string) $r->issued_at])->values();
 
         return response()->json($this->row($j) + ['lines' => $lines, 'invoice_lines' => $this->jobs->invoiceLines($j),
             'needs_customer' => ! $j->customer_id && $j->status === 'completed' && ! $j->invoice_voucher_id]);

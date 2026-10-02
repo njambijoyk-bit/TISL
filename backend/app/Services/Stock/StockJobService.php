@@ -137,6 +137,21 @@ class StockJobService
         });
     }
 
+    /** The item's selling price per base unit in the BASE currency (its own price converted), or null when the system has none. */
+    public function systemPrice(int $variantId): ?float
+    {
+        $row = DB::table('product_variant_units as u')->join('product_variants as pv', 'pv.id', '=', 'u.variant_id')->join('products as p', 'p.id', '=', 'pv.product_id')
+            ->where('u.variant_id', $variantId)->where('u.role', 'base')->first(['u.price', 'p.currency_id']);
+        if (! $row || $row->price === null) {
+            return null;
+        }
+        $cs = app(\App\Services\CurrencyConversionService::class);
+        $base = $cs->getBaseCurrency();
+        $from = $cs->resolveCurrency($row->currency_id);
+
+        return round($from->id === $base->id ? (float) $row->price : (float) $cs->convert((float) $row->price, $from, $base), 4);
+    }
+
     /**
      * What the job's invoice carries for the materials it used: one line per item (and price), in base units. The quantity is what the
      * job holds now (issued less returned) and the price is the one typed when it was issued, else the item's price in the system.
@@ -159,7 +174,7 @@ class StockJobService
             $key = $r->variant_id . '|' . ($price ?? 'sys');
             $out[$key] ??= ['variant_id' => (int) $r->variant_id, 'variant_unit_id' => $r->unit_id ? (int) $r->unit_id : null,
                 'name' => $r->product . ($r->variant && strtolower((string) $r->variant) !== 'standard' ? " — {$r->variant}" : ''), 'quantity' => 0.0, 'price' => $price,
-                'system_price' => $r->system_price !== null ? (float) $r->system_price : null];
+                'system_price' => $this->systemPrice((int) $r->variant_id)];
             $out[$key]['quantity'] = round($out[$key]['quantity'] + (float) $r->quantity, 4);
         }
 

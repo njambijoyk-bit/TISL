@@ -469,6 +469,7 @@ class BooksVoucherController extends Controller
 
         return ['type' => 'product', 'variant_id' => $v->id, 'product_id' => $v->product_id, 'product' => $v->product?->name, 'variant' => $v->name, 'sku' => $v->sku, 'units' => $units,
             'track_expiry' => (bool) $v->product?->track_expiry, 'for_sale' => (bool) $v->product?->is_for_sale,
+            'base_price' => app(\App\Services\Stock\StockJobService::class)->systemPrice($v->id),   // selling price per base unit in the base currency; null = none set
             'last_cost' => app(\App\Services\Stock\BatchService::class)->lastCost($v->id)];   // base currency, per base unit; 0 = never bought
     }
 
