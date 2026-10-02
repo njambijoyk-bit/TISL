@@ -1033,6 +1033,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/subscription/rotate', [$c, 'rotate']);
         });
 
+        // My payslips: any staff member, their own only
+        Route::get('/my-payslips',                [\App\Http\Controllers\Api\MyPayslipController::class, 'index']);
+        Route::get('/my-payslips/{runId}',        [\App\Http\Controllers\Api\MyPayslipController::class, 'show'])->whereNumber('runId');
+
         // Payroll: runs, payslips, and the editable components (admin, super admin, finance)
         Route::prefix('payroll')->middleware('role:admin,super_admin,finance')->group(function () {
             $c = \App\Http\Controllers\Api\PayrollController::class;

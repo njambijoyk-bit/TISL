@@ -152,6 +152,7 @@ const CreditDetail       = lazy(() => import('./core/pages/admin/CustomerCreditD
 const AdminReviews       = lazy(() => import('./ecommerce/pages/admin/Reviews'));
 const BooksHub           = lazy(() => import('./core/pages/admin/books/BooksHub'));
 const VoucherForm        = lazy(() => import('./core/pages/admin/books/VoucherForm'));
+const MyPayslips         = lazy(() => import('./core/pages/admin/payroll/MyPayslips'));
 const Payroll            = lazy(() => import('./core/pages/admin/payroll/Payroll'));
 const PayrollSettings    = lazy(() => import('./core/pages/admin/payroll/PayrollSettings'));
 const Attendance         = lazy(() => import('./core/pages/admin/attendance/Attendance'));
@@ -1497,6 +1498,7 @@ function App() {
               <Route path="/admin/books" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><BooksHub /></ProtectedRoute>} />
               <Route path="/admin/books/vouchers/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
               <Route path="/admin/books/vouchers/:id/edit" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
+              <Route path="/admin/my-payslips" element={<ProtectedRoute requireAdmin><MyPayslips /></ProtectedRoute>} />
               <Route path="/admin/payroll" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><Payroll /></ProtectedRoute>} />
               <Route path="/admin/payroll/settings" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PayrollSettings /></ProtectedRoute>} />
               <Route path="/admin/attendance" element={<ProtectedRoute requireAdmin><Attendance /></ProtectedRoute>} />

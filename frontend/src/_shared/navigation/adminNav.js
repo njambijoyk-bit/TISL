@@ -186,6 +186,7 @@ export const ADMIN_NAV = [
           { title: 'Staff & resources', path: '/admin/resources', roles: ['admin', 'super_admin', 'manager'] },
         ],
       },
+      { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
       { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
       {
         id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: FINANCE_WRITE, keywords: 'salary payslip paye nssf deductions wages',

@@ -26,6 +26,7 @@ function Payslip({ line, run, onClose }) {
   const by = (k) => line.breakdown.filter((b) => b.kind === k && b.amount > 0);
   return (
     <Modal title={`Payslip — ${line.name}`} subtitle={`${run.number} · ${monthName(run.period_start)}`} onClose={onClose}>
+      <style>{'@media print { body * { visibility: hidden !important; } #payslip, #payslip * { visibility: visible !important; } #payslip { position: absolute; left: 0; top: 0; width: 100%; } }'}</style>
       <div id="payslip" style={{ fontSize: '0.84rem', display: 'grid', gap: 6 }}>
         <Row l="Basic pay" v={line.basic} />
         {line.absence_deduction > 0 && <Row l={`Unpaid absence (${line.days_unpaid} day${line.days_unpaid === 1 ? '' : 's'})`} v={-line.absence_deduction} />}

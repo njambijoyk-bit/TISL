@@ -20,3 +20,9 @@ const payrollAPI = {
 };
 
 export default payrollAPI;
+
+/** A staff member's own payslips (their own only; approved or paid runs). */
+export const myPayslipsAPI = {
+  list: async () => (await api.get('/admin/my-payslips')).data,
+  show: async (runId) => (await api.get(`/admin/my-payslips/${runId}`)).data,
+};

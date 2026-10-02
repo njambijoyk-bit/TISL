@@ -464,6 +464,44 @@ class PayrollService
                 'employer_cost', 'unverified_days', 'accepted_unverified', 'adjustments', 'breakdown']))->all()];
     }
 
+
+    /** Runs a person can see their payslip for: approved or paid, never a draft or a cancelled run. Newest first. */
+    public function payslipsFor(User $u, int $limit = 36): array
+    {
+        if (! self::ready()) {
+            return [];
+        }
+
+        return PayrollLine::where('user_id', $u->id)->join('payroll_runs as r', 'r.id', '=', 'payroll_lines.run_id')->whereIn('r.status', ['approved', 'paid'])->orderByDesc('r.period_start')->limit($limit)
+            ->get(['payroll_lines.run_id', 'r.number', 'r.period_start', 'r.status', 'payroll_lines.gross', 'payroll_lines.total_deductions', 'payroll_lines.net'])
+            ->map(fn ($x) => ['run_id' => (int) $x->run_id, 'number' => $x->number, 'period_start' => Carbon::parse($x->period_start)->toDateString(), 'status' => $x->status,
+                'gross' => (float) $x->gross, 'total_deductions' => (float) $x->total_deductions, 'net' => (float) $x->net])->all();
+    }
+
+    /**
+     * One person's own payslip for a run, for them to read. Only theirs, only for an approved or paid run. What the business pays on top (employer
+     * contributions, their cost), and the ledgers, are left out: it is the employee's side of the sum.
+     */
+    public function payslipOf(User $u, int $runId): array
+    {
+        $run = PayrollRun::whereIn('status', ['approved', 'paid'])->find($runId) ?? throw new BooksException('That payslip is not available.');
+        $l = PayrollLine::where('run_id', $run->id)->where('user_id', $u->id)->first() ?? throw new BooksException('That payslip is not available.');
+        $e = $u->employee;
+        $bd = collect($l->breakdown ?? [])->filter(fn ($b) => $b['amount'] > 0);
+        $adj = collect($l->adjustments ?? []);
+
+        return ['run' => ['number' => $run->number, 'period_start' => $run->period_start->toDateString(), 'period_end' => $run->period_end->toDateString(), 'status' => $run->status, 'paid_at' => $run->paid_at?->toDateString()],
+            'company' => rescue(fn () => \App\Models\CompanyProfile::name(), null, false),
+            'employee' => ['name' => $u->name, 'number' => $e?->employee_number, 'job_title' => $e?->job_title, 'department' => $e?->department, 'kra_pin' => $e?->kra_pin, 'nssf_number' => $e?->nssf_number, 'bank' => $e?->bank_name],
+            'basic' => $l->basic, 'days_expected' => $l->days_expected, 'days_unpaid' => $l->days_unpaid, 'absence_deduction' => $l->absence_deduction, 'overtime_hours' => $l->overtime_hours, 'overtime_pay' => $l->overtime_pay,
+            'earnings' => $bd->where('kind', 'earning')->map(fn ($b) => ['name' => $b['name'], 'amount' => $b['amount']])->values()->all() + [],
+            'bonuses' => $adj->where('kind', 'earning')->map(fn ($a) => ['name' => $a['description'], 'amount' => $a['amount']])->values()->all(),
+            'gross' => $l->gross, 'taxable' => $l->taxable,
+            'deductions' => $bd->where('kind', 'deduction')->map(fn ($b) => ['name' => $b['name'], 'amount' => $b['amount']])->values()->all(),
+            'other_deductions' => $adj->where('kind', 'deduction')->map(fn ($a) => ['name' => $a['description'], 'amount' => $a['amount']])->values()->all(),
+            'total_deductions' => $l->total_deductions, 'net' => $l->net];
+    }
+
     /** The bank payment list as CSV: who, bank, account, amount. */
     public function csv(PayrollRun $run): string
     {
