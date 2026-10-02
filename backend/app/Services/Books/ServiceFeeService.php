@@ -9,6 +9,7 @@ use App\Models\Service;
 use App\Models\ServiceFee;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Fees on a service are master data, like auction charges: ledgers in a "charge" group that belongs to services (the
@@ -113,5 +114,19 @@ class ServiceFeeService
                 ServiceFee::create($row);
             }
         });
+    }
+
+    /** Give a new service the fees that are marked "on for new services". */
+    public function attachDefaults(Service $service): void
+    {
+        if (! Schema::hasTable('service_fees')) {
+            return;
+        }
+        $pos = 0;
+        foreach ($this->ledgers() as $l) {
+            if (($l->settings ?? [])['default_on'] ?? false) {
+                ServiceFee::firstOrCreate(['service_id' => $service->id, 'ledger_id' => $l->id], ['is_enabled' => true, 'amount' => null, 'condition' => 'always', 'position' => $pos++]);
+            }
+        }
     }
 }

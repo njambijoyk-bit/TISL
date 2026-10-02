@@ -135,6 +135,7 @@ const BrandForm          = lazy(() => import('./ecommerce/pages/admin/BrandForm'
 const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services'));
 const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
 const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
+const ServiceSettings    = lazy(() => import('./ecommerce/pages/admin/ServiceSettings'));
 const Work               = lazy(() => import('./projects/pages/admin/Work'));
 const Quotes             = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
 const QuoteDetail        = lazy(() => import('./core/pages/admin/quotations/QuotationDetailPage'));
@@ -1014,6 +1015,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin><ServiceSettings /></ProtectedRoute>} />
 
               {/* Categories Routes */}
               <Route

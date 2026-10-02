@@ -470,6 +470,7 @@ class ServiceController extends Controller
 
             // Every service starts with a "Standard" package at its starting price.
             app(\App\Services\ServiceCatalogService::class)->ensureStandardVariant($service);
+            app(\App\Services\Books\ServiceFeeService::class)->attachDefaults($service);   // the fees marked "on for new services"
 
             DB::commit();
 

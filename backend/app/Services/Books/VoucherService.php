@@ -960,7 +960,7 @@ class VoucherService
         }
         if (! $id) {
             $s = AccountingSetting::current();
-            $id = $ctx['type']->default_ledger_id ?? ($ctx['type']->isSalesSide() ? $s->default_sales_ledger_id : $s->default_purchase_ledger_id);
+            $id = $ctx['type']->default_ledger_id ?? ($ctx['type']->isSalesSide() ? (($taxable instanceof \App\Models\Service ? $s->default_service_ledger_id : null) ?: $s->default_sales_ledger_id) : $s->default_purchase_ledger_id);
         }
 
         return $id ? Ledger::find($id) : null;
@@ -1322,7 +1322,7 @@ class VoucherService
             if (in_array($l['material_mode'] ?? null, ['included', 'customer_supplied'], true)) {
                 continue;   // no charge: included materials are costed to Cost of Services, the customer's own part is only noted
             }
-            $ledgerId = $l['ledger_id'] ?? $type->default_ledger_id ?? ($lineSide === 'C' ? $settings->default_sales_ledger_id : $settings->default_purchase_ledger_id);
+            $ledgerId = $l['ledger_id'] ?? $type->default_ledger_id ?? ($lineSide === 'C' ? (($l['item_type'] === 'service' ? $settings->default_service_ledger_id : null) ?: $settings->default_sales_ledger_id) : $settings->default_purchase_ledger_id);
             if ($stockLedgerId && $l['item_type'] === 'product' && ! empty($l['variant_id'])) {
                 $ledgerId = $stockLedgerId;
             }

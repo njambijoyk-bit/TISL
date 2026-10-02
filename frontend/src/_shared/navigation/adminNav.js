@@ -87,10 +87,11 @@ export const ADMIN_NAV = [
         ],
       },
       {
-        id: 'services', title: 'Services', icon: Wrench, color: '#10b981', path: '/admin/services', module: MODULES.ECOMMERCE, also: ['/admin/service-categories'],
+        id: 'services', title: 'Services', icon: Wrench, color: '#10b981', path: '/admin/services', module: MODULES.ECOMMERCE, also: ['/admin/service-categories', '/admin/service-settings'],
         tabs: [
           { title: 'Services', path: '/admin/services' },
           { title: 'Service categories', path: '/admin/service-categories' },
+          { title: 'Service settings', path: '/admin/service-settings' },
         ],
       },
       { id: 'hampers', title: 'Hampers', icon: Gift, color: '#fc7bf5', path: '/admin/hampers', module: MODULES.HAMPERS },

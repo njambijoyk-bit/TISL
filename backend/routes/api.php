@@ -1014,6 +1014,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/requirements/{requirementId}',           [ServiceCatalogController::class, 'destroyRequirement']);
         });
 
+        // Services settings: cancellation and reschedule windows, and the defaults of every service fee
+        Route::prefix('service-settings')->middleware('module:ecommerce')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Api\ServiceSettingsController::class, 'show']);
+            Route::put('/', [\App\Http\Controllers\Api\ServiceSettingsController::class, 'update'])->middleware('role:admin,super_admin,manager');
+        });
+
         // Service Categories Management
         Route::prefix('service-categories')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [ServiceCategoryController::class, 'adminIndex']);

@@ -16,7 +16,7 @@ class AccountingSetting extends Model
     protected $fillable = [
         'edit_window_days', 'locked_before', 'walkin_ledger_id', 'default_sales_ledger_id',
         'default_purchase_ledger_id', 'sales_returns_ledger_id', 'purchase_returns_ledger_id',
-        'shipping_income_ledger_id', 'discount_ledger_id', 'rounding_ledger_id', 'bad_debt_ledger_id', 'discount_allowed_ledger_id', 'bank_charges_ledger_id', 'bounce_fee_ledger_id', 'cash_over_short_ledger_id', 'sales_rounding', 'cash_sale_rounding',
+        'shipping_income_ledger_id', 'discount_ledger_id', 'rounding_ledger_id', 'bad_debt_ledger_id', 'discount_allowed_ledger_id', 'bank_charges_ledger_id', 'bounce_fee_ledger_id', 'cash_over_short_ledger_id', 'default_service_ledger_id', 'service_returns_ledger_id', 'booking_deposit_ledger_id', 'tips_payable_ledger_id', 'sales_rounding', 'cash_sale_rounding',
         'default_payment_method_id', 'fx_gain_ledger_id', 'fx_loss_ledger_id', 'gift_voucher_ledger_id', 'loyalty_liability_ledger_id', 'breakage_income_ledger_id', 'rewards_expense_ledger_id', 'interest_income_ledger_id', 'stock_ledger_id', 'cogs_ledger_id', 'cost_of_services_ledger_id', 'job_materials_ledger_id', 'stock_loss_ledger_id', 'wip_ledger_id', 'opening_balance_ledger_id', 'quotation_valid_days', 'updated_by', 'updated_at',
     ];
 
