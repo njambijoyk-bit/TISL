@@ -494,6 +494,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     finally { setSaving(false); }
   };
 
+  // lines post to income/expense accounts — customers' and suppliers' own accounts are moved with receipts, payments, journals and notes
+  const lineLedgers = ledgers.filter((l) => !['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
   const partyLedgers = ledgers.filter((l) => ['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
   const moneyLedgers = ledgers.filter((l) => ['Cash-in-hand', 'Bank Accounts'].includes(l.group?.name));
 
@@ -686,10 +688,10 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         </select>
                       )}
                       {l.type === 'charge' && l.kind !== 'shipping' && (
-                        <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">{l.kind === 'other' ? 'Ledger…' : 'Ledger (auto)'}</option>{ledgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                        <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">{l.kind === 'other' ? 'Ledger…' : 'Ledger (auto)'}</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
                       )}
                       {l.type === 'custom' && (
-                        <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">Ledger…</option>{ledgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+                        <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={{ ...small, marginTop: 4 }} aria-label="Ledger"><option value="">Ledger…</option>{lineLedgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
                       )}
                     </div>
                     {money0 ? <><span /><span /><span /><span /></> : (
