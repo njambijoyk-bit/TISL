@@ -11,7 +11,7 @@ import PolicyConsentCheckbox from '../../../../_shared/components/legal/shared/P
  * The figures come from the server (the same rules that build the order), for the bid shown now.
  * `money` formats an amount in the auction's currency.
  */
-export default function AuctionCostPanel({ auctionId, bid, money, ended, onRegistrationChange }) {
+export default function AuctionCostPanel({ auctionId, bid, money, ended, onRegistrationChange, onTermsChange }) {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const [quote, setQuote] = useState(null);
@@ -80,6 +80,14 @@ export default function AuctionCostPanel({ auctionId, bid, money, ended, onRegis
             </button>
           )}
           {status === 'registered' && <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700, color: '#15803d' }}>✓ You&apos;re registered — you can bid.</p>}
+        </div>
+      )}
+
+      {reg && !reg.required && !ended && reg.terms?.required && !reg.terms.accepted && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: '14px 18px' }}>
+          <p style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 800, color: '#92400e' }}>Auction terms</p>
+          <PolicyConsentCheckbox policyKeys={[reg.terms.policy_key]} actionContext="auction_bidding"
+            onChange={(checked, a) => { setAgreed(checked); setAcceptances(a); onTermsChange?.(checked, a); }} />
         </div>
       )}
 

@@ -35,6 +35,7 @@ export default function AuctionDetailPage() {
   const [auction, setAuction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [termsAgreed, setTermsAgreed] = useState({ checked: false, acceptances: [] });   // auction terms ticked on this page
   const [countdown, setCountdown] = useState(0);
   const [imageError, setImageError] = useState(false);
 
@@ -57,6 +58,8 @@ export default function AuctionDetailPage() {
   const money = (n) => formatMoney(n ?? 0, auction?.currency?.symbol || bidCode, { decimals: 'auto', max: 10 });
   // Status is the source of truth — an admin can end an auction abruptly before the
   // countdown reaches zero. Countdown is a secondary/visual signal only.
+  // direct-bid auctions: the terms are ticked in the panel on this page, and the bid waits for it
+  const termsPending = !!(regState && !regState.required && regState.terms?.required && !regState.terms.accepted && !termsAgreed.checked);
   const isEnded = auction != null && (
     auction.status === 'ended' ||
     auction.status === 'cancelled' ||
@@ -256,15 +259,15 @@ export default function AuctionDetailPage() {
               {/* Place bid button */}
               <button
                 onClick={() => setShowModal(true)}
-                disabled={isEnded || (regState?.required && !regState?.can_bid)}
-                title={regState?.required && !regState?.can_bid ? 'Register and pay the entry fee / deposit first' : undefined}
+                disabled={isEnded || termsPending || (regState?.required && !regState?.can_bid)}
+                title={termsPending ? 'Agree to the auction terms first' : regState?.required && !regState?.can_bid ? 'Register and pay the entry fee / deposit first' : undefined}
                 style={{
                   width: '100%', height: 52, borderRadius: 14, border: 'none',
-                  background: isEnded || (regState?.required && !regState?.can_bid) ? '#e5e7eb' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
-                  color: (isEnded || (regState?.required && !regState?.can_bid)) ? '#9ca3af' : 'white',
-                  fontSize: '1rem', fontWeight: 800, cursor: (isEnded || (regState?.required && !regState?.can_bid)) ? 'not-allowed' : 'pointer',
+                  background: isEnded || termsPending || (regState?.required && !regState?.can_bid) ? '#e5e7eb' : 'linear-gradient(135deg, #dc2626, #b91c1c)',
+                  color: (isEnded || termsPending || (regState?.required && !regState?.can_bid)) ? '#9ca3af' : 'white',
+                  fontSize: '1rem', fontWeight: 800, cursor: (isEnded || termsPending || (regState?.required && !regState?.can_bid)) ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                  boxShadow: (isEnded || (regState?.required && !regState?.can_bid)) ? 'none' : '0 4px 20px rgba(220,38,38,0.35)',
+                  boxShadow: (isEnded || termsPending || (regState?.required && !regState?.can_bid)) ? 'none' : '0 4px 20px rgba(220,38,38,0.35)',
                   transition: 'all 200ms ease', letterSpacing: '0.02em',
                 }}
                 onMouseEnter={e => { if (!isEnded) e.currentTarget.style.transform = 'translateY(-1px)'; }}
@@ -277,7 +280,7 @@ export default function AuctionDetailPage() {
                 {!isEnded && <>Minimum next bid: <strong style={{ color: '#374151' }}>{money(minBid)}</strong></>}
               </p>
 
-              <AuctionCostPanel auctionId={id} bid={Math.max(currentPrice, Number(auction.start_price) || 0)} money={money} ended={isEnded} onRegistrationChange={setRegState} />
+              <AuctionCostPanel auctionId={id} bid={Math.max(currentPrice, Number(auction.start_price) || 0)} money={money} ended={isEnded} onRegistrationChange={setRegState} onTermsChange={(checked, acceptances) => setTermsAgreed({ checked, acceptances })} />
 
               {/* Bid history */}
               <div style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
@@ -352,8 +355,9 @@ export default function AuctionDetailPage() {
                 onClick={async () => {
                   const val = parseFloat(document.getElementById('bid-amount').value);
                   if (!val || val < minBid) return toast.error(`Minimum bid is ${money(minBid)}`);
+                  if (termsPending) return toast.error('Please agree to the auction terms first.');
                   try {
-                    await auctionsAPI.placeBid(id, val);
+                    await auctionsAPI.placeBid(id, val, termsAgreed.acceptances);
                     toast.success('Bid placed! 🎉');
                     setShowModal(false);
                     auctionsAPI.getAuction(id).then(res => {
