@@ -491,6 +491,20 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     });
     if (fees.length) toast.success(`Added ${fees.length} service charge${fees.length === 1 ? '' : 's'} ticked for this service — change or delete any.`);
   };
+  // for a service line already on the form (or a quotation that was requested): add the fees ticked for its package, after that line
+  const addCharges = async (line) => {
+    try {
+      const rows = await api.lookup('service', '', undefined, { service_variant_id: line.service_variant_id });
+      const fees = rows?.[0]?.fees ?? [];
+      if (!fees.length) { toast('No service charges are ticked for this service.'); return; }
+      setLines((ls) => {
+        const at = ls.findIndex((x) => x.key === line.key);
+        const extra = fees.map((f) => ({ ...emptyLine('custom'), description: f.name, rate: f.amount, ledger_id: f.ledger_id }));
+        return [...ls.slice(0, at + 1), ...extra, ...ls.slice(at + 1)];
+      });
+      toast.success(`Added ${fees.length} service charge${fees.length === 1 ? '' : 's'} — change or delete any.`);
+    } catch (e) { toast.error(errMsg(e, 'Could not load the service charges')); }
+  };
   const setEntry = (i, patch) => setEntries((es) => es.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const dr = entries.filter((e) => e.side === 'D').reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const cr = entries.filter((e) => e.side === 'C').reduce((s, e) => s + (Number(e.amount) || 0), 0);
@@ -728,6 +742,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                     )}
                     <button type="button" aria-label="Remove line" onClick={() => setLines((ls) => ls.filter((x) => x.key !== l.key))} style={{ ...btnGhost, padding: '6px 8px', color: colors.danger }}><Trash2 size={14} /></button>
                   </div>
+                    {l.type === 'service' && l.service_variant_id && FEE_DOCS.includes(base) && (
+                      <button type="button" onClick={() => addCharges(l)} style={{ ...btnGhost, padding: '3px 10px', fontSize: '0.7rem', margin: '4px 0 0 8px' }}>+ Add this service's ticked charges</button>
+                    )}
                     {l.type === 'service' && l.service_variant_id && (
                       <MaterialsEditor api={api} materials={l.materials ?? []} ledgers={ledgers} onChange={(m) => setLine(l.key, { materials: m })} />
                     )}

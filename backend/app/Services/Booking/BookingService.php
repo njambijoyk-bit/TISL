@@ -170,6 +170,25 @@ class BookingService
         return $out;
     }
 
+
+    /**
+     * The service fees ticked for a package that a sales document or quotation should carry as lines of their own: charged with the service or when it is done,
+     * with no condition to check (on-site, urgent, groups… are left to add by hand). Money held for the customer (deposits, tips) and fees for what might go wrong
+     * are not income lines. Amounts are in the service's currency, or converted to $currencyId when given.
+     *
+     * @return array<int, array{ledger_id:int, name:string, amount:float}>
+     */
+    public function chargeLinesFor(Service $s, ?ServiceVariant $v, ?int $currencyId = null): array
+    {
+        $price = (float) ($v?->price ?? 0);
+        $ctx = ['on_site' => false, 'people' => 1, 'hours_ahead' => 1.0e9, 'after_hours' => false];
+        $from = $s->currency_id ? \App\Models\Currency::find($s->currency_id) : null;
+        $to = $currencyId && (int) $currencyId !== (int) $s->currency_id ? \App\Models\Currency::find($currencyId) : null;
+
+        return collect($this->feesFor($s, $price, $ctx))->filter(fn ($f) => ! $f['not_income'] && in_array($f['timing'], ['booking', 'completion'], true))
+            ->map(fn ($f) => ['ledger_id' => $f['ledger_id'], 'name' => $f['name'], 'amount' => $from && $to ? round($from->convertTo($to, $f['amount']), 2) : $f['amount']])->values()->all();
+    }
+
     private function context(array $in, Carbon $start, Carbon $end): array
     {
         return ['on_site' => (bool) ($in['on_site'] ?? false), 'people' => max(1, (int) ($in['people'] ?? 1)), 'hours_ahead' => max(0, now()->diffInMinutes($start, false) / 60),

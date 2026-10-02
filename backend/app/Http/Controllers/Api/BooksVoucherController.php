@@ -431,7 +431,8 @@ class BooksVoucherController extends Controller
         } elseif ($kind === 'service') {
             $variants = \App\Models\ServiceVariant::with(['service:id,name,status', 'materials.variant.product:id,name,is_for_sale', 'materials.variant.units.unit:id,code'])
                 ->whereHas('service', fn ($s) => $s->where('status', 'active'))
-                ->when($q !== '', fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhereHas('service', fn ($s) => $s->where('name', 'like', $like))))
+                ->when($request->filled('service_variant_id'), fn ($v) => $v->where('id', (int) $request->query('service_variant_id')))
+                ->when($q !== '' && ! $request->filled('service_variant_id'), fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhereHas('service', fn ($s) => $s->where('name', 'like', $like))))
                 ->orderBy('service_id')->limit(30)->get();
             $feeSvc = app(\App\Services\Booking\BookingService::class);
             foreach ($variants as $v) {
@@ -459,21 +460,13 @@ class BooksVoucherController extends Controller
     }
 
     /** One product variant as the pickers show it: names, units with prices, and what a purchase line needs (expiry tracking, last cost). */
-    /**
-     * The service fees ticked for this service that a sales document should carry: charged with the service or when it is done, with no condition
-     * to check (on-site, urgent, groups… are left for the person to add). Money held for the customer (deposit, tips) and fees for what might go wrong are not income lines.
-     */
+    /** The service fees ticked for this package, as lines for a sales document (see BookingService::chargeLinesFor). */
     private function ticked(\App\Services\Booking\BookingService $svc, \App\Models\ServiceVariant $v): array
     {
         try {
             $service = \App\Models\Service::find($v->service_id);
-            if (! $service) {
-                return [];
-            }
-            $ctx = ['on_site' => false, 'people' => 1, 'hours_ahead' => 1.0e9, 'after_hours' => false];
 
-            return collect($svc->feesFor($service, (float) ($v->price ?? 0), $ctx))->filter(fn ($f) => ! $f['not_income'] && in_array($f['timing'], ['booking', 'completion'], true))
-                ->map(fn ($f) => ['ledger_id' => $f['ledger_id'], 'name' => $f['name'], 'amount' => $f['amount']])->values()->all();
+            return $service ? $svc->chargeLinesFor($service, $v) : [];
         } catch (\Throwable $e) {
             return [];
         }

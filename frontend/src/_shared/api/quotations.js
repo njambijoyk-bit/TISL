@@ -26,7 +26,7 @@ const quotationsAPI = {
   voucher: (id) => get(`/admin/quotations/${id}`),
   updateVoucher: (id, data) => send('put', `/admin/quotations/${id}`, data),
   previewVoucher: (data) => send('post', '/admin/quotations/preview', data),
-  lookup: (kind, q) => get('/admin/quotations/lookup', { kind, q }),
+  lookup: (kind, q, purpose, extra = {}) => get('/admin/quotations/lookup', { kind, q, purpose, ...extra }),
   types: async () => [(await get('/admin/quotations/meta')).type],
   paymentMethods: async () => [],
   ledgers: async () => [],

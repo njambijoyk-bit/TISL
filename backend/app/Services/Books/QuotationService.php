@@ -44,6 +44,14 @@ class QuotationService
                     throw new BooksException('Pick a service package for each service.');
                 }
                 $lines[] = ['type' => 'service', 'service_id' => $it['service_id'] ?? null, 'service_variant_id' => $pkg, 'quantity' => $qty, 'notes' => $notes];   // no rate: the package's own price is filled in for the admin to confirm or change
+                // the fees ticked for the service come with it, each as a line of its own (priced for the admin to confirm, like the rest)
+                $variant = \App\Models\ServiceVariant::find($pkg);
+                $service = $variant ? \App\Models\Service::find($variant->service_id) : null;
+                if ($service) {
+                    foreach (app(\App\Services\Booking\BookingService::class)->chargeLinesFor($service, $variant, $customer->currency_id) as $f) {
+                        $lines[] = ['type' => 'custom', 'description' => $f['name'], 'quantity' => 1, 'rate' => $f['amount'], 'ledger_id' => $f['ledger_id']];
+                    }
+                }
             } else {
                 $lines[] = ['type' => 'product', 'product_id' => $it['product_id'] ?? null, 'variant_id' => $it['variant_id'] ?? null, 'variant_unit_id' => $it['variant_unit_id'] ?? null, 'quantity' => $qty, 'rate' => 0, 'notes' => $notes];
             }
