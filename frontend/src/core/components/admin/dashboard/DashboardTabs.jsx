@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
 import booksAPI from '../../../../_shared/api/books';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
@@ -135,7 +136,39 @@ function Funnels({ d }) {
   );
 }
 
-const TABS = [['sales', 'Sales'], ['purchases', 'Purchases'], ['pending', 'Pending documents'], ['funnels', 'Funnels']];
+function Stock({ d }) {
+  const range = `${d.from} to ${d.to}`;
+  const n = (v) => Number(v).toLocaleString(undefined, { maximumFractionDigits: 4 });
+  const stat = (label, value, color) => (
+    <div style={{ ...card, padding: '12px 16px', minWidth: 150 }}>
+      <div style={{ fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+      <div style={{ fontSize: '1.15rem', fontWeight: 800, color, fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+    </div>
+  );
+  return (
+    <>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 14 }}>
+        {stat('Stock value', money(d.totals.closing), d.totals.closing < 0 ? '#b91c1c' : undefined)}
+        {stat('Opening', money(d.totals.opening))}
+        {stat('Stock in', money(d.totals.inward))}
+        {stat('Stock out', money(d.totals.outward))}
+        {stat('Items in stock', `${d.counts.in_stock} of ${d.counts.items}`)}
+        {d.counts.negative > 0 && stat('Below zero', d.counts.negative, '#b91c1c')}
+        {d.counts.no_cost > 0 && stat('No cost', d.counts.no_cost, '#92400e')}
+        <Link to="/admin/stock/reports" style={{ alignSelf: 'center', marginLeft: 'auto', fontWeight: 700, fontSize: '0.82rem' }}>Open the stock reports →</Link>
+      </div>
+      <div style={grid}>
+        <Tile title="Stock movement" sub={`${range} · in and out, and what the stock was worth`}><Trend series={d.trend} /></Tile>
+        <Tile title="Value by group" sub={`to ${d.to}`}><Rows head="Closing value" rows={d.groups.map((g) => [`${g.name} (${g.items})`, money(g.value)])} empty="No stock." /></Tile>
+        <Tile title="Top items by value" sub={`to ${d.to}`}><Rows head="Quantity · value" rows={d.top_items.map((t) => [t.item, `${n(t.quantity)}${t.unit ? ` ${t.unit}` : ''} · ${money(t.value)}`])} empty="No stock." /></Tile>
+        <Tile title="What moved the stock" sub={range}><Rows head="Quantity · value" rows={d.kinds.map((k) => [`${k.label} (${k.movements})`, `${n(k.quantity)} · ${money(k.value)}`])} /></Tile>
+        <Tile title="Needs a look" sub="below zero or held at no cost"><Rows head="Quantity" rows={d.attention.map((a) => [`${a.item} — ${a.issue}`, `${n(a.quantity)}${a.unit ? ` ${a.unit}` : ''}`])} empty="Nothing — every item has stock and a cost." /></Tile>
+      </div>
+    </>
+  );
+}
+
+const TABS = [['sales', 'Sales'], ['purchases', 'Purchases'], ['stock', 'Stock'], ['pending', 'Pending documents'], ['funnels', 'Funnels']];
 
 export default function DashboardTabs() {
   const [tab, setTab] = useState('sales');
@@ -168,7 +201,7 @@ export default function DashboardTabs() {
       </div>
       {error && <div style={{ color: colors.danger ?? '#b91c1c', fontSize: '0.85rem' }}>{error}</div>}
       {!data && !error && <div style={{ color: colors.textMuted, padding: 30, textAlign: 'center' }}>Loading…</div>}
-      {data && (tab === 'pending' ? <Pending d={data} /> : tab === 'funnels' ? <Funnels d={data} /> : <Side d={data} />)}
+      {data && (tab === 'pending' ? <Pending d={data} /> : tab === 'funnels' ? <Funnels d={data} /> : tab === 'stock' ? <Stock d={data} /> : <Side d={data} />)}
     </div>
   );
 }

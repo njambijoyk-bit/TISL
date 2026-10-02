@@ -11,7 +11,8 @@ const LINKS = [
   { to: '/admin/books?tab=vouchers', label: 'Vouchers', desc: 'Sales, purchases, receipts, journals', icon: BookOpen, color: '#6366f1' },
   { to: '/admin/books/cash', label: 'Cash & bank', desc: 'Count the till, cheques in hand', icon: Banknote, color: '#0d9488' },
   { to: '/admin/books?tab=reports', label: 'Reports', desc: 'Day book, trial balance, profit & loss', icon: FileText, color: '#22c55e' },
-  { to: '/admin/inventory', label: 'Stock', desc: 'What you hold, where, and what is running low', icon: Boxes, color: '#f59e0b' },
+  { to: '/admin/stock/reports', label: 'Stock reports', desc: 'Summary, by branch, and one item at a time', icon: Boxes, color: '#f59e0b' },
+  { to: '/admin/inventory', label: 'Inventory', desc: 'What you hold, where, and what is running low', icon: Boxes, color: '#f59e0b' },
 ];
 
 /**

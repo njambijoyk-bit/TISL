@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Books\DashboardService;
 use Illuminate\Http\Request;
 
-/** The dashboard tabs: sales, purchases, pending documents and funnels. Read-only. */
+/** The dashboard tabs: sales, purchases, pending documents, funnels and stock. Read-only. */
 class BooksDashboardController extends Controller
 {
     public function __construct(private DashboardService $dash) {}
@@ -17,6 +17,7 @@ class BooksDashboardController extends Controller
         $data = match ($tab) {
             'sales', 'purchases' => $this->dash->side($tab, $r->from, $r->to, $loc),
             'pending' => $this->dash->pending($loc),
+            'stock' => app(\App\Services\Stock\StockReportService::class)->dashboard(['from' => $r->from, 'to' => $r->to, 'location_id' => $loc]),
             'funnels' => $this->dash->funnels($r->from, $r->to, $loc),
             default => null,
         };

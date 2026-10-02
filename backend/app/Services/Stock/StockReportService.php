@@ -301,4 +301,71 @@ class StockReportService
             'location_id' => $loc,
         ];
     }
+
+    /** The dashboard's Stock tab: what stock is worth, how it moved month by month, where the value sits, and what needs a look. */
+    public function dashboard(array $f): array
+    {
+        $sum = $this->summary($f);
+        $from = $sum['from'];
+        $to = $sum['to'];
+        $loc = $sum['location_id'];
+        $items = collect($sum['groups'])->flatMap(fn ($g) => $g['items']);
+
+        // month by month: stock in, stock out and what the stock was worth at each month end
+        [$t] = $this->cols();
+        $skip = $loc ? '' : "AND m.movement_type NOT IN ('transfer_in','transfer_out')";
+        $rows = DB::table('stock_movements as m')->where('m.reversed', false)->where('m.movement_date', '<=', $to)->when($loc, fn ($q) => $q->where('m.location_id', $loc))
+            ->when(! empty($f['item_type']), fn ($q) => $q->whereRaw("{$t} = ?", [$f['item_type']]))
+            ->get(['m.movement_date', 'm.quantity', 'm.unit_cost', 'm.movement_type']);
+        $open = 0.0;
+        $by = [];
+        foreach ($rows as $r) {
+            $date = Carbon::parse($r->movement_date)->toDateString();
+            $isTransfer = in_array($r->movement_type, self::TRANSFERS, true);
+            $val = (float) $r->quantity * (float) ($r->unit_cost ?? 0);
+            if ($date < $from) {
+                $open += $isTransfer && ! $loc ? 0 : $val;
+                continue;
+            }
+            if ($isTransfer && ! $loc) {
+                continue;
+            }
+            $m = substr($date, 0, 7);
+            $by[$m] ??= ['in' => 0.0, 'out' => 0.0];
+            $by[$m][$val >= 0 ? 'in' : 'out'] += abs($val);
+        }
+        $points = ['in' => [], 'out' => [], 'closing' => []];
+        $cursor = Carbon::parse($from)->startOfMonth();
+        $run = $open;
+        while ($cursor->lte(Carbon::parse($to))) {
+            $m = $cursor->format('Y-m');
+            $run += ($by[$m]['in'] ?? 0) - ($by[$m]['out'] ?? 0);
+            $label = $cursor->format('M y');
+            $points['in'][] = ['label' => $label, 'value' => round($by[$m]['in'] ?? 0, 2)];
+            $points['out'][] = ['label' => $label, 'value' => round($by[$m]['out'] ?? 0, 2)];
+            $points['closing'][] = ['label' => $label, 'value' => round($run, 2)];
+            $cursor->addMonth();
+        }
+
+        // what the movement was made of: purchases, sales, write-offs, counts…
+        $labels = $this->movementLabels();
+        $kinds = DB::table('stock_movements as m')->where('m.reversed', false)->whereBetween('m.movement_date', [$from, $to])->when($loc, fn ($q) => $q->where('m.location_id', $loc))
+            ->when(! $loc, fn ($q) => $q->whereNotIn('m.movement_type', self::TRANSFERS))
+            ->when(! empty($f['item_type']), fn ($q) => $q->whereRaw("{$t} = ?", [$f['item_type']]))
+            ->groupBy('m.movement_type')->selectRaw('m.movement_type AS k, SUM(m.quantity) AS q, SUM(m.quantity * COALESCE(m.unit_cost,0)) AS v, COUNT(*) AS n')->get()
+            ->map(fn ($r) => ['label' => $labels[$r->k] ?? ucfirst(str_replace('_', ' ', (string) $r->k)), 'movements' => (int) $r->n, 'quantity' => round((float) $r->q, 4), 'value' => round((float) $r->v, 2)])
+            ->sortByDesc(fn ($r) => abs($r['value']))->values()->all();
+
+        $attention = $items->filter(fn ($i) => $i['negative'] || $i['no_cost'])->map(fn ($i) => ['item' => $i['name'], 'issue' => $i['negative'] ? 'Below zero' : 'No cost', 'quantity' => $i['closing']['qty'], 'unit' => $i['unit']])->take(12)->values()->all();
+
+        return [
+            'from' => $from, 'to' => $to, 'location_id' => $loc, 'locations' => $sum['locations'],
+            'totals' => ['opening' => $sum['total']['opening']['value'], 'inward' => $sum['total']['inward']['value'], 'outward' => $sum['total']['outward']['value'], 'closing' => $sum['total']['closing']['value']],
+            'counts' => ['items' => $items->count(), 'in_stock' => $items->where('closing.qty', '>', 0)->count(), 'negative' => $sum['negative_items'], 'no_cost' => $sum['no_cost_items']],
+            'trend' => [['name' => 'Stock in', 'points' => $points['in']], ['name' => 'Stock out', 'points' => $points['out']], ['name' => 'Stock value', 'points' => $points['closing']]],
+            'groups' => collect($sum['groups'])->map(fn ($g) => ['name' => $g['name'], 'value' => $g['closing']['value'], 'items' => $g['item_count']])->sortByDesc('value')->take(10)->values()->all(),
+            'top_items' => $items->sortByDesc(fn ($i) => $i['closing']['value'])->take(10)->map(fn ($i) => ['item' => $i['name'], 'quantity' => $i['closing']['qty'], 'unit' => $i['unit'], 'value' => $i['closing']['value']])->values()->all(),
+            'kinds' => $kinds, 'attention' => $attention,
+        ];
+    }
 }
