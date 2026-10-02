@@ -1033,6 +1033,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/subscription/rotate', [$c, 'rotate']);
         });
 
+        // Petty cash: the boxes, spending with a receipt, top-ups to the float (a custodian or finance; the controller decides who may do what)
+        Route::prefix('petty-cash')->group(function () {
+            $c = \App\Http\Controllers\Api\PettyCashController::class;
+            Route::get('/',              [$c, 'index']);
+            Route::get('/options',       [$c, 'options']);
+            Route::post('/spend',        [$c, 'spend']);
+            Route::post('/spend/{id}/cancel', [$c, 'cancel'])->whereNumber('id');
+            Route::post('/top-up',       [$c, 'topUp']);
+            Route::put('/float',         [$c, 'setFloat']);
+        });
+
         // Bookings: the list, a new booking for a customer, and what happens to one
         Route::prefix('bookings')->group(function () {
             $c = \App\Http\Controllers\Api\BookingController::class;

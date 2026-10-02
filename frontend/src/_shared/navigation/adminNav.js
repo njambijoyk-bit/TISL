@@ -154,8 +154,10 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'Cash', path: '/admin/books/cash' },
           { title: 'Cheques', path: '/admin/books/cheques' },
+          { title: 'Petty cash', path: '/admin/petty-cash' },
         ],
       },
+      { id: 'petty-cash', title: 'Petty cash', icon: Banknote, color: '#0d9488', path: '/admin/petty-cash', keywords: 'petty cash float custodian receipts' },
       { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
       { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
       { id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/books?tab=reports', roles: FINANCE_READ, keywords: 'day book trial balance profit loss balance sheet ageing receivables payables tax' },

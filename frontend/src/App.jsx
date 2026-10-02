@@ -152,6 +152,7 @@ const CreditDetail       = lazy(() => import('./core/pages/admin/CustomerCreditD
 const AdminReviews       = lazy(() => import('./ecommerce/pages/admin/Reviews'));
 const BooksHub           = lazy(() => import('./core/pages/admin/books/BooksHub'));
 const VoucherForm        = lazy(() => import('./core/pages/admin/books/VoucherForm'));
+const PettyCash          = lazy(() => import('./core/pages/admin/books/PettyCash'));
 const CashPage           = lazy(() => import('./core/pages/admin/books/CashPage'));
 const ChequeRegister     = lazy(() => import('./core/pages/admin/books/ChequeRegister'));
 const EditLog            = lazy(() => import('./core/pages/admin/books/EditLog'));
@@ -1493,6 +1494,7 @@ function App() {
               <Route path="/admin/books" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><BooksHub /></ProtectedRoute>} />
               <Route path="/admin/books/vouchers/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
               <Route path="/admin/books/vouchers/:id/edit" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
+              <Route path="/admin/petty-cash" element={<ProtectedRoute requireAdmin><PettyCash /></ProtectedRoute>} />
               <Route path="/admin/books/cash" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><CashPage /></ProtectedRoute>} />
               <Route path="/admin/books/cheques" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><ChequeRegister /></ProtectedRoute>} />
               <Route path="/admin/books/edit-log" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><EditLog /></ProtectedRoute>} />
