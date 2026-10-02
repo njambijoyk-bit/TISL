@@ -4,25 +4,30 @@ import booksAPI from '../../../../_shared/api/books';
 import { colors } from '../../../../_shared/theme/tokens';
 
 const NATURE = { taxable: 'VAT-able', zero_rated: 'zero-rated', exempt: 'exempt', out_of_scope: 'out of scope' };
-const flat = (nodes, out = []) => { nodes.forEach((g) => { out.push(g); flat(g.children ?? [], out); }); return out; };
+// every group with what it is reserved for ('service' for Service Income and everything under it), inherited down the tree
+const flat = (nodes, out = [], inherited = null) => {
+  nodes.forEach((g) => { const applies = g.settings?.applies_to ?? inherited; out.push({ ...g, applies }); flat(g.children ?? [], out, applies); });
+  return out;
+};
 
 /**
  * The account an item is sold under (or bought under). The account carries the tax, so choosing it is choosing the tax:
  * an exempt product on an exempt account, a VAT-able one on a VAT-able account. Required for anything that can be sold.
  */
-export default function SalesAccountSelect({ value, onChange, kind = 'sales', required = false, disabled = false, label, hint, error, style, amount, currencyCode }) {
+export default function SalesAccountSelect({ value, onChange, kind = 'sales', scope = 'product', required = false, disabled = false, label, hint, error, style, amount, currencyCode }) {
   const [rows, setRows] = useState(null);
 
   useEffect(() => {
     (async () => {
       try {
         const [tree, ledgers] = await Promise.all([booksAPI.groups(), booksAPI.ledgers({ all: 1 })]);
-        const ids = new Set(flat(tree).filter((g) => g.behaviour === kind).map((g) => g.id));
+        // services are sold under Service Income, everything else under Sales Accounts
+        const ids = new Set(flat(tree).filter((g) => g.behaviour === kind && (kind !== 'sales' || (scope === 'service') === (g.applies === 'service'))).map((g) => g.id));
         const list = Array.isArray(ledgers) ? ledgers : ledgers.data ?? [];
         setRows(list.filter((l) => ids.has(l.group_id) && l.is_active));
       } catch { setRows([]); }
     })();
-  }, [kind]);
+  }, [kind, scope]);
 
   const chosen = rows?.find((l) => Number(l.id) === Number(value));
   const usable = (rows ?? []).filter((l) => l.tax_nature);
@@ -30,7 +35,7 @@ export default function SalesAccountSelect({ value, onChange, kind = 'sales', re
   const pct = chosen && chosen.tax_nature === 'taxable' && chosen.tax_rate_ledger?.rate_value != null ? Number(chosen.tax_rate_ledger.rate_value) : 0;
   const net = Number(amount);
   const nf = (n) => `${currencyCode ? `${currencyCode} ` : ''}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const text = label ?? (kind === 'sales' ? 'Sales account' : 'Purchase account');
+  const text = label ?? (kind === 'sales' ? (scope === 'service' ? 'Service income account' : 'Sales account') : 'Purchase account');
   const sel = { padding: '9px 10px', borderRadius: 8, border: `1.5px solid ${error ? colors.danger : colors.tint(0.18)}`, fontSize: '0.85rem', width: '100%', background: 'white', ...style };
 
   return (

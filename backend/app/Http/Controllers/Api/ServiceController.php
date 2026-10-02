@@ -273,7 +273,7 @@ class ServiceController extends Controller
      */
     public function store(Request $request)
     {
-        if ($r = \App\Services\Books\TradingAccounts::check($request)) {
+        if ($r = \App\Services\Books\TradingAccounts::check($request, null, 'service')) {
             return $r;
         }
         // Decode JSON strings from FormData

@@ -415,7 +415,7 @@ const ServiceForm = () => {
     if (formData.pricing_model === 'fixed' && !formData.base_price) return 'Base price is required for fixed pricing';
     if (formData.pricing_model === 'hourly' && !formData.hourly_rate) return 'Hourly rate is required';
     if (formData.pricing_model === 'daily'  && !formData.daily_rate)  return 'Daily rate is required';
-    if (!formData.sales_ledger_id) return 'Sales account is required (Tax section)';
+    if (!formData.sales_ledger_id) return 'Service income account is required (Tax section)';
     return null;
   };
 
@@ -626,7 +626,7 @@ const ServiceForm = () => {
 
               {/* Tax: the sales account decides it (required); overrides need a saved service */}
               <SectionCard title="Tax">
-                <SalesAccountSelect kind="sales" required amount={formData.base_price || formData.hourly_rate || formData.daily_rate} currencyCode={priceCurrencyCode} value={formData.sales_ledger_id}
+                <SalesAccountSelect kind="sales" scope="service" required amount={formData.base_price || formData.hourly_rate || formData.daily_rate} currencyCode={priceCurrencyCode} value={formData.sales_ledger_id}
                   onChange={(v) => setFormData((f) => ({ ...f, sales_ledger_id: v }))}
                   hint="The account decides the tax: an exempt service goes on an exempt account, a VAT-able one on a VAT-able account." />
               </SectionCard>

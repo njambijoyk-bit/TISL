@@ -32,7 +32,9 @@ class AuctionChargeService
     {
         $groupIds = LedgerGroup::where('behaviour', 'charge')->get()->flatMap(fn ($g) => $g->selfAndDescendantIds())->unique()->all();
 
-        return Ledger::with('taxRateLedger:id,name,rate_value')->whereIn('group_id', $groupIds)->where('is_active', true)->orderBy('name')->get();
+        // charges that belong to services (call-out, deposits, tips…) are not auction charges
+        return Ledger::with('taxRateLedger:id,name,rate_value')->whereIn('group_id', $groupIds)->where('is_active', true)->orderBy('name')->get()
+            ->reject(fn ($l) => LedgerGroup::appliesTo((int) $l->group_id) === 'service' || (($l->settings ?? [])['applies_to'] ?? null) === 'service')->values();
     }
 
     public static function defaultTiming(?string $kind): string

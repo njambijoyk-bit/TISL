@@ -47,6 +47,25 @@ class LedgerGroup extends Model
         return $this->hasMany(Ledger::class, 'group_id');
     }
 
+    /** What a group (or the group it sits under) is reserved for: 'service' for Service Income and everything below it, else null. */
+    public static function appliesTo(?int $groupId): ?string
+    {
+        $seen = [];
+        while ($groupId && ! in_array($groupId, $seen, true)) {
+            $seen[] = $groupId;
+            $g = self::find($groupId, ['id', 'parent_id', 'settings']);
+            if (! $g) {
+                return null;
+            }
+            if (! empty(($g->settings ?? [])['applies_to'])) {
+                return (string) $g->settings['applies_to'];
+            }
+            $groupId = $g->parent_id ? (int) $g->parent_id : null;
+        }
+
+        return null;
+    }
+
     /** This group's id plus every descendant's. */
     public function selfAndDescendantIds(): array
     {
