@@ -43,7 +43,7 @@ class QuotationService
                 if (! $pkg) {
                     throw new BooksException('Pick a service package for each service.');
                 }
-                $lines[] = ['type' => 'service', 'service_id' => $it['service_id'] ?? null, 'service_variant_id' => $pkg, 'quantity' => $qty, 'rate' => 0, 'notes' => $notes];
+                $lines[] = ['type' => 'service', 'service_id' => $it['service_id'] ?? null, 'service_variant_id' => $pkg, 'quantity' => $qty, 'notes' => $notes];   // no rate: the package's own price is filled in for the admin to confirm or change
             } else {
                 $lines[] = ['type' => 'product', 'product_id' => $it['product_id'] ?? null, 'variant_id' => $it['variant_id'] ?? null, 'variant_unit_id' => $it['variant_unit_id'] ?? null, 'quantity' => $qty, 'rate' => 0, 'notes' => $notes];
             }

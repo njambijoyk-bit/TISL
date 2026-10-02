@@ -479,6 +479,18 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     if (lineOff(t)) { toast.error('The E-commerce module is currently switched off, so products, services and hampers cannot be added.'); return; }
     setLines((ls) => [...ls, emptyLine(t)]);
   };
+  // Picking a service on a sales document also adds the fees ticked for it (call-out, service charge…) as lines of their own, each with its own account and tax; delete or change any
+  const FEE_DOCS = ['quotation', 'sales_order', 'sales', 'cash_sale'];
+  const pickService = (key, r) => {
+    const fees = FEE_DOCS.includes(base) ? (r.fees ?? []) : [];
+    setLines((ls) => {
+      const next = ls.map((x) => (x.key === key ? { ...x, service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '', materials: (r.materials ?? []).map((m) => ({ ...newMaterial(m.mode), variant_id: m.variant_id, variant_unit_id: m.variant_unit_id, unit_code: m.unit_code, label: variantLabel(m.product, m.variant), quantity: m.quantity })) } : x));
+      const at = next.findIndex((x) => x.key === key);
+      const extra = fees.map((f) => ({ ...emptyLine('custom'), description: f.name, rate: f.amount, ledger_id: f.ledger_id }));
+      return [...next.slice(0, at + 1), ...extra, ...next.slice(at + 1)];
+    });
+    if (fees.length) toast.success(`Added ${fees.length} service charge${fees.length === 1 ? '' : 's'} ticked for this service — change or delete any.`);
+  };
   const setEntry = (i, patch) => setEntries((es) => es.map((e, j) => (j === i ? { ...e, ...patch } : e)));
   const dr = entries.filter((e) => e.side === 'D').reduce((s, e) => s + (Number(e.amount) || 0), 0);
   const cr = entries.filter((e) => e.side === 'C').reduce((s, e) => s + (Number(e.amount) || 0), 0);
@@ -671,7 +683,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         : <Picker api={api} kind="product" purpose={SALES_SIDE.includes(base) ? 'sale' : 'purchase'} placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, track_expiry: Boolean(r.track_expiry), batch_id: '', label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
                       {l.type === 'service' && (l.service_variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
-                        : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => setLine(l.key, { service_id: r.service_id, service_variant_id: r.service_variant_id, label: `${r.service} — ${r.package}`, rate: '', materials: (r.materials ?? []).map((m) => ({ ...newMaterial(m.mode), variant_id: m.variant_id, variant_unit_id: m.variant_unit_id, unit_code: m.unit_code, label: variantLabel(m.product, m.variant), quantity: m.quantity })) })} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
+                        : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => pickService(l.key, r)} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
                       {l.type === 'hamper' && (l.hamper_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}<HamperLineBadges api={api} hamperId={l.hamper_id} name={l.label} customerId={h.customer?.customer_id} /></div>
                         : <Picker api={api} kind="hamper" extra={hamperExtra} placeholder="Search hampers…" onPick={(r) => setLine(l.key, { hamper_id: r.hamper_id, label: r.name })} render={(r) => <>{r.name} <span style={{ color: colors.textFaint }}>{money(r.price)}</span><Badges list={r.badges} /></>} />)}

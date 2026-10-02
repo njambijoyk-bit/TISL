@@ -27,7 +27,7 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
   const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { myBookingsAPI.availability(serviceId).then(setInfo).catch(() => setInfo({ bookable: false })); }, [serviceId]);
+  useEffect(() => { myBookingsAPI.availability(serviceId).then(setInfo).catch(() => setInfo({ bookable: false, booking_required: false, reason: 'error' })); }, [serviceId]);
   useEffect(() => {
     setSlots(null); setTime('');
     if (date && variantId && info?.bookable) myBookingsAPI.availability(serviceId, { date, service_variant_id: variantId }).then((r) => setSlots(r.slots ?? [])).catch(() => setSlots([]));
@@ -38,7 +38,17 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
     if (user && starts && variantId) myBookingsAPI.quote({ service_id: serviceId, service_variant_id: variantId, starts_at: starts, people, on_site: onSite }).then(setQuote).catch(() => {});
   }, [user, starts, variantId, serviceId, people, onSite]);
 
-  if (!info?.bookable) return null;
+  if (!info) return null;
+  if (!info.bookable) {
+    // a service that needs booking but has nobody set up yet says so, rather than showing nothing
+    if (!info.booking_required) return null;
+    return (
+      <div style={box}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, marginBottom: 6 }}><Calendar size={16} /> Booking required</div>
+        <p style={{ margin: 0, fontSize: '0.82rem', color: '#6b7280' }}>This service is booked in advance. Online booking is not open yet — request a quote or contact us and we will find you a time.</p>
+      </div>
+    );
+  }
   const go = async () => {
     if (!user) { navigate('/login', { state: { from: window.location.pathname } }); return; }
     setBusy(true);

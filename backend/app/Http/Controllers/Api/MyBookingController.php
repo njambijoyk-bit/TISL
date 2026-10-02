@@ -40,9 +40,11 @@ class MyBookingController extends Controller
     {
         $s = Service::findOrFail($service);
         if (! $this->svc->bookable($s)) {
-            return response()->json(['bookable' => false, 'message' => 'This service is not open for online booking.']);
+            // say why, so the page can show a note instead of nothing: a service that needs booking but has nobody set up yet
+            return response()->json(['bookable' => false, 'booking_required' => (bool) $s->booking_required, 'reason' => ! $s->canBeBooked() ? 'unavailable' : 'not_set_up',
+                'message' => 'This service is not open for online booking yet.']);
         }
-        $out = ['bookable' => true, 'window_hours' => ServiceSetting::current()->cancellation_window_hours, 'packages' => $s->variants()->where('status', '!=', 'inactive')->get(['id', 'name', 'price'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price])];
+        $out = ['bookable' => true, 'booking_required' => (bool) $s->booking_required, 'window_hours' => ServiceSetting::current()->cancellation_window_hours, 'packages' => $s->variants()->where('status', '!=', 'inactive')->get(['id', 'name', 'price'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price])];
         if ($request->filled('date') && $request->filled('service_variant_id')) {
             $v = ServiceVariant::with('durationUnit')->where('service_id', $s->id)->findOrFail($request->query('service_variant_id'));
             $day = Carbon::parse($request->query('date'));
