@@ -399,6 +399,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('role:admin,super_admin,finance,manager')->prefix('admin/stock')->group(function () {
         $n = \App\Http\Controllers\Admin\StockCountController::class;
         Route::get('/journal', [\App\Http\Controllers\Admin\StockJournalController::class, 'index']);
+        Route::get('/reports/summary',   [\App\Http\Controllers\Admin\StockReportController::class, 'summary']);
+        Route::get('/reports/monthly',   [\App\Http\Controllers\Admin\StockReportController::class, 'monthly']);
+        Route::get('/reports/movements', [\App\Http\Controllers\Admin\StockReportController::class, 'movements']);
+        Route::get('/reports/query',     [\App\Http\Controllers\Admin\StockReportController::class, 'query']);
+        Route::get('/reports/find',      [\App\Http\Controllers\Admin\StockReportController::class, 'find']);
         Route::get('/counts', [$n, 'index']);
         Route::get('/counts/{id}', [$n, 'show'])->whereNumber('id');
         Route::middleware('role:admin,super_admin,finance')->group(function () use ($n) {

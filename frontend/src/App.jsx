@@ -126,6 +126,7 @@ const StockTransfers     = lazy(() => import('./core/pages/admin/stock/StockTran
 const StockCounts        = lazy(() => import('./core/pages/admin/stock/StockCounts'));
 const Recipes            = lazy(() => import('./menus/pages/admin/Recipes'));
 const StockJournal       = lazy(() => import('./core/pages/admin/stock/StockJournal'));
+const StockReports       = lazy(() => import('./core/pages/admin/stock/StockReports'));
 const StockJobs          = lazy(() => import('./core/pages/admin/stock/StockJobs'));
 const AdminAuctions      = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctions'));
 const AdminAuctionDetail = lazy(() => import('./ecommerce/pages/admin/auctions/AdminAuctionDetail'));
@@ -717,6 +718,7 @@ function App() {
               <Route path="/admin/stock/transfers" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockTransfers /></ProtectedRoute>} />
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockCounts /></ProtectedRoute>} />
               <Route path="/admin/menus/recipes" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><Recipes /></ProtectedRoute>} />
+              <Route path="/admin/stock/reports" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockReports /></ProtectedRoute>} />
               <Route path="/admin/stock/journal" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockJournal /></ProtectedRoute>} />
               <Route path="/admin/stock/jobs" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockJobs /></ProtectedRoute>} />
               <Route path="/admin/stock/opening" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><AdminPurchases initial="opening_stock" /></ProtectedRoute>} />

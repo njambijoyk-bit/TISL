@@ -31,3 +31,12 @@ export const stockJobsAPI = {
   complete: async (id, invoiceVoucherId) => (await api.post(`/admin/stock/jobs/${id}/complete`, { invoice_voucher_id: invoiceVoucherId || undefined })).data,
   cancel: async (id) => (await api.post(`/admin/stock/jobs/${id}/cancel`)).data,
 };
+
+/** Stock reports: summary / location summary, an item's months and vouchers, and the stock query card. Works for every kind of stocked item. */
+export const stockReportsAPI = {
+  summary: async (params) => (await api.get('/admin/stock/reports/summary', { params })).data,
+  monthly: async (params) => (await api.get('/admin/stock/reports/monthly', { params })).data,
+  movements: async (params) => (await api.get('/admin/stock/reports/movements', { params })).data,
+  query: async (params) => (await api.get('/admin/stock/reports/query', { params })).data,
+  find: async (q) => (await api.get('/admin/stock/reports/find', { params: { q } })).data,
+};

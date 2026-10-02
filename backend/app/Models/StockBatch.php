@@ -21,9 +21,19 @@ class StockBatch extends Model
     protected $table = 'stock_batches';
 
     protected $fillable = [
-        'variant_id', 'batch_no', 'mfg_date', 'expiry_date', 'unit_cost',
+        'variant_id', 'item_type', 'item_id', 'batch_no', 'mfg_date', 'expiry_date', 'unit_cost',
         'received_at', 'received_voucher_id', 'status', 'notes', 'clearance_percent', 'held_reason', 'last_warned_days',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $b) {
+            if ($b->item_id === null && $b->variant_id !== null && \App\Models\Books\StockMovement::hasItemColumns('stock_batches')) {
+                $b->item_type = 'product_variant';
+                $b->item_id = $b->variant_id;
+            }
+        });
+    }
 
     protected $casts = [
         'mfg_date'    => 'date:Y-m-d',

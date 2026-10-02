@@ -72,7 +72,7 @@ export const ADMIN_NAV = [
       },
       {
         id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases', roles: FINANCE_READ,
-        keywords: 'buy stock supplier vendor creditor receive batch expiry expired opening stock write off recall quarantine transfer branch count journal job work in progress wip', also: ['/admin/vendors', '/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/journal', '/admin/stock/jobs'],
+        keywords: 'buy stock supplier vendor creditor receive batch expiry expired opening stock write off recall quarantine transfer branch count journal job work in progress wip', also: ['/admin/vendors', '/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/journal', '/admin/stock/reports', '/admin/stock/jobs'],
         tabs: [
           { title: 'Purchases', path: '/admin/purchases', exact: true },
           { title: 'Vendors', path: '/admin/vendors' },
@@ -81,6 +81,7 @@ export const ADMIN_NAV = [
           { title: 'Held stock', path: '/admin/stock/held' },
           { title: 'Transfers', path: '/admin/stock/transfers' },
           { title: 'Stock counts', path: '/admin/stock/counts' },
+          { title: 'Stock reports', path: '/admin/stock/reports' },
           { title: 'Stock journal', path: '/admin/stock/journal' },
           { title: 'Jobs in progress', path: '/admin/stock/jobs' },
         ],
