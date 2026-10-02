@@ -1182,12 +1182,17 @@ class VoucherService
         return $line;
     }
 
-    /** A charge or custom line is income or expense: a customer's or supplier's own account is moved with a receipt, payment, journal or note, never by a line. */
+    /** A charge or custom line is income or expense: a customer's or supplier's account, or cash and bank, is moved with a receipt, payment, journal or note, never by a line. */
     private function assertNotPartyLedger(int $ledgerId, string $kind): void
     {
         $ledger = Ledger::find($ledgerId);
-        if ($ledger && ($this->ledgers->isUnderGroup($ledger, 'Sundry Debtors') || $this->ledgers->isUnderGroup($ledger, 'Sundry Creditors'))) {
-            throw new BooksException("A {$kind} line cannot post to {$ledger->name}: that is a customer's or supplier's account. Use a Journal, Receipt, Payment or credit/debit note to move money on their account.");
+        if (! $ledger) {
+            return;
+        }
+        foreach (['Sundry Debtors' => "a customer's or supplier's account", 'Sundry Creditors' => "a customer's or supplier's account", 'Cash-in-hand' => 'a cash account', 'Bank Accounts' => 'a bank account'] as $group => $what) {
+            if ($this->ledgers->isUnderGroup($ledger, $group)) {
+                throw new BooksException("A {$kind} line cannot post to {$ledger->name}: that is {$what}. Use a Receipt, Payment, Journal or credit/debit note to move money there.");
+            }
         }
     }
 

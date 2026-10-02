@@ -494,8 +494,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     finally { setSaving(false); }
   };
 
-  // lines post to income/expense accounts — customers' and suppliers' own accounts are moved with receipts, payments, journals and notes
-  const lineLedgers = ledgers.filter((l) => !['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
+  // lines post to income/expense accounts — customers', suppliers', cash and bank accounts are moved with receipts, payments, journals and notes
+  const lineLedgers = ledgers.filter((l) => !['Sundry Debtors', 'Sundry Creditors', 'Cash-in-hand', 'Bank Accounts'].includes(l.group?.name));
   const partyLedgers = ledgers.filter((l) => ['Sundry Debtors', 'Sundry Creditors'].includes(l.group?.name));
   const moneyLedgers = ledgers.filter((l) => ['Cash-in-hand', 'Bank Accounts'].includes(l.group?.name));
 
