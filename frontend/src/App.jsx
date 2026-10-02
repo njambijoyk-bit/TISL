@@ -135,6 +135,8 @@ const BrandForm          = lazy(() => import('./ecommerce/pages/admin/BrandForm'
 const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services'));
 const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
 const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
+const Bookings           = lazy(() => import('./core/pages/admin/calendar/Bookings'));
+const MyBookings         = lazy(() => import('./core/pages/customer/MyBookings'));
 const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCalendar'));
 const TeamCalendar       = lazy(() => import('./core/pages/admin/calendar/TeamCalendar'));
 const StaffResources     = lazy(() => import('./core/pages/admin/calendar/StaffResources'));
@@ -499,6 +501,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Checkout />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-bookings"
+              element={
+                <ProtectedRoute>
+                  <MyBookings />
                 </ProtectedRoute>
               }
             />
@@ -1018,6 +1028,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/admin/bookings" element={<ProtectedRoute requireAdmin><Bookings /></ProtectedRoute>} />
               <Route path="/admin/calendar" element={<ProtectedRoute requireAdmin><MyCalendar /></ProtectedRoute>} />
               <Route path="/admin/calendar/team" element={<ProtectedRoute requireAdmin><TeamCalendar /></ProtectedRoute>} />
               <Route path="/admin/resources" element={<ProtectedRoute requireAdmin><StaffResources /></ProtectedRoute>} />

@@ -276,6 +276,7 @@ Route::get('/services', [ServiceController::class, 'index']);
 Route::get('/services/featured', [ServiceController::class, 'featured']);
 Route::get('/services/types', [ServiceController::class, 'getTypes']);
 Route::get('/services/{id}/packages', [ServiceCatalogController::class, 'publicPackages'])->whereNumber('id');
+Route::get('/services/{id}/booking', [\App\Http\Controllers\Api\MyBookingController::class, 'availability'])->whereNumber('id')->middleware('throttle:60,1');
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/services/{id}/related', [ServiceController::class, 'related']);
 
@@ -302,6 +303,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
     Route::post('/auth/profile-picture', [AuthController::class, 'uploadProfilePicture']);
+
+    // My bookings (customers): book, see mine, cancel
+    Route::get('/my-bookings',                [\App\Http\Controllers\Api\MyBookingController::class, 'index']);
+    Route::post('/my-bookings/quote',         [\App\Http\Controllers\Api\MyBookingController::class, 'quote']);
+    Route::post('/my-bookings',               [\App\Http\Controllers\Api\MyBookingController::class, 'store']);
+    Route::post('/my-bookings/{id}/cancel',   [\App\Http\Controllers\Api\MyBookingController::class, 'cancel'])->whereNumber('id');
 
     Route::post('/auctions/{auction}/bid', [AuctionController::class, 'placeBid']);
     Route::get('/auctions/{auction}/registration', [AuctionController::class, 'registration']);
@@ -1024,6 +1031,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/team',                 [$c, 'team']);
             Route::get('/subscription',         [$c, 'subscription']);
             Route::post('/subscription/rotate', [$c, 'rotate']);
+        });
+
+        // Bookings: the list, a new booking for a customer, and what happens to one
+        Route::prefix('bookings')->group(function () {
+            $c = \App\Http\Controllers\Api\BookingController::class;
+            Route::get('/',                    [$c, 'index']);
+            Route::get('/options',             [$c, 'options']);
+            Route::get('/slots',               [$c, 'slots']);
+            Route::post('/quote',              [$c, 'quote']);
+            Route::post('/',                   [$c, 'store']);
+            Route::get('/{id}',                [$c, 'show'])->whereNumber('id');
+            Route::post('/{id}/reschedule',    [$c, 'reschedule'])->whereNumber('id');
+            Route::post('/{id}/cancel',        [$c, 'cancel'])->whereNumber('id');
+            Route::post('/{id}/no-show',       [$c, 'noShow'])->whereNumber('id');
+            Route::post('/{id}/complete',      [$c, 'complete'])->whereNumber('id');
+            Route::get('/{id}/notice',         [$c, 'notice'])->whereNumber('id');
+            Route::post('/{id}/email',         [$c, 'email'])->whereNumber('id');
         });
 
         // Staff, rooms, tables and equipment that can be booked

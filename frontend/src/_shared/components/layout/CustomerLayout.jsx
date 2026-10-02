@@ -34,6 +34,7 @@ const CUSTOMER_GROUPS = [
     items: [
       { name: 'My Profile',      icon: User,          bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))', path: '/profile',           active: true },
       { name: 'My Orders',       icon: ShoppingBag,   bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/orders',            active: true },
+      { name: 'My Bookings',     icon: Calendar, bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/my-bookings',       active: true },
       { name: 'Cart',            icon: ShoppingCart,  bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/cart',              active: true },
       { name: 'Wishlist',        icon: Heart,         bg: 'linear-gradient(135deg,#ef4444,#f87171)', path: '/wishlist',          active: true },
       { name: 'My Account',      icon: User,          bg: 'linear-gradient(135deg,#6366f1,#818cf8)', path: '/my-account',        active: true },

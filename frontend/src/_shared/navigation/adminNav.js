@@ -176,10 +176,11 @@ export const ADMIN_NAV = [
         ],
       },
       {
-        id: 'calendar', title: 'Calendar', icon: CalendarCheck, color: '#10b981', path: '/admin/calendar', keywords: 'schedule bookings staff availability google ics',
+        id: 'calendar', title: 'Calendar', icon: CalendarCheck, color: '#10b981', path: '/admin/calendar', also: ['/admin/bookings'], keywords: 'schedule bookings staff availability google ics appointments',
         tabs: [
           { title: 'My calendar', path: '/admin/calendar', exact: true },
           { title: 'Team calendar', path: '/admin/calendar/team', roles: ['admin', 'super_admin', 'manager'] },
+          { title: 'Bookings', path: '/admin/bookings' },
           { title: 'Staff & resources', path: '/admin/resources', roles: ['admin', 'super_admin', 'manager'] },
         ],
       },
