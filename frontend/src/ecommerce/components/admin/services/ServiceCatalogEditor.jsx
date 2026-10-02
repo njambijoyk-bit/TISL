@@ -193,31 +193,76 @@ function ServiceFees({ fees, currencyCode, serviceId, readOnly, busy, run }) {
  * with its own price, duration and unit), or hand-made. Every service always
  * has at least one — the automatic "Standard" package.
  */
-/**
- * Who can do this service, package by package — so one package can be offered at one branch and another at a different one. People and rooms are listed under the
- * branch they work at (set in Staff & resources); ticking a box lets customers book that package with them. "All" lets them do every package, including ones added later.
- * The branches a package is offered at are simply the branches of the people ticked.
- */
-function WhoDoesIt({ variants, serviceId, readOnly }) {
+/** Who is set up for which package: one state shared by the "Offered at" column and the "Who can do it" grid. `on` holds "resourceId:variantId" or "resourceId:all". */
+const skey = (r, v) => `${r}:${v ?? 'all'}`;
+function useStaffing(serviceId) {
   const [data, setData] = useState(null);
-  const [on, setOn] = useState(new Set());     // "resourceId:variantId|all"
+  const [on, setOn] = useState(new Set());
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState(null);
-  const key = (r, v) => `${r}:${v ?? 'all'}`;
-  const apply = (d) => { setData(d); setOn(new Set(d.assigned.map((a) => key(a.resource_id, a.service_variant_id)))); };
-  useEffect(() => { resourcesAPI.forService(serviceId).then(apply).catch(() => setData({ resources: [], assigned: [], unavailable: true })); }, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!data) return null;
-  const groups = Object.values(data.resources.reduce((m, r) => { const k = r.location ?? 'Any branch'; (m[k] ??= { name: k, rows: [] }).rows.push(r); return m; }, {}));
-  const toggle = (r, v) => setOn((cur) => { const n = new Set(cur); const k = key(r, v); if (n.has(k)) n.delete(k); else n.add(k); return n; });
-  const save = async () => {
+  const apply = useCallback((d) => { setData(d); setOn(new Set(d.assigned.map((a) => skey(a.resource_id, a.service_variant_id)))); }, []);
+  useEffect(() => { resourcesAPI.forService(serviceId).then(apply).catch(() => setData({ resources: [], assigned: [] })); }, [serviceId, apply]);
+  const commit = async (set) => {
     setBusy(true); setNote(null);
     try {
-      const rows = [...on].map((k) => { const [r, v] = k.split(':'); return { resource_id: Number(r), service_variant_id: v === 'all' ? null : Number(v) }; });
+      const rows = [...set].map((k) => { const [r, v] = k.split(':'); return { resource_id: Number(r), service_variant_id: v === 'all' ? null : Number(v) }; });
       const res = await resourcesAPI.saveForService(serviceId, rows); apply(res); setNote(res.message);
     } catch (e) { setNote(e?.response?.data?.message ?? 'Could not save'); } finally { setBusy(false); }
   };
+  return { data, on, setOn, busy, note, commit };
+}
+
+const doesPackage = (on, r, v) => on.has(skey(r, null)) || on.has(skey(r, v));
+
+/** Turn one person on or off for one package; a person who did every package ("all") is first split into the packages they do. */
+function toggleOne(on, resourceId, variantId, allVariantIds, turnOn) {
+  const n = new Set(on);
+  if (turnOn) { n.add(skey(resourceId, variantId)); return n; }
+  if (n.has(skey(resourceId, null))) { n.delete(skey(resourceId, null)); allVariantIds.forEach((id) => id !== variantId && n.add(skey(resourceId, id))); }
+  n.delete(skey(resourceId, variantId));
+  return n;
+}
+
+/** The "Offered at" cell of a package: the branches, ticking one lets everyone who works there do this package (fine-tune in Who can do it). */
+function OfferedAt({ staff, variant, variants, readOnly }) {
+  const { data, on, busy, commit } = staff;
+  if (!data) return <span style={{ color: colors.textFaint, fontSize: '0.75rem' }}>…</span>;
+  const active = data.resources.filter((r) => r.location_id);
+  const branches = Object.values(active.reduce((m, r) => { (m[r.location_id] ??= { id: r.location_id, name: r.location, people: [] }).people.push(r); return m; }, {}));
+  if (!branches.length) return <Link to="/admin/resources" style={{ fontSize: '0.72rem' }}>{data.resources.length ? 'Give staff a branch' : 'Add staff'}</Link>;
+  const ids = variants.map((x) => x.id);
+  const toggle = (b) => {
+    const some = b.people.some((r) => doesPackage(on, r.id, variant.id));
+    let next = on;
+    b.people.forEach((r) => { next = toggleOne(next, r.id, variant.id, ids, !some); });
+    commit(next);
+  };
   return (
-    <Section title="Who can do it" description="Tick who can do each package. They are grouped by the branch they work at, so you can offer one package at one branch and another at a different one. A customer can book a package only with someone ticked here. Add people and rooms in Staff & resources.">
+    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', minWidth: 150 }}>
+      {branches.map((b) => {
+        const n = b.people.filter((r) => doesPackage(on, r.id, variant.id)).length;
+        return (
+          <button key={b.id} type="button" disabled={readOnly || busy} onClick={() => toggle(b)} title={`${n} of ${b.people.length} people at ${b.name} do this package`}
+            style={{ padding: '3px 9px', borderRadius: 999, fontSize: '0.72rem', cursor: readOnly ? 'default' : 'pointer', border: `1.5px solid ${n ? '#10b981' : '#e5e7eb'}`, background: n ? '#ecfdf5' : '#fff', color: n ? '#065f46' : colors.textMuted, fontWeight: n ? 700 : 500 }}>
+            {b.name}{n ? ` · ${n}` : ''}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * Who can do this service, package by package — the detail behind "Offered at". People and rooms are listed under the branch they work at (set in Staff & resources);
+ * a customer can book a package only with someone ticked here. "All" lets them do every package, including ones added later.
+ */
+function WhoDoesIt({ variants, staff, readOnly }) {
+  const { data, on, setOn, busy, note, commit } = staff;
+  if (!data) return null;
+  const groups = Object.values(data.resources.reduce((m, r) => { const k = r.location ?? 'Any branch'; (m[k] ??= { name: k, rows: [] }).rows.push(r); return m; }, {}));
+  const toggle = (r, v) => setOn((cur) => { const n = new Set(cur); const k = skey(r, v); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  return (
+    <Section title="Who can do it" description="Tick who can do each package, grouped by the branch they work at. The Offered at column in Packages ticks a whole branch at once; use this to pick individuals. A customer can book a package only with someone ticked here. Add people and rooms in Staff & resources.">
       {!data.resources.length ? (
         <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textFaint }}>No one is bookable yet. <Link to="/admin/resources">Add staff or rooms</Link> first.</p>
       ) : (
@@ -231,8 +276,8 @@ function WhoDoesIt({ variants, serviceId, readOnly }) {
                   {g.rows.map((r) => (
                     <tr key={r.id}>
                       <td style={td}>{r.name} <span style={{ color: colors.textFaint, fontSize: '0.72rem' }}>{r.type}{!r.has_hours ? ' · no working hours yet' : ''}</span></td>
-                      <td style={{ ...td, textAlign: 'center' }}><input type="checkbox" disabled={readOnly} checked={on.has(key(r.id, null))} onChange={() => toggle(r.id, null)} /></td>
-                      {variants.map((v) => <td key={v.id} style={{ ...td, textAlign: 'center' }}><input type="checkbox" disabled={readOnly || on.has(key(r.id, null))} checked={on.has(key(r.id, null)) || on.has(key(r.id, v.id))} onChange={() => toggle(r.id, v.id)} /></td>)}
+                      <td style={{ ...td, textAlign: 'center' }}><input type="checkbox" disabled={readOnly} checked={on.has(skey(r.id, null))} onChange={() => toggle(r.id, null)} /></td>
+                      {variants.map((v) => <td key={v.id} style={{ ...td, textAlign: 'center' }}><input type="checkbox" disabled={readOnly || on.has(skey(r.id, null))} checked={doesPackage(on, r.id, v.id)} onChange={() => toggle(r.id, v.id)} /></td>)}
                     </tr>
                   ))}
                 </Fragment>
@@ -243,7 +288,7 @@ function WhoDoesIt({ variants, serviceId, readOnly }) {
       )}
       {!readOnly && data.resources.length > 0 && (
         <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button type="button" style={btnPrimary} disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save who can do it'}</button>
+          <button type="button" style={btnPrimary} disabled={busy} onClick={() => commit(on)}>{busy ? 'Saving…' : 'Save who can do it'}</button>
           {note && <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{note}</span>}
         </div>
       )}
@@ -253,6 +298,7 @@ function WhoDoesIt({ variants, serviceId, readOnly }) {
 
 export default function ServiceCatalogEditor({ serviceId, currencyCode = getBaseCode(), readOnly = false }) {
   const [cat, setCat] = useState(null);
+  const staff = useStaffing(serviceId);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [notice, setNotice] = useState(null);
@@ -367,6 +413,7 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
                 <th style={th}>Price ({currencyCode})</th>
                 <th style={th}>Duration</th>
                 <th style={th}>Price covers</th>
+                <th style={th}>Offered at</th>
                 <th style={th}>Status</th>
                 <th style={th} />
               </tr>
@@ -407,6 +454,7 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
                       {priceUnits.map((u) => <option key={u.id} value={u.id}>per {u.name.toLowerCase()}</option>)}
                     </select>
                   </td>
+                  <td style={td}><OfferedAt staff={staff} variant={v} variants={cat.variants} readOnly={readOnly} /></td>
                   <td style={td}>
                     <select value={v.status} disabled={readOnly} style={{ ...cell, width: 96 }} onChange={(e) => saveVariant(v, { status: e.target.value })}>
                       <option value="active">Active</option>
@@ -441,7 +489,7 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
 
       <PackageMaterials variants={cat.variants} serviceId={serviceId} readOnly={readOnly} busy={busy} run={run} />
 
-      <WhoDoesIt variants={cat.variants} serviceId={serviceId} readOnly={readOnly} />
+      <WhoDoesIt variants={cat.variants} staff={staff} readOnly={readOnly} />
 
       {/* ── Fees ── */}
       <ServiceFees fees={cat.fees ?? []} currencyCode={currencyCode} serviceId={serviceId} readOnly={readOnly} busy={busy} run={run} />
