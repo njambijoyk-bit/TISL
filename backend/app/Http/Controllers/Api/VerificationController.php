@@ -3,219 +3,139 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Books\VoucherType;
 use App\Models\User;
+use App\Models\VerificationAssignment;
+use App\Models\VerificationItem;
+use App\Services\Books\BooksException;
+use App\Services\Verification\VerificationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
+/** Verification: the verifier's monthly register, items and statuses; and (admin, finance) who verifies what, the hand-picked sample and the workload. See VerificationService. */
 class VerificationController extends Controller
 {
-    // ================================================
-    // EMAIL VERIFICATION
-    // ================================================
-    public function verifyEmail(Request $request, $id, $hash)
+    public function __construct(private VerificationService $svc) {}
+
+    private function guard(callable $fn): JsonResponse
     {
-        $user = User::findOrFail($id);
-
-        if (!hash_equals(sha1($user->getEmailForVerification()), $hash)) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/verify-email?error=invalid_link');
+        try {
+            return $fn();
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
         }
-
-        if ($user->hasVerifiedEmail()) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/verify-email?already=verified');
-        }
-
-        $user->markEmailAsVerified();
-
-        return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/verify-email?verified=1');
     }
 
-     /**
-     * Resend verification email (customer self-service)
-     */
-    public function resendEmailVerification(Request $request)
+    private function month(Request $r): string
     {
-        $user = $request->user();
-
-        if ($user->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Email already verified.'], 422);
-        }
-
-        $user->sendEmailVerificationNotification();
-
-        return response()->json(['message' => 'Verification email sent.']);
+        return preg_match('/^\d{4}-\d{2}$/', (string) $r->query('month')) ? $r->query('month') : now()->subMonth()->format('Y-m');
     }
 
-    /**
-     * Admin manually verify a user's email
-     */
-    public function adminVerifyEmail(Request $request, $id)
+    public function index(Request $request): JsonResponse
     {
-        $user = User::findOrFail($id);
-        $this->authorize('manageAccount', $user);
+        if (! VerificationService::ready()) {
+            return response()->json(['table_ready' => false, 'is_manager' => VerificationService::isManager($request->user()), 'months' => [], 'types' => []]);
+        }
+        $u = $request->user();
+        $all = $request->boolean('all') && VerificationService::isManager($u);
+        $m = $this->month($request);
+        $reg = $this->svc->register($u, $m, $all);
 
-        $user->forceFill(['email_verified_at' => now()])->save();
-
-        return response()->json(['message' => 'Email verified.', 'data' => $user]);
+        return response()->json(['table_ready' => true, 'is_manager' => VerificationService::isManager($u), 'all' => $all, 'month' => $m, 'due' => $reg['due'], 'types' => $reg['types'], 'months' => $this->svc->months($u, $all),
+            'statuses' => VerificationItem::STATUSES]);
     }
 
-    /**
-     * Admin manually unverify a user's email
-     */
-    public function adminUnverifyEmail(Request $request, $id)
+    public function items(Request $request): JsonResponse
     {
-        $user = User::findOrFail($id);
-        $this->authorize('manageAccount', $user);
+        $request->validate(['type' => 'required|string|max:40']);
+        $all = $request->boolean('all') && VerificationService::isManager($request->user());
 
-        $user->forceFill(['email_verified_at' => null])->save();
-
-        return response()->json(['message' => 'Email verification removed.', 'data' => $user]);
+        return response()->json(['items' => $this->svc->items($request->user(), $this->month($request), $request->query('type'), $all)]);
     }
 
-    // ================================================
-    // PHONE VERIFICATION
-    // ================================================
-
-    /**
-     * Send OTP to user's phone (customer self-service)
-     */
-    public function sendPhoneOtp(Request $request)
+    public function pickList(Request $request): JsonResponse
     {
-        $user = $request->user();
+        abort_unless(VerificationService::isManager($request->user()), 403);
+        $request->validate(['type' => 'required|string|max:40']);
 
-        if (!$user->phone) {
-            return response()->json(['message' => 'No phone number on your account.'], 422);
-        }
-
-        if ($user->hasVerifiedPhone()) {
-            return response()->json(['message' => 'Phone already verified.'], 422);
-        }
-
-        // Generate 6-digit OTP
-        $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-        $user->forceFill([
-            'phone_otp'            => $otp,
-            'phone_otp_expires_at' => now()->addMinutes(10),
-        ])->save();
-
-        // TODO: Integrate with SMS provider (Twilio, Africa's Talking, etc.)
-        // For now we log it for testing
-        Log::info('Phone OTP generated', [
-            'user_id' => $user->id,
-            'phone'   => $user->phone,
-            'otp'     => $otp, // Remove in production
-        ]);
-
-        // Uncomment when SMS provider is configured:
-        // SmsService::send($user->phone, "Your TISL verification code is: {$otp}. Expires in 10 minutes.");
-
-        return response()->json(['message' => 'OTP sent to your phone number.']);
+        return response()->json(['items' => $this->svc->pickList($this->month($request), $request->query('type'))]);
     }
 
-    /**
-     * Verify phone OTP (customer self-service)
-     */
-    public function verifyPhoneOtp(Request $request)
+    public function show(Request $request, int $id): JsonResponse
     {
-        $request->validate([
-            'otp' => 'required|string|size:6',
-        ]);
-
-        $user = $request->user();
-
-        if ($user->hasVerifiedPhone()) {
-            return response()->json(['message' => 'Phone already verified.'], 422);
-        }
-
-        if (!$user->phone_otp || !$user->phone_otp_expires_at) {
-            return response()->json(['message' => 'No OTP found. Please request a new one.'], 422);
-        }
-
-        if ($user->phone_otp_expires_at->isPast()) {
-            return response()->json(['message' => 'OTP has expired. Please request a new one.'], 422);
-        }
-
-        if ($request->otp !== $user->phone_otp) {
-            return response()->json(['message' => 'Invalid OTP.'], 422);
-        }
-
-        $user->forceFill([
-            'phone_verified_at'    => now(),
-            'phone_otp'            => null,
-            'phone_otp_expires_at' => null,
-        ])->save();
-
-        return response()->json(['message' => 'Phone verified successfully.', 'data' => $user]);
+        return $this->guard(fn () => response()->json($this->svc->show($request->user(), $id)));
     }
 
-    /**
-     * Admin manually verify a user's phone
-     */
-    public function adminVerifyPhone(Request $request, $id)
+    public function mark(Request $request, int $id): JsonResponse
     {
-        $user = User::findOrFail($id);
-        $this->authorize('manageAccount', $user);
+        $d = $request->validate(['status' => 'required|string|max:24', 'note' => 'nullable|string|max:255', 'clarified_by' => 'nullable|string|max:120']);
 
-        $user->forceFill([
-            'phone_verified_at'    => now(),
-            'phone_otp'            => null,
-            'phone_otp_expires_at' => null,
-        ])->save();
+        return $this->guard(function () use ($request, $id, $d) {
+            $this->svc->mark($request->user(), $id, $d['status'], $d['note'] ?? null, $d['clarified_by'] ?? null);
 
-        return response()->json(['message' => 'Phone verified.', 'data' => $user]);
+            return response()->json(['message' => 'Recorded.'] + $this->svc->show($request->user(), $id));
+        });
     }
 
-    /**
-     * Admin manually unverify a user's phone
-     */
-    public function adminUnverifyPhone(Request $request, $id)
+    public function pick(Request $request, int $id): JsonResponse
     {
-        $user = User::findOrFail($id);
-        $this->authorize('manageAccount', $user);
+        $d = $request->validate(['selected' => 'required|boolean']);
 
-        $user->forceFill(['phone_verified_at' => null])->save();
+        return $this->guard(function () use ($request, $id, $d) {
+            $this->svc->pick($request->user(), $id, (bool) $d['selected']);
 
-        return response()->json(['message' => 'Phone verification removed.', 'data' => $user]);
+            return response()->json(['message' => $d['selected'] ? 'Picked for verification.' : 'Taken off the list.']);
+        });
     }
 
-    // ================================================
-    // ACCOUNT LOCK (Admin manual lock)
-    // ================================================
+    // ── set-up (admin, finance) ────────────────────────────────────────────
 
-    /**
-     * Admin manually lock an account
-     */
-    public function lockAccount(Request $request, $id)
+    public function config(Request $request): JsonResponse
     {
-        $user = User::findOrFail($id);
-        $this->authorize('manageAccount', $user);
+        abort_unless(VerificationService::isManager($request->user()), 403);
 
-        $request->validate([
-            'duration_minutes' => 'nullable|integer|min:1|max:10080', // max 1 week
-            'reason'           => 'nullable|string|max:255',
-        ]);
+        return response()->json(['table_ready' => VerificationService::ready(), 'assignments' => $this->svc->assignments(), 'scopes' => VerificationAssignment::SCOPES, 'sampling' => VerificationAssignment::SAMPLING,
+            'voucher_types' => VoucherType::where('is_active', true)->orderBy('name')->get(['id', 'name']), 'staff' => User::whereHas('employee')->orderBy('name')->get(['id', 'name']),
+            'branches' => DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name']), 'workload' => $this->svc->workload(), 'due_day' => $this->svc->dueDay()]);
+    }
 
-        $duration = $request->input('duration_minutes', 60);
+    public function saveAssignment(Request $request, ?int $id = null): JsonResponse
+    {
+        abort_unless(VerificationService::isManager($request->user()), 403);
+        $d = $request->validate(['user_id' => 'required|integer|exists:users,id', 'scope_type' => 'required|string', 'scope_id' => 'nullable|integer', 'location_id' => 'nullable|integer', 'sampling' => 'required|string',
+            'percent' => 'nullable|integer|min:1|max:100', 'from_month' => 'nullable|string|max:7', 'to_month' => 'nullable|string|max:7', 'is_active' => 'nullable|boolean']);
 
-        $user->forceFill([
-            'locked_until'          => now()->addMinutes($duration),
-            'failed_login_attempts' => 5,
-        ])->save();
+        return $this->guard(function () use ($request, $d, $id) {
+            $a = $this->svc->saveAssignment($d, $id, $request->user());
 
-        // Revoke tokens so they're kicked out immediately
-        $user->tokens()->delete();
+            return response()->json(['id' => $a->id, 'message' => 'Saved.'], $id ? 200 : 201);
+        });
+    }
 
-        Log::info('Account manually locked by admin', [
-            'target_user_id' => $user->id,
-            'admin_id'       => $request->user()->id,
-            'duration'       => $duration,
-            'reason'         => $request->reason,
-        ]);
+    public function deleteAssignment(Request $request, int $id): JsonResponse
+    {
+        abort_unless(VerificationService::isManager($request->user()), 403);
+        if (VerificationItem::where('assignment_id', $id)->where('status', '!=', 'pending')->exists()) {
+            VerificationAssignment::whereKey($id)->update(['is_active' => false]);
 
-        return response()->json([
-            'message'      => "Account locked for {$duration} minutes.",
-            'locked_until' => $user->locked_until,
-            'data'         => $user,
-        ]);
+            return response()->json(['message' => 'Verification has started under this assignment, so it was switched off rather than deleted.']);
+        }
+        VerificationItem::where('assignment_id', $id)->delete();
+        VerificationAssignment::whereKey($id)->delete();
+
+        return response()->json(['message' => 'Deleted.']);
+    }
+
+    public function saveSettings(Request $request): JsonResponse
+    {
+        abort_unless(VerificationService::isManager($request->user()), 403);
+        $d = $request->validate(['due_day' => 'required|integer|min:1|max:28']);
+        if (! \Illuminate\Support\Facades\Schema::hasTable('verification_settings')) {
+            return response()->json(['message' => 'Run script 65_verification.sql first.'], 422);
+        }
+        DB::table('verification_settings')->exists() ? DB::table('verification_settings')->update(['due_day' => $d['due_day'], 'updated_at' => now()]) : DB::table('verification_settings')->insert(['due_day' => $d['due_day'], 'created_at' => now(), 'updated_at' => now()]);
+
+        return response()->json(['message' => 'Saved.']);
     }
 }

@@ -1033,6 +1033,22 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/subscription/rotate', [$c, 'rotate']);
         });
 
+        // Verification: the verifier's register and statuses (any staff; the service checks what is theirs) and the set-up (admin, finance)
+        Route::prefix('verification')->group(function () {
+            $c = \App\Http\Controllers\Api\VerificationController::class;
+            Route::get('/',                          [$c, 'index']);
+            Route::get('/items',                     [$c, 'items']);
+            Route::get('/pick-list',                 [$c, 'pickList']);
+            Route::get('/items/{id}',                [$c, 'show'])->whereNumber('id');
+            Route::post('/items/{id}/mark',          [$c, 'mark'])->whereNumber('id');
+            Route::post('/items/{id}/pick',          [$c, 'pick'])->whereNumber('id');
+            Route::get('/config',                    [$c, 'config']);
+            Route::post('/assignments',              [$c, 'saveAssignment']);
+            Route::put('/assignments/{id}',          [$c, 'saveAssignment'])->whereNumber('id');
+            Route::delete('/assignments/{id}',       [$c, 'deleteAssignment'])->whereNumber('id');
+            Route::put('/settings',                  [$c, 'saveSettings']);
+        });
+
         // My payslips: any staff member, their own only
         Route::get('/my-payslips',                [\App\Http\Controllers\Api\MyPayslipController::class, 'index']);
         Route::get('/my-payslips/{runId}',        [\App\Http\Controllers\Api\MyPayslipController::class, 'show'])->whereNumber('runId');
