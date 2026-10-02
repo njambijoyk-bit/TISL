@@ -50,6 +50,9 @@ GROUP BY p.name, pv.name
 ORDER BY p.name, pv.name;
 
 -- PART B — ADD THE OPENING MOVEMENTS (transaction)
+-- IMPORTANT: finish with COMMIT (or ROLLBACK) in the same Workbench tab. A transaction left open keeps its locks and the app
+-- then fails with "Lock wait timeout exceeded" on stock counts, sales and purchases. READ COMMITTED keeps the locks to a minimum.
+SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED;
 START TRANSACTION;
 
 INSERT INTO stock_movements (voucher_id, voucher_item_id, variant_id, item_type, item_id, location_id, quantity, movement_type, movement_date, reversed, created_at, batch_id, unit_cost, ref_type, ref_id)
@@ -73,3 +76,4 @@ LEFT JOIN (SELECT batch_id, location_id, SUM(quantity) AS q FROM stock_movements
 WHERE b.quantity - COALESCE(m.q, 0) > 0.00005;
 
 -- When C2 shows 0 run:  COMMIT;    To undo instead run:  ROLLBACK;
+-- Do not leave this tab with the transaction open. Afterwards you can run:  SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;
