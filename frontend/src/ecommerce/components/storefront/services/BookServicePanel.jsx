@@ -18,6 +18,8 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const [info, setInfo] = useState(null);
+  const [branches, setBranches] = useState([]);
+  const [branch, setBranch] = useState('');
   const [date, setDate] = useState('');
   const [slots, setSlots] = useState(null);
   const [time, setTime] = useState('');
@@ -28,10 +30,16 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { myBookingsAPI.availability(serviceId).then(setInfo).catch(() => setInfo({ bookable: false, booking_required: false, reason: 'error' })); }, [serviceId]);
+  // the branches a package is offered at are where the people who do it work; one branch is chosen for the customer
+  useEffect(() => {
+    setBranch(''); setBranches([]);
+    if (variantId && info?.bookable) myBookingsAPI.availability(serviceId, { service_variant_id: variantId }).then((r) => { setBranches(r.branches ?? []); if ((r.branches ?? []).length === 1) setBranch(String(r.branches[0].id)); }).catch(() => {});
+  }, [serviceId, variantId, info?.bookable]);
+  const needBranch = branches.length > 1 && !onSite && !branch;
   useEffect(() => {
     setSlots(null); setTime('');
-    if (date && variantId && info?.bookable) myBookingsAPI.availability(serviceId, { date, service_variant_id: variantId }).then((r) => setSlots(r.slots ?? [])).catch(() => setSlots([]));
-  }, [serviceId, variantId, date, info?.bookable]);
+    if (date && variantId && info?.bookable && !needBranch) myBookingsAPI.availability(serviceId, { date, service_variant_id: variantId, location_id: onSite ? undefined : branch || undefined }).then((r) => setSlots(r.slots ?? [])).catch(() => setSlots([]));
+  }, [serviceId, variantId, date, info?.bookable, branch, needBranch, onSite]);
   const starts = date && time ? `${date} ${time}` : '';
   useEffect(() => {
     setQuote(null);
@@ -52,7 +60,7 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
   const go = async () => {
     if (!user) { navigate('/login', { state: { from: window.location.pathname } }); return; }
     setBusy(true);
-    try { const r = await myBookingsAPI.create({ service_id: serviceId, service_variant_id: variantId, starts_at: starts, people, on_site: onSite, address: address || undefined }); toast.success(r.message); navigate('/my-bookings'); }
+    try { const r = await myBookingsAPI.create({ service_id: serviceId, service_variant_id: variantId, starts_at: starts, people, on_site: onSite, address: address || undefined, location_id: onSite ? undefined : branch || undefined }); toast.success(r.message); navigate('/my-bookings'); }
     catch (e) { toast.error(errMsg(e, 'Could not book')); } finally { setBusy(false); }
   };
   const fmt = (n) => (money ? money(n) : Number(n).toFixed(2));
@@ -62,6 +70,13 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
       {!variantId && <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>Choose a package above first.</p>}
       {variantId && (
         <div style={{ display: 'grid', gap: 10 }}>
+          {branches.length > 1 && !onSite && (
+            <select value={branch} onChange={(e) => setBranch(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }} aria-label="Branch">
+              <option value="">Choose a branch…</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          )}
+          {branches.length === 1 && !onSite && <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>At {branches[0].name}</p>}
+          <label style={{ fontSize: '0.8rem' }}><input type="checkbox" checked={onSite} onChange={(e) => setOnSite(e.target.checked)} /> Come to my place</label>
           <input type="date" min={new Date().toISOString().slice(0, 10)} value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }} />
           {date && slots !== null && (slots.length
             ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{slots.map((s) => <button key={s.time} type="button" onClick={() => setTime(s.time)} style={{ padding: '6px 12px', borderRadius: 8, cursor: 'pointer', border: `1.5px solid ${time === s.time ? 'var(--color-primary-500)' : '#e5e7eb'}`, background: time === s.time ? 'rgba(59,130,246,0.08)' : '#fff', fontWeight: time === s.time ? 700 : 500 }}>{s.time}</button>)}</div>
@@ -70,7 +85,6 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
             <>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                 <label style={{ fontSize: '0.8rem' }}>People <input type="number" min="1" value={people} onChange={(e) => setPeople(Number(e.target.value) || 1)} style={{ width: 64, padding: 6, borderRadius: 6, border: '1px solid #d1d5db' }} /></label>
-                <label style={{ fontSize: '0.8rem' }}><input type="checkbox" checked={onSite} onChange={(e) => setOnSite(e.target.checked)} /> Come to my place</label>
               </div>
               {onSite && <input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }} />}
               {quote && (

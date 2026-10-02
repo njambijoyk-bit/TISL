@@ -31,7 +31,7 @@ class BookingController extends Controller
             'id' => $b->id, 'number' => $b->number, 'status' => $b->status, 'source' => $b->source,
             'starts_at' => $b->starts_at->toIso8601String(), 'ends_at' => $b->ends_at->toIso8601String(), 'people' => $b->people, 'on_site' => $b->on_site, 'address' => $b->address, 'notes' => $b->notes,
             'customer' => $b->customer ? ['id' => $b->customer->id, 'name' => trim($b->customer->first_name . ' ' . $b->customer->last_name), 'email' => $b->customer->email, 'phone' => $b->customer->phone] : null,
-            'service' => $b->service?->name, 'service_id' => $b->bookable_id, 'package' => $b->variant?->name, 'service_variant_id' => $b->service_variant_id,
+            'location_id' => $b->location_id, 'branch' => $b->location_id ? \Illuminate\Support\Facades\DB::table('locations')->where('id', $b->location_id)->value('name') : null, 'service' => $b->service?->name, 'service_id' => $b->bookable_id, 'package' => $b->variant?->name, 'service_variant_id' => $b->service_variant_id,
             'resource' => $b->resource ? ['id' => $b->resource->id, 'name' => $b->resource->name, 'type' => $b->resource->type] : null,
             'price' => (float) $b->price, 'fees' => $b->fees ?? [], 'deposit_amount' => (float) $b->deposit_amount, 'deposit_status' => $b->deposit_status,
             'deposit_paid' => $upfront ? $this->svc->paidOnUpfront($b) >= (float) $b->deposit_amount - 0.005 && (float) $b->deposit_amount > 0 : false,
@@ -55,7 +55,7 @@ class BookingController extends Controller
             return response()->json(['table_ready' => false, 'rows' => [], 'counts' => []]);
         }
         $q = Booking::query()->orderBy('starts_at', $request->query('order') === 'desc' ? 'desc' : 'asc');
-        foreach (['status', 'resource_id', 'customer_id'] as $f) {
+        foreach (['status', 'resource_id', 'customer_id', 'location_id'] as $f) {
             $q->when($request->filled($f), fn ($w) => $w->where($f, $request->query($f)));
         }
         $q->when($request->filled('from'), fn ($w) => $w->where('starts_at', '>=', Carbon::parse($request->query('from'))->startOfDay()))
@@ -80,24 +80,24 @@ class BookingController extends Controller
 
     public function options(): JsonResponse
     {
-        return response()->json(['services' => Service::with(['variants:id,service_id,name,price,status', 'currency:id,code'])->whereHas('variants')->orderBy('name')->get(['id', 'name', 'currency_id'])
-            ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'currency' => $s->currency?->code, 'packages' => $s->variants->where('status', '!=', 'inactive')->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price])->values(),
+        return response()->json(['branches' => \Illuminate\Support\Facades\DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name']), 'services' => Service::with(['variants:id,service_id,name,price,status', 'currency:id,code'])->whereHas('variants')->orderBy('name')->get(['id', 'name', 'currency_id'])
+            ->map(fn ($s) => ['id' => $s->id, 'name' => $s->name, 'currency' => $s->currency?->code, 'packages' => $s->variants->where('status', '!=', 'inactive')->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price, 'branches' => $this->svc->branchesFor($s, $v->id)])->values(),
                 'has_resources' => \App\Models\ResourceService::where('service_id', $s->id)->exists()])->values()]);
     }
 
     public function slots(Request $request): JsonResponse
     {
-        $d = $request->validate(['service_id' => 'required|integer', 'service_variant_id' => 'required|integer', 'date' => 'required|date', 'resource_id' => 'nullable|integer']);
+        $d = $request->validate(['service_id' => 'required|integer', 'service_variant_id' => 'required|integer', 'date' => 'required|date', 'resource_id' => 'nullable|integer', 'location_id' => 'nullable|integer']);
         $s = Service::findOrFail($d['service_id']);
         $v = ServiceVariant::with('durationUnit')->where('service_id', $s->id)->findOrFail($d['service_variant_id']);
 
-        return response()->json(['slots' => $this->svc->slots($s, $v, Carbon::parse($d['date']), $d['resource_id'] ?? null), 'minutes' => $this->svc->minutes($v)]);
+        return response()->json(['slots' => $this->svc->slots($s, $v, Carbon::parse($d['date']), $d['resource_id'] ?? null, $d['location_id'] ?? null), 'minutes' => $this->svc->minutes($v)]);
     }
 
     public function store(Request $request): JsonResponse
     {
         $d = $request->validate(['customer_id' => 'required|integer|exists:customers,id', 'service_id' => 'required|integer', 'service_variant_id' => 'required|integer', 'starts_at' => 'required|date',
-            'resource_id' => 'nullable|integer', 'people' => 'nullable|integer|min:1|max:500', 'on_site' => 'nullable|boolean', 'address' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:2000', 'price' => 'nullable|numeric|min:0']);
+            'resource_id' => 'nullable|integer', 'location_id' => 'nullable|integer|exists:locations,id', 'people' => 'nullable|integer|min:1|max:500', 'on_site' => 'nullable|boolean', 'address' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:2000', 'price' => 'nullable|numeric|min:0']);
         try {
             $b = $this->svc->create($d + ['source' => 'admin'], $request->user());
         } catch (\Throwable $e) {

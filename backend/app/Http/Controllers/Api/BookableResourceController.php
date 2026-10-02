@@ -46,6 +46,39 @@ class BookableResourceController extends Controller
         ]);
     }
 
+
+    /** For a service's own screen: every bookable resource by branch, and who is set up for which package (null package = every package). */
+    public function forService(int $serviceId): JsonResponse
+    {
+        return response()->json($this->servicePayload($serviceId));
+    }
+
+    private function servicePayload(int $serviceId): array
+    {
+        Service::findOrFail($serviceId);
+
+        return [
+            'resources' => BookableResource::where('is_active', true)->orderBy('name')->get()->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'type' => $r->type, 'location_id' => $r->location_id,
+                'location' => $r->location_id ? DB::table('locations')->where('id', $r->location_id)->value('name') : null, 'has_hours' => $r->hours()->exists()])->values(),
+            'assigned' => \App\Models\ResourceService::where('service_id', $serviceId)->get(['resource_id', 'service_variant_id'])->map(fn ($x) => ['resource_id' => $x->resource_id, 'service_variant_id' => $x->service_variant_id])->values(),
+        ];
+    }
+
+    /** Replace who does this service: rows [{resource_id, service_variant_id|null}]. Other services are untouched. */
+    public function saveForService(Request $request, int $serviceId): JsonResponse
+    {
+        Service::findOrFail($serviceId);
+        $d = $request->validate(['rows' => 'present|array|max:500', 'rows.*.resource_id' => 'required|integer|exists:bookable_resources,id', 'rows.*.service_variant_id' => 'nullable|integer|exists:service_variants,id']);
+        DB::transaction(function () use ($serviceId, $d) {
+            \App\Models\ResourceService::where('service_id', $serviceId)->delete();
+            foreach (collect($d['rows'])->unique(fn ($r) => $r['resource_id'] . ':' . ($r['service_variant_id'] ?? '')) as $r) {
+                \App\Models\ResourceService::create(['resource_id' => $r['resource_id'], 'service_id' => $serviceId, 'service_variant_id' => $r['service_variant_id'] ?? null]);
+            }
+        });
+
+        return response()->json($this->servicePayload($serviceId) + ['message' => 'Saved — customers can book the packages with the people and branches you ticked.']);
+    }
+
     private function rules(): array
     {
         return ['name' => 'required|string|max:120', 'location_id' => 'nullable|integer|exists:locations,id', 'capacity' => 'nullable|integer|min:1|max:500',

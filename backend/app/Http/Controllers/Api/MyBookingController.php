@@ -44,12 +44,13 @@ class MyBookingController extends Controller
             return response()->json(['bookable' => false, 'booking_required' => (bool) $s->booking_required, 'reason' => ! $s->canBeBooked() ? 'unavailable' : 'not_set_up',
                 'message' => 'This service is not open for online booking yet.']);
         }
-        $out = ['bookable' => true, 'booking_required' => (bool) $s->booking_required, 'window_hours' => ServiceSetting::current()->cancellation_window_hours, 'packages' => $s->variants()->where('status', '!=', 'inactive')->get(['id', 'name', 'price'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price])];
+        $variantId = $request->filled('service_variant_id') ? (int) $request->query('service_variant_id') : null;
+        $out = ['bookable' => true, 'booking_required' => (bool) $s->booking_required, 'branches' => $this->svc->branchesFor($s, $variantId), 'window_hours' => ServiceSetting::current()->cancellation_window_hours, 'packages' => $s->variants()->where('status', '!=', 'inactive')->get(['id', 'name', 'price'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price])];
         if ($request->filled('date') && $request->filled('service_variant_id')) {
             $v = ServiceVariant::with('durationUnit')->where('service_id', $s->id)->findOrFail($request->query('service_variant_id'));
             $day = Carbon::parse($request->query('date'));
             // staff names are not shown to customers: only the times
-            $out['slots'] = collect($this->svc->slots($s, $v, $day))->map(fn ($t) => ['time' => $t['time']])->values();
+            $out['slots'] = collect($this->svc->slots($s, $v, $day, null, $request->filled('location_id') ? (int) $request->query('location_id') : null))->map(fn ($t) => ['time' => $t['time']])->values();
             $out['minutes'] = $this->svc->minutes($v);
         }
 
@@ -91,7 +92,7 @@ class MyBookingController extends Controller
     {
         $c = $this->mine($request);
         $d = $request->validate(['service_id' => 'required|integer', 'service_variant_id' => 'required|integer', 'starts_at' => 'required|date', 'people' => 'nullable|integer|min:1|max:50',
-            'on_site' => 'nullable|boolean', 'address' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:1000']);
+            'on_site' => 'nullable|boolean', 'address' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:1000', 'location_id' => 'nullable|integer|exists:locations,id']);
         try {
             $b = $this->svc->create(['customer_id' => $c->id, 'source' => 'portal'] + $d, $request->user());
         } catch (\Throwable $e) {

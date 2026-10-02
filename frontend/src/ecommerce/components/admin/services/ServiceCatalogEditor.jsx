@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Trash2, Star, Sparkles, X } from 'lucide-react';
 import serviceCatalogAPI from '../../../../_shared/api/serviceCatalog';
@@ -6,6 +6,7 @@ import useUomStore from '../../../../_shared/store/uomStore';
 import { colors, card, input, btnPrimary, btnGhost, radius } from '../../../../_shared/theme/tokens';
 import { getBaseCode } from '../../../../_shared/lib/baseCurrency';
 import booksAPI from '../../../../_shared/api/books';
+import resourcesAPI from '../../../../_shared/api/resources';
 
 const cell = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${colors.border ?? '#eee'}` };
@@ -192,6 +193,64 @@ function ServiceFees({ fees, currencyCode, serviceId, readOnly, busy, run }) {
  * with its own price, duration and unit), or hand-made. Every service always
  * has at least one — the automatic "Standard" package.
  */
+/**
+ * Who can do this service, package by package — so one package can be offered at one branch and another at a different one. People and rooms are listed under the
+ * branch they work at (set in Staff & resources); ticking a box lets customers book that package with them. "All" lets them do every package, including ones added later.
+ * The branches a package is offered at are simply the branches of the people ticked.
+ */
+function WhoDoesIt({ variants, serviceId, readOnly }) {
+  const [data, setData] = useState(null);
+  const [on, setOn] = useState(new Set());     // "resourceId:variantId|all"
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState(null);
+  const key = (r, v) => `${r}:${v ?? 'all'}`;
+  const apply = (d) => { setData(d); setOn(new Set(d.assigned.map((a) => key(a.resource_id, a.service_variant_id)))); };
+  useEffect(() => { resourcesAPI.forService(serviceId).then(apply).catch(() => setData({ resources: [], assigned: [], unavailable: true })); }, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
+  if (!data) return null;
+  const groups = Object.values(data.resources.reduce((m, r) => { const k = r.location ?? 'Any branch'; (m[k] ??= { name: k, rows: [] }).rows.push(r); return m; }, {}));
+  const toggle = (r, v) => setOn((cur) => { const n = new Set(cur); const k = key(r, v); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const save = async () => {
+    setBusy(true); setNote(null);
+    try {
+      const rows = [...on].map((k) => { const [r, v] = k.split(':'); return { resource_id: Number(r), service_variant_id: v === 'all' ? null : Number(v) }; });
+      const res = await resourcesAPI.saveForService(serviceId, rows); apply(res); setNote(res.message);
+    } catch (e) { setNote(e?.response?.data?.message ?? 'Could not save'); } finally { setBusy(false); }
+  };
+  return (
+    <Section title="Who can do it" description="Tick who can do each package. They are grouped by the branch they work at, so you can offer one package at one branch and another at a different one. A customer can book a package only with someone ticked here. Add people and rooms in Staff & resources.">
+      {!data.resources.length ? (
+        <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textFaint }}>No one is bookable yet. <Link to="/admin/resources">Add staff or rooms</Link> first.</p>
+      ) : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr><th style={th}>Person / room</th><th style={{ ...th, textAlign: 'center' }}>All packages</th>{variants.map((v) => <th key={v.id} style={{ ...th, textAlign: 'center' }}>{v.name}</th>)}</tr></thead>
+            <tbody>
+              {groups.map((g) => (
+                <Fragment key={g.name}>
+                  <tr><td colSpan={variants.length + 2} style={{ ...td, fontSize: '0.7rem', fontWeight: 800, color: colors.textFaint, textTransform: 'uppercase', background: '#fafafa' }}>{g.name}</td></tr>
+                  {g.rows.map((r) => (
+                    <tr key={r.id}>
+                      <td style={td}>{r.name} <span style={{ color: colors.textFaint, fontSize: '0.72rem' }}>{r.type}{!r.has_hours ? ' · no working hours yet' : ''}</span></td>
+                      <td style={{ ...td, textAlign: 'center' }}><input type="checkbox" disabled={readOnly} checked={on.has(key(r.id, null))} onChange={() => toggle(r.id, null)} /></td>
+                      {variants.map((v) => <td key={v.id} style={{ ...td, textAlign: 'center' }}><input type="checkbox" disabled={readOnly || on.has(key(r.id, null))} checked={on.has(key(r.id, null)) || on.has(key(r.id, v.id))} onChange={() => toggle(r.id, v.id)} /></td>)}
+                    </tr>
+                  ))}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {!readOnly && data.resources.length > 0 && (
+        <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button type="button" style={btnPrimary} disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save who can do it'}</button>
+          {note && <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{note}</span>}
+        </div>
+      )}
+    </Section>
+  );
+}
+
 export default function ServiceCatalogEditor({ serviceId, currencyCode = getBaseCode(), readOnly = false }) {
   const [cat, setCat] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -381,6 +440,8 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
       </Section>
 
       <PackageMaterials variants={cat.variants} serviceId={serviceId} readOnly={readOnly} busy={busy} run={run} />
+
+      <WhoDoesIt variants={cat.variants} serviceId={serviceId} readOnly={readOnly} />
 
       {/* ── Fees ── */}
       <ServiceFees fees={cat.fees ?? []} currencyCode={currencyCode} serviceId={serviceId} readOnly={readOnly} busy={busy} run={run} />

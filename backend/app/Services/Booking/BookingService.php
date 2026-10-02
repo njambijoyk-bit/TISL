@@ -66,11 +66,20 @@ class BookingService
     }
 
     /** Active resources that can do this service (or this package), in a stable order. */
-    public function resourcesFor(Service $s, ?int $variantId): \Illuminate\Support\Collection
+    public function resourcesFor(Service $s, ?int $variantId, ?int $locationId = null): \Illuminate\Support\Collection
     {
         $ids = ResourceService::where('service_id', $s->id)->where(fn ($q) => $q->whereNull('service_variant_id')->when($variantId, fn ($w) => $w->orWhere('service_variant_id', $variantId)))->pluck('resource_id');
 
-        return BookableResource::where('is_active', true)->whereIn('id', $ids)->orderBy('name')->get();
+        // a resource with no branch works anywhere, so it is offered at every branch
+        return BookableResource::where('is_active', true)->whereIn('id', $ids)->when($locationId, fn ($q) => $q->where(fn ($w) => $w->whereNull('location_id')->orWhere('location_id', $locationId)))->orderBy('name')->get();
+    }
+
+    /** The branches this service (or package) is offered at — where someone who does it works. [{id, name}] */
+    public function branchesFor(Service $s, ?int $variantId): array
+    {
+        $ids = $this->resourcesFor($s, $variantId)->pluck('location_id')->filter()->unique()->values();
+
+        return $ids->isEmpty() ? [] : \Illuminate\Support\Facades\DB::table('locations')->whereIn('id', $ids)->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->all();
     }
 
     public function bookable(Service $s): bool
@@ -79,11 +88,11 @@ class BookingService
     }
 
     /** Free start times on a day for a package: every resource that does it, each time once (with who is free then). */
-    public function slots(Service $s, ServiceVariant $v, Carbon $day, ?int $resourceId = null): array
+    public function slots(Service $s, ServiceVariant $v, Carbon $day, ?int $resourceId = null, ?int $locationId = null): array
     {
         $len = $this->minutes($v);
         $out = [];
-        foreach ($this->resourcesFor($s, $v->id) as $r) {
+        foreach ($this->resourcesFor($s, $v->id, $locationId) as $r) {
             if ($resourceId && (int) $r->id !== $resourceId) {
                 continue;
             }
@@ -97,11 +106,14 @@ class BookingService
     }
 
     /** Pick the resource: the one asked for, else the first that is free. Null only when no resource is set up for the service (admin bookings). */
-    private function pick(Service $s, ?int $variantId, Carbon $start, Carbon $end, ?int $resourceId, ?int $exceptBooking = null): ?BookableResource
+    private function pick(Service $s, ?int $variantId, Carbon $start, Carbon $end, ?int $resourceId, ?int $exceptBooking = null, ?int $locationId = null): ?BookableResource
     {
-        $list = $this->resourcesFor($s, $variantId);
-        if ($list->isEmpty()) {
+        if ($this->resourcesFor($s, $variantId)->isEmpty()) {
             return null;
+        }
+        $list = $this->resourcesFor($s, $variantId, $resourceId ? null : $locationId);
+        if ($list->isEmpty()) {
+            throw new BooksException('Nobody does this at that branch.');
         }
         if ($resourceId) {
             $r = $list->firstWhere('id', $resourceId) ?? throw new BooksException('That person or room does not do this service.');
@@ -222,7 +234,7 @@ class BookingService
         $fees = $this->feesFor($s, $price, $this->context($in, $start, $end));
 
         return DB::transaction(function () use ($in, $s, $v, $start, $end, $customer, $price, $fees, $by) {
-            $resource = $this->pick($s, $v->id, $start, $end, isset($in['resource_id']) ? (int) $in['resource_id'] : null);
+            $resource = $this->pick($s, $v->id, $start, $end, isset($in['resource_id']) ? (int) $in['resource_id'] : null, null, ! empty($in['on_site']) || empty($in['location_id']) ? null : (int) $in['location_id']);   // a visit to the customer's place ignores the branch
             if ($resource) {
                 BookableResource::whereKey($resource->id)->lockForUpdate()->first();   // two people choosing the same slot are taken one after the other
                 if ($why = $this->availability->problem($resource, $start, $end)) {
@@ -231,7 +243,7 @@ class BookingService
             }
             $deposit = collect($fees)->firstWhere('kind', 'deposit');
             $b = Booking::create(['bookable_type' => 'service', 'bookable_id' => $s->id, 'service_variant_id' => $v->id, 'customer_id' => $customer->id, 'resource_id' => $resource?->id,
-                'location_id' => $resource?->location_id, 'starts_at' => $start, 'ends_at' => $end, 'people' => max(1, (int) ($in['people'] ?? 1)), 'on_site' => (bool) ($in['on_site'] ?? false),
+                'location_id' => $resource?->location_id ?? ($in['location_id'] ?? null), 'starts_at' => $start, 'ends_at' => $end, 'people' => max(1, (int) ($in['people'] ?? 1)), 'on_site' => (bool) ($in['on_site'] ?? false),
                 'address' => $in['address'] ?? null, 'notes' => $in['notes'] ?? null, 'status' => 'confirmed', 'source' => $in['source'] ?? 'admin', 'currency_id' => $s->currency_id, 'price' => $price,
                 'fees' => $fees, 'deposit_amount' => $deposit['amount'] ?? 0, 'deposit_ledger_id' => $deposit['ledger_id'] ?? null, 'deposit_status' => $deposit ? 'held' : 'none', 'created_by' => $by?->id]);
             $b->update(['number' => 'BK-' . str_pad((string) $b->id, 6, '0', STR_PAD_LEFT)]);

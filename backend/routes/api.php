@@ -1062,6 +1062,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/time-off/{offId}',  [$c, 'removeTimeOff'])->whereNumber('id')->whereNumber('offId');
             Route::put('/{id}/services',             [$c, 'saveServices'])->whereNumber('id');
             Route::get('/{id}/slots',                [$c, 'slots'])->whereNumber('id');
+            Route::get('/for-service/{serviceId}',   [$c, 'forService'])->whereNumber('serviceId');
+            Route::put('/for-service/{serviceId}',   [$c, 'saveForService'])->whereNumber('serviceId');
         });
 
         // Services settings: cancellation and reschedule windows, and the defaults of every service fee

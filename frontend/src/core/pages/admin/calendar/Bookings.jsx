@@ -47,7 +47,7 @@ function NewBooking({ onClose, onDone }) {
   const [q, setQ] = useState('');
   const [found, setFound] = useState([]);
   const [customer, setCustomer] = useState(null);
-  const [f, setF] = useState({ service_id: '', service_variant_id: '', date: '', time: '', resource_id: '', people: 1, on_site: false, address: '', notes: '' });
+  const [f, setF] = useState({ service_id: '', service_variant_id: '', location_id: '', date: '', time: '', resource_id: '', people: 1, on_site: false, address: '', notes: '' });
   const [slots, setSlots] = useState(null);
   const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -60,10 +60,11 @@ function NewBooking({ onClose, onDone }) {
     return () => clearTimeout(t);
   }, [q]);
   const svc = opts?.services.find((s) => String(s.id) === String(f.service_id));
+  const pkg = svc?.packages.find((p) => String(p.id) === String(f.service_variant_id));
   useEffect(() => {
     setSlots(null);
-    if (f.service_id && f.service_variant_id && f.date && svc?.has_resources) bookingsAPI.slots({ service_id: f.service_id, service_variant_id: f.service_variant_id, date: f.date }).then((r) => setSlots(r.slots)).catch(() => setSlots([]));
-  }, [f.service_id, f.service_variant_id, f.date, svc?.has_resources]);
+    if (f.service_id && f.service_variant_id && f.date && svc?.has_resources) bookingsAPI.slots({ service_id: f.service_id, service_variant_id: f.service_variant_id, date: f.date, location_id: f.on_site ? undefined : f.location_id || undefined }).then((r) => setSlots(r.slots)).catch(() => setSlots([]));
+  }, [f.service_id, f.service_variant_id, f.date, f.location_id, f.on_site, svc?.has_resources]);
   const starts = f.date && f.time ? `${f.date} ${f.time}` : '';
   useEffect(() => {
     setQuote(null);
@@ -71,7 +72,7 @@ function NewBooking({ onClose, onDone }) {
   }, [f.service_id, f.service_variant_id, starts, f.people, f.on_site]);
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { onDone(await bookingsAPI.create({ customer_id: customer.customer_id, service_id: f.service_id, service_variant_id: f.service_variant_id, starts_at: starts, resource_id: f.resource_id || undefined, people: Number(f.people) || 1, on_site: f.on_site, address: f.address || undefined, notes: f.notes || undefined })); }
+    try { onDone(await bookingsAPI.create({ customer_id: customer.customer_id, service_id: f.service_id, service_variant_id: f.service_variant_id, starts_at: starts, location_id: f.on_site ? undefined : f.location_id || undefined, resource_id: f.resource_id || undefined, people: Number(f.people) || 1, on_site: f.on_site, address: f.address || undefined, notes: f.notes || undefined })); }
     catch (x) { setErr(errMsg(x, 'Could not book')); } finally { setBusy(false); }
   };
   const who = slots?.find((s) => s.time === f.time)?.resources ?? [];
@@ -89,7 +90,9 @@ function NewBooking({ onClose, onDone }) {
             )}
           </Field>
           <Field label="Service"><SelectInput required value={f.service_id} onChange={(e) => setF((x) => ({ ...x, service_id: e.target.value, service_variant_id: '', time: '' }))}><option value="">Choose…</option>{opts?.services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field>
-          {svc && <Field label="Package"><SelectInput required value={f.service_variant_id} onChange={(e) => set('service_variant_id', e.target.value)}><option value="">Choose…</option>{svc.packages.map((p) => <option key={p.id} value={p.id}>{p.name} — {money(p.price)}</option>)}</SelectInput></Field>}
+          {svc && <Field label="Package"><SelectInput required value={f.service_variant_id} onChange={(e) => setF((x) => ({ ...x, service_variant_id: e.target.value, location_id: '', time: '' }))}><option value="">Choose…</option>{svc.packages.map((p) => <option key={p.id} value={p.id}>{p.name} — {money(p.price)}</option>)}</SelectInput></Field>}
+          {pkg?.branches?.length > 1 && !f.on_site && <Field label="Branch"><SelectInput required value={f.location_id} onChange={(e) => setF((x) => ({ ...x, location_id: e.target.value, time: '' }))}><option value="">Choose…</option>{pkg.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>}
+          {pkg?.branches?.length === 1 && !f.on_site && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>At {pkg.branches[0].name}</p>}
           {svc && !svc.has_resources && <p style={{ margin: 0, fontSize: '0.76rem', color: '#92400e' }}>Nobody is set up for this service (Staff & resources), so no availability is checked.</p>}
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 150 }}><Field label="Day"><TextInput type="date" required value={f.date} onChange={(e) => setF((x) => ({ ...x, date: e.target.value, time: '' }))} /></Field></div>
@@ -229,7 +232,7 @@ export default function Bookings() {
                         <td style={td}>{when(b.starts_at)}</td>
                         <td style={td}><strong>{b.number}</strong><br /><span style={{ color: colors.textFaint }}>{b.service}{b.package && b.package !== 'Standard' ? ` — ${b.package}` : ''}</span></td>
                         <td style={td}>{b.customer?.name}</td>
-                        <td style={td}>{b.resource?.name ?? '—'}</td>
+                        <td style={td}>{b.resource?.name ?? '—'}{b.branch ? <><br /><span style={{ color: colors.textFaint }}>{b.branch}</span></> : null}</td>
                         <td style={{ ...td, textAlign: 'right' }}>{money(b.price)}</td>
                         <td style={td}><span style={{ color: TONE[b.status], fontWeight: 700 }}>{LABEL[b.status]}</span></td>
                       </tr>
