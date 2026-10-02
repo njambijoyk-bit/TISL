@@ -55,7 +55,7 @@ export const getAvailableProducts = async () => {
 
 export const createService = async (data) => {
   const formData = new FormData();
-  const skipKeys = ['mainImageFile', 'galleryFiles', 'galleryUrls', 'mainImageUrl', 'pricing_tiers', 'related_services', 'required_products', 'optional_products'];
+  const skipKeys = ['mainImageFile', 'galleryFiles', 'galleryUrls', 'mainImageUrl', 'pricing_tiers', 'related_services', 'optional_products'];
 
   Object.entries(data).forEach(([key, value]) => {
     if (value === null || value === undefined || skipKeys.includes(key)) return;
@@ -79,14 +79,6 @@ export const createService = async (data) => {
 
   if (data.related_services && Array.isArray(data.related_services) && data.related_services.length > 0) {
     formData.append('related_services', JSON.stringify(data.related_services));
-  }
-
-  if (data.required_products && Array.isArray(data.required_products) && data.required_products.length > 0) {
-    formData.append('required_products', JSON.stringify(data.required_products));
-  }
-
-  if (data.optional_products && Array.isArray(data.optional_products) && data.optional_products.length > 0) {
-    formData.append('optional_products', JSON.stringify(data.optional_products));
   }
 
   if (data.mainImageFile) {
@@ -143,14 +135,6 @@ export const updateService = async (id, data) => {
 
   if (data.related_services && Array.isArray(data.related_services) && data.related_services.length > 0) {
     formData.append('related_services', JSON.stringify(data.related_services));
-  }
-
-  if (data.required_products && Array.isArray(data.required_products) && data.required_products.length > 0) {
-    formData.append('required_products', JSON.stringify(data.required_products));
-  }
-
-  if (data.optional_products && Array.isArray(data.optional_products) && data.optional_products.length > 0) {
-    formData.append('optional_products', JSON.stringify(data.optional_products));
   }
 
   if (data.mainImageFile) {

@@ -57,8 +57,6 @@ class Service extends Model
         'lead_time',
         'booking_required',
         'related_services',
-        'required_products',
-        'optional_products',
         'meta_title',
         'meta_description',
         'meta_keywords',
@@ -96,8 +94,6 @@ class Service extends Model
         'pricing_tiers' => 'array',
         'images' => 'array',
         'related_services' => 'array',
-        'required_products' => 'array',
-        'optional_products' => 'array',
         'meta_keywords' => 'array',
         'rating' => 'decimal:2',
         'review_count' => 'integer',
@@ -199,16 +195,6 @@ class Service extends Model
     // ========================================
     // ACCESSORS (Computed Properties)
     // ========================================
-
-    public function getRequiredProductsFullAttribute()
-    {
-        return $this->getRequiredProducts()->values();
-    }
-
-    public function getOptionalProductsFullAttribute()
-    {
-        return $this->getOptionalProducts()->values();
-    }
 
 
     /**
@@ -459,34 +445,6 @@ class Service extends Model
         }
 
         return Service::whereIn('id', $this->related_services)
-                     ->active()
-                     ->get();
-    }
-
-    /**
-     * Get all required product models.
-     */
-    public function getRequiredProducts()
-    {
-        if (!$this->required_products || empty($this->required_products)) {
-            return collect([]);
-        }
-
-        return Product::whereIn('id', $this->required_products)
-                     ->active()
-                     ->get();
-    }
-
-    /**
-     * Get all optional product models.
-     */
-    public function getOptionalProducts()
-    {
-        if (!$this->optional_products || empty($this->optional_products)) {
-            return collect([]);
-        }
-
-        return Product::whereIn('id', $this->optional_products)
                      ->active()
                      ->get();
     }

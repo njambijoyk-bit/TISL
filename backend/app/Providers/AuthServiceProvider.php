@@ -20,8 +20,6 @@ use App\Policies\PaymentPolicy;
 use App\Models\Customer;
 use App\Policies\LoyaltyPolicy;
 
-use App\Models\Booking;
-use App\Policies\BookingPolicy;
 
 use App\Models\AiProviderKey;
 use App\Policies\AiProviderKeyPolicy;
@@ -39,7 +37,6 @@ class AuthServiceProvider extends ServiceProvider
         Employee::class => EmployeePolicy::class,
         Payment::class => PaymentPolicy::class,
         Customer::class => LoyaltyPolicy::class,
-        Booking::class => BookingPolicy::class,
         AiProviderKey::class => AiProviderKeyPolicy::class,
 
     ];

@@ -36,7 +36,6 @@ export { default as mimiAPI } from './mimiAPI';
 export { default as dataEngineAPI } from './dataEngine';
 export { default as logExportAPI } from './logExport';
 export { default as ticketsAPI } from './tickets';
-export { default as bookingsAPI } from './bookings';
 export { adminCreditAPI, customerCreditAPI } from './customerCredit';
 
 export { default as contentAPI } from './content';

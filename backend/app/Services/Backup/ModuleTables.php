@@ -57,10 +57,7 @@ final class ModuleTables
             'customer_credit_schedules', 'customer_credit_schedule_items', 'customer_credit_transactions',
             'shipping_activities',
             'financial_notes', 'reconciliation_sessions', 'reconciliation_lines',
-            // Bookings (Core capability) and their worksheets
-            'bookings', 'booking_settings', 'booking_staff', 'booking_orders',
-            'booking_disqualifications', 'booking_activity_logs',
-            'booking_worksheets', 'worksheet_items',
+            // Bookings are being rebuilt: their tables are listed here again when the new ones exist.
             // Help desk, content, policies, publications, notifications
             'tickets', 'ticket_replies',
             'content_pages', 'content_sections', 'component_layouts',

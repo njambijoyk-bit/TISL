@@ -15,8 +15,6 @@ use App\Models\ProjectTask;
 use App\Models\ProjectMilestone;
 use App\Models\User;
 use App\Models\Ticket;
-use App\Models\Booking;
-use App\Models\BookingStaff;
 
 class WorkController extends Controller
 {
@@ -215,28 +213,7 @@ class WorkController extends Controller
             ->get();
 
         // ── Bookings ───────────────
-        $bookings = BookingStaff::with(['booking' => function ($q) {
-                $q->with(['customer:id,first_name,last_name'])
-                ->select('id', 'booking_number', 'status', 'scheduled_at', 'customer_id');
-            }])
-            ->where('user_id', $uid)
-            ->whereHas('booking', fn ($q) => $q->whereNotIn('status', ['completed', 'cancelled']))
-            ->orderBy('assigned_at', 'desc')
-            ->limit(20)
-            ->get()
-            ->map(fn ($bs) => [
-                'id'             => $bs->booking->id,
-                'booking_number' => $bs->booking->booking_number,
-                'status'         => $bs->booking->status,
-                'scheduled_at' => $bs->booking->scheduled_at,
-                'role'           => $bs->role,
-                'staff_status'   => $bs->status,
-                'assigned_at'    => $bs->assigned_at,
-                'customer'       => $bs->booking->customer
-                    ? trim("{$bs->booking->customer->first_name} {$bs->booking->customer->last_name}")
-                    : null,
-                'url'            => "/admin/bookings/{$bs->booking->id}",
-            ]);
+        $bookings = collect([]);   // the booking system is being rebuilt; nothing to show until it is
 
         // ── Tickets ────────────────
         $tickets = Ticket::with(['customer:id,first_name,last_name'])
@@ -438,11 +415,7 @@ class WorkController extends Controller
             ->pluck('count', 'user_id');
 
         // Booking staff counts per staff member
-        $bookingCounts = BookingStaff::whereIn('user_id', $staffIds)
-            ->whereHas('booking', fn ($q) => $q->whereNotIn('status', ['completed', 'cancelled']))
-            ->selectRaw('user_id, COUNT(*) as count')
-            ->groupBy('user_id')
-            ->pluck('count', 'user_id');
+        $bookingCounts = collect([]);   // the booking system is being rebuilt
 
         // ── Projects: owned + participant (two queries, not N) ───────────────
 
@@ -526,13 +499,7 @@ class WorkController extends Controller
             ->limit(20)
             ->get();
 
-        $bookings = Booking::doesntHave('staff')
-            ->whereNotIn('status', ['completed', 'cancelled', 'no_show'])
-            ->with(['customer:id,first_name,last_name'])
-            ->select('id', 'booking_number', 'status', 'scheduled_at', 'customer_id', 'created_at')
-            ->orderBy('scheduled_at')
-            ->limit(20)
-            ->get();
+        $bookings = collect([]);   // the booking system is being rebuilt
 
         // Unassigned tickets (open/in_progress only)
         $tickets = Ticket::whereNull('assigned_to')
@@ -619,24 +586,7 @@ class WorkController extends Controller
                 'url'        => "/admin/projects/{$t->project_id}",
             ]);
         
-                $bookings = Booking::with(['customer:id,first_name,last_name'])
-                    ->whereBetween('scheduled_at', [$now, $soon])
-                    ->whereNotIn('status', ['completed', 'cancelled', 'no_show'])
-                    ->select('id', 'booking_number', 'status', 'scheduled_at', 'customer_id')
-                    ->orderBy('scheduled_at')
-                    ->limit(30)
-                    ->get()
-                    ->map(fn($b) => [
-                        'type'     => 'booking',
-                        'id'       => $b->id,
-                        'label'    => $b->booking_number,
-                        'deadline' => $b->scheduled_at,
-                        'status'   => $b->status,
-                        'customer' => $b->customer
-                            ? trim("{$b->customer->first_name} {$b->customer->last_name}")
-                            : null,
-                        'url'      => "/admin/bookings/{$b->id}",
-                    ]);
+                $bookings = collect([]);   // the booking system is being rebuilt
 
         return [
             'projects'   => $projects,

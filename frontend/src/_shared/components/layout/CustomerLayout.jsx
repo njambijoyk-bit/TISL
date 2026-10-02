@@ -40,7 +40,6 @@ const CUSTOMER_GROUPS = [
       { name: 'My Wallet',       icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/gift-vouchers',     active: true },
       { name: 'My Quotes',       icon: FileText,      bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/my-quotes',         active: true },
       { name: 'My Projects',     icon: FolderOpen,    bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/my-projects',       active: true },
-      { name: 'My Bookings',     icon: Calendar,      bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/bookings',          active: true },
       { name: 'My Tickets',      icon: LifeBuoy,      bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/my-tickets',        active: true },
       { name: 'My Hampers',      icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/hampers/my-orders', active: true },
       { name: 'Delivery History',icon: Truck,         bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/delivery-history',  active: true },

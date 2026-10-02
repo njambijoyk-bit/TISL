@@ -22,7 +22,6 @@ const S = {
 const LOG_LABELS = {
     order_activity:         { label: 'Order Activity',          emoji: '📦' },
     auction_order_activity: { label: 'Auction Order Activity',  emoji: '🔨' },
-    booking_activity:       { label: 'Booking Activity',        emoji: '📅' },
     hamper_activity:        { label: 'Hamper Activity',         emoji: '🎁' },
     leave:                  { label: 'Leave Logs',              emoji: '🏖️' },
     mimi_query:             { label: 'Mimi Query Logs',         emoji: '🤖' },

@@ -60,7 +60,6 @@ const glowBtn = (color) => ({
 const CUSTOMER_ROUTES = [
   { key: 'orders',         label: 'My Orders',      icon: ShoppingBag,   path: '/orders',            color: '#f97316' },
   { key: 'quotes',         label: 'My Quotes',      icon: FileText,      path: '/my-quotes',         color: 'var(--color-primary-400)' },
-  { key: 'bookings',       label: 'Bookings',       icon: ClipboardList, path: '/bookings',          color: '#10b981' },
   { key: 'tickets',        label: 'Support',        icon: LifeBuoy,      path: '/my-tickets',        color: '#ef4444' },
   { key: 'projects',       label: 'Projects',       icon: FolderOpen,    path: '/my-projects',       color: '#14b8a6' },
   { key: 'wishlist',       label: 'Wishlist',       icon: Heart,         path: '/wishlist',          color: '#f43f5e' },
@@ -81,7 +80,6 @@ const ADMIN_ROUTES = [
   { key: 'products',   label: 'Products',   icon: Package,         path: '/admin/products',       color: 'var(--color-primary-500)' },
   { key: 'customers',  label: 'Customers',  icon: Users,           path: '/admin/customers',      color: '#3b82f6' },
   { key: 'quotes',     label: 'Quotes',     icon: FileText,        path: '/admin/quotes',         color: 'var(--color-primary-400)' },
-  { key: 'bookings',   label: 'Bookings',   icon: ClipboardList,   path: '/admin/bookings',       color: '#10b981' },
   { key: 'reports',    label: 'Reports',    icon: BarChart2,       path: '/admin/books?tab=reports',        color: '#22c55e' },
   { key: 'tickets',    label: 'Tickets',    icon: LifeBuoy,        path: '/admin/tickets',        color: '#ef4444' },
   { key: 'work',       label: 'My Work',    icon: Briefcase,       path: '/admin/work',           color: '#ec4899' },
@@ -94,8 +92,8 @@ const ADMIN_ROUTES = [
   { key: 'd-mnfst',    label: 'Driver Mnfst', icon: Truck,         path: '/driver/manifests',     color: '#0ea5e9' },
 ];
 
-const DEFAULT_CUSTOMER_SHORTCUTS = ['orders', 'quotes', 'bookings', 'profile', 'products', 'services'];
-const DEFAULT_ADMIN_SHORTCUTS    = ['dashboard', 'orders', 'products', 'customers', 'bookings', 'reports'];
+const DEFAULT_CUSTOMER_SHORTCUTS = ['orders', 'quotes', 'profile', 'products', 'services'];
+const DEFAULT_ADMIN_SHORTCUTS    = ['dashboard', 'orders', 'products', 'customers', 'reports'];
 
 const ROLE_LABELS = {
   admin: 'Admin', super_admin: 'Super Admin', manager: 'Manager', finance: 'Finance',
@@ -1073,51 +1071,6 @@ function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, nav
           <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>{o.currency || 'KES'} {Number(o.total||0).toLocaleString()}</span>
           <ChevronRight size={13} color={MUTED} />
         </button>
-      ),
-    },
-    {
-      key: 'bookings',
-      label: 'My Bookings',
-      count: assignments.counts?.bookings || 0,
-      color: '#db2777',
-      items: assignments.bookings,
-      emptyMsg: 'No bookings assigned to you yet',
-      renderItem: (b, idx) => (
-        <Link
-          key={idx}
-          to={b.url}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '9px 12px', borderRadius: 9,
-            background: 'none', textDecoration: 'none',
-            borderBottom: '1px solid rgba(128,128,128,0.10)',
-            transition: 'background 140ms',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(219,39,119,0.06)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'none'}
-        >
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{b.booking_number}</p>
-            <p style={{ margin: 0, fontSize: '0.7rem', color: '#9ca3af' }}>{b.customer || 'Unknown customer'}</p>
-          </div>
-          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-            <StatusBadge status={b.status} />
-            {b.scheduled_at && (
-              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>{fmtDate(b.scheduled_at)}</p>
-            )}
-          </div>
-          {b.role && (
-            <span style={{
-              fontSize: '0.65rem', fontWeight: 700, flexShrink: 0,
-              padding: '2px 7px', borderRadius: 99,
-              background: b.role === 'lead' ? 'rgba(219,39,119,0.12)' : 'rgba(128,128,128,0.10)',
-              color: b.role === 'lead' ? '#db2777' : '#6b7280',
-            }}>
-              {b.role}
-            </span>
-          )}
-          <ChevronRight size={13} style={{ color: '#9ca3af', flexShrink: 0 }} />
-        </Link>
       ),
     },
     {

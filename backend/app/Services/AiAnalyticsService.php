@@ -309,52 +309,8 @@ class AiAnalyticsService
 
     private function fetchBookingsData(?int $entityId): array
     {
-        if ($entityId) {
-            $booking = DB::selectOne("
-                SELECT b.*, CONCAT(c.first_name, ' ', c.last_name) as customer_name,
-                    s.name as service_name
-                FROM bookings b
-                LEFT JOIN customers c ON c.id = b.customer_id
-                LEFT JOIN services  s ON s.id = b.service_id
-                WHERE b.id = ?
-            ", [$entityId]);
-
-            return ['booking' => $booking];
-        }
-
-        $stats = DB::selectOne("
-            SELECT
-                COUNT(*)                                                      AS total_bookings,
-                COUNT(CASE WHEN status = 'confirmed'  THEN 1 END)            AS confirmed,
-                COUNT(CASE WHEN status = 'cancelled'  THEN 1 END)            AS cancelled,
-                COUNT(CASE WHEN status = 'no_show'    THEN 1 END)            AS no_shows,
-                COUNT(CASE WHEN status = 'completed'  THEN 1 END)            AS completed,
-                ROUND(COUNT(CASE WHEN status = 'no_show' THEN 1 END) * 100.0 / NULLIF(COUNT(*),0), 1) AS no_show_rate
-            FROM bookings
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-        ");
-
-        $peakHours = DB::select("
-            SELECT HOUR(scheduled_at) as hour, COUNT(*) as bookings
-            FROM bookings
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-            GROUP BY HOUR(scheduled_at)
-            ORDER BY bookings DESC
-            LIMIT 5
-        ");
-
-        $byService = DB::select("
-            SELECT s.name, COUNT(*) as bookings,
-                   COUNT(CASE WHEN b.status = 'no_show' THEN 1 END) as no_shows
-            FROM bookings b
-            JOIN services s ON s.id = b.service_id
-            WHERE b.created_at >= NOW() - INTERVAL 30 DAY
-            GROUP BY s.id, s.name
-            ORDER BY bookings DESC
-            LIMIT 5
-        ");
-
-        return compact('stats', 'peakHours', 'byService');
+        // Bookings are being rebuilt: there is nothing to analyse until the new ones exist.
+        return ['stats' => null, 'peakHours' => [], 'byService' => [], 'note' => 'Bookings are being rebuilt.'];
     }
 
     // ─────────────────────────────────────────────────────────────────

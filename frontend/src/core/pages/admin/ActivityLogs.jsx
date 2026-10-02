@@ -361,90 +361,6 @@ function OrderLogsTab() {
 
 
 // ══════════════════════════════════════════════════════════════════════════════
-//  BOOKING LOGS TAB
-// ══════════════════════════════════════════════════════════════════════════════
-function BookingLogsTab() {
-  const navigate = useNavigate();
-  const [logs,     setLogs]     = useState([]);
-  const [meta,     setMeta]     = useState(null);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
-  const [search,   setSearch]   = useState('');
-  const [severity, setSeverity] = useState('');
-  const [page,     setPage]     = useState(1);
-  const [expanded, setExpanded] = useState({});
-
-  const toggleExpand = (id) => setExpanded(p => ({ ...p, [id]: !p[id] }));
-
-  const fetchLogs = useCallback(async () => {
-    setLoading(true); setError('');
-    try {
-      const params = { page, per_page: 30 };
-      if (severity) params.severity = severity;
-      if (search)   params.search   = search;
-      const res = await api.get('/admin/bookings/activity', { params });
-      setLogs(res.data.data || []);
-      setMeta(res.data);
-    } catch { setError('Failed to load booking activity logs.'); }
-    finally  { setLoading(false); }
-  }, [page, severity, search]);
-
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
-  useEffect(() => { setPage(1); }, [severity]);
-
-  const GRID = '32px 120px 180px 1fr 140px 140px';
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeUp 0.2s ease both' }}>
-      <Panel>
-        <div style={{ padding: '14px 18px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Filter size={14} color="#9ca3af" style={{ flexShrink: 0 }} />
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
-            <Search size={13} color="#9ca3af" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search booking #, action, description…"
-              style={{ ...iStyle, width: '100%', paddingLeft: 30, boxSizing: 'border-box' }} onFocus={fIn} onBlur={fOut} />
-          </div>
-          <SeverityFilters severity={severity} setSeverity={setSeverity} />
-          <RefreshBtn onClick={fetchLogs} loading={loading} />
-        </div>
-      </Panel>
-
-      <Panel>
-        <TableHead cols={['', 'Severity', 'Booking', 'Action / Description', 'Performed by', 'Timestamp']} gridCols={GRID} />
-        <StateDisplay loading={loading} error={error} empty={!loading && !error && logs.length === 0} onRetry={fetchLogs} />
-        {!loading && !error && logs.map((log, i) => (
-          <div key={log.id} className="al-row" style={{ borderBottom: i < logs.length - 1 ? '1px solid var(--border, #f3f4f6)' : 'none' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '12px 18px', alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => log.booking_id && navigate(`/admin/bookings/${log.booking_id}`)}>
-              <SeverityCell sev={log.severity} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Hash size={11} color="#9ca3af" />
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: purple }}>
-                  {log.booking?.booking_number || `Booking ${log.booking_id}`}
-                </span>
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text, #111827)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {(log.action || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </p>
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {log.description}
-                </p>
-              </div>
-              <ActorCell name={log.performed_by?.name} />
-              <TimeCell ts={log.created_at} />
-            </div>
-            <MetadataExpander id={log.id} metadata={log.metadata} expanded={expanded} onToggle={toggleExpand} />
-          </div>
-        ))}
-        <PaginationBar meta={meta} page={page} setPage={setPage} loading={loading} />
-      </Panel>
-    </div>
-  );
-}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
 //  HAMPER LOGS TAB
 // ══════════════════════════════════════════════════════════════════════════════
 function HamperLogsTab() {
@@ -1058,7 +974,6 @@ function TierLogsTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 const TABS = [
   { id: 'orders',    label: 'Orders',    icon: FileText  },
-  { id: 'bookings',  label: 'Bookings',  icon: Calendar  },
   { id: 'hampers',   label: 'Hampers',   icon: Package   },
   { id: 'auctions',  label: 'Auctions',  icon: Gavel     },
   { id: 'referrals', label: 'Referrals', icon: Gift      },
@@ -1089,7 +1004,7 @@ export default function ActivityLogs() {
             Activity Logs
           </h1>
           <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>
-            Track all actions taken across orders, bookings, hampers, auctions, referrals, shipping, and customer tiers.
+            Track all actions taken across orders, hampers, auctions, referrals, shipping, and customer tiers.
           </p>
         </div>
         <button
@@ -1138,7 +1053,6 @@ export default function ActivityLogs() {
       </div>
 
       {activeTab === 'orders'    && <OrderLogsTab />}
-      {activeTab === 'bookings'  && <BookingLogsTab />}
       {activeTab === 'hampers'   && <HamperLogsTab />}
       {activeTab === 'auctions'  && <AuctionLogsTab />}
       {activeTab === 'referrals' && <ReferralLogsTab />}

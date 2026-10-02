@@ -209,18 +209,9 @@ class AlgorithmService
 
     protected function serviceScore(Customer $customer): int
     {
-        $bookings = DB::table('bookings')
-            ->where('customer_id', $customer->id)
-            ->where('status', '!=', 'cancelled')
-            ->count();
-
-        $serviceItems = DB::table('order_items')
-            ->join('orders', 'orders.id', '=', 'order_items.order_id')
-            ->where('orders.customer_id', $customer->id)
-            ->whereIn('order_items.item_type', ['service', 'custom_service'])
-            ->count();
-
-        return min(100, ($bookings * 25) + ($serviceItems * 15));
+        // Service affinity was counted from bookings and the retired order items. It comes back, from the new bookings and
+        // service invoices, when Bookings are rebuilt; until then it adds nothing.
+        return 0;
     }
 
     protected function referralScore(Customer $customer): int

@@ -148,9 +148,7 @@ class ServiceController extends Controller
 
         return response()->json([
             'service' => array_merge($service->toArray(), [
-                'required_products_full' => $service->getRequiredProducts(), 
-                'optional_products_full' => $service->getOptionalProducts(), 
-                'related_services_data'  => $service->getRelatedServices(),  
+'related_services_data'  => $service->getRelatedServices(),  
             ]),
         ], 200);
     }
@@ -265,9 +263,7 @@ class ServiceController extends Controller
 
         return response()->json([
             'service' => array_merge($service->toArray(), [
-                'required_products_full' => $service->getRequiredProducts(),
-                'optional_products_full' => $service->getOptionalProducts(),
-                'related_services_data'  => $service->getRelatedServices(),
+'related_services_data'  => $service->getRelatedServices(),
             ]),
         ], 200);
     }
@@ -291,12 +287,6 @@ class ServiceController extends Controller
         // Decode related items if they're JSON strings
         if (isset($input['related_services']) && is_string($input['related_services'])) {
             $input['related_services'] = json_decode($input['related_services'], true);
-        }
-        if (isset($input['required_products']) && is_string($input['required_products'])) {
-            $input['required_products'] = json_decode($input['required_products'], true);
-        }
-        if (isset($input['optional_products']) && is_string($input['optional_products'])) {
-            $input['optional_products'] = json_decode($input['optional_products'], true);
         }
         
         // Replace request data with decoded data
@@ -360,8 +350,6 @@ class ServiceController extends Controller
             
             // Related Items
             'related_services' => 'nullable|array',
-            'required_products' => 'nullable|array',
-            'optional_products' => 'nullable|array',
             
             // SEO
             'meta_title' => 'nullable|string|max:255',
@@ -520,12 +508,6 @@ class ServiceController extends Controller
         if (isset($input['related_services']) && is_string($input['related_services'])) {
             $input['related_services'] = json_decode($input['related_services'], true);
         }
-        if (isset($input['required_products']) && is_string($input['required_products'])) {
-            $input['required_products'] = json_decode($input['required_products'], true);
-        }
-        if (isset($input['optional_products']) && is_string($input['optional_products'])) {
-            $input['optional_products'] = json_decode($input['optional_products'], true);
-        }
         
         // Replace request data with decoded data
         $request->merge($input);
@@ -588,8 +570,6 @@ class ServiceController extends Controller
             
             // Related Items
             'related_services' => 'nullable|array',
-            'required_products' => 'nullable|array',
-            'optional_products' => 'nullable|array',
             
             // SEO
             'meta_title' => 'nullable|string|max:255',

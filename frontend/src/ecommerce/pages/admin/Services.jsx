@@ -487,28 +487,6 @@ const Services = () => {
                 <Plus size={16} /> Add Service
               </button>
 
-              {/* Bookings — primary/purple */}
-              <button
-                onClick={() => navigate('/admin/bookings')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
-                  fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
-                  background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
-                  transition: 'all 150ms',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
-                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
-                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
-                }}
-              >
-                <CalendarClock size={16} /> Bookings
-              </button>
 
             </div>
         </div>

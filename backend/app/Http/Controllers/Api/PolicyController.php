@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Policy;
 use App\Models\PolicyAcceptance;
 use App\Models\PolicyChangeLog;
-use App\Models\BookingSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -378,24 +377,11 @@ class PolicyController extends Controller
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
-     * Render {{placeholders}} in the booking cancellation policy
-     * using live values from booking_settings.
+     * Policies may hold {{placeholders}}. The booking cancellation policy's (fee, window) were filled from the old booking
+     * settings; they are filled again from the new booking settings when Bookings are rebuilt.
      */
     private function renderPolicy(Policy $policy): Policy
     {
-        if ($policy->key !== 'booking_cancellation_policy') return $policy;
-
-        $settings   = BookingSetting::instance();
-        $feeDisplay = $settings->cancellation_fee_type === 'percent'
-            ? "{$settings->cancellation_fee}%"
-            : "{$settings->cancellation_currency_code} {$settings->cancellation_fee}";
-
-        $policy->content = str_replace(
-            ['{{cancellation_fee}}', '{{cancellation_fee_type}}', '{{cancellation_window_hours}}'],
-            [$feeDisplay, $settings->cancellation_fee_type, $settings->cancellation_window_hours],
-            $policy->content
-        );
-
         return $policy;
     }
 }

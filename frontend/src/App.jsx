@@ -70,9 +70,6 @@ const BugReportPage        = lazy(() => import('./core/pages/customer/BugReportP
 const BugTrackerPage       = lazy(() => import('./core/pages/customer/BugTrackerPage'));
 const MyBugReports         = lazy(() => import('./core/pages/customer/MyBugReports'));
 
-const MyBookings           = lazy(() => import('./core/pages/customer/MyBookings'));
-const MyBookingDetail      = lazy(() => import('./core/pages/customer/MyBookingDetail'));
-const BookService          = lazy(() => import('./ecommerce/pages/customer/BookService'));
 
 const BrochureListPage     = lazy(() => import('./core/pages/customer/BrochureListPage'));
 const BrochureDetail       = lazy(() => import('./core/pages/customer/BrochureDetail'));
@@ -217,11 +214,6 @@ const AdminDevKeysPage    = lazy(() => import('./core/pages/admin/AdminDevKeysPa
 const DevAuthPage         = lazy(() => import('./core/pages/admin/DevAuthPage'));
 const DevPortalPage       = lazy(() => import('./core/pages/admin/DevPortalPage'));
 
-const AdminBookings        = lazy(() => import('./core/pages/admin/AdminBookings'));
-const AdminBookingDetail   = lazy(() => import('./core/pages/admin/AdminBookingDetail'));
-const AdminBookingForm     = lazy(() => import('./core/pages/admin/AdminBookingForm'));
-const AdminWorksheetForm   = lazy(() => import('./core/pages/admin/AdminWorksheetForm'));
-const BookingSettings      = lazy(() => import('./core/pages/admin/BookingSettings'));
 
 const CustomerShipmentTracking = lazy(() => import('./core/pages/customer/CustomerShipmentTracking'));
 const CustomerDeliveryHistory  = lazy(() => import('./core/pages/customer/CustomerDeliveryHistoryPage'));
@@ -496,9 +488,6 @@ function App() {
             <Route path="/hampers" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperListPage /></ModuleRoute></ProtectedRoute>} />
             <Route path="/hampers/:slug" element={<ProtectedRoute><ModuleRoute module="ecommerce.hampers"><HamperDetail /></ModuleRoute></ProtectedRoute>} />
 
-            <Route path="/bookings"      element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-            <Route path="/bookings/:id"  element={<ProtectedRoute><MyBookingDetail /></ProtectedRoute>} />
-            <Route path="/services/:id/book" element={<ProtectedRoute><ModuleRoute module="ecommerce"><BookService /></ModuleRoute></ProtectedRoute>} />
             <Route path="/account/bug-reports" element={<ProtectedRoute><MyBugReports /></ProtectedRoute>} />
             <Route path="/settings/appearance" element={<CustomerAppearance />} />
             <Route
@@ -736,11 +725,6 @@ function App() {
               <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />    
               <Route path="/admin/hampers/:id/edit" element={<ProtectedRoute requireAdmin><AdminHamperEdit /></ProtectedRoute>} />
 
-              <Route path="/admin/bookings"              element={<ProtectedRoute requireAdmin><AdminBookings /></ProtectedRoute>} />
-              <Route path="/admin/bookings/create"       element={<ProtectedRoute requireAdmin><AdminBookingForm /></ProtectedRoute>} />
-              <Route path="/admin/bookings/:id"          element={<ProtectedRoute requireAdmin><AdminBookingDetail /></ProtectedRoute>} />
-              <Route path="/admin/bookings/:id/worksheets/:wsId" element={<ProtectedRoute requireAdmin><AdminWorksheetForm /></ProtectedRoute>} />
-              <Route path="/admin/settings/bookings"     element={<ProtectedRoute requireAdmin><BookingSettings /></ProtectedRoute>} />
 
               <Route path="/admin/bug-reports" element={<ProtectedRoute requireAdmin><AdminBugReportsPage /></ProtectedRoute>} />
               <Route path="/admin/dev-notes"   element={<ProtectedRoute requireAdmin><AdminDevNotesPage /></ProtectedRoute>} />

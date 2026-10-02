@@ -136,8 +136,6 @@ const ServiceDetail = () => {
 
   const service = currentService;
   
-  const requiredProducts = service.required_products_full || [];
-  const optionalProducts = service.optional_products_full || [];
 
   const allImages = [
     service.main_image_url || service.main_image,
@@ -420,32 +418,9 @@ const ServiceDetail = () => {
                   <Heart size={18} style={{ color: saved ? '#ef4444' : '#9ca3af', fill: saved ? '#ef4444' : 'none' }} />
                 </button>
 
-                {service.booking_required && (
-                  <button
-                    onClick={() => navigate(`/services/${service.id}/book`)}
-                    type="button"
-                    style={{
-                      flex: '1 1 160px', height: 50, borderRadius: 12,
-                      border: '1.5px solid var(--color-primary-500)',
-                      background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
-                      color: 'var(--color-primary-600)', fontSize: '0.88rem', fontWeight: 700,
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      transition: 'background 150ms, box-shadow 150ms', letterSpacing: '0.04em',
-                    }}
-                    onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; }}
-                    onMouseLeave={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
-                  >
-                    <Calendar size={16} />
-                    Book this service
-                  </button>
-                )}
+                {/* "Book this service" returns with the new booking system */}
               </div>
 
-              {service.booking_required && (
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', textAlign: 'center', margin: '-14px 0 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                  <Info size={11} /> Booking required — choose a date after requesting
-                </p>
-              )}
 
             </div>
           </div>
@@ -468,61 +443,6 @@ const ServiceDetail = () => {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-
-              {/* Required products */}
-              {(requiredProducts.length > 0 || true) && (
-                <div style={{ background: '#fff7f7', borderRadius: 12, padding: '16px 18px', border: '1px solid #fecaca' }}>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Wrench size={13} /> Required Products
-                  </p>
-                  {requiredProducts.length > 0 ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {requiredProducts.map(item => (
-                        <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                            <AlertCircle size={14} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
-                            <div>
-                              <p style={{ fontSize: '0.83rem', fontWeight: 600, color: '#374151', margin: 0 }}>{item.name}</p>
-                              {item.description && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>{item.description}</p>}
-                            </div>
-                          </div>
-                          {item.price && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>{money.price(item)}</span>}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>No specific products listed, but requirements may apply.</p>
-                  )}
-                  <p style={{ fontSize: '0.72rem', color: '#dc2626', marginTop: 10, marginBottom: 0 }}>
-                    These items must be available before the service can be delivered.
-                  </p>
-                </div>
-              )}
-            {/* Optional products */}
-              {optionalProducts.length > 0 && (
-                <div style={{ background: '#eff6ff', borderRadius: 12, padding: '16px 18px', border: '1px solid #bfdbfe' }}>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Package size={13} /> Optional Add-ons
-                  </p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {optionalProducts.map((item, idx) => (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          <CheckCircle size={14} style={{ color: '#3b82f6', flexShrink: 0, marginTop: 2 }} />
-                          <div>
-                            <p style={{ fontSize: '0.83rem', fontWeight: 600, color: '#374151', margin: 0 }}>{typeof item === 'string' ? item : item.name}</p>
-                            {item.description && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>{item.description}</p>}
-                          </div>
-                        </div>
-                        {item.price && <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>+ {money.price(item)}</span>}
-                      </div>
-                    ))}
-                  </div>
-                  <p style={{ fontSize: '0.72rem', color: '#2563eb', marginTop: 10, marginBottom: 0 }}>
-                    Optional items that can enhance or speed up the service.
-                  </p>
                 </div>
               )}
 

@@ -491,7 +491,6 @@ class VaultArchiverService
             ['driver_location_pings',            'Driver Location Pings',           30,        'csv' ],
             ['delivery_activity_logs',           'Delivery Activity Logs',          90,        'json'],
             ['order_activity_logs',              'Order Activity Logs',             90,        'json'],
-            ['booking_activity_logs',            'Booking Activity Logs',           90,        'json'],
             ['hamper_activity_logs',             'Hamper Activity Logs',            90,        'json'],
             ['referral_activity_logs',           'Referral Activity Logs',          90,        'json'],
             ['auction_order_activity_logs',      'Auction Order Activity Logs',     90,        'json'],

@@ -1109,8 +1109,6 @@ function RouteMapAppendix() {
         { path: '/hampers/my-orders/:id',       comp: 'HamperOrderController@show' },
         { path: '/hampers/:slug',               comp: 'PublicHamperController@show' },
         { path: '/hampers/:slug/checkout',      comp: 'HamperCheckoutController@load' },
-        { path: '/bookings',                    comp: 'BookingController@customerIndex' },
-        { path: '/bookings/:id',                comp: 'BookingController@customerShow' },
         { path: '/services/:id/book',           comp: 'Book Service' },
         { path: '/my-quotes',                   comp: 'QuoteController@myQuotes' },
         { path: '/my-quotes/:id',               comp: 'QuoteController@show' },
@@ -1165,11 +1163,6 @@ function RouteMapAppendix() {
         { path: '/admin/services/new',                  comp: 'ServiceController@store' },
         { path: '/admin/services/:id/edit',             comp: 'ServiceController@update' },
         { path: '/admin/service-categories',            comp: 'ServiceCategoryController' },
-        { path: '/admin/bookings',                      comp: 'BookingController@adminIndex' },
-        { path: '/admin/bookings/create',               comp: 'BookingController@adminStore' },
-        { path: '/admin/bookings/:id',                  comp: 'BookingController@adminShow' },
-        { path: '/admin/bookings/:id/worksheets/:wsId', comp: 'BookingWorksheetController' },
-        { path: '/admin/settings/bookings',             comp: 'BookingSettingController' },
       ]} />
 
       <RouteGroup title="9. Admin — Auctions & Hampers" routes={[
@@ -1289,7 +1282,6 @@ function RouteMapAppendix() {
       <RoleGroup role="LOGISTICS" description="Shipping pipeline and delivery tracking."
         pages={[
           { path: '/admin/orders',                   label: 'Orders — shipping queue view' },
-          { path: '/admin/bookings',                 label: 'Bookings — logistics scheduling' },
           { path: '/admin/customers',                label: 'Customer financial data', gated: true },
           { path: '/admin/orders/:id',               label: 'Order totals / financial fields', gated: true },
         ]}
@@ -1308,9 +1300,6 @@ function RouteMapAppendix() {
       <RoleGroup role="STAFF" description="Work dashboard, bookings, projects, and service worksheets."
         pages={[
           { path: '/admin/work',                          label: 'Work Overview — personal assignment dashboard' },
-          { path: '/admin/bookings',                      label: 'Bookings — assigned appointments' },
-          { path: '/admin/bookings/:id',                  label: 'Booking Detail — worksheets & status' },
-          { path: '/admin/bookings/:id/worksheets/:wsId', label: 'Worksheet Form — on-site findings' },
           { path: '/admin/projects',                      label: 'Projects — assigned workspaces' },
           { path: '/admin/projects/:id',                  label: 'Project Detail — tasks & milestones' },
         ]}
@@ -1321,7 +1310,6 @@ function RouteMapAppendix() {
           { path: '/profile',              label: 'Profile — personal details & loyalty status' },
           { path: '/orders',               label: 'My Orders — history & tracking' },
           { path: '/orders/:id',           label: 'Order Detail — invoice & reviews' },
-          { path: '/bookings',             label: 'My Bookings — upcoming appointments' },
           { path: '/services/:id/book',    label: 'Book Service — scheduling calendar' },
           { path: '/my-quotes',            label: 'My Quotes — approved proposals' },
             { path: '/my-tickets',           label: 'My Tickets — support history' },

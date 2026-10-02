@@ -4,7 +4,6 @@ import {
   ChevronLeft, Save, Eye, Upload, X, Plus, Trash2, Info,
 } from 'lucide-react';
 import useServiceStore from '../../../_shared/store/serviceStore';
-import ProductSelectorModalAdmin from '../../../core/components/admin/pickers/ProductSelectorModalAdmin';
 import ServiceSelectorModalAdmin from '../../../core/components/admin/pickers/ServiceSelectorModalAdmin';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
@@ -55,51 +54,6 @@ function Field({ label, hint, children }) {
       {label && <label style={labelStyle}>{label}</label>}
       {children}
       {hint && <p style={hintStyle}>{hint}</p>}
-    </div>
-  );
-}
-
-function ProductPills({ products, onRemove, onAdd, note }) {
-  return (
-    <div>
-      {products.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {products.map(p => (
-            <span key={p.id} style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
-              border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
-            }}>
-              {p.name}
-              {p.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{p.sku}</span>}
-              <button type="button" onClick={() => onRemove(p)} style={{
-                width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-600)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
-              >
-                <X size={9} />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-      {note && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginBottom: 8 }}>{note}</p>}
-      <button type="button" onClick={onAdd} style={{
-        display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
-        background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
-        border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
-        transition: 'background 150ms',
-      }}
-        onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
-      >
-        <Plus size={13} /> Browse products{products.length > 0 ? ` (${products.length} selected)` : ''}
-      </button>
     </div>
   );
 }
@@ -368,8 +322,6 @@ const ServiceForm = () => {
   const [deliverables, setDeliverables] = useState(['']);
 
   const [relatedServices,  setRelatedServices]  = useState([]);
-  const [requiredProducts, setRequiredProducts] = useState([]);
-  const [optionalProducts, setOptionalProducts] = useState([]);
 
   const [mainImageFile,    setMainImageFile]    = useState(null);
   const [mainImagePreview, setMainImagePreview] = useState('');
@@ -379,7 +331,6 @@ const ServiceForm = () => {
   const [galleryPreviews,  setGalleryPreviews]  = useState([]);
 
   const [showServiceSelector, setShowServiceSelector] = useState(false);
-  const [productSelectorTarget, setProductSelectorTarget] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
 
@@ -419,12 +370,7 @@ const ServiceForm = () => {
       typeof s === 'object' ? { id: s.id, name: s.name } : { id: s, name: `Service #${s}` }
     );
     setRelatedServices(normalizeItems(cs.related_services_data ?? cs.related_services));
-    const normalize = arr => (arr || []).map(p =>
-      typeof p === 'object' ? { id: p.id, name: p.name, sku: p.sku } : { id: p, name: `Product #${p}` }
-    );
 
-    setRequiredProducts(normalize(cs.required_products_full ?? cs.required_products));
-    setOptionalProducts(normalize(cs.optional_products_full ?? cs.optional_products));
     
     if (cs.main_image) { setMainImagePreview(cs.main_image); if (cs.main_image.startsWith('http')) setMainImageUrl(cs.main_image); }
     if (Array.isArray(cs.images) && cs.images.length > 0) {
@@ -483,8 +429,6 @@ const ServiceForm = () => {
         features:     features.filter(f => f.trim()),
         deliverables: deliverables.filter(d => d.trim()),
         related_services: relatedServices.map(s => s.id ?? s),
-        required_products: requiredProducts.map(p => p.id ?? p),
-        optional_products: optionalProducts.map(p => p.id ?? p),
         mainImageFile,
         mainImageUrl: mainImageUrl && !mainImageFile ? mainImageUrl : null,
         galleryFiles,
@@ -785,28 +729,6 @@ const ServiceForm = () => {
                     </button>
                   </Field>
 
-                  {/* Required products */}
-                  <Field label="Required products" hint="Must be purchased with this service">
-                    <ProductPills
-                      products={requiredProducts}
-                      onRemove={p => setRequiredProducts(prev => prev.filter(x => x.id !== p.id))}
-                      onAdd={() => setProductSelectorTarget('required')}
-                      label="required"
-                    />
-                  </Field>
-
-                  {/* Optional products */}
-                  <Field label="Optional products" hint="Recommended add-ons">
-                    <ProductPills
-                      products={optionalProducts}
-                      onRemove={p => setOptionalProducts(prev => prev.filter(x => x.id !== p.id))}
-                      onAdd={() => setProductSelectorTarget('optional')}
-                      label="optional"
-                      // Exclude already-required ones
-                      note={requiredProducts.length > 0 ? `${requiredProducts.length} product(s) already marked required` : undefined}
-                    />
-                  </Field>
-
                 </div>
               </SectionCard>
 
@@ -982,31 +904,6 @@ const ServiceForm = () => {
           </div>
         </form>
       </div>
-      {productSelectorTarget && (
-        <ProductSelectorModalAdmin
-          onClose={() => setProductSelectorTarget(null)}
-          selectedProducts={[
-            ...requiredProducts.map(p => ({ product_id: p.id })),
-            ...optionalProducts.map(p => ({ product_id: p.id })),
-          ]}
-          onSelect={(newProducts) => {
-            if (productSelectorTarget === 'required') {
-              setRequiredProducts(prev => {
-                const existingIds = new Set(prev.map(p => p.id));
-                return [...prev, ...newProducts.filter(p => !existingIds.has(p.id))];
-              });
-              // also remove from optional if it ends up required
-              setOptionalProducts(prev => prev.filter(p => !newProducts.some(np => np.id === p.id)));
-            } else {
-              setOptionalProducts(prev => {
-                const existingIds = new Set(prev.map(p => p.id));
-                return [...prev, ...newProducts.filter(p => !existingIds.has(p.id))];
-              });
-            }
-            setProductSelectorTarget(null);
-          }}
-        />
-      )}
       {showServiceSelector && (
         <ServiceSelectorModalAdmin
           onClose={() => setShowServiceSelector(false)}

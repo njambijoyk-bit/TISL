@@ -9,37 +9,15 @@ import useAiPanelStore from '../store/useAiPanelStore';
  *
  * Detected modules:
  *   /admin/projects/:id        → projects  / project
- *   /admin/bookings/:id        → bookings  / booking
  *   /admin/orders/:id          → orders    / order
  *   /admin/customers/:id       → customers / customer
  *   /admin/work                → work      / null
  *   /admin/inventory           → inventory / null
  *   /admin/reports             → reports   / null
- *   /admin/bookings/:id/worksheets/:wsId → bookings / worksheet (wsId)
  */
 
 // ── Route matchers (order matters — more specific first) ─────────────────────
 const MATCHERS = [
-  // Booking worksheet detail
-  {
-    pattern: /^\/admin\/bookings\/(\d+)\/worksheets\/(\d+)/,
-    resolve: (m) => ({
-      moduleKey:  'bookings',
-      entityType: 'worksheet',
-      entityId:    Number(m[2]),
-      label:      `Worksheet #${m[2]}`,
-    }),
-  },
-  // Booking detail
-  {
-    pattern: /^\/admin\/bookings\/(\d+)/,
-    resolve: (m) => ({
-      moduleKey:  'bookings',
-      entityType: 'booking',
-      entityId:    Number(m[1]),
-      label:      `Booking #${m[1]}`,
-    }),
-  },
   // Project detail
   {
     pattern: /^\/admin\/projects\/(\d+)/,
@@ -98,16 +76,6 @@ const MATCHERS = [
       entityType: null,
       entityId:   null,
       label:      'Reports',
-    }),
-  },
-  // Bookings list
-  {
-    pattern: /^\/admin\/bookings$/,
-    resolve: () => ({
-      moduleKey:  'bookings',
-      entityType: null,
-      entityId:   null,
-      label:      'Bookings',
     }),
   },
   // Projects list/dashboard
