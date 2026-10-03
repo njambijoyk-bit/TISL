@@ -7,6 +7,10 @@ import { DEFAULT_LIGHT_TOKENS, DEFAULT_DARK_TOKENS } from './themeConstants';
  * @param {'system'|'light'|'dark'} mode - user's mode override
  * @param {boolean} systemIsDark  - current OS dark-mode preference
  */
+// Properties set by the previous call, so a Colouring that leaves a token out
+// (or sets it to null) doesn't inherit the last Colouring's value.
+let appliedProps = [];
+
 export function applyTheme(colouring, mode, systemIsDark) {
   const useDark =
     mode === 'dark' ? true :
@@ -20,8 +24,12 @@ export function applyTheme(colouring, mode, systemIsDark) {
   const root = document.documentElement;
   root.setAttribute('data-theme', useDark ? 'dark' : 'light');
 
+  appliedProps.forEach((prop) => root.style.removeProperty(prop));
+  appliedProps = [];
   Object.entries(tokens).forEach(([prop, value]) => {
+    if (value === null || value === undefined || value === '') return;
     root.style.setProperty(prop, value);
+    appliedProps.push(prop);
   });
 }
 

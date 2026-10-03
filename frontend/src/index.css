@@ -166,11 +166,14 @@
    Colouring leaves a token unset, the chain falls through to the defaults
    declared above. */
 :root {
-  --surface-card: var(--bg-card, var(--bg-primary));
+  /* Card colour: the Colouring's --bg-card, else the page colour lifted a little
+     (towards white in light mode, towards the text colour in dark). */
+  --surface-card: var(--bg-card, color-mix(in srgb, var(--bg-primary) 70%, #fff));
   --surface-input: color-mix(in srgb, var(--text-primary) 5%, var(--surface-card));
   --surface-hover: color-mix(in srgb, var(--color-primary-500, #6366f1) 8%, var(--surface-card));
   --surface-overlay: color-mix(in srgb, var(--text-primary) 55%, transparent);
   --line: var(--border-primary, var(--border-light));
+  --line-strong: var(--border-secondary, var(--border-medium));
 
   --status-success: var(--accent-success, var(--color-success, #10b981));
   --status-warning: var(--accent-warning, var(--color-warning, #f59e0b));
@@ -901,3 +904,7 @@ a:hover {
 :root:root .dark\:border-gray-700 { border-color: var(--line); }
 :root:root .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
 :root:root .dark\:divide-gray-700 > :not([hidden]) ~ :not([hidden]) { border-color: var(--line); }
+
+:root[data-theme="dark"] {
+  --surface-card: var(--bg-card, color-mix(in srgb, var(--bg-primary) 93%, var(--text-primary)));
+}
