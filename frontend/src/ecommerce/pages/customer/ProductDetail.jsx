@@ -1496,14 +1496,14 @@ export default function ProductDetail() {
 
           {/* ── RELATED PRODUCTS ─────────────────────────────────────────────── */}
           {relatedProducts.length > 0 && (
-            <div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 20 }}>
+            <div style={{ marginTop: 40, paddingBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 24 }}>
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: 0 }}>
                   You May Also Like
                 </h2>
                 <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{relatedProducts.length} items</span>
               </div>
-              <div className="grid gap-5" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+              <div style={{ display: 'grid', gap: 20, gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
                 {relatedProducts.map(rp => (
                   <CollapsedProductCard key={rp?.id} product={rp} />
                 ))}
