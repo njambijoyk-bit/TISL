@@ -33,7 +33,7 @@ function Dot({ color }) {
 function Badge({ label, color }) {
     return (
         <span style={{
-            fontSize: '0.6rem', fontWeight: 700, fontFamily: 'monospace',
+            fontSize: '0.6rem', fontWeight: 700, fontFamily: 'inherit',
             textTransform: 'uppercase', letterSpacing: '0.08em',
             padding: '2px 7px', borderRadius: 5,
             background: `${color}15`, border: `1px solid ${color}40`, color,
@@ -49,8 +49,8 @@ const truncate = (s, n) => s && s.length > n ? s.slice(0, n) + '…' : (s ?? '�
 function FilterBar({ filters, onChange, extras }) {
     const inputSt = {
         padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem',
-        background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`,
-        color: C.text, outline: 'none', fontFamily: 'monospace',
+        background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${C.border}`,
+        color: C.text, outline: 'none', fontFamily: 'inherit',
     };
     const selectSt = { ...inputSt, cursor: 'pointer', colorScheme: 'dark' };
     return (
@@ -82,7 +82,7 @@ function Pagination({ meta, onPage, onHover }) {
     if (!meta || meta.last_page <= 1) return null;
     return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
-            <span style={{ fontSize: '0.68rem', color: C.textDim, fontFamily: 'monospace' }}>
+            <span style={{ fontSize: '0.68rem', color: C.textDim, fontFamily: 'inherit' }}>
                 {meta.from}–{meta.to} of {meta.total}
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -90,7 +90,7 @@ function Pagination({ meta, onPage, onHover }) {
                     style={{ padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: meta.current_page === 1 ? 'not-allowed' : 'pointer', opacity: meta.current_page === 1 ? 0.4 : 1 }}>
                     <ChevronLeft size={12} />
                 </button>
-                <span style={{ fontSize: '0.68rem', color: C.textMid, fontFamily: 'monospace', padding: '4px 8px' }}>
+                <span style={{ fontSize: '0.68rem', color: C.textMid, fontFamily: 'inherit', padding: '4px 8px' }}>
                     {meta.current_page} / {meta.last_page}
                 </span>
                 <button disabled={meta.current_page === meta.last_page} onClick={() => onPage(meta.current_page + 1)} onMouseEnter={onHover}
@@ -122,21 +122,21 @@ function SessionDetail({ sessionId, onBack, audio }) {
     return (
         <div style={{ animation: 'fadeIn 200ms ease' }}>
             <button onClick={onBack} onMouseEnter={audio.playHover}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, background: 'none', border: 'none', cursor: 'pointer', color: C.cyan, fontSize: '0.72rem', fontFamily: 'monospace', padding: 0 }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20, background: 'none', border: 'none', cursor: 'pointer', color: C.cyan, fontSize: '0.72rem', fontFamily: 'inherit', padding: 0 }}>
                 <ArrowLeft size={13} /> BACK TO SESSIONS
             </button>
 
             {loading && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '60px 0', justifyContent: 'center' }}>
                     <Loader2 size={18} style={{ color: C.purple, animation: 'spin 0.8s linear infinite' }} />
-                    <span style={{ fontSize: '0.8rem', color: C.textDim, fontFamily: 'monospace' }}>LOADING SESSION…</span>
+                    <span style={{ fontSize: '0.8rem', color: C.textDim, fontFamily: 'inherit' }}>LOADING SESSION…</span>
                 </div>
             )}
 
             {error && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}>
                     <AlertCircle size={15} style={{ color: C.red }} />
-                    <span style={{ fontSize: '0.82rem', color: C.red, fontFamily: 'monospace' }}>{error}</span>
+                    <span style={{ fontSize: '0.82rem', color: C.red, fontFamily: 'inherit' }}>{error}</span>
                 </div>
             )}
 
@@ -147,10 +147,10 @@ function SessionDetail({ sessionId, onBack, audio }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                             <Terminal size={18} style={{ color: C.purple, filter: `drop-shadow(0 0 6px ${C.purple})` }} />
                             <div>
-                                <div style={{ fontSize: '1rem', fontWeight: 800, color: C.text, fontFamily: 'monospace' }}>
+                                <div style={{ fontSize: '1rem', fontWeight: 800, color: C.text, fontFamily: 'inherit' }}>
                                     {s.actor_display_name ?? s.ip_address ?? 'Unknown Actor'}
                                 </div>
-                                <div style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'monospace', marginTop: 2 }}>
+                                <div style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'inherit', marginTop: 2 }}>
                                     TOKEN: {s.session_token?.slice(0, 16)}…
                                 </div>
                             </div>
@@ -171,16 +171,16 @@ function SessionDetail({ sessionId, onBack, audio }) {
                                 { label: 'Started',      value: fmtTime(s.started_at) },
                                 { label: 'Last Active',  value: fmtTime(s.last_active_at) },
                             ].map(({ label, value }) => (
-                                <div key={label} style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: `1px solid ${C.border}` }}>
-                                    <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
-                                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: C.text, fontFamily: 'monospace' }}>{value}</div>
+                                <div key={label} style={{ padding: '8px 12px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: `1px solid ${C.border}` }}>
+                                    <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
+                                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: C.text, fontFamily: 'inherit' }}>{value}</div>
                                 </div>
                             ))}
                         </div>
 
                         {s.is_blocked && (
                             <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 8, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                                <span style={{ fontSize: '0.72rem', color: C.red, fontFamily: 'monospace' }}>
+                                <span style={{ fontSize: '0.72rem', color: C.red, fontFamily: 'inherit' }}>
                                     🚫 BLOCKED — {s.block_reason ?? 'No reason given'}
                                 </span>
                             </div>
@@ -189,35 +189,35 @@ function SessionDetail({ sessionId, onBack, audio }) {
 
                     {/* Query log timeline */}
                     <div style={{ ...neuralCard, padding: 20 }}>
-                        <p style={{ margin: '0 0 16px', fontSize: '0.7rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'monospace', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <p style={{ margin: '0 0 16px', fontSize: '0.7rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6 }}>
                             <List size={12} style={{ color: C.cyan }} /> QUERY LOG · {data.logs?.length ?? 0} MESSAGES
                         </p>
 
                         {data.logs?.length === 0 && (
-                            <p style={{ fontSize: '0.78rem', color: C.textDim, fontFamily: 'monospace', textAlign: 'center', padding: '20px 0' }}>No queries in this session.</p>
+                            <p style={{ fontSize: '0.78rem', color: C.textDim, fontFamily: 'inherit', textAlign: 'center', padding: '20px 0' }}>No queries in this session.</p>
                         )}
 
                         {data.logs?.map((log, i) => (
                             <div key={log.id} style={{
                                 marginBottom: 14, paddingBottom: 14,
-                                borderBottom: i < data.logs.length - 1 ? `1px solid rgba(255,255,255,0.04)` : 'none',
+                                borderBottom: i < data.logs.length - 1 ? `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'none',
                                 animation: 'fadeSlideIn 200ms ease both',
                                 animationDelay: `${i * 30}ms`,
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                                     <Dot color={statusColor(log.response_status)} />
-                                    <span style={{ fontSize: '0.62rem', color: C.textDim, fontFamily: 'monospace' }}>{fmtTime(log.queried_at)}</span>
+                                    <span style={{ fontSize: '0.62rem', color: C.textDim, fontFamily: 'inherit' }}>{fmtTime(log.queried_at)}</span>
                                     <Badge label={log.response_status} color={statusColor(log.response_status)} />
                                     {log.is_harmful && <Badge label={`⚠ ${log.harm_category}`} color={C.red} />}
                                     {log.is_flagged  && <Badge label="flagged" color={C.amber} />}
-                                    <span style={{ marginLeft: 'auto', fontSize: '0.62rem', color: C.textDim, fontFamily: 'monospace' }}>{fmtMs(log.response_time_ms)}</span>
+                                    <span style={{ marginLeft: 'auto', fontSize: '0.62rem', color: C.textDim, fontFamily: 'inherit' }}>{fmtMs(log.response_time_ms)}</span>
                                 </div>
-                                <div style={{ padding: '8px 12px', borderRadius: 8, background: 'rgba(59,130,246,0.06)', border: `1px solid ${C.border}`, marginBottom: 6 }}>
-                                    <span style={{ fontSize: '0.72rem', color: C.text, fontFamily: 'monospace', lineHeight: 1.5 }}>{log.query}</span>
+                                <div style={{ padding: '8px 12px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: `1px solid ${C.border}`, marginBottom: 6 }}>
+                                    <span style={{ fontSize: '0.72rem', color: C.text, fontFamily: 'inherit', lineHeight: 1.5 }}>{log.query}</span>
                                 </div>
                                 {log.response && (
                                     <div style={{ padding: '8px 12px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: `1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)` }}>
-                                        <span style={{ fontSize: '0.72rem', color: C.textMid, fontFamily: 'monospace', lineHeight: 1.5 }}>{truncate(log.response, 300)}</span>
+                                        <span style={{ fontSize: '0.72rem', color: C.textMid, fontFamily: 'inherit', lineHeight: 1.5 }}>{truncate(log.response, 300)}</span>
                                     </div>
                                 )}
                             </div>
@@ -256,14 +256,14 @@ function SessionsTab({ audio, onViewSession }) {
     const handlePage = p => { setPage(p); load(p); };
     const handleFilter = (k, v) => setFilters(f => ({ ...f, [k]: v || undefined }));
 
-    const thSt = { fontSize: '0.6rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'monospace', padding: '8px 12px', textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
-    const tdSt = { padding: '10px 12px', fontSize: '0.75rem', color: C.text, fontFamily: 'monospace', borderBottom: `1px solid rgba(255,255,255,0.04)`, verticalAlign: 'middle' };
+    const thSt = { fontSize: '0.6rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'inherit', padding: '8px 12px', textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
+    const tdSt = { padding: '10px 12px', fontSize: '0.75rem', color: C.text, fontFamily: 'inherit', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)`, verticalAlign: 'middle' };
 
     return (
         <div>
             <FilterBar filters={filters} onChange={handleFilter} extras={
                 <select value={filters.status ?? ''} onChange={e => handleFilter('status', e.target.value)}
-                    style={{ padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'monospace', cursor: 'pointer', colorScheme: 'dark' }}>
+                    style={{ padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', colorScheme: 'dark' }}>
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
                     <option value="ended">Ended</option>
@@ -275,14 +275,14 @@ function SessionsTab({ audio, onViewSession }) {
             {error && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, marginBottom: 14, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}>
                     <AlertCircle size={14} style={{ color: C.red }} />
-                    <span style={{ fontSize: '0.78rem', color: C.red, fontFamily: 'monospace' }}>{error}</span>
+                    <span style={{ fontSize: '0.78rem', color: C.red, fontFamily: 'inherit' }}>{error}</span>
                 </div>
             )}
 
             {loading ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 10 }}>
                     <Loader2 size={18} style={{ color: C.purple, animation: 'spin 0.8s linear infinite' }} />
-                    <span style={{ fontSize: '0.78rem', color: C.textDim, fontFamily: 'monospace' }}>LOADING SESSIONS…</span>
+                    <span style={{ fontSize: '0.78rem', color: C.textDim, fontFamily: 'inherit' }}>LOADING SESSIONS…</span>
                 </div>
             ) : (
                 <div style={{ ...neuralCard, overflow: 'hidden' }}>
@@ -301,7 +301,7 @@ function SessionsTab({ audio, onViewSession }) {
                                 )}
                                 {sessions?.data?.map(s => (
                                     <tr key={s.id} style={{ transition: 'background 150ms' }}
-                                        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; audio.playHover(); }}
+                                        onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; audio.playHover(); }}
                                         onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                                         <td style={tdSt}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -319,7 +319,7 @@ function SessionsTab({ audio, onViewSession }) {
                                         <td style={{ ...tdSt, color: C.textDim, fontSize: '0.68rem' }}>{fmtTime(s.last_active_at)}</td>
                                         <td style={tdSt}>
                                             <button onClick={() => onViewSession(s.id)} onMouseEnter={audio.playHover}
-                                                style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid ${C.cyan}40`, background: `${C.cyan}10`, color: C.cyan, fontSize: '0.65rem', fontFamily: 'monospace', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                                style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)`, background: `color-mix(in srgb, var(--color-primary-500) 6%, transparent)`, color: C.cyan, fontSize: '0.65rem', fontFamily: 'inherit', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                                                 VIEW →
                                             </button>
                                         </td>
@@ -365,15 +365,15 @@ function QueryLogsTab({ audio }) {
     const handlePage = p => { setPage(p); load(p); };
     const handleFilter = (k, v) => setFilters(f => ({ ...f, [k]: v || undefined }));
 
-    const thSt = { fontSize: '0.6rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'monospace', padding: '8px 12px', textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
-    const tdSt = { padding: '10px 12px', fontSize: '0.75rem', color: C.text, fontFamily: 'monospace', borderBottom: `1px solid rgba(255,255,255,0.04)`, verticalAlign: 'middle' };
+    const thSt = { fontSize: '0.6rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'inherit', padding: '8px 12px', textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
+    const tdSt = { padding: '10px 12px', fontSize: '0.75rem', color: C.text, fontFamily: 'inherit', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)`, verticalAlign: 'middle' };
 
     return (
         <div>
             <FilterBar filters={filters} onChange={handleFilter} extras={
                 <>
                     <select value={filters.response_status ?? ''} onChange={e => handleFilter('response_status', e.target.value)}
-                        style={{ padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'monospace', cursor: 'pointer', colorScheme: 'dark' }}>
+                        style={{ padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', colorScheme: 'dark' }}>
                         <option value="">All Statuses</option>
                         <option value="success">Success</option>
                         <option value="harmful">Harmful</option>
@@ -383,7 +383,7 @@ function QueryLogsTab({ audio }) {
                         <option value="connection_error">Connection Error</option>
                     </select>
                     <select value={filters.is_harmful ?? ''} onChange={e => handleFilter('is_harmful', e.target.value)}
-                        style={{ padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'monospace', cursor: 'pointer', colorScheme: 'dark' }}>
+                        style={{ padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', colorScheme: 'dark' }}>
                         <option value="">Any Harm</option>
                         <option value="1">Harmful Only</option>
                         <option value="0">Safe Only</option>
@@ -394,14 +394,14 @@ function QueryLogsTab({ audio }) {
             {error && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, marginBottom: 14, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}>
                     <AlertCircle size={14} style={{ color: C.red }} />
-                    <span style={{ fontSize: '0.78rem', color: C.red, fontFamily: 'monospace' }}>{error}</span>
+                    <span style={{ fontSize: '0.78rem', color: C.red, fontFamily: 'inherit' }}>{error}</span>
                 </div>
             )}
 
             {loading ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '60px 0', gap: 10 }}>
                     <Loader2 size={18} style={{ color: C.purple, animation: 'spin 0.8s linear infinite' }} />
-                    <span style={{ fontSize: '0.78rem', color: C.textDim, fontFamily: 'monospace' }}>LOADING QUERIES…</span>
+                    <span style={{ fontSize: '0.78rem', color: C.textDim, fontFamily: 'inherit' }}>LOADING QUERIES…</span>
                 </div>
             ) : (
                 <div style={{ ...neuralCard, overflow: 'hidden' }}>
@@ -423,7 +423,7 @@ function QueryLogsTab({ audio }) {
                                         <tr key={log.id}
                                             onClick={() => setExpanded(expanded === log.id ? null : log.id)}
                                             style={{ cursor: 'pointer', transition: 'background 150ms', background: expanded === log.id ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'transparent' }}
-                                            onMouseEnter={e => { if (expanded !== log.id) e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; audio.playHover(); }}
+                                            onMouseEnter={e => { if (expanded !== log.id) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; audio.playHover(); }}
                                             onMouseLeave={e => { if (expanded !== log.id) e.currentTarget.style.background = 'transparent'; }}>
                                             <td style={{ ...tdSt, color: C.textDim, fontSize: '0.65rem', whiteSpace: 'nowrap' }}>{fmtTime(log.queried_at)}</td>
                                             <td style={tdSt}>
@@ -436,7 +436,7 @@ function QueryLogsTab({ audio }) {
                                             <td style={tdSt}>
                                                 {log.is_harmful
                                                     ? <Badge label={log.harm_category ?? 'HARMFUL'} color={C.red} />
-                                                    : <span style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'monospace' }}>—</span>}
+                                                    : <span style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'inherit' }}>—</span>}
                                             </td>
                                             <td style={{ ...tdSt, color: C.blue, fontWeight: 700 }}>{fmtMs(log.response_time_ms)}</td>
                                             <td style={tdSt}>
@@ -449,18 +449,18 @@ function QueryLogsTab({ audio }) {
                                             <tr key={`${log.id}-exp`}>
                                                 <td colSpan={7} style={{ padding: '0 12px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                                                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, paddingTop: 10 }}>
-                                                        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(59,130,246,0.07)', border: `1px solid ${C.border}` }}>
-                                                            <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Query</div>
-                                                            <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'monospace', lineHeight: 1.6 }}>{log.query}</div>
+                                                        <div style={{ padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: `1px solid ${C.border}` }}>
+                                                            <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'inherit', textTransform: 'uppercase', marginBottom: 6 }}>Query</div>
+                                                            <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'inherit', lineHeight: 1.6 }}>{log.query}</div>
                                                         </div>
                                                         <div style={{ padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: `1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)` }}>
-                                                            <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', marginBottom: 6 }}>Response</div>
-                                                            <div style={{ fontSize: '0.78rem', color: C.textMid, fontFamily: 'monospace', lineHeight: 1.6 }}>{log.response ?? '—'}</div>
+                                                            <div style={{ fontSize: '0.58rem', color: C.textDim, fontFamily: 'inherit', textTransform: 'uppercase', marginBottom: 6 }}>Response</div>
+                                                            <div style={{ fontSize: '0.78rem', color: C.textMid, fontFamily: 'inherit', lineHeight: 1.6 }}>{log.response ?? '—'}</div>
                                                         </div>
                                                     </div>
                                                     {log.is_flagged && log.flagged_reason && (
                                                         <div style={{ marginTop: 8, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.3)' }}>
-                                                            <span style={{ fontSize: '0.7rem', color: C.amber, fontFamily: 'monospace' }}>⚑ FLAG REASON: {log.flagged_reason}</span>
+                                                            <span style={{ fontSize: '0.7rem', color: C.amber, fontFamily: 'inherit' }}>⚑ FLAG REASON: {log.flagged_reason}</span>
                                                         </div>
                                                     )}
                                                 </td>
@@ -515,13 +515,13 @@ export default function MimiSessionsPage() {
                     <div>
                         <h1 style={{
                             margin: 0, fontSize: '1.6rem', fontWeight: 800,
-                            letterSpacing: '-0.02em', fontFamily: 'monospace',
+                            letterSpacing: '-0.02em', fontFamily: 'inherit',
                             background: `linear-gradient(135deg, ${C.cyan}, ${C.blue})`,
                             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                         }}>
                             SESSIONS & QUERIES
                         </h1>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'monospace', letterSpacing: '0.1em' }}>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'inherit', letterSpacing: '0.1em' }}>
                             CHAT SESSIONS · QUERY LOGS · RESPONSE ANALYTICS
                         </p>
                     </div>
@@ -534,9 +534,9 @@ export default function MimiSessionsPage() {
                         <button key={tab.label} onClick={() => { audio.playHover(); navigate(tab.path); }}
                             style={{
                                 padding: '6px 14px', borderRadius: 8, fontSize: '0.7rem', fontWeight: 700,
-                                fontFamily: 'monospace', letterSpacing: '0.08em', cursor: 'pointer',
+                                fontFamily: 'inherit', letterSpacing: '0.08em', cursor: 'pointer',
                                 border: `1px solid ${tab.active ? C.cyan + '60' : C.border}`,
-                                background: tab.active ? `${C.cyan}15` : 'transparent',
+                                background: tab.active ? `color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'transparent',
                                 color: tab.active ? C.cyan : C.textDim,
                                 transition: 'all 150ms',
                             }}
@@ -561,9 +561,9 @@ export default function MimiSessionsPage() {
                                     style={{
                                         display: 'flex', alignItems: 'center', gap: 6,
                                         padding: '7px 16px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
-                                        fontFamily: 'monospace', letterSpacing: '0.06em', cursor: 'pointer',
+                                        fontFamily: 'inherit', letterSpacing: '0.06em', cursor: 'pointer',
                                         border: `1px solid ${subTab === key ? C.blue + '60' : C.border}`,
-                                        background: subTab === key ? `${C.blue}15` : 'transparent',
+                                        background: subTab === key ? `color-mix(in srgb, var(--color-primary-500) 8%, transparent)` : 'transparent',
                                         color: subTab === key ? C.blue : C.textDim,
                                         transition: 'all 150ms',
                                     }}>

@@ -13,18 +13,18 @@ const C = {
   bg:       'var(--color-background-tertiary)',
   bgCard:   'var(--color-background-secondary)',
   bgInput:  'var(--color-background-secondary)',
-  blue:     '#3b82f6',
-  cyan:     '#06b6d4',
+  blue:     'var(--color-primary-500)',
+  cyan:     'var(--color-primary-500)',
   purple:   'var(--color-primary-500)',
   green:    '#10b981',
   red:      '#ef4444',
-  border:   'rgba(59,130,246,0.2)',
-  borderHi: 'rgba(59,130,246,0.5)',
+  border:   'color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+  borderHi: 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)',
   text:     'var(--color-text-primary)',
   textMid:  'var(--color-text-secondary)',
   textDim:  'var(--color-text-tertiary)',
-  glow:     '0 0 20px rgba(59,130,246,0.3)',
-  glowCyan: '0 0 20px rgba(6,182,212,0.3)',
+  glow:     'none',
+  glowCyan: 'none',
 };
 
 const COLORS = { anthropic: 'var(--color-primary-500)', gemini: '#3b82f6', openai: '#10b981', qwen: '#f59e0b' };
@@ -190,149 +190,17 @@ function useAudioEngine() {
   return { startAmbient, stopAmbient, playHover, playActivate, playDelete, playError, playSuccess, toggleMute, muted };
 }
 
-// ── Neural net background canvas ──────────────────────────────────────────────
-function NeuralCanvas() {
-  const canvasRef = useRef(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-
-    const resize = () => {
-      canvas.width  = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener('resize', resize);
-
-    // Generate nodes
-    const NODE_COUNT = 28;
-    const nodes = Array.from({ length: NODE_COUNT }, () => ({
-      x:   Math.random() * canvas.width,
-      y:   Math.random() * canvas.height,
-      vx:  (Math.random() - 0.5) * 0.3,
-      vy:  (Math.random() - 0.5) * 0.3,
-      r:   Math.random() * 2.5 + 1,
-      pulse: Math.random() * Math.PI * 2,
-    }));
-
-    // Animated data packets along edges
-    const packets = [];
-
-    let frame;
-    let t = 0;
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      t += 0.008;
-
-      // Move nodes
-      nodes.forEach(n => {
-        n.x += n.vx;
-        n.y += n.vy;
-        if (n.x < 0 || n.x > canvas.width)  n.vx *= -1;
-        if (n.y < 0 || n.y > canvas.height)  n.vy *= -1;
-        n.pulse += 0.02;
-      });
-
-      // Draw edges
-      const MAX_DIST = 180;
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const dx   = nodes[j].x - nodes[i].x;
-          const dy   = nodes[j].y - nodes[i].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist > MAX_DIST) continue;
-
-          const alpha = (1 - dist / MAX_DIST) * 0.25;
-          ctx.beginPath();
-          ctx.moveTo(nodes[i].x, nodes[i].y);
-          ctx.lineTo(nodes[j].x, nodes[j].y);
-          ctx.strokeStyle = `rgba(59,130,246,${alpha})`;
-          ctx.lineWidth   = 0.8;
-          ctx.stroke();
-
-          // Occasionally spawn a packet
-          if (Math.random() < 0.0008) {
-            packets.push({ from: i, to: j, progress: 0, speed: Math.random() * 0.008 + 0.004, color: Math.random() > 0.5 ? C.cyan : C.blue });
-          }
-        }
-      }
-
-      // Draw packets
-      for (let i = packets.length - 1; i >= 0; i--) {
-        const p  = packets[i];
-        p.progress += p.speed;
-        if (p.progress >= 1) { packets.splice(i, 1); continue; }
-        const from = nodes[p.from];
-        const to   = nodes[p.to];
-        const px   = from.x + (to.x - from.x) * p.progress;
-        const py   = from.y + (to.y - from.y) * p.progress;
-        ctx.beginPath();
-        ctx.arc(px, py, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur  = 8;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      }
-
-      // Draw nodes
-      nodes.forEach(n => {
-        const pulse = Math.sin(n.pulse) * 0.5 + 0.5;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r + pulse, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(59,130,246,${0.4 + pulse * 0.4})`;
-        ctx.shadowColor = C.blue;
-        ctx.shadowBlur  = 6 + pulse * 6;
-        ctx.fill();
-        ctx.shadowBlur = 0;
-      });
-
-      frame = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('resize', resize);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: 'absolute', inset: 0,
-        width: '100%', height: '100%',
-        opacity: 0.4, pointerEvents: 'none',
-      }}
-    />
-  );
-}
-
-// ── Scanline overlay ──────────────────────────────────────────────────────────
-function Scanlines() {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 1,
-      backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)',
-    }} />
-  );
-}
-
 // ── Breadcrumb ────────────────────────────────────────────────────────────────
 function Breadcrumb({ items, onHover }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', marginBottom: 28, fontFamily: 'monospace' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.72rem', marginBottom: 28, fontFamily: 'inherit' }}>
       {items.map((item, i) => (
         <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {item.onClick ? (
             <button
               onClick={item.onClick}
               onMouseEnter={onHover}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.cyan, fontWeight: 700, fontSize: '0.72rem', fontFamily: 'monospace', padding: 0, textShadow: `0 0 8px ${C.cyan}` }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.cyan, fontWeight: 700, fontSize: '0.72rem', fontFamily: 'inherit', padding: 0 }}
             >
               {item.label}
             </button>
@@ -477,11 +345,9 @@ export default function AiKeysPage() {
     <GeneralLayout>
       <div
         onClick={handleFirstInteraction}
-        style={{ minHeight: '100vh', background: C.bg, color: C.text, fontFamily: "'DM Sans', sans-serif", position: 'relative', overflow: 'hidden' }}>
+        style={{ color: C.text, position: 'relative' }}>
 
         {/* ── Neural background ── */}
-        <NeuralCanvas />
-        <Scanlines />
 
         {/* ── Content ── */}
         <div style={{ position: 'relative', zIndex: 2, maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
@@ -491,7 +357,7 @@ export default function AiKeysPage() {
             <button
               onClick={(e) => { e.stopPropagation(); audio.toggleMute(); }}
               onMouseEnter={audio.playHover}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'rgba(0,0,0,0.4)', color: C.textMid, cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'monospace', backdropFilter: 'blur(8px)' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgCard, color: C.textMid, cursor: 'pointer', fontSize: '0.72rem', fontFamily: 'inherit' }}
             >
               {audio.muted ? <VolumeX size={13} /> : <Volume2 size={13} />}
               {audio.muted ? 'SOUND OFF' : 'SOUND ON'}
@@ -512,10 +378,10 @@ export default function AiKeysPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 8 }}>
               <BrainCircuit size={32} style={{ color: C.blue, filter: `drop-shadow(0 0 8px ${C.blue})` }} />
               <div>
-                <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.02em', fontFamily: 'monospace', background: `linear-gradient(135deg, ${C.blue}, ${C.cyan})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                <h1 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.02em', fontFamily: 'inherit', background: `linear-gradient(135deg, ${C.blue}, ${C.cyan})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   API KEY MANAGEMENT
                 </h1>
-                <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'monospace', letterSpacing: '0.1em' }}>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'inherit', letterSpacing: '0.1em' }}>
                   NEURAL NETWORK PROVIDER AUTHENTICATION
                 </p>
               </div>
@@ -547,7 +413,7 @@ export default function AiKeysPage() {
             <button
               onClick={() => { setShowForm(f => !f); audio.playHover(); }}
               onMouseEnter={audio.playHover}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, border: `1px solid ${C.blue}`, background: `rgba(59,130,246,0.1)`, color: C.blue, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.06em', boxShadow: C.glow, transition: 'all 150ms' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 10, border: `1px solid ${C.blue}`, background: `color-mix(in srgb, var(--color-primary-500) 10%, transparent)`, color: C.blue, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.06em', boxShadow: C.glow, transition: 'all 150ms' }}
             >
               <Plus size={15} /> + NEW KEY
             </button>
@@ -555,8 +421,8 @@ export default function AiKeysPage() {
 
           {/* ── Add key form ── */}
           {showForm && (
-            <div style={{ marginBottom: 24, padding: 24, borderRadius: 14, border: `1px solid ${C.borderHi}`, background: 'rgba(59,130,246,0.04)', backdropFilter: 'blur(12px)', animation: 'fadeIn 0.2s ease', boxShadow: C.glow }}>
-              <p style={{ margin: '0 0 20px', fontSize: '0.72rem', fontFamily: 'monospace', color: C.cyan, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
+            <div style={{ marginBottom: 24, padding: 24, borderRadius: 14, border: `1px solid ${C.borderHi}`, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', backdropFilter: 'blur(12px)', animation: 'fadeIn 0.2s ease', boxShadow: C.glow }}>
+              <p style={{ margin: '0 0 20px', fontSize: '0.72rem', fontFamily: 'inherit', color: C.cyan, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
                 ▸ {editing ? 'CHANGE KEY' : 'REGISTER NEW PROVIDER KEY'}
               </p>
 
@@ -567,7 +433,7 @@ export default function AiKeysPage() {
                     key={p.value}
                     onClick={() => { setForm(f => ({ ...f, provider: p.value })); audio.playHover(); }}
                     onMouseEnter={audio.playHover}
-                    style={{ padding: '10px 8px', borderRadius: 8, border: `1px solid ${form.provider === p.value ? p.color : C.border}`, background: form.provider === p.value ? `${p.color}18` : 'transparent', color: form.provider === p.value ? p.color : C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700, transition: 'all 150ms', boxShadow: form.provider === p.value ? `0 0 12px ${p.color}40` : 'none', textAlign: 'center' }}
+                    style={{ padding: '10px 8px', borderRadius: 8, border: `1px solid ${form.provider === p.value ? p.color : C.border}`, background: form.provider === p.value ? `${p.color}18` : 'transparent', color: form.provider === p.value ? p.color : C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700, transition: 'all 150ms', boxShadow: form.provider === p.value ? `0 0 12px ${p.color}40` : 'none', textAlign: 'center' }}
                   >
                     <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>{p.label}</div>
                     <div style={{ fontSize: '0.62rem', opacity: 0.7, marginTop: 2 }}>{p.desc}</div>
@@ -578,37 +444,37 @@ export default function AiKeysPage() {
               {/* Model + what it is used for */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 12 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>MODEL (EMPTY = {providerMeta(form.provider).model ?? 'THE DEFAULT'})</label>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'inherit', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>MODEL (EMPTY = {providerMeta(form.provider).model ?? 'THE DEFAULT'})</label>
                   <input list="ai-models" value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} placeholder={providerMeta(form.provider).model}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'inherit', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }} />
                   <datalist id="ai-models">{(providerMeta(form.provider).models ?? []).map(m => <option key={m} value={m} />)}</datalist>
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>USED FOR</label>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'inherit', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>USED FOR</label>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {USED_FOR.map(([k, l]) => (
                       <button key={k} type="button" onClick={() => setForm(f => ({ ...f, used_for: k }))}
-                        style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${form.used_for === k ? C.cyan : C.border}`, background: form.used_for === k ? 'rgba(6,182,212,0.12)' : 'transparent', color: form.used_for === k ? C.cyan : C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', fontWeight: 700 }}>{l}</button>
+                        style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${form.used_for === k ? C.cyan : C.border}`, background: form.used_for === k ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent', color: form.used_for === k ? C.cyan : C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.7rem', fontWeight: 700 }}>{l}</button>
                     ))}
                   </div>
                 </div>
               </div>
               {['openai', 'qwen'].includes(form.provider) && (
                 <div style={{ marginBottom: 12 }}>
-                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>ENDPOINT (OPTIONAL — {form.provider === 'qwen' ? 'E.G. https://dashscope.aliyuncs.com/compatible-mode/v1 FOR CHINA' : 'FOR AN OPENAI-COMPATIBLE SERVICE'})</label>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'inherit', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>ENDPOINT (OPTIONAL — {form.provider === 'qwen' ? 'E.G. https://dashscope.aliyuncs.com/compatible-mode/v1 FOR CHINA' : 'FOR AN OPENAI-COMPATIBLE SERVICE'})</label>
                   <input value={form.base_url} onChange={e => setForm(f => ({ ...f, base_url: e.target.value }))} placeholder={providerMeta(form.provider).base}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }} />
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'inherit', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               )}
 
               {/* Label */}
               <div style={{ marginBottom: 12 }}>
-                <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>KEY LABEL</label>
+                <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'inherit', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>KEY LABEL</label>
                 <input
                   value={form.label}
                   onChange={e => setForm(f => ({ ...f, label: e.target.value }))}
                   placeholder="e.g. Primary Anthropic Key"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'inherit', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms' }}
                   onFocus={e => e.target.style.borderColor = C.cyan}
                   onBlur={e => e.target.style.borderColor = C.border}
                 />
@@ -616,26 +482,26 @@ export default function AiKeysPage() {
 
               {/* API key */}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>API KEY{editing ? ' (LEAVE EMPTY TO KEEP THE CURRENT ONE)' : ''}</label>
+                <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'inherit', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>API KEY{editing ? ' (LEAVE EMPTY TO KEEP THE CURRENT ONE)' : ''}</label>
                 <input
                   type="password"
                   value={form.api_key}
                   onChange={e => setForm(f => ({ ...f, api_key: e.target.value }))}
                   placeholder="sk-••••••••••••••••"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms' }}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'inherit', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box', transition: 'border-color 150ms' }}
                   onFocus={e => e.target.style.borderColor = C.cyan}
                   onBlur={e => e.target.style.borderColor = C.border}
                 />
               </div>
 
-              {formError && <p role="alert" style={{ margin: '0 0 12px', fontFamily: 'monospace', fontSize: '0.74rem', color: C.red }}>{formError}</p>}
+              {formError && <p role="alert" style={{ margin: '0 0 12px', fontFamily: 'inherit', fontSize: '0.74rem', color: C.red }}>{formError}</p>}
 
               {/* Actions */}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button
                   onClick={() => { setShowForm(false); setEditing(null); setForm(BLANK); setFormError(null); audio.playHover(); }}
                   onMouseEnter={audio.playHover}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.78rem' }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem' }}
                 >
                   CANCEL
                 </button>
@@ -643,7 +509,7 @@ export default function AiKeysPage() {
                   onClick={handleAdd}
                   onMouseEnter={audio.playHover}
                   disabled={saving}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.cyan}`, background: `rgba(6,182,212,0.12)`, color: C.cyan, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, boxShadow: C.glowCyan, opacity: saving ? 0.7 : 1 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.cyan}`, background: `color-mix(in srgb, var(--color-primary-500) 12%, transparent)`, color: C.cyan, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.78rem', fontWeight: 700, boxShadow: C.glowCyan, opacity: saving ? 0.7 : 1 }}
                 >
                   {saving ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Shield size={13} />}
                   {saving ? 'SAVING…' : (editing ? 'SAVE CHANGES' : 'REGISTER KEY')}
@@ -656,13 +522,13 @@ export default function AiKeysPage() {
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 12 }}>
               <Loader2 size={22} style={{ color: C.blue, animation: 'spin 1s linear infinite' }} />
-              <span style={{ fontFamily: 'monospace', color: C.textMid, fontSize: '0.8rem', letterSpacing: '0.1em' }}>INITIALISING…</span>
+              <span style={{ fontFamily: 'inherit', color: C.textMid, fontSize: '0.8rem', letterSpacing: '0.1em' }}>INITIALISING…</span>
             </div>
           ) : keys.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <BrainCircuit size={48} style={{ color: C.textDim, display: 'block', margin: '0 auto 16px', filter: `drop-shadow(0 0 8px ${C.blue}40)` }} />
-              <p style={{ fontFamily: 'monospace', color: C.textMid, fontSize: '0.82rem', letterSpacing: '0.08em' }}>NO KEYS REGISTERED</p>
-              <p style={{ fontFamily: 'monospace', color: C.textDim, fontSize: '0.72rem', marginTop: 4 }}>Register a provider key to activate AI analytics</p>
+              <BrainCircuit size={48} style={{ color: C.textDim, display: 'block', margin: '0 auto 16px', filter: `drop-shadow(0 0 8px color-mix(in srgb, var(--color-primary-500) 25%, transparent))` }} />
+              <p style={{ fontFamily: 'inherit', color: C.textMid, fontSize: '0.82rem', letterSpacing: '0.08em' }}>NO KEYS REGISTERED</p>
+              <p style={{ fontFamily: 'inherit', color: C.textDim, fontSize: '0.72rem', marginTop: 4 }}>Register a provider key to activate AI analytics</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -682,24 +548,24 @@ export default function AiKeysPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
 
                       {/* Provider badge */}
-                      <div style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${meta.color}40`, background: `${meta.color}12`, fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 800, color: meta.color, letterSpacing: '0.1em', textShadow: `0 0 8px ${meta.color}`, flexShrink: 0 }}>
+                      <div style={{ padding: '6px 14px', borderRadius: 8, border: `1px solid ${meta.color}40`, background: `${meta.color}12`, fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 800, color: meta.color, letterSpacing: '0.1em', flexShrink: 0 }}>
                         {meta.label.toUpperCase()}
                       </div>
 
                       {/* Info */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: C.text, fontFamily: 'monospace' }}>{key.label}</p>
-                        <p style={{ margin: '3px 0 0', fontSize: '0.68rem', color: C.textDim, fontFamily: 'monospace' }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: C.text, fontFamily: 'inherit' }}>{key.label}</p>
+                        <p style={{ margin: '3px 0 0', fontSize: '0.68rem', color: C.textDim, fontFamily: 'inherit' }}>
                           {key.effective_model} · {key.key_hint} · added by {key.created_by} · {key.last_used_at ? `last used ${new Date(key.last_used_at).toLocaleDateString()}` : 'never used'}
                         </p>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-                          <span style={{ fontSize: '0.62rem', fontFamily: 'monospace', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMid }}>{usedLabel(key.used_for).toUpperCase()}</span>
+                          <span style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMid }}>{usedLabel(key.used_for).toUpperCase()}</span>
                           {Object.entries(meta.first_choice ?? {}).filter(([, id]) => id === key.id).map(([purpose]) => (
-                            <span key={purpose} style={{ fontSize: '0.62rem', fontFamily: 'monospace', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.green}60`, color: C.green }}>FIRST CHOICE · {usedLabel(purpose).toUpperCase()}</span>
+                            <span key={purpose} style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.green}60`, color: C.green }}>FIRST CHOICE · {usedLabel(purpose).toUpperCase()}</span>
                           ))}
                         </div>
-                        {key.last_error && <p style={{ margin: '6px 0 0', fontSize: '0.68rem', color: C.red, fontFamily: 'monospace', wordBreak: 'break-word' }}>⚠ {key.last_error}</p>}
-                        {tests[key.id] && <p style={{ margin: '6px 0 0', fontSize: '0.68rem', color: tests[key.id].ok ? C.green : C.red, fontFamily: 'monospace', wordBreak: 'break-word' }}>{tests[key.id].ok ? `✓ Works — ${tests[key.id].model} answered in ${tests[key.id].ms} ms` : `✗ ${tests[key.id].message}`}</p>}
+                        {key.last_error && <p style={{ margin: '6px 0 0', fontSize: '0.68rem', color: C.red, fontFamily: 'inherit', wordBreak: 'break-word' }}>⚠ {key.last_error}</p>}
+                        {tests[key.id] && <p style={{ margin: '6px 0 0', fontSize: '0.68rem', color: tests[key.id].ok ? C.green : C.red, fontFamily: 'inherit', wordBreak: 'break-word' }}>{tests[key.id].ok ? `✓ Works — ${tests[key.id].model} answered in ${tests[key.id].ms} ms` : `✗ ${tests[key.id].message}`}</p>}
                       </div>
 
                       {/* Status */}
@@ -707,12 +573,12 @@ export default function AiKeysPage() {
                         {key.is_active ? (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: `${meta.color}15`, border: `1px solid ${meta.color}40` }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: meta.color, boxShadow: `0 0 6px ${meta.color}`, animation: 'pulse 2s ease-in-out infinite' }} />
-                            <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: meta.color, fontWeight: 700, letterSpacing: '0.08em' }}>ACTIVE</span>
+                            <span style={{ fontSize: '0.65rem', fontFamily: 'inherit', color: meta.color, fontWeight: 700, letterSpacing: '0.08em' }}>ACTIVE</span>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(71,85,105,0.15)', border: `1px solid ${C.border}` }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.textDim }} />
-                            <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: C.textDim, fontWeight: 700, letterSpacing: '0.08em' }}>OFF</span>
+                            <span style={{ fontSize: '0.65rem', fontFamily: 'inherit', color: C.textDim, fontWeight: 700, letterSpacing: '0.08em' }}>OFF</span>
                           </div>
                         )}
                       </div>
@@ -720,25 +586,25 @@ export default function AiKeysPage() {
                       {/* Actions */}
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                         <button onClick={() => handleTest(key.id)} disabled={testing === key.id}
-                          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700 }}>
                           {testing === key.id ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle size={11} />} TEST
                         </button>
                         <button onClick={() => startEdit(key)}
-                          style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>EDIT</button>
+                          style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700 }}>EDIT</button>
                         {meta.columns_ready && key.is_active && Object.values(meta.first_choice ?? {}).some(id => id !== key.id) && (
                           <button onClick={() => handleFirst(key.id)}
-                            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.green}50`, background: 'transparent', color: C.green, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>FIRST</button>
+                            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.green}50`, background: 'transparent', color: C.green, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700 }}>FIRST</button>
                         )}
                         {key.is_active && (
                           <button onClick={() => handleActivate(key.id)} disabled={!!activating}
-                            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>SWITCH OFF</button>
+                            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700 }}>SWITCH OFF</button>
                         )}
                         {!key.is_active && (
                           <button
                             onClick={() => handleActivate(key.id)}
                             onMouseEnter={audio.playHover}
                             disabled={!!activating}
-                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, border: `1px solid ${meta.color}50`, background: `${meta.color}10`, color: meta.color, cursor: activating ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', transition: 'all 150ms' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, border: `1px solid ${meta.color}50`, background: `${meta.color}10`, color: meta.color, cursor: activating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.06em', transition: 'all 150ms' }}
                           >
                             {activating === key.id
                               ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
@@ -752,7 +618,7 @@ export default function AiKeysPage() {
                             onClick={() => handleDelete(key.id)}
                             onMouseEnter={audio.playHover}
                             disabled={!!deleting}
-                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: `1px solid rgba(239,68,68,0.3)`, background: 'rgba(239,68,68,0.06)', color: C.red, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', transition: 'all 150ms' }}
+                            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: `1px solid rgba(239,68,68,0.3)`, background: 'rgba(239,68,68,0.06)', color: C.red, cursor: deleting ? 'not-allowed' : 'pointer', fontFamily: 'inherit', fontSize: '0.72rem', transition: 'all 150ms' }}
                           >
                             {deleting === key.id
                               ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
@@ -769,11 +635,11 @@ export default function AiKeysPage() {
 
           {/* ── Footer status bar ── */}
           <div style={{ marginTop: 40, paddingTop: 16, borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'monospace', fontSize: '0.65rem', color: C.textDim }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: '0.65rem', color: C.textDim }}>
               <Activity size={11} style={{ color: C.blue }} />
               {keys.length} KEY{keys.length !== 1 ? 'S' : ''} REGISTERED · {keys.filter(k => k.is_active).length} ACTIVE
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'monospace', fontSize: '0.65rem', color: C.textDim }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: '0.65rem', color: C.textDim }}>
               {audio.muted ? <WifiOff size={11} /> : <Wifi size={11} style={{ color: C.green, animation: 'pulse 2s infinite' }} />}
               {audio.muted ? 'AUDIO DISABLED' : 'AUDIO ACTIVE'}
             </div>

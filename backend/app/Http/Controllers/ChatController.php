@@ -11,7 +11,8 @@ use App\Services\Chat\MimiBlockService;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\ServiceCategory;
-use App\Models\Order;
+use App\Models\Books\Voucher;
+use App\Models\Books\VoucherType;
 use App\Models\Customer;
 use App\Models\User;
 use App\Models\Project;
@@ -208,15 +209,13 @@ class ChatController extends Controller
             if (!$customer) return null;
 
             // ── Orders ────────────────────────────────────────────────────────
-            $orders = Order::where('customer_id', $customer->id)
-                ->select('id', 'order_number', 'status', 'total', 'total_kes', 'currency', 'payment_status', 'created_at')
-                ->latest()
-                ->limit(8)
-                ->get()
+            $orders = $this->salesDocs()->where('customer_id', $customer->id)
+                ->with('type:id,name')->latest('date')->latest('id')->limit(8)->get()
                 ->map(fn($o) =>
-                    "📦 Order #{$o->order_number} | Status: {$o->status} | Payment: {$o->payment_status}" .
-                    " | KSh " . number_format($o->total_kes ?? $o->total, 2) .
-                    " | {$o->created_at->format('M d, Y')}"
+                    "📦 {$o->type?->name} #{$o->voucher_number} | Status: {$o->status}" .
+                    ($o->fulfilment_status ? " | Fulfilment: {$o->fulfilment_status}" : '') .
+                    " | KSh " . number_format($o->base_total ?? $o->total_amount, 2) .
+                    " | {$o->date?->format('M d, Y')}"
                 )->join("\n") ?: 'No orders yet.';
 
             // ── Projects ──────────────────────────────────────────────────────
@@ -231,7 +230,7 @@ class ChatController extends Controller
                 )->join("\n") ?: 'No active projects.';
 
             // ── Payment history (per order, customer-safe fields only) ─────────
-            $payments = Payment::where('customer_id', $customer->id)
+            $payments = $this->safe(fn() => Payment::where('customer_id', $customer->id)
                 ->select('id', 'payment_number', 'status', 'amount_expected', 'mpesa_amount_confirmed', 'mpesa_receipt_number', 'failure_reason', 'initiated_at', 'confirmed_at', 'order_id')
                 ->latest()
                 ->limit(5)
@@ -243,7 +242,7 @@ class ChatController extends Controller
                         : " | Expected: KSh " . number_format($p->amount_expected, 2)) .
                     ($p->failure_reason ? " | Reason: {$p->failure_reason}" : "") .
                     " | {$p->initiated_at?->format('M d, Y')}"
-                )->join("\n") ?: 'No payment history.';
+                )->join("\n"), '') ?: 'No payment history.';
 
             // ── My referral code (the code they share with others) ─────────────
             $myReferralCode = ReferralCode::where('customer_id', $customer->id)
@@ -354,21 +353,21 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
         switch ($intent['type']) {
 
             case 'order_lookup':
-                $order = Order::with(['customer:id,first_name,last_name,email', 'items'])
-                    ->where('order_number', $intent['identifier'])
-                    ->orWhere('id', is_numeric($intent['identifier']) ? $intent['identifier'] : 0)
+                $ident = $intent['identifier'];
+                $order = $this->salesDocs()->with(['customer:id,first_name,last_name,email', 'items', 'type:id,name'])
+                    ->where(fn($q) => $q->where('voucher_number', $ident)->orWhere('id', is_numeric($ident) ? $ident : 0))
                     ->first();
                 $parts['lookup'] = $order
                     ? $this->formatOrderDetail($order)
-                    : "Order '{$intent['identifier']}' not found.";
+                    : "Order '{$ident}' not found.";
                 break;
 
             case 'payment_lookup':
-                $payment = Payment::with(['order:id,order_number', 'customer:id,first_name,last_name,email'])
+                $payment = $this->safe(fn() => Payment::with(['customer:id,first_name,last_name,email'])
                     ->where('payment_number', $intent['identifier'])
                     ->orWhere('mpesa_receipt_number', $intent['identifier'])
                     ->orWhere('id', is_numeric($intent['identifier']) ? $intent['identifier'] : 0)
-                    ->first();
+                    ->first(), null);
 
                 // Finance can only see their own payments
                 if ($payment && $role === 'finance' && $payment->initiated_by !== $user->id) {
@@ -461,23 +460,23 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
     // FORMATTERS
     // =========================================================================
 
-    private function formatOrderDetail(Order $order): string
+    private function formatOrderDetail(Voucher $order): string
     {
         $customer = $order->customer;
         $name     = $customer
             ? trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? ''))
-            : 'Unknown';
+            : ($order->party_name ?: 'Unknown');
 
-        $items = $order->items->map(fn($i) =>
-            "  • {$i->getDisplayName()} × {$i->quantity} @ KSh " . number_format($i->unit_price, 2)
+        $items = $order->items->where('is_header', false)->map(fn($i) =>
+            "  • {$i->description} × " . (float) $i->quantity . " @ KSh " . number_format($i->rate, 2)
         )->join("\n") ?: '  No items';
 
         return "
-📦 ORDER #{$order->order_number}
+📦 {$order->type?->name} #{$order->voucher_number}
 Customer: {$name} ({$customer?->email})
-Status: {$order->status} | Payment: {$order->payment_status}
-Total: KSh " . number_format($order->total_kes ?? $order->total, 2) . "
-Created: {$order->created_at->format('M d, Y H:i')}
+Status: {$order->status}" . ($order->fulfilment_status ? " | Fulfilment: {$order->fulfilment_status}" : '') . "
+Total: KSh " . number_format($order->base_total ?? $order->total_amount, 2) . "
+Date: {$order->date?->format('M d, Y')}
 ITEMS:
 {$items}";
     }
@@ -491,7 +490,6 @@ ITEMS:
 
         return "
 💳 PAYMENT {$payment->payment_number}
-Order: #{$payment->order?->order_number}
 Customer: {$name} ({$customer?->email})
 Status: {$payment->status}
 Expected: KSh " . number_format($payment->amount_expected, 2) .
@@ -504,11 +502,28 @@ Expected: KSh " . number_format($payment->amount_expected, 2) .
 "\nDispute: {$payment->dispute_status}";
     }
 
+    /** Sales documents (orders, invoices, cash sales) now live in the books as vouchers; the old orders table is gone. */
+    private function salesDocs(array $bases = [VoucherType::SALES_ORDER, VoucherType::SALES, VoucherType::CASH_SALE])
+    {
+        return Voucher::query()->whereHas('type', fn($q) => $q->whereIn('base_type', $bases));
+    }
+
+    /** Mimi must still answer when a table behind one of her extras is missing — log it and carry on. */
+    private function safe(\Closure $fn, $default)
+    {
+        try {
+            return $fn();
+        } catch (\Throwable $e) {
+            Log::warning('Mimi context skipped', ['error' => $e->getMessage()]);
+            return $default;
+        }
+    }
+
     private function formatCustomerDetail(Customer $customer): string
     {
-        $orderCount = Order::where('customer_id', $customer->id)->count();
-        $totalSpent = Order::where('customer_id', $customer->id)->where('payment_status', 'paid')->sum('total_kes');
-        $openDisputes = Payment::where('customer_id', $customer->id)->whereIn('dispute_status', ['raised', 'investigating'])->count();
+        $orderCount = $this->salesDocs()->where('customer_id', $customer->id)->count();
+        $totalSpent = $this->salesDocs([VoucherType::SALES, VoucherType::CASH_SALE])->where('customer_id', $customer->id)->sum('base_total');
+        $openDisputes = $this->safe(fn() => Payment::where('customer_id', $customer->id)->whereIn('dispute_status', ['raised', 'investigating'])->count(), 0);
 
         return "
 👤 CUSTOMER: {$customer->first_name} {$customer->last_name}
@@ -530,9 +545,9 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
     {
         $stats = [
             'orders' => [
-                'total'   => Order::count(),
-                'pending' => Order::where('status', 'pending')->count(),
-                'today'   => Order::whereDate('created_at', today())->count(),
+                'total'   => $this->salesDocs()->count(),
+                'pending' => $this->salesDocs()->where('status', Voucher::DRAFT)->count(),
+                'today'   => $this->salesDocs()->whereDate('created_at', today())->count(),
             ],
             'customers' => Customer::count(),
             'products'  => Product::where('status', 'active')->count(),
@@ -540,24 +555,29 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
 
         // Finance gets payment stats too
         if (in_array($role, ['finance', 'admin', 'super_admin'])) {
-            $paymentQuery = Payment::query();
-            if ($role === 'finance') {
-                $paymentQuery->where('initiated_by', $user->id);
+            $stats['payments'] = $this->safe(function () use ($role, $user) {
+                $paymentQuery = Payment::query();
+                if ($role === 'finance') {
+                    $paymentQuery->where('initiated_by', $user->id);
+                }
+                return [
+                    'pending'        => (clone $paymentQuery)->where('status', 'pending')->count(),
+                    'failed'         => (clone $paymentQuery)->where('status', 'failed')->count(),
+                    'open_disputes'  => (clone $paymentQuery)->whereIn('dispute_status', ['raised', 'investigating'])->count(),
+                    'today_collected'=> 'KSh ' . number_format(
+                        (clone $paymentQuery)->whereDate('confirmed_at', today())->sum('mpesa_amount_confirmed'), 2
+                    ),
+                ];
+            }, null);
+            if ($stats['payments'] === null) {
+                unset($stats['payments']);
             }
-            $stats['payments'] = [
-                'pending'        => (clone $paymentQuery)->where('status', 'pending')->count(),
-                'failed'         => (clone $paymentQuery)->where('status', 'failed')->count(),
-                'open_disputes'  => (clone $paymentQuery)->whereIn('dispute_status', ['raised', 'investigating'])->count(),
-                'today_collected'=> 'KSh ' . number_format(
-                    (clone $paymentQuery)->whereDate('confirmed_at', today())->sum('mpesa_amount_confirmed'), 2
-                ),
-            ];
         }
 
         // Sales rep sees only their assigned customers
         if ($role === 'sales_rep') {
             $assigned = Customer::where('assigned_sales_rep', $user->id)->pluck('id');
-            $stats['orders']['total'] = Order::whereIn('customer_id', $assigned)->count();
+            $stats['orders']['total'] = $this->salesDocs()->whereIn('customer_id', $assigned)->count();
             $stats['customers']       = $assigned->count();
         }
 
@@ -570,10 +590,14 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
 
     private function getRecentActivity(string $role, User $user, ?string $filter): string
     {
-        $query = Order::with(['customer:id,first_name,last_name']);
+        $query = $this->salesDocs()->with(['customer:id,first_name,last_name', 'type:id,name']);
 
-        if ($filter && in_array($filter, ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'failed'])) {
-            $query->where('status', $filter);
+        if ($filter === 'cancelled') {
+            $query->where('status', Voucher::CANCELLED);
+        } elseif ($filter === 'pending') {
+            $query->where('status', Voucher::DRAFT);
+        } elseif ($filter && in_array($filter, ['confirmed', 'processing', 'shipped', 'delivered'])) {
+            $query->where('status', Voucher::POSTED);
         }
 
         if ($role === 'sales_rep') {
@@ -581,11 +605,11 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
             $query->whereIn('customer_id', $assigned);
         }
 
-        return $query->latest()->limit(10)->get()->map(function ($o) {
+        return $query->latest('date')->latest('id')->limit(10)->get()->map(function ($o) {
             $name = $o->customer
                 ? trim(($o->customer->first_name ?? '') . ' ' . ($o->customer->last_name ?? ''))
-                : 'Unknown';
-            return "#{$o->order_number} | {$name} | {$o->status} | KSh " . number_format($o->total_kes ?? $o->total, 2) . " | {$o->created_at->format('M d H:i')}";
+                : ($o->party_name ?: 'Unknown');
+            return "{$o->type?->name} #{$o->voucher_number} | {$name} | {$o->status} | KSh " . number_format($o->base_total ?? $o->total_amount, 2) . " | {$o->date?->format('M d')}";
         })->join("\n") ?: 'No recent orders found.';
     }
 
@@ -594,6 +618,11 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
     // =========================================================================
 
     private function getPaymentSummary(string $role, User $user): string
+    {
+        return $this->safe(fn() => $this->paymentSummary($role, $user), 'Payment records are not available right now.');
+    }
+
+    private function paymentSummary(string $role, User $user): string
     {
         $query = Payment::query();
         if ($role === 'finance') {
@@ -607,7 +636,7 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
         $monthKes = (clone $query)->whereMonth('confirmed_at', now()->month)->whereYear('confirmed_at', now()->year)->sum('mpesa_amount_confirmed');
 
         $recentPending = (clone $query)->where('status', 'pending')
-            ->with(['order:id,order_number', 'customer:id,first_name,last_name'])
+            ->with(['customer:id,first_name,last_name'])
             ->latest()
             ->limit(5)
             ->get()

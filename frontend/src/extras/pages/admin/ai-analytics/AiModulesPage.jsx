@@ -52,7 +52,7 @@ function NeuralToggle({ checked, onChange, loading, color }) {
                 width: 44, height: 24,
                 borderRadius: 12,
                 border: `1px solid ${checked ? `${activeColor}60` : C.border}`,
-                background: checked ? `${activeColor}30` : 'rgba(255,255,255,0.04)',
+                background: checked ? `${activeColor}30` : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 transition: 'all 220ms ease',
                 flexShrink: 0,
@@ -152,13 +152,13 @@ export default function AiModulesPage() {
                     <div>
                         <h1 style={{
                             margin: 0, fontSize: '1.6rem', fontWeight: 800,
-                            letterSpacing: '-0.02em', fontFamily: 'monospace',
+                            letterSpacing: '-0.02em', fontFamily: 'inherit',
                             background: `linear-gradient(135deg, ${C.blue}, ${C.cyan})`,
                             WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                         }}>
                             ANALYTICS MODULES
                         </h1>
-                        <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'monospace', letterSpacing: '0.1em' }}>
+                        <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'inherit', letterSpacing: '0.1em' }}>
                             ENABLE · DISABLE · CONTROL TOKEN SPEND PER MODULE
                         </p>
                     </div>
@@ -175,10 +175,10 @@ export default function AiModulesPage() {
                         ].map(({ label, value, color }) => (
                             <div key={label} style={{ ...neuralCard, padding: '14px 18px', border: `1px solid ${color}25` }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                                    <span style={{ fontSize: '0.62rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'monospace' }}>{label}</span>
+                                    <span style={{ fontSize: '0.62rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'inherit' }}>{label}</span>
                                     <div style={{ width: 6, height: 6, borderRadius: '50%', background: color, boxShadow: `0 0 6px ${color}` }} />
                                 </div>
-                                <div style={{ fontSize: '1.8rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'monospace' }}>{value}</div>
+                                <div style={{ fontSize: '1.8rem', fontWeight: 800, color, lineHeight: 1, fontFamily: 'inherit' }}>{value}</div>
                             </div>
                         ))}
                     </div>
@@ -194,7 +194,7 @@ export default function AiModulesPage() {
                         boxShadow: '0 0 16px rgba(239,68,68,0.1)',
                     }}>
                         <AlertCircle size={15} style={{ color: C.red, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.82rem', color: C.red, fontFamily: 'monospace' }}>{error}</span>
+                        <span style={{ fontSize: '0.82rem', color: C.red, fontFamily: 'inherit' }}>{error}</span>
                     </div>
                 )}
 
@@ -202,13 +202,13 @@ export default function AiModulesPage() {
                 {loading ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 10 }}>
                         <Loader2 size={20} style={{ color: C.blue, animation: 'spin 0.8s linear infinite' }} />
-                        <span style={{ fontSize: '0.82rem', color: C.textDim, fontFamily: 'monospace', letterSpacing: '0.08em' }}>LOADING MODULES…</span>
+                        <span style={{ fontSize: '0.82rem', color: C.textDim, fontFamily: 'inherit', letterSpacing: '0.08em' }}>LOADING MODULES…</span>
                     </div>
 
                 ) : modules.length === 0 ? (
                     <div style={{ ...neuralCard, padding: 48, textAlign: 'center' }}>
                         <Puzzle size={36} style={{ color: C.textDim, margin: '0 auto 12px', display: 'block' }} />
-                        <p style={{ fontSize: '0.82rem', color: C.textDim, margin: 0, fontFamily: 'monospace' }}>
+                        <p style={{ fontSize: '0.82rem', color: C.textDim, margin: 0, fontFamily: 'inherit' }}>
                             NO MODULES FOUND — SEED THE <code style={{ color: C.cyan }}>ai_analytics_modules</code> TABLE TO GET STARTED.
                         </p>
                     </div>
@@ -251,12 +251,12 @@ export default function AiModulesPage() {
                                     {/* Info */}
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                                            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: C.text, fontFamily: 'monospace' }}>
+                                            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: C.text, fontFamily: 'inherit' }}>
                                                 {mod.label}
                                             </span>
                                             {/* Tech key badge */}
                                             <span style={{
-                                                fontSize: '0.58rem', fontFamily: 'monospace', fontWeight: 700,
+                                                fontSize: '0.58rem', fontFamily: 'inherit', fontWeight: 700,
                                                 padding: '2px 7px', borderRadius: 4,
                                                 background: `${color}10`,
                                                 border: `1px solid ${color}25`,
@@ -291,7 +291,7 @@ export default function AiModulesPage() {
                                             fontSize: '0.63rem', fontWeight: 700,
                                             color: mod.is_enabled ? color : C.textDim,
                                             letterSpacing: '0.08em', textTransform: 'uppercase',
-                                            fontFamily: 'monospace',
+                                            fontFamily: 'inherit',
                                         }}>
                                             {mod.is_enabled ? 'ON' : 'OFF'}
                                         </span>
@@ -313,11 +313,11 @@ export default function AiModulesPage() {
                 {/* ── Footer ── */}
                 {!loading && modules.length > 0 && (
                     <div style={{ marginTop: 28, paddingTop: 16, borderTop: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'monospace', fontSize: '0.65rem', color: C.textDim }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: '0.65rem', color: C.textDim }}>
                             <Activity size={11} style={{ color: C.blue }} />
                             {modules.length} MODULE{modules.length !== 1 ? 'S' : ''} · {enabledCount} ENABLED
                         </div>
-                        <p style={{ margin: 0, fontSize: '0.65rem', color: C.textDim, fontFamily: 'monospace' }}>
+                        <p style={{ margin: 0, fontSize: '0.65rem', color: C.textDim, fontFamily: 'inherit' }}>
                             DISABLED MODULES SKIP AI CALLS — ZERO TOKENS CONSUMED
                         </p>
                     </div>

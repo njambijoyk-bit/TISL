@@ -17,7 +17,7 @@ const actorIcon  = a => a === 'customer' ? User : a === 'staff' ? User : Wifi;
 function Badge({ label, color }) {
     return (
         <span style={{
-            fontSize: '0.6rem', fontWeight: 700, fontFamily: 'monospace',
+            fontSize: '0.6rem', fontWeight: 700, fontFamily: 'inherit',
             textTransform: 'uppercase', letterSpacing: '0.08em',
             padding: '2px 7px', borderRadius: 5,
             background: `${color}15`, border: `1px solid ${color}40`, color,
@@ -37,7 +37,7 @@ function Pagination({ meta, onPage, onHover }) {
     if (!meta || meta.last_page <= 1) return null;
     return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 }}>
-            <span style={{ fontSize: '0.68rem', color: C.textDim, fontFamily: 'monospace' }}>
+            <span style={{ fontSize: '0.68rem', color: C.textDim, fontFamily: 'inherit' }}>
                 {meta.from}–{meta.to} of {meta.total}
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -45,7 +45,7 @@ function Pagination({ meta, onPage, onHover }) {
                     style={{ padding: '4px 8px', borderRadius: 6, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: meta.current_page === 1 ? 'not-allowed' : 'pointer', opacity: meta.current_page === 1 ? 0.4 : 1 }}>
                     <ChevronLeft size={12} />
                 </button>
-                <span style={{ fontSize: '0.68rem', color: C.textMid, fontFamily: 'monospace', padding: '4px 8px' }}>
+                <span style={{ fontSize: '0.68rem', color: C.textMid, fontFamily: 'inherit', padding: '4px 8px' }}>
                     {meta.current_page} / {meta.last_page}
                 </span>
                 <button disabled={meta.current_page === meta.last_page} onClick={() => onPage(meta.current_page + 1)} onMouseEnter={onHover}
@@ -112,11 +112,11 @@ function SearchableDropdown({ type, value, onSelect, inputSt, labelSt, audio }) 
                 }}>
                     {results.map(r => (
                         <div key={r.id} onMouseDown={() => pick(r)}
-                            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: `1px solid rgba(255,255,255,0.04)` }}
+                            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)` }}
                             onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; audio?.playHover(); }}
                             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
-                            <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'monospace', fontWeight: 600 }}>{r.label}</div>
-                            <div style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'monospace', marginTop: 2 }}>{r.sub}</div>
+                            <div style={{ fontSize: '0.78rem', color: C.text, fontFamily: 'inherit', fontWeight: 600 }}>{r.label}</div>
+                            <div style={{ fontSize: '0.65rem', color: C.textDim, fontFamily: 'inherit', marginTop: 2 }}>{r.sub}</div>
                         </div>
                     ))}
                 </div>
@@ -174,8 +174,8 @@ function BlockModal({ onClose, onSuccess, audio }) {
         }
     };
 
-    const labelSt  = { fontSize: '0.65rem', fontWeight: 700, color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 };
-    const inputSt  = { width: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 8, fontSize: '0.78rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'monospace', colorScheme: 'dark' };
+    const labelSt  = { fontSize: '0.65rem', fontWeight: 700, color: C.textDim, fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 };
+    const inputSt  = { width: '100%', boxSizing: 'border-box', padding: '8px 12px', borderRadius: 8, fontSize: '0.78rem', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'inherit', colorScheme: 'dark' };
     const selectSt = { ...inputSt, cursor: 'pointer' };
 
     return (
@@ -196,7 +196,7 @@ function BlockModal({ onClose, onSuccess, audio }) {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 22 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <ShieldOff size={18} style={{ color: C.red, filter: `drop-shadow(0 0 6px ${C.red})` }} />
-                        <span style={{ fontSize: '1rem', fontWeight: 800, color: C.text, fontFamily: 'monospace' }}>BLOCK ACTOR</span>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: C.text, fontFamily: 'inherit' }}>BLOCK ACTOR</span>
                     </div>
                     <button onClick={onClose} onMouseEnter={audio.playHover}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textDim, display: 'flex', padding: 4 }}>
@@ -207,7 +207,7 @@ function BlockModal({ onClose, onSuccess, audio }) {
                 {error && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 8, marginBottom: 16, background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.3)' }}>
                         <AlertCircle size={13} style={{ color: C.red, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.75rem', color: C.red, fontFamily: 'monospace' }}>{error}</span>
+                        <span style={{ fontSize: '0.75rem', color: C.red, fontFamily: 'inherit' }}>{error}</span>
                     </div>
                 )}
 
@@ -276,7 +276,7 @@ function BlockModal({ onClose, onSuccess, audio }) {
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 10, marginTop: 22, justifyContent: 'flex-end' }}>
                     <button onClick={onClose} onMouseEnter={audio.playHover}
-                        style={{ padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, cursor: 'pointer' }}>
+                        style={{ padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, fontSize: '0.75rem', fontFamily: 'inherit', fontWeight: 700, cursor: 'pointer' }}>
                         CANCEL
                     </button>
                     <button onClick={handleSubmit} disabled={saving} onMouseEnter={audio.playHover}
@@ -285,7 +285,7 @@ function BlockModal({ onClose, onSuccess, audio }) {
                             padding: '8px 20px', borderRadius: 8,
                             border: `1px solid rgba(239,68,68,0.5)`,
                             background: 'rgba(239,68,68,0.12)', color: C.red,
-                            fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700,
+                            fontSize: '0.75rem', fontFamily: 'inherit', fontWeight: 700,
                             cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
                         }}>
                         {saving ? <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> : <ShieldOff size={13} />}
@@ -333,15 +333,15 @@ function UnblockConfirm({ block, onClose, onSuccess, audio }) {
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
                     <ShieldCheck size={18} style={{ color: C.green, filter: `drop-shadow(0 0 6px ${C.green})` }} />
-                    <span style={{ fontSize: '1rem', fontWeight: 800, color: C.text, fontFamily: 'monospace' }}>CONFIRM UNBLOCK</span>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: C.text, fontFamily: 'inherit' }}>CONFIRM UNBLOCK</span>
                 </div>
-                <p style={{ fontSize: '0.82rem', color: C.textMid, fontFamily: 'monospace', lineHeight: 1.6, marginBottom: 22 }}>
+                <p style={{ fontSize: '0.82rem', color: C.textMid, fontFamily: 'inherit', lineHeight: 1.6, marginBottom: 22 }}>
                     Remove the block on <span style={{ color: C.text, fontWeight: 700 }}>{name}</span>?
                     {block.reason && <><br /><span style={{ color: C.textDim, fontSize: '0.72rem' }}>Original reason: {block.reason}</span></>}
                 </p>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                     <button onClick={onClose} onMouseEnter={audio.playHover}
-                        style={{ padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700, cursor: 'pointer' }}>
+                        style={{ padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, fontSize: '0.75rem', fontFamily: 'inherit', fontWeight: 700, cursor: 'pointer' }}>
                         CANCEL
                     </button>
                     <button onClick={handle} disabled={saving} onMouseEnter={audio.playHover}
@@ -350,7 +350,7 @@ function UnblockConfirm({ block, onClose, onSuccess, audio }) {
                             padding: '8px 20px', borderRadius: 8,
                             border: `1px solid rgba(16,185,129,0.5)`,
                             background: 'rgba(16,185,129,0.12)', color: C.green,
-                            fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700,
+                            fontSize: '0.75rem', fontFamily: 'inherit', fontWeight: 700,
                             cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.6 : 1,
                         }}>
                         {saving ? <Loader2 size={13} style={{ animation: 'spin 0.8s linear infinite' }} /> : <ShieldCheck size={13} />}
@@ -401,9 +401,9 @@ export default function MimiBlocksPage() {
         { label: 'HARMFUL',   path: '/admin/ai-analytics/mimi-harmful',   active: false },
     ];
 
-    const thSt = { fontSize: '0.6rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'monospace', padding: '8px 12px', textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
-    const tdSt = { padding: '10px 12px', fontSize: '0.75rem', color: C.text, fontFamily: 'monospace', borderBottom: `1px solid rgba(255,255,255,0.04)`, verticalAlign: 'middle' };
-    const selectSt = { padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'rgba(255,255,255,0.04)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'monospace', cursor: 'pointer', colorScheme: 'dark' };
+    const thSt = { fontSize: '0.6rem', fontWeight: 700, color: C.textDim, textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'inherit', padding: '8px 12px', textAlign: 'left', borderBottom: `1px solid ${C.border}`, whiteSpace: 'nowrap' };
+    const tdSt = { padding: '10px 12px', fontSize: '0.75rem', color: C.text, fontFamily: 'inherit', borderBottom: `1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)`, verticalAlign: 'middle' };
+    const selectSt = { padding: '5px 10px', borderRadius: 7, fontSize: '0.72rem', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', border: `1px solid ${C.border}`, color: C.text, outline: 'none', fontFamily: 'inherit', cursor: 'pointer', colorScheme: 'dark' };
 
     return (
         <GeneralLayout>
@@ -425,13 +425,13 @@ export default function MimiBlocksPage() {
                         <div>
                             <h1 style={{
                                 margin: 0, fontSize: '1.6rem', fontWeight: 800,
-                                letterSpacing: '-0.02em', fontFamily: 'monospace',
+                                letterSpacing: '-0.02em', fontFamily: 'inherit',
                                 background: `linear-gradient(135deg, ${C.red}, ${C.amber})`,
                                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                             }}>
                                 BLOCKED ACTORS
                             </h1>
-                            <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'monospace', letterSpacing: '0.1em' }}>
+                            <p style={{ margin: 0, fontSize: '0.75rem', color: C.textMid, fontFamily: 'inherit', letterSpacing: '0.1em' }}>
                                 CUSTOMERS · STAFF · GUEST IPs · PERMANENT &amp; TEMPORARY
                             </p>
                         </div>
@@ -442,7 +442,7 @@ export default function MimiBlocksPage() {
                             padding: '8px 18px', borderRadius: 9,
                             border: `1px solid rgba(239,68,68,0.5)`,
                             background: 'rgba(239,68,68,0.1)', color: C.red,
-                            fontSize: '0.75rem', fontFamily: 'monospace', fontWeight: 700,
+                            fontSize: '0.75rem', fontFamily: 'inherit', fontWeight: 700,
                             cursor: 'pointer', letterSpacing: '0.06em',
                         }}>
                         <Plus size={14} /> BLOCK ACTOR
@@ -456,7 +456,7 @@ export default function MimiBlocksPage() {
                         <button key={tab.label} onClick={() => { audio.playHover(); navigate(tab.path); }}
                             style={{
                                 padding: '6px 14px', borderRadius: 8, fontSize: '0.7rem', fontWeight: 700,
-                                fontFamily: 'monospace', letterSpacing: '0.08em', cursor: 'pointer',
+                                fontFamily: 'inherit', letterSpacing: '0.08em', cursor: 'pointer',
                                 border: `1px solid ${tab.active ? C.red + '60' : C.border}`,
                                 background: tab.active ? `${C.red}15` : 'transparent',
                                 color: tab.active ? C.red : C.textDim,
@@ -469,7 +469,7 @@ export default function MimiBlocksPage() {
                 {error && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 10, marginBottom: 20, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)' }}>
                         <AlertCircle size={15} style={{ color: C.red, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.82rem', color: C.red, fontFamily: 'monospace' }}>{error}</span>
+                        <span style={{ fontSize: '0.82rem', color: C.red, fontFamily: 'inherit' }}>{error}</span>
                     </div>
                 )}
 
@@ -497,9 +497,9 @@ export default function MimiBlocksPage() {
                             { label: 'Guest IPs',   value: blocks.data?.filter(b => b.actor_type === 'guest_ip').length, color: C.textMid },
                             { label: 'Permanent',   value: blocks.data?.filter(b => !b.expires_at).length, color: C.amber },
                         ].map(({ label, value }) => (
-                            <div key={label} style={{ padding: '6px 14px', borderRadius: 8, background: 'rgba(255,255,255,0.03)', border: `1px solid ${C.border}`, display: 'flex', gap: 8, alignItems: 'center' }}>
-                                <span style={{ fontSize: '0.6rem', color: C.textDim, fontFamily: 'monospace', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
-                                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: C.text, fontFamily: 'monospace' }}>{value ?? 0}</span>
+                            <div key={label} style={{ padding: '6px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: `1px solid ${C.border}`, display: 'flex', gap: 8, alignItems: 'center' }}>
+                                <span style={{ fontSize: '0.6rem', color: C.textDim, fontFamily: 'inherit', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</span>
+                                <span style={{ fontSize: '0.88rem', fontWeight: 800, color: C.text, fontFamily: 'inherit' }}>{value ?? 0}</span>
                             </div>
                         ))}
                     </div>
@@ -508,7 +508,7 @@ export default function MimiBlocksPage() {
                 {loading ? (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 10 }}>
                         <Loader2 size={20} style={{ color: C.red, animation: 'spin 0.8s linear infinite' }} />
-                        <span style={{ fontSize: '0.82rem', color: C.textDim, fontFamily: 'monospace', letterSpacing: '0.08em' }}>LOADING BLOCKS…</span>
+                        <span style={{ fontSize: '0.82rem', color: C.textDim, fontFamily: 'inherit', letterSpacing: '0.08em' }}>LOADING BLOCKS…</span>
                     </div>
                 ) : (
                     <div style={{ ...neuralCard, overflow: 'hidden' }}>
@@ -542,7 +542,7 @@ export default function MimiBlocksPage() {
 
                                         return (
                                             <tr key={b.id} style={{ transition: 'background 150ms', opacity: expired ? 0.5 : 1 }}
-                                                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)'; audio.playHover(); }}
+                                                onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; audio.playHover(); }}
                                                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
                                                 <td style={tdSt}>
                                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -561,19 +561,19 @@ export default function MimiBlocksPage() {
                                                     {b.expires_at ? (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                                             <Clock size={11} style={{ color: expired ? C.textDim : C.amber }} />
-                                                            <span style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: expired ? C.textDim : C.amber }}>{expiry}</span>
+                                                            <span style={{ fontSize: '0.68rem', fontFamily: 'inherit', color: expired ? C.textDim : C.amber }}>{expiry}</span>
                                                         </div>
                                                     ) : (
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                                                             <InfinityIcon size={11} style={{ color: C.red }} />
-                                                            <span style={{ fontSize: '0.68rem', fontFamily: 'monospace', color: C.red }}>PERMANENT</span>
+                                                            <span style={{ fontSize: '0.68rem', fontFamily: 'inherit', color: C.red }}>PERMANENT</span>
                                                         </div>
                                                     )}
                                                 </td>
                                                 <td style={tdSt}>
                                                     {b.is_active && !expired && (
                                                         <button onClick={() => { audio.playHover(); setUnblockTarget(b); }}
-                                                            style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid rgba(16,185,129,0.4)`, background: 'rgba(16,185,129,0.08)', color: C.green, fontSize: '0.65rem', fontFamily: 'monospace', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                                            style={{ padding: '4px 10px', borderRadius: 6, border: `1px solid rgba(16,185,129,0.4)`, background: 'rgba(16,185,129,0.08)', color: C.green, fontSize: '0.65rem', fontFamily: 'inherit', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                                                             UNBLOCK
                                                         </button>
                                                     )}
