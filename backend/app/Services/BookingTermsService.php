@@ -18,11 +18,19 @@ use App\Services\Books\ServiceFeeService;
  */
 class BookingTermsService
 {
-    public const KEY = 'booking_terms';
+    /** The booking policy the site already has (its public page is /booking-policy), so acceptances land in that policy's log. */
+    public const KEY = 'booking_cancellation_policy';
+    private const OLD_KEY = 'booking_terms';   // what the first version of this service called it
     public const CONTEXT = 'booking_checkout';
 
     public function ensure(): Policy
     {
+        // the first version made its own policy under another key: move it (and what was agreed to) onto the site's booking policy
+        if (! Policy::where('key', self::KEY)->exists() && ($old = Policy::where('key', self::OLD_KEY)->first())) {
+            $old->update(['key' => self::KEY]);
+            PolicyAcceptance::where('policy_key', self::OLD_KEY)->update(['policy_key' => self::KEY]);
+        }
+
         return Policy::firstOrCreate(['key' => self::KEY], [
             'title' => 'Booking Terms & Cancellation Policy',
             'content' => $this->defaultContent(),
@@ -120,7 +128,8 @@ class BookingTermsService
         }
         $s = ServiceSetting::current();
         $policy->content = strtr((string) $policy->content, [
-            '{{cancellation_window_hours}}' => (string) $s->cancellation_window_hours, '{{reschedule_window_hours}}' => (string) $s->reschedule_window_hours, '{{fees}}' => $this->feeLines(),
+            '{{cancellation_window_hours}}' => (string) $s->cancellation_window_hours, '{{cancellation_window}}' => (string) $s->cancellation_window_hours, '{{window_hours}}' => (string) $s->cancellation_window_hours,
+            '{{reschedule_window_hours}}' => (string) $s->reschedule_window_hours, '{{fees}}' => $this->feeLines(),
         ]);
 
         return $policy;
