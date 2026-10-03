@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\Inventory\InventoryStockService;
 use App\Models\Product;
 use App\Models\Brand;
 use App\Models\Category;
@@ -1216,16 +1215,6 @@ public function related($id)
 
         // Reload so stock_quantity reflects the just-saved value
         $product->refresh();
-
-        // Log to inventory for add or set-that-increases only
-        $stockAfter = (int) $product->stock_quantity;
-        if (in_array($request->action, ['add', 'set']) && $stockAfter > $stockBefore) {
-            app(InventoryStockService::class)->recordRestock(
-                productId:   $product->id,
-                performedBy: Auth::id(),
-                notes:       $request->notes ?? "Manual restock via admin ({$request->action}): {$stockBefore} → {$stockAfter}",
-            );
-        }
 
         return response()->json([
             'message' => 'Stock updated successfully',

@@ -1390,13 +1390,14 @@ function App() {
                 }
               />
               <Route
-                path="/admin/inventory"
+                path="/admin/assets"
                 element={
                   <ProtectedRoute requireAdmin>
                     <InventoryPage />
                   </ProtectedRoute>
                 }
               />
+              <Route path="/admin/inventory" element={<Navigate to="/admin/assets" replace />} />
               <Route
                 path="/admin/algorithm"
                 element={

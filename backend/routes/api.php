@@ -1894,7 +1894,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // INVENTORY — ADMIN / MANAGER
     // ============================================
     Route::middleware('role:admin,super_admin,manager')
-        ->prefix('admin/inventory')->middleware('module:extras')
+        ->prefix('admin/inventory')   // Core: every business has furniture and laptops (the asset register)
         ->group(function () {
 
             // ── Catalogue ────────────────────────────────────────────────────
@@ -1915,7 +1915,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('items')->group(function () {
                 Route::get('/',        [InventoryController::class, 'itemsIndex']);
                 Route::post('/',       [InventoryController::class, 'itemsStore']);
-                Route::post('/sync-products',  [InventoryController::class, 'itemsSyncProducts']);
                 Route::get('/{id}',    [InventoryController::class, 'itemsShow']);
                 Route::put('/{id}',    [InventoryController::class, 'itemsUpdate']);
                 Route::delete('/{id}', [InventoryController::class, 'itemsDestroy']);

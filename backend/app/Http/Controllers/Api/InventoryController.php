@@ -9,7 +9,6 @@ use App\Http\Controllers\Controller;
 
 use App\Services\Inventory\InventoryTransactionService;
 use App\Services\Inventory\InventoryOperationsService;
-use App\Services\Inventory\InventoryStockService;
 
 use App\Models\Inventory\{
     InventoryCategory,
@@ -169,7 +168,6 @@ class InventoryController extends Controller
             ->when($request->filled('category_id'), fn($q) => $q->where('category_id', $request->category_id))
             ->when($request->boolean('serialized'),     fn($q) => $q->serialized())
             ->when($request->boolean('non_serialized'), fn($q) => $q->nonSerialized())
-            ->when($request->boolean('low_stock'),      fn($q) => $q->lowStock())
             ->when($request->filled('search'), fn($q) =>
                 $q->where(fn($s) => $s
                     ->where('name', 'like', "%{$request->search}%")
@@ -195,11 +193,10 @@ class InventoryController extends Controller
         $data = $request->validate([
             'name'                => 'required|string|max:255',
             'category_id'         => 'nullable|exists:inventory_categories,id',
-            'product_id'          => 'nullable|exists:products,id',
             'description'         => 'nullable|string',
             'brand'               => 'nullable|string|max:150',
             'model'               => 'nullable|string|max:150',
-            'type'                => 'required|in:asset,stock,consumable,loanable',
+            'type'                => 'required|in:asset,loanable',
             'is_serialized'       => 'boolean',
             'unit_of_measure'     => 'nullable|string|max:50',
             'default_location_id' => 'nullable|exists:inventory_locations,id',
@@ -207,7 +204,6 @@ class InventoryController extends Controller
             'replacement_cost'    => 'nullable|numeric|min:0',
             'is_loanable'         => 'boolean',
             'max_loan_days'       => 'nullable|integer|min:1',
-            'low_stock_threshold' => 'nullable|integer|min:0',
             'notes'               => 'nullable|string',
         ]);
 
@@ -227,13 +223,12 @@ class InventoryController extends Controller
             'description'         => 'nullable|string',
             'brand'               => 'nullable|string|max:150',
             'model'               => 'nullable|string|max:150',
-            'type'                => 'sometimes|in:asset,stock,consumable,loanable',
+            'type'                => 'sometimes|in:asset,loanable',
             'default_location_id' => 'nullable|exists:inventory_locations,id',
             'purchase_cost'       => 'nullable|numeric|min:0',
             'replacement_cost'    => 'nullable|numeric|min:0',
             'is_loanable'         => 'boolean',
             'max_loan_days'       => 'nullable|integer|min:1',
-            'low_stock_threshold' => 'nullable|integer|min:0',
             'is_active'           => 'boolean',
             'notes'               => 'nullable|string',
         ]);
@@ -242,25 +237,6 @@ class InventoryController extends Controller
         $item->update($data);
 
         return response()->json($item->fresh(['category', 'defaultLocation']));
-    }
-
-    public function itemsSyncProducts(Request $request): JsonResponse
-    {
-        $request->validate([
-            'offset' => 'nullable|integer|min:0',
-            'limit'  => 'nullable|integer|min:1|max:50',
-        ]);
-
-        $offset = (int) ($request->offset ?? 0);
-        $limit  = (int) ($request->limit  ?? 50);
-
-        $result = app(InventoryStockService::class)->syncFromProductsBatch(
-            offset:      $offset,
-            limit:       $limit,
-            performedBy: Auth::id(),
-        );
-
-        return response()->json($result, 200);
     }
 
     public function itemsDestroy(int $id): JsonResponse

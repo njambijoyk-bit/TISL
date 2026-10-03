@@ -60,7 +60,7 @@ const MATCHERS = [
   },
   // Inventory
   {
-    pattern: /^\/admin\/inventory/,
+    pattern: /^\/admin\/(assets|inventory)/,
     resolve: () => ({
       moduleKey:  'inventory',
       entityType: null,

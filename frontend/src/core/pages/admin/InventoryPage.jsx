@@ -1,48 +1,48 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import inventoryAPI from "../../../_shared/api/inventory";
-import SettingsLayout from '../../../_shared/components/layout/SettingsLayout';
+import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import EmployeeSelectorModal from "./EmployeeSelectorModal";
 import CustomerSelectorModal from "./CustomerSelectorModal";
 import InventoryItemSelectorModal from "./InventoryItemSelectorModal";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
-  cyan:      "#00E5FF",
-  green:     "#00FF88",
-  amber:     "#FFB300",
-  red:       "#FF3D57",
-  purple:    "#BF5AF2",
-  blue:      "#0A84FF",
-  dim:       "rgba(0,229,255,0.08)",
-  dimHov:    "rgba(0,229,255,0.14)",
-  border:    "rgba(0,229,255,0.18)",
-  borderHov: "rgba(0,229,255,0.4)",
+  cyan:      "var(--color-primary-500)",
+  green:     "#10b981",
+  amber:     "#f59e0b",
+  red:       "#ef4444",
+  purple:    "var(--color-primary-500)",
+  blue:      "var(--color-primary-500)",
+  dim:       "color-mix(in srgb, var(--color-primary-500) 5%, transparent)",
+  dimHov:    "color-mix(in srgb, var(--color-primary-500) 9%, transparent)",
+  border:    "color-mix(in srgb, var(--color-primary-500) 18%, transparent)",
+  borderHov: "color-mix(in srgb, var(--color-primary-500) 40%, transparent)",
 };
-const mono = "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace";
+const mono = "inherit";
 const sans = "'DM Sans', 'Segoe UI', sans-serif";
 
 // ─── STATUS CHIPS ─────────────────────────────────────────────────────────────
 const STATUS_COLOR = {
-  available:  { bg: "rgba(0,255,136,0.12)",  border: "#00FF88", text: "#00FF88" },
-  issued:     { bg: "rgba(0,229,255,0.12)",  border: "#00E5FF", text: "#00E5FF" },
-  loaned:     { bg: "rgba(10,132,255,0.12)", border: "#0A84FF", text: "#0A84FF" },
-  in_repair:  { bg: "rgba(255,179,0,0.12)",  border: "#FFB300", text: "#FFB300" },
+  available:  { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
+  issued:     { bg: "color-mix(in srgb, var(--color-primary-500) 12%, transparent)",  border: "var(--color-primary-500)", text: "var(--color-primary-500)" },
+  loaned:     { bg: "rgba(59,130,246,0.12)", border: "#3b82f6", text: "#3b82f6" },
+  in_repair:  { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
   retired:    { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
-  lost:       { bg: "rgba(255,61,87,0.12)",  border: "#FF3D57", text: "#FF3D57" },
-  disposed:   { bg: "rgba(255,61,87,0.12)",  border: "#FF3D57", text: "#FF3D57" },
-  damaged:    { bg: "rgba(255,179,0,0.12)",  border: "#FFB300", text: "#FFB300" },
-  active:     { bg: "rgba(0,255,136,0.12)",  border: "#00FF88", text: "#00FF88" },
+  lost:       { bg: "rgba(239,68,68,0.12)",  border: "#ef4444", text: "#ef4444" },
+  disposed:   { bg: "rgba(239,68,68,0.12)",  border: "#ef4444", text: "#ef4444" },
+  damaged:    { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
+  active:     { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
   returned:   { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
-  overdue:    { bg: "rgba(255,61,87,0.12)",  border: "#FF3D57", text: "#FF3D57" },
-  reported:   { bg: "rgba(255,179,0,0.12)",  border: "#FFB300", text: "#FFB300" },
-  completed:  { bg: "rgba(0,255,136,0.12)",  border: "#00FF88", text: "#00FF88" },
-  sent:       { bg: "rgba(10,132,255,0.12)", border: "#0A84FF", text: "#0A84FF" },
-  unrepairable:{ bg:"rgba(255,61,87,0.12)", border: "#FF3D57", text: "#FF3D57" },
-  open:       { bg: "rgba(255,179,0,0.12)",  border: "#FFB300", text: "#FFB300" },
-  resolved:   { bg: "rgba(0,255,136,0.12)",  border: "#00FF88", text: "#00FF88" },
+  overdue:    { bg: "rgba(239,68,68,0.12)",  border: "#ef4444", text: "#ef4444" },
+  reported:   { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
+  completed:  { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
+  sent:       { bg: "rgba(59,130,246,0.12)", border: "#3b82f6", text: "#3b82f6" },
+  unrepairable:{ bg:"rgba(239,68,68,0.12)", border: "#ef4444", text: "#ef4444" },
+  open:       { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
+  resolved:   { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
   dismissed:  { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
   draft:      { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
-  finalised:  { bg: "rgba(0,255,136,0.12)",  border: "#00FF88", text: "#00FF88" },
+  finalised:  { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
   obsolete:   { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
 };
 
@@ -86,9 +86,9 @@ function ActionBtn({ children, color = C.cyan, onClick, outline, small, disabled
       style={{
         display: "inline-flex", alignItems: "center", gap: 6,
         padding: small ? "5px 14px" : "8px 20px",
-        border: `1px solid ${disabled ? "#444" : color}`,
+        border: `1px solid ${disabled ? "var(--color-text-tertiary)" : color}`,
         borderRadius: 6, background: disabled ? "transparent" : bg,
-        color: disabled ? "#444" : (outline ? color : "#000"),
+        color: disabled ? "var(--color-text-tertiary)" : (outline ? color : "#000"),
         fontFamily: mono, fontSize: small ? 11 : 12, fontWeight: 600,
         letterSpacing: "0.05em", cursor: disabled ? "not-allowed" : "pointer",
         transition: "all 0.15s", whiteSpace: "nowrap", opacity: disabled ? 0.5 : 1,
@@ -111,7 +111,7 @@ function SelectorTrigger({ label, filled, onOpen, onClear }) {
           flex: 1, padding: "8px 14px", textAlign: "left",
           background: hov ? C.dimHov : C.dim,
           border: `1px solid ${filled ? C.cyan : C.border}`,
-          borderRadius: 6, color: filled ? "#e0e0e0" : "#555",
+          borderRadius: 6, color: filled ? "var(--color-text-secondary)" : "var(--color-text-tertiary)",
           fontFamily: mono, fontSize: 12, cursor: "pointer",
           transition: "all 0.15s",
         }}
@@ -123,7 +123,7 @@ function SelectorTrigger({ label, filled, onOpen, onClear }) {
           onClick={onClear}
           style={{
             background: "none", border: `1px solid ${C.border}`,
-            borderRadius: 6, color: "#555", cursor: "pointer",
+            borderRadius: 6, color: "var(--color-text-tertiary)", cursor: "pointer",
             fontFamily: mono, fontSize: 13, padding: "6px 10px",
             lineHeight: 1,
           }}
@@ -173,7 +173,7 @@ function Select({ value, onChange, options, style }) {
 function Table({ cols, rows, onRowClick, loading }) {
   const [hov, setHov] = useState(null);
   if (loading) return (
-    <div style={{ padding: "48px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "#555" }}>
+    <div style={{ padding: "48px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "var(--color-text-tertiary)" }}>
       <span style={{ color: C.cyan }}>◈</span> loading...
     </div>
   );
@@ -207,14 +207,14 @@ function Table({ cols, rows, onRowClick, loading }) {
             >
               {cols.map((c, ci) => (
                 <td key={ci} style={{ padding: "11px 14px", color: "inherit", whiteSpace: "nowrap" }}>
-                  {c.render ? c.render(row[c.key], row) : (row[c.key] ?? <span style={{ color: "#555" }}>—</span>)}
+                  {c.render ? c.render(row[c.key], row) : (row[c.key] ?? <span style={{ color: "var(--color-text-tertiary)" }}>—</span>)}
                 </td>
               ))}
             </tr>
           ))}
           {rows.length === 0 && (
             <tr>
-              <td colSpan={cols.length} style={{ padding: "32px 14px", textAlign: "center", color: "#555", fontFamily: mono }}>
+              <td colSpan={cols.length} style={{ padding: "32px 14px", textAlign: "center", color: "var(--color-text-tertiary)", fontFamily: mono }}>
                 // no records found
               </td>
             </tr>
@@ -268,11 +268,11 @@ function InstanceSearchDropdown({ value, label, onSelect, onClear }) {
           <div style={{
             flex: 1, padding: "8px 14px",
             background: C.dim, border: `1px solid ${C.cyan}`,
-            borderRadius: 6, color: "#e0e0e0", fontFamily: mono, fontSize: 12,
+            borderRadius: 6, color: "var(--color-text-secondary)", fontFamily: mono, fontSize: 12,
           }}>{label}</div>
           <button onClick={onClear} style={{
             background: "none", border: `1px solid ${C.border}`,
-            borderRadius: 6, color: "#555", cursor: "pointer",
+            borderRadius: 6, color: "var(--color-text-tertiary)", cursor: "pointer",
             fontFamily: mono, fontSize: 13, padding: "6px 10px", lineHeight: 1,
           }}>✕</button>
         </div>
@@ -288,14 +288,14 @@ function InstanceSearchDropdown({ value, label, onSelect, onClear }) {
       {open && !value && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
-          background: "#0d0d0d", border: `1px solid ${C.border}`,
+          background: "var(--color-background-secondary)", border: `1px solid ${C.border}`,
           borderRadius: 6, marginTop: 4, maxHeight: 240, overflowY: "auto",
         }}>
           {loading && (
-            <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "#555" }}>searching…</div>
+            <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)" }}>searching…</div>
           )}
           {!loading && results.length === 0 && (
-            <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "#555" }}>// no available instances</div>
+            <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)" }}>// no available instances</div>
           )}
           {results.map(inst => (
             <div
@@ -311,7 +311,7 @@ function InstanceSearchDropdown({ value, label, onSelect, onClear }) {
             >
               <span style={{ color: C.cyan }}>{inst.asset_tag ?? `#${inst.id}`}</span>
               <span style={{ color: "#888", marginLeft: 10 }}>{inst.item?.name ?? "—"}</span>
-              <span style={{ color: "#555", marginLeft: 10, fontSize: 10 }}>{inst.condition}</span>
+              <span style={{ color: "var(--color-text-tertiary)", marginLeft: 10, fontSize: 10 }}>{inst.condition}</span>
             </div>
           ))}
         </div>
@@ -358,16 +358,16 @@ function GroupSearchDropdown({ value, label, onSelect, onClear }) {
     <div ref={ref} style={{ position: "relative" }}>
       {value ? (
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <div style={{ flex: 1, padding: "8px 14px", background: C.dim, border: `1px solid ${C.cyan}`, borderRadius: 6, color: "#e0e0e0", fontFamily: mono, fontSize: 12 }}>{label}</div>
-          <button onClick={onClear} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: "#555", cursor: "pointer", fontFamily: mono, fontSize: 13, padding: "6px 10px", lineHeight: 1 }}>✕</button>
+          <div style={{ flex: 1, padding: "8px 14px", background: C.dim, border: `1px solid ${C.cyan}`, borderRadius: 6, color: "var(--color-text-secondary)", fontFamily: mono, fontSize: 12 }}>{label}</div>
+          <button onClick={onClear} style={{ background: "none", border: `1px solid ${C.border}`, borderRadius: 6, color: "var(--color-text-tertiary)", cursor: "pointer", fontFamily: mono, fontSize: 13, padding: "6px 10px", lineHeight: 1 }}>✕</button>
         </div>
       ) : (
         <input value={search} onChange={handleChange} onFocus={handleFocus} placeholder="Search groups…" style={inputStyle} />
       )}
       {open && !value && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200, background: "#0d0d0d", border: `1px solid ${C.border}`, borderRadius: 6, marginTop: 4, maxHeight: 240, overflowY: "auto" }}>
-          {loading && <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "#555" }}>searching…</div>}
-          {!loading && results.length === 0 && <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "#555" }}>// no groups found</div>}
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200, background: "var(--color-background-secondary)", border: `1px solid ${C.border}`, borderRadius: 6, marginTop: 4, maxHeight: 240, overflowY: "auto" }}>
+          {loading && <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)" }}>searching…</div>}
+          {!loading && results.length === 0 && <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)" }}>// no groups found</div>}
           {results.map(g => (
             <div key={g.id} onClick={() => handleSelect(g)}
               style={{ padding: "10px 14px", cursor: "pointer", fontFamily: mono, fontSize: 12, borderBottom: `1px solid ${C.border}`, transition: "background 0.1s" }}
@@ -375,7 +375,7 @@ function GroupSearchDropdown({ value, label, onSelect, onClear }) {
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
               <span style={{ color: C.cyan }}>{g.name}</span>
-              {g.description && <span style={{ color: "#555", marginLeft: 10, fontSize: 11 }}>{g.description}</span>}
+              {g.description && <span style={{ color: "var(--color-text-tertiary)", marginLeft: 10, fontSize: 11 }}>{g.description}</span>}
             </div>
           ))}
         </div>
@@ -437,9 +437,9 @@ function LoadMoreBar({ meta, onLoadMore, onLoadAll, loading }) {
       padding: "12px 14px", borderTop: `1px solid ${C.border}`,
       fontFamily: mono, fontSize: 11,
     }}>
-      <span style={{ color: "#555" }}>
+      <span style={{ color: "var(--color-text-tertiary)" }}>
         showing {meta.current_page * meta.per_page} of {meta.total}
-        {remaining > 0 && <span style={{ color: "#444" }}> · {remaining} more</span>}
+        {remaining > 0 && <span style={{ color: "var(--color-text-tertiary)" }}> · {remaining} more</span>}
       </span>
       <div style={{ display: "flex", gap: 8 }}>
         <ActionBtn small outline color={C.cyan} onClick={onLoadMore} disabled={loading}>
@@ -463,7 +463,7 @@ function Toast({ message, type = "success", onClose }) {
   return (
     <div style={{
       position: "relative",
-      background: "#0d0d0d", border: `1px solid ${color}`,
+      background: "var(--color-background-secondary)", border: `1px solid ${color}`,
       borderRadius: 8, padding: "12px 40px 12px 20px",
       fontFamily: mono, fontSize: 12, color,
       boxShadow: `0 0 24px ${color}33`,
@@ -498,12 +498,12 @@ function Modal({ title, onClose, children, width = 480 }) {
     }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
         width, maxWidth: "90vw", maxHeight: "85vh", overflowY: "auto",
-        background: "#0a0a0a", border: `1px solid ${C.border}`,
+        background: "var(--color-background-secondary)", border: `1px solid ${C.border}`,
         borderRadius: 10, padding: "24px 28px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <span style={{ fontFamily: mono, fontSize: 12, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase" }}>{title}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 18, padding: 4 }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--color-text-tertiary)", cursor: "pointer", fontSize: 18, padding: 4 }}>✕</button>
         </div>
         {children}
       </div>
@@ -522,8 +522,8 @@ function Field({ label, children, error }) {
 }
 
 const inputStyle = {
-  width: "100%", padding: "8px 12px", background: "rgba(0,229,255,0.06)",
-  border: `1px solid ${C.border}`, borderRadius: 6, color: "#fff",
+  width: "100%", padding: "8px 12px", background: "color-mix(in srgb, var(--color-primary-500) 6%, transparent)",
+  border: `1px solid ${C.border}`, borderRadius: 6, color: "var(--color-text-primary)",
   fontFamily: mono, fontSize: 12, outline: "none", boxSizing: "border-box",
 };
 
@@ -1240,7 +1240,7 @@ function NewItemModal({ categories, locations, onClose, onSuccess, toast }) {
         category_id: form.category_id ? parseInt(form.category_id, 10) : undefined,
         default_location_id: form.default_location_id ? parseInt(form.default_location_id, 10) : undefined,
       });
-      toast("Item created", "success");
+      toast("Asset type created", "success");
       onSuccess();
       onClose();
     } catch (e) {
@@ -1249,9 +1249,9 @@ function NewItemModal({ categories, locations, onClose, onSuccess, toast }) {
   };
 
   return (
-    <Modal title="// new catalogue item" onClose={onClose} width={520}>
+    <Modal title="New asset type" onClose={onClose} width={520}>
       <Field label="Name">
-        <input style={inputStyle} value={form.name} onChange={e => set("name", e.target.value)} placeholder="Item name" />
+        <input style={inputStyle} value={form.name} onChange={e => set("name", e.target.value)} placeholder="e.g. Office chair, Dell Latitude laptop" />
       </Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Category">
@@ -1260,9 +1260,9 @@ function NewItemModal({ categories, locations, onClose, onSuccess, toast }) {
             {(categories ?? []).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </Field>
-        <Field label="Type">
+        <Field label="Kind">
           <select style={selectStyle} value={form.type} onChange={e => set("type", e.target.value)}>
-            {["asset", "consumable", "loanable", "stock"].map(t => <option key={t} value={t}>{t}</option>)}
+            {[["asset", "Asset"], ["loanable", "Can be loaned out"]].map(([t, l]) => <option key={t} value={t}>{l}</option>)}
           </select>
         </Field>
       </div>
@@ -1294,7 +1294,7 @@ function NewItemModal({ categories, locations, onClose, onSuccess, toast }) {
         </label>
       </div>
       <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-        <ActionBtn color={C.green} onClick={submit} disabled={saving}>{saving ? "Saving…" : "Create Item"}</ActionBtn>
+        <ActionBtn color={C.green} onClick={submit} disabled={saving}>{saving ? "Saving…" : "Create asset type"}</ActionBtn>
         <ActionBtn color={C.cyan} outline onClick={onClose}>Cancel</ActionBtn>
       </div>
     </Modal>
@@ -1587,188 +1587,7 @@ function AddMemberModal({ group, onClose, onSuccess, toast }) {
   );
 }
 
-// ─── DEV NOTES MODAL ──────────────────────────────────────────────────────────
-const DEV_NOTES = {
-  pitfalls: [
-    {
-      title: "Paginator meta shape mismatch",
-      severity: "critical",
-      detail: "Laravel's response()->json($paginator) returns a flat structure — { data, current_page, last_page, total } — NOT nested under meta. Any load() function that does setMeta(res?.meta ?? null) will always set meta to null, breaking LoadMoreBar silently. Always normalize: res?.meta ?? (res?.current_page != null ? res : null).",
-      outcome: "If unguarded, every paginated tab shows only page 1 forever with no load-more controls rendered. Extremely easy to reintroduce on new tabs.",
-    },
-    {
-      title: "ItemDetailView loads all instances unbounded",
-      severity: "warning",
-      detail: "itemsShow eager-loads with(['instances']) with no limit. For high-volume stock items (cables, consumables, office chairs) this could return hundreds of rows in a single payload.",
-      outcome: "Slow initial render on item detail pages as inventory grows. Fix: drop instances from itemsShow, call instancesIndex with item_id filter and paginate separately.",
-    },
-    {
-      title: "fetchAllPages fires all remaining pages in parallel",
-      severity: "warning",
-      detail: "handleLoadAll uses Promise.all() across every remaining page simultaneously. On a large dataset (e.g. ledger with 50 pages) this fires 49 concurrent API requests in one click.",
-      outcome: "Potential request flooding and server strain on Railway's free tier. Consider chunking into batches of 5 (already noted in the ledger tab comment but not enforced globally).",
-    },
-    {
-      title: "'Showing X of Y' uses calculated count not actual rows",
-      severity: "low",
-      detail: "LoadMoreBar displays meta.current_page * meta.per_page as the loaded count. This is always a theoretical number, not items.length. They diverge whenever the last page is partial.",
-      outcome: "Minor display inaccuracy. Easy fix: pass items.length as a prop (loadedCount) and display that instead.",
-    },
-    {
-      title: "load() useCallback deps only include toast",
-      severity: "low",
-      detail: "All tab load() functions declare [toast] as their only dependency but capture search, typeFilter, linkFilter via closure. This is safe because every caller passes params explicitly — but it's fragile. A future developer adding a filter that's read from state inside load() instead of passed as a param will get a stale closure bug with no warning.",
-      outcome: "Silent stale data bugs on new filter additions. Pattern: always pass all filter state as explicit params to load(), never read from closure inside it.",
-    },
-    {
-      title: "Assignments dashboard stat uses unfiltered total",
-      severity: "low",
-      detail: "Dashboard fetches assignments with per_page:5 and reads the total as 'active assignments'. But assignmentsIndex has no default status filter — it returns ALL statuses unless filtered. The count includes returned and overdue assignments.",
-      outcome: "Dashboard KPI overstates active assignments. Fix: pass status:'active' to the dashboard assignments fetch.",
-    },
-  ],
-  strengths: [
-    {
-      title: "Service-layer architecture",
-      detail: "Business logic is cleanly separated into InventoryTransactionService, InventoryOperationsService, and InventoryStockService. The controller is thin — it only validates, delegates, and responds. This makes individual operations independently testable.",
-    },
-    {
-      title: "syncItemQty consistency",
-      detail: "Every mutation that affects instance counts (create, delete, issue, return) calls transactions.syncItemQty(). Quantities are always derived from the source of truth rather than incremented/decremented manually, eliminating count drift.",
-    },
-    {
-      title: "Lifecycle ledger on every instance",
-      detail: "Every significant state change (procured, issued, returned, repaired, written off) is logged to InventoryLifecycleMovement. Full audit trail is baked in from day one.",
-    },
-    {
-      title: "Condition scoring system",
-      detail: "Instances carry condition + condition_score_override, and scores flow through repairs, returns, and audits. This is a strong foundation for depreciation tracking and replacement planning.",
-    },
-    {
-      title: "Load-more + load-all pattern",
-      detail: "Avoiding full traditional pagination in favour of append-on-scroll with a load-all escape hatch is a good UX choice for inventory admin. Users can work with partial data immediately.",
-    },
-    {
-      title: "Polymorphic assignments (employee, customer, department, group)",
-      detail: "The assignee_type / assignee_id / assignee_label pattern handles all assignment targets without separate tables. Flexible and extensible.",
-    },
-  ],
-  future: [
-    {
-      title: "Depreciation engine",
-      detail: "The data is all here — purchase_cost, purchase_date, useful_life_years, condition_score. A scheduled command could compute book value and flag items approaching end-of-life automatically.",
-      horizon: "medium",
-    },
-    {
-      title: "Barcode / QR scan check-in/out",
-      detail: "serial_number, barcode, and asset_tag fields already exist. A mobile-friendly scan-to-assign flow would dramatically speed up high-volume issuance.",
-      horizon: "medium",
-    },
-    {
-      title: "Instance pagination on item detail",
-      detail: "As noted above, the instances relation will need its own paginated sub-query once stock items accumulate hundreds of instances.",
-      horizon: "near",
-    },
-    {
-      title: "Scheduled overdue sweep",
-      detail: "assignmentsMarkOverdue() exists but must be manually triggered. A Laravel scheduled command (daily) would keep overdue statuses accurate without admin intervention.",
-      horizon: "near",
-    },
-    {
-      title: "Export as real file download",
-      detail: "exportRun() currently logs the export but the frontend has no file download flow. The natural next step is streaming a CSV/XLSX back to the browser.",
-      horizon: "near",
-    },
-  ],
-};
-
-const SEVERITY_COLOR = { critical: "#ff4d4d", warning: C.amber, low: "#7c6aff" };
-const HORIZON_COLOR  = { near: C.cyan, medium: C.amber };
-
-function DevNotesModal({ onClose }) {
-  const [tab, setTab] = useState("pitfalls");
-
-  const sections = {
-    pitfalls: DEV_NOTES.pitfalls,
-    strengths: DEV_NOTES.strengths,
-    future: DEV_NOTES.future,
-  };
-
-  return (
-    <Modal title="// dev notes" onClose={onClose} width={780}>
-      <div style={{ fontFamily: mono, fontSize: 11, color: "#555", marginBottom: 16 }}>
-        internal system analysis · not visible to end users
-      </div>
-
-      <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${C.border}`, marginBottom: 20 }}>
-        {["pitfalls", "strengths", "future"].map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: "10px 20px", background: "none", border: "none",
-            borderBottom: tab === t ? `2px solid #7c6aff` : "2px solid transparent",
-            color: tab === t ? "#7c6aff" : "inherit", fontFamily: mono, fontSize: 12,
-            cursor: "pointer", opacity: tab === t ? 1 : 0.5, marginBottom: -1,
-          }}>{t}</button>
-        ))}
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, maxHeight: 520, overflowY: "auto", paddingRight: 4 }}>
-        {tab === "pitfalls" && sections.pitfalls.map((note, i) => (
-          <div key={i} style={{
-            padding: "14px 16px", borderRadius: 6,
-            border: `1px solid ${SEVERITY_COLOR[note.severity]}33`,
-            background: `${SEVERITY_COLOR[note.severity]}08`,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <span style={{
-                fontFamily: mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
-                color: SEVERITY_COLOR[note.severity], textTransform: "uppercase",
-                background: `${SEVERITY_COLOR[note.severity]}18`, padding: "2px 7px", borderRadius: 3,
-              }}>{note.severity}</span>
-              <span style={{ fontFamily: mono, fontSize: 13, fontWeight: 700 }}>{note.title}</span>
-            </div>
-            <div style={{ fontSize: 12, color: "#aaa", lineHeight: 1.6, marginBottom: 6 }}>{note.detail}</div>
-            <div style={{ fontSize: 11, color: "#666", fontFamily: mono }}>
-              <span style={{ color: "#444" }}>→ outcome: </span>{note.outcome}
-            </div>
-          </div>
-        ))}
-
-        {tab === "strengths" && sections.strengths.map((note, i) => (
-          <div key={i} style={{
-            padding: "14px 16px", borderRadius: 6,
-            border: `1px solid ${C.cyan}22`, background: `${C.cyan}06`,
-          }}>
-            <div style={{ fontFamily: mono, fontSize: 13, fontWeight: 700, color: C.cyan, marginBottom: 6 }}>
-              ✓ {note.title}
-            </div>
-            <div style={{ fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>{note.detail}</div>
-          </div>
-        ))}
-
-        {tab === "future" && sections.future.map((note, i) => (
-          <div key={i} style={{
-            padding: "14px 16px", borderRadius: 6,
-            border: `1px solid ${C.border}`, background: "#0a0a0a",
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
-              <span style={{
-                fontFamily: mono, fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
-                color: HORIZON_COLOR[note.horizon], textTransform: "uppercase",
-                background: `${HORIZON_COLOR[note.horizon]}18`, padding: "2px 7px", borderRadius: 3,
-              }}>{note.horizon}-term</span>
-              <span style={{ fontFamily: mono, fontSize: 13, fontWeight: 700 }}>{note.title}</span>
-            </div>
-            <div style={{ fontSize: 12, color: "#aaa", lineHeight: 1.6 }}>{note.detail}</div>
-          </div>
-        ))}
-      </div>
-    </Modal>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SETTINGS MODAL
-// ═══════════════════════════════════════════════════════════════════════════════
+// ─── SETTINGS ────────────────────────────────────────────────────────────────
 function SettingsModal({ onClose, toast }) {
   const [tab, setTab] = useState("categories");
   const [categories, setCategories] = useState([]);
@@ -1856,7 +1675,7 @@ function SettingsModal({ onClose, toast }) {
           </div>
           <div>
             <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// categories</div>
-            {loading ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>loading…</div> : (categories ?? []).map(c => (
+            {loading ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>loading…</div> : (categories ?? []).map(c => (
               <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
                 <span style={{ fontFamily: mono, fontSize: 12 }}>{c.icon} {c.name}</span>
                 <div style={{ display: "flex", gap: 6 }}>
@@ -1890,11 +1709,11 @@ function SettingsModal({ onClose, toast }) {
           </div>
           <div>
             <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// locations</div>
-            {loading ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>loading…</div> : (locations ?? []).map(l => (
+            {loading ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>loading…</div> : (locations ?? []).map(l => (
               <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
                 <div>
                   <span style={{ fontFamily: mono, fontSize: 12 }}>{l.name}</span>
-                  <span style={{ fontFamily: mono, fontSize: 10, color: "#555", marginLeft: 8 }}>{l.code} · {l.type}</span>
+                  <span style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)", marginLeft: 8 }}>{l.code} · {l.type}</span>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <ActionBtn small outline color={C.cyan} onClick={() => { setEditLoc(l); setLocForm({ name: l.name, code: l.code, type: l.type, address: l.address ?? "", is_active: l.is_active }); }}>Edit</ActionBtn>
@@ -1939,7 +1758,7 @@ function ItemDetailPage({ itemId, onBack, toast }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading || !item) return <div style={{ padding: 40, textAlign: "center", fontFamily: mono, color: "#555" }}>◈ loading…</div>;
+  if (loading || !item) return <div style={{ padding: 40, textAlign: "center", fontFamily: mono, color: "var(--color-text-tertiary)" }}>◈ loading…</div>;
 
   const filtered = instances.filter(i =>
     (i.asset_tag ?? "").toLowerCase().includes(search.toLowerCase()) ||
@@ -2037,7 +1856,7 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
 
   useEffect(() => { load(); }, [load]);
 
-  if (loading || !instance) return <div style={{ padding: 40, textAlign: "center", fontFamily: mono, color: "#555" }}>◈ loading…</div>;
+  if (loading || !instance) return <div style={{ padding: 40, textAlign: "center", fontFamily: mono, color: "var(--color-text-tertiary)" }}>◈ loading…</div>;
 
   return (
     <div>
@@ -2084,11 +1903,11 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
         <Panel>
           <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// location history</div>
           {locationHistory.length === 0
-            ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>No location changes recorded.</div>
+            ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>No location changes recorded.</div>
             : locationHistory.slice(0, 6).map((lh, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}`, fontFamily: mono, fontSize: 11 }}>
                 <span style={{ color: C.cyan }}>{lh.location?.name ?? lh.to_location?.name ?? "—"}</span>
-                <span style={{ color: "#555" }}>{lh.moved_at?.slice(0, 10)}</span>
+                <span style={{ color: "var(--color-text-tertiary)" }}>{lh.moved_at?.slice(0, 10)}</span>
               </div>
             ))
           }
@@ -2100,10 +1919,10 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
         <Table
           cols={[
             { key: "movement_type", label: "Movement", render: v => <span style={{ color: MOVEMENT_COLOR[v] || "#888", fontWeight: 600 }}>{v}</span> },
-            { key: "performed_at", label: "Timestamp", render: v => <span style={{ color: "#555" }}>{v?.slice(0, 16).replace("T", " ")}</span> },
+            { key: "performed_at", label: "Timestamp", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>{v?.slice(0, 16).replace("T", " ")}</span> },
             { key: "performed_by", label: "By", render: (_, row) => row.performedBy?.name ?? "System" },
-            { key: "status_before", label: "Before", render: v => v ? <Chip label={v} /> : <span style={{ color: "#555" }}>—</span> },
-            { key: "status_after", label: "After", render: v => v ? <Chip label={v} /> : <span style={{ color: "#555" }}>—</span> },
+            { key: "status_before", label: "Before", render: v => v ? <Chip label={v} /> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
+            { key: "status_after", label: "After", render: v => v ? <Chip label={v} /> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
           ]}
           rows={ledger}
         />
@@ -2156,7 +1975,7 @@ function DashboardTab({ onNavigate, toast }) {
   }, [toast]);
 
   if (loading || !data) return (
-    <div style={{ padding: 48, textAlign: "center", fontFamily: mono, color: "#555" }}>◈ loading dashboard…</div>
+    <div style={{ padding: 48, textAlign: "center", fontFamily: mono, color: "var(--color-text-tertiary)" }}>◈ loading dashboard…</div>
   );
 
   return (
@@ -2176,12 +1995,12 @@ function DashboardTab({ onNavigate, toast }) {
         <Panel>
           <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// recent movements</div>
           {data.recentMovements.length === 0
-            ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>No movements yet.</div>
+            ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>No movements yet.</div>
             : data.recentMovements.map((m, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
                 <span style={{ fontFamily: mono, fontSize: 11, color: MOVEMENT_COLOR[m.movement_type] || "#888", fontWeight: 700, minWidth: 110 }}>{m.movement_type}</span>
                 <span style={{ fontFamily: mono, fontSize: 11, flex: 1 }}>{m.instance?.asset_tag ?? "—"}</span>
-                <span style={{ fontFamily: mono, fontSize: 10, color: "#555" }}>{m.performed_at?.slice(0, 16).replace("T", " ")}</span>
+                <span style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)" }}>{m.performed_at?.slice(0, 16).replace("T", " ")}</span>
               </div>
             ))
           }
@@ -2189,7 +2008,7 @@ function DashboardTab({ onNavigate, toast }) {
         <Panel>
           <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// recent assignments</div>
           {data.recentAssignments.length === 0
-            ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>No assignments yet.</div>
+            ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>No assignments yet.</div>
             : data.recentAssignments.map((a, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
                 <span style={{ fontFamily: mono, fontSize: 11, color: C.cyan, fontWeight: 700, minWidth: 110 }}>{a.instance?.asset_tag ?? `#${a.id}`}</span>
@@ -2204,44 +2023,17 @@ function DashboardTab({ onNavigate, toast }) {
   );
 }
 
-// ─── Linked item styling ──────────────────────────────────────────────────────
-const LINKED_BG    = "rgba(139, 92, 246, 0.08)";
-const LINKED_BADGE = {
-  display: "inline-flex", alignItems: "center", gap: 4,
-  padding: "2px 7px", borderRadius: 4,
-  background: "rgba(139, 92, 246, 0.18)", border: "1px solid rgba(139, 92, 246, 0.45)",
-  color: "var(--color-primary-400)", fontFamily: mono, fontSize: 9, fontWeight: 700,
-  letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap",
-};
-const LOCKED_INPUT  = { ...inputStyle,  opacity: 0.45, cursor: "not-allowed", background: "rgba(255,255,255,0.03)" };
-const LOCKED_SELECT = { ...selectStyle, opacity: 0.45, cursor: "not-allowed", background: "rgba(255,255,255,0.03)" };
-
-function ReadOnlyField({ label, value }) {
-  return (
-    <Field label={
-      <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-        {label}
-        <span style={{ fontSize: 9, color: "var(--color-primary-400)", fontWeight: 700 }}>⊘ PRODUCT</span>
-      </span>
-    }>
-      <input style={LOCKED_INPUT} value={value ?? "—"} readOnly disabled />
-    </Field>
-  );
-}
-
 function EditItemModal({ item, categories, locations, onClose, onSuccess, toast }) {
-  const isLinked = !!item.product_id;
   const [form, setForm] = useState({
     default_location_id:  item.default_location_id ?? "",
-    condition:            item.condition           ?? "good",
     notes:                item.notes               ?? "",
-    low_stock_threshold:  item.low_stock_threshold ?? "",
     name:                 item.name                ?? "",
     brand:                item.brand               ?? "",
-    type:                 item.type                ?? "stock",
-    unit_of_measure:      item.unit_of_measure     ?? "unit",
+    model:                item.model               ?? "",
+    type:                 item.type                ?? "asset",
     category_id:          item.category_id         ?? "",
     description:          item.description         ?? "",
+    purchase_cost:        item.purchase_cost       ?? "",
     is_active:            item.is_active            ?? true,
   });
   const [saving, setSaving] = useState(false);
@@ -2250,58 +2042,40 @@ function EditItemModal({ item, categories, locations, onClose, onSuccess, toast 
   const submit = async () => {
     setSaving(true);
     try {
-      const payload = isLinked
-        ? {
-            default_location_id: form.default_location_id ? parseInt(form.default_location_id) : null,
-            condition: form.condition, notes: form.notes,
-            low_stock_threshold: form.low_stock_threshold ? parseInt(form.low_stock_threshold) : null,
-          }
-        : {
-            name: form.name, brand: form.brand, type: form.type,
-            unit_of_measure: form.unit_of_measure,
-            category_id: form.category_id ? parseInt(form.category_id) : null,
-            default_location_id: form.default_location_id ? parseInt(form.default_location_id) : null,
-            description: form.description, condition: form.condition, notes: form.notes,
-            low_stock_threshold: form.low_stock_threshold ? parseInt(form.low_stock_threshold) : null,
-            is_active: form.is_active,
-          };
-      await inventoryAPI.items.update(item.id, payload);
-      toast("Item updated", "success");
+      await inventoryAPI.items.update(item.id, {
+        name: form.name, brand: form.brand, model: form.model, type: form.type,
+        category_id: form.category_id ? parseInt(form.category_id) : null,
+        default_location_id: form.default_location_id ? parseInt(form.default_location_id) : null,
+        purchase_cost: form.purchase_cost === "" ? null : form.purchase_cost,
+        description: form.description, notes: form.notes, is_active: form.is_active,
+      });
+      toast("Asset type updated", "success");
       onSuccess(); onClose();
     } catch (e) {
-      toast(e?.response?.data?.message ?? "Failed to update item", "error");
+      toast(e?.response?.data?.message ?? "Failed to update", "error");
     } finally { setSaving(false); }
   };
 
-  const product = item.product ?? {};
   return (
-    <Modal title={isLinked ? "// edit linked item" : "// edit catalogue item"} onClose={onClose} width={560}>
-      {isLinked && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", marginBottom: 18, background: LINKED_BG, border: "1px solid rgba(139,92,246,0.3)", borderRadius: 6 }}>
-          <span style={LINKED_BADGE}>⬡ linked</span>
-          <span style={{ fontFamily: mono, fontSize: 11, color: "var(--color-primary-400)" }}>Synced from product #{item.product_id}. Name, brand, price and UOM are managed by the product catalogue.</span>
-        </div>
-      )}
-      {isLinked ? <ReadOnlyField label="Name" value={product.name ?? item.name} /> : <Field label="Name"><input style={inputStyle} value={form.name} onChange={e => set("name", e.target.value)} /></Field>}
+    <Modal title="Edit asset type" onClose={onClose} width={560}>
+      <Field label="Name"><input style={inputStyle} value={form.name} onChange={e => set("name", e.target.value)} /></Field>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {isLinked ? <ReadOnlyField label="Type" value={item.type} /> : <Field label="Type"><select style={selectStyle} value={form.type} onChange={e => set("type", e.target.value)}>{["asset","consumable","loanable","stock"].map(t=><option key={t} value={t}>{t}</option>)}</select></Field>}
-        <Field label="Inv. Category"><select style={selectStyle} value={form.category_id} onChange={e => set("category_id", e.target.value)}><option value="">None</option>{(categories??[]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
+        <Field label="Kind"><select style={selectStyle} value={form.type} onChange={e => set("type", e.target.value)}>{[["asset","Asset"],["loanable","Can be loaned out"]].map(([t,l])=><option key={t} value={t}>{l}</option>)}</select></Field>
+        <Field label="Category"><select style={selectStyle} value={form.category_id} onChange={e => set("category_id", e.target.value)}><option value="">None</option>{(categories??[]).map(c=><option key={c.id} value={c.id}>{c.name}</option>)}</select></Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {isLinked ? <ReadOnlyField label="Brand" value={item.brand} /> : <Field label="Brand"><input style={inputStyle} value={form.brand} onChange={e => set("brand", e.target.value)} /></Field>}
-        {isLinked ? <ReadOnlyField label="Unit of Measure" value={item.unit_of_measure} /> : <Field label="Unit of Measure"><input style={inputStyle} value={form.unit_of_measure} onChange={e => set("unit_of_measure", e.target.value)} /></Field>}
+        <Field label="Brand"><input style={inputStyle} value={form.brand} onChange={e => set("brand", e.target.value)} /></Field>
+        <Field label="Model"><input style={inputStyle} value={form.model} onChange={e => set("model", e.target.value)} /></Field>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {isLinked ? <ReadOnlyField label="Price / Cost" value={item.purchase_cost ? `${parseFloat(item.purchase_cost).toLocaleString()}` : "—"} /> : <Field label="Purchase Cost"><input style={inputStyle} type="number" min="0" value={form.purchase_cost??""} onChange={e=>set("purchase_cost",e.target.value)} /></Field>}
-        <Field label="Low Stock Threshold"><input style={inputStyle} type="number" min="0" value={form.low_stock_threshold} onChange={e=>set("low_stock_threshold",e.target.value)} placeholder="e.g. 10" /></Field>
+        <Field label="Usual cost"><input style={inputStyle} type="number" min="0" value={form.purchase_cost} onChange={e=>set("purchase_cost",e.target.value)} /></Field>
+        <Field label="Usually kept at"><select style={selectStyle} value={form.default_location_id} onChange={e=>set("default_location_id",e.target.value)}><option value="">None</option>{(locations??[]).map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select></Field>
       </div>
-      <Field label="Default Location"><select style={selectStyle} value={form.default_location_id} onChange={e=>set("default_location_id",e.target.value)}><option value="">None</option>{(locations??[]).map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select></Field>
-      <Field label="Condition"><select style={selectStyle} value={form.condition} onChange={e=>set("condition",e.target.value)}>{["new","excellent","good","fair","poor","damaged","unusable"].map(c=><option key={c} value={c}>{c}</option>)}</select></Field>
-      {!isLinked && <Field label="Description"><textarea style={{...inputStyle,resize:"vertical",minHeight:56}} value={form.description} onChange={e=>set("description",e.target.value)} /></Field>}
-      <Field label="Notes"><textarea style={{...inputStyle,resize:"vertical",minHeight:56}} value={form.notes} onChange={e=>set("notes",e.target.value)} placeholder={isLinked?"Inventory-specific notes (not synced to product)":"Optional notes"} /></Field>
-      {!isLinked && <label style={{display:"flex",alignItems:"center",gap:8,fontFamily:mono,fontSize:12,cursor:"pointer",marginBottom:16}}><input type="checkbox" checked={form.is_active} onChange={e=>set("is_active",e.target.checked)} style={{accentColor:C.cyan}} />Active</label>}
+      <Field label="Description"><textarea style={{...inputStyle,resize:"vertical",minHeight:56}} value={form.description} onChange={e=>set("description",e.target.value)} /></Field>
+      <Field label="Notes"><textarea style={{...inputStyle,resize:"vertical",minHeight:56}} value={form.notes} onChange={e=>set("notes",e.target.value)} /></Field>
+      <label style={{display:"flex",alignItems:"center",gap:8,fontSize:12,cursor:"pointer",marginBottom:16}}><input type="checkbox" checked={form.is_active} onChange={e=>set("is_active",e.target.checked)} style={{accentColor:C.cyan}} />Active</label>
       <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-        <ActionBtn color={C.green} onClick={submit} disabled={saving}>{saving ? "Saving…" : "Save Changes"}</ActionBtn>
+        <ActionBtn color={C.green} onClick={submit} disabled={saving}>{saving ? "Saving…" : "Save changes"}</ActionBtn>
         <ActionBtn color={C.cyan} outline onClick={onClose}>Cancel</ActionBtn>
       </div>
     </Modal>
@@ -2324,30 +2098,25 @@ function CatalogueTab({ onItemClick, toast }) {
   const [meta,         setMeta]         = useState(null);
   const [loading,      setLoading]      = useState(true);
   const [loadingMore,  setLoadingMore]  = useState(false);
-  const [syncing,      setSyncing]      = useState(false);
   const [search,       setSearch]       = useState("");
   const [typeFilter,   setTypeFilter]   = useState("all");
-  const [linkFilter,   setLinkFilter]   = useState("all");
   const [page,         setPage]         = useState(1);
   const [modal,        setModal]        = useState(null);
   const [categories,   setCategories]   = useState([]);
   const [locations,    setLocations]    = useState([]);
-  const [syncProgress, setSyncProgress] = useState(null);
   const debounceRef = useRef(null);
 
-  const buildParams = (p, s, tf, lf) => {
+  const buildParams = (p, s, tf) => {
     const params = { page: p, per_page: 25 };
     if (s)            params.search = s;
     if (tf !== "all") params.type   = tf;
-    if (lf === "linked")   params.linked = 1;
-    if (lf === "unlinked") params.linked = 0;
     return params;
   };
 
-  const load = useCallback(async (p = 1, s = search, tf = typeFilter, lf = linkFilter, append = false) => {
+  const load = useCallback(async (p = 1, s = search, tf = typeFilter, append = false) => {
     append ? setLoadingMore(true) : setLoading(true);
     try {
-      const res = await inventoryAPI.items.index(buildParams(p, s, tf, lf));
+      const res = await inventoryAPI.items.index(buildParams(p, s, tf));
       const rows = res?.data ?? [];
       setItems(prev => append ? [...prev, ...rows] : rows);
       setMeta(res?.meta ?? (res?.current_page != null ? res : null));
@@ -2367,15 +2136,14 @@ function CatalogueTab({ onItemClick, toast }) {
   const handleSearch = (v) => {
     setSearch(v); setPage(1); setItems([]);
     clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => load(1, v, typeFilter, linkFilter, false), 400);
+    debounceRef.current = setTimeout(() => load(1, v, typeFilter, false), 400);
   };
-  const handleType = (v) => { setTypeFilter(v); setPage(1); setItems([]); load(1, search, v, linkFilter, false); };
-  const handleLink = (v) => { setLinkFilter(v); setPage(1); setItems([]); load(1, search, typeFilter, v, false); };
+  const handleType = (v) => { setTypeFilter(v); setPage(1); setItems([]); load(1, search, v, false); };
 
   const handleLoadMore = () => {
     const next = page + 1;
     setPage(next);
-    load(next, search, typeFilter, linkFilter, true);
+    load(next, search, typeFilter, true);
   };
 
   const handleLoadAll = async () => {
@@ -2384,7 +2152,7 @@ function CatalogueTab({ onItemClick, toast }) {
     try {
       const rows = await fetchAllPages(
         params => inventoryAPI.items.index(params),
-        buildParams(1, search, typeFilter, linkFilter),
+        buildParams(1, search, typeFilter),
         page, meta.last_page,
       );
       setItems(prev => [...prev, ...rows]);
@@ -2394,99 +2162,56 @@ function CatalogueTab({ onItemClick, toast }) {
     finally { setLoadingMore(false); }
   };
 
-  const handleSync = async () => {
-    setSyncing(true); setSyncProgress(null);
-    let offset = 0; const limit = 50;
-    let totalCreated = 0, totalUpdated = 0, totalErrors = 0;
-    try {
-      while (true) {
-        const res = await inventoryAPI.items.syncProducts({ offset, limit });
-        totalCreated += res.created; totalUpdated += res.updated; totalErrors += res.errors?.length ?? 0;
-        setSyncProgress({ processed: res.processed, total: res.total, pct: Math.round((res.processed / res.total) * 100) });
-        if (res.done) break;
-        offset = res.next_offset;
-      }
-      toast(`Sync complete — ${totalCreated} created, ${totalUpdated} updated${totalErrors ? ` (${totalErrors} errors)` : ""}`, totalErrors ? "warning" : "success");
-      setPage(1); setItems([]); load(1);
-    } catch (e) { toast(e?.response?.data?.message ?? "Sync failed", "error"); }
-    finally { setSyncing(false); setSyncProgress(null); }
-  };
-
-  const rowStyle = (row) => row.product_id
-    ? { background: LINKED_BG, borderLeft: "2px solid rgba(139,92,246,0.4)" }
-    : {};
-
   return (
     <div>
-      {syncing && syncProgress && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: mono, fontSize: 11, color: "var(--color-primary-400)", marginBottom: 4 }}>
-            <span>⬡ syncing products…</span>
-            <span>{syncProgress.processed} / {syncProgress.total} ({syncProgress.pct}%)</span>
-          </div>
-          <div style={{ height: 3, background: "#1a1a1a", borderRadius: 2 }}>
-            <div style={{ height: "100%", width: `${syncProgress.pct}%`, background: "linear-gradient(90deg, var(--color-primary-600), var(--color-primary-400))", borderRadius: 2, transition: "width 0.3s ease" }} />
-          </div>
-        </div>
-      )}
-
       <div style={{ display: "flex", gap: 10, marginBottom: 20, alignItems: "center", flexWrap: "wrap" }}>
-        <SearchBar value={search} onChange={handleSearch} placeholder="Search items, brands, models…" />
+        <SearchBar value={search} onChange={handleSearch} placeholder="Search asset types, brands, models…" />
         <select style={{ ...selectStyle, width: 130 }} value={typeFilter} onChange={e => handleType(e.target.value)}>
-          {["all","asset","stock","consumable","loanable"].map(t => <option key={t} value={t}>{t === "all" ? "All types" : t}</option>)}
+          {[["all","All kinds"],["asset","Assets"],["loanable","Can be loaned"]].map(([t,l]) => <option key={t} value={t}>{l}</option>)}
         </select>
-        <select style={{ ...selectStyle, width: 140 }} value={linkFilter} onChange={e => handleLink(e.target.value)}>
-          <option value="all">All items</option>
-          <option value="linked">Linked only</option>
-          <option value="unlinked">Unlinked only</option>
-        </select>
-        <ActionBtn color={C.green} onClick={() => setModal("new-item")}>+ New Item</ActionBtn>
-        <ActionBtn color="var(--color-primary-400)" onClick={handleSync} disabled={syncing}>{syncing ? "⟳ Syncing…" : "⬡ Sync Products"}</ActionBtn>
+        <ActionBtn color={C.green} onClick={() => setModal("new-item")}>+ New asset type</ActionBtn>
       </div>
 
       <Panel style={{ padding: 0 }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: mono, fontSize: 12 }}>
           <thead>
             <tr>
-              {["Item","Category","Type","Brand","Price","Available","Issued","Total",""].map(h => (
-                <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: C.cyan, borderBottom: "1px solid #1a1a1a", fontWeight: 600, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
+              {["Asset type","Category","Kind","Brand","Usual cost","Available","Issued","Total",""].map(h => (
+                <th key={h} style={{ padding: "10px 14px", textAlign: "left", color: C.cyan, borderBottom: "1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)", fontWeight: 600, fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", whiteSpace: "nowrap" }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={9} style={{ padding: "48px 14px", textAlign: "center", color: "#555" }}><span style={{ color: C.cyan }}>◈</span> loading…</td></tr>}
-            {!loading && items.length === 0 && <tr><td colSpan={9} style={{ padding: "32px 14px", textAlign: "center", color: "#555" }}>No items found</td></tr>}
+            {loading && <tr><td colSpan={9} style={{ padding: "48px 14px", textAlign: "center", color: "var(--color-text-tertiary)" }}><span style={{ color: C.cyan }}>◈</span> loading…</td></tr>}
+            {!loading && items.length === 0 && <tr><td colSpan={9} style={{ padding: "32px 14px", textAlign: "center", color: "var(--color-text-tertiary)" }}>No items found</td></tr>}
             {!loading && items.map(row => {
-              const isLinked = !!row.product_id;
               const price    = row.purchase_cost;
               return (
-                <tr key={row.id} style={{ borderBottom: "1px solid #111", transition: "background 0.15s", ...rowStyle(row) }}
-                  onMouseEnter={e => e.currentTarget.style.background = isLinked ? "rgba(139,92,246,0.14)" : "rgba(0,229,255,0.04)"}
-                  onMouseLeave={e => e.currentTarget.style.background = isLinked ? LINKED_BG : "transparent"}
+                <tr key={row.id} style={{ borderBottom: "1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)", transition: "background 0.15s" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "color-mix(in srgb, var(--color-primary-500) 4%, transparent)"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}
                 >
                   <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      {isLinked && <span style={LINKED_BADGE}>⬡ linked</span>}
                       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <span style={{ color: isLinked ? "var(--color-primary-400)" : C.cyan, cursor: "pointer", fontWeight: 600 }} onClick={() => onItemClick(row.id)}>{row.name}</span>
+                        <span style={{ color: C.cyan, cursor: "pointer", fontWeight: 600 }} onClick={() => onItemClick(row.id)}>{row.name}</span>
                         {row.is_serialized && <span style={{ fontFamily: mono, fontSize: 9, color: C.amber, letterSpacing: "0.06em" }}>◉ serialized</span>}
                       </div>
                     </div>
-                    {isLinked && row.product?.sku && <div style={{ color: "#555", fontSize: 10, marginTop: 2 }}>SKU: {row.product.sku}</div>}
                   </td>
-                  <td style={{ padding: "10px 14px", color: "#aaa" }}>{row.category?.name ?? "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>{row.category?.name ?? "—"}</td>
                   <td style={{ padding: "10px 14px" }}><Chip label={row.type} /></td>
-                  <td style={{ padding: "10px 14px", color: "#aaa" }}>{row.brand ?? "—"}</td>
-                  <td style={{ padding: "10px 14px", color: isLinked ? "var(--color-primary-400)" : "#aaa", whiteSpace: "nowrap" }}>{price ? `KES ${parseFloat(price).toLocaleString()}` : "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>{row.brand ?? "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>{price ? `KES ${parseFloat(price).toLocaleString()}` : "—"}</td>
                   <td style={{ padding: "10px 14px" }}>
-                    <span style={{ color: (row.low_stock_threshold && row.available_qty <= row.low_stock_threshold) ? C.amber : C.green, fontWeight: 700 }}>{row.available_qty ?? "—"}</span>
+                    <span style={{ color: C.green, fontWeight: 700 }}>{row.available_qty ?? "—"}</span>
                   </td>
                   <td style={{ padding: "10px 14px", color: C.cyan }}>{row.issued_qty ?? "—"}</td>
-                  <td style={{ padding: "10px 14px", color: "#aaa" }}>{row.total_qty ?? "—"}</td>
+                  <td style={{ padding: "10px 14px", color: "var(--color-text-secondary)" }}>{row.total_qty ?? "—"}</td>
                   <td style={{ padding: "10px 14px", whiteSpace: "nowrap" }}>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <ActionBtn color={isLinked ? "var(--color-primary-400)" : C.cyan} outline small onClick={() => onItemClick(row.id)}>View ›</ActionBtn>
-                      <ActionBtn color={isLinked ? "var(--color-primary-400)" : C.cyan} outline small onClick={() => setModal({ type: "edit", item: row })}>Edit</ActionBtn>
+                      <ActionBtn color={C.cyan} outline small onClick={() => onItemClick(row.id)}>View ›</ActionBtn>
+                      <ActionBtn color={C.cyan} outline small onClick={() => setModal({ type: "edit", item: row })}>Edit</ActionBtn>
                     </div>
                   </td>
                 </tr>
@@ -2498,7 +2223,7 @@ function CatalogueTab({ onItemClick, toast }) {
       </Panel>
 
       {modal === "new-item" && <NewItemModal categories={categories} locations={locations} onClose={() => setModal(null)} onSuccess={() => { setPage(1); setItems([]); load(1); }} toast={toast} />}
-      {modal?.type === "edit" && <EditItemModal item={modal.item} categories={categories} locations={locations} onClose={() => setModal(null)} onSuccess={() => load(page, search, typeFilter, linkFilter, false)} toast={toast} />}
+      {modal?.type === "edit" && <EditItemModal item={modal.item} categories={categories} locations={locations} onClose={() => setModal(null)} onSuccess={() => load(page, search, typeFilter, false)} toast={toast} />}
     </div>
   );
 }
@@ -2673,7 +2398,7 @@ function AssignmentsTab({ toast }) {
             { key: "assignee_label", label: "Assignee" },
             { key: "assignee_type", label: "To", render: v => <span style={{ color: "#888", fontSize: 11 }}>{v}</span> },
             { key: "issued_at", label: "Issued", render: v => v?.slice(0, 10) },
-            { key: "expected_return_date", label: "Due", render: v => v ? <span style={{ color: C.amber }}>{v?.slice(0,10)}</span> : <span style={{ color: "#555" }}>—</span> },
+            { key: "expected_return_date", label: "Due", render: v => v ? <span style={{ color: C.amber }}>{v?.slice(0,10)}</span> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
             { key: "status", label: "Status", render: v => <Chip label={v} /> },
             { key: "_actions", label: "", render: (_, row) => (row.status === "active" || row.status === "overdue") ? <ActionBtn color={C.green} outline small onClick={() => setModal({ type: "return", assignment: row })}>Return</ActionBtn> : null },
           ]}
@@ -2750,7 +2475,7 @@ function RepairsTab({ toast }) {
         <Table
           loading={loading}
           cols={[
-            { key: "id", label: "#", render: v => <span style={{ color: "#555" }}>#{v}</span> },
+            { key: "id", label: "#", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>#{v}</span> },
             { key: "instance", label: "Instance", render: (_, row) => <span style={{ color: C.cyan, fontWeight: 700 }}>{row.instance?.asset_tag ?? "—"}</span> },
             { key: "item", label: "Item", render: (_, row) => row.instance?.item?.name ?? row.item?.name ?? "—" },
             { key: "fault_description", label: "Fault", render: v => <span style={{ maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", display: "inline-block" }}>{v}</span> },
@@ -2850,13 +2575,13 @@ function DisputesTab({ toast }) {
         <Table
           loading={loading}
           cols={[
-            { key: "id", label: "#", render: v => <span style={{ color: "#555" }}>#{v}</span> },
+            { key: "id", label: "#", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>#{v}</span> },
             { key: "instance", label: "Instance", render: (_, row) => <span style={{ color: C.cyan, fontWeight: 700 }}>{row.instance?.asset_tag ?? "—"}</span> },
             { key: "dispute_type", label: "Type", render: v => <span style={{ color: C.red, fontFamily: mono, fontSize: 11, fontWeight: 600 }}>{v}</span> },
             { key: "description", label: "Description", render: v => <span style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", display: "inline-block" }}>{v}</span> },
             { key: "raisedBy", label: "Raised By", render: (_, row) => row.raisedBy?.name ?? "—" },
             { key: "status", label: "Status", render: v => <Chip label={v} /> },
-            { key: "ruling", label: "Ruling", render: v => v ? <span style={{ color: C.purple, fontFamily: mono, fontSize: 11 }}>{v}</span> : <span style={{ color: "#555" }}>—</span> },
+            { key: "ruling", label: "Ruling", render: v => v ? <span style={{ color: C.purple, fontFamily: mono, fontSize: 11 }}>{v}</span> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
             { key: "_actions", label: "", render: (_, row) => row.status === "open" ? <ActionBtn color={C.purple} outline small onClick={() => setModal({ type: "rule", dispute: row })}>Rule</ActionBtn> : null },
           ]}
           rows={disputes}
@@ -2930,7 +2655,7 @@ function AuditsTab({ toast }) {
         <Table
           loading={loading}
           cols={[
-            { key: "id", label: "#", render: v => <span style={{ color: "#555" }}>#{v}</span> },
+            { key: "id", label: "#", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>#{v}</span> },
             { key: "trigger_type", label: "Trigger", render: v => <span style={{ color: C.cyan, fontFamily: mono, fontSize: 11, fontWeight: 600 }}>{v}</span> },
             { key: "assignee_label", label: "Assignee" },
             { key: "assignee_type", label: "Type", render: v => <span style={{ color: "#888", fontSize: 11 }}>{v}</span> },
@@ -2983,15 +2708,15 @@ function GroupsTab({ toast }) {
         <ActionBtn color={C.green} onClick={() => setModal("new-group")}>+ New Group</ActionBtn>
       </div>
       {loading ? (
-        <div style={{ padding: 48, textAlign: "center", fontFamily: mono, color: "#555" }}>◈ loading…</div>
+        <div style={{ padding: 48, textAlign: "center", fontFamily: mono, color: "var(--color-text-tertiary)" }}>◈ loading…</div>
       ) : groups.length === 0 ? (
-        <Panel><div style={{ fontFamily: mono, fontSize: 12, color: "#555", textAlign: "center", padding: "24px 0" }}>// no groups found</div></Panel>
+        <Panel><div style={{ fontFamily: mono, fontSize: 12, color: "var(--color-text-tertiary)", textAlign: "center", padding: "24px 0" }}>// no groups found</div></Panel>
       ) : groups.map(g => (
         <Panel key={g.id} style={{ marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: expanded === g.id ? 16 : 0 }}>
             <div>
               <span style={{ fontFamily: mono, fontSize: 14, fontWeight: 700 }}>{g.name}</span>
-              <span style={{ fontFamily: mono, fontSize: 11, color: "#555", marginLeft: 12 }}>{g.members?.length ?? 0} members</span>
+              <span style={{ fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)", marginLeft: 12 }}>{g.members?.length ?? 0} members</span>
               {g.description && <div style={{ fontFamily: mono, fontSize: 11, color: "#888", marginTop: 4 }}>{g.description}</div>}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
@@ -3004,7 +2729,7 @@ function GroupsTab({ toast }) {
           {expanded === g.id && (
             <div>
               {(!g.members || g.members.length === 0)
-                ? <div style={{ fontFamily: mono, fontSize: 12, color: "#555" }}>No members.</div>
+                ? <div style={{ fontFamily: mono, fontSize: 12, color: "var(--color-text-tertiary)" }}>No members.</div>
                 : g.members.map(m => (
                   <div key={m.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}` }}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -3014,7 +2739,7 @@ function GroupsTab({ toast }) {
                             ? `${m.member?.first_name ?? ""} ${m.member?.last_name ?? ""}`.trim() || m.member_label
                             : m.member_label}
                         </span>
-                        <span style={{ fontFamily: mono, fontSize: 10, color: "#555" }}>{m.member_type}</span>
+                        <span style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)" }}>{m.member_type}</span>
                       </div>
                       {m.member_type === "customer" && m.member?.email && (
                         <span style={{ fontFamily: mono, fontSize: 10, color: "#888" }}>{m.member.email}</span>
@@ -3098,20 +2823,20 @@ function LedgerTab({ toast }) {
     <div>
       <div style={{ display: "flex", gap: 12, marginBottom: 20, alignItems: "center" }}>
         <Select value={typeFilter} onChange={handleTypeFilter} options={types.map(t => ({ value: t, label: t }))} />
-        <span style={{ fontFamily: mono, fontSize: 11, color: "#555" }}>// immutable append-only ledger</span>
+        <span style={{ fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)" }}>// immutable append-only ledger</span>
       </div>
       <Panel style={{ padding: 0 }}>
         <Table
           loading={loading}
           cols={[
-            { key: "id", label: "#", render: v => <span style={{ color: "#555" }}>#{v}</span> },
+            { key: "id", label: "#", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>#{v}</span> },
             { key: "movement_type", label: "Movement", render: v => <span style={{ color: MOVEMENT_COLOR[v] || "#888", fontWeight: 700, fontFamily: mono }}>{v}</span> },
             { key: "instance", label: "Instance", render: (_, row) => <span style={{ color: C.cyan }}>{row.instance?.asset_tag ?? "—"}</span> },
             { key: "item", label: "Item", render: (_, row) => row.item?.name ?? row.instance?.item?.name ?? "—" },
-            { key: "status_before", label: "Before", render: v => v ? <Chip label={v} /> : <span style={{ color: "#555" }}>—</span> },
-            { key: "status_after", label: "After", render: v => v ? <Chip label={v} /> : <span style={{ color: "#555" }}>—</span> },
+            { key: "status_before", label: "Before", render: v => v ? <Chip label={v} /> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
+            { key: "status_after", label: "After", render: v => v ? <Chip label={v} /> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
             { key: "performedBy", label: "By", render: (_, row) => <span style={{ color: "#888", fontSize: 11 }}>{row.performedBy?.name ?? "System"}</span> },
-            { key: "performed_at", label: "Timestamp", render: v => <span style={{ color: "#555", fontSize: 11 }}>{v?.slice(0,16).replace("T"," ")}</span> },
+            { key: "performed_at", label: "Timestamp", render: v => <span style={{ color: "var(--color-text-tertiary)", fontSize: 11 }}>{v?.slice(0,16).replace("T"," ")}</span> },
           ]}
           rows={movements}
         />
@@ -3208,14 +2933,14 @@ function ExportTab({ toast }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Panel>
             <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// saved presets</div>
-            {loadingPresets ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>loading…</div>
-              : presets.length === 0 ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>No saved presets.</div>
+            {loadingPresets ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>loading…</div>
+              : presets.length === 0 ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>No saved presets.</div>
               : presets.map((p, i) => (
                 <div key={p.id ?? i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
                   <div>
                     <span style={{ fontFamily: mono, fontSize: 12 }}>{p.name}</span>
                     {p.is_default && <span style={{ marginLeft: 8, fontSize: 10, color: C.green, fontFamily: mono }}>DEFAULT</span>}
-                    <div style={{ fontFamily: mono, fontSize: 10, color: "#555", marginTop: 2 }}>{p.export_type}</div>
+                    <div style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)", marginTop: 2 }}>{p.export_type}</div>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <ActionBtn color={C.cyan} outline small onClick={() => loadPreset(p)}>Load</ActionBtn>
@@ -3226,13 +2951,13 @@ function ExportTab({ toast }) {
           </Panel>
           <Panel>
             <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// export log</div>
-            {loadingLogs ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>loading…</div>
-              : logs.length === 0 ? <div style={{ color: "#555", fontFamily: mono, fontSize: 12 }}>No exports yet.</div>
+            {loadingLogs ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>loading…</div>
+              : logs.length === 0 ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>No exports yet.</div>
               : logs.map((l, i) => (
                 <div key={l.id ?? i} style={{ padding: "10px 0", borderBottom: `1px solid ${C.border}` }}>
                   <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
                     <span style={{ fontFamily: mono, fontSize: 11, color: C.cyan }}>{l.file_name ?? l.export_type}</span>
-                    <span style={{ fontFamily: mono, fontSize: 10, color: "#555" }}>{l.exported_at?.slice(0,16).replace("T"," ")}</span>
+                    <span style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)" }}>{l.exported_at?.slice(0,16).replace("T"," ")}</span>
                   </div>
                   <div style={{ fontFamily: mono, fontSize: 10, color: "#888" }}>{l.export_type} · {l.row_count ?? "?"} rows · by {l.exportedBy?.name ?? "?"}</div>
                 </div>
@@ -3246,36 +2971,24 @@ function ExportTab({ toast }) {
 
 // ─── TABS CONFIG ──────────────────────────────────────────────────────────────
 const TABS = [
-  { id: "dashboard",   label: "Dashboard",   icon: "◈" },
-  { id: "catalogue",   label: "Catalogue",   icon: "▤" },
-  { id: "instances",   label: "Instances",   icon: "◉" },
-  { id: "assignments", label: "Assignments", icon: "⇢" },
-  { id: "repairs",     label: "Repairs",     icon: "⚙" },
-  { id: "disputes",    label: "Disputes",    icon: "⚑" },
-  { id: "audits",      label: "Audits",      icon: "✦" },
-  { id: "groups",      label: "Groups",      icon: "⬡" },
-  { id: "ledger",      label: "Ledger",      icon: "≡" },
-  { id: "export",      label: "Export",      icon: "⬇" },
+  { id: "dashboard",   label: "Overview",       icon: "◈" },
+  { id: "catalogue",   label: "Asset types",    icon: "▤" },
+  { id: "instances",   label: "Assets",         icon: "◉" },
+  { id: "assignments", label: "Issued & loaned", icon: "⇢" },
+  { id: "repairs",     label: "Repairs",        icon: "⚙" },
+  { id: "disputes",    label: "Disputes",       icon: "⚑" },
+  { id: "audits",      label: "Return audits",  icon: "✦" },
+  { id: "groups",      label: "Groups",         icon: "⬡" },
+  { id: "ledger",      label: "History",        icon: "≡" },
+  { id: "export",      label: "Export",         icon: "⬇" },
 ];
 
 // ─── ROOT ─────────────────────────────────────────────────────────────────────
-export default function InventoryPage() {
+export default function AssetsPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [subPage, setSubPage] = useState(null);
-  const [clock, setClock] = useState(new Date());
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [devNotesOpen, setDevNotesOpen] = useState(false);
   const { push: toast, ToastContainer } = useToast();
-
-  useEffect(() => {
-    const t = setInterval(() => setClock(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.classList.add('dark');
-    return () => document.documentElement.classList.remove('dark');
-  }, []);
 
   const handleTabChange = (tabId) => { setActiveTab(tabId); setSubPage(null); };
   const handleItemClick = (id) => setSubPage({ type: "item", id });
@@ -3283,33 +2996,28 @@ export default function InventoryPage() {
   const handleBack = () => setSubPage(null);
 
   return (
-    <SettingsLayout>
+    <AdminLayout>
     <div style={{ fontFamily: sans, minHeight: "100vh", padding: "0 0 60px" }}>
       <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        select option { background: #111; color: #ddd; }
-        input[type=date]::-webkit-calendar-picker-indicator { filter: invert(0.5); }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        select option { background: color-mix(in srgb, var(--color-primary-500) 10%, transparent); color: #ddd; }
+                ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.2); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--color-primary-500) 20%, transparent); border-radius: 3px; }
       `}</style>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 28px", borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 6, border: `1px solid ${C.cyan}`, display: "flex", alignItems: "center", justifyContent: "center", background: `${C.cyan}14` }}>
+          <div style={{ width: 34, height: 34, borderRadius: 6, border: `1px solid ${C.cyan}`, display: "flex", alignItems: "center", justifyContent: "center", background: `color-mix(in srgb, var(--color-primary-500) 8%, transparent)` }}>
             <span style={{ color: C.cyan, fontSize: 16, fontWeight: 700 }}>◈</span>
           </div>
           <div>
-            <div style={{ fontFamily: mono, fontSize: 14, fontWeight: 700, letterSpacing: "0.06em", color: C.cyan }}>INVENTORY</div>
-            <div style={{ fontFamily: mono, fontSize: 10, color: "#555", letterSpacing: "0.08em" }}>ASSET MANAGEMENT SYSTEM</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "var(--color-text-primary)" }}>Assets</div>
+            <div style={{ fontSize: 12, color: "var(--color-text-tertiary)" }}>Furniture, equipment and what is issued to staff</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <span style={{ fontFamily: mono, fontSize: 11, color: "#555" }}>
-            {clock.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
-          </span>
           <ActionBtn color={C.amber} outline small onClick={() => setSettingsOpen(true)}>⚙ Settings</ActionBtn>
-          <ActionBtn color={"#7c6aff"} outline small onClick={() => setDevNotesOpen(true)}>// dev</ActionBtn>
         </div>
       </div>
 
@@ -3353,9 +3061,8 @@ export default function InventoryPage() {
       </div>
 
       {settingsOpen && <SettingsModal onClose={() => setSettingsOpen(false)} toast={toast} />}
-      {devNotesOpen && <DevNotesModal onClose={() => setDevNotesOpen(false)} />}
       <ToastContainer />
     </div>
-    </SettingsLayout>
+    </AdminLayout>
   );
 }

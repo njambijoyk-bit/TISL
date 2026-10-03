@@ -12,7 +12,7 @@ const LINKS = [
   { to: '/admin/books/cash', label: 'Cash & bank', desc: 'Count the till, cheques in hand', icon: Banknote, color: '#0d9488' },
   { to: '/admin/books?tab=reports', label: 'Reports', desc: 'Day book, trial balance, profit & loss', icon: FileText, color: '#22c55e' },
   { to: '/admin/stock/reports', label: 'Stock reports', desc: 'Summary, by branch, and one item at a time', icon: Boxes, color: '#f59e0b' },
-  { to: '/admin/inventory', label: 'Inventory', desc: 'What you hold, where, and what is running low', icon: Boxes, color: '#f59e0b' },
+  { to: '/admin/assets', label: 'Assets', desc: 'Furniture, equipment and what is issued to staff', icon: Boxes, color: '#f59e0b' },
 ];
 
 /**

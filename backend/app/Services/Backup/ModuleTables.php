@@ -25,6 +25,13 @@ final class ModuleTables
      */
     public const MAP = [
         'core' => [
+            // the asset register (furniture, equipment, what is issued to staff): every business has some, so it is Core
+            'inventory_categories', 'inventory_locations', 'inventory_items', 'inventory_instances',
+            'inventory_groups', 'inventory_group_members', 'inventory_assignments',
+            'inventory_lifecycle_movements', 'inventory_location_movements',
+            'inventory_repairs', 'inventory_disputes',
+            'inventory_return_audits', 'inventory_return_audit_items',
+            'inventory_export_logs', 'inventory_export_presets',
             'users', 'customers', 'customer_addresses', 'customer_notes',
             'currencies', 'currency_activity_logs',
             'units_of_measure', 'unit_locale_defaults',
@@ -107,12 +114,6 @@ final class ModuleTables
         ],
 
         'extras' => [
-            'inventory_categories', 'inventory_locations', 'inventory_items', 'inventory_instances',
-            'inventory_groups', 'inventory_group_members', 'inventory_assignments',
-            'inventory_lifecycle_movements', 'inventory_location_movements',
-            'inventory_repairs', 'inventory_disputes',
-            'inventory_return_audits', 'inventory_return_audit_items',
-            'inventory_export_logs', 'inventory_export_presets',
             'purchase_orders', 'purchase_order_items',
             // Delivery + drivers (drivers are users, backed up under Core)
             'delivery_manifests', 'delivery_items', 'delivery_item_vouchers', 'delivery_costs', 'delivery_incidents', 'delivery_ratings',

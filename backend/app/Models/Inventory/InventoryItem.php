@@ -13,10 +13,9 @@ class InventoryItem extends Model
     protected $table = 'inventory_items';
 
     protected $fillable = [
-        'category_id', 'product_id', 'name', 'description', 'brand', 'model',
+        'category_id', 'name', 'description', 'brand', 'model',
         'type', 'is_serialized', 'unit_of_measure', 'default_location_id',
         'purchase_cost', 'replacement_cost', 'is_loanable', 'max_loan_days',
-        'low_stock_threshold',
         'total_qty', 'available_qty', 'reserved_qty', 'issued_qty',
         'loaned_qty', 'in_repair_qty', 'retired_qty',
         'is_active', 'notes', 'created_by', 'updated_by',
@@ -45,11 +44,6 @@ class InventoryItem extends Model
     public function defaultLocation(): BelongsTo
     {
         return $this->belongsTo(InventoryLocation::class, 'default_location_id');
-    }
-
-    public function product(): BelongsTo
-    {
-        return $this->belongsTo(\App\Models\Product::class, 'product_id');
     }
 
     public function instances(): HasMany
@@ -92,19 +86,8 @@ class InventoryItem extends Model
         return $this->belongsTo(\App\Models\User::class, 'updated_by');
     }
 
-    public function getIsLowStockAttribute(): bool
-    {
-        if (! $this->low_stock_threshold) return false;
-        return $this->available_qty <= $this->low_stock_threshold;
-    }
-
     public function scopeActive($q)        { return $q->where('is_active', true); }
     public function scopeSerialized($q)    { return $q->where('is_serialized', true); }
     public function scopeNonSerialized($q) { return $q->where('is_serialized', false); }
     public function scopeOfType($q, string $type) { return $q->where('type', $type); }
-    public function scopeLowStock($q)
-    {
-        return $q->whereNotNull('low_stock_threshold')
-                 ->whereColumn('available_qty', '<=', 'low_stock_threshold');
-    }
 }
