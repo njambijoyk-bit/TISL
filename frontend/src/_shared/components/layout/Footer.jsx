@@ -297,6 +297,9 @@ export default function Footer() {
               : copyright
             }
           </p>
+          <p style={{ fontSize: '0.75rem', color: '#4b5563', margin: 0, textAlign: 'center', flex: '1 1 auto' }}>
+            v2. made with <span role="img" aria-label="love" style={{ color: '#ef4444' }}>♥</span> by mimi
+          </p>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {[['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Cookie Policy', '/cookies']].map(([label, to]) => (
               <Link key={to} to={to} style={{ fontSize: '0.75rem', color: '#4b5563', textDecoration: 'none', transition: 'color 150ms ease' }}
