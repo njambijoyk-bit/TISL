@@ -123,11 +123,11 @@ export default function ProductCard({ product }) {
   return (
     <div
       className="product-card group rounded-lg shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer w-full"
-      style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}
       onClick={handleViewProduct}
-      style={product.boost_badge_type ? {
-        borderLeft: `3px solid ${BOOST_BADGE[product.boost_badge_type]?.bg ?? '#10b981'}`,
-      } : {}}
+      style={{
+        background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', border: '1px solid var(--line)',
+        ...(product.boost_badge_type ? { borderLeft: `3px solid ${BOOST_BADGE[product.boost_badge_type]?.bg ?? '#10b981'}` } : {}),
+      }}
     >
       {/* Image Section */}
       <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
