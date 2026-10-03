@@ -36,7 +36,7 @@ export default function SalesAccountSelect({ value, onChange, kind = 'sales', sc
   const net = Number(amount);
   const nf = (n) => `${currencyCode ? `${currencyCode} ` : ''}${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const text = label ?? (kind === 'sales' ? (scope === 'service' ? 'Service income account' : 'Sales account') : 'Purchase account');
-  const sel = { padding: '9px 10px', borderRadius: 8, border: `1.5px solid ${error ? colors.danger : colors.tint(0.18)}`, fontSize: '0.85rem', width: '100%', background: 'white', ...style };
+  const sel = { padding: '9px 10px', borderRadius: 8, border: `1.5px solid ${error ? colors.danger : 'var(--line)'}`, fontSize: '0.85rem', width: '100%', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', ...style };
 
   return (
     <div>
