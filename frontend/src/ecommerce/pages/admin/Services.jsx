@@ -601,8 +601,7 @@ const Services = () => {
       {/* Search + Filter Bar */}
       <div style={{
         borderRadius: 12,
-        border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
-        boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+        border: '1px solid var(--line)',
         padding: 16, marginBottom: 20,
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
@@ -622,9 +621,9 @@ const Services = () => {
               style={{
                 width: '100%', boxSizing: 'border-box',
                 padding: '8px 12px 8px 34px', /* 34px = 11px icon left + 15px icon + 8px gap */
-                borderRadius: 8, fontSize: '0.82rem', color: '#374151',
-                background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
-                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                borderRadius: 8, fontSize: '0.82rem', color: 'var(--text-primary)',
+                background: 'var(--surface-card, #fff)',
+                border: '1.5px solid var(--line)',
                 outline: 'none', fontFamily: 'inherit',
                 transition: 'border-color 150ms, box-shadow 150ms',
               }}
@@ -633,7 +632,7 @@ const Services = () => {
                 e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
               }}
               onBlur={e => {
-                e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+                e.currentTarget.style.borderColor = 'var(--line)';
                 e.currentTarget.style.boxShadow = 'none';
               }}
             />
@@ -645,9 +644,9 @@ const Services = () => {
             onChange={(e) => handleStatusFilter(e.target.value)}
             style={{
               padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-              background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
-              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-              color: '#374151', outline: 'none',
+              background: 'var(--surface-card, #fff)',
+              border: '1.5px solid var(--line)',
+              color: 'var(--text-primary)', outline: 'none',
               fontFamily: 'inherit', cursor: 'pointer',
               transition: 'border-color 150ms, box-shadow 150ms',
             }}
@@ -656,7 +655,7 @@ const Services = () => {
               e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
             }}
             onBlur={e => {
-              e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+              e.currentTarget.style.borderColor = 'var(--line)';
               e.currentTarget.style.boxShadow = 'none';
             }}
           >
@@ -674,7 +673,7 @@ const Services = () => {
               allowEmpty
               includeInactive
               emptyLabel="All currencies"
-              style={{ padding: '8px 12px' }}
+              style={{ padding: '8px 12px', background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)', color: 'var(--text-primary)' }}
             />
           </div>
 

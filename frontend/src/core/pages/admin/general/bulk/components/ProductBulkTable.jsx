@@ -122,7 +122,7 @@ export default function ProductBulkTable({
         <button
             onClick={() => setDirty({})}
             style={{
-            padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border-color, #e5e7eb)',
+            padding: '6px 14px', borderRadius: 6, border: '1px solid var(--line, #e5e7eb)',
             background: 'transparent', fontSize: 12, cursor: 'pointer',
             color: 'var(--text-muted, #6b7280)',
             }}
@@ -141,7 +141,7 @@ export default function ProductBulkTable({
         </div>
     </div>
     )}
-      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--border-color, #e5e7eb)' }}>
+      <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--line, #e5e7eb)' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg-secondary, #f9fafb)' }}>
@@ -351,7 +351,7 @@ function ProductRow({
           value={getVal('sales_ledger_id') ?? ''}
           onChange={e => markDirty('sales_ledger_id', e.target.value ? Number(e.target.value) : null)}
           title="The account this product is sold under. It decides the tax."
-          style={{ padding: '5px 8px', fontSize: 12, minWidth: 180, width: '100%', borderRadius: 6, border: `1px solid ${getVal('sales_ledger_id') ? 'var(--border-color, #e5e7eb)' : '#ef4444'}`, background: 'var(--bg-primary, #fff)' }}
+          style={{ padding: '5px 8px', fontSize: 12, minWidth: 180, width: '100%', borderRadius: 6, border: `1px solid ${getVal('sales_ledger_id') ? 'var(--line, #e5e7eb)' : '#ef4444'}`, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' }}
         >
           <option value="">{getVal('sales_ledger_id') ? '— none —' : 'Choose account…'}</option>
           {(salesAccounts ?? []).map(l => <option key={l.id} value={l.id}>{accountLabel(l)}</option>)}
@@ -364,7 +364,7 @@ function ProductRow({
           value={getVal('purchase_ledger_id') ?? ''}
           onChange={e => markDirty('purchase_ledger_id', e.target.value ? Number(e.target.value) : null)}
           title="The account this product is bought under. Leave blank for the default purchase account."
-          style={{ padding: '5px 8px', fontSize: 12, minWidth: 180, width: '100%', borderRadius: 6, border: '1px solid var(--border-color, #e5e7eb)', background: 'var(--bg-primary, #fff)' }}
+          style={{ padding: '5px 8px', fontSize: 12, minWidth: 180, width: '100%', borderRadius: 6, border: '1px solid var(--line, #e5e7eb)', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' }}
         >
           <option value="">Default purchase account</option>
           {(purchaseAccounts ?? []).map(l => <option key={l.id} value={l.id}>{accountLabel(l)}</option>)}
@@ -511,7 +511,7 @@ function ProductRow({
             }}
             onMouseLeave={e => {
                 e.currentTarget.style.background = 'var(--bg-secondary, #f3f4f6)';
-                e.currentTarget.style.borderColor = 'var(--border-color, #e5e7eb)';
+                e.currentTarget.style.borderColor = 'var(--line, #e5e7eb)';
             }}
             >
             <svg
@@ -613,7 +613,7 @@ const priceInputStyle = {
   borderRadius: 5,
   fontSize: 12,
   outline: 'none',
-  background: 'var(--bg-primary, #fff)',
+  background: 'var(--surface-card, #fff)', color: 'var(--text-primary)',
   color: 'var(--text-primary, #111)',
   boxSizing: 'border-box',
 };

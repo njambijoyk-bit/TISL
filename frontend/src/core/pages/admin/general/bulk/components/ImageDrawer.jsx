@@ -101,7 +101,7 @@ export default function ImageDrawer({ product, onClose, onSaved }) {
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0,
         width: 420,
-        background: 'var(--bg-primary, #fff)',
+        background: 'var(--surface-card, #fff)', color: 'var(--text-primary)',
         zIndex: 1201,
         boxShadow: '-4px 0 32px rgba(0,0,0,0.15)',
         transform: visible ? 'translateX(0)' : 'translateX(100%)',
@@ -113,7 +113,7 @@ export default function ImageDrawer({ product, onClose, onSaved }) {
         {/* Header */}
         <div style={{
           padding: '18px 20px',
-          borderBottom: '1px solid var(--border-color, #e5e7eb)',
+          borderBottom: '1px solid var(--line, #e5e7eb)',
           display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
           flexShrink: 0,
         }}>
@@ -147,7 +147,7 @@ export default function ImageDrawer({ product, onClose, onSaved }) {
             <div style={{
               width: '100%', height: 200,
               background: 'var(--bg-secondary, #f9fafb)',
-              border: '2px dashed var(--border-color, #e5e7eb)',
+              border: '2px dashed var(--line, #e5e7eb)',
               borderRadius: 10,
               overflow: 'hidden',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -247,7 +247,7 @@ export default function ImageDrawer({ product, onClose, onSaved }) {
                 onClick={() => extraInputRef.current?.click()}
                 style={{
                   ...thumbWrap,
-                  border: '2px dashed var(--border-color, #e5e7eb)',
+                  border: '2px dashed var(--line, #e5e7eb)',
                   cursor: 'pointer',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -298,7 +298,7 @@ export default function ImageDrawer({ product, onClose, onSaved }) {
         {/* Footer */}
         <div style={{
           padding: '14px 20px',
-          borderTop: '1px solid var(--border-color, #e5e7eb)',
+          borderTop: '1px solid var(--line, #e5e7eb)',
           display: 'flex', gap: 10,
           flexShrink: 0,
         }}>

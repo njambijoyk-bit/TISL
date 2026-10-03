@@ -42,7 +42,7 @@ export default function DataTable({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
       {/* Table */}
-      <div style={{ borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', overflow: 'hidden', boxShadow: '0 2px 16px color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }}>
+      <div style={{ borderRadius: 16, background: 'var(--surface-card, #fff)', border: '1px solid var(--line, color-mix(in srgb, var(--color-primary-500) 12%, transparent))', overflow: 'hidden', boxShadow: '0 2px 16px color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>

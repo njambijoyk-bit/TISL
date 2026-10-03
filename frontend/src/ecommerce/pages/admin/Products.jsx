@@ -28,9 +28,9 @@ const inputStyle = {
   padding: '8px 12px',
   borderRadius: 8,
   fontSize: '0.875rem',
-  border: '1px solid var(--color-border-tertiary)',
-  background: 'var(--color-background-primary)',
-  color: 'var(--color-text-primary)',
+  border: '1px solid var(--line)',
+  background: 'var(--surface-card, #fff)',
+  color: 'var(--text-primary)',
   outline: 'none',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
@@ -359,7 +359,7 @@ export default function Products() {
         </div>
 
         {/* ── Search + filters ────────────────────────────────────────────── */}
-        <div style={{ ...card, padding: 16 }}>
+        <div style={{ padding: 0 }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {/* Search */}
             <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
@@ -391,7 +391,7 @@ export default function Products() {
 
           {/* Filter dropdowns */}
           {showFilters && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--color-border-tertiary)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginTop: 16 }}>
               {[
                 { key: 'status',      label: 'Status',       options: [['', 'All statuses'], ['active', 'Active'], ['inactive', 'Inactive'], ['draft', 'Draft'], ['out_of_stock', 'Out of stock'], ['discontinued', 'Discontinued']] },
                 { key: 'is_featured', label: 'Featured',     options: [['', 'All products'], ['1', 'Featured only'], ['0', 'Not featured']] },
