@@ -117,7 +117,7 @@ export default function MyTicketDetail() {
             <StatusChip status={ticket.status} />
           </div>
           <h1 style={{ margin: '0 0 4px', fontSize: '1.35rem', fontWeight: 800 }}>{ticket.subject}</h1>
-          <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
             Opened {format(new Date(ticket.created_at), 'dd MMM yyyy, HH:mm')}
             {ticket.assignedTo && ` · Assigned to ${ticket.assignedTo.name}`}
           </p>
@@ -134,7 +134,7 @@ export default function MyTicketDetail() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <User size={14} color={purple} />
               <span style={{ fontWeight: 700, fontSize: '0.84rem', color: purple }}>You</span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.73rem', color: '#9ca3af' }}>
+              <span style={{ marginLeft: 'auto', fontSize: '0.73rem', color: 'var(--text-tertiary)' }}>
                 {format(new Date(ticket.created_at), 'dd MMM yyyy, HH:mm')}
               </span>
             </div>
@@ -148,20 +148,20 @@ export default function MyTicketDetail() {
             return (
               <div key={reply.id} style={{
                 padding: '14px 18px', borderRadius: 14,
-                background: isStaff ? '#f8f5ff' : 'white',
-                border: `1px solid ${isStaff ? purpleBd : '#e5e7eb'}`,
+                background: isStaff ? 'color-mix(in srgb, var(--color-primary-500) 8%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)',
+                border: `1px solid ${isStaff ? purpleBd : 'var(--line)'}`,
                 marginLeft: isStaff ? 0 : 32,
                 marginRight: isStaff ? 32 : 0,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                   {isStaff
                     ? <UserCheck size={13} color={purple} />
-                    : <User size={13} color="#6b7280" />
+                    : <User size={13} color="var(--text-secondary)" />
                   }
                   <span style={{ fontWeight: 700, fontSize: '0.82rem', color: isStaff ? purple : '#374151' }}>
                     {isStaff ? (reply.sender?.name || 'Support Team') : 'You'}
                   </span>
-                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#9ca3af' }}>
+                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
                     {format(new Date(reply.created_at), 'dd MMM yyyy, HH:mm')}
                   </span>
                 </div>
@@ -175,8 +175,8 @@ export default function MyTicketDetail() {
 
         {/* Reply / close section */}
         {!isClosed ? (
-          <div style={{ marginTop: 24, background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 20 }}>
-            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 10px' }}>
+          <div style={{ marginTop: 24, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', border: '1px solid var(--line)', borderRadius: 14, padding: 20 }}>
+            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 10px' }}>
               Add a reply
             </p>
             <textarea
@@ -186,7 +186,7 @@ export default function MyTicketDetail() {
               rows={5}
               style={{
                 width: '100%', boxSizing: 'border-box', borderRadius: 10, padding: '10px 14px',
-                border: '1.5px solid #e5e7eb', fontSize: '0.88rem', resize: 'vertical', outline: 'none', lineHeight: 1.6,
+                border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.88rem', resize: 'vertical', outline: 'none', lineHeight: 1.6,
               }}
             />
             <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -200,7 +200,7 @@ export default function MyTicketDetail() {
             </div>
           </div>
         ) : (
-          <div style={{ marginTop: 24, textAlign: 'center', padding: '20px 0', borderTop: '1px solid #f3f4f6', color: '#9ca3af', fontSize: '0.85rem' }}>
+          <div style={{ marginTop: 24, textAlign: 'center', padding: '20px 0', borderTop: '1px solid var(--line)', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
             <CheckCircle size={18} style={{ marginBottom: 6, opacity: 0.5, display: 'block', margin: '0 auto 8px' }} />
             This ticket is closed. <button onClick={() => navigate('/my-tickets')} style={{ color: purple, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Open a new ticket</button> if you need further help.
           </div>

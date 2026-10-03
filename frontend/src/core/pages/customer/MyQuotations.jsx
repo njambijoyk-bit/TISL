@@ -21,19 +21,19 @@ export default function MyQuotations() {
       <Header />
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 16px 64px' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 6px' }}>My quotations</h1>
-        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>Prices we've prepared for you.</p>
+        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Prices we've prepared for you.</p>
         {error && <p role="alert" style={{ color: '#991b1b' }}>{error}</p>}
         {!rows && !error && <p>Loading…</p>}
-        {rows?.length === 0 && <p style={{ color: '#6b7280' }}>Nothing here yet.</p>}
+        {rows?.length === 0 && <p style={{ color: 'var(--text-secondary)' }}>Nothing here yet.</p>}
         <div style={{ display: 'grid', gap: 12 }}>
           {rows?.map((q) => {
             const [label, color] = STATUS[q.doc_status] ?? [q.doc_status, '#6b7280'];
             return (
-              <Link key={q.id} to={`/my-quotes/${q.id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 16, borderRadius: 12, border: '1px solid rgba(168,85,247,0.2)', textDecoration: 'none', color: 'inherit' }}>
+              <Link key={q.id} to={`/my-quotes/${q.id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 16, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', textDecoration: 'none', color: 'var(--text-primary)' }}>
                 <div>
                   <strong style={{ fontFamily: 'monospace' }}>{q.number}</strong>
-                  {q.title && <div style={{ fontSize: '0.82rem', color: '#4b5563' }}>{q.title}</div>}
-                  <div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{q.valid_until ? `Valid until ${q.valid_until}` : q.date}</div>
+                  {q.title && <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{q.title}</div>}
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{q.valid_until ? `Valid until ${q.valid_until}` : q.date}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontWeight: 700 }}>{q.doc_status === 'requested' ? '—' : formatMoney(q.total, q.currency)}</div>
