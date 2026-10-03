@@ -80,7 +80,8 @@ class AppServiceProvider extends ServiceProvider
         // The calculator's insight packs: Core's here, each module adds its own with registry->register() in its provider.
         $this->app->singleton(\App\Services\Insight\InsightRegistry::class, function ($app) {
             $r = new \App\Services\Insight\InsightRegistry($app->make(\App\Services\Licensing\LicenseManager::class));
-            foreach ([\App\Services\Insight\Packs\UnitPricePack::class, \App\Services\Insight\Packs\VoucherUnitsPack::class, \App\Services\Insight\Packs\LoyaltyJournalPack::class] as $pack) {
+            foreach ([\App\Services\Insight\Packs\UnitPricePack::class, \App\Services\Insight\Packs\VoucherUnitsPack::class, \App\Services\Insight\Packs\LoyaltyJournalPack::class,
+                \App\Services\Insight\Packs\LoyaltySettingsPack::class, \App\Services\Insight\Packs\LoyaltyRulePack::class] as $pack) {
                 $r->register(new $pack());
             }
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useCalculatorContext from '../../_shared/hooks/useCalculatorContext';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Plus, Pencil, Trash2, Check, X,
@@ -93,6 +94,8 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [exampleOrder] = useState(() => Math.ceil((Math.floor(Math.random() * 9) + 1) * 100));
+  // Alt+C: is this rule a profit or a loss, on the values as typed
+  useCalculatorContext(form.type === 'gift' ? null : { type: 'loyalty_rule', draft: { id: rule?.id, name: form.name, points_required: form.points_required, value: form.value_kes, currency_id: form.currency_id }, settings: { points_per_100_kes: pointsPer100Kes } });
 
   const minPoints = Math.max(1, Number(minRedemptionPoints ?? 1));
   const pointsRate = Math.max(1, Number(pointsPer100Kes ?? 1));
@@ -289,6 +292,8 @@ export default function LoyaltySettings() {
   const [toast,      setToast]      = useState(null);
   const [ruleModal,  setRuleModal]  = useState(null); // null | 'new' | rule object
   const [deleteRule, setDeleteRule] = useState(null);
+  // Alt+C: are these settings affordable, on the values typed (saved or not)
+  useCalculatorContext(form ? { type: 'loyalty_settings', draft: form } : null);
 
   useEffect(() => {
     loyaltyAPI.getSettings().then(res => {

@@ -173,6 +173,8 @@ function Insight({ data }) {
     finally { setBusy(false); }
   }, [pick, context, lookback]);
   useEffect(() => { if (pick) run(false); }, [pick, lookback]); // eslint-disable-line react-hooks/exhaustive-deps
+  // values being typed on the page (a draft rule, unsaved settings): refresh a moment after the last keystroke
+  useEffect(() => { if (!pick) return undefined; const t = setTimeout(() => run(false), 600); return () => clearTimeout(t); }, [ctxKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (packs === null) return <div style={{ color: colors.textMuted, fontSize: '0.8rem' }}>Looking…</div>;
   if (!packs.length) return <div style={{ color: colors.textMuted, fontSize: '0.8rem', lineHeight: 1.5 }}>Nothing to explain on this page yet. Open a document, such as a voucher sold in dozens or a loyalty journal, and press Alt+C.</div>;
