@@ -47,7 +47,7 @@ export default function ContactCareersPage() {
                 {CONTACTS.map(({ icon: Icon, label, value, href, sub }) => (
                     <div key={label} style={{
                         display: 'flex', alignItems: 'flex-start', gap: 16,
-                        background: '#161616', border: '1px solid #1e1e1e',
+                        background: 'var(--surface-card)', border: '1px solid var(--line)',
                         borderRadius: 10, padding: '18px 22px',
                     }}>
                         <span style={{
@@ -58,7 +58,7 @@ export default function ContactCareersPage() {
                             <Icon size={16} color="var(--color-primary-500)" strokeWidth={1.8} />
                         </span>
                         <div>
-                            <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555' }}>
+                            <p style={{ margin: '0 0 3px', fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
                                 {label}
                             </p>
                             {href ? (
@@ -69,9 +69,9 @@ export default function ContactCareersPage() {
                                     {value}
                                 </a>
                             ) : (
-                                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#d0d0d0' }}>{value}</p>
+                                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{value}</p>
                             )}
-                            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#555' }}>{sub}</p>
+                            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-tertiary)' }}>{sub}</p>
                         </div>
                     </div>
                 ))}
@@ -80,7 +80,7 @@ export default function ContactCareersPage() {
             <H2>Applying for a Role?</H2>
             <P>
                 If you have a question about a specific position or haven't heard back about
-                your application, please email <strong style={{ color: '#d0d0d0' }}>web@targetisl.co.ke</strong> with
+                your application, please email <strong style={{ color: 'var(--text-primary)' }}>web@targetisl.co.ke</strong> with
                 your full name and the role you applied for and we'll look into it.
             </P>
 
@@ -96,7 +96,7 @@ export default function ContactCareersPage() {
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '11px 22px', borderRadius: 8,
                         background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-                        color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none',
+                        color: '', fontSize: 14, fontWeight: 600, textDecoration: 'none',
                     }}
                 >
                     My Applications <ArrowRight size={15} />
@@ -106,8 +106,8 @@ export default function ContactCareersPage() {
                     style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '11px 22px', borderRadius: 8,
-                        border: '1px solid #2a2a2a', background: 'transparent',
-                        color: '#888', fontSize: 14, fontWeight: 500, textDecoration: 'none',
+                        border: '1px solid var(--line)', background: 'transparent',
+                        color: 'var(--text-secondary)', fontSize: 14, fontWeight: 500, textDecoration: 'none',
                     }}
                 >
                     View Open Roles

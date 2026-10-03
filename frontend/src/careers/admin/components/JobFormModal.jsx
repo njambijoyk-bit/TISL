@@ -17,32 +17,32 @@ const EMPTY = {
 
 const s = {
     overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '40px 24px', overflowY: 'auto' },
-    modal: { background: '#161616', border: '1px solid #2a2a2a', borderRadius: 16, padding: '36px 36px 40px', width: '100%', maxWidth: 720, flexShrink: 0 },
+    modal: { background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 16, padding: '36px 36px 40px', width: '100%', maxWidth: 720, flexShrink: 0 },
     hdr: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 },
-    hdrtitle: { fontSize: 22, fontWeight: 700, color: '#f0f0f0', fontFamily: "'DM Serif Display', serif" },
-    closeBtn: { background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 22 },
+    hdrtitle: { fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', fontFamily: "var(--font-heading, serif), serif" },
+    closeBtn: { background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 22 },
     section: { marginBottom: 28 },
-    sectionTitle: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#555', fontWeight: 600, marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid #1e1e1e' },
+    sectionTitle: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: 14, paddingBottom: 8, borderBottom: '1px solid var(--line)' },
     grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
     grid3: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 },
     field: { marginBottom: 16 },
-    label: { display: 'block', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#666', marginBottom: 7, fontWeight: 600 },
-    input: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
-    select: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box' },
-    textarea: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, resize: 'vertical', minHeight: 110, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
+    label: { display: 'block', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 7, fontWeight: 600 },
+    input: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
+    select: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box' },
+    textarea: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, resize: 'vertical', minHeight: 110, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
     listRow: { display: 'flex', gap: 8, marginBottom: 8 },
-    listInput: { flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 13, outline: 'none', fontFamily: 'inherit' },
-    addBtn: { padding: '9px 14px', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: 'var(--color-primary-500)', cursor: 'pointer', fontSize: 18, lineHeight: 1 },
-    removeBtn: { padding: '9px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: '#555', cursor: 'pointer', fontSize: 16 },
-    chip: (active) => ({ padding: '5px 12px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : '#2a2a2a'}`, background: active ? '#2d1b4e' : 'transparent', color: active ? 'var(--color-primary-400)' : '#666', fontSize: 12, cursor: 'pointer', fontWeight: 500 }),
+    listInput: { flex: 1, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', fontFamily: 'inherit' },
+    addBtn: { padding: '9px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'transparent', color: 'var(--color-primary-500)', cursor: 'pointer', fontSize: 18, lineHeight: 1 },
+    removeBtn: { padding: '9px 10px', borderRadius: 8, border: 'none', background: 'transparent', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 16 },
+    chip: (active) => ({ padding: '5px 12px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : 'var(--line)'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)' : 'transparent', color: active ? 'var(--color-primary-400)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }),
     chipsRow: { display: 'flex', flexWrap: 'wrap', gap: 8 },
-    toggle: (on) => ({ width: 40, height: 22, borderRadius: 11, background: on ? 'var(--color-primary-500)' : '#2a2a2a', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }),
+    toggle: (on) => ({ width: 40, height: 22, borderRadius: 11, background: on ? 'var(--color-primary-500)' : 'var(--line)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }),
     toggleKnob: (on) => ({ position: 'absolute', top: 3, left: on ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }),
-    footer: { display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 32, paddingTop: 24, borderTop: '1px solid #1e1e1e' },
-    cancelBtn: { padding: '11px 24px', borderRadius: 9, border: '1px solid #2a2a2a', background: 'transparent', color: '#888', fontSize: 14, cursor: 'pointer' },
-    saveBtn: { padding: '11px 28px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
-    publishBtn: { padding: '11px 28px', borderRadius: 9, border: 'none', background: '#1a3a1a', color: '#4ade80', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
-    errMsg: { color: '#f87171', fontSize: 13, marginTop: 8 },
+    footer: { display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--line)' },
+    cancelBtn: { padding: '11px 24px', borderRadius: 9, border: '1px solid var(--line)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' },
+    saveBtn: { padding: '11px 28px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+    publishBtn: { padding: '11px 28px', borderRadius: 9, border: 'none', background: 'color-mix(in srgb, var(--status-success) 35%, transparent)', color: 'var(--status-success)', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+    errMsg: { color: 'var(--status-error)', fontSize: 13, marginTop: 8 },
 };
 
 function ListEditor({ label, items, onChange, placeholder }) {
@@ -59,7 +59,7 @@ function ListEditor({ label, items, onChange, placeholder }) {
             </div>
             {items.map((item, i) => (
                 <div key={i} style={{ ...s.listRow, alignItems: 'center' }}>
-                    <span style={{ ...s.listInput, color: '#ccc', padding: '8px 12px', fontSize: 13 }}>{item}</span>
+                    <span style={{ ...s.listInput, color: 'var(--text-primary)', padding: '8px 12px', fontSize: 13 }}>{item}</span>
                     <button type="button" style={s.removeBtn} onClick={() => remove(i)}>×</button>
                 </div>
             ))}
@@ -190,7 +190,7 @@ export default function JobFormModal({ job, onClose, onSaved }) {
 
                 {/* Salary */}
                 <div style={s.section}>
-                    <p style={s.sectionTitle}>Compensation <span style={{ color: '#444', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· per month</span></p>
+                    <p style={s.sectionTitle}>Compensation <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>· per month</span></p>
                     <div style={s.grid3}>
                         <div style={s.field}>
                             <label style={s.label}>Min Salary</label>
@@ -209,7 +209,7 @@ export default function JobFormModal({ job, onClose, onSaved }) {
                         <button type="button" style={s.toggle(form.salary_visible)} onClick={() => setForm((f) => ({ ...f, salary_visible: !f.salary_visible }))}>
                             <div style={s.toggleKnob(form.salary_visible)} />
                         </button>
-                        <span style={{ fontSize: 13, color: '#888' }}>Show salary publicly</span>
+                        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Show salary publicly</span>
                     </div>
                 </div>
 

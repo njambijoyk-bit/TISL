@@ -14,40 +14,40 @@ const EXP_LABELS = {
 };
 
 const s = {
-    page: { minHeight: '100vh', background: '#0f0f0f', color: '#f0f0f0', fontFamily: "'DM Sans', sans-serif" },
-    hero: { borderBottom: '1px solid #1e1e1e', padding: '64px 40px 48px', maxWidth: 900, margin: '0 auto' },
+    page: { minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: "var(--font-body, system-ui), sans-serif" },
+    hero: { borderBottom: '1px solid var(--line)', padding: '64px 40px 48px', maxWidth: 900, margin: '0 auto' },
     eyebrow: { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 16, fontWeight: 600 },
-    title: { fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 700, lineHeight: 1.1, marginBottom: 16, fontFamily: "'DM Serif Display', serif" },
-    subtitle: { color: '#888', fontSize: 16, maxWidth: 480 },
+    title: { fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 700, lineHeight: 1.1, marginBottom: 16, fontFamily: "var(--font-heading, serif), serif" },
+    subtitle: { color: 'var(--text-secondary)', fontSize: 16, maxWidth: 480 },
     body: { maxWidth: 1100, margin: '0 auto', padding: '40px 40px 80px', display: 'grid', gridTemplateColumns: '220px 1fr', gap: 48 },
     sidebar: { position: 'sticky', top: 24, alignSelf: 'start' },
-    sideLabel: { fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#555', marginBottom: 12, fontWeight: 600 },
+    sideLabel: { fontSize: 11, letterSpacing: '0.15em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 12, fontWeight: 600 },
     filterGroup: { marginBottom: 28 },
     filterBtn: (active) => ({
         display: 'block', width: '100%', textAlign: 'left', padding: '7px 12px',
         borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13,
         background: active ? 'var(--color-primary-500)' : 'transparent',
-        color: active ? '#fff' : '#aaa',
+        color: active ? '' : 'var(--text-secondary)',
         marginBottom: 2, transition: 'all 0.15s',
     }),
     searchBar: {
         width: '100%', padding: '10px 14px', borderRadius: 8,
-        border: '1px solid #222', background: '#161616', color: '#f0f0f0',
+        border: '1px solid var(--line)', background: 'var(--surface-card)', color: 'var(--text-primary)',
         fontSize: 14, marginBottom: 32, outline: 'none', boxSizing: 'border-box',
     },
     grid: { display: 'grid', gap: 16 },
-    card: { background: '#161616', border: '1px solid #1e1e1e', borderRadius: 12, padding: 28, transition: 'border-color 0.2s', textDecoration: 'none', display: 'block', color: 'inherit' },
-    cardTitle: { fontSize: 18, fontWeight: 600, marginBottom: 8, color: '#f0f0f0' },
+    card: { background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 12, padding: 28, transition: 'border-color 0.2s', textDecoration: 'none', display: 'block', color: 'inherit' },
+    cardTitle: { fontSize: 18, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' },
     cardMeta: { display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 },
-    pill: (color = '#222') => ({
+    pill: (color = 'var(--line)') => ({
         fontSize: 11, padding: '3px 10px', borderRadius: 20,
-        background: color, color: '#ccc', fontWeight: 500,
+        background: color, color: 'var(--text-primary)', fontWeight: 500,
     }),
-    cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid #1e1e1e' },
+    cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' },
     applyBtn: { fontSize: 12, color: 'var(--color-primary-500)', fontWeight: 600, letterSpacing: '0.05em' },
-    deadline: { fontSize: 12, color: '#555' },
-    empty: { textAlign: 'center', padding: '64px 0', color: '#555' },
-    loader: { textAlign: 'center', padding: '64px 0', color: '#555' },
+    deadline: { fontSize: 12, color: 'var(--text-tertiary)' },
+    empty: { textAlign: 'center', padding: '64px 0', color: 'var(--text-tertiary)' },
+    loader: { textAlign: 'center', padding: '64px 0', color: 'var(--text-tertiary)' },
 };
 
 export default function CareersPage() {
@@ -112,15 +112,15 @@ export default function CareersPage() {
             `}</style>
             {/* Breadcrumb */}
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 20px 0' }}>
-            <p style={{ fontSize: 12, color: '#555', margin: 0 }}>
-                <Link to="/" style={{ color: '#555', textDecoration: 'none', transition: 'color 0.15s' }}
+            <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>
+                <Link to="/" style={{ color: 'var(--text-tertiary)', textDecoration: 'none', transition: 'color 0.15s' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
-                onMouseLeave={e => e.currentTarget.style.color = '#555'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
                 >
                 Home
                 </Link>
-                {' '}<span style={{ color: '#333' }}>›</span>{' '}
-                <span style={{ color: '#888' }}>Careers</span>
+                {' '}<span style={{ color: 'var(--text-tertiary)' }}>›</span>{' '}
+                <span style={{ color: 'var(--text-secondary)' }}>Careers</span>
             </p>
             </div>
             <div style={s.hero}>
@@ -183,11 +183,11 @@ export default function CareersPage() {
                                 {listings.map((job) => (
                                     <Link key={job.id} to={`/careers/${job.slug}`} style={s.card}
                                         onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
-                                        onMouseLeave={(e) => e.currentTarget.style.borderColor = '#1e1e1e'}>
+                                        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--line)'}>
                                         <p style={s.cardTitle}>{job.title}</p>
                                         <div style={s.cardMeta}>
                                             {job.department && <span style={s.pill()}>{job.department}</span>}
-                                            <span style={s.pill('#1a1a2e')}>{TYPE_LABELS[job.type] ?? job.type}</span>
+                                            <span style={s.pill('var(--surface-input)')}>{TYPE_LABELS[job.type] ?? job.type}</span>
                                             {job.experience_level && <span style={s.pill()}>{EXP_LABELS[job.experience_level]}</span>}
                                             {job.location && <span style={s.pill()}><MapPin size={15} style={{ marginRight: 4, verticalAlign: 'middle' }} /> {job.location}</span>}
                                         </div>

@@ -13,20 +13,20 @@ export default function AdminCareersHeader() {
     return (
         <>
             <style>{`
-                .ach-tab:hover  { color: #e0e0e0 !important; border-bottom-color: #444 !important; }
-                .ach-home:hover { background: #1e1e1e !important; color: #ccc !important; }
+                .ach-tab:hover  { color: var(--text-primary) !important; border-bottom-color: var(--line) !important; }
+                .ach-home:hover { background: var(--surface-hover) !important; color: var(--text-primary) !important; }
                 .ach-nav::-webkit-scrollbar { display: none; }
             `}</style>
 
             <header style={{
-                background: '#111',
-                borderBottom: '1px solid #1e1e1e',
+                background: 'var(--bg-primary)',
+                borderBottom: '1px solid var(--line)',
                 padding: '0 32px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 0,
                 height: 52,
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "var(--font-body, system-ui), sans-serif",
             }}>
 
                 {/* ── Home button ─────────────────────────────── */}
@@ -37,7 +37,7 @@ export default function AdminCareersHeader() {
                     style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         width: 32, height: 32, borderRadius: 7,
-                        background: 'transparent', color: '#555',
+                        background: 'transparent', color: 'var(--text-tertiary)',
                         transition: 'background 0.15s, color 0.15s',
                         marginRight: 20, flexShrink: 0,
                         textDecoration: 'none',
@@ -47,7 +47,7 @@ export default function AdminCareersHeader() {
                 </Link>
 
                 {/* ── Divider ──────────────────────────────────── */}
-                <span style={{ width: 1, height: 18, background: '#222', marginRight: 20, flexShrink: 0 }} />
+                <span style={{ width: 1, height: 18, background: 'var(--surface-input)', marginRight: 20, flexShrink: 0 }} />
 
                 {/* ── Section label ────────────────────────────── */}
                 <span style={{
@@ -70,7 +70,7 @@ export default function AdminCareersHeader() {
                                 display: 'flex', alignItems: 'center', gap: 6,
                                 padding: '0 14px',
                                 fontSize: 13, fontWeight: isActive ? 600 : 400,
-                                color: isActive ? '#f0f0f0' : '#666',
+                                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
                                 textDecoration: 'none',
                                 borderBottom: `2px solid ${isActive ? 'var(--color-primary-500)' : 'transparent'}`,
                                 transition: 'color 0.15s, border-bottom-color 0.15s',

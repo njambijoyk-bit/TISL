@@ -6,31 +6,31 @@ import JobFormModal from '../components/JobFormModal';
 import AdminCareersHeader from '../../layouts/AdminCareersHeader';
 
 const STATUS_COLORS = {
-    draft:     { bg: '#1a1a1a', text: '#555' },
-    published: { bg: '#0f2318', text: '#4ade80' },
-    closed:    { bg: '#1e1010', text: '#f87171' },
-    archived:  { bg: '#1a1a1a', text: '#444' },
+    draft:     { bg: 'var(--surface-card)', text: 'var(--text-tertiary)' },
+    published: { bg: 'color-mix(in srgb, var(--status-success) 14%, transparent)', text: 'var(--status-success)' },
+    closed:    { bg: 'color-mix(in srgb, var(--status-error) 14%, transparent)', text: 'var(--status-error)' },
+    archived:  { bg: 'var(--surface-card)', text: 'var(--text-tertiary)' },
 };
 
 const s = {
-    page: { padding: '32px 36px', fontFamily: "'DM Sans', sans-serif", background: '#0f0f0f', color: '#f0f0f0', minHeight: '100vh' },
+    page: { padding: '32px 36px', fontFamily: "var(--font-body, system-ui), sans-serif", background: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100vh' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 },
-    pageTitle: { fontSize: 26, fontWeight: 700, fontFamily: "'DM Serif Display', serif", marginBottom: 4 },
-    pageSub: { fontSize: 14, color: '#555' },
-    newBtn: { padding: '11px 22px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+    pageTitle: { fontSize: 26, fontWeight: 700, fontFamily: "var(--font-heading, serif), serif", marginBottom: 4 },
+    pageSub: { fontSize: 14, color: 'var(--text-tertiary)' },
+    newBtn: { padding: '11px 22px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
     toolbar: { display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' },
-    filterBtn: (active) => ({ padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : '#2a2a2a'}`, background: active ? '#2d1b4e' : 'transparent', color: active ? 'var(--color-primary-400)' : '#666', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400 }),
-    search: { padding: '8px 14px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#161616', color: '#f0f0f0', fontSize: 13, outline: 'none', width: 240 },
+    filterBtn: (active) => ({ padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : 'var(--line)'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)' : 'transparent', color: active ? 'var(--color-primary-400)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400 }),
+    search: { padding: '8px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', width: 240 },
     table: { width: '100%', borderCollapse: 'collapse' },
-    th: { textAlign: 'left', padding: '10px 16px', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', fontWeight: 600, borderBottom: '1px solid #1e1e1e' },
-    td: { padding: '16px', borderBottom: '1px solid #111', fontSize: 14, verticalAlign: 'middle' },
-    jobTitle: { fontWeight: 600, color: '#f0f0f0', marginBottom: 2 },
-    jobMeta: { fontSize: 12, color: '#555' },
-    statusPill: (status) => ({ display: 'inline-block', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: STATUS_COLORS[status]?.bg ?? '#1a1a1a', color: STATUS_COLORS[status]?.text ?? '#888' }),
-    appCount: { fontSize: 13, color: '#888', fontWeight: 600 },
+    th: { textAlign: 'left', padding: '10px 16px', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600, borderBottom: '1px solid var(--line)' },
+    td: { padding: '16px', borderBottom: '1px solid var(--line)', fontSize: 14, verticalAlign: 'middle' },
+    jobTitle: { fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 },
+    jobMeta: { fontSize: 12, color: 'var(--text-tertiary)' },
+    statusPill: (status) => ({ display: 'inline-block', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: STATUS_COLORS[status]?.bg ?? 'var(--surface-card)', color: STATUS_COLORS[status]?.text ?? 'var(--text-secondary)' }),
+    appCount: { fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 },
     actionRow: { display: 'flex', gap: 8 },
-    actionBtn: (color = '#555') => ({ padding: '6px 14px', borderRadius: 7, border: `1px solid ${color}22`, background: 'transparent', color, fontSize: 12, cursor: 'pointer', fontWeight: 500, transition: 'all 0.15s' }),
-    emptyRow: { textAlign: 'center', padding: '64px 0', color: '#444' },
+    actionBtn: (color = 'var(--text-tertiary)') => ({ padding: '6px 14px', borderRadius: 7, border: `1px solid color-mix(in srgb, ${color} 13%, transparent)`, background: 'transparent', color, fontSize: 12, cursor: 'pointer', fontWeight: 500, transition: 'all 0.15s' }),
+    emptyRow: { textAlign: 'center', padding: '64px 0', color: 'var(--text-tertiary)' },
 };
 
 const STATUSES = ['draft', 'published', 'closed'];
@@ -133,23 +133,23 @@ export default function AdminJobsPage() {
                             <td style={s.td}>
                                 <span style={s.statusPill(job.status)}>{job.status}</span>
                             </td>
-                            <td style={{ ...s.td, color: '#888', fontSize: 13 }}>
+                            <td style={{ ...s.td, color: 'var(--text-secondary)', fontSize: 13 }}>
                                 {job.type?.replace('_', ' ')}
                             </td>
                             <td style={s.td}>
                                 <span style={s.appCount}>{job.application_count ?? 0}</span>
                             </td>
-                            <td style={{ ...s.td, color: '#666', fontSize: 13 }}>
+                            <td style={{ ...s.td, color: 'var(--text-secondary)', fontSize: 13 }}>
                                 {job.deadline ? new Date(job.deadline).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                             </td>
                             <td style={s.td}>
                                 <div style={s.actionRow}>
                                     <button style={s.actionBtn('var(--color-primary-500)')} onClick={() => navigate(`/admin/careers/jobs/${job.id}`)}>View</button>
                                     {job.status === 'draft' && (
-                                        <button style={s.actionBtn('#4ade80')} onClick={() => handlePublish(job.id)}>Publish</button>
+                                        <button style={s.actionBtn('var(--status-success)')} onClick={() => handlePublish(job.id)}>Publish</button>
                                     )}
                                     {job.status === 'published' && (
-                                        <button style={s.actionBtn('#f87171')} onClick={() => handleClose(job.id)}>Close</button>
+                                        <button style={s.actionBtn('var(--status-error)')} onClick={() => handleClose(job.id)}>Close</button>
                                     )}
                                 </div>
                             </td>
@@ -160,7 +160,7 @@ export default function AdminJobsPage() {
             {/* Mobile cards — hidden on desktop via CSS */}
             <div className="jobs-cards" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
             {listings.map((job) => (
-                <div key={job.id} style={{ background: '#161616', border: '1px solid #1e1e1e', borderRadius: 12, padding: '16px' }}>
+                <div key={job.id} style={{ background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 12, padding: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ ...s.jobTitle, marginBottom: 4 }}>{job.title}</p>
@@ -169,7 +169,7 @@ export default function AdminJobsPage() {
                     <span style={{ ...s.statusPill(job.status), flexShrink: 0, marginLeft: 10 }}>{job.status}</span>
                 </div>
 
-                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#666', marginBottom: 14, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 14, flexWrap: 'wrap' }}>
                     <span>{job.type?.replace('_', ' ')}</span>
                     <span>📋 {job.application_count ?? 0} applications</span>
                     {job.deadline && <span>Closes {new Date(job.deadline).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
@@ -177,8 +177,8 @@ export default function AdminJobsPage() {
 
                 <div style={s.actionRow}>
                     <button style={s.actionBtn('var(--color-primary-500)')} onClick={() => navigate(`/admin/careers/jobs/${job.id}`)}>View</button>
-                    {job.status === 'draft'     && <button style={s.actionBtn('#4ade80')} onClick={() => handlePublish(job.id)}>Publish</button>}
-                    {job.status === 'published' && <button style={s.actionBtn('#f87171')} onClick={() => handleClose(job.id)}>Close</button>}
+                    {job.status === 'draft'     && <button style={s.actionBtn('var(--status-success)')} onClick={() => handlePublish(job.id)}>Publish</button>}
+                    {job.status === 'published' && <button style={s.actionBtn('var(--status-error)')} onClick={() => handleClose(job.id)}>Close</button>}
                 </div>
                 </div>
             ))}

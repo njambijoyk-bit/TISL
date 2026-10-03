@@ -5,18 +5,18 @@ import { ShieldAlert } from 'lucide-react';
 import useCareersStore from '../../_shared/store/useCareersStore';
 
 const s = {
-    page: { minHeight: '100vh', background: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "'DM Sans', sans-serif" },
-    card: { background: '#161616', border: '1px solid #2a1a00', borderRadius: 16, padding: '48px 40px', width: '100%', maxWidth: 440 },
+    page: { minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "var(--font-body, system-ui), sans-serif" },
+    card: { background: 'var(--surface-card)', border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)', borderRadius: 16, padding: '48px 40px', width: '100%', maxWidth: 440 },
     banner: { display: 'flex', alignItems: 'flex-start', gap: 12, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 10, padding: '14px 16px', marginBottom: 32 },
-    bannerText: { fontSize: 13, color: '#d97706', lineHeight: 1.6 },
-    title: { fontSize: 24, fontWeight: 700, color: '#f0f0f0', marginBottom: 6, fontFamily: "'DM Serif Display', serif" },
-    sub: { fontSize: 14, color: '#555', marginBottom: 32 },
+    bannerText: { fontSize: 13, color: 'var(--status-warning)', lineHeight: 1.6 },
+    title: { fontSize: 24, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontFamily: "var(--font-heading, serif), serif" },
+    sub: { fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 32 },
     field: { marginBottom: 18 },
-    label: { display: 'block', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', marginBottom: 7, fontWeight: 600 },
-    input: { width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #222', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' },
-    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
-    errField: { fontSize: 12, color: '#f87171', marginTop: 5 },
-    errBox: { background: '#2d1111', border: '1px solid #5a1d1d', borderRadius: 8, padding: '12px 14px', color: '#f87171', fontSize: 13, marginBottom: 20 },
+    label: { display: 'block', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7, fontWeight: 600 },
+    input: { width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' },
+    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
+    errField: { fontSize: 12, color: 'var(--status-error)', marginTop: 5 },
+    errBox: { background: 'color-mix(in srgb, var(--status-error) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--status-error) 40%, transparent)', borderRadius: 8, padding: '12px 14px', color: 'var(--status-error)', fontSize: 13, marginBottom: 20 },
 };
 
 export default function ForceChangePasswordPage() {
@@ -59,7 +59,7 @@ export default function ForceChangePasswordPage() {
             <div style={s.card}>
 
                 <div style={s.banner}>
-                    <ShieldAlert size={18} color="#d97706" style={{ flexShrink: 0, marginTop: 1 }} />
+                    <ShieldAlert size={18} color="var(--status-warning)" style={{ flexShrink: 0, marginTop: 1 }} />
                     <p style={{ ...s.bannerText, margin: 0 }}>
                         An administrator has reset your password. You must set a new password before continuing.
                     </p>
@@ -78,7 +78,7 @@ export default function ForceChangePasswordPage() {
                             value={form.password} onChange={patch('password')}
                             placeholder="Min. 8 characters" required autoFocus
                             onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
-                            onBlur={e => e.target.style.borderColor = '#222'}
+                            onBlur={e => e.target.style.borderColor = 'var(--line)'}
                         />
                         {errors.password && <p style={s.errField}>{errors.password[0]}</p>}
                     </div>
@@ -89,7 +89,7 @@ export default function ForceChangePasswordPage() {
                             value={form.password_confirmation} onChange={patch('password_confirmation')}
                             placeholder="Repeat your new password" required
                             onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
-                            onBlur={e => e.target.style.borderColor = '#222'}
+                            onBlur={e => e.target.style.borderColor = 'var(--line)'}
                         />
                         {errors.password_confirmation && <p style={s.errField}>{errors.password_confirmation[0]}</p>}
                     </div>
@@ -100,7 +100,7 @@ export default function ForceChangePasswordPage() {
 
                 <button
                     onClick={handleLogout}
-                    style={{ display: 'block', margin: '20px auto 0', background: 'none', border: 'none', color: '#444', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
+                    style={{ display: 'block', margin: '20px auto 0', background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}
                 >
                     Sign out instead
                 </button>

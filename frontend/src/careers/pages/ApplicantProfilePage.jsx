@@ -5,10 +5,10 @@ import useCareersStore from '../../_shared/store/useCareersStore';
 const FIELD = {
     input: (style = {}) => ({
         width: '100%', padding: '10px 13px',
-        background: '#161616', border: '1px solid #222',
-        borderRadius: 8, color: '#f0f0f0', fontSize: 14,
+        background: 'var(--surface-card)', border: '1px solid var(--line)',
+        borderRadius: 8, color: 'var(--text-primary)', fontSize: 14,
         outline: 'none', boxSizing: 'border-box',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "var(--font-body, system-ui), sans-serif",
         transition: 'border-color 0.15s',
         ...style,
     }),
@@ -94,8 +94,8 @@ export default function ApplicantProfilePage() {
     const pwErr = (key) => pwErrors[key]?.[0];
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0f0f0f' }}>
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 32px 80px', fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 32px 80px', fontFamily: "var(--font-body, system-ui), sans-serif" }}>
 
             {/* ── Header ── */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 32 }}>
@@ -103,13 +103,13 @@ export default function ApplicantProfilePage() {
                     width: 48, height: 48, borderRadius: '50%',
                     background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18, fontWeight: 700, color: '#fff', flexShrink: 0,
+                    fontSize: 18, fontWeight: 700, color: '', flexShrink: 0,
                 }}>
                     {applicant?.first_name?.[0]?.toUpperCase()}
                 </div>
                 <div>
-                    <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: '#f0f0f0' }}>My Profile</h1>
-                    <p style={{ margin: '2px 0 0', fontSize: 13, color: '#555' }}>{applicant?.email}</p>
+                    <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>My Profile</h1>
+                    <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--text-tertiary)' }}>{applicant?.email}</p>
                 </div>
             </div>
 
@@ -161,12 +161,12 @@ export default function ApplicantProfilePage() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: 7,
                             padding: '10px 22px', borderRadius: 8,
-                            background: saved ? '#10b981' : 'var(--color-primary-500)',
-                            border: 'none', color: '#fff', fontSize: 14, fontWeight: 600,
+                            background: saved ? 'var(--status-success)' : 'var(--color-primary-500)',
+                            border: 'none', color: '', fontSize: 14, fontWeight: 600,
                             cursor: saving ? 'default' : 'pointer',
                             opacity: saving ? 0.7 : 1,
                             transition: 'background 0.3s',
-                            fontFamily: "'DM Sans', sans-serif",
+                            fontFamily: "var(--font-body, system-ui), sans-serif",
                         }}
                     >
                         {saved
@@ -177,19 +177,19 @@ export default function ApplicantProfilePage() {
                         }
                     </button>
                     {Object.keys(errors).length > 0 && (
-                        <p style={{ margin: 0, fontSize: 12, color: '#ef4444' }}>Please fix the errors above.</p>
+                        <p style={{ margin: 0, fontSize: 12, color: 'var(--status-error)' }}>Please fix the errors above.</p>
                     )}
                 </div>
             </form>
 
             {/* ── Security ── */}
-            <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid #1e1e1e' }}>
-                <p style={{ margin: '0 0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ marginTop: 40, paddingTop: 32, borderTop: '1px solid var(--line)' }}>
+                <p style={{ margin: '0 0 20px', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 6 }}>
                     <KeyRound size={12} /> Security
                 </p>
 
                 {pwGlobalError && (
-                    <div style={{ background: '#2d1111', border: '1px solid #5a1d1d', borderRadius: 8, padding: '10px 14px', color: '#f87171', fontSize: 13, marginBottom: 16 }}>
+                    <div style={{ background: 'color-mix(in srgb, var(--status-error) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--status-error) 40%, transparent)', borderRadius: 8, padding: '10px 14px', color: 'var(--status-error)', fontSize: 13, marginBottom: 16 }}>
                         {pwGlobalError}
                     </div>
                 )}
@@ -231,14 +231,14 @@ export default function ApplicantProfilePage() {
                         style={{
                             display: 'flex', alignItems: 'center', gap: 7,
                             padding: '10px 22px', borderRadius: 8,
-                            background: pwSaved ? '#10b981' : '#1e1e1e',
-                            border: `1px solid ${pwSaved ? '#10b981' : '#2a2a2a'}`,
-                            color: pwSaved ? '#fff' : '#ccc',
+                            background: pwSaved ? 'var(--status-success)' : 'var(--surface-input)',
+                            border: `1px solid ${pwSaved ? 'var(--status-success)' : 'var(--line)'}`,
+                            color: pwSaved ? '' : 'var(--text-primary)',
                             fontSize: 14, fontWeight: 600,
                             cursor: pwSaving ? 'default' : 'pointer',
                             opacity: pwSaving ? 0.7 : 1,
                             transition: 'all 0.3s',
-                            fontFamily: "'DM Sans', sans-serif",
+                            fontFamily: "var(--font-body, system-ui), sans-serif",
                         }}
                     >
                         {pwSaved
@@ -257,7 +257,7 @@ export default function ApplicantProfilePage() {
 function Section({ label, children }) {
     return (
         <div style={{ marginBottom: 28 }}>
-            <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555' }}>
+            <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
                 {label}
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -270,7 +270,7 @@ function Section({ label, children }) {
 function PwField({ label, value, onChange, show, onToggle, error, placeholder }) {
     return (
         <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#666', marginBottom: 5 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 }}>
                 {label}
             </label>
             <div style={{ position: 'relative' }}>
@@ -282,27 +282,27 @@ function PwField({ label, value, onChange, show, onToggle, error, placeholder })
                     required
                     style={{
                         width: '100%', padding: '10px 40px 10px 13px',
-                        background: '#161616', border: `1px solid ${error ? '#5a1d1d' : '#222'}`,
-                        borderRadius: 8, color: '#f0f0f0', fontSize: 14,
+                        background: 'var(--surface-card)', border: `1px solid ${error ? 'color-mix(in srgb, var(--status-error) 40%, transparent)' : 'var(--line)'}`,
+                        borderRadius: 8, color: 'var(--text-primary)', fontSize: 14,
                         outline: 'none', boxSizing: 'border-box',
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: "var(--font-body, system-ui), sans-serif",
                         transition: 'border-color 0.15s',
                     }}
                     onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
-                    onBlur={e => e.target.style.borderColor = error ? '#5a1d1d' : '#222'}
+                    onBlur={e => e.target.style.borderColor = error ? 'color-mix(in srgb, var(--status-error) 40%, transparent)' : 'var(--line)'}
                 />
                 <button
                     type="button"
                     onClick={onToggle}
                     style={{
                         position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                        background: 'none', border: 'none', cursor: 'pointer', color: '#555', padding: 2,
+                        background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 2,
                     }}
                 >
                     {show ? <EyeOff size={15} /> : <Eye size={15} />}
                 </button>
             </div>
-            {error && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#ef4444' }}>{error}</p>}
+            {error && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--status-error)' }}>{error}</p>}
         </div>
     );
 }
@@ -310,12 +310,12 @@ function PwField({ label, value, onChange, show, onToggle, error, placeholder })
 function Field({ label, error, icon, children }) {
     return (
         <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#666', marginBottom: 5 }}>
-                {icon && <span style={{ color: '#555' }}>{icon}</span>}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-secondary)', marginBottom: 5 }}>
+                {icon && <span style={{ color: 'var(--text-tertiary)' }}>{icon}</span>}
                 {label}
             </label>
             {children}
-            {error && <p style={{ margin: '4px 0 0', fontSize: 11, color: '#ef4444' }}>{error}</p>}
+            {error && <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--status-error)' }}>{error}</p>}
         </div>
     );
 }

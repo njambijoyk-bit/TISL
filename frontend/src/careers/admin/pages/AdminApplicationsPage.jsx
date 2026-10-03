@@ -4,36 +4,36 @@ import Pagination from '../components/Pagination';
 import ApplicationDetailPanel from '../components/ApplicationDetailPanel';
 import AdminCareersHeader from '../../layouts/AdminCareersHeader';
 
-const STATUS_COLORS = { submitted:'#818cf8', under_review:'#fbbf24', shortlisted:'#34d399', interviewed:'#38bdf8', rejected:'#f87171', hired:'#a3e635', withdrawn:'#444' };
+const STATUS_COLORS = { submitted:'var(--status-info)', under_review:'var(--status-warning)', shortlisted:'var(--status-success)', interviewed:'var(--status-info)', rejected:'var(--status-error)', hired:'var(--status-success)', withdrawn:'var(--text-tertiary)' };
 const STATUS_LABELS = { submitted:'Received', under_review:'Under Review', shortlisted:'Shortlisted', interviewed:'Interview', rejected:'Rejected', hired:'Hired', withdrawn:'Withdrawn' };
-const REC_COLORS   = { strong_yes:'#a3e635', yes:'#34d399', maybe:'#fbbf24', no:'#f87171' };
+const REC_COLORS   = { strong_yes:'var(--status-success)', yes:'var(--status-success)', maybe:'var(--status-warning)', no:'var(--status-error)' };
 
 const s = {
-    page: { display: 'grid', gridTemplateColumns: '1fr 420px', gap: 0, minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", color: '#f0f0f0', background: '#0f0f0f' },
-    pageNoDetail: { padding: '32px 36px', minHeight: '100vh', background: '#0f0f0f', fontFamily: "'DM Sans', sans-serif", color: '#f0f0f0' },
-    left: { padding: '32px 28px', borderRight: '1px solid #1a1a1a', background: '#0f0f0f', overflowY: 'auto' },
-    right: { padding: 24, overflowY: 'auto', background: '#0f0f0f' },
+    page: { display: 'grid', gridTemplateColumns: '1fr 420px', gap: 0, minHeight: '100vh', fontFamily: "var(--font-body, system-ui), sans-serif", color: 'var(--text-primary)', background: 'var(--bg-primary)' },
+    pageNoDetail: { padding: '32px 36px', minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: "var(--font-body, system-ui), sans-serif", color: 'var(--text-primary)' },
+    left: { padding: '32px 28px', borderRight: '1px solid var(--line)', background: 'var(--bg-primary)', overflowY: 'auto' },
+    right: { padding: 24, overflowY: 'auto', background: 'var(--bg-primary)' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-    pageTitle: { fontSize: 22, fontWeight: 700, fontFamily: "'DM Serif Display', serif", marginBottom: 2 },
-    pageSub: { fontSize: 13, color: '#555' },
+    pageTitle: { fontSize: 22, fontWeight: 700, fontFamily: "var(--font-heading, serif), serif", marginBottom: 2 },
+    pageSub: { fontSize: 13, color: 'var(--text-tertiary)' },
     toolbar: { display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center' },
-    filterBtn: (active) => ({ padding: '6px 14px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : '#2a2a2a'}`, background: active ? '#2d1b4e' : 'transparent', color: active ? 'var(--color-primary-400)' : '#666', fontSize: 12, cursor: 'pointer' }),
-    search: { padding: '7px 12px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#161616', color: '#f0f0f0', fontSize: 13, outline: 'none', flex: 1, minWidth: 160 },
-    row: { padding: '14px 16px', borderRadius: 10, border: '1px solid transparent', marginBottom: 6, cursor: 'pointer', transition: 'all 0.15s', background: '#161616' },
-    rowActive: { border: '1px solid var(--color-primary-500)', background: '#1e1230' },
+    filterBtn: (active) => ({ padding: '6px 14px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : 'var(--line)'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)' : 'transparent', color: active ? 'var(--color-primary-400)' : 'var(--text-secondary)', fontSize: 12, cursor: 'pointer' }),
+    search: { padding: '7px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', flex: 1, minWidth: 160 },
+    row: { padding: '14px 16px', borderRadius: 10, border: '1px solid transparent', marginBottom: 6, cursor: 'pointer', transition: 'all 0.15s', background: 'var(--surface-card)' },
+    rowActive: { border: '1px solid var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' },
     rowTop: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 },
-    appName: { fontSize: 14, fontWeight: 600, color: '#f0f0f0', marginBottom: 2 },
-    appJob: { fontSize: 12, color: '#555' },
-    statusPill: (status) => ({ fontSize: 10, padding: '3px 10px', borderRadius: 20, fontWeight: 600, background: `${STATUS_COLORS[status]}22`, color: STATUS_COLORS[status] ?? '#888' }),
+    appName: { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 },
+    appJob: { fontSize: 12, color: 'var(--text-tertiary)' },
+    statusPill: (status) => ({ fontSize: 10, padding: '3px 10px', borderRadius: 20, fontWeight: 600, background: `color-mix(in srgb, ${STATUS_COLORS[status]} 13%, transparent)`, color: STATUS_COLORS[status] ?? 'var(--text-secondary)' }),
     rowBottom: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     scoreChip: (score) => {
-        const c = score >= 75 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171';
+        const c = score >= 75 ? 'var(--status-success)' : score >= 50 ? 'var(--status-warning)' : 'var(--status-error)';
         return { fontSize: 11, color: c, fontWeight: 700 };
     },
-    recChip: (rec) => ({ fontSize: 11, color: REC_COLORS[rec] ?? '#555' }),
-    date: { fontSize: 11, color: '#444' },
-    emptyMsg: { textAlign: 'center', padding: '48px 0', color: '#444' },
-    batchBtn: { padding: '8px 16px', borderRadius: 9, border: 'none', background: '#2d1b4e', color: 'var(--color-primary-400)', fontSize: 13, cursor: 'pointer', fontWeight: 600 },
+    recChip: (rec) => ({ fontSize: 11, color: REC_COLORS[rec] ?? 'var(--text-tertiary)' }),
+    date: { fontSize: 11, color: 'var(--text-tertiary)' },
+    emptyMsg: { textAlign: 'center', padding: '48px 0', color: 'var(--text-tertiary)' },
+    batchBtn: { padding: '8px 16px', borderRadius: 9, border: 'none', background: 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)', color: 'var(--color-primary-400)', fontSize: 13, cursor: 'pointer', fontWeight: 600 },
 };
 
 const STATUSES = ['submitted','under_review','shortlisted','interviewed','rejected','hired'];
@@ -99,7 +99,7 @@ export default function AdminApplicationsPage() {
                 <div key={app.id}
                     style={selectedId === app.id ? { ...s.row, ...s.rowActive } : s.row}
                     onClick={() => handleSelect(app.id)}
-                    onMouseEnter={(e) => selectedId !== app.id && (e.currentTarget.style.borderColor = '#2a2a2a')}
+                    onMouseEnter={(e) => selectedId !== app.id && (e.currentTarget.style.borderColor = 'var(--line)')}
                     onMouseLeave={(e) => selectedId !== app.id && (e.currentTarget.style.borderColor = 'transparent')}>
                     <div style={s.rowTop}>
                         <div>
@@ -121,7 +121,7 @@ export default function AdminApplicationsPage() {
                                 </span>
                             )}
                             {!app.ai_screened_at && (
-                                <span style={{ fontSize: 11, color: '#444' }}>Not screened</span>
+                                <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>Not screened</span>
                             )}
                         </div>
                         <span style={s.date}>{new Date(app.created_at).toLocaleDateString('en-KE', { day:'numeric', month:'short' })}</span>

@@ -46,7 +46,7 @@ export default function AboutCareersPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, margin: '24px 0 32px' }}>
                 {VALUES.map(({ icon: Icon, label, desc }) => (
                     <div key={label} style={{
-                        background: '#161616', border: '1px solid #1e1e1e',
+                        background: 'var(--surface-card)', border: '1px solid var(--line)',
                         borderRadius: 10, padding: '20px 22px',
                     }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
@@ -57,9 +57,9 @@ export default function AboutCareersPage() {
                             }}>
                                 <Icon size={14} color="#fff" strokeWidth={2} />
                             </span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#e0e0e0' }}>{label}</span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{label}</span>
                         </div>
-                        <p style={{ margin: 0, fontSize: 13, color: '#777', lineHeight: 1.7 }}>{desc}</p>
+                        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>{desc}</p>
                     </div>
                 ))}
             </div>
@@ -77,7 +77,7 @@ export default function AboutCareersPage() {
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '11px 22px', borderRadius: 8,
                         background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-                        color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none',
+                        color: '', fontSize: 14, fontWeight: 600, textDecoration: 'none',
                     }}
                 >
                     View open roles <ArrowRight size={15} />

@@ -16,83 +16,83 @@ const TYPE_LABELS = { full_time: 'Full Time', part_time: 'Part Time', contract: 
 const EXP_LABELS  = { entry: 'Entry Level', mid: 'Mid Level', senior: 'Senior', lead: 'Lead', executive: 'Executive' };
 
 const s = {
-    page: { minHeight: '100vh', background: '#0f0f0f', color: '#f0f0f0', fontFamily: "'DM Sans', sans-serif" },
-    back: { display: 'inline-flex', alignItems: 'center', gap: 8, color: '#555', fontSize: 13, textDecoration: 'none', padding: '24px 40px', transition: 'color 0.15s' },
-    layout: { maxWidth: 1000, margin: '0 auto', background: '#0f0f0f', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 48, alignItems: 'start' },
+    page: { minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: "var(--font-body, system-ui), sans-serif" },
+    back: { display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 13, textDecoration: 'none', padding: '24px 40px', transition: 'color 0.15s' },
+    layout: { maxWidth: 1000, margin: '0 auto', background: 'var(--bg-primary)', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '1fr 340px', gap: 48, alignItems: 'start' },
     main: {},
     sidebar: { position: 'sticky', top: 24 },
     eyebrow: { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 12, fontWeight: 600 },
-    title: { fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, lineHeight: 1.15, color: 'var(--color-primary-500)', marginBottom: 20, fontFamily: "'DM Serif Display', serif" },
+    title: { fontSize: 'clamp(24px, 4vw, 40px)', fontWeight: 700, lineHeight: 1.15, color: 'var(--color-primary-500)', marginBottom: 20, fontFamily: "var(--font-heading, serif), serif" },
     metaRow: { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 32 },
-    pill: { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#1e1e1e', color: '#aaa', fontWeight: 500 },
-    pillPurple: { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#2d1b4e', color: 'var(--color-primary-400)', fontWeight: 500 },
+    pill: { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: 'var(--surface-input)', color: 'var(--text-secondary)', fontWeight: 500 },
+    pillPurple: { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)', color: 'var(--color-primary-400)', fontWeight: 500 },
     section: { marginBottom: 36 },
-    sectionTitle: { fontSize: 13, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', fontWeight: 600, marginBottom: 14 },
-    body: { fontSize: 15, lineHeight: 1.7, color: '#ccc' },
+    sectionTitle: { fontSize: 13, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: 14 },
+    body: { fontSize: 15, lineHeight: 1.7, color: 'var(--text-primary)' },
     list: { listStyle: 'none', padding: 0, margin: 0 },
-    listItem: { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, fontSize: 15, color: '#ccc', lineHeight: 1.6 },
+    listItem: { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, fontSize: 15, color: 'var(--text-primary)', lineHeight: 1.6 },
     dot: { width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0, marginTop: 8 },
 
     // Sidebar card
-    card: { background: '#161616', border: '1px solid #1e1e1e', borderRadius: 14, padding: 28 },
+    card: { background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, padding: 28 },
     salary: { fontSize: 20, fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 4 },
-    salaryLabel: { fontSize: 12, color: '#555', marginBottom: 24 },
+    salaryLabel: { fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 24 },
     applyBtn: {
         display: 'block', width: '100%', padding: '14px 0', textAlign: 'center',
-        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff',
+        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '',
         borderRadius: 10, fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer',
         textDecoration: 'none', transition: 'opacity 0.2s',
     },
     disabledBtn: {
         display: 'block', width: '100%', padding: '14px 0', textAlign: 'center',
-        background: '#1e1e1e', color: '#555', borderRadius: 10, fontWeight: 600,
+        background: 'var(--surface-input)', color: 'var(--text-tertiary)', borderRadius: 10, fontWeight: 600,
         fontSize: 15, border: 'none', cursor: 'not-allowed',
     },
-    metaItem: { display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #1e1e1e', fontSize: 13 },
-    metaKey: { color: '#555' },
-    metaVal: { color: '#ccc', textAlign: 'right' },
+    metaItem: { display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--line)', fontSize: 13 },
+    metaKey: { color: 'var(--text-tertiary)' },
+    metaVal: { color: 'var(--text-primary)', textAlign: 'right' },
 
     // Modal
     overlay: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 },
     modal: {
-        background: '#161616', border: '1px solid #2a2a2a', borderRadius: 16,
+        background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 16,
         padding: 36, width: '100%', maxWidth: 520,
         maxHeight: '88vh', overflowY: 'auto',   // scroll when doc list is long
     },
-    modalTitle: { fontSize: 22, fontWeight: 700, marginBottom: 6, fontFamily: "'DM Serif Display', serif" },
-    modalSub: { fontSize: 14, color: '#666', marginBottom: 28 },
-    label: { display: 'block', fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#555', marginBottom: 8, fontWeight: 600 },
-    textarea: { width: '100%', padding: '12px 14px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, resize: 'vertical', minHeight: 120, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
+    modalTitle: { fontSize: 22, fontWeight: 700, marginBottom: 6, fontFamily: "var(--font-heading, serif), serif" },
+    modalSub: { fontSize: 14, color: 'var(--text-secondary)', marginBottom: 28 },
+    label: { display: 'block', fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 8, fontWeight: 600 },
+    textarea: { width: '100%', padding: '12px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, resize: 'vertical', minHeight: 120, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
     row: { display: 'flex', gap: 12, marginTop: 24 },
-    cancelBtn: { flex: 1, padding: '12px 0', borderRadius: 8, border: '1px solid #2a2a2a', background: 'transparent', color: '#888', fontSize: 14, cursor: 'pointer' },
+    cancelBtn: { flex: 1, padding: '12px 0', borderRadius: 8, border: '1px solid var(--line)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' },
     submitBtn: (disabled) => ({
         flex: 2, padding: '12px 0', borderRadius: 8, border: 'none',
-        background: disabled ? '#2a2a2a' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-        color: disabled ? '#555' : '#fff', fontSize: 14, fontWeight: 600,
+        background: disabled ? 'var(--line)' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
+        color: disabled ? 'var(--text-tertiary)' : '', fontSize: 14, fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer', transition: 'background 0.2s',
     }),
-    errMsg: { color: '#f87171', fontSize: 13, marginTop: 12 },
-    warnMsg: { color: '#fbbf24', fontSize: 13, marginTop: 12 },
-    loader: { textAlign: 'center', padding: '120px 0', background: '#0f0f0f', color: '#555', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+    errMsg: { color: 'var(--status-error)', fontSize: 13, marginTop: 12 },
+    warnMsg: { color: 'var(--status-warning)', fontSize: 13, marginTop: 12 },
+    loader: { textAlign: 'center', padding: '120px 0', background: 'var(--bg-primary)', color: 'var(--text-tertiary)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' },
 
     // Document upload rows
     docsSection: { marginBottom: 24 },
     docRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 },
-    docName: { fontSize: 14, color: '#ccc', flex: 1 },
-    required: { color: '#f87171', marginLeft: 2, fontSize: 12 },
+    docName: { fontSize: 14, color: 'var(--text-primary)', flex: 1 },
+    required: { color: 'var(--status-error)', marginLeft: 2, fontSize: 12 },
     fileBtn: (hasFile) => ({
         fontSize: 12, padding: '7px 14px', borderRadius: 7, cursor: 'pointer',
-        border: hasFile ? '1px solid #34d399' : '1px dashed #444',
+        border: hasFile ? '1px solid var(--status-success)' : '1px dashed var(--line)',
         background: 'transparent',
-        color: hasFile ? '#34d399' : '#888',
+        color: hasFile ? 'var(--status-success)' : 'var(--text-secondary)',
         whiteSpace: 'nowrap', maxWidth: 190, overflow: 'hidden',
         textOverflow: 'ellipsis', transition: 'all 0.15s',
     }),
 
     // Progress bar
-    progressWrap: { marginTop: 20, background: '#1a1a1a', borderRadius: 8, overflow: 'hidden', height: 6 },
+    progressWrap: { marginTop: 20, background: 'var(--surface-card)', borderRadius: 8, overflow: 'hidden', height: 6 },
     progressBar: (pct) => ({ height: '100%', width: `${pct}%`, background: 'linear-gradient(90deg, var(--color-primary-500), var(--color-primary-600))', transition: 'width 0.3s ease', borderRadius: 8 }),
-    progressLabel: { fontSize: 12, color: '#555', marginTop: 8, textAlign: 'center' },
+    progressLabel: { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8, textAlign: 'center' },
 };
 
 export default function JobDetailPage() {
@@ -227,7 +227,7 @@ export default function JobDetailPage() {
             `}</style>
             <Link to="/careers" style={s.back} className="job-back"
                 onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary-500)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = '#555'}>
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-tertiary)'}>
                 ← All Roles
             </Link>
 
@@ -278,8 +278,8 @@ export default function JobDetailPage() {
                             <p style={s.sectionTitle}>Nice to Have</p>
                             <ul style={s.list}>
                                 {job.nice_to_haves.map((r, i) => (
-                                    <li key={i} style={{ ...s.listItem, color: '#777' }}>
-                                        <span style={{ ...s.dot, background: '#333' }} />{r}
+                                    <li key={i} style={{ ...s.listItem, color: 'var(--text-secondary)' }}>
+                                        <span style={{ ...s.dot, background: 'var(--line)' }} />{r}
                                     </li>
                                 ))}
                             </ul>
@@ -374,7 +374,7 @@ export default function JobDetailPage() {
                                     <div style={s.docsSection}>
                                         <label style={s.label}>
                                             Required Documents
-                                            <span style={{ color: '#f87171', marginLeft: 4 }}>*</span>
+                                            <span style={{ color: 'var(--status-error)', marginLeft: 4 }}>*</span>
                                         </label>
 
                                         {fileDocTypes.map((docType) => (
@@ -401,7 +401,7 @@ export default function JobDetailPage() {
                                             </div>
                                         ))}
 
-                                        <p style={{ fontSize: 11, color: '#444', marginTop: 6 }}>
+                                        <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
                                             PDF, Word, JPG or PNG · max 5 MB each
                                         </p>
                                     </div>
@@ -412,8 +412,8 @@ export default function JobDetailPage() {
                                     <label style={s.label}>
                                         Cover Letter{' '}
                                         {coverLetterReqd
-                                            ? <span style={{ color: '#f87171' }}>*</span>
-                                            : <span style={{ color: '#555', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+                                            ? <span style={{ color: 'var(--status-error)' }}>*</span>
+                                            : <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
                                         }
                                     </label>
                                     <textarea

@@ -41,9 +41,9 @@ export default function ApplicantGate({ children }) {
     }
 
     if (checking) return (
-        <div style={{ minHeight: '100vh', background: '#0f0f0f', 
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', 
                       display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                      color: '#555', fontFamily: "'DM Sans', sans-serif" }}>
+                      color: 'var(--text-tertiary)', fontFamily: "var(--font-body, system-ui), sans-serif" }}>
             Verifying session…
         </div>
     );

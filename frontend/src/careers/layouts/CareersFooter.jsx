@@ -12,10 +12,10 @@ const LINKS = [
 export default function CareersFooter() {
     return (
         <footer style={{
-            borderTop: '1px solid #1a1a1a',
-            background: '#0a0a0a',
+            borderTop: '1px solid var(--line)',
+            background: 'var(--bg-primary)',
             padding: '32px 40px',
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "var(--font-body, system-ui), sans-serif",
         }}>
             <div style={{ maxWidth: 1100, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 20 }}>
 
@@ -28,7 +28,7 @@ export default function CareersFooter() {
                     }}>
                         <Briefcase size={11} color="#fff" strokeWidth={2.2} />
                     </span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#444', letterSpacing: '-0.01em' }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-tertiary)', letterSpacing: '-0.01em' }}>
                         TISL Careers
                     </span>
                 </Link>
@@ -37,12 +37,12 @@ export default function CareersFooter() {
                 <nav style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                     {LINKS.map(({ to, label }, i) => (
                         <span key={to} style={{ display: 'flex', alignItems: 'center' }}>
-                            {i > 0 && <span style={{ color: '#2a2a2a', margin: '0 4px', fontSize: 12 }}>·</span>}
+                            {i > 0 && <span style={{ color: 'var(--text-tertiary)', margin: '0 4px', fontSize: 12 }}>·</span>}
                             <Link
                                 to={to}
-                                style={{ fontSize: 12, color: '#444', textDecoration: 'none', transition: 'color 0.15s' }}
+                                style={{ fontSize: 12, color: 'var(--text-tertiary)', textDecoration: 'none', transition: 'color 0.15s' }}
                                 onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
-                                onMouseLeave={e => e.currentTarget.style.color = '#444'}
+                                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
                             >
                                 {label}
                             </Link>
@@ -51,7 +51,7 @@ export default function CareersFooter() {
                 </nav>
 
                 {/* Copyright */}
-                <p style={{ margin: 0, fontSize: 12, color: '#333' }}>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-tertiary)' }}>
                     © {new Date().getFullYear()} TISL. All rights reserved.
                 </p>
             </div>

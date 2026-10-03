@@ -40,28 +40,28 @@ export default function CareersHeader() {
         fontSize: 13,
         fontWeight: 500,
         letterSpacing: '0.02em',
-        color: isActive ? '#f0f0f0' : '#666',
+        color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
         textDecoration: 'none',
         padding: '6px 10px',
         borderRadius: 6,
         transition: 'color 0.15s',
-        background: isActive ? '#1a1a1a' : 'transparent',
+        background: isActive ? 'var(--surface-card)' : 'transparent',
     });
 
     const menuItemStyle = {
         display: 'flex', alignItems: 'center', gap: 8,
         padding: '8px 12px', borderRadius: 6,
-        fontSize: 13, color: '#aaa', textDecoration: 'none',
+        fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none',
         transition: 'background 0.12s, color 0.12s',
     };
 
     return (
         <>
             <style>{`
-                .careers-nav-link:hover { color: #d0d0d0 !important; }
-                .careers-menu-item:hover { background: #1e1e1e !important; color: #f0f0f0 !important; }
+                .careers-nav-link:hover { color: var(--text-primary) !important; }
+                .careers-menu-item:hover { background: var(--surface-hover) !important; color: var(--text-primary) !important; }
                 .careers-auth-btn-primary:hover { background: var(--color-primary-600) !important; }
-                .careers-auth-btn-ghost:hover { color: #f0f0f0 !important; }
+                .careers-auth-btn-ghost:hover { color: var(--text-primary) !important; }
             `}</style>
 
             <header style={{
@@ -72,12 +72,12 @@ export default function CareersHeader() {
                 display: 'flex',
                 alignItems: 'center',
                 padding: '0 40px',
-                background: scrolled ? 'rgba(15,15,15,0.88)' : '#0f0f0f',
+                background: scrolled ? 'rgba(15,15,15,0.88)' : 'var(--bg-primary)',
                 backdropFilter: scrolled ? 'blur(12px)' : 'none',
                 WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
-                borderBottom: `1px solid ${scrolled ? '#2a2a2a' : '#1e1e1e'}`,
+                borderBottom: `1px solid ${scrolled ? 'var(--line)' : 'var(--line)'}`,
                 transition: 'background 0.25s, backdrop-filter 0.25s, border-color 0.25s',
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "var(--font-body, system-ui), sans-serif",
             }}>
 
                 {/* ── Brand ─────────────────────────────────────── */}
@@ -91,8 +91,8 @@ export default function CareersHeader() {
                         <Briefcase size={14} color="#fff" strokeWidth={2.2} />
                     </span>
                     <span style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-                        <span style={{ fontSize: 15, fontWeight: 700, color: '#f0f0f0', letterSpacing: '-0.02em' }}>TISL</span>
-                        <span style={{ fontSize: 12, fontWeight: 400, color: '#555', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Careers</span>
+                        <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>TISL</span>
+                        <span style={{ fontSize: 12, fontWeight: 400, color: 'var(--text-tertiary)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Careers</span>
                     </span>
                 </Link>
 
@@ -118,10 +118,10 @@ export default function CareersHeader() {
                                 onClick={() => setMenuOpen((v) => !v)}
                                 style={{
                                     display: 'flex', alignItems: 'center', gap: 8,
-                                    background: menuOpen ? '#1e1e1e' : 'transparent',
-                                    border: '1px solid #2a2a2a',
+                                    background: menuOpen ? 'var(--surface-input)' : 'transparent',
+                                    border: '1px solid var(--line)',
                                     borderRadius: 8, padding: '5px 10px 5px 8px',
-                                    cursor: 'pointer', color: '#ccc',
+                                    cursor: 'pointer', color: 'var(--text-primary)',
                                     fontSize: 13, fontWeight: 500,
                                     transition: 'background 0.15s',
                                 }}
@@ -130,7 +130,7 @@ export default function CareersHeader() {
                                     width: 24, height: 24, borderRadius: '50%',
                                     background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
+                                    fontSize: 11, fontWeight: 700, color: '', flexShrink: 0,
                                 }}>
                                     {applicant.first_name?.[0]?.toUpperCase() ?? <User size={12} />}
                                 </span>
@@ -139,7 +139,7 @@ export default function CareersHeader() {
                                 </span>
                                 <ChevronDown
                                     size={13}
-                                    color="#555"
+                                    color="var(--text-tertiary)"
                                     style={{ transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
                                 />
                             </button>
@@ -147,15 +147,15 @@ export default function CareersHeader() {
                             {menuOpen && (
                                 <div style={{
                                     position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                                    background: '#111', border: '1px solid #2a2a2a',
+                                    background: 'var(--bg-primary)', border: '1px solid var(--line)',
                                     borderRadius: 10, overflow: 'hidden',
                                     minWidth: 190,
                                     boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
                                 }}>
                                     {/* Identity */}
-                                    <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid #1e1e1e' }}>
-                                        <p style={{ fontSize: 12, color: '#555', margin: 0 }}>Signed in as</p>
-                                        <p style={{ fontSize: 13, color: '#ccc', margin: '2px 0 0', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid var(--line)' }}>
+                                        <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: 0 }}>Signed in as</p>
+                                        <p style={{ fontSize: 13, color: 'var(--text-primary)', margin: '2px 0 0', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {applicant.email}
                                         </p>
                                     </div>
@@ -182,14 +182,14 @@ export default function CareersHeader() {
                                         </Link>
 
                                         {/* Divider */}
-                                        <div style={{ height: 1, background: '#1e1e1e', margin: '4px 8px' }} />
+                                        <div style={{ height: 1, background: 'var(--surface-input)', margin: '4px 8px' }} />
 
                                         <button
                                             onClick={handleLogout}
                                             className="careers-menu-item"
                                             style={{
                                                 ...menuItemStyle,
-                                                width: '100%', color: '#ef4444',
+                                                width: '100%', color: 'var(--status-error)',
                                                 background: 'transparent', border: 'none',
                                                 cursor: 'pointer', textAlign: 'left',
                                             }}
@@ -207,7 +207,7 @@ export default function CareersHeader() {
                                 to="/careers/login"
                                 className="careers-auth-btn-ghost"
                                 style={{
-                                    fontSize: 13, fontWeight: 500, color: '#777',
+                                    fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)',
                                     textDecoration: 'none', padding: '6px 12px',
                                     borderRadius: 7, transition: 'color 0.15s',
                                 }}
@@ -218,7 +218,7 @@ export default function CareersHeader() {
                                 to="/careers/register"
                                 className="careers-auth-btn-primary"
                                 style={{
-                                    fontSize: 13, fontWeight: 600, color: '#fff',
+                                    fontSize: 13, fontWeight: 600, color: '',
                                     textDecoration: 'none', padding: '6px 14px',
                                     borderRadius: 7, background: 'var(--color-primary-500)',
                                     transition: 'background 0.15s',

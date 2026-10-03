@@ -3,14 +3,14 @@ import { ArrowLeft } from 'lucide-react';
 
 export default function LegalLayout({ eyebrow, title, lastUpdated, children }) {
     return (
-        <div style={{ background: '#0f0f0f', minHeight: '100vh', fontFamily: "'DM Sans', sans-serif", color: '#f0f0f0' }}>
+        <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', fontFamily: "var(--font-body, system-ui), sans-serif", color: 'var(--text-primary)' }}>
             <div style={{ maxWidth: 720, margin: '0 auto', padding: '48px 32px 96px' }}>
 
                 <Link
                     to="/careers"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#555', textDecoration: 'none', marginBottom: 40 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--text-tertiary)', textDecoration: 'none', marginBottom: 40 }}
                     onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
-                    onMouseLeave={e => e.currentTarget.style.color = '#555'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
                 >
                     <ArrowLeft size={14} /> Back to Careers
                 </Link>
@@ -21,15 +21,15 @@ export default function LegalLayout({ eyebrow, title, lastUpdated, children }) {
                     </p>
                 )}
 
-                <h1 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, lineHeight: 1.15, margin: '0 0 12px', color: '#d799f0', fontFamily: "'DM Serif Display', serif" }}>
+                <h1 style={{ fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 700, lineHeight: 1.15, margin: '0 0 12px', color: 'var(--color-primary-400)', fontFamily: "var(--font-heading, serif), serif" }}>
                     {title}
                 </h1>
 
                 {lastUpdated && (
-                    <p style={{ fontSize: 13, color: '#444', marginBottom: 48 }}>Last updated: {lastUpdated}</p>
+                    <p style={{ fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 48 }}>Last updated: {lastUpdated}</p>
                 )}
 
-                <div style={{ lineHeight: 1.8, color: '#aaa' }}>
+                <div style={{ lineHeight: 1.8, color: 'var(--text-secondary)' }}>
                     {children}
                 </div>
             </div>
@@ -40,7 +40,7 @@ export default function LegalLayout({ eyebrow, title, lastUpdated, children }) {
 // ── Shared prose components ────────────────────────────────────────────────────
 
 export function H2({ children }) {
-    return <h2 style={{ fontSize: 20, fontWeight: 700, color: '#e0e0e0', margin: '40px 0 12px', fontFamily: "'DM Sans', sans-serif" }}>{children}</h2>;
+    return <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '40px 0 12px', fontFamily: "var(--font-body, system-ui), sans-serif" }}>{children}</h2>;
 }
 
 export function P({ children }) {
@@ -56,7 +56,7 @@ export function Li({ children }) {
 }
 
 export function Highlight({ children }) {
-    return <strong style={{ color: '#d0d0d0', fontWeight: 600 }}>{children}</strong>;
+    return <strong style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{children}</strong>;
 }
 
 export function InfoBox({ children }) {

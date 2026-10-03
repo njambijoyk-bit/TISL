@@ -172,6 +172,11 @@
   --surface-overlay: color-mix(in srgb, var(--text-primary) 55%, transparent);
   --line: var(--border-primary, var(--border-light));
 
+  --status-success: var(--accent-success, var(--color-success, #10b981));
+  --status-warning: var(--accent-warning, var(--color-warning, #f59e0b));
+  --status-error: var(--accent-error, var(--color-error, #ef4444));
+  --status-info: var(--accent-info, var(--color-info, #3b82f6));
+
   --color-surface: var(--surface-card);
   --color-background-primary: var(--surface-card);
   --color-background-secondary: var(--bg-secondary);

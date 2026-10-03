@@ -23,64 +23,64 @@ const APP_STATUS_LABELS = {
 };
 
 const APP_STATUS_COLORS = {
-    submitted:    { bg: '#1a1a2e', color: '#818cf8' },
-    under_review: { bg: '#1c1a10', color: '#fbbf24' },  // was 'reviewing'
-    shortlisted:  { bg: '#0d2618', color: '#34d399' },
-    interviewed:  { bg: '#1a1028', color: 'var(--color-primary-400)' },  // was 'interview'
-    rejected:     { bg: '#2a0f0f', color: '#f87171' },
-    hired:        { bg: '#0d2020', color: '#2dd4bf' },
-    withdrawn:    { bg: '#1a1a1a', color: '#555' },
+    submitted:    { bg: 'color-mix(in srgb, var(--status-info) 14%, transparent)', color: 'var(--status-info)' },
+    under_review: { bg: 'color-mix(in srgb, var(--status-warning) 14%, transparent)', color: 'var(--status-warning)' },  // was 'reviewing'
+    shortlisted:  { bg: 'color-mix(in srgb, var(--status-success) 14%, transparent)', color: 'var(--status-success)' },
+    interviewed:  { bg: 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)', color: 'var(--color-primary-400)' },  // was 'interview'
+    rejected:     { bg: 'color-mix(in srgb, var(--status-error) 14%, transparent)', color: 'var(--status-error)' },
+    hired:        { bg: 'color-mix(in srgb, var(--status-success) 14%, transparent)', color: 'var(--status-success)' },
+    withdrawn:    { bg: 'var(--surface-card)', color: 'var(--text-tertiary)' },
 };
 
 const JOB_STATUS_COLORS = {
-    draft:     { bg: '#1e1e1e', color: '#888' },
-    published: { bg: '#0d2618', color: '#34d399' },
-    closed:    { bg: '#2a0f0f', color: '#f87171' },
+    draft:     { bg: 'var(--surface-input)', color: 'var(--text-secondary)' },
+    published: { bg: 'color-mix(in srgb, var(--status-success) 14%, transparent)', color: 'var(--status-success)' },
+    closed:    { bg: 'color-mix(in srgb, var(--status-error) 14%, transparent)', color: 'var(--status-error)' },
 };
 
 const s = {
-    page:      { minHeight: '100vh', background: '#0a0a0a', color: '#f0f0f0', fontFamily: "'DM Sans', sans-serif" },
-    topBar:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 40px', borderBottom: '1px solid #1a1a1a' },
-    back:      { display: 'inline-flex', alignItems: 'center', gap: 8, color: '#555', fontSize: 13, textDecoration: 'none', transition: 'color 0.15s', background: 'none', border: 'none', cursor: 'pointer' },
+    page:      { minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: "var(--font-body, system-ui), sans-serif" },
+    topBar:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 40px', borderBottom: '1px solid var(--line)' },
+    back:      { display: 'inline-flex', alignItems: 'center', gap: 8, color: 'var(--text-tertiary)', fontSize: 13, textDecoration: 'none', transition: 'color 0.15s', background: 'none', border: 'none', cursor: 'pointer' },
     layout:    { maxWidth: 1100, margin: '0 auto', padding: '32px 40px 80px', display: 'grid', gridTemplateColumns: '1fr 320px', gap: 40, alignItems: 'start' },
     main:      {},
     sidebar:   { position: 'sticky', top: 24, display: 'flex', flexDirection: 'column', gap: 16 },
 
     eyebrow:   { fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 10, fontWeight: 600 },
     titleRow:  { display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 },
-    title:     { fontSize: 'clamp(22px, 3.5vw, 36px)', fontWeight: 700, lineHeight: 1.2, fontFamily: "'DM Serif Display', serif", flex: 1 },
+    title:     { fontSize: 'clamp(22px, 3.5vw, 36px)', fontWeight: 700, lineHeight: 1.2, fontFamily: "var(--font-heading, serif), serif", flex: 1 },
     statusPill: (status) => ({
         fontSize: 11, padding: '4px 10px', borderRadius: 20, fontWeight: 600, letterSpacing: '0.08em', whiteSpace: 'nowrap', marginTop: 6,
-        background: JOB_STATUS_COLORS[status]?.bg ?? '#1e1e1e',
-        color:      JOB_STATUS_COLORS[status]?.color ?? '#888',
+        background: JOB_STATUS_COLORS[status]?.bg ?? 'var(--surface-input)',
+        color:      JOB_STATUS_COLORS[status]?.color ?? 'var(--text-secondary)',
     }),
     metaRow:   { display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 32 },
-    pill:      { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#1a1a1a', color: '#aaa', fontWeight: 500 },
-    pillPurple:{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: '#2d1b4e', color: 'var(--color-primary-400)', fontWeight: 500 },
+    pill:      { fontSize: 12, padding: '4px 12px', borderRadius: 20, background: 'var(--surface-card)', color: 'var(--text-secondary)', fontWeight: 500 },
+    pillPurple:{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)', color: 'var(--color-primary-400)', fontWeight: 500 },
 
     section:      { marginBottom: 32 },
-    sectionTitle: { fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444', fontWeight: 600, marginBottom: 14 },
-    body:         { fontSize: 15, lineHeight: 1.75, color: '#bbb' },
+    sectionTitle: { fontSize: 12, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: 14 },
+    body:         { fontSize: 15, lineHeight: 1.75, color: 'var(--text-secondary)' },
     list:         { listStyle: 'none', padding: 0, margin: 0 },
-    listItem:     { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, fontSize: 14, color: '#bbb', lineHeight: 1.6 },
+    listItem:     { display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 },
     dot:          { width: 5, height: 5, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0, marginTop: 8 },
 
-    divider:   { border: 'none', borderTop: '1px solid #1a1a1a', margin: '32px 0' },
+    divider:   { border: 'none', borderTop: '1px solid var(--line)', margin: '32px 0' },
 
-    card:      { background: '#111', border: '1px solid #1e1e1e', borderRadius: 12, padding: 20 },
-    cardTitle: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#444', fontWeight: 600, marginBottom: 16 },
+    card:      { background: 'var(--bg-primary)', border: '1px solid var(--line)', borderRadius: 12, padding: 20 },
+    cardTitle: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: 16 },
 
-    metaItem:  { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #161616', fontSize: 13 },
-    metaKey:   { color: '#555' },
-    metaVal:   { color: '#ccc', textAlign: 'right', maxWidth: 160 },
+    metaItem:  { display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid var(--line)', fontSize: 13 },
+    metaKey:   { color: 'var(--text-tertiary)' },
+    metaVal:   { color: 'var(--text-primary)', textAlign: 'right', maxWidth: 160 },
 
     btn: (variant) => {
         const map = {
-            primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff' },
-            danger:  { background: '#2a0f0f', color: '#f87171', border: '1px solid #3d1515' },
-            ghost:   { background: '#161616', color: '#888', border: '1px solid #222' },
-            green:   { background: '#0d2618', color: '#34d399', border: '1px solid #1a3d28' },
-            amber:   { background: '#1c1a10', color: '#fbbf24', border: '1px solid #2e2810' },
+            primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '' },
+            danger:  { background: 'color-mix(in srgb, var(--status-error) 14%, transparent)', color: 'var(--status-error)', border: '1px solid color-mix(in srgb, var(--status-error) 35%, transparent)' },
+            ghost:   { background: 'var(--surface-card)', color: 'var(--text-secondary)', border: '1px solid var(--line)' },
+            green:   { background: 'color-mix(in srgb, var(--status-success) 14%, transparent)', color: 'var(--status-success)', border: '1px solid color-mix(in srgb, var(--status-success) 35%, transparent)' },
+            amber:   { background: 'color-mix(in srgb, var(--status-warning) 14%, transparent)', color: 'var(--status-warning)', border: '1px solid color-mix(in srgb, var(--status-warning) 35%, transparent)' },
         };
         return {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -90,29 +90,29 @@ const s = {
         };
     },
 
-    appRow:    { display: 'flex', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid #161616', gap: 14, cursor: 'pointer', textDecoration: 'none' },
-    appName:   { fontSize: 14, fontWeight: 600, color: '#e5e5e5', flex: 1 },
-    appMeta:   { fontSize: 12, color: '#555', marginTop: 2 },
+    appRow:    { display: 'flex', alignItems: 'center', padding: '14px 0', borderBottom: '1px solid var(--line)', gap: 14, cursor: 'pointer', textDecoration: 'none' },
+    appName:   { fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', flex: 1 },
+    appMeta:   { fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 },
     appStatus: (status) => ({
         fontSize: 11, padding: '3px 9px', borderRadius: 20, fontWeight: 600, whiteSpace: 'nowrap',
-        background: APP_STATUS_COLORS[status]?.bg ?? '#1e1e1e',
-        color:      APP_STATUS_COLORS[status]?.color ?? '#888',
+        background: APP_STATUS_COLORS[status]?.bg ?? 'var(--surface-input)',
+        color:      APP_STATUS_COLORS[status]?.color ?? 'var(--text-secondary)',
     }),
     aiScore:   { fontSize: 12, fontWeight: 700, color: 'var(--color-primary-500)', minWidth: 36, textAlign: 'right' },
 
-    loader:    { textAlign: 'center', padding: '100px 0', color: '#444' },
-    empty:     { padding: '32px 0', textAlign: 'center', color: '#444', fontSize: 14 },
+    loader:    { textAlign: 'center', padding: '100px 0', color: 'var(--text-tertiary)' },
+    empty:     { padding: '32px 0', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 14 },
 
     overlay:   { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 },
-    modal:     { background: '#111', border: '1px solid #222', borderRadius: 14, padding: 32, width: '100%', maxWidth: 400 },
-    modalTitle:{ fontSize: 18, fontWeight: 700, marginBottom: 8, fontFamily: "'DM Serif Display', serif" },
-    modalSub:  { fontSize: 14, color: '#555', marginBottom: 28, lineHeight: 1.6 },
+    modal:     { background: 'var(--bg-primary)', border: '1px solid var(--line)', borderRadius: 14, padding: 32, width: '100%', maxWidth: 400 },
+    modalTitle:{ fontSize: 18, fontWeight: 700, marginBottom: 8, fontFamily: "var(--font-heading, serif), serif" },
+    modalSub:  { fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 28, lineHeight: 1.6 },
     modalRow:  { display: 'flex', gap: 10 },
-    cancelBtn: { flex: 1, padding: '11px 0', borderRadius: 8, border: '1px solid #222', background: 'transparent', color: '#666', fontSize: 13, cursor: 'pointer' },
+    cancelBtn: { flex: 1, padding: '11px 0', borderRadius: 8, border: '1px solid var(--line)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' },
     confirmBtn:(danger) => ({
         flex: 2, padding: '11px 0', borderRadius: 8, border: 'none',
-        background: danger ? '#c0392b' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
-        color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        background: danger ? 'var(--status-error)' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
+        color: '', fontSize: 13, fontWeight: 600, cursor: 'pointer',
     }),
 };
 
@@ -239,7 +239,7 @@ export default function AdminJobDetailPage() {
                     to="/admin/careers/jobs"
                     style={s.back}
                     onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
-                    onMouseLeave={e => e.currentTarget.style.color = '#555'}
+                    onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
                 >
                     ← All Jobs
                 </Link>
@@ -306,8 +306,8 @@ export default function AdminJobDetailPage() {
                             <p style={s.sectionTitle}>Nice to Have</p>
                             <ul style={s.list}>
                                 {job.nice_to_haves.map((r, i) => (
-                                    <li key={i} style={{ ...s.listItem, color: '#555' }}>
-                                        <span style={{ ...s.dot, background: '#333' }} />{r}
+                                    <li key={i} style={{ ...s.listItem, color: 'var(--text-tertiary)' }}>
+                                        <span style={{ ...s.dot, background: 'var(--line)' }} />{r}
                                     </li>
                                 ))}
                             </ul>
@@ -322,7 +322,7 @@ export default function AdminJobDetailPage() {
                             <p style={{ ...s.sectionTitle, marginBottom: 0 }}>
                                 Applications
                                 {(appsMeta?.total ?? apps.length) > 0 && (
-                                    <span style={{ marginLeft: 10, fontSize: 12, color: '#555', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>
+                                    <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>
                                         {appsMeta?.total ?? apps.length} total · {screened} screened on this page · {shortlisted} shortlisted on this page
                                     </span>
                                 )}
@@ -349,12 +349,12 @@ export default function AdminJobDetailPage() {
                                         key={app.id}
                                         style={s.appRow}
                                         onClick={() => handleSelectApp(app.id)}
-                                        onMouseEnter={e => e.currentTarget.style.background = '#111'}
+                                        onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     >
                                         <div style={{
                                             width: 36, height: 36, borderRadius: '50%',
-                                            background: '#1e1e1e', display: 'flex', alignItems: 'center',
+                                            background: 'var(--surface-input)', display: 'flex', alignItems: 'center',
                                             justifyContent: 'center', fontSize: 14, fontWeight: 700,
                                             color: 'var(--color-primary-500)', flexShrink: 0,
                                         }}>
@@ -379,7 +379,7 @@ export default function AdminJobDetailPage() {
                                             {APP_STATUS_LABELS[app.status] ?? app.status}
                                         </span>
 
-                                        <span style={{ color: '#333', fontSize: 16 }}>›</span>
+                                        <span style={{ color: 'var(--text-tertiary)', fontSize: 16 }}>›</span>
                                     </div>
                                 ))}
                                 <Pagination
@@ -554,15 +554,15 @@ export default function AdminJobDetailPage() {
                                 {(appsMeta?.total ?? apps.length) > 0 ? (
                                     <>
                                         <p style={s.modalSub}>
-                                            This job has <strong style={{ color: '#f87171' }}>
+                                            This job has <strong style={{ color: 'var(--status-error)' }}>
                                                 {appsMeta?.total ?? apps.length} application{(appsMeta?.total ?? apps.length) !== 1 ? 's' : ''}
                                             </strong>. Deleting it will permanently remove the listing - those applications will remain in the system but will lose their job reference and appear without a job name.
                                         </p>
                                         <div style={{
-                                            background: '#1c1a10', border: '1px solid #2e2810',
+                                            background: 'color-mix(in srgb, var(--status-warning) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--status-warning) 35%, transparent)',
                                             borderRadius: 8, padding: '12px 14px', marginBottom: 20,
                                         }}>
-                                            <p style={{ fontSize: 13, color: '#fbbf24', margin: 0, lineHeight: 1.6 }}>
+                                            <p style={{ fontSize: 13, color: 'var(--status-warning)', margin: 0, lineHeight: 1.6 }}>
                                                 💡 Consider <strong>closing the job</strong> instead, it stops new applications while keeping the listing and its history intact.
                                             </p>
                                         </div>

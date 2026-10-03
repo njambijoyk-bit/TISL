@@ -3,32 +3,32 @@ import useAdminCareersStore from '../../../_shared/store/useAdminCareersStore';
 
 const STATUSES = ['submitted','under_review','shortlisted','interviewed','rejected','hired','withdrawn'];
 const STATUS_LABELS = { submitted:'Application Received', under_review:'Under Review', shortlisted:'Shortlisted', interviewed:'Interview Stage', rejected:'Unsuccessful', hired:'Offer Extended', withdrawn:'Withdrawn' };
-const STATUS_COLORS = { submitted:'#818cf8', under_review:'#fbbf24', shortlisted:'#34d399', interviewed:'#38bdf8', rejected:'#f87171', hired:'#a3e635', withdrawn:'#444' };
-const REC_COLORS = { strong_yes:'#a3e635', yes:'#34d399', maybe:'#fbbf24', no:'#f87171' };
+const STATUS_COLORS = { submitted:'var(--status-info)', under_review:'var(--status-warning)', shortlisted:'var(--status-success)', interviewed:'var(--status-info)', rejected:'var(--status-error)', hired:'var(--status-success)', withdrawn:'var(--text-tertiary)' };
+const REC_COLORS = { strong_yes:'var(--status-success)', yes:'var(--status-success)', maybe:'var(--status-warning)', no:'var(--status-error)' };
 const REC_LABELS = { strong_yes:'Strong Yes', yes:'Yes', maybe:'Maybe', no:'No' };
 
 const s = {
-    panel: { background: '#161616', border: '1px solid #1e1e1e', borderRadius: 14, overflow: 'hidden' },
-    panelHdr: { padding: '20px 24px', borderBottom: '1px solid #1e1e1e', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
-    applicantName: { fontSize: 18, fontWeight: 700, color: '#f0f0f0', marginBottom: 2 },
-    applicantEmail: { fontSize: 13, color: '#555' },
-    closeBtn: { background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 20 },
+    panel: { background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden' },
+    panelHdr: { padding: '20px 24px', borderBottom: '1px solid var(--line)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' },
+    applicantName: { fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 },
+    applicantEmail: { fontSize: 13, color: 'var(--text-tertiary)' },
+    closeBtn: { background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: 20 },
     body: { padding: '24px' },
     section: { marginBottom: 28 },
-    sectionTitle: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#555', fontWeight: 600, marginBottom: 14 },
+    sectionTitle: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)', fontWeight: 600, marginBottom: 14 },
     grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 },
-    infoItem: { background: '#0f0f0f', borderRadius: 8, padding: '10px 14px' },
-    infoLabel: { fontSize: 11, color: '#555', marginBottom: 3 },
-    infoVal: { fontSize: 13, color: '#ccc', fontWeight: 500 },
+    infoItem: { background: 'var(--bg-primary)', borderRadius: 8, padding: '10px 14px' },
+    infoLabel: { fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 3 },
+    infoVal: { fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 },
 
     // Status buttons
     statusRow: { display: 'flex', gap: 8, flexWrap: 'wrap' },
     statusBtn: (active, loading, color) => ({
         padding: '6px 14px',
         borderRadius: 20,
-        border: `1px solid ${(active || loading) ? color : '#2a2a2a'}`,
-        background: loading ? `${color}44` : active ? `${color}22` : 'transparent',
-        color: (active || loading) ? color : '#555',
+        border: `1px solid ${(active || loading) ? color : 'var(--line)'}`,
+        background: loading ? `color-mix(in srgb, ${color} 27%, transparent)` : active ? `color-mix(in srgb, ${color} 13%, transparent)` : 'transparent',
+        color: (active || loading) ? color : 'var(--text-tertiary)',
         fontSize: 12,
         cursor: loading ? 'not-allowed' : 'pointer',
         fontWeight: (active || loading) ? 600 : 400,
@@ -38,35 +38,35 @@ const s = {
 
     // AI score
     scoreRing: (score) => {
-        const color = score >= 75 ? '#4ade80' : score >= 50 ? '#fbbf24' : '#f87171';
+        const color = score >= 75 ? 'var(--status-success)' : score >= 50 ? 'var(--status-warning)' : 'var(--status-error)';
         return { width: 72, height: 72, borderRadius: '50%', border: `4px solid ${color}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
     },
-    scoreNum: { fontSize: 20, fontWeight: 700, color: '#f0f0f0' },
-    aiCard: { background: '#0f0f0f', borderRadius: 10, padding: 18 },
+    scoreNum: { fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' },
+    aiCard: { background: 'var(--bg-primary)', borderRadius: 10, padding: 18 },
     aiRow: { display: 'flex', gap: 16, alignItems: 'flex-start' },
     aiBody: { flex: 1 },
-    aiSummary: { fontSize: 14, color: '#ccc', lineHeight: 1.65, marginBottom: 14 },
-    aiTag: (color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `${color}22`, color, marginRight: 6, marginBottom: 6 }),
-    screenBtn: { width: '100%', padding: '11px 0', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
-    rescreenBtn: { width: '100%', padding: '10px 0', borderRadius: 9, border: '1px solid #2a2a2a', background: 'transparent', color: '#888', fontSize: 13, cursor: 'pointer', marginTop: 8 },
+    aiSummary: { fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.65, marginBottom: 14 },
+    aiTag: (color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `color-mix(in srgb, ${color} 13%, transparent)`, color, marginRight: 6, marginBottom: 6 }),
+    screenBtn: { width: '100%', padding: '11px 0', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+    rescreenBtn: { width: '100%', padding: '10px 0', borderRadius: 9, border: '1px solid var(--line)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', marginTop: 8 },
     pollingMsg: { fontSize: 13, color: 'var(--color-primary-500)', textAlign: 'center', padding: '12px 0' },
 
     // Documents
-    docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #111', fontSize: 13 },
-    docName: { color: '#ccc' },
-    docSize: { color: '#555', fontSize: 12 },
+    docRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--line)', fontSize: 13 },
+    docName: { color: 'var(--text-primary)' },
+    docSize: { color: 'var(--text-tertiary)', fontSize: 12 },
 
     // Notes
-    noteArea: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid #2a2a2a', background: '#0f0f0f', color: '#f0f0f0', fontSize: 13, resize: 'vertical', minHeight: 90, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
-    saveNoteBtn: (saving) => ({ padding: '9px 20px', borderRadius: 8, border: 'none', background: saving ? '#1e1535' : '#2d1b4e', color: saving ? 'var(--color-primary-600)' : 'var(--color-primary-400)', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', marginTop: 10, transition: 'all 0.15s' }),
-    noteErr: { fontSize: 12, color: '#f87171', marginTop: 6 },
+    noteArea: { width: '100%', padding: '10px 13px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 13, resize: 'vertical', minHeight: 90, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' },
+    saveNoteBtn: (saving) => ({ padding: '9px 20px', borderRadius: 8, border: 'none', background: saving ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)', color: saving ? 'var(--color-primary-600)' : 'var(--color-primary-400)', fontSize: 13, cursor: saving ? 'not-allowed' : 'pointer', marginTop: 10, transition: 'all 0.15s' }),
+    noteErr: { fontSize: 12, color: 'var(--status-error)', marginTop: 6 },
 
     // Timeline
     timeline: { position: 'relative', paddingLeft: 18 },
     tItem: { position: 'relative', paddingBottom: 18, paddingLeft: 14 },
     tDot: (color) => ({ position: 'absolute', left: -18, top: 5, width: 8, height: 8, borderRadius: '50%', background: color }),
-    tLabel: { fontSize: 13, fontWeight: 600, color: '#ccc', marginBottom: 2 },
-    tDate: { fontSize: 11, color: '#444' },
+    tLabel: { fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 },
+    tDate: { fontSize: 11, color: 'var(--text-tertiary)' },
 };
 
 export default function ApplicationDetailPanel({ applicationId, onClose }) {
@@ -154,7 +154,7 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
     if (appLoading || !app) {
         return (
             <div style={s.panel}>
-                <div style={{ padding: 48, textAlign: 'center', color: '#555' }}>Loading application…</div>
+                <div style={{ padding: 48, textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading application…</div>
             </div>
         );
     }
@@ -222,31 +222,31 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
                                 </div>
                                 <div style={s.aiBody}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                                        <span style={{ fontSize: 13, color: '#555' }}>Recommendation:</span>
-                                        <span style={{ fontSize: 13, fontWeight: 700, color: REC_COLORS[app.ai_recommendation] ?? '#888' }}>
+                                        <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>Recommendation:</span>
+                                        <span style={{ fontSize: 13, fontWeight: 700, color: REC_COLORS[app.ai_recommendation] ?? 'var(--text-secondary)' }}>
                                             {REC_LABELS[app.ai_recommendation] ?? app.ai_recommendation}
                                         </span>
                                     </div>
                                     <p style={s.aiSummary}>{app.ai_summary}</p>
                                     {app.ai_strengths?.length > 0 && (
                                         <div style={{ marginBottom: 8 }}>
-                                            {app.ai_strengths.map((str, i) => <span key={i} style={s.aiTag('#4ade80')}>✓ {str}</span>)}
+                                            {app.ai_strengths.map((str, i) => <span key={i} style={s.aiTag('var(--status-success)')}>✓ {str}</span>)}
                                         </div>
                                     )}
                                     {app.ai_gaps?.length > 0 && (
                                         <div>
-                                            {app.ai_gaps.map((gap, i) => <span key={i} style={s.aiTag('#f87171')}>✗ {gap}</span>)}
+                                            {app.ai_gaps.map((gap, i) => <span key={i} style={s.aiTag('var(--status-error)')}>✗ {gap}</span>)}
                                         </div>
                                     )}
                                 </div>
                             </div>
-                            <p style={{ fontSize: 11, color: '#444', marginTop: 12 }}>
+                            <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 12 }}>
                                 Screened {new Date(app.ai_screened_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                             </p>
                         </div>
                     ) : (
-                        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: 18 }}>
-                            <p style={{ fontSize: 14, color: '#555', marginBottom: 14 }}>This application has not been screened yet.</p>
+                        <div style={{ background: 'var(--bg-primary)', borderRadius: 10, padding: 18 }}>
+                            <p style={{ fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 14 }}>This application has not been screened yet.</p>
                             {!screening && (
                                 <button style={s.screenBtn} onClick={handleScreen}>
                                     Run AI Screen
@@ -287,8 +287,8 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
                         <p style={s.sectionTitle}>Cover Letter</p>
                         {/* FIX: wordBreak + overflowWrap prevent long unbroken strings overflowing */}
                         <p style={{
-                            fontSize: 14, color: '#aaa', lineHeight: 1.7,
-                            background: '#0f0f0f', borderRadius: 8, padding: 16,
+                            fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7,
+                            background: 'var(--bg-primary)', borderRadius: 8, padding: 16,
                             wordBreak: 'break-word', overflowWrap: 'break-word',
                             whiteSpace: 'pre-wrap',   // preserves line breaks from the original
                         }}>
@@ -301,7 +301,7 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
                 <div style={s.section}>
                     <p style={s.sectionTitle}>
                         Internal Notes{' '}
-                        <span style={{ color: '#333', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+                        <span style={{ color: 'var(--text-tertiary)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
                             (not visible to applicant)
                         </span>
                     </p>
@@ -323,10 +323,10 @@ export default function ApplicationDetailPanel({ applicationId, onClose }) {
                     <div style={s.timeline}>
                         {(status_history ?? []).slice().reverse().map((h, i) => (
                             <div key={i} style={s.tItem}>
-                                <div style={s.tDot(STATUS_COLORS[h.to_status] ?? '#555')} />
+                                <div style={s.tDot(STATUS_COLORS[h.to_status] ?? 'var(--text-tertiary)')} />
                                 <p style={s.tLabel}>{STATUS_LABELS[h.to_status] ?? h.to_status}</p>
                                 <p style={s.tDate}>{new Date(h.created_at).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</p>
-                                {h.note && <p style={{ fontSize: 12, color: '#555', marginTop: 3 }}>{h.note}</p>}
+                                {h.note && <p style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 3 }}>{h.note}</p>}
                             </div>
                         ))}
                     </div>

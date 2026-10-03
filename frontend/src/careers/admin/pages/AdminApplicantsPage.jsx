@@ -6,8 +6,8 @@ import AdminCareersHeader from '../../layouts/AdminCareersHeader';
 import Pagination from '../components/Pagination';
 
 const STATUS_STYLES = {
-    active:    { bg: 'rgba(16,185,129,0.12)', color: '#10b981', label: 'Active' },
-    suspended: { bg: 'rgba(239,68,68,0.12)',  color: '#ef4444', label: 'Suspended' },
+    active:    { bg: 'rgba(16,185,129,0.12)', color: 'var(--status-success)', label: 'Active' },
+    suspended: { bg: 'rgba(239,68,68,0.12)',  color: 'var(--status-error)', label: 'Suspended' },
 };
 
 export default function AdminApplicantsPage() {
@@ -56,7 +56,7 @@ export default function AdminApplicantsPage() {
     const total       = data?.total ?? 0;
 
     return (
-        <div style={{ minHeight: '100vh', background: '#0f0f0f', fontFamily: "'DM Sans', sans-serif" }}>
+        <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', fontFamily: "var(--font-body, system-ui), sans-serif" }}>
             <AdminCareersHeader />
 
             <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 32px 80px' }}>
@@ -64,9 +64,9 @@ export default function AdminApplicantsPage() {
                 {/* ── Page title ── */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
                     <div>
-                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#f0f0f0' }}>Applicants</h1>
+                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>Applicants</h1>
                         {!loading && (
-                            <p style={{ margin: '4px 0 0', fontSize: 13, color: '#555' }}>
+                            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-tertiary)' }}>
                                 {total.toLocaleString()} registered applicant{total !== 1 ? 's' : ''}
                             </p>
                         )}
@@ -76,15 +76,15 @@ export default function AdminApplicantsPage() {
                 {/* ── Filters ── */}
                 <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
                     <form onSubmit={handleSearch} style={{ flex: 1, minWidth: 220, position: 'relative' }}>
-                        <Search size={14} color="#555" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+                        <Search size={14} color="var(--text-tertiary)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                         <input
                             value={searchInput}
                             onChange={e => setSearchInput(e.target.value)}
                             placeholder="Search name, email, role, location…"
                             style={{
                                 width: '100%', padding: '9px 12px 9px 34px',
-                                background: '#161616', border: '1px solid #222',
-                                borderRadius: 8, color: '#f0f0f0', fontSize: 13,
+                                background: 'var(--surface-card)', border: '1px solid var(--line)',
+                                borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                                 outline: 'none', boxSizing: 'border-box',
                             }}
                         />
@@ -99,9 +99,9 @@ export default function AdminApplicantsPage() {
                                 style={{
                                     padding: '7px 14px', borderRadius: 20, fontSize: 12, fontWeight: 500,
                                     border: '1px solid',
-                                    borderColor: status === s ? 'var(--color-primary-500)' : '#2a2a2a',
+                                    borderColor: status === s ? 'var(--color-primary-500)' : 'var(--line)',
                                     background:  status === s ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'transparent',
-                                    color:       status === s ? 'var(--color-primary-400)' : '#666',
+                                    color:       status === s ? 'var(--color-primary-400)' : 'var(--text-secondary)',
                                     cursor: 'pointer', transition: 'all 0.15s',
                                 }}
                             >
@@ -113,9 +113,9 @@ export default function AdminApplicantsPage() {
 
                 {/* ── List ── */}
                 {loading ? (
-                    <p style={{ color: '#555', textAlign: 'center', padding: '48px 0' }}>Loading…</p>
+                    <p style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '48px 0' }}>Loading…</p>
                 ) : applicants.length === 0 ? (
-                    <div style={{ textAlign: 'center', padding: '64px 0', color: '#555' }}>
+                    <div style={{ textAlign: 'center', padding: '64px 0', color: 'var(--text-tertiary)' }}>
                         <User size={32} style={{ marginBottom: 12, opacity: 0.3 }} />
                         <p>No applicants found.</p>
                     </div>
@@ -129,20 +129,20 @@ export default function AdminApplicantsPage() {
                                     to={`/admin/careers/applicants/${a.id}`}
                                     style={{
                                         display: 'flex', alignItems: 'center', gap: 16,
-                                        background: '#161616', border: '1px solid #1e1e1e',
+                                        background: 'var(--surface-card)', border: '1px solid var(--line)',
                                         borderRadius: 10, padding: '16px 20px',
                                         textDecoration: 'none', color: 'inherit',
                                         transition: 'border-color 0.15s',
                                     }}
                                     onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
-                                    onMouseLeave={e => e.currentTarget.style.borderColor = '#1e1e1e'}
+                                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--line)'}
                                 >
                                     {/* Avatar */}
                                     <div style={{
                                         width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
                                         background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                        fontSize: 15, fontWeight: 700, color: '#fff',
+                                        fontSize: 15, fontWeight: 700, color: '',
                                     }}>
                                         {a.first_name?.[0]?.toUpperCase()}
                                     </div>
@@ -150,7 +150,7 @@ export default function AdminApplicantsPage() {
                                     {/* Info */}
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                                            <span style={{ fontSize: 14, fontWeight: 600, color: '#f0f0f0' }}>
+                                            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
                                                 {a.first_name} {a.last_name}
                                             </span>
                                             <span style={{
@@ -161,10 +161,10 @@ export default function AdminApplicantsPage() {
                                                 {st.label}
                                             </span>
                                         </div>
-                                        <p style={{ margin: 0, fontSize: 12, color: '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                        <p style={{ margin: 0, fontSize: 12, color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                             {a.email}
-                                            {a.current_role && <span style={{ color: '#444' }}> · {a.current_role}</span>}
-                                            {a.location && <span style={{ color: '#444' }}> · {a.location}</span>}
+                                            {a.current_role && <span style={{ color: 'var(--text-tertiary)' }}> · {a.current_role}</span>}
+                                            {a.location && <span style={{ color: 'var(--text-tertiary)' }}> · {a.location}</span>}
                                         </p>
                                     </div>
 
@@ -172,9 +172,9 @@ export default function AdminApplicantsPage() {
                                     <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexShrink: 0 }}>
                                         <div style={{ textAlign: 'right' }}>
                                             <p style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--color-primary-500)' }}>{a.applications_count}</p>
-                                            <p style={{ margin: 0, fontSize: 10, color: '#444' }}>applications</p>
+                                            <p style={{ margin: 0, fontSize: 10, color: 'var(--text-tertiary)' }}>applications</p>
                                         </div>
-                                        <ChevronRight size={14} color="#333" />
+                                        <ChevronRight size={14} color="var(--text-tertiary)" />
                                     </div>
                                 </Link>
                             );

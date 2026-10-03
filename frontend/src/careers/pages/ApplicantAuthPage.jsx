@@ -3,29 +3,29 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import useCareersStore from '../../_shared/store/useCareersStore';
 
 const s = {
-    page: { minHeight: '100vh', background: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "'DM Sans', sans-serif" },
-    card: { background: '#161616', border: '1px solid #1e1e1e', borderRadius: 16, padding: '48px 40px', width: '100%', maxWidth: 460 },
-    back: { display: 'inline-flex', alignItems: 'center', gap: 6, color: '#555', fontSize: 13, textDecoration: 'none', marginBottom: 32, transition: 'color 0.15s' },
+    page: { minHeight: '100vh', background: 'var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: "var(--font-body, system-ui), sans-serif" },
+    card: { background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 16, padding: '48px 40px', width: '100%', maxWidth: 460 },
+    back: { display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-tertiary)', fontSize: 13, textDecoration: 'none', marginBottom: 32, transition: 'color 0.15s' },
     eyebrow: { fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 10, fontWeight: 600 },
-    title: { fontSize: 28, fontWeight: 700, color: '#f0f0f0', marginBottom: 6, fontFamily: "'DM Serif Display', serif" },
-    sub: { fontSize: 14, color: '#555', marginBottom: 32 },
-    tabs: { display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid #1e1e1e' },
+    title: { fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6, fontFamily: "var(--font-heading, serif), serif" },
+    sub: { fontSize: 14, color: 'var(--text-tertiary)', marginBottom: 32 },
+    tabs: { display: 'flex', gap: 0, marginBottom: 32, borderBottom: '1px solid var(--line)' },
     tab: (active) => ({
         flex: 1, padding: '10px 0', textAlign: 'center', fontSize: 14, fontWeight: 600,
         background: 'transparent', border: 'none', cursor: 'pointer',
-        color: active ? 'var(--color-primary-500)' : '#555',
+        color: active ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
         borderBottom: active ? '2px solid var(--color-primary-500)' : '2px solid transparent',
         marginBottom: -1, transition: 'all 0.15s',
     }),
     field: { marginBottom: 18 },
-    label: { display: 'block', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#555', marginBottom: 7, fontWeight: 600 },
-    input: { width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid #222', background: '#0f0f0f', color: '#f0f0f0', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' },
+    label: { display: 'block', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7, fontWeight: 600 },
+    input: { width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' },
     row2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 },
-    submitBtn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s' },
-    errBox: { background: '#2d1111', border: '1px solid #5a1d1d', borderRadius: 8, padding: '12px 14px', color: '#f87171', fontSize: 13, marginBottom: 20 },
-    errField: { fontSize: 12, color: '#f87171', marginTop: 5 },
-    divider: { borderTop: '1px solid #1e1e1e', margin: '28px 0' },
-    portalLink: { textAlign: 'center', fontSize: 13, color: '#555' },
+    submitBtn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s' },
+    errBox: { background: 'color-mix(in srgb, var(--status-error) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--status-error) 40%, transparent)', borderRadius: 8, padding: '12px 14px', color: 'var(--status-error)', fontSize: 13, marginBottom: 20 },
+    errField: { fontSize: 12, color: 'var(--status-error)', marginTop: 5 },
+    divider: { borderTop: '1px solid var(--line)', margin: '28px 0' },
+    portalLink: { textAlign: 'center', fontSize: 13, color: 'var(--text-tertiary)' },
 };
 
 function Field({ label, name, type = 'text', value, onChange, error, placeholder }) {
@@ -36,7 +36,7 @@ function Field({ label, name, type = 'text', value, onChange, error, placeholder
                 style={s.input} type={type} name={name} value={value}
                 onChange={onChange} placeholder={placeholder}
                 onFocus={(e) => e.target.style.borderColor = 'var(--color-primary-500)'}
-                onBlur={(e) => e.target.style.borderColor = '#222'}
+                onBlur={(e) => e.target.style.borderColor = 'var(--line)'}
             />
             {error && <p style={s.errField}>{error}</p>}
         </div>
@@ -97,7 +97,7 @@ export default function ApplicantAuthPage() {
             <div style={s.card}>
                 <Link to="/careers" style={s.back}
                     onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary-500)'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = '#555'}>
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-tertiary)'}>
                     ← Back to Careers
                 </Link>
 
@@ -117,7 +117,7 @@ export default function ApplicantAuthPage() {
                         <Field label="Email" name="email" type="email" value={loginForm.email} onChange={patchLogin('email')} error={errors.email?.[0]} />
                         <Field label="Password" name="password" type="password" value={loginForm.password} onChange={patchLogin('password')} error={errors.password?.[0]} />
                         <div style={{ textAlign: 'right', marginBottom: 20, marginTop: -10 }}>
-                            <Link to="/careers/forgot-password" style={{ fontSize: 12, color: '#555', textDecoration: 'none' }}>Forgot password?</Link>
+                            <Link to="/careers/forgot-password" style={{ fontSize: 12, color: 'var(--text-tertiary)', textDecoration: 'none' }}>Forgot password?</Link>
                         </div>
                         {/* ── Terms checkbox ── */}
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, margin: '16px 0 8px' }}>
@@ -128,7 +128,7 @@ export default function ApplicantAuthPage() {
                                 onChange={e => setAccepted(e.target.checked)}
                                 style={{ marginTop: 2, accentColor: 'var(--color-primary-500)', cursor: 'pointer', flexShrink: 0 }}
                             />
-                            <label htmlFor="accept-terms" style={{ fontSize: 12, color: '#666', lineHeight: 1.6, cursor: 'pointer' }}>
+                            <label htmlFor="accept-terms" style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, cursor: 'pointer' }}>
                                 I have read and agree to the{' '}
                                 <Link to="/careers/terms" target="_blank" style={{ color: 'var(--color-primary-500)', textDecoration: 'none' }}>Terms of Service</Link>
                                 {' '}and{' '}
@@ -159,7 +159,7 @@ export default function ApplicantAuthPage() {
                                 onChange={e => setAccepted(e.target.checked)}
                                 style={{ marginTop: 2, accentColor: 'var(--color-primary-500)', cursor: 'pointer', flexShrink: 0 }}
                             />
-                            <label htmlFor="accept-terms-reg" style={{ fontSize: 12, color: '#666', lineHeight: 1.6, cursor: 'pointer' }}>
+                            <label htmlFor="accept-terms-reg" style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, cursor: 'pointer' }}>
                                 I have read and agree to the{' '}
                                 <Link to="/careers/terms" target="_blank" style={{ color: 'var(--color-primary-500)', textDecoration: 'none' }}>Terms of Service</Link>
                                 {' '}and{' '}
