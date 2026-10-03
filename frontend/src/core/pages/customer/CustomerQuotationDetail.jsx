@@ -43,8 +43,8 @@ export default function CustomerQuotationDetail() {
     <>
       <Header />
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 16px 64px' }}>
-        <Link to="/my-quotes" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>← My quotations</Link>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>Quotation <span style={{ fontFamily: 'monospace' }}>{q.number}</span></h1>
+        <Link to="/my-quotes" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-500)', textDecoration: 'none' }}>← My quotations</Link>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>Quotation <span style={{ fontFamily: 'monospace', color: 'var(--color-primary-500)' }}>{q.number}</span></h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{q.valid_until ? `Valid until ${q.valid_until}` : 'We are preparing your prices'}</p>
 
         {q.doc_status === 'requested' && <p style={{ padding: 12, borderRadius: 10, background: 'rgba(245,158,11,0.1)' }}>We're preparing your prices. You'll be notified when this is ready.</p>}
@@ -67,7 +67,7 @@ export default function CustomerQuotationDetail() {
               ))}
               {q.doc_status !== 'requested' && q.charges.map((c, i) => <tr key={`c${i}`} style={{ borderTop: '1px solid var(--line)' }}><td style={{ padding: 8 }} colSpan={3}>{c.description}</td><td style={{ textAlign: 'right' }}>{formatMoney(c.amount, cur)}</td></tr>)}
               {q.doc_status !== 'requested' && q.tax_total > 0 && <tr style={{ borderTop: '1px solid var(--line)' }}><td style={{ padding: 8 }} colSpan={3}>Tax</td><td style={{ textAlign: 'right' }}>{formatMoney(q.tax_total, cur)}</td></tr>}
-              {q.doc_status !== 'requested' && <tr style={{ borderTop: '2px solid var(--text-tertiary)', fontWeight: 800 }}><td style={{ padding: 8 }} colSpan={3}>Total</td><td style={{ textAlign: 'right' }}>{formatMoney(q.total, cur)}</td></tr>}
+              {q.doc_status !== 'requested' && <tr style={{ borderTop: '2px solid var(--color-primary-500)', fontWeight: 800, color: 'var(--color-primary-500)' }}><td style={{ padding: 8 }} colSpan={3}>Total</td><td style={{ textAlign: 'right' }}>{formatMoney(q.total, cur)}</td></tr>}
             </tbody>
           </table>
         </div>
