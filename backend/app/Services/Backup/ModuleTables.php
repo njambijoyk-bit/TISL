@@ -57,7 +57,14 @@ final class ModuleTables
             'customer_credit_schedules', 'customer_credit_schedule_items', 'customer_credit_transactions',
             'shipping_activities',
             'financial_notes', 'reconciliation_sessions', 'reconciliation_lines',
-            // Bookings are being rebuilt: their tables are listed here again when the new ones exist.
+            // Bookings (polymorphic; a service is the first thing booked), the staff calendar and what can be booked.
+            'bookings', 'bookable_resources', 'resource_hours', 'resource_time_off', 'resource_services', 'calendar_entries', 'calendar_tokens',
+            // Staff: employee records (payroll and attendance stand on them), attendance, payroll, petty cash, voucher verification.
+            'employees', 'leave_logs',
+            'attendance_settings', 'attendance_days', 'attendance_markers', 'attendance_disputes',
+            'payroll_settings', 'payroll_components', 'payroll_employee_items', 'payroll_runs', 'payroll_lines',
+            'petty_cash_floats', 'petty_cash_spends',
+            'verification_settings', 'verification_assignments', 'verification_items', 'verification_log',
             // Help desk, content, policies, publications, notifications
             'tickets', 'ticket_replies',
             'content_pages', 'content_sections', 'component_layouts',
@@ -88,6 +95,8 @@ final class ModuleTables
             'product_reviews',
             'categories', 'brands',
             'services', 'service_categories',
+            // fees a service carries (deposit, call-out…) and the cancellation windows
+            'service_fees', 'service_settings',
             // service options, packages (variants) and structured requirements
             'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements', 'service_variant_materials',
             // saved products and services (wishlist)
@@ -108,7 +117,7 @@ final class ModuleTables
             // Delivery + drivers (drivers are users, backed up under Core)
             'delivery_manifests', 'delivery_items', 'delivery_incidents', 'delivery_ratings',
             'delivery_activity_logs', 'driver_location_pings', 'driver_rating_adjustments',
-            'employees', 'leave_logs',
+            // (employees and leave logs moved to Core: payroll and attendance stand on them)
             // Algorithm, search and AI analytics
             'algorithm_config', 'algorithm_segment_rules', 'algorithm_bonus_content',
             'customer_algorithm_scores', 'customer_product_pins', 'search_events',
