@@ -11,16 +11,16 @@ import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import SummaryLedger from '../../../_shared/components/common/SummaryLedger';
 
-const box = { background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', padding: 20 };
-const head = { fontSize: '0.8rem', fontWeight: 700, color: '#111827', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 };
+const box = { background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', borderRadius: 12, border: '1px solid var(--line)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', padding: 20 };
+const head = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 10px', display: 'flex', alignItems: 'center', gap: 6 };
 
 function Pick({ active, onClick, name, detail, amount, tone }) {
   return (
     <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
-      border: `1.5px solid ${active ? 'var(--color-primary-500)' : '#e5e7eb'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'var(--surface-card, #fff)' }}>
-      <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? 'var(--color-primary-500)' : '#d1d5db'}`, background: active ? 'var(--color-primary-500)' : 'var(--surface-card, #fff)', flexShrink: 0 }} />
-      <span style={{ flex: 1 }}><span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{name}</span>{detail && <span style={{ display: 'block', fontSize: '0.7rem', color: '#9ca3af' }}>{detail}</span>}</span>
-      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tone ?? '#111827' }}>{amount}</span>
+      border: `1.5px solid ${active ? 'var(--color-primary-500)' : 'var(--line)'}`, background: active ? '#fff' : 'transparent' }}>
+      <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? 'var(--color-primary-500)' : 'var(--text-tertiary)'}`, background: active ? 'var(--color-primary-500)' : 'transparent', flexShrink: 0 }} />
+      <span style={{ flex: 1 }}><span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: active ? '#111827' : 'var(--text-primary)' }}>{name}</span>{detail && <span style={{ display: 'block', fontSize: '0.7rem', color: active ? '#6b7280' : 'var(--text-tertiary)' }}>{detail}</span>}</span>
+      <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tone ?? (active ? '#111827' : 'var(--text-primary)') }}>{amount}</span>
     </button>
   );
 }
@@ -63,7 +63,7 @@ export default function CartSummary({ blocked = false }) {
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={box}>
         <p style={head}>Order summary</p>
-        {quote ? <SummaryLedger quote={quote} /> : <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>Pricing your cart…</p>}
+        {quote ? <SummaryLedger quote={quote} /> : <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>Pricing your cart…</p>}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 16 }}>
@@ -75,22 +75,22 @@ export default function CartSummary({ blocked = false }) {
                 detail={[o.description, o.transit_days ? `${o.transit_days} day${o.transit_days > 1 ? 's' : ''}` : null, o.display_free_above ? `free above ${o.display_free_above.formatted}` : null].filter(Boolean).join(' · ')}
                 amount={Number(o.cost) === 0 ? 'Free' : o.display_cost?.formatted} />
             ))}
-            {opts && !(opts.shipping ?? []).length && <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>No delivery methods are set up yet.</p>}
+            {opts && !(opts.shipping ?? []).length && <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0 }}>No delivery methods are set up yet.</p>}
           </div>
         </div>
 
         <div style={box}>
           <p style={head}><Tag size={14} /> Promo codes</p>
-          {!isAuthenticated && <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 8px' }}>Sign in to see your tier discount and the promo codes you can use.</p>}
+          {!isAuthenticated && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 8px' }}>Sign in to see your tier discount and the promo codes you can use.</p>}
           <div style={{ display: 'grid', gap: 7 }}>
             {promos.map((p) => (
               <Pick key={p.code} active={chosen === p.code.toLowerCase()} onClick={() => prefs.set({ promo_code: chosen === p.code.toLowerCase() ? '' : p.code })} name={p.code} amount={`saves ${money(p.discount)}`} tone="#059669" />
             ))}
-            {isAuthenticated && !promos.length && <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>No promo codes available for this cart.</p>}
+            {isAuthenticated && !promos.length && <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0 }}>No promo codes available for this cart.</p>}
             {isAuthenticated && (
               <form onSubmit={(e) => { e.preventDefault(); if (typed.trim()) { prefs.set({ promo_code: typed.trim() }); setTyped(''); } }} style={{ display: 'flex', gap: 6 }}>
-                <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Have a code? Type it" aria-label="Promo code" style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.82rem' }} />
-                <button type="submit" style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#111827', color: 'white', fontWeight: 600, cursor: 'pointer' }}>Apply</button>
+                <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Have a code? Type it" aria-label="Promo code" style={{ flex: 1, padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: '0.82rem' }} />
+                <button type="submit" style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: 'var(--text-primary)', color: 'var(--surface-card, #fff)', fontWeight: 600, cursor: 'pointer' }}>Apply</button>
               </form>
             )}
           </div>
