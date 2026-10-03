@@ -451,6 +451,62 @@ class PayrollService
         });
     }
 
+
+    // ── keeping a run in step with its vouchers ────────────────────────────
+
+    /** A run's journal cannot be cancelled while the payment of that run still stands. */
+    public function beforeVoucherCancelled(Voucher $v): void
+    {
+        $runId = $v->meta['payroll_run_id'] ?? null;
+        if (! $runId || ! empty($v->meta['payroll_payment']) || ! self::ready()) {
+            return;
+        }
+        $run = PayrollRun::find($runId);
+        $pay = $run?->payment_voucher_id ? Voucher::find($run->payment_voucher_id) : null;
+        if ($pay && $pay->status === Voucher::POSTED) {
+            throw new BooksException("Can't cancel {$v->voucher_number} — the salaries were paid with {$pay->voucher_number}. Cancel that payment first (or cancel the whole run in Payroll).");
+        }
+    }
+
+    /** Cancelling the payment puts the run back to approved; cancelling its journal cancels the run. */
+    public function afterVoucherCancelled(Voucher $v): void
+    {
+        $runId = $v->meta['payroll_run_id'] ?? null;
+        if (! $runId || ! self::ready() || ! ($run = PayrollRun::find($runId))) {
+            return;
+        }
+        if (! empty($v->meta['payroll_payment'])) {
+            if ((int) $run->payment_voucher_id === (int) $v->id && $run->status === 'paid') {
+                $run->update(['status' => 'approved', 'payment_voucher_id' => null, 'paid_at' => null]);
+            }
+        } elseif ((int) $run->journal_voucher_id === (int) $v->id && $run->status !== 'cancelled') {
+            $run->update(['status' => 'cancelled']);
+        }
+    }
+
+    /** A run whose vouchers were cancelled elsewhere (before this was automatic) is brought into line. */
+    public function reconcile(PayrollRun $run): PayrollRun
+    {
+        if (in_array($run->status, ['approved', 'paid'], true)) {
+            $j = $run->journal_voucher_id ? Voucher::find($run->journal_voucher_id) : null;
+            $p = $run->payment_voucher_id ? Voucher::find($run->payment_voucher_id) : null;
+            if ($j && $j->status === Voucher::CANCELLED) {
+                $run->update(['status' => 'cancelled']);
+            } elseif ($run->status === 'paid' && $p && $p->status === Voucher::CANCELLED) {
+                $run->update(['status' => 'approved', 'payment_voucher_id' => null, 'paid_at' => null]);
+            }
+        }
+
+        return $run->fresh();
+    }
+
+    private function voucherRef(?int $id): ?array
+    {
+        $v = $id ? Voucher::find($id, ['id', 'voucher_number', 'status', 'date']) : null;
+
+        return $v ? ['id' => $v->id, 'number' => $v->voucher_number, 'status' => $v->status, 'date' => $v->date?->toDateString()] : null;
+    }
+
     // ── what the screens show ──────────────────────────────────────────────
 
     public function runPayload(PayrollRun $run): array
@@ -459,7 +515,7 @@ class PayrollService
 
         return ['id' => $run->id, 'number' => $run->number, 'period_start' => $run->period_start->toDateString(), 'period_end' => $run->period_end->toDateString(), 'status' => $run->status,
             'total_gross' => $run->total_gross, 'total_deductions' => $run->total_deductions, 'total_net' => $run->total_net, 'total_employer' => $run->total_employer, 'notes' => $run->notes,
-            'journal_voucher_id' => $run->journal_voucher_id, 'payment_voucher_id' => $run->payment_voucher_id,
+            'journal_voucher_id' => $run->journal_voucher_id, 'payment_voucher_id' => $run->payment_voucher_id, 'journal' => $this->voucherRef($run->journal_voucher_id), 'payment' => $this->voucherRef($run->payment_voucher_id),
             'lines' => $lines->map(fn ($l) => ['user_id' => $l->user_id, 'name' => $l->user?->name] + $l->only(['basic', 'days_expected', 'days_unpaid', 'overtime_hours', 'absence_deduction', 'overtime_pay', 'gross', 'taxable', 'total_deductions', 'net',
                 'employer_cost', 'unverified_days', 'accepted_unverified', 'adjustments', 'breakdown']))->all()];
     }

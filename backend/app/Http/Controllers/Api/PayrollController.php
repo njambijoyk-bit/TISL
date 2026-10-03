@@ -37,7 +37,7 @@ class PayrollController extends Controller
         }
 
         return response()->json(['table_ready' => true, 'active_components' => PayrollComponent::where('is_active', true)->count(), 'payees' => $this->svc->payees()->count(),
-            'runs' => PayrollRun::orderByDesc('period_start')->orderByDesc('id')->limit(36)->get()->map(fn ($r) => ['id' => $r->id, 'number' => $r->number, 'period_start' => $r->period_start->toDateString(), 'status' => $r->status,
+            'runs' => PayrollRun::orderByDesc('period_start')->orderByDesc('id')->limit(36)->get()->map(fn ($r) => $this->svc->reconcile($r))->map(fn ($r) => ['id' => $r->id, 'number' => $r->number, 'period_start' => $r->period_start->toDateString(), 'status' => $r->status,
                 'total_gross' => $r->total_gross, 'total_net' => $r->total_net, 'total_employer' => $r->total_employer])->values()]);
     }
 
@@ -50,7 +50,7 @@ class PayrollController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $run = PayrollRun::findOrFail($id);
+        $run = $this->svc->reconcile(PayrollRun::findOrFail($id));
 
         return response()->json($this->svc->runPayload($run) + ['active_components' => PayrollComponent::where('is_active', true)->count()]);
     }

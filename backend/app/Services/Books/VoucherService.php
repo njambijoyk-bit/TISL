@@ -110,6 +110,9 @@ class VoucherService
             if (! empty($voucher->meta['cash_count'])) {
                 throw new BooksException('A cash-count adjustment can not be edited. Cancel it and count again.');
             }
+            if (! empty($voucher->meta['payroll_run_id'])) {
+                throw new BooksException('This voucher was made by a payroll run, so it can not be edited. Cancel the run in Payroll and work it out again.');
+            }
             if (! empty($voucher->meta['bounce'])) {
                 throw new BooksException('A bounced-cheque entry can not be edited. Cancel it in the cheque register (the cheque goes back to how it was) and bounce it again.');
             }
@@ -169,6 +172,7 @@ class VoucherService
             app(InstrumentService::class)->assertEditable($voucher, 'cancel');
             app(CreditService::class)->releaseForBill($voucher);   // credit applied to it goes back to the party's account
             $this->assertNoLiveChildren($voucher, 'cancel');
+            app(\App\Services\Payroll\PayrollService::class)->beforeVoucherCancelled($voucher);   // a payroll's journal cannot go while its payment stands
             if ((float) ($voucher->meta['gift_refunded'] ?? 0) > 0.005) {
                 throw new BooksException('Part of this credit note was refunded as a gift voucher (' . implode(', ', $voucher->meta['gift_vouchers'] ?? []) . '). Cancel those gift vouchers first.');
             }
@@ -188,6 +192,7 @@ class VoucherService
             if (! empty($voucher->meta['cash_count'])) {
                 app(CashCountService::class)->onAdjustmentCancelled($voucher);   // the count stays; its difference is open again
             }
+            app(\App\Services\Payroll\PayrollService::class)->afterVoucherCancelled($voucher);   // the payroll run follows what happened to its vouchers
             $this->versionHook($voucher, 'deleted', $user);
             $this->undoRewards($voucher);
             app(HamperEditionService::class)->sync(app(HamperEditionService::class)->idsOn($voucher));   // the edition is given back

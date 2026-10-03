@@ -114,6 +114,13 @@ function RunView({ id, onBack, onChanged }) {
           {run.status !== 'cancelled' && <button type="button" style={small} onClick={() => act(() => payrollAPI.cancel(id), run.status === 'draft' ? 'Cancel this draft?' : 'Cancel this payroll? Its journal (and payment) will be cancelled.')}>Cancel</button>}
         </span>
       </div>
+      {(run.journal || run.payment) && (
+        <div style={{ fontSize: '0.78rem', color: colors.textMuted }}>
+          Posted to the books as {run.journal && <Link to={`/admin/books/vouchers/${run.journal.id}`}>{run.journal.number}</Link>}{run.journal?.status === 'cancelled' ? ' (cancelled)' : ''}
+          {run.payment && <> · paid with <Link to={`/admin/books/vouchers/${run.payment.id}`}>{run.payment.number}</Link>{run.payment.status === 'cancelled' ? ' (cancelled)' : ''}</>}
+          . <span style={{ color: colors.textFaint }}>To undo it, use Cancel here — it cancels the payment first, then the journal.</span>
+        </div>
+      )}
       {run.active_components === 0 && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>No deduction is switched on yet, so only basic pay is worked out. Set them up in <Link to="/admin/payroll/settings">Payroll settings</Link>, then "Work out again".</p>}
       {draft && unv > 0 && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>{unv} {unv === 1 ? 'person has' : 'people have'} attendance that is not fully verified. Verify it in <Link to="/admin/attendance">Attendance</Link>, then "Work out again" — or open their line and accept paying them as it stands.</p>}
       <section style={{ ...card, padding: 8, overflowX: 'auto' }}>
