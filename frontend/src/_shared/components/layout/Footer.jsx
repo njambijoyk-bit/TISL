@@ -298,7 +298,7 @@ export default function Footer() {
             }
           </p>
           <p style={{ fontSize: '0.75rem', color: '#4b5563', margin: 0, textAlign: 'center', flex: '1 1 auto' }}>
-            v2. made with <span role="img" aria-label="love" style={{ color: '#ef4444' }}>♥</span> by mimi
+            App Version 2.1.9. Made with <span role="img" aria-label="love" style={{ color: '#ef4444' }}>♥</span> by Mimi
           </p>
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {[['Privacy Policy', '/privacy'], ['Terms of Service', '/terms'], ['Cookie Policy', '/cookies']].map(([label, to]) => (
