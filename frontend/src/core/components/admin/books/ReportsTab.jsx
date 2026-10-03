@@ -290,7 +290,7 @@ export default function ReportsTab() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
         {REPORTS.map((r) => (
           <button key={r.id} type="button" onClick={() => { const p = new URLSearchParams(params); p.set('report', r.id); setParams(p, { replace: true }); }}
-            style={{ ...filterStyle, cursor: 'pointer', fontWeight: r.id === id ? 700 : 500, background: r.id === id ? colors.tint(0.1) : 'white', color: r.id === id ? colors.primaryDeep : colors.textMuted }}>
+            style={{ ...filterStyle, cursor: 'pointer', fontWeight: r.id === id ? 700 : 500, background: r.id === id ? colors.tint(0.1) : 'var(--surface-card, #fff)', color: r.id === id ? colors.primaryDeep : colors.text }}>
             {r.label}
           </button>
         ))}
