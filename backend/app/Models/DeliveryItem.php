@@ -12,7 +12,12 @@ class DeliveryItem extends Model
 {
     protected $fillable = [
         'manifest_id',
-        'order_id',
+        'order_id',          // old manifests only; new stops use their Delivery Notes
+        'customer_id',
+        'contact_name',
+        'contact_phone',
+        'address',
+        'stop_key',
         'status',
         'sort_order',
         'estimated_arrival',
@@ -49,6 +54,7 @@ class DeliveryItem extends Model
         'proof_of_delivery_url',
         'is_on_time',
         'minutes_late',
+        'order',
     ];
 
     // ========================================
@@ -60,9 +66,50 @@ class DeliveryItem extends Model
         return $this->belongsTo(DeliveryManifest::class, 'manifest_id');
     }
 
-    public function order(): BelongsTo
+    /** The Delivery Notes on this stop. */
+    public function notes(): HasMany
     {
-        return $this->belongsTo(Order::class, 'order_id');
+        return $this->hasMany(DeliveryItemVoucher::class, 'delivery_item_id');
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
+    /**
+     * What the screens used to read as `item.order`: the stop described as one document. A stop carries one or more
+     * Delivery Notes, so the number is all of them, the lines are all of their lines, and the totals add up.
+     * Only built when `notes.voucher.items` was loaded (no hidden queries per stop).
+     */
+    public function getOrderAttribute(): ?array
+    {
+        if (! $this->relationLoaded('notes')) {
+            return null;
+        }
+        $vouchers = $this->notes->map->voucher->filter();
+        $first    = $vouchers->first();
+        $c        = $this->relationLoaded('customer') ? $this->customer : null;
+
+        return [
+            'id'               => $first?->id,
+            'order_number'     => $vouchers->pluck('voucher_number')->join(', '),
+            'number'           => $vouchers->pluck('voucher_number')->join(', '),
+            'status'           => $this->status,
+            'priority'         => null,
+            'customer'         => $c,
+            'customer_id'      => $this->customer_id,
+            'shipping_address' => $this->address,
+            'notes'            => $vouchers->map(fn ($v) => ['id' => $v->id, 'voucher_number' => $v->voucher_number, 'date' => $v->date?->toDateString()])->values(),
+            'items'            => $vouchers->flatMap(fn ($v) => $v->relationLoaded('items') ? $v->items->where('is_header', false)->map(fn ($i) => [
+                'id' => $i->id, 'voucher_number' => $v->voucher_number, 'quantity' => (float) $i->quantity, 'unit_price' => (float) $i->rate,
+                'name' => $i->description, 'display_name' => $i->description, 'product' => ['name' => $i->description],
+            ]) : collect())->values(),
+            'total'            => (float) $vouchers->sum('total_amount'),
+            'total_kes'        => (float) $vouchers->sum('base_total'),
+            'subtotal'         => (float) $vouchers->sum('subtotal'),
+            'delivery_method'  => $this->relationLoaded('manifest') ? $this->manifest?->delivery_method : null,
+        ];
     }
 
     public function rating(): HasOne
@@ -120,7 +167,7 @@ class DeliveryItem extends Model
     // ========================================
 
     /**
-     * Mark this stop as delivered and sync the order status.
+     * Mark this stop as delivered. The Delivery Notes are not touched: they show as delivered through this stop.
      */
     public function markDelivered(
         ?float  $lat   = null,
@@ -137,9 +184,6 @@ class DeliveryItem extends Model
             'delivery_notes'    => $notes ?? $this->delivery_notes,
             'proof_of_delivery' => $proof ?? $this->proof_of_delivery,
         ]);
-
-        // Sync order status
-        $this->order->markAsDelivered();
     }
 
     /**
@@ -154,7 +198,7 @@ class DeliveryItem extends Model
             'arrival_latitude'  => $lat,
             'arrival_longitude' => $lng,
         ]);
-        // Order intentionally stays 'shipped' — logistics takes over
+        // The Delivery Notes are untouched: they are free for another manifest
     }
 
     // ========================================

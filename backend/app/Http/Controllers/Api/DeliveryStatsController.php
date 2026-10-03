@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsDeliveryActivity;
-use App\Models\Order;
-use App\Models\OrderShipment;
 use App\Models\DeliveryIncident;
 use App\Models\DeliveryRating;
 use App\Models\DriverRatingAdjustment;
@@ -72,10 +70,12 @@ class DeliveryStatsController extends Controller
             ->get();
 
         // FIX: single aggregated query for shipment workflow counts
-        $shipmentStats = OrderShipment::selectRaw("
-            SUM(workflow = 'internal')         AS internal,
-            SUM(workflow = 'external_courier') AS external_courier,
-            SUM(workflow = 'instore')          AS instore
+        // (a shipment is now a manifest stop: counted by the manifest's delivery method)
+        $shipmentStats = DeliveryItem::join('delivery_manifests as dm', 'dm.id', '=', 'delivery_items.manifest_id')->whereNull('dm.deleted_at')
+            ->selectRaw("
+            COALESCE(SUM(dm.delivery_method = 'internal_driver'), 0)                      AS internal,
+            COALESCE(SUM(dm.delivery_method IN ('courier', 'third_party')), 0)            AS external_courier,
+            COALESCE(SUM(dm.delivery_method = 'customer_pickup'), 0)                      AS instore
         ")->first();
 
         return response()->json([

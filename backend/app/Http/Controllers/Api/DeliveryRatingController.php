@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsDeliveryActivity;
-use App\Models\Order;
-use App\Models\OrderShipment;
 use App\Models\DeliveryIncident;
 use App\Models\DeliveryRating;
 use App\Models\DriverRatingAdjustment;
@@ -32,7 +30,7 @@ class DeliveryRatingController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validator = Validator::make($request->all(), [
-            'order_id'         => 'required|exists:orders,id',
+            'order_id'         => 'nullable|integer',   // old name for the Delivery Note; the stop is what is rated
             'delivery_item_id' => 'required|exists:delivery_items,id',
             'rating'           => 'required|integer|between:1,5',
             'comment'          => 'nullable|string|max:1000',
@@ -55,14 +53,17 @@ class DeliveryRatingController extends Controller
             return response()->json(['message' => 'No manifest found for this delivery.'], 422);
 
         // Prevent duplicate ratings
-        if (DeliveryRating::where('order_id', $request->order_id)
+        if ((int) $item->customer_id !== (int) $customer->id)
+            return response()->json(['message' => 'That delivery is not yours.'], 403);
+
+        if (DeliveryRating::where('delivery_item_id', $item->id)
             ->where('customer_id', $customer->id)
             ->exists()) {
             return response()->json(['message' => 'You have already rated this delivery.'], 422);
         }
 
         $rating = DeliveryRating::create([
-            'order_id'             => $request->order_id,
+            'order_id'             => null,
             'delivery_item_id'     => $request->delivery_item_id,
             'customer_id'          => $customer->id,
             'driver_id'            => $item->manifest->driver_id,
@@ -91,7 +92,7 @@ class DeliveryRatingController extends Controller
         }
 
         $ratings = DeliveryRating::where('customer_id', $customer->id)
-            ->with(['driver:id,name', 'order:id,order_number', 'deliveryItem:id'])
+            ->with(['driver:id,name', 'deliveryItem:id', 'deliveryItem.notes.voucher:id,voucher_number'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -150,7 +151,7 @@ class DeliveryRatingController extends Controller
         $driver = User::where('role', 'driver')->findOrFail($driverId);
 
         $ratings = DeliveryRating::forDriver($driverId)
-            ->with(['customer:id,first_name,last_name', 'order:id,order_number'])
+            ->with(['customer:id,first_name,last_name', 'deliveryItem:id', 'deliveryItem.notes.voucher:id,voucher_number'])
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -205,15 +206,12 @@ class DeliveryRatingController extends Controller
         if (! $customer)
             return response()->json(['message' => 'No customer profile linked.'], 403);
 
-        // Verify this order belongs to this customer
-        $order = Order::where('id', $orderId)
-            ->where('customer_id', $customer->id)
-            ->firstOrFail();
-
-        // Get the manifest via delivery item
-        $item = DeliveryItem::where('order_id', $order->id)
+        // Their own document (Delivery Note, or the order / invoice it belongs to), then the stop that carries it
+        $noteIds = app(\App\Services\Delivery\DeliveryStopService::class)->noteIdsFor($orderId, $user);
+        $item = DeliveryItem::whereHas('notes', fn($q) => $q->whereIn('voucher_id', $noteIds))
             ->whereNotNull('manifest_id')
             ->with('manifest')
+            ->latest('id')
             ->first();
 
         if (! $item || ! $item->manifest?->driver_id)

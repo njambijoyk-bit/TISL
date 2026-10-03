@@ -6,8 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsDeliveryActivity;
 use App\Models\DeliveryManifest;
 use App\Models\DeliveryItem;
-use App\Models\Order;
-use App\Models\OrderShipment;
+use App\Models\Books\Voucher;
+use App\Models\Books\VoucherType;
+use App\Services\Delivery\DeliveryStopService;
 use App\Models\User;
 use App\Models\DeliveryIncident;
 use App\Models\DriverLocationPing;
@@ -23,7 +24,7 @@ class DeliveryManifestController extends Controller
 {
     use LogsDeliveryActivity;
 
-    public function __construct(protected AiAnalyticsService $ai) {}
+    public function __construct(protected AiAnalyticsService $ai, protected DeliveryStopService $stops) {}
 
     // ========================================
     // INDEX
@@ -34,7 +35,8 @@ class DeliveryManifestController extends Controller
         $query = DeliveryManifest::with([
             'driver:id,name,phone,profile_picture',
             'assigner:id,name',
-            'items.order.customer',
+            'items.customer',
+            'items.notes.voucher',
         ]);
 
         if ($request->filled('status'))
@@ -73,6 +75,44 @@ class DeliveryManifestController extends Controller
                 'per_page'     => $manifests->perPage(),
             ],
         ]);
+    }
+
+    // ========================================
+    // DELIVERY NOTES — the pick list for building a manifest
+    // ========================================
+
+    public function deliveryNotes(Request $request): JsonResponse
+    {
+        $q = Voucher::query()->with(['customer:id,first_name,last_name,phone', 'location:id,name'])->withCount('items')
+            ->whereHas('type', fn($t) => $t->where('base_type', VoucherType::DELIVERY_NOTE))
+            ->where('status', Voucher::POSTED)
+            ->when($request->filled('search'), fn($w) => $w->where(fn($x) => $x
+                ->where('voucher_number', 'like', "%{$request->search}%")
+                ->orWhere('party_name', 'like', "%{$request->search}%")
+                ->orWhere('party_address', 'like', "%{$request->search}%")))
+            ->when($request->filled('from'), fn($w) => $w->where('date', '>=', $request->from))
+            ->when($request->filled('to'), fn($w) => $w->where('date', '<=', $request->to))
+            ->when($request->filled('location_id'), fn($w) => $w->where('location_id', $request->location_id))
+            ->orderByDesc('date')->orderByDesc('id');
+
+        $page  = $q->paginate($request->input('per_page', 50));
+        $check = collect($this->stops->eligibility($page->pluck('id')->all()))->keyBy('voucher_id');
+
+        $rows = $page->getCollection()->map(function ($v) use ($check) {
+            $e = $check->get($v->id, []);
+            return [
+                'id' => $v->id, 'voucher_number' => $v->voucher_number, 'order_number' => $v->voucher_number, 'date' => $v->date?->toDateString(),
+                'customer_name' => $v->party_name ?: ($v->customer ? trim("{$v->customer->first_name} {$v->customer->last_name}") : null),
+                'customer_phone' => $v->party_phone ?: $v->customer?->phone, 'address' => $v->party_address,
+                'location' => $v->location?->name, 'items_count' => $v->items_count, 'total' => (float) $v->base_total,
+                'eligible' => (bool) ($e['eligible'] ?? false), 'reason' => $e['reason'] ?? null,
+                'manifest_number' => $e['manifest_number'] ?? null, 'manifest_id' => $e['manifest_id'] ?? null,
+            ];
+        });
+
+        return response()->json(['data' => $rows, 'meta' => [
+            'current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total(), 'per_page' => $page->perPage(),
+        ]]);
     }
 
     // ========================================
@@ -120,8 +160,8 @@ class DeliveryManifestController extends Controller
         $manifest = DeliveryManifest::with([
             'driver:id,name,phone,profile_picture',
             'assigner:id,name',
-            'items.order.customer',
-            'items.order.items.product', 
+            'items.customer',
+            'items.notes.voucher.items',
             'items.rating',
             'items.incidents',
             'incidents.reporter:id,name',
@@ -144,10 +184,10 @@ class DeliveryManifestController extends Controller
             'driver_id'       => 'nullable|exists:users,id',
             'scheduled_date'  => 'required|date|after_or_equal:today',
             'notes'           => 'nullable|string|max:1000',
-            'order_ids'       => 'nullable|array',
-            'order_ids.*'     => 'integer|exists:orders,id',
-            'order_numbers'   => 'nullable|array',
-            'order_numbers.*' => 'string|exists:orders,order_number',
+            'voucher_ids'     => 'nullable|array',
+            'voucher_ids.*'   => 'integer',
+            'voucher_numbers' => 'nullable|array',
+            'voucher_numbers.*' => 'string',
             'delivery_method' => 'nullable|string|in:internal_driver,courier,customer_pickup,third_party',
             'override_reason' => 'nullable|string|max:500',
         ]);
@@ -159,15 +199,8 @@ class DeliveryManifestController extends Controller
             ], 422);
         }
 
-        // Resolve order_ids from order_numbers if provided
-        $orderIds = $request->input('order_ids', []);
-        if ($request->filled('order_numbers')) {
-            $resolvedIds = Order::whereIn('order_number', $request->order_numbers)
-                ->pluck('id')
-                ->toArray();
-            $orderIds = array_merge($orderIds, $resolvedIds);
-            $orderIds = array_unique($orderIds);
-        }
+        // Delivery Notes to put on the manifest (by id and/or number)
+        $orderIds = $this->resolveNoteIds($request);
 
         // Validate delivery method requirements
         $deliveryMethod = $request->input('delivery_method', 'internal_driver');
@@ -226,7 +259,7 @@ class DeliveryManifestController extends Controller
 
             $skipped = [];
             if (! empty($orderIds)) {
-                ['added' => $added, 'skipped' => $skipped] = $this->attachOrders($manifest, $orderIds);
+                ['added' => $added, 'skipped' => $skipped] = $this->stops->attach($manifest, $orderIds);
             }
 
             $this->logManifestActivity(
@@ -245,11 +278,11 @@ class DeliveryManifestController extends Controller
 
             $response = [
                 'message' => 'Manifest created.',
-                'data'    => $manifest->load('items.order.customer', 'driver:id,name'),
+                'data'    => $manifest->load('items.customer', 'items.notes.voucher.items', 'driver:id,name'),
             ];
 
             if (! empty($skipped)) {
-                $response['skipped_orders'] = $skipped; // structured: [{order_id, reason, manifest_number, ...}]
+                $response['skipped_orders'] = $skipped; // structured: [{voucher_id, reason, manifest_number, ...}]
                 $response['skipped_count']  = count($skipped);
             }
 
@@ -338,22 +371,22 @@ class DeliveryManifestController extends Controller
         $periodDays    = $request->input('order_period_days', 14);
         $orderStatuses = $request->input('order_statuses', ['confirmed', 'processing', 'ready_for_pickup']);
 
-        $eligibleOrders = Order::whereIn('status', $orderStatuses)
-            ->where('created_at', '>=', now()->subDays($periodDays))
-            ->whereNotIn('id', function ($sub) {
-                $sub->select('order_id')
-                    ->from('delivery_items')
-                    ->join('delivery_manifests', 'delivery_manifests.id', '=', 'delivery_items.manifest_id')
-                    ->whereNotIn('delivery_manifests.status', ['cancelled']);
-            })
-            ->select('id', 'order_number', 'status', 'priority', 'shipping_address', 'created_at')
-            ->orderByRaw("FIELD(priority, 'urgent', 'high', 'medium', 'low')")
+        $takenIds = \App\Models\DeliveryItemVoucher::whereHas('stop', fn($q) => $q->whereNotIn('status', DeliveryStopService::RELEASED)
+                ->whereHas('manifest', fn($m) => $m->where('status', '!=', 'cancelled')))->pluck('voucher_id');
+
+        $eligibleOrders = Voucher::query()
+            ->whereHas('type', fn($q) => $q->where('base_type', VoucherType::DELIVERY_NOTE))
+            ->where('status', Voucher::POSTED)
+            ->where('date', '>=', now()->subDays($periodDays)->toDateString())
+            ->whereNotIn('id', $takenIds)
+            ->select('id', 'voucher_number as order_number', 'status', 'party_address as shipping_address', 'date as created_at')
+            ->orderBy('date')->orderBy('id')
             ->limit(50)
             ->get();
 
         if ($eligibleOrders->isEmpty()) {
             return response()->json([
-                'message' => 'No eligible orders found for the given period and statuses.',
+                'message' => 'No Delivery Notes are waiting for a manifest in that period.',
                 'steps'   => $steps,
             ], 422);
         }
@@ -363,14 +396,7 @@ class DeliveryManifestController extends Controller
         // ── Resolve scheduled date (God mode fallback via priority) ──────
         $scheduledDate = $request->input('scheduled_date');
         if (! $scheduledDate) {
-            $topPriority = $eligibleOrders->first()?->priority ?? 'medium';
-            $scheduledDate = match ($topPriority) {
-                'urgent' => now()->toDateString(),
-                'high'   => now()->addDay()->toDateString(),
-                'medium' => now()->addDays(2)->toDateString(),
-                'low'    => now()->addDays(3)->toDateString(),
-                default  => now()->addDay()->toDateString(),
-            };
+            $scheduledDate = now()->addDay()->toDateString();   // Delivery Notes carry no priority: tomorrow unless told otherwise
         }
 
         // ── Module chain ─────────────────────────────────────────────────
@@ -469,16 +495,15 @@ class DeliveryManifestController extends Controller
                 ...($resolvedDriverId ? ['driver_id' => $resolvedDriverId] : []),
             ]);
 
-            // Attach orders respecting AI-suggested sort order
+            // Put the Delivery Notes on (same customer + address = one stop), then order the stops the way the AI suggested
+            $this->stops->attach($manifest, $resolvedOrderIds);
             $lastOrder = 0;
-            foreach ($resolvedOrderIds as $orderId) {
-                $position = $resolvedSortOrder[$orderId] ?? (++$lastOrder);
-                DeliveryItem::create([
-                    'manifest_id' => $manifest->id,
-                    'order_id'    => $orderId,
-                    'status'      => 'pending',
-                    'sort_order'  => $position,
-                ]);
+            $ranked    = $manifest->items()->with('notes')->get()->map(function ($stop) use ($resolvedSortOrder, &$lastOrder) {
+                $pos = $stop->notes->map(fn($n) => $resolvedSortOrder[$n->voucher_id] ?? null)->filter()->min();
+                return ['stop' => $stop, 'pos' => $pos ?? (1000 + (++$lastOrder))];
+            })->sortBy('pos')->values();
+            foreach ($ranked as $i => $r) {
+                $r['stop']->update(['sort_order' => $i + 1]);
             }
 
             // Step 5: Route optimiser — runs after items exist
@@ -510,7 +535,7 @@ class DeliveryManifestController extends Controller
                 'message'    => 'AI manifest created successfully.',
                 'suggestion' => $manifestSuggestion,
                 'steps'      => $steps,
-                'data'       => $manifest->load('items.order.customer', 'driver:id,name'),
+                'data'       => $manifest->load('items.customer', 'items.notes.voucher.items', 'driver:id,name'),
                 'meta'       => [
                     'scheduled_date'  => $scheduledDate,
                     'delivery_method' => $deliveryMethod,
@@ -625,10 +650,10 @@ class DeliveryManifestController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'order_ids'       => 'nullable|array',
-            'order_ids.*'     => 'integer|exists:orders,id',
-            'order_numbers'     => 'nullable|array',
-            'order_numbers.*' => 'string|exists:orders,order_number',
+            'voucher_ids'     => 'nullable|array',
+            'voucher_ids.*'   => 'integer',
+            'voucher_numbers' => 'nullable|array',
+            'voucher_numbers.*' => 'string',
             'override_reason' => 'nullable|string|max:500',
         ]);
 
@@ -639,20 +664,12 @@ class DeliveryManifestController extends Controller
             ], 422);
         }
 
-        // Resolve order_ids from order_numbers
-        $orderIds = $request->input('order_ids', []);
-        if ($request->filled('order_numbers')) {
-            $resolvedIds = Order::whereIn('order_number', $request->order_numbers)
-                ->pluck('id')
-                ->toArray();
-            $orderIds = array_merge($orderIds, $resolvedIds);
-            $orderIds = array_unique($orderIds);
-        }
+        $orderIds = $this->resolveNoteIds($request);
 
         if (empty($orderIds)) {
             return response()->json([
-                'message' => 'No orders provided.',
-                'errors'  => ['orders' => ['Please provide order IDs or order numbers.']],
+                'message' => 'No Delivery Notes provided.',
+                'errors'  => ['voucher_ids' => ['Please provide Delivery Note ids or numbers.']],
             ], 422);
         }
 
@@ -669,20 +686,20 @@ class DeliveryManifestController extends Controller
             }
         }
 
-        ['added' => $added, 'skipped' => $skipped] = $this->attachOrders($manifest, $orderIds);
+        ['added' => $added, 'skipped' => $skipped] = $this->stops->attach($manifest, $orderIds);
 
         $this->logManifestActivity(
             $manifest->id,
             'items_added',
             'info',
-            ['order_ids' => $orderIds, 'added' => $added, 'skipped' => $skipped]
+            ['voucher_ids' => $orderIds, 'added' => $added, 'skipped' => $skipped]
         );
 
         return response()->json([
-            'message'        => "{$added} order(s) added to manifest.",
+            'message'        => "{$added} Delivery Note(s) added to manifest.",
             'skipped_orders' => $skipped, // structured: [{order_id, reason, manifest_number, ...}]
             'skipped_count'  => count($skipped),
-            'data'           => $manifest->load('items.order.customer'),
+            'data'           => $manifest->load('items.customer', 'items.notes.voucher.items'),
         ]);
     }
 
@@ -702,14 +719,14 @@ class DeliveryManifestController extends Controller
         }
 
         $item    = DeliveryItem::where('manifest_id', $manifestId)->findOrFail($itemId);
-        $orderId = $item->order_id;
-        $item->delete();
+        $orderId = $this->stops->voucherIdsOf([$item]);
+        $this->stops->removeStop($item);
 
         $this->logManifestActivity(
             $manifest->id,
             'item_removed',
             'info',
-            ['order_id' => $orderId, 'delivery_item_id' => $itemId]
+            ['voucher_ids' => $orderId, 'delivery_item_id' => $itemId]
         );
 
         return response()->json(['message' => 'Item removed from manifest.']);
@@ -721,7 +738,7 @@ class DeliveryManifestController extends Controller
 
     public function dispatchManifest(Request $request, int $id): JsonResponse
     {
-        $manifest = DeliveryManifest::with('items.order', 'driver')->findOrFail($id);
+        $manifest = DeliveryManifest::with('items', 'driver')->findOrFail($id);
 
         if (! $manifest->canBeDispatched()) {
             return response()->json([
@@ -739,31 +756,6 @@ class DeliveryManifestController extends Controller
 
             foreach ($manifest->items as $item) {
                 $item->update(['status' => 'out_for_delivery']);
-
-                $item->order->markAsShipped(
-                    $manifest->manifest_number,
-                    $this->getCourierLabel($manifest)
-                );
-
-                $existingActive = OrderShipment::where('order_id', $item->order_id)
-                    ->active()
-                    ->exists();
-
-                if (! $existingActive) {
-                    OrderShipment::create([
-                        'order_id'                => $item->order_id,
-                        'workflow'                => $this->getWorkflowType($manifest),
-                        'dispatched_by'           => Auth::id(),
-                        'driver_id'               => $manifest->driver_id,
-                        'manifest_id'             => $manifest->id,
-                        'estimated_delivery_date' => $manifest->scheduled_date,
-                        'status'                  => 'dispatched',
-                    ]);
-                } else {
-                    OrderShipment::where('order_id', $item->order_id)
-                        ->where('manifest_id', $manifest->id)
-                        ->update(['status' => 'dispatched', 'driver_id' => $manifest->driver_id]);
-                }
             }
 
             $this->logManifestActivity(
@@ -781,8 +773,8 @@ class DeliveryManifestController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Manifest dispatched. All orders marked as shipped.',
-                'data'    => $manifest->fresh(['items.order', 'driver:id,name']),
+                'message' => 'Manifest dispatched.',
+                'data'    => $manifest->fresh(['items.customer', 'items.notes.voucher.items', 'driver:id,name']),
             ]);
 
         } catch (\Exception $e) {
@@ -801,7 +793,7 @@ class DeliveryManifestController extends Controller
 
     public function cancel(Request $request, int $id): JsonResponse
     {
-        $manifest = DeliveryManifest::with('items.order')->findOrFail($id);
+        $manifest = DeliveryManifest::with('items')->findOrFail($id);
 
         if (! $manifest->canBeCancelled()) {
             return response()->json([
@@ -830,12 +822,7 @@ class DeliveryManifestController extends Controller
             if ($wasDispatched) {
                 foreach ($manifest->items as $item) {
                     $item->update(['status' => 'pending']);
-                    $item->order->update(['status' => 'processing']);
                 }
-
-                OrderShipment::where('manifest_id', $manifest->id)
-                    ->active()
-                    ->update(['status' => 'failed']);
             }
 
             $this->logManifestActivity(
@@ -899,7 +886,7 @@ class DeliveryManifestController extends Controller
             ], 422);
         }
 
-        $orderIds      = $manifest->items->pluck('order_id')->toArray();
+        $orderIds      = $this->stops->voucherIdsOf($manifest->items);
         $safetyWarning = $this->checkDriverSafetyForOrders($newDriver, $orderIds);
 
         if ($safetyWarning && ! $request->filled('override_reason')) {
@@ -913,9 +900,6 @@ class DeliveryManifestController extends Controller
 
         $oldDriverId = $manifest->driver_id;
         $manifest->update(['driver_id' => $newDriver->id]);
-
-        OrderShipment::where('manifest_id', $manifest->id)
-            ->update(['driver_id' => $newDriver->id]);
 
         $this->logManifestActivity(
             $manifest->id,
@@ -991,6 +975,19 @@ class DeliveryManifestController extends Controller
             ], 422);
         }
 
+        // A Delivery Note can only be on one live stop: refuse if one of these notes was put on another manifest since
+        $clash = [];
+        foreach ($items as $it) {
+            foreach ($this->stops->taken($this->stops->voucherIdsOf([$it])) as $vid => $link) {
+                if ($link->delivery_item_id !== $it->id) {
+                    $clash[] = "Delivery Note #{$vid} is already on manifest {$link->stop->manifest?->manifest_number}.";
+                }
+            }
+        }
+        if ($clash) {
+            return response()->json(['message' => 'One or more Delivery Notes are already on another manifest.', 'errors' => ['item_ids' => $clash]], 422);
+        }
+
         // Also block transferring into the same manifest as source (all same) — catch the obvious mistake
         $sourceManifestIds = $items->pluck('manifest_id')->unique();
         if ($sourceManifestIds->count() === 1 && $sourceManifestIds->first() === $destination->id) {
@@ -1007,7 +1004,7 @@ class DeliveryManifestController extends Controller
             && $destination->driver_id
             && ! $request->filled('override_reason')
         ) {
-            $orderIds = $items->pluck('order_id')->toArray();
+            $orderIds = $this->stops->voucherIdsOf($items);
 
             $safetyWarning = $this->checkDriverSafetyForOrders($destination->driver, $orderIds);
 
@@ -1045,7 +1042,7 @@ class DeliveryManifestController extends Controller
                     'info',
                     [
                         'delivery_item_id'    => $item->id,
-                        'order_id'            => $item->order_id,
+                        'voucher_ids'         => $this->stops->voucherIdsOf([$item]),
                         'source_manifest_id'  => $sourceManifestId,
                         'transferred_by'      => Auth::user()->name,
                     ]
@@ -1069,9 +1066,9 @@ class DeliveryManifestController extends Controller
             DB::commit();
 
             // Reload both the destination and all affected source manifests
-            $updatedDestination = DeliveryManifest::with('items.order.customer')->find($destination->id);
+            $updatedDestination = DeliveryManifest::with('items.customer', 'items.notes.voucher.items')->find($destination->id);
 
-            $updatedSources = DeliveryManifest::with('items.order.customer')
+            $updatedSources = DeliveryManifest::with('items.customer', 'items.notes.voucher.items')
                 ->whereIn('id', $sourceManifestIds)
                 ->get();
 
@@ -1129,8 +1126,8 @@ class DeliveryManifestController extends Controller
         $validator = Validator::make($request->all(), [
             'driver_id'       => 'nullable|exists:users,id',
             'scheduled_date'  => 'required|date|after_or_equal:today',
-            'order_ids'       => 'required|array|min:1',
-            'order_ids.*'     => 'integer|exists:orders,id',
+            'order_ids'       => 'required|array|min:1',   // Delivery Note ids
+            'order_ids.*'     => 'integer',
             'custom_prompt'   => 'nullable|string|max:500',
             'delivery_method' => 'nullable|string|in:internal_driver,courier,customer_pickup,third_party',
         ]);
@@ -1183,8 +1180,8 @@ class DeliveryManifestController extends Controller
             'driver:id,name,phone',
             'assigner:id,name',
             'items' => fn($q) => $q->orderBy('sort_order'),
-            'items.order.customer',
-            'items.order.items.product',
+            'items.customer',
+            'items.notes.voucher.items',
         ])->findOrFail($id);
 
         return response()->json(['data' => $manifest]);
@@ -1245,7 +1242,7 @@ class DeliveryManifestController extends Controller
         $validator = Validator::make($request->all(), [
             'driver_id' => 'required|integer|exists:users,id',
             'order_ids' => 'required|array',
-            'order_ids.*' => 'integer|exists:orders,id',
+            'order_ids.*' => 'integer',
         ]);
 
         if ($validator->fails()) {
@@ -1286,8 +1283,8 @@ class DeliveryManifestController extends Controller
     public function getReturnedItems(): JsonResponse
     {
         $items = DeliveryItem::with([
-            'order:id,order_number,status,customer_id',
-            'order.customer:id,first_name,last_name,phone',
+            'customer:id,first_name,last_name,phone',
+            'notes.voucher:id,voucher_number',
             'manifest:id,manifest_number,scheduled_date,driver_id',
             'manifest.driver:id,name',
         ])
@@ -1297,12 +1294,12 @@ class DeliveryManifestController extends Controller
         ->get()
         ->map(fn($item) => [
             'id'              => $item->id,
-            'order_id'        => $item->order_id,
-            'order_number'    => $item->order?->order_number,
-            'customer_name'   => $item->order?->customer
-                ? trim("{$item->order->customer->first_name} {$item->order->customer->last_name}")
-                : null,
-            'customer_phone'  => $item->order?->customer?->phone,
+            'order_id'        => $item->notes->first()?->voucher_id,
+            'voucher_ids'     => $item->notes->pluck('voucher_id')->values(),
+            'order_number'    => $item->notes->map->voucher->filter()->pluck('voucher_number')->join(', '),
+            'customer_name'   => $item->contact_name ?: ($item->customer ? trim("{$item->customer->first_name} {$item->customer->last_name}") : null),
+            'customer_phone'  => $item->contact_phone ?: $item->customer?->phone,
+            'address'         => $item->address,
             'failed_reason'   => $item->failed_reason,
             'returned_at'     => $item->returned_at?->toISOString(),
             'manifest_id'     => $item->manifest_id,
@@ -1325,8 +1322,8 @@ class DeliveryManifestController extends Controller
     public function getFailedItems(): JsonResponse
     {
         $items = DeliveryItem::with([
-            'order:id,order_number,status,customer_id',
-            'order.customer:id,first_name,last_name,phone',
+            'customer:id,first_name,last_name,phone',
+            'notes.voucher:id,voucher_number',
             'manifest:id,manifest_number,scheduled_date,driver_id',
             'manifest.driver:id,name',
         ])
@@ -1336,12 +1333,12 @@ class DeliveryManifestController extends Controller
         ->get()
         ->map(fn($item) => [
             'id'              => $item->id,
-            'order_id'        => $item->order_id,
-            'order_number'    => $item->order?->order_number,
-            'customer_name'   => $item->order?->customer
-                ? trim("{$item->order->customer->first_name} {$item->order->customer->last_name}")
-                : null,
-            'customer_phone'  => $item->order?->customer?->phone,
+            'order_id'        => $item->notes->first()?->voucher_id,
+            'voucher_ids'     => $item->notes->pluck('voucher_id')->values(),
+            'order_number'    => $item->notes->map->voucher->filter()->pluck('voucher_number')->join(', '),
+            'customer_name'   => $item->contact_name ?: ($item->customer ? trim("{$item->customer->first_name} {$item->customer->last_name}") : null),
+            'customer_phone'  => $item->contact_phone ?: $item->customer?->phone,
+            'address'         => $item->address,
             'failed_reason'   => $item->failed_reason,
             'attempted_at'    => $item->attempted_at?->toISOString(),
             'manifest_id'     => $item->manifest_id,
@@ -1391,19 +1388,13 @@ class DeliveryManifestController extends Controller
         DB::beginTransaction();
         try {
             if ($request->status === 'delivered') {
-                // Admin force-marks as delivered: update the item, the order, and the shipment
+                // Admin force-marks as delivered
                 $item->update([
                     'status'         => 'delivered',
                     'delivered_at'   => now(),
                     'delivery_notes' => $request->override_notes,
                     'failed_reason'  => null,
                 ]);
-
-                $item->order->update(['status' => 'delivered']);
-
-                OrderShipment::where('manifest_id', $manifestId)
-                    ->where('order_id', $item->order_id)
-                    ->update(['status' => 'delivered', 'delivered_at' => now()]);
 
             } else {
                 // Admin resets to pending: clear failed state so item can be retransferred
@@ -1417,13 +1408,6 @@ class DeliveryManifestController extends Controller
                     'distance_from_prev_km'   => null,
                     'time_from_prev_minutes'  => null,
                 ]);
-
-                // Walk the order back to processing so it shows up in eligible status checks
-                $item->order->update(['status' => 'processing']);
-
-                OrderShipment::where('manifest_id', $manifestId)
-                    ->where('order_id', $item->order_id)
-                    ->update(['status' => 'failed']); // shipment stays failed — a new one will be made on re-dispatch
             }
 
             $this->logDeliveryItemActivity(
@@ -1441,7 +1425,7 @@ class DeliveryManifestController extends Controller
 
             return response()->json([
                 'message' => "Item status overridden to '{$request->status}'.",
-                'data'    => $item->fresh(['order.customer']),
+                'data'    => $item->fresh(['customer', 'notes.voucher.items']),
             ]);
 
         } catch (\Exception $e) {
@@ -1532,39 +1516,6 @@ class DeliveryManifestController extends Controller
 
             $item->update($updateData);
 
-            // Cascade order status
-            $orderStatus = match ($request->status) {
-                'delivered'        => 'delivered',
-                'failed'           => 'processing',   // back to processable
-                'returned'         => 'processing',
-                'out_for_delivery' => 'out_for_delivery',
-                'pending'          => 'processing',
-                default            => null,
-            };
-
-            if ($orderStatus) {
-                $item->order->update(['status' => $orderStatus]);
-            }
-
-            // Cascade shipment status
-            $shipmentStatus = match ($request->status) {
-                'delivered'        => 'delivered',
-                'failed'           => 'failed',
-                'returned'         => 'failed',
-                'out_for_delivery' => 'in_transit',
-                'pending'          => 'pending',
-                default            => null,
-            };
-
-            if ($shipmentStatus) {
-                OrderShipment::where('manifest_id', $manifestId)
-                    ->where('order_id', $item->order_id)
-                    ->update([
-                        'status'       => $shipmentStatus,
-                        'delivered_at' => $request->status === 'delivered' ? $now : null,
-                    ]);
-            }
-
             $this->logDeliveryItemActivity(
                 $item->id,
                 'admin_external_status_override',
@@ -1581,7 +1532,7 @@ class DeliveryManifestController extends Controller
 
             return response()->json([
                 'message' => "Item status updated to '{$request->status}'.",
-                'data'    => $item->fresh(['order.customer']),
+                'data'    => $item->fresh(['customer', 'notes.voucher.items']),
             ]);
 
         } catch (\Exception $e) {
@@ -1603,7 +1554,7 @@ class DeliveryManifestController extends Controller
 
     public function completeManifest(Request $request, int $id): JsonResponse
     {
-        $manifest = DeliveryManifest::with('items.order')->findOrFail($id);
+        $manifest = DeliveryManifest::with('items')->findOrFail($id);
 
         if (! in_array($manifest->status, ['dispatched', 'in_progress'])) {
             return response()->json([
@@ -1645,10 +1596,6 @@ class DeliveryManifestController extends Controller
                         'status'        => 'failed',
                         'failed_reason' => $failReason,
                     ]);
-                    $item->order->update(['status' => 'processing']);
-                    OrderShipment::where('manifest_id', $id)
-                        ->where('order_id', $item->order_id)
-                        ->update(['status' => 'failed']);
                     $autoFailed++;
                 }
             }
@@ -1661,11 +1608,8 @@ class DeliveryManifestController extends Controller
                     : null,
             ]);
 
-            // Mark all delivered shipments with delivered_at if not already set
-            OrderShipment::where('manifest_id', $id)
-                ->where('status', 'delivered')
-                ->whereNull('delivered_at')
-                ->update(['delivered_at' => $now]);
+            // Stops marked delivered without a time get one
+            DeliveryItem::where('manifest_id', $id)->where('status', 'delivered')->whereNull('delivered_at')->update(['delivered_at' => $now]);
 
             $this->logManifestActivity(
                 $manifest->id,
@@ -1685,7 +1629,7 @@ class DeliveryManifestController extends Controller
             return response()->json([
                 'message'      => 'Manifest completed.',
                 'auto_failed'  => $autoFailed,
-                'data'         => $manifest->fresh(['items.order.customer', 'driver:id,name']),
+                'data'         => $manifest->fresh(['items.customer', 'items.notes.voucher.items', 'driver:id,name']),
             ]);
 
         } catch (\Exception $e) {
@@ -1702,125 +1646,30 @@ class DeliveryManifestController extends Controller
     // PRIVATE HELPERS
     // ========================================
 
-    /**
-     * Attach orders to a manifest as delivery items.
-     * Skips orders already attached to any manifest (active or not).
-     * Returns structured skipped entries with manifest_number for UI display.
-     */
-    private function attachOrders(DeliveryManifest $manifest, array $orderIds): array
+    /** Delivery Note ids from `voucher_ids` and/or `voucher_numbers` (the old `order_ids` / `order_numbers` names still work). */
+    private function resolveNoteIds(Request $request): array
     {
-        // Fetch existing items with their manifest so we can surface the manifest number
-        $existingItems = DeliveryItem::whereIn('order_id', $orderIds)
-            ->whereHas('manifest', fn($q) => $q->whereNotIn('status', ['cancelled']))
-            ->with('manifest:id,manifest_number,status')
-            ->get(['order_id', 'manifest_id']);
-
-        $existingOrderIds = $existingItems->pluck('order_id')->toArray();
-
-        $toAttach  = array_diff($orderIds, $existingOrderIds);
-        $lastOrder = $manifest->items()->max('sort_order') ?? 0;
-        $added     = 0;
-
-        foreach (array_values($toAttach) as $i => $orderId) {
-            DeliveryItem::create([
-                'manifest_id' => $manifest->id,
-                'order_id'    => $orderId,
-                'status'      => 'pending',
-                'sort_order'  => $lastOrder + $i + 1,
-            ]);
-            $added++;
+        $ids = array_map('intval', array_merge($request->input('voucher_ids', []), $request->input('order_ids', [])));
+        $nums = array_merge($request->input('voucher_numbers', []), $request->input('order_numbers', []));
+        if ($nums) {
+            $ids = array_merge($ids, Voucher::whereIn('voucher_number', $nums)->pluck('id')->all());
         }
 
-        // Build structured skipped list with reason + manifest reference
-        $skipped = $existingItems->map(fn($item) => [
-            'order_id'        => $item->order_id,
-            'reason'          => 'in_manifest',
-            'manifest_number' => $item->manifest?->manifest_number,
-            'manifest_status' => $item->manifest?->status,
-            'manifest_id'     => $item->manifest_id,
-        ])->values()->toArray();
-
-        return ['added' => $added, 'skipped' => $skipped];
+        return array_values(array_unique($ids));
     }
 
     /**
-     * Pre-flight eligibility check for a set of order IDs.
-     * Returns per-order eligibility with ineligibility reasons including manifest numbers.
-     * Used by the frontend order selector before manifest creation.
+     * Pre-flight check for a set of Delivery Notes: can each go on a manifest, and if not, why
+     * (not a Delivery Note, not posted, already on manifest M-…, already delivered).
      */
     public function checkOrderEligibility(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'order_ids'   => 'required|array|min:1',
-            'order_ids.*' => 'integer|exists:orders,id',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Validation failed.',
-                'errors'  => $validator->errors(),
-            ], 422);
+        $ids = $this->resolveNoteIds($request);
+        if (! $ids) {
+            return response()->json(['message' => 'Validation failed.', 'errors' => ['voucher_ids' => ['Provide at least one Delivery Note.']]], 422);
         }
 
-        $orderIds = $request->input('order_ids');
-
-        // Eligible statuses — must match frontend ELIGIBLE_STATUSES constant
-        $eligibleStatuses = ['confirmed', 'processing', 'ready_for_pickup'];
-
-        // Fetch orders with status
-        $orders = Order::whereIn('id', $orderIds)
-            ->select('id', 'order_number', 'status')
-            ->get()
-            ->keyBy('id');
-
-        // Find which ones are already in a manifest
-        $inManifest = DeliveryItem::whereIn('order_id', $orderIds)
-            ->with('manifest:id,manifest_number,status')
-            ->get(['order_id', 'manifest_id'])
-            ->keyBy('order_id');
-
-        $result = [];
-
-        foreach ($orderIds as $orderId) {
-            $order = $orders->get($orderId);
-            if (! $order) continue;
-
-            // Check manifest first — takes priority as a reason
-            if ($inManifest->has($orderId)) {
-                $item = $inManifest->get($orderId);
-                $result[] = [
-                    'order_id'        => $orderId,
-                    'order_number'    => $order->order_number,
-                    'eligible'        => false,
-                    'reason'          => 'in_manifest',
-                    'manifest_number' => $item->manifest?->manifest_number,
-                    'manifest_status' => $item->manifest?->status,
-                    'manifest_id'     => $item->manifest_id,
-                ];
-                continue;
-            }
-
-            // Check status eligibility
-            if (! in_array($order->status, $eligibleStatuses)) {
-                $result[] = [
-                    'order_id'     => $orderId,
-                    'order_number' => $order->order_number,
-                    'eligible'     => false,
-                    'reason'       => 'status',
-                    'status'       => $order->status,
-                ];
-                continue;
-            }
-
-            $result[] = [
-                'order_id'     => $orderId,
-                'order_number' => $order->order_number,
-                'eligible'     => true,
-                'reason'       => null,
-            ];
-        }
-
-        return response()->json(['data' => $result]);
+        return response()->json(['data' => $this->stops->eligibility($ids)]);
     }
 
     /**
@@ -1830,9 +1679,10 @@ class DeliveryManifestController extends Controller
     {
         if (empty($orderIds)) return null;
 
-        $customerUserIds = Order::whereIn('orders.id', $orderIds)
-            ->join('customers', 'orders.customer_id', '=', 'customers.id')
+        $customerUserIds = Voucher::whereIn('vouchers.id', $orderIds)
+            ->join('customers', 'vouchers.customer_id', '=', 'customers.id')
             ->pluck('customers.user_id')
+            ->filter()
             ->toArray();
 
         if (empty($customerUserIds)) return null;

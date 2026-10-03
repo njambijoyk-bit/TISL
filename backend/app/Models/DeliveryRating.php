@@ -21,6 +21,8 @@ class DeliveryRating extends Model
         'is_visible_to_driver',
     ];
 
+    protected $appends = ['order'];
+
     protected $casts = [
         'rating'               => 'integer',
         'is_visible_to_driver' => 'boolean',
@@ -28,9 +30,15 @@ class DeliveryRating extends Model
 
     // ── Relationships ────────────────────────────────────────
 
-    public function order(): BelongsTo
+    /** What the screens read as `rating.order`: the Delivery Note number(s) on the rated stop. */
+    public function getOrderAttribute(): ?array
     {
-        return $this->belongsTo(Order::class);
+        $stop = $this->relationLoaded('deliveryItem') ? $this->deliveryItem : null;
+        if (! $stop || ! $stop->relationLoaded('notes')) {
+            return null;
+        }
+
+        return ['order_number' => $stop->notes->map->voucher->filter()->pluck('voucher_number')->join(', ')];
     }
 
     public function deliveryItem(): BelongsTo

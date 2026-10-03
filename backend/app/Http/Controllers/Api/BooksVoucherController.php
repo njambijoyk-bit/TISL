@@ -44,7 +44,16 @@ class BooksVoucherController extends Controller
             })
             ->orderByDesc('date')->orderByDesc('id');
 
-        return response()->json($q->paginate(min((int) $request->get('per_page', 25), 200)));
+        $page = $q->paginate(min((int) $request->get('per_page', 25), 200));
+
+        // a Delivery Note shows whether it has been delivered (through its stop on a manifest)
+        $noteIds = $page->getCollection()->filter(fn ($v) => $v->type?->base_type === VoucherType::DELIVERY_NOTE)->pluck('id')->all();
+        if ($noteIds) {
+            $status = app(\App\Services\Delivery\DeliveryStopService::class)->statusFor($noteIds);
+            $page->getCollection()->each(fn ($v) => $v->type?->base_type === VoucherType::DELIVERY_NOTE ? $v->setAttribute('delivery', $status[$v->id] ?? ['status' => 'not_assigned', 'manifest_number' => null, 'delivered_at' => null]) : null);
+        }
+
+        return response()->json($page);
     }
 
     public function show($id): JsonResponse
@@ -65,6 +74,9 @@ class BooksVoucherController extends Controller
             ->where('b.against_voucher_id', $v->id)->where('b.ref_type', 'against')->where('j.status', 'posted')->where('t.base_type', 'journal')
             ->get(['j.id', 'j.voucher_number', 'b.amount', 'j.meta'])->map(fn ($r) => ['voucher_id' => (int) $r->id, 'voucher_number' => $r->voucher_number, 'amount' => (float) $r->amount, 'reason' => (json_decode($r->meta ?? '[]', true)['writeoff']['reason'] ?? null)])->all();
         $out['credit_applied'] = app(\App\Services\Books\CreditService::class)->appliedTo($v);
+        if ($v->type->base_type === VoucherType::DELIVERY_NOTE) {
+            $out['delivery'] = app(\App\Services\Delivery\DeliveryStopService::class)->statusFor([$v->id])[$v->id] ?? ['status' => 'not_assigned', 'manifest_number' => null, 'delivered_at' => null];
+        }
         $out['outstanding'] = in_array($v->type->base_type, [VoucherType::SALES, VoucherType::PURCHASE], true) ? $this->vouchers->outstanding($v) : null;
 
         return response()->json($out);

@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsDeliveryActivity;
 use App\Models\DeliveryManifest;
 use App\Models\DeliveryItem;
-use App\Models\Order;
 use App\Services\AiAnalyticsService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -28,18 +27,19 @@ class DeliveryRouteController extends Controller
     {
         $manifest = DeliveryManifest::with([
             'items' => fn($q) => $q->orderBy('sort_order'),
-            'items.order.customer',
+            'items.customer',
+            'items.notes.voucher',
         ])->findOrFail($manifestId);
 
         $items = $manifest->items->map(function ($item) {
             return [
                 'id'                    => $item->id,
                 'sort_order'            => $item->sort_order,
-                'order_id'              => $item->order_id,
-                'order_number'          => $item->order->order_number,
-                'customer_name'         => trim("{$item->order->customer->first_name} {$item->order->customer->last_name}"),
-                'customer_phone'        => $item->order->customer->phone,
-                'shipping_address'      => $item->order->shipping_address,
+                'order_id'              => $item->notes->first()?->voucher_id,
+                'order_number'          => $item->notes->map->voucher->filter()->pluck('voucher_number')->join(', '),
+                'customer_name'         => $item->contact_name ?: trim("{$item->customer?->first_name} {$item->customer?->last_name}"),
+                'customer_phone'        => ($item->contact_phone ?: $item->customer?->phone),
+                'shipping_address'      => $item->address,
                 'delivery_latitude'     => $item->delivery_latitude,
                 'delivery_longitude'    => $item->delivery_longitude,
                 'estimated_arrival'     => $item->estimated_arrival,
@@ -184,7 +184,8 @@ class DeliveryRouteController extends Controller
         $manifest = DeliveryManifest::forDriver($driver->id)
             ->with([
                 'items' => fn($q) => $q->orderBy('sort_order'),
-                'items.order.customer',
+                'items.customer',
+            'items.notes.voucher',
             ])
             ->findOrFail($manifestId);
 
@@ -193,10 +194,10 @@ class DeliveryRouteController extends Controller
                 'id'                    => $item->id,
                 'sort_order'            => $item->sort_order,
                 'status'                => $item->status,
-                'order_number'          => $item->order->order_number,
-                'customer_name'         => trim("{$item->order->customer->first_name} {$item->order->customer->last_name}"),
-                'customer_phone'        => $item->order->customer->phone,
-                'shipping_address'      => $item->order->shipping_address,
+                'order_number'          => $item->notes->map->voucher->filter()->pluck('voucher_number')->join(', '),
+                'customer_name'         => $item->contact_name ?: trim("{$item->customer?->first_name} {$item->customer?->last_name}"),
+                'customer_phone'        => ($item->contact_phone ?: $item->customer?->phone),
+                'shipping_address'      => $item->address,
                 'delivery_latitude'     => $item->delivery_latitude,
                 'delivery_longitude'    => $item->delivery_longitude,
                 'estimated_arrival'     => $item->estimated_arrival,
@@ -291,16 +292,16 @@ class DeliveryRouteController extends Controller
             DB::commit();
 
             // Return the fresh driver route shape (same as getDriverRoute)
-            $fresh = $manifest->fresh(['items' => fn($q) => $q->orderBy('sort_order'), 'items.order.customer']);
+            $fresh = $manifest->fresh(['items' => fn($q) => $q->orderBy('sort_order'), 'items.customer', 'items.notes.voucher']);
 
             $items = $fresh->items->map(fn($item) => [
                 'id'                    => $item->id,
                 'sort_order'            => $item->sort_order,
                 'status'                => $item->status,
-                'order_number'          => $item->order->order_number,
-                'customer_name'         => trim("{$item->order->customer->first_name} {$item->order->customer->last_name}"),
-                'customer_phone'        => $item->order->customer->phone,
-                'shipping_address'      => $item->order->shipping_address,
+                'order_number'          => $item->notes->map->voucher->filter()->pluck('voucher_number')->join(', '),
+                'customer_name'         => $item->contact_name ?: trim("{$item->customer?->first_name} {$item->customer?->last_name}"),
+                'customer_phone'        => ($item->contact_phone ?: $item->customer?->phone),
+                'shipping_address'      => $item->address,
                 'delivery_latitude'     => $item->delivery_latitude,
                 'delivery_longitude'    => $item->delivery_longitude,
                 'estimated_arrival'     => $item->estimated_arrival,
@@ -432,14 +433,17 @@ class DeliveryRouteController extends Controller
     // CUSTOMER: Get tracking for their order
     // ========================================
 
+    /** $orderId is the customer's document: their Delivery Note, or the Sales Order / invoice it came from. */
     public function getCustomerTracking(int $orderId): JsonResponse
     {
-        $item = DeliveryItem::where('order_id', $orderId)
+        $noteIds = app(\App\Services\Delivery\DeliveryStopService::class)->noteIdsFor($orderId, auth()->user());
+
+        $item = DeliveryItem::whereHas('notes', fn($q) => $q->whereIn('voucher_id', $noteIds))
+            ->latest('id')
             ->with([
                 'manifest' => fn($q) => $q->with([
                     'driver:id,name,phone',
                     'items' => fn($q2) => $q2->orderBy('sort_order'),
-                    'items.order:id,order_number',
                 ]),
                 'manifest.locationPings' => fn($q) => $q->latest('pinged_at')->limit(100),
             ])
@@ -448,7 +452,7 @@ class DeliveryRouteController extends Controller
         $manifest = $item->manifest;
 
         $allItems         = $manifest->items;
-        $myStopNumber     = $allItems->search(fn($i) => $i->order_id === $orderId) + 1;
+        $myStopNumber     = $allItems->search(fn($i) => $i->id === $item->id) + 1;
         $totalStops       = $allItems->count();
 
         $currentStopNumber = $allItems
@@ -459,7 +463,7 @@ class DeliveryRouteController extends Controller
             'lat'         => $i->delivery_latitude,
             'lng'         => $i->delivery_longitude,
             'stop_number' => $i->sort_order,
-            'is_yours'    => $i->order_id === $orderId,
+            'is_yours'    => $i->id === $item->id,
             'status'      => $i->status,
         ])->values();
 

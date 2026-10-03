@@ -1759,6 +1759,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::prefix('manifests')->group(function () {
                 Route::get('/',                              [DeliveryManifestController::class, 'index']);
                 Route::get('/statistics',                    [DeliveryManifestController::class, 'statistics']);
+                Route::get('/delivery-notes',                [DeliveryManifestController::class, 'deliveryNotes']);
                 Route::post('/',                             [DeliveryManifestController::class, 'store']);
                 Route::post('/ai-generate',                  [DeliveryManifestController::class, 'aiGenerate']);
                 Route::post('/ai-create',                    [DeliveryManifestController::class, 'aiCreate']);
@@ -1805,12 +1806,6 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/{entityType}', [DeliveryInsightController::class, 'history']); // fleet-wide, no entityId
                 Route::get('/{entityType}/{entityId}', [DeliveryInsightController::class, 'history']);
                 Route::get('/{entityType}/{entityId}/latest', [DeliveryInsightController::class, 'latest']);
-            });
-
-            // Shipments (all 3 workflows)
-            Route::prefix('shipments')->group(function () {
-                Route::post('/',      [OrderShipmentController::class, 'store']);
-                Route::patch('/{id}', [OrderShipmentController::class, 'update']);
             });
 
             // Incidents — admin full access

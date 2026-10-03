@@ -115,7 +115,7 @@ final class ModuleTables
             'inventory_export_logs', 'inventory_export_presets',
             'purchase_orders', 'purchase_order_items',
             // Delivery + drivers (drivers are users, backed up under Core)
-            'delivery_manifests', 'delivery_items', 'delivery_incidents', 'delivery_ratings',
+            'delivery_manifests', 'delivery_items', 'delivery_item_vouchers', 'delivery_incidents', 'delivery_ratings',
             'delivery_activity_logs', 'driver_location_pings', 'driver_rating_adjustments',
             // (employees and leave logs moved to Core: payroll and attendance stand on them)
             // Algorithm, search and AI analytics

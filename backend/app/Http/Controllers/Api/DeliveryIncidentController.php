@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsDeliveryActivity;
-use App\Models\Order;
-use App\Models\OrderShipment;
 use App\Models\DeliveryIncident;
 use App\Models\DeliveryRating;
 use App\Models\DriverRatingAdjustment;
@@ -164,7 +162,7 @@ class DeliveryIncidentController extends Controller
         // If reporting against a customer, verify they're actually in this manifest
         if ($request->filled('reported_against')) {
             $inManifest = DeliveryItem::where('manifest_id', $request->manifest_id)
-                ->whereHas('order.customer', fn($q) =>
+                ->whereHas('customer', fn($q) =>
                     $q->where('user_id', $request->reported_against)
                 )->exists();
 
@@ -330,7 +328,7 @@ class DeliveryIncidentController extends Controller
     {
         $manifest = DeliveryManifest::with([
             'driver:id,name,role',
-            'items.order.customer:id,first_name,last_name,user_id',
+            'items.customer:id,first_name,last_name,user_id',
         ])->findOrFail($manifestId);
 
         $participants = collect();
@@ -346,7 +344,7 @@ class DeliveryIncidentController extends Controller
 
         // Customers — deduplicated by user_id
         foreach ($manifest->items as $item) {
-            $customer = $item->order?->customer;
+            $customer = $item->customer;
             if ($customer?->user_id && !$participants->firstWhere('user_id', $customer->user_id)) {
                 $participants->push([
                     'user_id' => $customer->user_id,
@@ -391,7 +389,7 @@ class DeliveryIncidentController extends Controller
         }
 
         // Validate reporter is in this manifest
-        $manifest = DeliveryManifest::with('items.order.customer')->findOrFail($request->manifest_id);
+        $manifest = DeliveryManifest::with('items.customer')->findOrFail($request->manifest_id);
         $participantUserIds = $this->getManifestParticipantIds($manifest);
 
         if (!in_array($reporter->id, $participantUserIds) && $reporterRole !== 'admin') {
@@ -477,7 +475,7 @@ class DeliveryIncidentController extends Controller
         if ($manifest->driver_id) $ids[] = $manifest->driver_id;
 
         foreach ($manifest->items as $item) {
-            $userId = $item->order?->customer?->user_id;
+            $userId = $item->customer?->user_id;
             if ($userId) $ids[] = $userId;
         }
 

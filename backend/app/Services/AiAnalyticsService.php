@@ -734,17 +734,15 @@ class AiAnalyticsService
         if (!empty($orderIds)) {
             $placeholders = implode(',', array_fill(0, count($orderIds), '?'));
             $orders = DB::select("
-                SELECT o.id, o.order_number,
-                    CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
-                    c.phone AS customer_phone,
-                    o.shipping_address,
-                    o.priority,
-                    o.total_kes
-                FROM orders o
-                LEFT JOIN customers c ON c.id = o.customer_id
-                WHERE o.id IN ({$placeholders})
-                AND o.deleted_at IS NULL
-                ORDER BY FIELD(o.priority, 'urgent', 'high', 'medium', 'low')
+                SELECT v.id, v.voucher_number AS order_number,
+                    COALESCE(NULLIF(v.party_name, ''), CONCAT(c.first_name, ' ', c.last_name)) AS customer_name,
+                    COALESCE(NULLIF(v.party_phone, ''), c.phone) AS customer_phone,
+                    v.party_address AS shipping_address,
+                    v.base_total AS total_kes
+                FROM vouchers v
+                LEFT JOIN customers c ON c.id = v.customer_id
+                WHERE v.id IN ({$placeholders})
+                ORDER BY v.date, v.id
             ", $orderIds);
         }
 
@@ -785,7 +783,7 @@ class AiAnalyticsService
         }
 
         // Build instructions — inject prior module context if available
-        $instructions = "You are building a delivery manifest for a Kenyan e-commerce platform.\n\n";
+        $instructions = "You are building a delivery manifest from Delivery Notes for a Kenyan e-commerce platform. Each id below is a Delivery Note; notes for the same customer and address become one stop.\n\n";
 
         if ($priorContext) {
             $instructions .= "CONTEXT FROM PRIOR ANALYSIS:\n{$priorContext}\n\n";
@@ -1093,14 +1091,15 @@ class AiAnalyticsService
         $stops = DB::select("
             SELECT di.id, di.sort_order, di.status,
                 di.estimated_arrival,
-                o.order_number,
-                o.shipping_address,
-                CONCAT(c.first_name, ' ', c.last_name) AS customer_name,
-                c.phone AS customer_phone,
-                o.total_kes
+                (SELECT GROUP_CONCAT(v.voucher_number SEPARATOR ', ') FROM delivery_item_vouchers div
+                    JOIN vouchers v ON v.id = div.voucher_id WHERE div.delivery_item_id = di.id) AS order_number,
+                di.address AS shipping_address,
+                COALESCE(NULLIF(di.contact_name, ''), CONCAT(c.first_name, ' ', c.last_name)) AS customer_name,
+                COALESCE(NULLIF(di.contact_phone, ''), c.phone) AS customer_phone,
+                (SELECT SUM(v.base_total) FROM delivery_item_vouchers div
+                    JOIN vouchers v ON v.id = div.voucher_id WHERE div.delivery_item_id = di.id) AS total_kes
             FROM delivery_items di
-            JOIN orders o    ON o.id = di.order_id
-            LEFT JOIN customers c ON c.id = o.customer_id
+            LEFT JOIN customers c ON c.id = di.customer_id
             WHERE di.manifest_id = ?
             ORDER BY di.sort_order ASC
         ", [$manifestId]);

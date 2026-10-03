@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsDeliveryActivity;
 use App\Models\DeliveryManifest;
 use App\Models\DeliveryItem;
-use App\Models\OrderShipment;
 use App\Models\DriverLocationPing;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -30,7 +29,8 @@ class DriverManifestController extends Controller
 
         $query = DeliveryManifest::forDriver($driver->id)
             ->with([
-                'items.order.customer',
+                'items.customer',
+                'items.notes.voucher',
                 'items.rating',
             ]);
 
@@ -69,8 +69,8 @@ class DriverManifestController extends Controller
         $manifest = DeliveryManifest::forDriver($driver->id)
             ->with([
                 'items' => fn($q) => $q->orderBy('sort_order'),
-                'items.order.customer',
-                'items.order.items.product',
+                'items.customer',
+                'items.notes.voucher.items',
                 'items.rating',
             ])
             ->findOrFail($id);
@@ -79,11 +79,11 @@ class DriverManifestController extends Controller
         // NOTE: presentation logic — consider moving to an API Resource if response
         //       shapes proliferate across driver-facing endpoints
         $manifest->items->each(function ($item) {
-            $customer = $item->order->customer;
+            $customer = $item->customer;
             $item->setRelation('customer_contact', (object) [
-                'name'    => $customer ? trim("{$customer->first_name} {$customer->last_name}") : null,
-                'phone'   => $customer?->phone,
-                'address' => $item->order->shipping_address,
+                'name'    => $item->contact_name ?: ($customer ? trim("{$customer->first_name} {$customer->last_name}") : null),
+                'phone'   => $item->contact_phone ?: $customer?->phone,
+                'address' => $item->address,
             ]);
         });
 
@@ -283,7 +283,7 @@ class DriverManifestController extends Controller
                 $request->status === 'failed' ? 'warning' : 'info',
                 [
                     'driver_id'     => $driver->id,
-                    'order_id'      => $item->order_id,
+                    'voucher_ids'   => $item->notes()->pluck('voucher_id'),
                     'failed_reason' => $request->failed_reason,
                     'has_proof'     => ! is_null($proofPath),
                 ]
@@ -293,7 +293,7 @@ class DriverManifestController extends Controller
 
             return response()->json([
                 'message' => 'Stop updated.',
-                'data'    => $item->fresh(['order.customer', 'rating']),
+                'data'    => $item->fresh(['customer', 'notes.voucher.items', 'rating']),
             ]);
 
         } catch (\Exception $e) {
@@ -365,7 +365,7 @@ class DriverManifestController extends Controller
             return response()->json([
                 'message'           => 'Proof of delivery updated.',
                 'proof_of_delivery' => Storage::disk('public')->url($newPath),
-                'data'              => $item->fresh(['order.customer', 'rating']),
+                'data'              => $item->fresh(['customer', 'notes.voucher.items', 'rating']),
             ]);
 
         } catch (\Exception $e) {
@@ -449,7 +449,7 @@ class DriverManifestController extends Controller
                 $request->status === 'failed' ? 'warning' : 'info',
                 [
                     'driver_id'     => $driver->id,
-                    'order_id'      => $item->order_id,
+                    'voucher_ids'   => $item->notes()->pluck('voucher_id'),
                     'failed_reason' => $request->failed_reason,
                     'has_proof'     => ! is_null($proofPath),
                 ]
@@ -459,7 +459,7 @@ class DriverManifestController extends Controller
 
             return response()->json([
                 'message' => 'Stop retry recorded.',
-                'data'    => $item->fresh(['order.customer', 'rating']),
+                'data'    => $item->fresh(['customer', 'notes.voucher.items', 'rating']),
             ]);
 
         } catch (\Exception $e) {
@@ -482,7 +482,7 @@ class DriverManifestController extends Controller
 
         $ratings = \App\Models\DeliveryRating::forDriver($driver->id)
             ->visibleToDriver()
-            ->with('order:id,order_number', 'customer:id,first_name,last_name')
+            ->with('customer:id,first_name,last_name', 'deliveryItem.notes.voucher:id,voucher_number')
             ->orderByDesc('created_at')
             ->paginate(20);
 
@@ -565,25 +565,8 @@ class DriverManifestController extends Controller
         // Reload items after the status promotion above
         $manifest->load('items');
 
-        $deliveredOrderIds = $manifest->items
-            ->where('status', 'delivered')
-            ->pluck('order_id');
-
-        $returnedOrderIds = $manifest->items
-            ->where('status', 'returned')
-            ->pluck('order_id');
-
-        if ($deliveredOrderIds->isNotEmpty()) {
-            OrderShipment::where('manifest_id', $manifest->id)
-                ->whereIn('order_id', $deliveredOrderIds)
-                ->update(['status' => 'delivered', 'delivered_at' => now()]);
-        }
-
-        if ($returnedOrderIds->isNotEmpty()) {
-            OrderShipment::where('manifest_id', $manifest->id)
-                ->whereIn('order_id', $returnedOrderIds)
-                ->update(['status' => 'failed']);
-        }
+        $deliveredOrderIds = $manifest->items->where('status', 'delivered')->pluck('id');
+        $returnedOrderIds  = $manifest->items->where('status', 'returned')->pluck('id');
 
         $this->logManifestActivity(
             $manifest->id,
