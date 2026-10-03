@@ -364,14 +364,14 @@ const ServiceDetail = () => {
                 </div>
 
                 {pkg && picker.data?.tax_info && pkg.display_price != null && (
-                  <div style={{ padding: '10px 20px', background: 'white', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
+                  <div style={{ padding: '10px 20px', background: 'var(--surface-card, #fff)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
                     <PriceBreakdown parts={{ net: pkg.display_price, tax: pkg.display_tax ?? 0, gross: pkg.display_price_incl ?? pkg.display_price, info: picker.data.tax_info }} />
                   </div>
                 )}
 
                 {/* Meta row */}
                 {(pkgDuration || service.estimated_duration || service.lead_time || service.service_area) && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', background: 'white' }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', background: 'var(--surface-card, #fff)' }}>
                     {[
                       (pkgDuration || service.estimated_duration) && { icon: <Clock size={14} />, label: 'Duration', value: pkgDuration || service.estimated_duration },
                       service.lead_time        && { icon: <Calendar size={14} />, label: 'Lead Time', value: service.lead_time },
@@ -383,11 +383,11 @@ const ServiceDetail = () => {
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, color: 'var(--color-primary-500)' }}>
                           {item.icon}
-                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                             {item.label}
                           </span>
                         </div>
-                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827' }}>{item.value}</span>
+                        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>{item.value}</span>
                       </div>
                     ))}
                   </div>
@@ -415,7 +415,7 @@ const ServiceDetail = () => {
                   style={{
                     width: 50, height: 50, borderRadius: 12, cursor: 'pointer', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    border: '1.5px solid ' + (saved ? '#ef4444' : '#e5e7eb'), background: saved ? 'rgba(239,68,68,0.06)' : 'white',
+                    border: '1.5px solid ' + (saved ? '#ef4444' : 'var(--line)'), background: saved ? 'rgba(239,68,68,0.06)' : 'white',
                   }}
                 >
                   <Heart size={18} style={{ color: saved ? '#ef4444' : '#9ca3af', fill: saved ? '#ef4444' : 'none' }} />
@@ -429,11 +429,11 @@ const ServiceDetail = () => {
           </div>
 
           {/* ── TABS: Description / Features / Requirements ───────────────── */}
-          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 48 }}>
+          <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', overflow: 'hidden', marginBottom: 48 }}>
             {/* Deliverables */}
               {hasDeliverables && (
-                <div style={{ background: 'white', borderRadius: 12, padding: '16px 18px', border: '1px solid #f3f4f6' }}>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 12, padding: '16px 18px', border: '1px solid var(--line)' }}>
+                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
                     <Package size={13} style={{ color: 'var(--color-primary-500)' }} /> What You'll Get
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -442,7 +442,7 @@ const ServiceDetail = () => {
                         <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                           <Check size={10} style={{ color: 'var(--color-primary-500)' }} />
                         </span>
-                        <span style={{ fontSize: '0.83rem', color: '#374151', lineHeight: 1.4 }}>{d}</span>
+                        <span style={{ fontSize: '0.83rem', color: 'var(--text-primary)', lineHeight: 1.4 }}>{d}</span>
                       </div>
                     ))}
                   </div>
@@ -450,7 +450,7 @@ const ServiceDetail = () => {
               )}
 
             {/* Tab headers */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 24px' }}>
+            <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', padding: '0 24px' }}>
               {tabs.map(tab => (
                 <button
                   key={tab.id}
@@ -472,7 +472,7 @@ const ServiceDetail = () => {
             {/* Tab content */}
             <div style={{ padding: '32px', maxWidth: 720 }}>
               {activeTab === 'description' && (
-                <div style={{ fontSize: '0.95rem', color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-line' }} className="dark:text-gray-300">
+                <div style={{ fontSize: '0.95rem', color: 'var(--text-primary)', lineHeight: 1.8, whiteSpace: 'pre-line' }} className="dark:text-gray-300">
                   {service.description || 'No description available.'}
                 </div>
               )}
@@ -484,7 +484,7 @@ const ServiceDetail = () => {
                       <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                         <Check size={11} style={{ color: 'var(--color-primary-500)' }} />
                       </span>
-                      <span style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.5 }} className="dark:text-gray-300">{feature}</span>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }} className="dark:text-gray-300">{feature}</span>
                     </div>
                   ))}
                 </div>
@@ -492,13 +492,13 @@ const ServiceDetail = () => {
 
               {activeTab === 'requirements' && hasRequirements && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>What we'll need from you for this service.</p>
+                  <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>What we'll need from you for this service.</p>
                   {requirementFields.map((req) => (
                     <div key={req.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(59,130,246,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                         <AlertCircle size={11} style={{ color: '#3b82f6' }} />
                       </span>
-                      <span style={{ fontSize: '0.9rem', color: '#374151', lineHeight: 1.5 }} className="dark:text-gray-300">{req.label}{req.is_required ? ' *' : ''}{req.help_text ? <span style={{ color: '#9ca3af' }}> — {req.help_text}</span> : null}</span>
+                      <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)', lineHeight: 1.5 }} className="dark:text-gray-300">{req.label}{req.is_required ? ' *' : ''}{req.help_text ? <span style={{ color: 'var(--text-tertiary)' }}> — {req.help_text}</span> : null}</span>
                     </div>
                   ))}
                 </div>
@@ -513,7 +513,7 @@ const ServiceDetail = () => {
                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-600)', letterSpacing: '-0.02em', margin: 0 }} className="dark:text-white">
                   Related Services
                 </h2>
-                <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{relatedServices.length} items</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{relatedServices.length} items</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {relatedServices.map(s => (

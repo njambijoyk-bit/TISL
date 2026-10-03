@@ -10,10 +10,10 @@ export default function PriceBreakdown({ parts, style }) {
   if (!parts) return null;
   const { net, tax, gross, info } = parts;
   const f = (n) => money.formatIn(n, parts.symbol);
-  const row = { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.85rem', color: '#4b5563' };
+  const row = { display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: '0.85rem', color: 'var(--text-secondary)' };
   const taxed = info && info.nature === 'taxable' && tax > 0;
   return (
-    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: '10px 14px', background: '#f9fafb', ...style }}>
+    <div style={{ border: '1px solid var(--line)', borderRadius: 12, padding: '10px 14px', background: 'var(--surface-input)', ...style }}>
       <div style={row}><span>{taxed || info ? 'Price (excl. tax)' : 'Price'}</span><span>{f(net)}</span></div>
       {info && (
         <div style={row}>
@@ -21,7 +21,7 @@ export default function PriceBreakdown({ parts, style }) {
           <span>{taxed ? f(tax) : f(0)}</span>
         </div>
       )}
-      <div style={{ ...row, marginTop: 6, paddingTop: 6, borderTop: '1px solid #e5e7eb', fontWeight: 800, color: '#111827' }}>
+      <div style={{ ...row, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--line)', fontWeight: 800, color: 'var(--text-primary)' }}>
         <span>Total</span><span>{f(gross)}</span>
       </div>
     </div>
