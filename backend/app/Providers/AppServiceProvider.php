@@ -84,7 +84,8 @@ class AppServiceProvider extends ServiceProvider
                 \App\Services\Insight\Packs\LoyaltySettingsPack::class, \App\Services\Insight\Packs\LoyaltyRulePack::class,
                 \App\Services\Insight\Packs\PromoPack::class, \App\Services\Insight\Packs\CustomerDiscountPack::class,
                 \App\Services\Insight\Packs\HamperPack::class, \App\Services\Insight\Packs\AuctionPack::class,
-                \App\Services\Insight\Packs\ServiceIncomePack::class, \App\Services\Insight\Packs\QuoteIncomePack::class] as $pack) {
+                \App\Services\Insight\Packs\ServiceIncomePack::class, \App\Services\Insight\Packs\QuoteIncomePack::class,
+                \App\Services\Insight\Packs\ReportPack::class, \App\Services\Insight\Packs\BranchPack::class, \App\Services\Insight\Packs\AttendancePack::class] as $pack) {
                 $r->register(new $pack());
             }
 

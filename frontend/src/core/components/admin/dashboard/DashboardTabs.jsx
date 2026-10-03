@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer, Legend } from 'recharts';
 import booksAPI from '../../../../_shared/api/books';
@@ -171,6 +172,7 @@ function Stock({ d }) {
 const TABS = [['sales', 'Sales'], ['purchases', 'Purchases'], ['stock', 'Stock'], ['pending', 'Pending documents'], ['funnels', 'Funnels']];
 
 export default function DashboardTabs() {
+  useCalculatorContext({ type: 'branches' });   // Alt+C: how the branches compare
   const [tab, setTab] = useState('sales');
   const [from, setFrom] = useState(yearStart());
   const [to, setTo] = useState(today());

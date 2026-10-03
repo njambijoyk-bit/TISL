@@ -1,3 +1,4 @@
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -257,6 +258,8 @@ export default function ReportsTab() {
   const [params, setParams] = useSearchParams();
   const id = REPORTS.some((r) => r.id === params.get('report')) ? params.get('report') : 'day-book';
   const def = REPORTS.find((r) => r.id === id);
+  // Alt+C: what the profit and loss, balance sheet or trial balance says, on the dates shown
+  useCalculatorContext(['profit-loss', 'balance-sheet', 'trial-balance'].includes(id) ? { type: 'report', report: id, from, to } : null);
   const [from, setFrom] = useState(yearStart());
   const [to, setTo] = useState(today());
   const [ledgerId, setLedgerId] = useState(params.get('ledger') ?? '');

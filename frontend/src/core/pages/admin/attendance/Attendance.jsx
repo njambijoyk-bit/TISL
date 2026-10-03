@@ -1,3 +1,4 @@
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
@@ -112,6 +113,7 @@ function SettingsModal({ settings, onClose, onSaved }) {
 }
 
 export default function Attendance() {
+  useCalculatorContext({ type: 'attendance' });   // Alt+C: is attendance dropping
   const [month, setMonth] = useState(() => { const n = new Date(); return `${n.getFullYear()}-${pad(n.getMonth() + 1)}`; });
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);

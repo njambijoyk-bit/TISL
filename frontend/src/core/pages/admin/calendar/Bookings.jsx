@@ -9,6 +9,7 @@ import { money } from '../../../components/admin/books/booksFmt';
 import booksAPI from '../../../../_shared/api/books';
 import { bookingsAPI } from '../../../../_shared/api/bookings';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import useCalculatorStore from '../../../../_shared/store/calculatorStore';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
 /**
@@ -171,6 +172,7 @@ function Detail({ b, reload, tell }) {
       {b.fees.length > 0 && <div style={{ color: colors.textFaint }}>{b.fees.map((x) => `${x.name} ${money(x.amount)}`).join(' · ')}</div>}
       {b.status === 'cancelled' && <div style={{ color: '#6b7280' }}>Cancelled{b.cancelled_late ? ' late' : ''}{b.cancel_reason ? ` — ${b.cancel_reason}` : ''}</div>}
       <div style={{ marginTop: 8 }}>
+        <button type="button" style={small} title="What this booking earned (Calculator)" onClick={() => { const st = useCalculatorStore.getState(); st.publish('booking-row', { type: 'booking', id: b.id }); st.setOpen(true); }}>What it earned</button>{' '}
         {b.can_change && (
           <>
             <button type="button" style={btnPrimary} onClick={() => setDone(true)}>Done — invoice</button>{' '}
