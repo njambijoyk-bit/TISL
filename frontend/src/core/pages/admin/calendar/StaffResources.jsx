@@ -142,7 +142,7 @@ function Editor({ r, data, onSaved }) {
       </div>
       <div style={{ display: 'flex', gap: 4, margin: '14px 0 8px' }}>
         {[['hours', 'Working hours'], ['off', 'Time off'], ['services', 'Services'], ['slots', 'Free times']].map(([k, l]) => (
-          <button key={k} type="button" onClick={() => setTab(k)} style={{ ...ghost, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : undefined }}>{l}</button>
+          <button key={k} type="button" onClick={() => setTab(k)} style={{ ...ghost, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)', color: tab === k ? 'var(--color-primary-500)' : 'var(--text-primary)', border: `1.5px solid ${tab === k ? 'var(--color-primary-500)' : 'var(--line)'}` }}>{l}</button>
         ))}
       </div>
       {tab === 'hours' && <Hours key={JSON.stringify(r.hours)} r={r} onSaved={(x) => { onSaved(x); toast.success('Hours saved'); }} />}

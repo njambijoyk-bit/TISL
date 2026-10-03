@@ -85,7 +85,7 @@ export default function MyCalendar() {
             {days.map((d, i) => {
               const list = d ? byDay[ymd(d)] ?? [] : [];
               return (
-                <div key={i} style={{ background: d ? '#fff' : '#fafafa', minHeight: 84, padding: 4, overflow: 'hidden' }}>
+                <div key={i} style={{ background: d ? 'var(--surface-card, #fff)' : 'var(--surface-input)', minHeight: 84, padding: 4, overflow: 'hidden' }}>
                   {d && <div style={{ fontSize: '0.72rem', fontWeight: ymd(d) === ymd(new Date()) ? 800 : 500, color: ymd(d) === ymd(new Date()) ? colors.primaryDeep : colors.textMuted }}>{d.getDate()}</div>}
                   {list.slice(0, 3).map((e) => {
                     const chip = <span title={e.title} style={{ display: 'block', margin: '2px 0', padding: '1px 5px', borderRadius: 4, background: `${kindOf(e.kind)[1]}22`, color: 'var(--text-primary)', fontSize: '0.68rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `3px solid ${kindOf(e.kind)[1]}` }}>{!e.all_day && `${new Date(e.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} `}{e.title}</span>;
