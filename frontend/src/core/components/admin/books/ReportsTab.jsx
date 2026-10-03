@@ -97,7 +97,18 @@ function ViewBody({ id, data, nav, onRefresh }) {
         )) : <Empty cols={6} />}
         <Total><td style={td} colSpan={4}>Closing totals</td><td style={{ ...td, ...num }}>Dr {money(data.total_debit)}</td><td style={{ ...td, ...num }}>Cr {money(data.total_credit)}</td></Total>
       </Table>
-      {!data.balanced && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>The trial balance does not balance — check the opening balances.</p>}
+      {!data.balanced && (
+        <div role="alert" style={{ ...card, padding: 12, marginTop: 10, fontSize: '0.8rem', color: colors.dangerText }}>
+          <strong>The trial balance does not balance: debits are {money(Math.abs(data.total_debit - data.total_credit))} {data.total_debit > data.total_credit ? 'more' : 'less'} than credits.</strong>
+          {data.opening_difference ? (
+            <>
+              <div style={{ marginTop: 4, color: colors.text }}>The opening balances on the ledgers do not net to nothing — they are {money(Math.abs(data.opening_difference))} {data.opening_difference > 0 ? 'heavy on the debit side' : 'heavy on the credit side'}, and every opening balance needs an opposite one (usually Capital). The ledgers carrying them:</div>
+              <ul style={{ margin: '4px 0 0', paddingLeft: 18, color: colors.text }}>{data.opening_balances.map((o) => <li key={o.ledger_id}>{o.ledger} <span style={{ color: colors.textMuted }}>({o.group})</span> — {money(o.amount)} {o.side}</li>)}</ul>
+              <div style={{ marginTop: 4, color: colors.textMuted }}>Fix it by moving the money in with a Journal or Receipt (for example Dr the bank, Cr Capital) and setting the ledger's opening balance to 0, or by giving the opposite opening balance to Capital.</div>
+            </>
+          ) : <div style={{ marginTop: 4, color: colors.text }}>The opening balances agree, so the difference is in the postings — tell us and we will trace it.</div>}
+        </div>
+      )}
     </>
   );
   if (id === 'profit-loss') {

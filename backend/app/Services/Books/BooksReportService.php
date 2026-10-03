@@ -150,8 +150,20 @@ class BooksReportService
             $tCr += $close < 0 ? -$close : 0;
         }
 
+        // every opening balance needs an opposite one; if they do not net to nothing the trial balance can never balance, whatever is posted
+        $openings = [];
+        $openNet = 0.0;
+        foreach ($this->ledgers() as $l) {
+            $o = $this->opening($l);
+            if (abs($o) >= 0.005) {
+                $openNet += $o;
+                $openings[] = ['ledger_id' => (int) $l->id, 'ledger' => $l->name, 'group' => $l->group_name, 'amount' => round(abs($o), 2), 'side' => $o > 0 ? 'Dr' : 'Cr'];
+            }
+        }
+
         return ['from' => $from, 'to' => $to, 'rows' => $rows, 'total_debit' => round($tDr, 2), 'total_credit' => round($tCr, 2),
-            'balanced' => abs($tDr - $tCr) < 0.01, 'restated_vouchers' => RestatedBase::restatedCount()];
+            'balanced' => abs($tDr - $tCr) < 0.01, 'restated_vouchers' => RestatedBase::restatedCount(),
+            'opening_difference' => abs($openNet) < 0.01 ? 0.0 : round($openNet, 2), 'opening_balances' => abs($openNet) < 0.01 ? [] : $openings];
     }
 
     /** Income & expense ledgers for a period, split into trading (gross profit) and the rest. */
