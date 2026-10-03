@@ -59,6 +59,13 @@ class InventoryController extends Controller
             'icon'        => 'nullable|string|max:100',
             'sort_order'  => 'nullable|integer',
             'is_active'   => 'boolean',
+            'asset_ledger_id'       => 'nullable|exists:ledgers,id',
+            'accumulated_ledger_id' => 'nullable|exists:ledgers,id',
+            'expense_ledger_id'     => 'nullable|exists:ledgers,id',
+            'default_method'        => 'nullable|in:none,straight_line,reducing_balance',
+            'default_life_years'    => 'nullable|integer|min:1|max:100',
+            'default_rate'          => 'nullable|numeric|min:0|max:100',
+            
         ]);
 
         $data['slug']       = \Illuminate\Support\Str::slug($data['name']);
@@ -80,6 +87,13 @@ class InventoryController extends Controller
             'icon'        => 'nullable|string|max:100',
             'sort_order'  => 'nullable|integer',
             'is_active'   => 'boolean',
+            'asset_ledger_id'       => 'nullable|exists:ledgers,id',
+            'accumulated_ledger_id' => 'nullable|exists:ledgers,id',
+            'expense_ledger_id'     => 'nullable|exists:ledgers,id',
+            'default_method'        => 'nullable|in:none,straight_line,reducing_balance',
+            'default_life_years'    => 'nullable|integer|min:1|max:100',
+            'default_rate'          => 'nullable|numeric|min:0|max:100',
+            
         ]);
 
         if (isset($data['name'])) {
@@ -291,12 +305,42 @@ class InventoryController extends Controller
             'warranty_expiry'    => 'nullable|date',
             'useful_life_years'  => 'nullable|integer|min:1',
             'notes'              => 'nullable|string',
+            'currency_id'          => 'nullable|exists:currencies,id',
+            'exchange_rate'        => 'nullable|numeric|min:0',
+            'floor_value'          => 'nullable|numeric|min:0',
+            'depreciation_method'  => 'nullable|in:none,straight_line,reducing_balance',
+            'depreciation_rate'    => 'nullable|numeric|min:0|max:100',
+            'in_service_date'      => 'nullable|date',
+            'opening_accumulated'  => 'nullable|numeric|min:0',
+            'depreciated_to'       => 'nullable|date',
+            'acquisition_mode'     => 'nullable|in:none,link,payment',
+            'acquisition_voucher_id' => 'nullable|integer',
+            'paid_ledger_id'       => 'nullable|integer',
         ]);
+
+        $acq = array_intersect_key($data, array_flip(['acquisition_mode', 'acquisition_voucher_id', 'paid_ledger_id']));
+        unset($data['acquisition_mode'], $data['acquisition_voucher_id'], $data['paid_ledger_id']);
+        if (($data['floor_value'] ?? 0) > ($data['purchase_cost'] ?? 0) && ! empty($data['purchase_cost'])) {
+            return response()->json(['message' => 'The floor (where depreciation stops) cannot be more than the cost.'], 422);
+        }
+        if (! isset($data['depreciation_method']) && ! empty($data['item_id'])) {
+            // an asset starts with its category's method, life and rate unless told otherwise
+            $cat = \App\Models\Inventory\InventoryCategory::find(\App\Models\Inventory\InventoryItem::find($data['item_id'])?->category_id);
+            if ($cat && \App\Services\Inventory\AssetAccountingService::ready()) {
+                $data['depreciation_method'] = $cat->default_method ?: 'none';
+                $data['useful_life_years'] ??= $cat->default_life_years;
+                $data['depreciation_rate'] ??= $cat->default_rate;
+            }
+        }
+        if (! \App\Services\Inventory\AssetAccountingService::ready()) {
+            $data = array_diff_key($data, array_flip(['currency_id', 'exchange_rate', 'floor_value', 'depreciation_method', 'depreciation_rate', 'in_service_date', 'opening_accumulated', 'depreciated_to']));
+        }
 
         $data['created_by'] = Auth::id();
         $data['updated_by'] = Auth::id();
 
         // Auto-generate asset tag: TISL-IT-{padded id} handled after creation
+        \Illuminate\Support\Facades\DB::beginTransaction();
         $instance = InventoryInstance::create($data);
 
         if (! $instance->asset_tag) {
@@ -316,6 +360,18 @@ class InventoryController extends Controller
 
         $this->transactions->syncItemQty($instance->item_id);
 
+        // book the purchase (Dr the asset account) if asked
+        if (($acq['acquisition_mode'] ?? 'none') !== 'none') {
+            try {
+                app(\App\Services\Inventory\AssetAccountingService::class)->acquire($instance->fresh(['item']), $acq, Auth::user());
+            } catch (\App\Services\Books\BooksException $e) {
+                \Illuminate\Support\Facades\DB::rollBack();
+
+                return response()->json(['message' => $e->getMessage()], 422);
+            }
+        }
+        \Illuminate\Support\Facades\DB::commit();
+
         return response()->json($instance->fresh(), 201);
     }
 
@@ -332,7 +388,25 @@ class InventoryController extends Controller
             'warranty_expiry'            => 'nullable|date',
             'useful_life_years'          => 'nullable|integer|min:1',
             'notes'                      => 'nullable|string',
+            'currency_id'                => 'nullable|exists:currencies,id',
+            'exchange_rate'              => 'nullable|numeric|min:0',
+            'floor_value'                => 'nullable|numeric|min:0',
+            'depreciation_method'        => 'nullable|in:none,straight_line,reducing_balance',
+            'depreciation_rate'          => 'nullable|numeric|min:0|max:100',
+            'in_service_date'            => 'nullable|date',
         ]);
+
+        if (! \App\Services\Inventory\AssetAccountingService::ready()) {
+            $data = array_diff_key($data, array_flip(['currency_id', 'exchange_rate', 'floor_value', 'depreciation_method', 'depreciation_rate', 'in_service_date']));
+        } elseif (\App\Models\AssetDepreciation::where('instance_id', $instance->id)->exists()
+            && (array_key_exists('purchase_cost', $data) && (float) $data['purchase_cost'] !== (float) $instance->purchase_cost
+                || array_key_exists('currency_id', $data) && $data['currency_id'] != $instance->currency_id
+                || array_key_exists('in_service_date', $data) && $data['in_service_date'] != $instance->in_service_date?->toDateString())) {
+            return response()->json(['message' => 'Depreciation has been posted for this asset: its cost, currency and in-service date cannot change now. Undo the depreciation first.'], 422);
+        }
+        if (isset($data['floor_value']) && (float) $data['floor_value'] > (float) ($data['purchase_cost'] ?? $instance->purchase_cost)) {
+            return response()->json(['message' => 'The floor (where depreciation stops) cannot be more than the cost.'], 422);
+        }
 
         $data['updated_by'] = Auth::id();
         $instance->update($data);

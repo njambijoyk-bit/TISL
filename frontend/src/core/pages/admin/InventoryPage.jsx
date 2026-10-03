@@ -4,6 +4,8 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import EmployeeSelectorModal from "./EmployeeSelectorModal";
 import CustomerSelectorModal from "./CustomerSelectorModal";
 import InventoryItemSelectorModal from "./InventoryItemSelectorModal";
+import { DepreciationTab, CategoryDepreciationFields, AssetMoneyFields, BookValuePanel } from "./assets/AssetAccounting";
+import { useAccountingOptions } from "./assets/useAccountingOptions";
 
 // ─── DESIGN TOKENS ────────────────────────────────────────────────────────────
 const C = {
@@ -731,7 +733,7 @@ function IssueModal({ instance, mode = "issue", onClose, onSuccess, toast }) {
               />
             ) : (
               <SelectorTrigger
-                label={form.item_label || "Select item…"}
+                label={form.item_label || "Select asset type…"}
                 filled={!!form.item_id}
                 onOpen={() => setItemPicker(true)}
                 onClear={() => { set("item_id", ""); set("item_label", ""); }}
@@ -1306,7 +1308,10 @@ function NewInstanceModal({ locations, onClose, onSuccess, toast }) {
     item_id: "", item_label: "", asset_tag: "", serial_number: "",
     condition: "new", location_id: "", notes: "",
     purchase_date: "", purchase_cost: "", warranty_expiry: "",
+    currency_id: "", floor_value: "", depreciation_method: "", useful_life_years: "", depreciation_rate: "", in_service_date: "",
+    opening_accumulated: "", depreciated_to: "", acquisition_mode: "none", paid_ledger_id: "", acquisition_voucher_id: "",
   });
+  const accOpts = useAccountingOptions();
   const [saving, setSaving]         = useState(false);
   const [itemPicker, setItemPicker] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -1314,13 +1319,17 @@ function NewInstanceModal({ locations, onClose, onSuccess, toast }) {
   const submit = async () => {
     setSaving(true);
     try {
+      const blank = (v) => (v === "" || v == null ? undefined : v);
       await inventoryAPI.instances.store({
-        ...form,
-        item_id:      form.item_id      ? parseInt(form.item_id, 10)      : undefined,
-        location_id:  form.location_id  ? parseInt(form.location_id, 10)  : undefined,
-        purchase_cost: form.purchase_cost ? parseFloat(form.purchase_cost) : undefined,
+        item_id: parseInt(form.item_id, 10), asset_tag: blank(form.asset_tag), serial_number: blank(form.serial_number), condition: form.condition, notes: blank(form.notes),
+        current_location_id: form.location_id ? parseInt(form.location_id, 10) : undefined,
+        purchase_date: blank(form.purchase_date), purchase_cost: form.purchase_cost ? parseFloat(form.purchase_cost) : undefined, warranty_expiry: blank(form.warranty_expiry),
+        currency_id: blank(form.currency_id), floor_value: blank(form.floor_value), depreciation_method: blank(form.depreciation_method),
+        useful_life_years: form.useful_life_years ? parseInt(form.useful_life_years, 10) : undefined, depreciation_rate: blank(form.depreciation_rate), in_service_date: blank(form.in_service_date),
+        opening_accumulated: blank(form.opening_accumulated), depreciated_to: blank(form.depreciated_to),
+        acquisition_mode: form.acquisition_mode, paid_ledger_id: blank(form.paid_ledger_id), acquisition_voucher_id: blank(form.acquisition_voucher_id),
       });
-      toast("Instance created", "success");
+      toast("Asset added", "success");
       onSuccess();
       onClose();
     } catch (e) {
@@ -1330,10 +1339,10 @@ function NewInstanceModal({ locations, onClose, onSuccess, toast }) {
 
   return (
     <>
-      <Modal title="// add instance" onClose={onClose} width={520}>
-        <Field label="Item">
+      <Modal title="Add an asset" onClose={onClose} width={620}>
+        <Field label="Asset type">
           <SelectorTrigger
-            label={form.item_label || "Select item…"}
+            label={form.item_label || "Select asset type…"}
             filled={!!form.item_id}
             onOpen={() => setItemPicker(true)}
             onClear={() => { set("item_id", ""); set("item_label", ""); }}
@@ -1341,7 +1350,7 @@ function NewInstanceModal({ locations, onClose, onSuccess, toast }) {
         </Field>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Field label="Asset Tag">
-            <input style={inputStyle} value={form.asset_tag} onChange={e => set("asset_tag", e.target.value)} placeholder="TISL-IT-0001" />
+            <input style={inputStyle} value={form.asset_tag} onChange={e => set("asset_tag", e.target.value)} placeholder="Leave blank to number it automatically" />
           </Field>
           <Field label="Serial Number (optional)">
             <input style={inputStyle} value={form.serial_number} onChange={e => set("serial_number", e.target.value)} />
@@ -1371,11 +1380,12 @@ function NewInstanceModal({ locations, onClose, onSuccess, toast }) {
             <input style={inputStyle} type="date" value={form.warranty_expiry} onChange={e => set("warranty_expiry", e.target.value)} />
           </Field>
         </div>
+        <AssetMoneyFields form={form} set={set} opts={accOpts} />
         <Field label="Notes (optional)">
           <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} value={form.notes} onChange={e => set("notes", e.target.value)} />
         </Field>
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <ActionBtn color={C.green} onClick={submit} disabled={saving}>{saving ? "Saving…" : "Add Instance"}</ActionBtn>
+          <ActionBtn color={C.green} onClick={submit} disabled={saving || !form.item_id}>{saving ? "Saving…" : "Add asset"}</ActionBtn>
           <ActionBtn color={C.cyan} outline onClick={onClose}>Cancel</ActionBtn>
         </div>
       </Modal>
@@ -1593,7 +1603,9 @@ function SettingsModal({ onClose, toast }) {
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [catForm, setCatForm] = useState({ name: "", description: "", icon: "", is_active: true });
+  const CAT_BLANK = { name: "", description: "", icon: "", is_active: true, asset_ledger_id: null, accumulated_ledger_id: null, expense_ledger_id: null, default_method: "none", default_life_years: null, default_rate: null };
+  const accOpts = useAccountingOptions();
+  const [catForm, setCatForm] = useState(CAT_BLANK);
   const [editCat, setEditCat] = useState(null);
   const [locForm, setLocForm] = useState({ name: "", code: "", type: "warehouse", address: "", is_active: true });
   const [editLoc, setEditLoc] = useState(null);
@@ -1619,7 +1631,7 @@ function SettingsModal({ onClose, toast }) {
       if (editCat) await inventoryAPI.categories.update(editCat.id, catForm);
       else await inventoryAPI.categories.store(catForm);
       toast(editCat ? "Category updated" : "Category created", "success");
-      setEditCat(null); setCatForm({ name: "", description: "", icon: "", is_active: true });
+      setEditCat(null); setCatForm(CAT_BLANK);
       loadCategories();
     } catch (e) { toast(e?.response?.data?.message ?? "Failed", "error"); }
   };
@@ -1647,7 +1659,7 @@ function SettingsModal({ onClose, toast }) {
   };
 
   return (
-    <Modal title="// settings" onClose={onClose} width={700}>
+    <Modal title="Settings" onClose={onClose} width={760}>
       <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${C.border}`, marginBottom: 20 }}>
         {["categories", "locations"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
@@ -1663,23 +1675,25 @@ function SettingsModal({ onClose, toast }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div>
             <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
-              {editCat ? `// editing: ${editCat.name}` : "// new category"}
+              {editCat ? `Editing: ${editCat.name}` : "New category"}
             </div>
             <Field label="Name"><input style={inputStyle} value={catForm.name} onChange={e => setCatForm(f => ({ ...f, name: e.target.value }))} /></Field>
             <Field label="Icon (optional)"><input style={inputStyle} value={catForm.icon} onChange={e => setCatForm(f => ({ ...f, icon: e.target.value }))} placeholder="emoji or icon code" /></Field>
             <Field label="Description"><textarea style={{ ...inputStyle, resize: "vertical", minHeight: 60 }} value={catForm.description} onChange={e => setCatForm(f => ({ ...f, description: e.target.value }))} /></Field>
-            <div style={{ display: "flex", gap: 8 }}>
+            <CategoryDepreciationFields form={catForm} set={(k, v) => setCatForm(f => ({ ...f, [k]: v }))} opts={accOpts} categoryId={editCat?.id}
+              onSetup={async () => { try { const r = await inventoryAPI.accounting.setupLedgers(editCat.id); const c = r.data; setCatForm(f => ({ ...f, asset_ledger_id: c.asset_ledger_id, accumulated_ledger_id: c.accumulated_ledger_id, expense_ledger_id: c.expense_ledger_id })); toast("Ledgers ready", "success"); loadCategories(); } catch (e) { toast(e?.response?.data?.message ?? "Failed", "error"); } }} />
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
               <ActionBtn color={C.green} small onClick={saveCategory}>{editCat ? "Update" : "Add"}</ActionBtn>
-              {editCat && <ActionBtn color={C.cyan} small outline onClick={() => { setEditCat(null); setCatForm({ name: "", description: "", icon: "", is_active: true }); }}>Cancel</ActionBtn>}
+              {editCat && <ActionBtn color={C.cyan} small outline onClick={() => { setEditCat(null); setCatForm(CAT_BLANK); }}>Cancel</ActionBtn>}
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// categories</div>
+            <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>Categories</div>
             {loading ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>loading…</div> : (categories ?? []).map(c => (
               <div key={c.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
                 <span style={{ fontFamily: mono, fontSize: 12 }}>{c.icon} {c.name}</span>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <ActionBtn small outline color={C.cyan} onClick={() => { setEditCat(c); setCatForm({ name: c.name, description: c.description ?? "", icon: c.icon ?? "", is_active: c.is_active }); }}>Edit</ActionBtn>
+                  <ActionBtn small outline color={C.cyan} onClick={() => { setEditCat(c); setCatForm({ name: c.name, description: c.description ?? "", icon: c.icon ?? "", is_active: c.is_active, asset_ledger_id: c.asset_ledger_id ?? null, accumulated_ledger_id: c.accumulated_ledger_id ?? null, expense_ledger_id: c.expense_ledger_id ?? null, default_method: c.default_method ?? "none", default_life_years: c.default_life_years ?? null, default_rate: c.default_rate ?? null }); }}>Edit</ActionBtn>
                   <ActionBtn small outline color={C.red} onClick={() => deleteCategory(c.id)}>✕</ActionBtn>
                 </div>
               </div>
@@ -1692,7 +1706,7 @@ function SettingsModal({ onClose, toast }) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <div>
             <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>
-              {editLoc ? `// editing: ${editLoc.name}` : "// new location"}
+              {editLoc ? `Editing: ${editLoc.name}` : "New location"}
             </div>
             <Field label="Name"><input style={inputStyle} value={locForm.name} onChange={e => setLocForm(f => ({ ...f, name: e.target.value }))} /></Field>
             <Field label="Code"><input style={inputStyle} value={locForm.code} onChange={e => setLocForm(f => ({ ...f, code: e.target.value }))} placeholder="MAIN-WH-01" /></Field>
@@ -1708,7 +1722,7 @@ function SettingsModal({ onClose, toast }) {
             </div>
           </div>
           <div>
-            <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// locations</div>
+            <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>Locations</div>
             {loading ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>loading…</div> : (locations ?? []).map(l => (
               <div key={l.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
                 <div>
@@ -1860,7 +1874,7 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
 
   return (
     <div>
-      <Breadcrumb crumbs={["Inventory", "Instances", instance.asset_tag]} onNavigate={i => { if (i <= 1) onBack(); }} />
+      <Breadcrumb crumbs={["Assets", "All assets", instance.asset_tag]} onNavigate={i => { if (i <= 1) onBack(); }} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 }}>
         <div>
           <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 4 }}>
@@ -1880,6 +1894,7 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
         </div>
       </div>
 
+      <BookValuePanel instanceId={instanceId} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 24 }}>
         <Panel>
           <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// details</div>
@@ -2979,6 +2994,7 @@ const TABS = [
   { id: "disputes",    label: "Disputes",       icon: "⚑" },
   { id: "audits",      label: "Return audits",  icon: "✦" },
   { id: "groups",      label: "Groups",         icon: "⬡" },
+  { id: "depreciation", label: "Depreciation & register", icon: "⌄" },
   { id: "ledger",      label: "History",        icon: "≡" },
   { id: "export",      label: "Export",         icon: "⬇" },
 ];
@@ -3054,6 +3070,7 @@ export default function AssetsPage() {
             {activeTab === "disputes"    && <DisputesTab toast={toast} />}
             {activeTab === "audits"      && <AuditsTab toast={toast} />}
             {activeTab === "groups"      && <GroupsTab toast={toast} />}
+            {activeTab === "depreciation" && <DepreciationTab toast={toast} />}
             {activeTab === "ledger"      && <LedgerTab toast={toast} />}
             {activeTab === "export"      && <ExportTab toast={toast} />}
           </>

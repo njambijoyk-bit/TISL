@@ -5,6 +5,18 @@ const BASE = '/admin/inventory';
 
 const inventoryAPI = {
 
+  // Depreciation, the asset register and the ledgers a category posts to
+  accounting: {
+    options:    ()       => api.get(`${BASE}/accounting/options`).then(unwrap),
+    setupLedgers: (catId) => api.post(`${BASE}/categories/${catId}/setup-ledgers`).then(unwrap),
+    preview:    (params) => api.get(`${BASE}/depreciation/preview`, { params }).then(unwrap),
+    post:       (data)   => api.post(`${BASE}/depreciation/post`, data).then(unwrap),
+    undo:       (voucherId) => api.post(`${BASE}/depreciation/${voucherId}/undo`).then(unwrap),
+    history:    ()       => api.get(`${BASE}/depreciation/history`).then(unwrap),
+    register:   ()       => api.get(`${BASE}/register`).then(unwrap),
+    bookValue:  (id)     => api.get(`${BASE}/instances/${id}/book-value`).then(unwrap),
+  },
+
   // =========================================================================
   // CATEGORIES
   // =========================================================================

@@ -31,7 +31,7 @@ final class ModuleTables
             'inventory_lifecycle_movements', 'inventory_location_movements',
             'inventory_repairs', 'inventory_disputes',
             'inventory_return_audits', 'inventory_return_audit_items',
-            'inventory_export_logs', 'inventory_export_presets',
+            'inventory_export_logs', 'inventory_export_presets', 'asset_depreciation',
             'users', 'customers', 'customer_addresses', 'customer_notes',
             'currencies', 'currency_activity_logs',
             'units_of_measure', 'unit_locale_defaults',

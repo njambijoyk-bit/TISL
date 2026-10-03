@@ -12,11 +12,13 @@ class InventoryCategory extends Model
     protected $fillable = [
         'parent_id', 'name', 'slug', 'description', 'icon', 'sort_order',
         'is_active', 'created_by',
+        'asset_ledger_id', 'accumulated_ledger_id', 'expense_ledger_id', 'default_method', 'default_life_years', 'default_rate',
     ];
 
     protected $casts = [
         'is_active'  => 'boolean',
         'sort_order' => 'integer',
+        'default_rate' => 'decimal:4',
     ];
 
     public function parent(): BelongsTo

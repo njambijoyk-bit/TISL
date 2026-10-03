@@ -94,6 +94,7 @@ use App\Http\Controllers\Api\DriverManifestController;
 use App\Http\Controllers\Api\OrderShipmentController;
 use App\Http\Controllers\Api\DeliveryMoneyController;
 use App\Http\Controllers\Api\CustomerEnrouteController;
+use App\Http\Controllers\Api\AssetAccountingController;
 use App\Http\Controllers\Api\DeliveryIncidentController;
 use App\Http\Controllers\Api\DeliveryRatingController;
 use App\Http\Controllers\Api\DeliveryStatsController;
@@ -1890,6 +1891,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/blocks',                [MimiAnalyticsController::class, 'blocks']);
         });
         
+    // ASSETS — depreciation, register and the ledgers a category posts to: finance too (they review and post it)
+    Route::middleware('role:admin,super_admin,manager,finance')->prefix('admin/inventory')->group(function () {
+        Route::get('/accounting/options',              [AssetAccountingController::class, 'options']);
+        Route::post('/categories/{id}/setup-ledgers',  [AssetAccountingController::class, 'setupCategoryLedgers']);
+        Route::get('/depreciation/preview',            [AssetAccountingController::class, 'preview']);
+        Route::post('/depreciation/post',              [AssetAccountingController::class, 'post']);
+        Route::post('/depreciation/{voucherId}/undo',  [AssetAccountingController::class, 'undo']);
+        Route::get('/depreciation/history',            [AssetAccountingController::class, 'history']);
+        Route::get('/register',                        [AssetAccountingController::class, 'register']);
+        Route::get('/instances/{instanceId}/book-value', [AssetAccountingController::class, 'show']);
+    });
+
     // ============================================
     // INVENTORY — ADMIN / MANAGER
     // ============================================

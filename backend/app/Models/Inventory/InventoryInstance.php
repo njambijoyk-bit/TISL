@@ -22,6 +22,8 @@ class InventoryInstance extends Model
         'purchase_date', 'purchase_cost', 'warranty_expiry', 'useful_life_years',
         'is_obsolete', 'obsolete_reason', 'obsolete_declared_at', 'obsolete_declared_by',
         'notes', 'created_by', 'updated_by',
+        'currency_id', 'exchange_rate', 'floor_value', 'depreciation_method', 'depreciation_rate', 'in_service_date',
+        'acquisition_voucher_id', 'opening_accumulated', 'depreciated_to', 'disposal_voucher_id', 'disposed_on', 'sale_proceeds',
     ];
 
     protected $casts = [
@@ -32,6 +34,14 @@ class InventoryInstance extends Model
         'condition_score'          => 'decimal:2',
         'condition_score_override' => 'decimal:2',
         'is_obsolete'              => 'boolean',
+        'exchange_rate'            => 'decimal:8',
+        'floor_value'              => 'decimal:2',
+        'depreciation_rate'        => 'decimal:4',
+        'in_service_date'          => 'date',
+        'opening_accumulated'      => 'decimal:2',
+        'depreciated_to'           => 'date',
+        'disposed_on'              => 'date',
+        'sale_proceeds'            => 'decimal:2',
     ];
 
     public function item(): BelongsTo
