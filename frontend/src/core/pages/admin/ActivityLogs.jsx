@@ -111,7 +111,7 @@ function SeverityFilters({ severity, setSeverity }) {
           padding: '5px 12px', borderRadius: 9999, border: '1.5px solid', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
           borderColor: severity === opt.value ? (opt.color || purple) : 'var(--border, #e5e7eb)',
           background:  severity === opt.value ? (opt.color ? `${opt.color}15` : purpleLt) : 'transparent',
-          color:       severity === opt.value ? (opt.color || purple) : '#9ca3af',
+          color:       severity === opt.value ? (opt.color || purple) : 'var(--text-tertiary)',
         }}>{opt.label}</button>
       ))}
     </div>
@@ -192,7 +192,7 @@ function PaginationBar({ meta, page, setPage, loading }) {
       </p>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1 || loading}
-          style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid var(--border, #e5e7eb)', background: 'transparent', color: page === 1 ? '#d1d5db' : '#6b7280', cursor: page === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', fontWeight: 700 }}>
+          style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid var(--border, #e5e7eb)', background: 'transparent', color: page === 1 ? '#d1d5db' : 'var(--text-tertiary)', cursor: page === 1 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', fontWeight: 700 }}>
           <ChevronLeft size={14} /> Prev
         </button>
         {Array.from({ length: Math.min(5, meta.last_page) }, (_, i) => {
@@ -202,14 +202,14 @@ function PaginationBar({ meta, page, setPage, loading }) {
               style={{ padding: '6px 10px', borderRadius: 8, border: '1.5px solid', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', minWidth: 34, transition: 'all 0.15s',
                 borderColor: p === page ? purple : 'var(--border, #e5e7eb)',
                 background:  p === page ? purpleLt : 'transparent',
-                color:       p === page ? purple : '#6b7280',
+                color:       p === page ? purple : 'var(--text-tertiary)',
               }}>
               {p}
             </button>
           );
         })}
         <button onClick={() => setPage(p => Math.min(meta.last_page, p + 1))} disabled={page === meta.last_page || loading}
-          style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid var(--border, #e5e7eb)', background: 'transparent', color: page === meta.last_page ? '#d1d5db' : '#6b7280', cursor: page === meta.last_page ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', fontWeight: 700 }}>
+          style={{ padding: '6px 12px', borderRadius: 8, border: '1.5px solid var(--border, #e5e7eb)', background: 'transparent', color: page === meta.last_page ? '#d1d5db' : 'var(--text-tertiary)', cursor: page === meta.last_page ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.78rem', fontWeight: 700 }}>
           Next <ChevronRight size={14} />
         </button>
       </div>
@@ -768,7 +768,7 @@ function ShippingLogsTab() {
                   padding: '5px 12px', borderRadius: 9999, border: '1.5px solid', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
                   borderColor: action === a ? (cfg?.color || purple) : 'var(--border, #e5e7eb)',
                   background:  action === a ? (cfg ? `${cfg.color}18` : purpleLt) : 'transparent',
-                  color:       action === a ? (cfg?.color || purple) : '#9ca3af',
+                  color:       action === a ? (cfg?.color || purple) : 'var(--text-tertiary)',
                 }}>{a || 'All'}</button>
               );
             })}
@@ -896,7 +896,7 @@ function TierLogsTab() {
                 padding: '5px 12px', borderRadius: 9999, border: '1.5px solid', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
                 borderColor: entity === opt.v ? purple : 'var(--border, #e5e7eb)',
                 background:  entity === opt.v ? purpleLt : 'transparent',
-                color:       entity === opt.v ? purple : '#9ca3af',
+                color:       entity === opt.v ? purple : 'var(--text-tertiary)',
               }}>{opt.l}</button>
             ))}
           </div>
@@ -908,7 +908,7 @@ function TierLogsTab() {
                   padding: '5px 12px', borderRadius: 9999, border: '1.5px solid', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s',
                   borderColor: action === a ? (cfg?.color || purple) : 'var(--border, #e5e7eb)',
                   background:  action === a ? (cfg ? `${cfg.color}18` : purpleLt) : 'transparent',
-                  color:       action === a ? (cfg?.color || purple) : '#9ca3af',
+                  color:       action === a ? (cfg?.color || purple) : 'var(--text-tertiary)',
                 }}>{a || 'All'}</button>
               );
             })}
@@ -1038,7 +1038,7 @@ export default function ActivityLogs() {
                 border: 'none', cursor: 'pointer',
                 fontSize: '0.78rem', fontWeight: 700,
                 background: active ? 'var(--panel-bg, white)' : 'transparent',
-                color: active ? purple : '#9ca3af',
+                color: active ? purple : 'var(--text-tertiary)',
                 borderTop: active ? `2px solid ${purple}` : '2px solid transparent',
                 borderLeft: active ? '1px solid var(--border, #f3f4f6)' : '1px solid transparent',
                 borderRight: active ? '1px solid var(--border, #f3f4f6)' : '1px solid transparent',

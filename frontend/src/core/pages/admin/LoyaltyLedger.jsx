@@ -561,8 +561,8 @@ export default function LoyaltyLedger() {
                   {/* Points */}
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                      <Coins size={13} style={{ color: Number(c.loyalty_points) > 0 ? 'var(--color-primary-500)' : '#d1d5db' }} />
-                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: Number(c.loyalty_points) > 0 ? '#111827' : '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
+                      <Coins size={13} style={{ color: Number(c.loyalty_points) > 0 ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }} />
+                      <span style={{ fontSize: '0.85rem', fontWeight: 700, color: Number(c.loyalty_points) > 0 ? '#111827' : 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                         {fmtPts(c.loyalty_points)}
                       </span>
                     </div>
@@ -570,7 +570,7 @@ export default function LoyaltyLedger() {
 
                   {/* Credit */}
                   <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: Number(c.store_credit) > 0 ? '#059669' : '#9ca3af', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: Number(c.store_credit) > 0 ? '#059669' : 'var(--text-tertiary)', fontVariantNumeric: 'tabular-nums' }}>
                       {fmtKes(c.store_credit)}
                     </span>
                   </td>

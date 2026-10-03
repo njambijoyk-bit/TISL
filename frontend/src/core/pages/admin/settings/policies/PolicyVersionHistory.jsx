@@ -395,7 +395,7 @@ export default function PolicyVersionHistory({ policies = [] }) {
             padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
             border: `1.5px solid ${filterKey === 'all' ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
             background: filterKey === 'all' ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
-            color: filterKey === 'all' ? 'var(--color-primary-600)' : '#9ca3af',
+            color: filterKey === 'all' ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
             cursor: 'pointer', fontFamily: 'inherit',
           }}
         >
@@ -409,7 +409,7 @@ export default function PolicyVersionHistory({ policies = [] }) {
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
               border: `1.5px solid ${filterKey === p.key ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
               background: filterKey === p.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
-              color: filterKey === p.key ? 'var(--color-primary-600)' : '#9ca3af',
+              color: filterKey === p.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >

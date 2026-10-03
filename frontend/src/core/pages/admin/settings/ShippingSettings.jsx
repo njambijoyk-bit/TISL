@@ -591,7 +591,7 @@ export default function ShippingSettings() {
 
                     {/* Free above */}
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '0.8rem', color: opt.free_above ? '#374151' : '#d1d5db', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '0.8rem', color: opt.free_above ? '#374151' : 'var(--text-tertiary)', fontFamily: 'monospace' }}>
                         {opt.free_above ? `${opt.currency?.code ?? ''} ${fmtCost(opt.free_above)}` : '—'}
                       </span>
                     </td>

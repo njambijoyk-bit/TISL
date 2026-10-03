@@ -200,7 +200,7 @@ export default function StudioEditor() {
                                                 onClick={() => updateBlock(selectedBlockId, { style: { ...selectedBlock.style, width: w.value } })}
                                                 style={{ 
                                                     flex: 1, padding: '8px', fontSize: '0.7rem', fontWeight: 700, borderRadius: 8, border: '1px solid #e2e8f0',
-                                                    background: (selectedBlock.style?.width || '100%') === w.value ? '#f1f5f9' : 'white'
+                                                    background: (selectedBlock.style?.width || '100%') === w.value ? '#f1f5f9' : 'var(--surface-card, #fff)'
                                                 }}
                                             >
                                                 {w.label}
@@ -358,7 +358,7 @@ function PropertyFields({ block, onChange }) {
                             <button 
                                 key={v} 
                                 onClick={() => onChange({ ...c, variant: v })}
-                                style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', background: c.variant === v ? '#f1f5f9' : 'white', fontWeight: 700 }}
+                                style={{ flex: 1, padding: 8, borderRadius: 6, border: '1px solid #e2e8f0', background: c.variant === v ? '#f1f5f9' : 'var(--surface-card, #fff)', fontWeight: 700 }}
                             >
                                 Variant {v}
                             </button>

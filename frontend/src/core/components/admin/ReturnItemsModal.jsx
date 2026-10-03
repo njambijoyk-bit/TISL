@@ -517,7 +517,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                         <p style={{ fontSize: '0.78rem', fontWeight: 700, color: opt.disabled ? '#9ca3af' : refundType === opt.id ? 'var(--color-primary-500)' : '#374151', margin: '0 0 2px' }}>
                           {opt.label}
                         </p>
-                        <p style={{ fontSize: '0.65rem', color: opt.disabled ? '#d1d5db' : '#9ca3af', margin: 0 }}>
+                        <p style={{ fontSize: '0.65rem', color: opt.disabled ? '#d1d5db' : 'var(--text-tertiary)', margin: 0 }}>
                           {opt.desc}
                         </p>
                       </div>
@@ -543,7 +543,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                       if (refundType !== 'custom') setRefundType('custom');
                     }}
                     placeholder="Enter total refund amount..."
-                    style={{ ...inputStyle, background: refundType === 'custom' ? 'white' : 'var(--surface-input)' }}
+                    style={{ ...inputStyle, background: refundType === 'custom' ? 'var(--surface-card, #fff)' : 'var(--surface-input)' }}
                     onFocus={focusIn} onBlur={focusOut}
                   />
                   <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 6 }}>
@@ -614,7 +614,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                             value={item.quantity_returned}
                             onChange={e => handleQuantityChange(index, e.target.value)}
                             disabled={returnlessRefund}
-                            style={{ ...inputStyle, opacity: returnlessRefund ? 0.5 : 1, background: returnlessRefund ? 'var(--surface-hover)' : 'white' }}
+                            style={{ ...inputStyle, opacity: returnlessRefund ? 0.5 : 1, background: returnlessRefund ? 'var(--surface-hover)' : 'var(--surface-card, #fff)' }}
                             onFocus={focusIn}
                             onBlur={focusOut}
                           />
@@ -629,7 +629,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                             value={item.refund_amount}
                             disabled={!canRefund || manualRefundMode}
                             onChange={e => handleRefundAmountChange(index, e.target.value)}
-                            style={{ ...inputStyle, opacity: (canRefund && !manualRefundMode) ? 1 : 0.5, background: manualRefundMode ? 'var(--surface-hover)' : 'white' }}
+                            style={{ ...inputStyle, opacity: (canRefund && !manualRefundMode) ? 1 : 0.5, background: manualRefundMode ? 'var(--surface-hover)' : 'var(--surface-card, #fff)' }}
                             onFocus={focusIn} onBlur={focusOut}
                           />
                           {!canRefund && (

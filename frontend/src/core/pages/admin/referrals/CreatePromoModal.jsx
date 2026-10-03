@@ -282,7 +282,7 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
               <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}>
                 <div style={{
                   width: 17, height: 17, borderRadius: 5, flexShrink: 0,
-                  background: form[key] ? purple : 'white',
+                  background: form[key] ? purple : 'var(--surface-card, #fff)',
                   border: `2px solid ${form[key] ? purple : '#d1d5db'}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'all 0.15s',

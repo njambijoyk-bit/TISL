@@ -398,7 +398,7 @@ function DormantTab({ navigate, onClose }) {
             padding: '4px 11px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700,
             fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'all 120ms',
             background: window_ === value ? '#6b7280' : 'rgba(107,114,128,0.08)',
-            color: window_ === value ? 'white' : '#6b7280',
+            color: window_ === value ? 'white' : 'var(--text-tertiary)',
           }}>
             {label}
           </button>

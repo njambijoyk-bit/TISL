@@ -160,7 +160,7 @@ const MilestoneCard = ({
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
             {milestone.due_date ? (
               <span className="flex items-center gap-1 text-xs"
-                style={{ color: overdue ? '#ef4444' : '#9ca3af' }}>
+                style={{ color: overdue ? '#ef4444' : 'var(--text-tertiary)' }}>
                 <Calendar className="w-3 h-3" />
                 {formatDate(milestone.due_date)}
               </span>

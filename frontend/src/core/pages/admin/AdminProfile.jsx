@@ -372,7 +372,7 @@ export default function AdminProfile() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '9px 16px', fontSize: '0.82rem',
                   fontWeight: activeTab === t.key ? 700 : 500,
-                  color: activeTab === t.key ? 'var(--color-primary-600)' : '#6b7280',
+                  color: activeTab === t.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                   background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   borderBottom: `2px solid ${activeTab === t.key ? 'var(--color-primary-600)' : 'transparent'}`,
                   marginBottom: -2,
@@ -526,7 +526,7 @@ export default function AdminProfile() {
                         </div>
                         <StatusBadge status={p.status} />
                         {p.deadline && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: daysUntil(p.deadline) <= 7 ? '#ef4444' : '#9ca3af', flexShrink: 0 }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: daysUntil(p.deadline) <= 7 ? '#ef4444' : 'var(--text-tertiary)', flexShrink: 0 }}>
                             {daysUntil(p.deadline)}d
                           </span>
                         )}
@@ -588,7 +588,7 @@ export default function AdminProfile() {
                           fontSize: '0.68rem', fontWeight: 600, flexShrink: 0,
                           padding: '2px 7px', borderRadius: 99,
                           background: b.role === 'lead' ? '#fdf2f8' : 'var(--surface-input)',
-                          color: b.role === 'lead' ? '#db2777' : '#6b7280',
+                          color: b.role === 'lead' ? '#db2777' : 'var(--text-tertiary)',
                         }}>
                           {b.role}
                         </span>

@@ -293,7 +293,7 @@ const LinkProjectModal = ({ project, onClose }) => {
                     padding: '4px 10px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
                     border: `1.5px solid ${isA ? m.accent : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
                     background: isA ? m.bg : 'transparent',
-                    color: isA ? m.accent : '#9ca3af',
+                    color: isA ? m.accent : 'var(--text-tertiary)',
                     cursor: 'pointer', transition: 'all 150ms', fontFamily: 'inherit',
                   }}>
                     {m.label}

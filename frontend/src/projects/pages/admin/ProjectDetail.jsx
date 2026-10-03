@@ -381,7 +381,7 @@ const ProjectDetail = () => {
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '10px 14px', borderRadius: '10px 10px 0 0',
               fontSize: '0.78rem', fontWeight: active ? 800 : 600,
-              color: active ? purple : '#9ca3af',
+              color: active ? purple : 'var(--text-tertiary)',
               background: active ? purpleLt : 'transparent',
               border: 'none',
               borderBottom: active ? `2px solid ${purple}` : '2px solid transparent',
@@ -394,7 +394,7 @@ const ProjectDetail = () => {
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 800, padding: '1px 6px', borderRadius: 9999,
                   background: active ? purple : 'var(--surface-input)',
-                  color: active ? 'white' : '#9ca3af',
+                  color: active ? 'white' : 'var(--text-tertiary)',
                 }}>
                   {count}
                 </span>

@@ -61,7 +61,7 @@ export default function ThemeSwitcher() {
               }}
               className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:text-gray-300"
             >
-              <Icon size={15} style={{ color: theme === value ? 'var(--color-primary-500)' : '#9ca3af' }} />
+              <Icon size={15} style={{ color: theme === value ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }} />
               {label}
               {theme === value && (
                 <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)' }} />

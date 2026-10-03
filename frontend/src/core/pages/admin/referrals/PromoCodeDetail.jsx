@@ -273,7 +273,7 @@ export default function PromoCodeDetail() {
                 {[
                   { label: 'Reward',       value: rewardStr,                         color: purple },
                   { label: 'Reward Type',  value: code.reward_type?.replace(/_/g,' ') },
-                  { label: 'Stackable',    value: code.stackable ? '✓ Yes' : '✕ No', color: code.stackable ? '#10b981' : '#6b7280' },
+                  { label: 'Stackable',    value: code.stackable ? '✓ Yes' : '✕ No', color: code.stackable ? '#10b981' : 'var(--text-tertiary)' },
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ padding: '12px 14px', borderRadius: 10, background: purpleLt, border: `1px solid ${purpleBd}`, textAlign: 'center' }}>
                     <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>{label}</p>
@@ -330,7 +330,7 @@ export default function PromoCodeDetail() {
                   </thead>
                   <tbody>
                     {redemptions.map((r, i) => (
-                      <tr key={`${r.voucher_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : 'var(--surface-input)' }}>
+                      <tr key={`${r.voucher_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? 'var(--surface-card, #fff)' : 'var(--surface-input)' }}>
                         <td style={{ padding: '10px 10px', fontWeight: 700 }}>
                           <a href={`/admin/books/vouchers/${r.voucher_id}`} style={{ color: purple, textDecoration: 'none', fontFamily: 'monospace' }}>{r.voucher_number}</a>
                           <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>{r.type}</div>
@@ -444,10 +444,10 @@ export default function PromoCodeDetail() {
               </div>
               {[
                 { label: 'Is Valid',   value: code.is_valid   ? '✓ Yes' : '✕ No', color: code.is_valid   ? '#10b981' : '#ef4444' },
-                { label: 'Expired',    value: code.is_expired ? '✓ Yes' : 'No',   color: code.is_expired ? '#ef4444' : '#6b7280' },
-                { label: 'Depleted',   value: code.is_depleted? '✓ Yes' : 'No',   color: code.is_depleted? '#ef4444' : '#6b7280' },
-                { label: 'Public',     value: code.is_public  ? '✓ Yes' : 'No',   color: code.is_public  ? '#10b981' : '#6b7280' },
-                { label: 'Auto-Gen',   value: code.auto_generated ? '✓ Yes' : 'No', color: code.auto_generated ? '#0891b2' : '#6b7280' },
+                { label: 'Expired',    value: code.is_expired ? '✓ Yes' : 'No',   color: code.is_expired ? '#ef4444' : 'var(--text-tertiary)' },
+                { label: 'Depleted',   value: code.is_depleted? '✓ Yes' : 'No',   color: code.is_depleted? '#ef4444' : 'var(--text-tertiary)' },
+                { label: 'Public',     value: code.is_public  ? '✓ Yes' : 'No',   color: code.is_public  ? '#10b981' : 'var(--text-tertiary)' },
+                { label: 'Auto-Gen',   value: code.auto_generated ? '✓ Yes' : 'No', color: code.auto_generated ? '#0891b2' : 'var(--text-tertiary)' },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f9fafb', fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>

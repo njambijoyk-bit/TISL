@@ -59,7 +59,7 @@ export default function MyPayslips() {
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <div style={{ display: 'grid', gap: 6, minWidth: 210 }}>
               {rows.map((r) => (
-                <button key={r.run_id} type="button" onClick={() => setOpen(r.run_id)} style={{ ...btnGhost, textAlign: 'left', padding: '10px 12px', border: `1.5px solid ${open === r.run_id ? colors.primary ?? '#2563eb' : '#e5e7eb'}`, background: open === r.run_id ? '#eff6ff' : '#fff' }}>
+                <button key={r.run_id} type="button" onClick={() => setOpen(r.run_id)} style={{ ...btnGhost, textAlign: 'left', padding: '10px 12px', border: `1.5px solid ${open === r.run_id ? colors.primary ?? '#2563eb' : '#e5e7eb'}`, background: open === r.run_id ? '#eff6ff' : 'var(--surface-card, #fff)' }}>
                   <div style={{ fontWeight: 700 }}>{monthName(r.period_start)}</div>
                   <div style={{ fontSize: '0.76rem', color: colors.textMuted }}>Net {money(r.net)} · {r.status === 'paid' ? 'paid' : 'approved'}</div>
                 </button>

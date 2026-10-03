@@ -401,7 +401,7 @@ export default function Customers() {
               fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
               background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
               border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-              color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
+              color: showFilters || hasFilters ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
             }}
           >
             <Filter size={14} />

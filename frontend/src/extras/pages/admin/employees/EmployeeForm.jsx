@@ -129,7 +129,7 @@ function SectionCard({ title, icon: Icon, children }) {
 function Field({ label, required, error, children }) {
   return (
     <div>
-      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: error ? '#b91c1c' : '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>
+      <label style={{ fontSize: '0.7rem', fontWeight: 700, color: error ? '#b91c1c' : 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>
         {label}{required && <span style={{ color: '#ef4444', marginLeft: 3 }}>*</span>}
       </label>
       {children}

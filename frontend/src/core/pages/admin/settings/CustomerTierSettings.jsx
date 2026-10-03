@@ -526,8 +526,8 @@ export default function CustomerTierSettings() {
               flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               padding: '8px 16px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
               border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              background: tab === t.key ? 'white' : 'transparent',
-              color: tab === t.key ? 'var(--color-primary-600)' : '#9ca3af',
+              background: tab === t.key ? 'var(--surface-card, #fff)' : 'transparent',
+              color: tab === t.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,0.08)' : 'none',
               transition: 'all 150ms',
             }}>

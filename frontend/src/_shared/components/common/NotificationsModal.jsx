@@ -144,7 +144,7 @@ export default function NotificationsModal({ open, onClose }) {
                   padding: '4px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
                   border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   background: filter === f ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
-                  color: filter === f ? 'var(--color-primary-600)' : '#9ca3af',
+                  color: filter === f ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                   transition: 'all 150ms',
                 }}>
                   {f === 'all' ? 'All' : `Unread${unreadCount > 0 ? ` (${unreadCount})` : ''}`}
@@ -183,7 +183,7 @@ export default function NotificationsModal({ open, onClose }) {
               <div key={n.id} style={{
                 display: 'flex', alignItems: 'flex-start', gap: 12,
                 padding: '13px 18px',
-                background: n.is_read ? 'white' : `${accent}08`,
+                background: n.is_read ? 'var(--surface-card, #fff)' : `${accent}08`,
                 borderBottom: '1px solid #f9fafb',
                 cursor: n.is_read ? 'default' : 'pointer',
                 transition: 'background 150ms',

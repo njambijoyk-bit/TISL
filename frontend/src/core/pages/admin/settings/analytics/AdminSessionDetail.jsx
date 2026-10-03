@@ -266,7 +266,7 @@ export default function AdminSessionDetail({ sessionId }) {
                     background: isActive
                       ? (meta?.bg || 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)')
                       : '#f3f4f6',
-                    color: isActive ? (meta?.color || 'var(--color-primary-500)') : '#9ca3af',
+                    color: isActive ? (meta?.color || 'var(--color-primary-500)') : 'var(--text-tertiary)',
                   }}>
                   {type === 'all' ? 'All' : (meta?.label || type)}
                   <span style={{ marginLeft: 4, opacity: 0.7 }}>

@@ -203,7 +203,7 @@ export default function ResetPassword() {
                 <div style={{ position: 'relative' }}>
                   <Lock size={15} style={{
                     position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                    color: focused === 'password' ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms',
+                    color: focused === 'password' ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms',
                   }} />
                   <input
                     name="password" type={show.password ? 'text' : 'password'}
@@ -236,7 +236,7 @@ export default function ResetPassword() {
                 <div style={{ position: 'relative' }}>
                   <Lock size={15} style={{
                     position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
-                    color: focused === 'confirm' ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms',
+                    color: focused === 'confirm' ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms',
                   }} />
                   <input
                     name="password_confirmation" type={show.confirm ? 'text' : 'password'}

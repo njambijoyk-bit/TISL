@@ -241,7 +241,7 @@ function LockAccountModal({ onClose, onConfirm, loading }) {
             fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
             background: duration === p.value ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
             border: `1.5px solid ${duration === p.value ? 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-            color: duration === p.value ? 'var(--color-primary-600)' : '#9ca3af',
+            color: duration === p.value ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
           }}>
             {p.label}
           </button>

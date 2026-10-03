@@ -373,7 +373,7 @@ function CategoryModal({ open, onClose, editing, parentOptions, onSaved }) {
               }}>
                 <span style={{
                   position: 'absolute', top: 2, width: 12, height: 12, borderRadius: '50%',
-                  background: form.is_active ? 'white' : 'var(--color-text-tertiary)',
+                  background: form.is_active ? 'var(--surface-card, #fff)' : 'var(--color-text-tertiary)',
                   left: form.is_active ? 18 : 2, transition: 'left 200ms',
                 }} />
               </div>

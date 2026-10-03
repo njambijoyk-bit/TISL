@@ -276,7 +276,7 @@ const PermissionsGrid = ({ canComment, setCanComment, canUploadDocs, setCanUploa
                 }}>
                 {checked && <Check style={{ width: 10, height: 10, color: 'white' }} />}
               </div>
-              <span style={{ fontSize: '0.78rem', fontWeight: 500, color: checked ? 'var(--color-primary-600)' : '#6b7280' }}>
+              <span style={{ fontSize: '0.78rem', fontWeight: 500, color: checked ? 'var(--color-primary-600)' : 'var(--text-tertiary)' }}>
                 {label}
               </span>
             </label>
@@ -412,7 +412,7 @@ const AddParticipantModal = ({ project, onClose, editParticipant = null }) => {
                     borderBottom: active ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                     marginBottom: -1, cursor: 'pointer',
                     fontSize: '0.78rem', fontWeight: active ? 700 : 500,
-                    color: active ? 'var(--color-primary-500)' : '#9ca3af',
+                    color: active ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                     transition: 'color 150ms, border-color 150ms',
                   }}>
                     {t === 'admin' ? 'Staff Member' : 'Customer'}

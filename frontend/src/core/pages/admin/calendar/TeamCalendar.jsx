@@ -44,7 +44,7 @@ export default function TeamCalendar() {
                 {data.people.map((p) => (
                   <tr key={p.user.id}>
                     <td style={{ padding: 6, borderTop: '1px solid var(--line)', whiteSpace: 'nowrap' }}><Link to={`/admin/calendar?user_id=${p.user.id}`}>{p.user.name}</Link></td>
-                    {days.map((d) => { const n = count(p, d); return <td key={ymd(d)} title={n.map((e) => e.title).join('\n')} style={{ padding: 6, borderTop: '1px solid var(--line)', textAlign: 'center', background: n.length ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)', color: n.length ? '#1d4ed8' : '#d1d5db' }}>{n.length || '·'}</td>; })}
+                    {days.map((d) => { const n = count(p, d); return <td key={ymd(d)} title={n.map((e) => e.title).join('\n')} style={{ padding: 6, borderTop: '1px solid var(--line)', textAlign: 'center', background: n.length ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)', color: n.length ? '#1d4ed8' : 'var(--text-tertiary)' }}>{n.length || '·'}</td>; })}
                   </tr>
                 ))}
               </tbody>

@@ -63,7 +63,7 @@ export default function AdminPagination({ pagination, onPageChange }) {
             style={{
               width: 38, height: 38, borderRadius: 10, fontSize: '0.82rem', fontWeight: 700,
               border: `1.5px solid ${page === current_page ? 'var(--color-primary-500)' : '#e5e7eb'}`,
-              background: page === current_page ? 'var(--color-primary-500)' : 'white',
+              background: page === current_page ? 'var(--color-primary-500)' : 'var(--surface-card, #fff)',
               color: page === current_page ? 'white' : '#374151',
               cursor: 'pointer', transition: 'all 150ms ease',
               boxShadow: page === current_page ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'none',

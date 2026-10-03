@@ -391,7 +391,7 @@ export default function EmployeeDetail() {
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '12px 16px', fontSize: '0.8rem', fontWeight: activeTab === tab.id ? 700 : 500,
-              color: activeTab === tab.id ? 'var(--color-primary-500)' : '#9ca3af',
+              color: activeTab === tab.id ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderBottom: `2px solid ${activeTab === tab.id ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -1, transition: 'color 150ms',

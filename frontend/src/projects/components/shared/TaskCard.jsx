@@ -427,7 +427,7 @@ const TaskCard = ({
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: 4,
                 fontSize: '0.7rem', fontWeight: 500,
-                color: overdue ? '#f87171' : '#6b7280',
+                color: overdue ? '#f87171' : 'var(--text-tertiary)',
               }}>
                 <Calendar style={{ width: 11, height: 11, flexShrink: 0 }} />
                 {formatDate(task.due_date)}
@@ -476,7 +476,7 @@ const TaskCard = ({
           )}
           <button type="button" onClick={() => setExpanded((v) => !v)}
             title={expanded ? 'Collapse' : 'Expand'}
-            style={{ ...actionBtnStyle, opacity: 1, color: expanded ? 'var(--color-primary-500)' : '#6b7280' }}
+            style={{ ...actionBtnStyle, opacity: 1, color: expanded ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = expanded ? 'var(--color-primary-500)' : '#6b7280'}>
             {expanded ? <ChevronUp style={{ width: 13, height: 13 }} /> : <ChevronDown style={{ width: 13, height: 13 }} />}

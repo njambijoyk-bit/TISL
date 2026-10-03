@@ -185,7 +185,7 @@ const ParticipantsPanel = ({ project }) => {
                     style={{
                       padding: 5, borderRadius: 7, background: 'transparent', border: 'none',
                       cursor: owner ? 'not-allowed' : 'pointer',
-                      color: owner ? '#374151' : '#6b7280',
+                      color: owner ? '#374151' : 'var(--text-tertiary)',
                       opacity: owner ? 0.4 : 1,
                       display: 'flex',
                       transition: 'color 120ms, background 120ms',

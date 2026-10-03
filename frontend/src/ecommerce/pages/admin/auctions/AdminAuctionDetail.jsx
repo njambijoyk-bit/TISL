@@ -133,7 +133,7 @@ const Checkbox = ({ checked, onChange, label }) => (
     <div style={{
       width: 18, height: 18, borderRadius: 5,
       border: checked ? '2px solid var(--color-primary-500)' : '2px solid #e5e7eb',
-      background: checked ? 'var(--color-primary-500)' : 'white',
+      background: checked ? 'var(--color-primary-500)' : 'var(--surface-card, #fff)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'all 150ms', flexShrink: 0
     }}>

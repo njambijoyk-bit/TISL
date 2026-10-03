@@ -255,7 +255,7 @@ export default function PolicyAcceptances({ policies = [] }) {
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
               border: `1.5px solid ${activePolicyId === p.id ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
               background: activePolicyId === p.id ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
-              color: activePolicyId === p.id ? 'var(--color-primary-600)' : '#9ca3af',
+              color: activePolicyId === p.id ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}
           >

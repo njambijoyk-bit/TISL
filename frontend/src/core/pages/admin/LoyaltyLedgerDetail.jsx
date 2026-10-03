@@ -592,7 +592,7 @@ export default function LoyaltyLedgerDetail() {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '12px 20px', fontSize: '0.82rem', fontWeight: 700,
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              color: ledger === tab.key ? 'var(--color-primary-600)' : '#9ca3af',
+              color: ledger === tab.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               borderBottom: `2.5px solid ${ledger === tab.key ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -1, transition: 'all 150ms',
             }}>
@@ -600,7 +600,7 @@ export default function LoyaltyLedgerDetail() {
               <span style={{
                 fontSize: '0.65rem', fontWeight: 700,
                 background: ledger === tab.key ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
-                color: ledger === tab.key ? 'var(--color-primary-600)' : '#d1d5db',
+                color: ledger === tab.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                 padding: '1px 7px', borderRadius: 20,
               }}>
                 {ledger === tab.key && txData ? meta.total : ''}

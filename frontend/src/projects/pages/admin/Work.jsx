@@ -269,7 +269,7 @@ function EmptyState({ icon: Icon, message, positive = false }) {
       border: `1px solid ${positive ? 'rgba(5,150,105,0.12)' : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}`,
     }}>
       <Icon size={28} style={{ color: positive ? 'rgba(5,150,105,0.4)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
-      <p style={{ fontSize: '0.78rem', color: positive ? '#065f46' : '#9ca3af', margin: 0, fontWeight: 500 }}>
+      <p style={{ fontSize: '0.78rem', color: positive ? '#065f46' : 'var(--text-tertiary)', margin: 0, fontWeight: 500 }}>
         {message}
       </p>
     </div>
@@ -840,7 +840,7 @@ function TabBtn({ active, icon: Icon, label, onClick }) {
         padding: '13px 20px', fontSize: '0.8rem', fontWeight: 700,
         border: 'none', borderBottom: `2px solid ${active ? 'var(--color-primary-500)' : 'transparent'}`,
         background: 'none', cursor: 'pointer', fontFamily: 'inherit',
-        color: active ? 'var(--color-primary-500)' : hovered ? 'var(--color-primary-600)' : '#9ca3af',
+        color: active ? 'var(--color-primary-500)' : hovered ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
         transition: 'color 150ms, border-color 150ms',
       }}
     >

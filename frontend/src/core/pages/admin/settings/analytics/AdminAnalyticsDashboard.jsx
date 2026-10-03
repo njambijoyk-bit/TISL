@@ -163,7 +163,7 @@ export default function AdminAnalyticsDashboard() {
                   padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                   fontSize: '0.78rem', fontWeight: 600,
                   background: preset === i ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#f3f4f6',
-                  color: preset === i ? 'white' : '#6b7280',
+                  color: preset === i ? 'white' : 'var(--text-tertiary)',
                 }}>
                 {p.label}
               </button>
@@ -204,8 +204,8 @@ export default function AdminAnalyticsDashboard() {
               style={{
                 padding: '7px 18px', borderRadius: 8, border: 'none', cursor: 'pointer',
                 fontSize: '0.8rem', fontWeight: 600, transition: 'all 150ms',
-                background: tab === t ? 'white' : 'transparent',
-                color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
+                background: tab === t ? 'var(--surface-card, #fff)' : 'transparent',
+                color: tab === t ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                 boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
                 textTransform: 'capitalize',
               }}>
@@ -300,7 +300,7 @@ export default function AdminAnalyticsDashboard() {
                             <span style={{
                               padding: '2px 8px', borderRadius: 20, fontSize: '0.7rem', fontWeight: 700,
                               background: row.cart_conversion_pct > 10 ? 'rgba(16,185,129,0.1)' : row.cart_conversion_pct > 0 ? 'rgba(245,158,11,0.1)' : '#f3f4f6',
-                              color: row.cart_conversion_pct > 10 ? '#10b981' : row.cart_conversion_pct > 0 ? '#f59e0b' : '#9ca3af',
+                              color: row.cart_conversion_pct > 10 ? '#10b981' : row.cart_conversion_pct > 0 ? '#f59e0b' : 'var(--text-tertiary)',
                             }}>
                               {pct(row.cart_conversion_pct)}
                             </span>
@@ -429,13 +429,13 @@ export default function AdminAnalyticsDashboard() {
                         }}>{c.tier}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 700, color: c.cart_items > 0 ? '#f59e0b' : '#d1d5db' }}>{c.cart_items}</span>
+                        <span style={{ fontWeight: 700, color: c.cart_items > 0 ? '#f59e0b' : 'var(--text-tertiary)' }}>{c.cart_items}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 700, color: c.wishlist_count > 0 ? '#ec4899' : '#d1d5db' }}>{c.wishlist_count}</span>
+                        <span style={{ fontWeight: 700, color: c.wishlist_count > 0 ? '#ec4899' : 'var(--text-tertiary)' }}>{c.wishlist_count}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'center' }}>
-                        <span style={{ fontWeight: 700, color: c.quotelist_items > 0 ? 'var(--color-primary-400)' : '#d1d5db' }}>{c.quotelist_items}</span>
+                        <span style={{ fontWeight: 700, color: c.quotelist_items > 0 ? 'var(--color-primary-400)' : 'var(--text-tertiary)' }}>{c.quotelist_items}</span>
                       </td>
                       <td style={{ padding: '10px 14px', color: '#6b7280', textAlign: 'center' }}>{fmt(c.total_orders)}</td>
                       <td style={{ padding: '10px 14px', fontWeight: 600, color: '#111827' }} className="dark:text-white">
@@ -655,7 +655,7 @@ function SessionsTable({ from, to, navigate }) {
             <button key={p} type="button" onClick={() => setPage(p)}
               style={{ width: 32, height: 32, borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600,
                 background: p === page ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#f3f4f6',
-                color: p === page ? 'white' : '#6b7280' }}>
+                color: p === page ? 'white' : 'var(--text-tertiary)' }}>
               {p}
             </button>
           ))}

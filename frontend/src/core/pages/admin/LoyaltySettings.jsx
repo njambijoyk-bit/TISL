@@ -515,7 +515,7 @@ export default function LoyaltySettings() {
                         display: 'inline-block', padding: '2px 9px', borderRadius: 20,
                         fontSize: '0.65rem', fontWeight: 700,
                         background: r.active ? 'rgba(5,150,105,0.08)' : 'rgba(107,114,128,0.08)',
-                        color: r.active ? '#059669' : '#6b7280',
+                        color: r.active ? '#059669' : 'var(--text-tertiary)',
                       }}>
                         {r.active ? 'Active' : 'Inactive'}
                       </span>

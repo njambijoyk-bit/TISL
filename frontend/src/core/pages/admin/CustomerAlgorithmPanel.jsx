@@ -1261,7 +1261,7 @@ export default function CustomerAlgorithmPanel() {
                           padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
                           fontSize: 12, fontWeight: 600, transition: 'all 0.2s',
                           background: productEntityType === key ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
-                          color: productEntityType === key ? '#fff' : '#6b7280',
+                          color: productEntityType === key ? '#fff' : 'var(--text-tertiary)',
                         }}>{label}</button>
                       ))}
                     </div>

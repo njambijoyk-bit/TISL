@@ -84,7 +84,7 @@ const MessageMenu = ({ msg, isOwn, canEdit, canDelete, onCopy, onEdit, onDelete,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'transparent',
           border: open ? '1.5px solid color-mix(in srgb, var(--color-primary-500) 50%, transparent)' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
-          color: open ? 'var(--color-primary-400)' : '#9ca3af',
+          color: open ? 'var(--color-primary-400)' : 'var(--text-tertiary)',
           cursor: 'pointer',
           transition: 'border-color 150ms, color 150ms, background 150ms',
         }}

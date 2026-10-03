@@ -235,7 +235,7 @@ export default function EmployeeList() {
 
   const hasFilters = filters.search || filters.status || filters.department || filters.employment_type;
   const SortArrow = ({ col }) => (
-    <span style={{ marginLeft: 3, color: sortBy === col ? 'var(--color-primary-500)' : '#d1d5db' }}>
+    <span style={{ marginLeft: 3, color: sortBy === col ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }}>
       {sortBy === col && sortOrder === 'asc' ? <ChevronUp size={12} style={{ display: 'inline' }} /> : <ChevronDown size={12} style={{ display: 'inline' }} />}
     </span>
   );
@@ -262,7 +262,7 @@ export default function EmployeeList() {
               fontFamily: 'inherit', cursor: 'pointer',
               background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
               border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
-              color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
+              color: showFilters || hasFilters ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               transition: 'all 150ms',
             }}
           >
@@ -530,7 +530,7 @@ export default function EmployeeList() {
 
                       {/* Hire date */}
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: '0.75rem', color: emp.hire_date ? '#374151' : '#d1d5db' }}>
+                        <span style={{ fontSize: '0.75rem', color: emp.hire_date ? '#374151' : 'var(--text-tertiary)' }}>
                           {emp.hire_date ? new Date(emp.hire_date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                         </span>
                         {emp.tenure_years && (
@@ -567,7 +567,7 @@ export default function EmployeeList() {
                     cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
                     background: active ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'none',
                     border: active ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-                    color: active ? 'white' : '#9ca3af',
+                    color: active ? 'white' : 'var(--text-tertiary)',
                     boxShadow: active ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                   }}
                     onMouseEnter={e => { if (!active) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
@@ -693,7 +693,7 @@ export default function EmployeeList() {
                   background: leaveLogsFilter === v
                     ? (v === 'add' ? '#059669' : v === 'use' ? '#d97706' : 'var(--color-primary-500)')
                     : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
-                  color: leaveLogsFilter === v ? 'white' : '#9ca3af',
+                  color: leaveLogsFilter === v ? 'white' : 'var(--text-tertiary)',
                 }}
               >
                 {v === '' ? 'All' : v === 'add' ? '+ Add' : '− Use'}

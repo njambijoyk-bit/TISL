@@ -221,7 +221,7 @@ export default function AdminTicketDetail() {
                   style={{
                     padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
                     background: !isInternal ? purple : 'transparent',
-                    color:      !isInternal ? 'white' : '#9ca3af',
+                    color:      !isInternal ? 'white' : 'var(--text-tertiary)',
                   }}>
                   <Unlock size={11} style={{ marginRight: 5, verticalAlign: 'middle' }} />
                   Customer Reply
@@ -231,7 +231,7 @@ export default function AdminTicketDetail() {
                   style={{
                     padding: '5px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700,
                     background: isInternal ? '#f59e0b' : 'transparent',
-                    color:      isInternal ? 'white'  : '#9ca3af',
+                    color:      isInternal ? 'white'  : 'var(--text-tertiary)',
                   }}>
                   <Lock size={11} style={{ marginRight: 5, verticalAlign: 'middle' }} />
                   Internal Note
@@ -247,7 +247,7 @@ export default function AdminTicketDetail() {
                   width: '100%', boxSizing: 'border-box', borderRadius: 10, padding: '12px 14px',
                   border: `1.5px solid ${isInternal ? '#fde68a' : 'var(--line)'}`,
                   fontSize: '0.88rem', resize: 'vertical', outline: 'none', lineHeight: 1.6,
-                  background: isInternal ? '#fffbeb' : 'white',
+                  background: isInternal ? '#fffbeb' : 'var(--surface-card, #fff)',
                 }}
               />
               <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>

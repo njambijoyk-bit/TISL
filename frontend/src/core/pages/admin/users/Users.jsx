@@ -674,7 +674,7 @@ export default function UsersPage() {
                         marginLeft: 7, padding: '1px 7px', borderRadius: 99,
                         fontSize: '0.65rem', fontWeight: 700,
                         background: filters.tab === tab ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'rgba(107,114,128,0.1)',
-                        color: filters.tab === tab ? 'var(--color-primary-600)' : '#9ca3af',
+                        color: filters.tab === tab ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                       }}>
                         {tabStats[tab]}
                       </span>
@@ -767,7 +767,7 @@ export default function UsersPage() {
                 fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
                 background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
                 border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-                color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
+                color: showFilters || hasFilters ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               }}
             >
               <Filter size={14} />
@@ -822,7 +822,7 @@ export default function UsersPage() {
                   fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
                   background: filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
                   border: `1.5px solid ${filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-                  color: filters[key] ? 'var(--color-primary-600)' : '#9ca3af',
+                  color: filters[key] ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                 }}>
                   {label}
                 </button>

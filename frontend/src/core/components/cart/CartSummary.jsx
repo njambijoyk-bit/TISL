@@ -18,7 +18,7 @@ function Pick({ active, onClick, name, detail, amount, tone }) {
   return (
     <button type="button" onClick={onClick} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 12px', borderRadius: 9, cursor: 'pointer', fontFamily: 'inherit',
       border: `1.5px solid ${active ? 'var(--color-primary-500)' : '#e5e7eb'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'white' }}>
-      <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? 'var(--color-primary-500)' : '#d1d5db'}`, background: active ? 'var(--color-primary-500)' : 'white', flexShrink: 0 }} />
+      <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${active ? 'var(--color-primary-500)' : '#d1d5db'}`, background: active ? 'var(--color-primary-500)' : 'var(--surface-card, #fff)', flexShrink: 0 }} />
       <span style={{ flex: 1 }}><span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{name}</span>{detail && <span style={{ display: 'block', fontSize: '0.7rem', color: '#9ca3af' }}>{detail}</span>}</span>
       <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tone ?? '#111827' }}>{amount}</span>
     </button>

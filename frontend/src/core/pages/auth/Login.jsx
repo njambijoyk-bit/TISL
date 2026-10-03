@@ -167,7 +167,7 @@ export default function Login() {
                 Email
               </label>
               <div style={{ position: 'relative' }}>
-                <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'email' ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms' }} />
+                <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'email' ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms' }} />
                 <input
                   name="email" type="email" value={formData.email}
                   onChange={handleChange}
@@ -186,7 +186,7 @@ export default function Login() {
                 Password
               </label>
               <div style={{ position: 'relative' }}>
-                <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'password' ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms' }} />
+                <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'password' ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms' }} />
                 <input
                   name="password" type={showPassword ? 'text' : 'password'} value={formData.password}
                   onChange={handleChange}

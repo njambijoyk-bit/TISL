@@ -68,7 +68,7 @@ function Keypad({ onAnswer }) {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
         {KEYS.flat().map((k) => (
-          <button key={k} type="button" onClick={() => press(k)} style={{ padding: '11px 0', borderRadius: 8, border: `1px solid ${colors.tint(0.15)}`, cursor: 'pointer', fontSize: '1rem', fontWeight: 600, background: k === '=' ? colors.primary : '÷×−+'.includes(k) ? colors.tint(0.12) : 'white', color: k === '=' ? 'white' : colors.text }}>{k}</button>
+          <button key={k} type="button" onClick={() => press(k)} style={{ padding: '11px 0', borderRadius: 8, border: `1px solid ${colors.tint(0.15)}`, cursor: 'pointer', fontSize: '1rem', fontWeight: 600, background: k === '=' ? colors.primary : '÷×−+'.includes(k) ? colors.tint(0.12) : 'var(--surface-card, #fff)', color: k === '=' ? 'white' : colors.text }}>{k}</button>
         ))}
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>

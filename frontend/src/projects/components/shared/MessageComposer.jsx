@@ -155,7 +155,7 @@ const MessageComposer = ({
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: canSend ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
             border: canSend ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
-            color: canSend ? 'white' : '#6b7280',
+            color: canSend ? 'white' : 'var(--text-tertiary)',
             cursor: canSend ? 'pointer' : 'not-allowed',
             boxShadow: canSend ? '0 2px 10px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'none',
             transition: 'all 150ms',

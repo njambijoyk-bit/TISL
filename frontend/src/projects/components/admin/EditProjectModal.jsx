@@ -201,7 +201,7 @@ const EditProjectModal = ({ project, onClose }) => {
                 position: 'absolute', top: 3,
                 left: form.billing_same_as_shipping ? 19 : 3,
                 width: 14, height: 14, borderRadius: '50%',
-                background: form.billing_same_as_shipping ? 'white' : '#c4b5fd',
+                background: form.billing_same_as_shipping ? 'var(--surface-card, #fff)' : '#c4b5fd',
                 transition: 'left 200ms',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
               }} />

@@ -132,7 +132,7 @@ function Toggle({ checked, onChange, disabled, label, sub }) {
       }}>
         <span style={{
           position: 'absolute', top: 3, width: 14, height: 14, borderRadius: '50%',
-          background: checked ? 'white' : '#c4b5fd',
+          background: checked ? 'var(--surface-card, #fff)' : '#c4b5fd',
           left: checked ? 19 : 3,
           transition: 'left 200ms', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         }} />
@@ -782,7 +782,7 @@ export default function ProductForm() {
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 padding: '12px 14px', fontSize: '0.8rem',
                 fontWeight: activeTab === tab.id ? 700 : 500,
-                color: activeTab === tab.id ? 'var(--color-primary-500)' : '#9ca3af',
+                color: activeTab === tab.id ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                 background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 borderBottom: `2px solid ${activeTab === tab.id ? 'var(--color-primary-500)' : 'transparent'}`,
                 marginBottom: -2, whiteSpace: 'nowrap', transition: 'color 150ms',

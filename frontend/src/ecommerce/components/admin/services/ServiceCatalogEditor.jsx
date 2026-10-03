@@ -243,7 +243,7 @@ function OfferedAt({ staff, variant, variants, readOnly }) {
         const n = b.people.filter((r) => doesPackage(on, r.id, variant.id)).length;
         return (
           <button key={b.id} type="button" disabled={readOnly || busy} onClick={() => toggle(b)} title={`${n} of ${b.people.length} people at ${b.name} do this package`}
-            style={{ padding: '3px 9px', borderRadius: 999, fontSize: '0.72rem', cursor: readOnly ? 'default' : 'pointer', border: `1.5px solid ${n ? '#10b981' : '#e5e7eb'}`, background: n ? '#ecfdf5' : '#fff', color: n ? '#065f46' : colors.textMuted, fontWeight: n ? 700 : 500 }}>
+            style={{ padding: '3px 9px', borderRadius: 999, fontSize: '0.72rem', cursor: readOnly ? 'default' : 'pointer', border: `1.5px solid ${n ? '#10b981' : '#e5e7eb'}`, background: n ? '#ecfdf5' : 'var(--surface-card, #fff)', color: n ? '#065f46' : colors.textMuted, fontWeight: n ? 700 : 500 }}>
             {b.name}{n ? ` · ${n}` : ''}
           </button>
         );

@@ -510,7 +510,7 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                         <div style={{
                             display: 'flex', justifyContent: 'flex-end', marginTop: 4,
                             fontSize: 11, fontWeight: 600,
-                            color: overLimit ? '#dc2626' : text.length > 1800 ? '#d97706' : '#9ca3af',
+                            color: overLimit ? '#dc2626' : text.length > 1800 ? '#d97706' : 'var(--text-tertiary)',
                         }}>
                             {text.length} / {MAX_CHARS}
                             {overLimit && <span style={{ marginLeft: 6 }}>— too long</span>}

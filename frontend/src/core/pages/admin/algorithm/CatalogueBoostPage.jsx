@@ -112,7 +112,7 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
           fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 99,
           textTransform: 'uppercase', letterSpacing: '0.06em',
           background: row.status === 'active' ? 'rgba(16,185,129,0.1)' : 'rgba(107,114,128,0.1)',
-          color: row.status === 'active' ? '#10b981' : '#6b7280',
+          color: row.status === 'active' ? '#10b981' : 'var(--text-tertiary)',
         }}>{row.status}</span>
       </td>
 

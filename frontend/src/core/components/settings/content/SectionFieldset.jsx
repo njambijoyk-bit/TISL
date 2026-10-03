@@ -186,8 +186,8 @@ function ImageField({ value, onChange, onUpload, error }) {
                 flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                 padding: '8px', fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit',
                 cursor: 'pointer', border: 'none', transition: 'all 150ms',
-                background: tab === id ? 'white' : 'transparent',
-                color: tab === id ? 'var(--color-primary-600)' : '#9ca3af',
+                background: tab === id ? 'var(--surface-card, #fff)' : 'transparent',
+                color: tab === id ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                 borderBottom: tab === id ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                 marginBottom: -1,
               }}>

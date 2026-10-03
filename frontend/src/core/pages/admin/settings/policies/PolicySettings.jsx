@@ -133,8 +133,8 @@ function EditPolicyModal({ policy, onClose, onSave }) {
           {/* Content */}
           <Field label="Policy content" hint="Use {{cancellation_fee}}, {{cancellation_window_hours}} for booking policy placeholders.">
             <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-              <button type="button" onClick={() => setPreview(false)} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${!preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: !preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: !preview ? 'var(--color-primary-600)' : '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
-              <button type="button" onClick={() => setPreview(true)}  style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: preview ? 'var(--color-primary-600)' : '#9ca3af', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => setPreview(false)} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${!preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: !preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: !preview ? 'var(--color-primary-600)' : 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+              <button type="button" onClick={() => setPreview(true)}  style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: preview ? 'var(--color-primary-600)' : 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Eye size={11} style={{ display: 'inline', marginRight: 4 }} />Preview
               </button>
             </div>
@@ -234,7 +234,7 @@ function AcceptancesPanel({ policyId }) {
             padding: '4px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
             border: `1.5px solid ${filter === f ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
             background: filter === f ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
-            color: filter === f ? 'var(--color-primary-600)' : '#9ca3af',
+            color: filter === f ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
             cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize',
           }}>{f}</button>
         ))}
@@ -503,7 +503,7 @@ function PolicyRow({ policy, onEdit, index }) {
                     padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
                     border: `1.5px solid ${activePanel === t.key ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
                     background: activePanel === t.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
-                    color: activePanel === t.key ? 'var(--color-primary-600)' : '#9ca3af',
+                    color: activePanel === t.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>
                     {t.icon} {t.label}
@@ -591,7 +591,7 @@ export default function PolicySettings() {
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '8px 16px', fontSize: '0.82rem', fontWeight: 700,
             border: 'none', borderBottom: `2px solid ${tab === t.key ? 'var(--color-primary-500)' : 'transparent'}`,
-            background: 'none', color: tab === t.key ? 'var(--color-primary-600)' : '#9ca3af',
+            background: 'none', color: tab === t.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
             cursor: 'pointer', fontFamily: 'inherit', marginBottom: -1,
             transition: 'color 150ms',
           }}>

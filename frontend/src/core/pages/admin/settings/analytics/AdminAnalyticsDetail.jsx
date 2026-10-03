@@ -140,7 +140,7 @@ export default function AdminAnalyticsDetail() {
                     padding: '5px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                     fontSize: '0.75rem', fontWeight: 600,
                     background: preset === i ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#f3f4f6',
-                    color: preset === i ? 'white' : '#6b7280',
+                    color: preset === i ? 'white' : 'var(--text-tertiary)',
                   }}>
                   {p.label}
                 </button>
@@ -171,7 +171,7 @@ export default function AdminAnalyticsDetail() {
               padding: '7px 18px', borderRadius: 8, border: 'none',
               cursor: hasCustomer || resolving ? 'pointer' : 'not-allowed',
               fontSize: '0.8rem', fontWeight: 600, transition: 'all 150ms',
-              background: tab === 'customer' ? 'white' : 'transparent',
+              background: tab === 'customer' ? 'var(--surface-card, #fff)' : 'transparent',
               color:      tab === 'customer' ? 'var(--color-primary-500)' : (!hasCustomer ? '#d1d5db' : '#9ca3af'),
               boxShadow:  tab === 'customer' ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
               opacity:    !hasCustomer && !resolving ? 0.5 : 1,
@@ -193,7 +193,7 @@ export default function AdminAnalyticsDetail() {
               padding: '7px 18px', borderRadius: 8, border: 'none',
               cursor: activeSessionId ? 'pointer' : 'not-allowed',
               fontSize: '0.8rem', fontWeight: 600, transition: 'all 150ms',
-              background: tab === 'session' ? 'white' : 'transparent',
+              background: tab === 'session' ? 'var(--surface-card, #fff)' : 'transparent',
               color:      tab === 'session' ? 'var(--color-primary-500)' : (!activeSessionId ? '#d1d5db' : '#9ca3af'),
               boxShadow:  tab === 'session' ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
               opacity:    !activeSessionId ? 0.5 : 1,

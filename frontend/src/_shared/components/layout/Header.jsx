@@ -742,7 +742,7 @@ export default function Header() {
                             background: audio.muted ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'rgba(0,0,0,0.04)',
                             border: `1px solid ${audio.muted ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : 'rgba(0,0,0,0.08)'}`,
                             cursor: 'pointer',
-                            color: audio.muted ? 'var(--color-primary-500)' : '#9ca3af',
+                            color: audio.muted ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                             transition: 'all 150ms',
                           }}
                           className="dark:bg-gray-700 dark:border-gray-600"

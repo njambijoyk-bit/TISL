@@ -14,7 +14,7 @@ function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, 
         {label}
       </label>
       <div style={{ position: 'relative' }}>
-        {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? 'var(--color-primary-500)' : '#9ca3af', transition: 'color 150ms', flexShrink: 0 }} />}
+        {Icon && <Icon size={14} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: focused === name ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms', flexShrink: 0 }} />}
         <input
           name={name} type={type} value={value}
           onChange={onChange || handleChange}

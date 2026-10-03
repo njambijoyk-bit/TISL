@@ -132,7 +132,7 @@ const SearchableDropdown = ({ items, groups, value, onChange, placeholder, loadi
         }}
         onFocus={inputFocus} onBlur={inputBlur}
       >
-        <span style={{ color: value ? '#111827' : '#9ca3af', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ color: value ? '#111827' : 'var(--text-tertiary)', fontSize: '0.82rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value ? renderSelected(value) : placeholder}
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--color-primary-500)', flexShrink: 0, marginLeft: 8 }}>

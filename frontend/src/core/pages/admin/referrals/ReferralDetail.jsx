@@ -357,7 +357,7 @@ export default function ReferralDetail() {
           {['overview', 'settings', 'usage'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '12px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
+              color: tab === t ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderBottom: `2px solid ${tab === t ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -2, textTransform: 'capitalize', transition: 'color 150ms',
@@ -520,7 +520,7 @@ export default function ReferralDetail() {
                   ? <textarea rows={4} value={formData.admin_notes} onChange={e => setF('admin_notes')(e.target.value)}
                       placeholder="Internal notes for this code…"
                       style={{ ...inputStyle, resize: 'none' }} onFocus={inputFocus} onBlur={inputBlur} />
-                  : <p style={{ fontSize: '0.82rem', color: formData.admin_notes ? '#6b7280' : '#d1d5db', margin: 0, lineHeight: 1.5, fontStyle: formData.admin_notes ? 'normal' : 'italic' }}>
+                  : <p style={{ fontSize: '0.82rem', color: formData.admin_notes ? '#6b7280' : 'var(--text-tertiary)', margin: 0, lineHeight: 1.5, fontStyle: formData.admin_notes ? 'normal' : 'italic' }}>
                       {formData.admin_notes || 'No notes'}
                     </p>
                 }

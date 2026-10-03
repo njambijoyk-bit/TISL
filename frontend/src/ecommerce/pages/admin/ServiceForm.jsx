@@ -102,7 +102,7 @@ function Toggle({ checked, onChange, label, sub }) {
       }}>
         <span style={{
           position: 'absolute', top: 3, width: 14, height: 14, borderRadius: '50%',
-          background: checked ? 'white' : '#c4b5fd',
+          background: checked ? 'var(--surface-card, #fff)' : '#c4b5fd',
           left: checked ? 19 : 3, transition: 'left 200ms',
           boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
         }} />
@@ -127,7 +127,7 @@ function GhostBtn({ onClick, children, danger }) {
       padding: '5px 10px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 600,
       fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'background 120ms',
       background: danger ? 'rgba(239,68,68,0.07)' : 'transparent',
-      color: danger ? '#ef4444' : '#9ca3af',
+      color: danger ? '#ef4444' : 'var(--text-tertiary)',
     }}
       onMouseEnter={e => e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.14)' : 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
       onMouseLeave={e => e.currentTarget.style.background = danger ? 'rgba(239,68,68,0.07)' : 'transparent'}

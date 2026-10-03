@@ -202,7 +202,7 @@ export default function PaymentReportsModal({ onClose }) {
                 padding: '7px 14px', borderRadius: 8,
                 border: period === p.value ? `1px solid ${purpleBd}` : '1px solid rgba(255,255,255,0.1)',
                 background: period === p.value ? purpleLt : 'transparent',
-                color: period === p.value ? purple : '#9ca3af',
+                color: period === p.value ? purple : 'var(--text-tertiary)',
                 fontSize: '0.78rem', fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'inherit',
                 transition: 'all 150ms',

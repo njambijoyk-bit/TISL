@@ -414,7 +414,7 @@ export default function PromoCodes() {
               fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
               background: showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'transparent',
               border: `1.5px solid ${showFilters || hasFilters ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-              color: showFilters || hasFilters ? 'var(--color-primary-600)' : '#9ca3af',
+              color: showFilters || hasFilters ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
             }}
           >
             <Filter size={14} />
@@ -459,7 +459,7 @@ export default function PromoCodes() {
                 fontFamily: 'inherit', cursor: 'pointer', transition: 'all 150ms',
                 background: filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'transparent',
                 border: `1.5px solid ${filters[key] ? 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-                color: filters[key] ? 'var(--color-primary-600)' : '#9ca3af',
+                color: filters[key] ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               }}>
                 {label}
               </button>
@@ -700,7 +700,7 @@ export default function PromoCodes() {
                       cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
                       background: isActive ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'none',
                       border: isActive ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-                      color: isActive ? 'white' : '#9ca3af',
+                      color: isActive ? 'white' : 'var(--text-tertiary)',
                       boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                     }}
                     onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}

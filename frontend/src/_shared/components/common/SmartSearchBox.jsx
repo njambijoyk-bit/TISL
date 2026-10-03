@@ -137,7 +137,7 @@ export default function SmartSearchBox({
           left: 12,
           top: '50%',
           transform: 'translateY(-50%)',
-          color: focused ? 'var(--color-primary-500)' : '#9ca3af',
+          color: focused ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
           transition: 'color 150ms',
           pointerEvents: 'none',
           display: 'flex',
@@ -212,7 +212,7 @@ export default function SmartSearchBox({
             background: hasValue
               ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))'
               : '#f3f4f6',
-            color: hasValue ? 'white' : '#d1d5db',
+            color: hasValue ? 'white' : 'var(--text-tertiary)',
             cursor: hasValue ? 'pointer' : 'default',
             fontSize: '0.72rem',
             fontWeight: 700,
@@ -247,7 +247,7 @@ export default function SmartSearchBox({
           left: 12,
           top: '50%',
           transform: 'translateY(-50%)',
-          color: focused ? 'var(--color-primary-500)' : '#9ca3af',
+          color: focused ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
           transition: 'color 150ms',
           pointerEvents: 'none',
           display: 'flex',
