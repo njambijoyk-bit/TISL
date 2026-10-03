@@ -1900,6 +1900,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/depreciation/{voucherId}/undo',  [AssetAccountingController::class, 'undo']);
         Route::get('/depreciation/history',            [AssetAccountingController::class, 'history']);
         Route::get('/register',                        [AssetAccountingController::class, 'register']);
+        Route::get('/reconcile',                       [AssetAccountingController::class, 'reconcile']);
         Route::get('/instances/{instanceId}/book-value', [AssetAccountingController::class, 'show']);
     });
 

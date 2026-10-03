@@ -131,11 +131,12 @@ export function DepreciationTab({ toast }) {
   const [pre, setPre] = useState(null);
   const [hist, setHist] = useState([]);
   const [reg, setReg] = useState(null);
+  const [rec, setRec] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   const loadSide = useCallback(async () => {
-    try { setHist((await inventoryAPI.accounting.history()).data ?? []); setReg((await inventoryAPI.accounting.register()).data); }
+    try { setHist((await inventoryAPI.accounting.history()).data ?? []); setReg((await inventoryAPI.accounting.register()).data); setRec((await inventoryAPI.accounting.reconcile()).data ?? []); }
     catch (e) { setErr(e?.response?.data?.message ?? 'Could not load.'); }
   }, []);
   useEffect(() => { loadSide(); }, [loadSide]);
@@ -217,6 +218,20 @@ export function DepreciationTab({ toast }) {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {rec.length > 0 && (
+        <div style={{ ...card, padding: 16, marginTop: 16 }}>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>Register against the books</div>
+          <div style={{ fontSize: '0.74rem', color: colors.textMuted, marginBottom: 10 }}>Each category's register total against the ledger it posts to. The register is at today's rates and the ledgers at the rates they were posted with, so a small difference is expected for foreign-currency assets.</div>
+          <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+            <thead><tr><th style={th}>Category</th><th style={{ ...th, ...num }}>Register cost</th><th style={{ ...th, ...num }}>Ledger</th><th style={{ ...th, ...num }}>Difference</th><th style={{ ...th, ...num }}>Register depreciation</th><th style={{ ...th, ...num }}>Ledger</th><th style={{ ...th, ...num }}>Difference</th></tr></thead>
+            <tbody>{rec.map((r) => <tr key={r.category_id}>
+              <td style={td}>{r.category} {r.agrees ? <span style={{ color: colors.successText }}>✓</span> : r.has_foreign ? <span style={{ color: colors.textFaint }}>(exchange rates)</span> : <span style={{ color: colors.dangerText }}>differs</span>}</td>
+              <td style={{ ...td, ...num }}>{money(r.register_cost)}</td><td style={{ ...td, ...num }}>{money(r.ledger_cost)}</td><td style={{ ...td, ...num, color: Math.abs(r.cost_difference) < 0.01 ? colors.successText : colors.dangerText }}>{money(r.cost_difference)}</td>
+              <td style={{ ...td, ...num }}>{money(r.register_depreciation)}</td><td style={{ ...td, ...num }}>{money(r.ledger_depreciation)}</td><td style={{ ...td, ...num, color: Math.abs(r.depreciation_difference) < 0.01 ? colors.successText : colors.dangerText }}>{money(r.depreciation_difference)}</td></tr>)}</tbody>
+          </table>
         </div>
       )}
     </div>

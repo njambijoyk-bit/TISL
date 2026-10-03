@@ -14,6 +14,7 @@ const inventoryAPI = {
     undo:       (voucherId) => api.post(`${BASE}/depreciation/${voucherId}/undo`).then(unwrap),
     history:    ()       => api.get(`${BASE}/depreciation/history`).then(unwrap),
     register:   ()       => api.get(`${BASE}/register`).then(unwrap),
+    reconcile:  ()       => api.get(`${BASE}/reconcile`).then(unwrap),
     bookValue:  (id)     => api.get(`${BASE}/instances/${id}/book-value`).then(unwrap),
   },
 

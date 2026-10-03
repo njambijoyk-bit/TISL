@@ -902,15 +902,19 @@ function MoveModal({ instance, locations, onClose, onSuccess, toast }) {
 }
 
 function WriteOffModal({ instance, mode = "write-off", onClose, onSuccess, toast }) {
-  const [form, setForm] = useState({ reason: "", notes: "" });
+  const [form, setForm] = useState({ reason: "", notes: "", update_books: true, disposal_date: new Date().toISOString().split("T")[0], proceeds: "", received_ledger_id: "" });
   const [saving, setSaving] = useState(false);
+  const accOpts = useAccountingOptions();
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const money = mode === "write-off" || mode === "dispose";
+  const books = money && accOpts?.ready;
 
   const submit = async () => {
     setSaving(true);
     try {
-      if (mode === "write-off") await inventoryAPI.instances.writeOff(instance.id, form);
-      else if (mode === "dispose") await inventoryAPI.instances.dispose(instance.id, form);
+      const body = { ...form, proceeds: form.proceeds === "" ? 0 : parseFloat(form.proceeds), received_ledger_id: form.received_ledger_id || undefined };
+      if (mode === "write-off") await inventoryAPI.instances.writeOff(instance.id, body);
+      else if (mode === "dispose") await inventoryAPI.instances.dispose(instance.id, body);
       else if (mode === "obsolete") await inventoryAPI.instances.declareObsolete(instance.id, form);
       toast(`Instance ${mode === "write-off" ? "written off" : mode === "dispose" ? "disposed" : "declared obsolete"}`, "success");
       onSuccess();
@@ -924,13 +928,37 @@ function WriteOffModal({ instance, mode = "write-off", onClose, onSuccess, toast
   const label = mode === "write-off" ? "Write Off" : mode === "dispose" ? "Dispose" : "Declare Obsolete";
 
   return (
-    <Modal title={`// ${label.toLowerCase()}`} onClose={onClose}>
+    <Modal title={label} onClose={onClose}>
       <div style={{ fontFamily: mono, fontSize: 12, color: "#888", marginBottom: 20 }}>
         Instance: <span style={{ color: C.cyan }}>{instance?.asset_tag}</span>
       </div>
       <Field label="Reason">
         <input style={inputStyle} value={form.reason} onChange={e => set("reason", e.target.value)} placeholder="Reason for this action" />
       </Field>
+      {books && (
+        <>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer", marginBottom: 12 }}>
+            <input type="checkbox" checked={form.update_books} onChange={e => set("update_books", e.target.checked)} style={{ accentColor: C.cyan }} />
+            Update the books (takes the cost and its depreciation off, books any gain or loss)
+          </label>
+          {form.update_books && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Date"><input style={inputStyle} type="date" max={new Date().toISOString().split("T")[0]} value={form.disposal_date} onChange={e => set("disposal_date", e.target.value)} /></Field>
+                <Field label="Money received (blank if none)"><input style={inputStyle} type="number" min="0" step="0.01" value={form.proceeds} onChange={e => set("proceeds", e.target.value)} /></Field>
+              </div>
+              {Number(form.proceeds) > 0 && (
+                <Field label="Paid into">
+                  <select style={selectStyle} value={form.received_ledger_id} onChange={e => set("received_ledger_id", e.target.value)}>
+                    <option value="">Choose cash or bank…</option>
+                    {(accOpts?.pay_from ?? []).map(l => <option key={l.id} value={l.id}>{l.name} ({l.group})</option>)}
+                  </select>
+                </Field>
+              )}
+            </>
+          )}
+        </>
+      )}
       <Field label="Notes (optional)">
         <textarea style={{ ...inputStyle, resize: "vertical", minHeight: 70 }} value={form.notes} onChange={e => set("notes", e.target.value)} />
       </Field>

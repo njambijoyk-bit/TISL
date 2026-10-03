@@ -312,6 +312,117 @@ class AssetAccountingService
         return $cat->fresh();
     }
 
+    // ── Selling, disposing of or writing off an asset ────────────────────────
+
+    /**
+     * The Journal that takes an asset off the books: the cost and its accumulated depreciation come off, what was received
+     * goes to cash / bank, and the difference is a loss or a gain on disposal. A write-off is the same with nothing received.
+     * Depreciation must be posted up to the month before the disposal date (the disposal month itself is not depreciated).
+     * in: date, proceeds, received_ledger_id (when there are proceeds)
+     */
+    public function retire(InventoryInstance $a, array $in, ?User $by): ?Voucher
+    {
+        $this->needTables();
+        $cost = $this->cost($a);
+        if ($cost <= 0 || $a->disposed_on) {
+            return null;
+        }
+        $cat = $a->item?->category_id ? InventoryCategory::find($a->item->category_id) : null;
+        if (! $cat || ! $cat->asset_ledger_id || ! $cat->accumulated_ledger_id) {
+            throw new BooksException('The category has no asset / accumulated depreciation accounts, so the books cannot be updated. Set them under Settings → Categories, or untick "Update the books".');
+        }
+        $date = Carbon::parse($in['date'] ?? today())->startOfDay();
+        if ($date->gt(today())) {
+            throw new BooksException('The date cannot be in the future.');
+        }
+        $due = $this->charges($a, $date->copy()->startOfMonth()->subDay());
+        if ($due) {
+            throw new BooksException('Post depreciation up to ' . Carbon::parse(end($due)['period_end'])->format('F Y') . ' first (Depreciation & register), then record the disposal.');
+        }
+        $acc = min($this->accumulated($a), $cost);
+        $proceeds = round((float) ($in['proceeds'] ?? 0), 2);
+        if ($proceeds < 0) {
+            throw new BooksException('Proceeds cannot be negative.');
+        }
+        $recv = null;
+        if ($proceeds > 0) {
+            $recv = Ledger::find($in['received_ledger_id'] ?? null);
+            if (! $recv || (! $this->ledgers->isUnderGroup($recv, 'Cash-in-hand') && ! $this->ledgers->isUnderGroup($recv, 'Bank Accounts'))) {
+                throw new BooksException('Choose the cash or bank account the money went into.');
+            }
+        }
+        $nbv = round($cost - $acc, 2);
+        $diff = round($proceeds - $nbv, 2);   // > 0 gain, < 0 loss
+        $entries = [];
+        if ($acc > 0) {
+            $entries[] = ['ledger_id' => $cat->accumulated_ledger_id, 'side' => 'D', 'amount' => $acc, 'narration' => 'Accumulated depreciation removed'];
+        }
+        if ($proceeds > 0) {
+            $entries[] = ['ledger_id' => $recv->id, 'side' => 'D', 'amount' => $proceeds, 'narration' => 'Sale proceeds'];
+        }
+        if ($diff < -0.004) {
+            $entries[] = ['ledger_id' => $this->gainLossLedger('loss', $in)->id, 'side' => 'D', 'amount' => -$diff, 'narration' => 'Loss on disposal'];
+        }
+        $entries[] = ['ledger_id' => $cat->asset_ledger_id, 'side' => 'C', 'amount' => $cost, 'narration' => 'Asset removed at cost'];
+        if ($diff > 0.004) {
+            $entries[] = ['ledger_id' => $this->gainLossLedger('gain', $in)->id, 'side' => 'C', 'amount' => $diff, 'narration' => 'Gain on disposal'];
+        }
+        $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
+
+        return DB::transaction(function () use ($a, $type, $date, $entries, $by, $proceeds, $in) {
+            $v = $this->vouchers->create([
+                'voucher_type_id' => $type->id, 'date' => $date->toDateString(), 'currency_id' => $a->currency_id, 'reference_no' => $a->asset_tag,
+                'narration' => ($proceeds > 0 ? 'Asset sold: ' : 'Asset written off: ') . $this->label($a),
+                'entries' => $entries, 'meta' => ['asset' => ['instance_id' => $a->id, 'disposal' => true]],
+            ], $by);
+            $a->update(['disposed_on' => $date->toDateString(), 'disposal_voucher_id' => $v->id, 'sale_proceeds' => $proceeds > 0 ? $proceeds : null]);
+
+            return $v;
+        });
+    }
+
+    /** The ledger a gain or a loss on disposal goes to (an expense account chosen in `loss_ledger_id` / income in `gain_ledger_id`, else a default made on first use). */
+    private function gainLossLedger(string $kind, array $in): Ledger
+    {
+        $given = $in[$kind . '_ledger_id'] ?? null;
+        if ($given && ($l = Ledger::find($given))) {
+            return $l;
+        }
+        $group = LedgerGroup::where('name', $kind === 'loss' ? 'Indirect Expenses' : 'Indirect Incomes')->first()
+            ?? throw new BooksException('There is no ' . ($kind === 'loss' ? 'Indirect Expenses' : 'Indirect Incomes') . ' group to put the ' . $kind . ' on disposal under.');
+
+        return $this->ledgers->ensure($kind === 'loss' ? 'Loss on disposal of assets' : 'Gain on disposal of assets', $group->id);
+    }
+
+    // ── Register against the ledgers ─────────────────────────────────────────
+
+    /**
+     * Per category: the register's total against the ledger it posts to — cost against the asset account, depreciation against the accumulated
+     * account. The register is at today's exchange rates and the ledgers at the rates they were posted with, so for foreign-currency assets a
+     * small difference is expected; for base-currency assets there should be none.
+     */
+    public function reconcile(): array
+    {
+        $reg = collect($this->register()['rows'])->groupBy('category_id');
+        $out = [];
+        foreach (InventoryCategory::orderBy('name')->get() as $c) {
+            if (! $c->asset_ledger_id) {
+                continue;
+            }
+            $rows = $reg->get($c->id, collect());
+            $cost = round($rows->sum('base_cost'), 2);
+            $accum = round($rows->sum('base_accumulated'), 2);
+            $ledgerCost = round($this->ledgers->balance($c->asset_ledger_id), 2);
+            $ledgerAcc = $c->accumulated_ledger_id ? round(-$this->ledgers->balance($c->accumulated_ledger_id), 2) : 0.0;
+            $foreign = $rows->contains(fn ($r) => $r['currency'] !== $this->register()['base_currency']);
+            $out[] = ['category_id' => $c->id, 'category' => $c->name, 'register_cost' => $cost, 'ledger_cost' => $ledgerCost, 'cost_difference' => round($cost - $ledgerCost, 2),
+                'register_depreciation' => $accum, 'ledger_depreciation' => $ledgerAcc, 'depreciation_difference' => round($accum - $ledgerAcc, 2), 'has_foreign' => $foreign,
+                'agrees' => abs($cost - $ledgerCost) < 0.01 && abs($accum - $ledgerAcc) < 0.01];
+        }
+
+        return $out;
+    }
+
     // ── The register ─────────────────────────────────────────────────────────
 
     /** Every asset with cost, depreciation and book value — in its own currency and in today's base currency. */

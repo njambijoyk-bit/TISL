@@ -87,6 +87,12 @@ class AssetAccountingController extends Controller
             'status' => $v[$r->voucher_id]->status ?? null, 'period_end' => Carbon::parse($r->period_end)->toDateString(), 'amount' => (float) $r->amount, 'assets' => (int) $r->assets, 'currency' => $cur[$r->currency_id] ?? null])->values()]);
     }
 
+    /** Register against the ledgers, per category. */
+    public function reconcile(): JsonResponse
+    {
+        return response()->json(['data' => $this->svc->reconcile()]);
+    }
+
     public function register(): JsonResponse
     {
         return response()->json(['data' => $this->svc->register()]);

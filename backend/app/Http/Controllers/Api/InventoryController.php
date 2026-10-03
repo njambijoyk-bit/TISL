@@ -339,13 +339,13 @@ class InventoryController extends Controller
         $data['created_by'] = Auth::id();
         $data['updated_by'] = Auth::id();
 
-        // Auto-generate asset tag: TISL-IT-{padded id} handled after creation
+        // Auto-generate the asset tag (AST-00001) after creation
         \Illuminate\Support\Facades\DB::beginTransaction();
         $instance = InventoryInstance::create($data);
 
         if (! $instance->asset_tag) {
             $instance->update([
-                'asset_tag' => 'TISL-IT-' . str_pad($instance->id, 4, '0', STR_PAD_LEFT),
+                'asset_tag' => 'AST-' . str_pad($instance->id, 5, '0', STR_PAD_LEFT),
             ]);
         }
 
@@ -460,20 +460,51 @@ class InventoryController extends Controller
     {
         $instance = InventoryInstance::findOrFail($id);
 
-        $data = $request->validate(['reason' => 'nullable|string']);
+        $data = $request->validate([
+            'reason' => 'nullable|string',
+            'update_books' => 'nullable|boolean', 'disposal_date' => 'nullable|date', 'proceeds' => 'nullable|numeric|min:0',
+            'received_ledger_id' => 'nullable|integer', 'loss_ledger_id' => 'nullable|integer', 'gain_ledger_id' => 'nullable|integer',
+        ]);
         $data['performed_by'] = Auth::id();
 
-        return response()->json($this->operations->writeOff($instance, $data));
+        return $this->retireAsset($instance, $data, fn () => $this->operations->writeOff($instance, $data));
     }
 
     public function instancesDispose(Request $request, int $id): JsonResponse
     {
         $instance = InventoryInstance::findOrFail($id);
 
-        $data = $request->validate(['reason' => 'nullable|string']);
+        $data = $request->validate([
+            'reason' => 'nullable|string',
+            'update_books' => 'nullable|boolean', 'disposal_date' => 'nullable|date', 'proceeds' => 'nullable|numeric|min:0',
+            'received_ledger_id' => 'nullable|integer', 'loss_ledger_id' => 'nullable|integer', 'gain_ledger_id' => 'nullable|integer',
+        ]);
         $data['performed_by'] = Auth::id();
 
-        return response()->json($this->operations->dispose($instance, $data));
+        return $this->retireAsset($instance, $data, fn () => $this->operations->dispose($instance, $data));
+    }
+
+    /** Takes the asset off the books (when asked, and when it has a cost) and then retires it in the register — both or neither. */
+    private function retireAsset(InventoryInstance $instance, array $data, callable $retire): JsonResponse
+    {
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            $voucher = null;
+            if (($data['update_books'] ?? true) && \App\Services\Inventory\AssetAccountingService::ready()) {
+                $voucher = app(\App\Services\Inventory\AssetAccountingService::class)->retire($instance->fresh(['item']), [
+                    'date' => $data['disposal_date'] ?? null, 'proceeds' => $data['proceeds'] ?? 0, 'received_ledger_id' => $data['received_ledger_id'] ?? null,
+                    'loss_ledger_id' => $data['loss_ledger_id'] ?? null, 'gain_ledger_id' => $data['gain_ledger_id'] ?? null,
+                ], Auth::user());
+            }
+            $result = $retire();
+            \Illuminate\Support\Facades\DB::commit();
+
+            return response()->json($voucher ? ['voucher_id' => $voucher->id, 'voucher_number' => $voucher->voucher_number] + $result->toArray() : $result);
+        } catch (\App\Services\Books\BooksException $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function instancesMove(Request $request, int $id): JsonResponse
