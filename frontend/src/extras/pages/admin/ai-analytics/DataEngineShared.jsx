@@ -478,12 +478,12 @@ export function TickerTape() {
             {/* Fade edges */}
             <div style={{
                 position: 'absolute', left: 0, top: 0, bottom: 0, width: 48,
-                background: 'linear-gradient(90deg, var(--color-background-tertiary), transparent)',
+                background: 'linear-gradient(90deg, var(--bg-primary), transparent)',
                 zIndex: 1, pointerEvents: 'none',
             }} />
             <div style={{
                 position: 'absolute', right: 0, top: 0, bottom: 0, width: 48,
-                background: 'linear-gradient(-90deg, var(--color-background-tertiary), transparent)',
+                background: 'linear-gradient(-90deg, var(--bg-primary), transparent)',
                 zIndex: 1, pointerEvents: 'none',
             }} />
 

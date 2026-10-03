@@ -10,9 +10,9 @@ import aiAnalyticsAPI from '../../../../_shared/api/aiAnalytics';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
-  bg:       'var(--color-background-tertiary)',
-  bgCard:   'var(--color-background-secondary)',
-  bgInput:  'var(--color-background-secondary)',
+  bg:       'var(--bg-primary)',
+  bgCard:   'var(--surface-card, #fff)',
+  bgInput:  'var(--surface-input)',
   blue:     'var(--color-primary-500)',
   cyan:     'var(--color-primary-500)',
   purple:   'var(--color-primary-500)',
