@@ -93,20 +93,20 @@ function ViewBody({ id, data, nav, onRefresh }) {
     <>
       <Table head={[['Group'], ['Ledger'], ['Opening', true], ['Debit', true], ['Credit', true], ['Closing (Dr +)', true]]}>
         {data.rows.length ? data.rows.map((r) => (
-          <tr key={r.ledger_id}><td style={td}>{r.group}</td><td style={td}>{r.ledger}</td><td style={{ ...td, ...num }}>{money(r.opening)}</td><td style={{ ...td, ...num }}>{money(r.debit)}</td><td style={{ ...td, ...num }}>{money(r.credit)}</td><td style={{ ...td, ...num }}>{money(r.closing)}</td></tr>
+          <tr key={r.ledger_id ?? 'opening-difference'} style={r.placeholder ? { fontStyle: 'italic' } : undefined}><td style={td}>{r.group}</td><td style={td}>{r.ledger}</td><td style={{ ...td, ...num }}>{money(r.opening)}</td><td style={{ ...td, ...num }}>{money(r.debit)}</td><td style={{ ...td, ...num }}>{money(r.credit)}</td><td style={{ ...td, ...num }}>{money(r.closing)}</td></tr>
         )) : <Empty cols={6} />}
         <Total><td style={td} colSpan={4}>Closing totals</td><td style={{ ...td, ...num }}>Dr {money(data.total_debit)}</td><td style={{ ...td, ...num }}>Cr {money(data.total_credit)}</td></Total>
       </Table>
+      {data.opening_difference ? (
+        <div style={{ ...card, padding: 12, marginTop: 10, fontSize: '0.8rem', color: colors.text }}>
+          <strong>Difference in opening balances: {money(Math.abs(data.opening_difference))} {data.opening_difference > 0 ? 'Cr' : 'Dr'}.</strong> It is a placeholder, not a ledger: the opening balances on the ledgers are {money(Math.abs(data.opening_difference))} {data.opening_difference > 0 ? 'heavy on the debit side' : 'heavy on the credit side'}, so it is held here to keep the books in step. It clears when the opposite opening balance (usually Capital) is entered. The ledgers carrying openings:
+          <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{data.opening_balances.map((o) => <li key={o.ledger_id}>{o.ledger} <span style={{ color: colors.textMuted }}>({o.group})</span> — {money(o.amount)} {o.side}</li>)}</ul>
+        </div>
+      ) : null}
       {!data.balanced && (
         <div role="alert" style={{ ...card, padding: 12, marginTop: 10, fontSize: '0.8rem', color: colors.dangerText }}>
           <strong>The trial balance does not balance: debits are {money(Math.abs(data.total_debit - data.total_credit))} {data.total_debit > data.total_credit ? 'more' : 'less'} than credits.</strong>
-          {data.opening_difference ? (
-            <>
-              <div style={{ marginTop: 4, color: colors.text }}>The opening balances on the ledgers do not net to nothing — they are {money(Math.abs(data.opening_difference))} {data.opening_difference > 0 ? 'heavy on the debit side' : 'heavy on the credit side'}, and every opening balance needs an opposite one (usually Capital). The ledgers carrying them:</div>
-              <ul style={{ margin: '4px 0 0', paddingLeft: 18, color: colors.text }}>{data.opening_balances.map((o) => <li key={o.ledger_id}>{o.ledger} <span style={{ color: colors.textMuted }}>({o.group})</span> — {money(o.amount)} {o.side}</li>)}</ul>
-              <div style={{ marginTop: 4, color: colors.textMuted }}>Fix it by moving the money in with a Journal or Receipt (for example Dr the bank, Cr Capital) and setting the ledger's opening balance to 0, or by giving the opposite opening balance to Capital.</div>
-            </>
-          ) : <div style={{ marginTop: 4, color: colors.text }}>The opening balances agree, so the difference is in the postings — tell us and we will trace it.</div>}
+          <div style={{ marginTop: 4, color: colors.text }}>The difference is in the postings, not the opening balances — tell us and we will trace it.</div>
         </div>
       )}
     </>
@@ -132,13 +132,13 @@ function ViewBody({ id, data, nav, onRefresh }) {
     <>
       <Table head={[['Particulars'], ['Amount', true]]}>
         <tr style={{ background: colors.tint(0.03) }}><td style={{ ...td, fontWeight: 700 }} colSpan={2}>Assets</td></tr>
-        {data.assets.map((r, i) => <tr key={i}><td style={td}>{r.ledger} <span style={{ color: colors.textFaint }}>· {r.group}</span></td><td style={{ ...td, ...num }}>{money(r.amount)}</td></tr>)}
+        {data.assets.map((r, i) => <tr key={i} style={r.placeholder ? { fontStyle: 'italic' } : undefined}><td style={td}>{r.ledger} {r.group && <span style={{ color: colors.textFaint }}>· {r.group}</span>}</td><td style={{ ...td, ...num }}>{money(r.amount)}</td></tr>)}
         <Total><td style={td}>Total assets</td><td style={{ ...td, ...num }}>{money(data.total_assets)}</td></Total>
         <tr style={{ background: colors.tint(0.03) }}><td style={{ ...td, fontWeight: 700 }} colSpan={2}>Liabilities & capital</td></tr>
-        {data.liabilities.map((r, i) => <tr key={i}><td style={td}>{r.ledger} <span style={{ color: colors.textFaint }}>· {r.group}</span></td><td style={{ ...td, ...num }}>{money(r.amount)}</td></tr>)}
+        {data.liabilities.map((r, i) => <tr key={i} style={r.placeholder ? { fontStyle: 'italic' } : undefined}><td style={td}>{r.ledger} {r.group && <span style={{ color: colors.textFaint }}>· {r.group}</span>}</td><td style={{ ...td, ...num }}>{money(r.amount)}</td></tr>)}
         <Total><td style={td}>Total liabilities & capital</td><td style={{ ...td, ...num }}>{money(data.total_liabilities)}</td></Total>
       </Table>
-      {!data.balanced && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>The two sides differ — usually an unbalanced opening balance.</p>}
+      {!data.balanced && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>The two sides differ — the difference is in the postings.</p>}
     </>
   );
   if (id === 'tax-return') return (

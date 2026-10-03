@@ -161,9 +161,18 @@ class BooksReportService
             }
         }
 
+        // like Tally's "Difference in opening balances": a placeholder, not a ledger, that carries what the opening balances are out by
+        $diff = abs($openNet) < 0.01 ? 0.0 : round($openNet, 2);
+        if ($diff != 0.0) {
+            $rows[] = ['ledger_id' => null, 'ledger' => 'Difference in opening balances', 'group' => '', 'nature' => null, 'placeholder' => true,
+                'opening' => -$diff, 'debit' => 0, 'credit' => 0, 'closing' => -$diff];
+            $tDr += $diff < 0 ? -$diff : 0;
+            $tCr += $diff > 0 ? $diff : 0;
+        }
+
         return ['from' => $from, 'to' => $to, 'rows' => $rows, 'total_debit' => round($tDr, 2), 'total_credit' => round($tCr, 2),
             'balanced' => abs($tDr - $tCr) < 0.01, 'restated_vouchers' => RestatedBase::restatedCount(),
-            'opening_difference' => abs($openNet) < 0.01 ? 0.0 : round($openNet, 2), 'opening_balances' => abs($openNet) < 0.01 ? [] : $openings];
+            'opening_difference' => $diff, 'opening_balances' => abs($openNet) < 0.01 ? [] : $openings];
     }
 
     /** Income & expense ledgers for a period, split into trading (gross profit) and the rest. */
@@ -216,10 +225,21 @@ class BooksReportService
         if (abs($plNet) >= 0.005) {
             $liabilities[] = ['ledger_id' => null, 'ledger' => $plNet >= 0 ? 'Profit & Loss (to date)' : 'Loss (to date)', 'group' => 'Capital', 'amount' => round($plNet, 2)];
         }
+        // Tally's "Difference in opening balances": a placeholder on the lighter side so the sheet carries what the openings are out by
+        $openNet = 0.0;
+        foreach ($this->ledgers() as $l) {
+            $openNet += $this->opening($l);
+        }
+        $diff = abs($openNet) < 0.01 ? 0.0 : round($openNet, 2);
+        if ($diff > 0) {
+            $liabilities[] = ['ledger_id' => null, 'ledger' => 'Difference in opening balances', 'group' => '', 'placeholder' => true, 'amount' => $diff];
+        } elseif ($diff < 0) {
+            $assets[] = ['ledger_id' => null, 'ledger' => 'Difference in opening balances', 'group' => '', 'placeholder' => true, 'amount' => -$diff];
+        }
         $tA = round(array_sum(array_column($assets, 'amount')), 2);
         $tL = round(array_sum(array_column($liabilities, 'amount')), 2);
 
-        return ['as_of' => $asOf, 'restated_vouchers' => RestatedBase::restatedCount(), 'assets' => $assets, 'liabilities' => $liabilities, 'total_assets' => $tA, 'total_liabilities' => $tL, 'balanced' => abs($tA - $tL) < 0.01];
+        return ['as_of' => $asOf, 'opening_difference' => $diff, 'restated_vouchers' => RestatedBase::restatedCount(), 'assets' => $assets, 'liabilities' => $liabilities, 'total_assets' => $tA, 'total_liabilities' => $tL, 'balanced' => abs($tA - $tL) < 0.01];
     }
 
     /** Open bills per party, bucketed by days past due. kind: receivables | payables. */
