@@ -40,7 +40,7 @@ function DayModal({ uid, date, kinds, onClose, onChanged }) {
             <div style={{ color: colors.textFaint, fontSize: '0.75rem' }}>{rec.verified ? `Verified${rec.verified_by ? ` by ${rec.verified_by}` : ''}` : 'Not verified yet'}{rec.marked_by ? ` · marked by ${rec.marked_by}` : rec.source === 'self' ? ' · signed by them' : ''}{rec.note ? ` · ${rec.note}` : ''}</div>
           </div>
         ) : <div style={{ color: colors.textMuted }}>Nothing marked for this day.</div>}
-        {d.inferred && <div style={{ background: '#f9fafb', borderRadius: 8, padding: 8, fontSize: '0.78rem' }}>Active in the app from <strong>{d.inferred.first}</strong>{d.inferred.last ? <> to <strong>{d.inferred.last}</strong></> : ''} <span style={{ color: colors.textFaint }}>(inferred — not a record)</span>
+        {d.inferred && <div style={{ background: 'var(--surface-input)', borderRadius: 8, padding: 8, fontSize: '0.78rem' }}>Active in the app from <strong>{d.inferred.first}</strong>{d.inferred.last ? <> to <strong>{d.inferred.last}</strong></> : ''} <span style={{ color: colors.textFaint }}>(inferred — not a record)</span>
           {d.can_mark && !rec?.in && <> <button type="button" style={small} disabled={busy} onClick={() => run(() => attendanceAPI.acceptInferred({ user_id: uid, date }))}>Use these times</button></>}</div>}
         {d.is_me && !d.can_mark && <p style={{ margin: 0, color: colors.textFaint, fontSize: '0.76rem' }}>You sign in and out for yourself; your manager marks and verifies the rest of your attendance.</p>}
 
@@ -60,7 +60,7 @@ function DayModal({ uid, date, kinds, onClose, onChanged }) {
         )}
 
         {d.can_dispute && (
-          <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
+          <div style={{ borderTop: '1px solid var(--line, #e5e7eb)', paddingTop: 8 }}>
             <div style={{ fontWeight: 700, marginBottom: 4 }}>Something wrong with this day?</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <select value={disp.kind} onChange={(e) => setDisp({ ...disp, kind: e.target.value })} style={{ padding: 6, borderRadius: 6 }}>{Object.entries(kinds).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
@@ -92,7 +92,7 @@ function SettingsModal({ settings, onClose, onSaved }) {
         </div>
         <div style={{ fontSize: '0.8rem' }}>Working days: {WD.map((n, i) => <label key={n} style={{ marginRight: 8 }}><input type="checkbox" checked={s.workdays.includes(i)} onChange={() => setS({ ...s, workdays: s.workdays.includes(i) ? s.workdays.filter((x) => x !== i) : [...s.workdays, i] })} /> {n}</label>)}</div>
         <div><button type="button" style={btnPrimary} onClick={save}>Save hours</button></div>
-        <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
+        <div style={{ borderTop: '1px solid var(--line, #e5e7eb)', paddingTop: 8 }}>
           <div style={{ fontWeight: 700, fontSize: '0.84rem' }}>Who marks whom</div>
           <p style={{ margin: '2px 0 8px', fontSize: '0.74rem', color: colors.textFaint }}>A person's manager (from their employee record) and admins can always mark and verify. Add anyone else here. Nobody marks themselves.</p>
           <div style={{ maxHeight: 220, overflow: 'auto' }}>
@@ -154,18 +154,18 @@ export default function Attendance() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ borderCollapse: 'collapse', fontSize: '0.72rem', width: '100%' }}>
                   <thead>
-                    <tr><th style={{ textAlign: 'left', padding: 4, position: 'sticky', left: 0, background: '#fff' }}>Person</th>{dates.map((x) => <th key={x.key} style={{ padding: 2, color: data.calendar.workdays.includes(x.wd) ? colors.textMuted : '#d1d5db', fontWeight: 600, minWidth: 26 }}>{x.d}<br /><span style={{ fontWeight: 400 }}>{WD[x.wd]}</span></th>)}<th style={{ padding: 4 }}>Verified</th><th /></tr>
+                    <tr><th style={{ textAlign: 'left', padding: 4, position: 'sticky', left: 0, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' }}>Person</th>{dates.map((x) => <th key={x.key} style={{ padding: 2, color: data.calendar.workdays.includes(x.wd) ? colors.textMuted : 'var(--text-tertiary, #d1d5db)', fontWeight: 600, minWidth: 26 }}>{x.d}<br /><span style={{ fontWeight: 400 }}>{WD[x.wd]}</span></th>)}<th style={{ padding: 4 }}>Verified</th><th /></tr>
                   </thead>
                   <tbody>
                     {data.calendar.people.map((p) => (
-                      <tr key={p.user_id} style={{ background: p.is_me ? '#f8fafc' : undefined }}>
-                        <td style={{ padding: 4, whiteSpace: 'nowrap', position: 'sticky', left: 0, background: p.is_me ? '#f8fafc' : '#fff', fontWeight: p.is_me ? 700 : 500 }}>{p.name}</td>
+                      <tr key={p.user_id} style={{ background: p.is_me ? 'var(--surface-hover)' : undefined }}>
+                        <td style={{ padding: 4, whiteSpace: 'nowrap', position: 'sticky', left: 0, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', boxShadow: p.is_me ? 'inset 0 0 0 99px var(--surface-hover)' : undefined, fontWeight: p.is_me ? 700 : 500 }}>{p.name}</td>
                         {dates.map((x) => {
                           const c = p.days[x.key]; const st = c?.status ? ST[c.status] : null;
                           return (
-                            <td key={x.key} style={{ padding: 1, textAlign: 'center', background: data.calendar.workdays.includes(x.wd) ? undefined : '#fafafa' }}>
+                            <td key={x.key} style={{ padding: 1, textAlign: 'center', background: data.calendar.workdays.includes(x.wd) ? undefined : 'color-mix(in srgb, var(--text-primary) 7%, transparent)' }}>
                               <button type="button" onClick={() => setDay({ uid: p.user_id, date: x.key })} title={c ? `${st?.[3] ?? ''} ${c.in ?? ''}${c.out ? `–${c.out}` : ''}${c.verified ? ' · verified' : ''}` : 'Open'}
-                                style={{ width: 24, height: 22, border: c?.disputed ? '1.5px solid #dc2626' : '1px solid transparent', borderRadius: 4, cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700, color: st?.[1] ?? '#d1d5db', background: st?.[2] ?? 'transparent', padding: 0 }}>
+                                style={{ width: 24, height: 22, border: c?.disputed ? '1.5px solid #dc2626' : '1px solid transparent', borderRadius: 4, cursor: 'pointer', fontSize: '0.68rem', fontWeight: 700, color: st?.[1] ?? 'var(--text-tertiary, #d1d5db)', background: st?.[2] ?? 'transparent', padding: 0 }}>
                                 {st ? `${st[0]}${c.verified ? '✓' : ''}` : c?.disputed ? '⚑' : '·'}
                               </button>
                             </td>
@@ -185,7 +185,7 @@ export default function Attendance() {
               <p style={{ margin: '2px 0 10px', fontSize: '0.74rem', color: colors.textFaint }}>Days a colleague says were wrong. They affect payroll until the super admin settles them. {data.is_super ? 'You can see who reported each one.' : 'Who reported a dispute is known only to the super admin.'}</p>
               {!data.disputes.length && <p style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>No disputes this month.</p>}
               {data.disputes.map((x) => (
-                <div key={x.id} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'baseline', padding: '8px 0', borderTop: '1px solid #f3f4f6', fontSize: '0.82rem', opacity: x.status === 'open' ? 1 : 0.6 }}>
+                <div key={x.id} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'baseline', padding: '8px 0', borderTop: '1px solid var(--line, #e5e7eb)', fontSize: '0.82rem', opacity: x.status === 'open' ? 1 : 0.6 }}>
                   <strong>{x.subject}</strong><span>{new Date(x.date).toLocaleDateString([], { day: 'numeric', month: 'short' })}</span><span style={{ color: '#b45309' }}>{x.kind_label}</span>
                   {x.note && <span style={{ color: colors.textMuted }}>“{x.note}”</span>}
                   <span style={{ color: colors.textFaint }}>{x.status === 'open' ? 'open' : x.status}{x.resolution_note ? ` — ${x.resolution_note}` : ''}</span>
