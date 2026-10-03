@@ -733,7 +733,7 @@ export default function ManifestTransferPage() {
 
         const orderIds = (sourceManifest?.items ?? [])
             .filter(i => selected.has(i.id))
-            .map(i => i.order_id);
+            .flatMap(i => (i.order?.notes ?? []).map(n => n.id));   // the Delivery Notes on the selected stops
 
         if (orderIds.length === 0) { setPreflightWarning(null); return; }
 

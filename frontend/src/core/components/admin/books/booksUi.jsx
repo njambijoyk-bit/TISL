@@ -29,6 +29,23 @@ export function Chip({ status }) {
   );
 }
 
+/** Where a Delivery Note stands on the road: shown next to its status (delivered / out / on a manifest / failed / not yet on one). */
+export function DeliveryChip({ delivery }) {
+  if (!delivery) return null;
+  const [label, bg, fg] = {
+    delivered:    ['Delivered', colors.successBg, colors.successText],
+    out:          ['Out for delivery', colors.infoBg, colors.infoText],
+    on_manifest:  [`On ${delivery.manifest_number ?? 'manifest'}`, colors.infoBg, colors.infoText],
+    failed:       ['Delivery failed', colors.dangerBg, colors.dangerText],
+    not_assigned: ['Not delivered', colors.neutralBg, colors.neutralText],
+  }[delivery.status] ?? ['—', colors.neutralBg, colors.neutralText];
+  return (
+    <span title={delivery.delivered_at ? `Delivered ${delivery.delivered_at}` : undefined} style={{ display: 'inline-block', padding: '2px 9px', borderRadius: radius.pill, background: bg, color: fg, fontSize: '0.68rem', fontWeight: 700 }}>
+      {label}
+    </span>
+  );
+}
+
 /** Download in any of the five formats; failures (e.g. PDF library missing) are shown, not swallowed. */
 export function ExportMenu({ onExport, label = 'Export' }) {
   const [busy, setBusy] = useState(false);

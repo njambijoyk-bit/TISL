@@ -1445,3 +1445,16 @@ All AI calls (analytics, Mimi chat, careers screening) go through `App\Services\
 - Keys are stored encrypted and never returned by the API; only the last 4 characters are shown. TEST checks a key; SWITCH OFF/ON toggles it; a key must be off before it is deleted.
 - Fallback: `GEMINI_API_KEY` (Mimi) and `ANTHROPIC_API_KEY` (screening) in `.env` are used only while no key exists for that purpose.
 - Script `67_ai_provider_keys.sql` adds the model, endpoint, used-for, priority and last-error columns. Until it is run the gateway uses defaults.
+
+
+## Manifests from Delivery Notes (3 Oct 2026)
+
+Delivery manifests no longer read orders. **Source is the Delivery Note, and only the Delivery Note** (posted, not cancelled).
+
+- **A stop is one place.** Delivery Notes for the same customer and address (compared ignoring case and spacing) share ONE stop; `delivery_item_vouchers` holds which notes are on a stop. The stop keeps the customer, contact, address and coordinates (from the customer's saved address). Script 68; `order_id` on stops and ratings is optional (old manifests keep theirs).
+- **Eligibility** (`DeliveryStopService`): posted Delivery Note, not on a live stop of a manifest that is not cancelled. A **failed or returned stop frees its notes and touches nothing but the manifest tables**; a delivered note cannot go on a manifest again; cancelling a manifest frees its notes.
+- **Delivered shows on the note** (Books → Vouchers list and the voucher page): Delivered / Out for delivery / On manifest M-… / Delivery failed / Not delivered, derived from its stop.
+- **Pick list:** `GET /admin/delivery/manifests/delivery-notes` (search, dates, branch; says why a note cannot go on). The create-manifest page and the AI manifest creator use it. AI creation picks posted notes from the last N days that are free.
+- **Shipments are the stop.** The separate shipment record and its admin routes are gone; customer tracking (`/delivery/orders/{id}/shipment|pings|tracking|driver-rating`) finds the stop through the customer's own document (the note, or the Sales Order / invoice it belongs to). Ratings are per stop.
+- Stops still serialise an `order` object (note numbers, merged lines, customer, address) so the delivery screens keep working; a `notes` list carries each note.
+- Not done: money collected on delivery (receipt) and delivery costs (expense voucher); moving the incident screens' wording from "order" to "Delivery Note".

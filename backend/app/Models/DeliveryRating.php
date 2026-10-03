@@ -38,7 +38,9 @@ class DeliveryRating extends Model
             return null;
         }
 
-        return ['order_number' => $stop->notes->map->voucher->filter()->pluck('voucher_number')->join(', ')];
+        $vs = $stop->notes->map->voucher->filter();
+
+        return ['id' => $vs->first()?->id, 'order_number' => $vs->pluck('voucher_number')->join(', ')];
     }
 
     public function deliveryItem(): BelongsTo

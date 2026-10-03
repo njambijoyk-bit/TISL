@@ -17,6 +17,10 @@ const deliveryAPI = {
   getManifest: (id) =>
     api.get(`/admin/delivery/manifests/${id}`).then(r => r.data),
 
+  // Delivery Notes waiting for a manifest (and why a note cannot go on one)
+  getDeliveryNotes: (params = {}) =>
+    api.get('/admin/delivery/manifests/delivery-notes', { params }).then(r => r.data),
+
   getManifestStatistics: () =>
     api.get('/admin/delivery/manifests/statistics').then(r => r.data),
 
@@ -105,16 +109,6 @@ const deliveryAPI = {
   getFailedItems: () =>
     api.get('/admin/delivery/manifests/failed-items').then(r => r.data),
   
-  // ========================================
-  // ADMIN — SHIPMENTS
-  // ========================================
-
-  createShipment: (data) =>
-    api.post('/admin/delivery/shipments', data).then(r => r.data),
-
-  updateShipment: (id, data) =>
-    api.patch(`/admin/delivery/shipments/${id}`, data).then(r => r.data),
-
   // ========================================
   // ADMIN — INCIDENTS
   // ========================================

@@ -22,12 +22,6 @@ const DELIVERY_METHODS = [
     { value: 'third_party',      label: 'Third-Party Partner', icon: Handshake, color: '#f59e0b' },
 ];
 
-const ORDER_STATUSES = [
-    { value: 'confirmed',        label: 'Confirmed'        },
-    { value: 'processing',       label: 'Processing'       },
-    { value: 'ready_for_pickup', label: 'Ready for pickup' },
-];
-
 const PERIOD_OPTIONS = [
     { value: 7,  label: 'Last 7 days'  },
     { value: 14, label: 'Last 14 days' },
@@ -74,26 +68,6 @@ function MethodPicker({ value, onChange, onHover }) {
                             <span style={{ fontSize: '0.78rem', fontWeight: 600, color: selected ? m.color : D.text }}>{m.label}</span>
                         </div>
                         {selected && <div style={{ fontSize: '0.65rem', color: m.color, fontWeight: 600 }}>Selected</div>}
-                    </button>
-                );
-            })}
-        </div>
-    );
-}
-
-// ── Status chips ───────────────────────────────────────────────────────────────
-function StatusChips({ value, onChange, onHover }) {
-    const toggle = (v) => onChange(
-        value.includes(v) ? value.filter(s => s !== v) : [...value, v]
-    );
-    return (
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {ORDER_STATUSES.map(s => {
-                const on = value.includes(s.value);
-                return (
-                    <button key={s.value} onClick={() => { onHover(); toggle(s.value); }}
-                        style={{ padding: '5px 12px', borderRadius: 20, border: `1px solid ${on ? D.purple : D.purpleBorder}`, background: on ? D.purpleDim : 'transparent', color: on ? D.purple : D.textDim, fontSize: '0.75rem', fontWeight: on ? 700 : 400, cursor: 'pointer', transition: 'all 0.15s' }}>
-                        {s.label}
                     </button>
                 );
             })}
@@ -373,7 +347,7 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
 
     // Advisory config
     const [periodDays,      setPeriodDays]     = useState(14);
-    const [orderStatuses,   setOrderStatuses]  = useState(['confirmed', 'processing', 'ready_for_pickup']);
+    const [orderStatuses] = useState(['confirmed', 'processing', 'ready_for_pickup']);
     const [driverHint,      setDriverHint]     = useState('');
     const [customPrompt,    setCustomPrompt]   = useState('');
     const [scheduledDate,   setScheduledDate]  = useState('');
@@ -567,9 +541,8 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
                 </div>
             </div>
 
-            <div style={{ marginBottom: 18 }}>
-                <label style={field.label}>Include order statuses</label>
-                <StatusChips value={orderStatuses} onChange={setOrderStatuses} onHover={audio.playHover} />
+            <div style={{ marginBottom: 18, fontSize: '0.78rem', color: D.textDim }}>
+                The AI picks from posted Delivery Notes in that period that are not yet on a manifest. Notes for the same customer and address become one stop.
             </div>
 
             {/* Driver — required for internal, optional otherwise */}
@@ -632,7 +605,7 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
                             icon:  FileText,
                             color: D.purple,
                             title: 'Advisory mode',
-                            desc:  'Set a period, statuses, and optional driver hint. AI analyses your fleet and orders, then recommends a manifest. You review, refine with back-and-forth chat, then decide.',
+                            desc:  'Set a period and an optional driver hint. AI analyses your fleet and Delivery Notes, then recommends a manifest. You review, refine with back-and-forth chat, then decide.',
                         },
                         {
                             mode:  'creator',
@@ -772,10 +745,6 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
                             style={{ ...field.input, cursor: 'pointer' }}>
                             {PERIOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
-                    </div>
-                    <div>
-                        <label style={field.label}>Include statuses</label>
-                        <StatusChips value={orderStatuses} onChange={setOrderStatuses} onHover={audio.playHover} />
                     </div>
                 </div>
 

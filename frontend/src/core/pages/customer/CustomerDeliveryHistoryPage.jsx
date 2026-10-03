@@ -216,7 +216,7 @@ function RatingCard({ rating, onDriverClick }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         {rating.driver && (
                             <button
-                                onClick={() => onDriverClick(rating.driver, rating.order_id)}
+                                onClick={() => onDriverClick(rating.driver, rating.order_id ?? rating.order?.id)}
                                 style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 6,
                                     padding: '3px 10px', borderRadius: 20,

@@ -13,7 +13,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import WriteOffModal from '../../../components/admin/books/WriteOffModal';
 import CreditPanel from '../../../components/admin/books/CreditPanel';
-import { Chip, ExportMenu } from '../../../components/admin/books/booksUi';
+import { Chip, DeliveryChip, ExportMenu } from '../../../components/admin/books/booksUi';
 import { money, today } from '../../../components/admin/books/booksFmt';
 
 const th = { padding: '8px 10px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
@@ -220,7 +220,7 @@ export default function VoucherView() {
           <div>
             <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: colors.primary }}>{v.type.name} <span style={{ fontFamily: 'monospace' }}>{v.voucher_number}</span></h1>
             <p style={{ margin: '6px 0 0', fontSize: '0.8rem', color: colors.textMuted }}>
-              {v.date} · {v.location?.name ?? 'No branch'} · <Chip status={v.status} /> {v.fulfilment_status && <Chip status={v.fulfilment_status} />}
+              {v.date} · {v.location?.name ?? 'No branch'} · <Chip status={v.status} /> {v.fulfilment_status && <Chip status={v.fulfilment_status} />} <DeliveryChip delivery={v.delivery} />
               {v.channel && v.channel !== 'admin' && <> · via {v.channel}</>}
             </p>
           </div>

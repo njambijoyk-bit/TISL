@@ -473,7 +473,7 @@ function TabManifest({ item, manifest }) {
     const terminalRows = [
         { key: 'delivery_item_id',    value: item.id },
         { key: 'manifest_id',         value: item.manifest_id },
-        { key: 'order_id',            value: item.order_id },
+        { key: 'delivery_note_nos',      value: item.order?.order_number ?? 'null' },
         { key: 'status',              value: item.status },
         { key: 'sort_order',          value: item.sort_order },
         { key: 'distance_from_prev',  value: item.distance_from_prev_km ? `${item.distance_from_prev_km} km` : 'null' },

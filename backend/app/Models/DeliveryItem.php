@@ -97,7 +97,7 @@ class DeliveryItem extends Model
             'number'           => $vouchers->pluck('voucher_number')->join(', '),
             'status'           => $this->status,
             'priority'         => null,
-            'customer'         => $c,
+            'customer'         => $c ?? ($this->contact_name ? ['first_name' => $this->contact_name, 'last_name' => '', 'phone' => $this->contact_phone] : null),
             'customer_id'      => $this->customer_id,
             'shipping_address' => $this->address,
             'notes'            => $vouchers->map(fn ($v) => ['id' => $v->id, 'voucher_number' => $v->voucher_number, 'date' => $v->date?->toDateString()])->values(),

@@ -141,7 +141,7 @@ function StopCard({ item, index, expanded, onToggle, onHover, onInfo, onOverride
                 }}>
                     {/* order info */}
                     <div>
-                        <Label>Order</Label>
+                        <Label>Delivery Note</Label>
                         <Value>{item.order?.order_number ?? '—'}</Value>
                         <Label style={{ marginTop: 10 }}>Phone</Label>
                         <Value>{customer?.phone ?? item.customer_contact?.phone ?? '—'}</Value>

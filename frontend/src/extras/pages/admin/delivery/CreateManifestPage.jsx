@@ -20,7 +20,7 @@ import {
 } from './DeliveryShared';
 
 const MODES = { CHOOSE: 'choose', MANUAL: 'manual', AI: 'ai' };
-const STEPS_MANUAL = ['Details', 'Add orders'];
+const STEPS_MANUAL = ['Details', 'Add Delivery Notes'];
 
 const DELIVERY_METHODS = [
     { value: 'internal_driver',  label: 'Internal Driver',     icon: Truck,    color: D.purple  },
@@ -104,7 +104,7 @@ function StepIndicator({ steps, current }) {
 // ── Mode chooser ──────────────────────────────────────────────────────────────
 function ModeChooser({ onChoose, onHover }) {
     const options = [
-        { mode: MODES.MANUAL, icon: FileText, color: D.purple, title: 'Manual manifest', desc: 'Pick a driver, set a date, add orders, then plan the route on a dedicated page.' },
+        { mode: MODES.MANUAL, icon: FileText, color: D.purple, title: 'Manual manifest', desc: 'Pick a driver, set a date, add Delivery Notes, then plan the route on a dedicated page.' },
         { mode: MODES.AI,     icon: Sparkles, color: '#f59e0b', title: 'AI generate',    desc: 'Describe your delivery run and let AI suggest the optimal manifest with stops pre-organised.' },
     ];
     return (
@@ -255,10 +255,12 @@ function getIneligibleReason(order, eligibilityMap) {
     if (info?.reason === 'in_manifest') {
         const mnf = info.manifest_number ?? 'another manifest';
         const st  = info.manifest_status ? ` (${info.manifest_status})` : '';
-        return `Already in ${mnf}${st} — remove it from that manifest first.`;
+        return `Already in ${mnf}${st} — remove it from that manifest, or fail the stop there, first.`;
     }
 
     // Fall back to status-based reasons
+    if (info?.reason === 'delivered') return `Already delivered${info.manifest_number ? ` (${info.manifest_number})` : ''}.`;
+    if (info?.reason === 'status') return 'Not posted (draft or cancelled) — post it first.';
     return INELIGIBLE_REASON[order.status] ?? `Status "${order.status}" not accepted.`;
 }
 
@@ -267,53 +269,28 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
     const [query, setQuery]         = useState('');
     const [orders, setOrders]       = useState([]);
     const [loading, setLoading]     = useState(false);
-    const [checking, setChecking]   = useState(false);
     // eligibilityMap: { [orderId]: { eligible, reason, manifest_number, manifest_status, manifest_id } }
     const [eligibilityMap, setEligibilityMap] = useState({});
     const searchTimer = useRef(null);
-    const eligTimer   = useRef(null);
 
     const search = useCallback(async (q) => {
-        if (!q.trim()) { setOrders([]); setEligibilityMap({}); return; }
         setLoading(true);
         try {
-            const res = await import('../../../../_shared/api/axios').then(m =>
-                m.default.get('/admin/orders', {
-                    params: {
-                        search: q,
-                        status_not_in: 'shipped,delivered,failed,cancelled',
-                        per_page: 20,
-                    },
-                })
-            );
-            const results = res.data?.data ?? [];
+            const res = await deliveryAPI.getDeliveryNotes({ search: q.trim() || undefined, per_page: 30 });
+            const results = (res.data ?? []).map(n => ({
+                ...n,
+                order_number: n.voucher_number,
+                customer: { first_name: n.customer_name || '', last_name: '' },
+                shipping_address: n.address,
+                // the old picker keyed everything off an order status; a note that can go on a manifest counts as ready
+                status: n.eligible ? 'ready_for_pickup' : (n.reason === 'delivered' ? 'delivered' : 'pending'),
+            }));
             setOrders(results);
-
-            // Kick off eligibility check for the returned orders
-            if (results.length > 0) {
-                checkEligibility(results.map(o => o.id));
-            } else {
-                setEligibilityMap({});
-            }
+            const map = {};
+            results.forEach(n => { map[n.id] = { eligible: n.eligible, reason: n.reason, manifest_number: n.manifest_number, manifest_status: null }; });
+            setEligibilityMap(map);
         } catch { setOrders([]); setEligibilityMap({}); }
         finally { setLoading(false); }
-    }, []);
-
-    const checkEligibility = useCallback(async (orderIds) => {
-        if (!orderIds.length) return;
-        setChecking(true);
-        try {
-            const res = await deliveryAPI.checkOrderEligibility(orderIds);
-            const map = {};
-            (res.data ?? []).forEach(item => {
-                map[item.order_id] = item;
-            });
-            setEligibilityMap(map);
-        } catch {
-            // non-fatal — eligibility map just stays empty, status-based fallback applies
-        } finally {
-            setChecking(false);
-        }
     }, []);
 
     useEffect(() => {
@@ -358,7 +335,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                 fontSize: '0.78rem', color: D.textMid, lineHeight: 1.6,
             }}>
                 <div style={{ fontWeight: 600, color: D.text, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Info size={13} color={D.purple} /> Which orders can be added?
+                    <Info size={13} color={D.purple} /> Which Delivery Notes can be added?
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px' }}>
                     {ELIGIBLE_STATUSES.map(s => (
@@ -367,7 +344,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                             <span style={{ color: '#10b981', fontWeight: 600 }}>{STATUS_LABELS[s]}</span>
                         </span>
                     ))}
-                    <span style={{ color: D.textDim }}>— Pending, shipped, cancelled, and orders already in a manifest cannot be added.</span>
+                    <span style={{ color: D.textDim }}>— Only posted Delivery Notes that are not already on a manifest. Notes for the same customer and address share one stop.</span>
                 </div>
             </div>
 
@@ -376,10 +353,10 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                 <input
                     value={query}
                     onChange={e => setQuery(e.target.value)}
-                    placeholder="Search by order # or customer name…"
+                    placeholder="Search by Delivery Note #, customer or address…"
                     style={{ ...field.input, paddingLeft: 30 }}
                 />
-                {(loading || checking) && (
+                {loading && (
                     <Loader2 size={13} color={D.purple} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', animation: 'spin 1s linear infinite' }} />
                 )}
             </div>
@@ -416,7 +393,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                                         {o.shipping_address ? ` · ${o.shipping_address}` : ''}
                                     </div>
                                 </div>
-                                <StatusBadge status={o.status} />
+                                <span style={{ fontSize: '0.7rem', color: D.textDim, whiteSpace: 'nowrap' }}>{o.date}</span>
                             </div>
                         );
                     })}
@@ -434,7 +411,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                                 }}
                             >
                                 <Ban size={12} />
-                                {ineligibleResults.length} order{ineligibleResults.length !== 1 ? 's' : ''} can't be added
+                                {ineligibleResults.length} Delivery Note{ineligibleResults.length !== 1 ? 's' : ''} can't be added
                                 <span style={{ marginLeft: 'auto', color: D.textDim, fontWeight: 400 }}>
                                     {showAll ? 'Hide' : 'Show why'}
                                 </span>
@@ -464,7 +441,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                                                 {reason}
                                             </div>
                                         </div>
-                                        <StatusBadge status={o.status} />
+                                        <span style={{ fontSize: '0.7rem', color: D.textDim, whiteSpace: 'nowrap' }}>{o.date}</span>
                                     </div>
                                 );
                             })}
@@ -475,7 +452,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
 
             {query && !loading && orders.length === 0 && (
                 <div style={{ fontSize: '0.78rem', color: D.textDim, padding: '8px 0 16px' }}>
-                    No matching orders found.
+                    No Delivery Notes found.
                 </div>
             )}
 
@@ -490,7 +467,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                 }}>
                     <div style={{ fontWeight: 600, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                         <AlertTriangle size={13} />
-                        {ineligibleSelected.length} selected order{ineligibleSelected.length !== 1 ? 's' : ''} will be rejected by the backend:
+                        {ineligibleSelected.length} selected Delivery Note{ineligibleSelected.length !== 1 ? 's' : ''} will be rejected by the backend:
                     </div>
                     {ineligibleSelected.map(o => (
                         <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
@@ -510,7 +487,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
             {selected.length > 0 && (
                 <div>
                     <div style={{ fontSize: '0.72rem', fontWeight: 700, color: D.purple, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>
-                        {selected.length} order{selected.length !== 1 ? 's' : ''} added
+                        {selected.length} Delivery Note{selected.length !== 1 ? 's' : ''} added
                         {ineligibleSelected.length > 0 && (
                             <span style={{ color: '#ef4444', marginLeft: 6 }}>
                                 ({ineligibleSelected.length} ineligible)
@@ -535,7 +512,7 @@ function OrderSelector({ selected, onToggle, onHover, deliveryMethod }) {
                                     <span style={{ fontSize: '0.82rem', fontWeight: 600, color: eligible ? D.text : '#ef4444', flex: 1 }}>
                                         {o.order_number}
                                     </span>
-                                    <StatusBadge status={o.status} />
+                                    <span style={{ fontSize: '0.7rem', color: D.textDim, whiteSpace: 'nowrap' }}>{o.date}</span>
                                     <span style={{ fontSize: '0.72rem', color: D.textDim }}>
                                         {o.customer?.first_name} {o.customer?.last_name}
                                     </span>
@@ -585,7 +562,7 @@ function ManualFlow({ onBack, onSuccess, audio }) {
         }
         if (s === 1) {
             if (eligibleSelected.length === 0)
-                e.orders = 'Add at least one eligible order (confirmed, processing, or ready for pickup).';
+                e.orders = 'Add at least one Delivery Note that is ready for a manifest.';
         }
         setErrors(e);
         return Object.keys(e).length === 0;
@@ -605,7 +582,7 @@ function ManualFlow({ onBack, onSuccess, audio }) {
         const payload = {
             scheduled_date: form.scheduled_date,
             notes: form.notes || undefined,
-            order_ids: eligibleSelected.map(o => o.id),
+            voucher_ids: eligibleSelected.map(o => o.id),
             delivery_method: form.delivery_method,
             ...(isInternalDriver && form.driver_id && { driver_id: form.driver_id }),
         };
@@ -646,7 +623,7 @@ function ManualFlow({ onBack, onSuccess, audio }) {
             const payload = {
                 scheduled_date: form.scheduled_date,
                 notes: form.notes || undefined,
-                order_ids: eligibleSelected.map(o => o.id),
+                voucher_ids: eligibleSelected.map(o => o.id),
                 delivery_method: form.delivery_method,
                 override_reason: reason,
                 ...(isInternalDriver && form.driver_id && { driver_id: form.driver_id }),
@@ -778,7 +755,7 @@ function SuccessScreen({ manifestId, onView, onPlanRoute, onCreateAnother, onHov
             </div>
             <div style={{ fontSize: '1.2rem', fontWeight: 700, color: D.text, marginBottom: 8 }}>Manifest created!</div>
             <div style={{ fontSize: '0.82rem', color: D.textDim, marginBottom: 28, maxWidth: 340, margin: '0 auto 28px' }}>
-                The manifest and its orders are saved. You can plan the delivery route now or come back later.
+                The manifest and its Delivery Notes are saved. You can plan the delivery route now or come back later.
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <DeliveryBtn variant="ghost" size="md" onClick={onCreateAnother} onHover={onHover}><Plus size={14} /> Create another</DeliveryBtn>
@@ -812,7 +789,7 @@ export default function CreateManifestPage() {
                 <DeliveryPageHeader
                     title="New manifest"
                     sub={
-                        mode === MODES.MANUAL ? 'Manual — pick a driver, add orders, then plan route separately' :
+                        mode === MODES.MANUAL ? 'Manual — pick a driver, add Delivery Notes, then plan route separately' :
                         mode === MODES.AI     ? 'AI generate — describe your run and let AI build it' :
                         mode === 'done'       ? 'Manifest saved' :
                         'Choose how you want to create this manifest'
