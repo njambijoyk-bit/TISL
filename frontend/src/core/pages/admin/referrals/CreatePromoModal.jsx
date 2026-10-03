@@ -10,16 +10,16 @@ const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
 
 const iBase = {
   width: '100%', padding: '9px 12px', borderRadius: 10,
-  border: '1.5px solid #e5e7eb', fontSize: '0.82rem', outline: 'none',
-  color: '#111827', boxSizing: 'border-box', fontWeight: 500,
-  background: 'white', transition: 'border-color 0.15s',
+  border: '1.5px solid var(--line)', fontSize: '0.82rem', outline: 'none',
+  color: 'var(--text-primary)', boxSizing: 'border-box', fontWeight: 500,
+  background: 'var(--surface-card, #fff)', transition: 'border-color 0.15s',
 };
 const fIn  = e => { e.currentTarget.style.borderColor = purple; };
 const fOut = e => { e.currentTarget.style.borderColor = '#e5e7eb'; };
 
 const labelStyle = {
   display: 'block', fontSize: '0.74rem', fontWeight: 700,
-  color: '#6b7280', textTransform: 'uppercase',
+  color: 'var(--text-secondary)', textTransform: 'uppercase',
   letterSpacing: '0.08em', marginBottom: 6,
 };
 
@@ -32,7 +32,7 @@ const Field = ({ label, required, children, hint, error }) => (
     )}
     {children}
     {error && <p style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: 4 }}>{error}</p>}
-    {hint && !error && <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 4 }}>{hint}</p>}
+    {hint && !error && <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 4 }}>{hint}</p>}
   </div>
 );
 
@@ -142,7 +142,7 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
       justifyContent: 'center', zIndex: 60, padding: 16, overflowY: 'auto',
     }}>
       <div style={{
-        background: 'white', borderRadius: 20, width: '100%', maxWidth: 580,
+        background: 'var(--surface-card, #fff)', borderRadius: 20, width: '100%', maxWidth: 580,
         boxShadow: '0 24px 64px rgba(0,0,0,0.18)', overflow: 'hidden',
         margin: 'auto',
       }}>
@@ -151,7 +151,7 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
 
         {/* Header */}
         <div style={{
-          padding: '20px 24px 16px', borderBottom: '1px solid #f3f4f6',
+          padding: '20px 24px 16px', borderBottom: '1px solid var(--line)',
           background: purpleLt, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
         }}>
           <div>
@@ -161,12 +161,12 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
             <h2 style={{ fontSize: '1.2rem', fontWeight: 900, color: purple, margin: 0 }}>
               Create Promo Code
             </h2>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', marginTop: 3 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', marginTop: 3 }}>
               Create a discount code for campaigns, events or customer rewards
             </p>
           </div>
           <button onClick={onClose} disabled={loading}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4 }}>
             <X size={20} />
           </button>
         </div>
@@ -292,7 +292,7 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
                 <input type="checkbox" checked={form[key]}
                   onChange={e => set(key, e.target.checked)}
                   style={{ display: 'none' }} />
-                <span style={{ fontSize: '0.82rem', color: '#374151', fontWeight: 500 }}>{label}</span>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 500 }}>{label}</span>
               </label>
             ))}
           </div>
@@ -318,11 +318,11 @@ export default function CreatePromoModal({ onClose, onSuccess }) {
 
         {/* Footer */}
         <div style={{
-          padding: '16px 24px', borderTop: '1px solid #f3f4f6',
+          padding: '16px 24px', borderTop: '1px solid var(--line)',
           display: 'flex', justifyContent: 'flex-end', gap: 10,
         }}>
           <button onClick={onClose} disabled={loading}
-            style={{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', color: '#6b7280', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', background: 'transparent' }}>
+            style={{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid var(--line)', color: 'var(--text-secondary)', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', background: 'transparent' }}>
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={loading}

@@ -29,23 +29,23 @@ const EVENT_META = {
   seasonal:          { label: 'Seasonal',          color: '#059669', bg: '#f0fdf4', icon: '🌟' },
   flash_sale:        { label: 'Flash Sale',        color: '#f59e0b', bg: '#fffbeb', icon: '⚡' },
   bulk_order:        { label: 'Bulk Order',        color: '#6366f1', bg: '#eef2ff', icon: '📦' },
-  general:           { label: 'General',           color: '#6b7280', bg: '#f9fafb', icon: '🏷' },
+  general:           { label: 'General',           color: 'var(--text-secondary)', bg: '#f9fafb', icon: '🏷' },
 };
 
 const STATUS_META = {
-  draft:    { label: 'Draft',    color: '#6b7280', dot: '#9ca3af' },
+  draft:    { label: 'Draft',    color: 'var(--text-secondary)', dot: '#9ca3af' },
   active:   { label: 'Active',   color: '#15803d', dot: '#22c55e' },
   paused:   { label: 'Paused',   color: '#d97706', dot: '#f59e0b' },
   expired:  { label: 'Expired',  color: '#dc2626', dot: '#ef4444' },
   depleted: { label: 'Depleted', color: 'var(--color-primary-600)', dot: 'var(--color-primary-500)' },
-  archived: { label: 'Archived', color: '#9ca3af', dot: '#d1d5db' },
+  archived: { label: 'Archived', color: 'var(--text-tertiary)', dot: '#d1d5db' },
 };
 
 // ── Atoms ─────────────────────────────────────────────────────────────────────
 const Panel = ({ children, style = {} }) => (
   <div style={{
-    background: 'white', borderRadius: 16,
-    border: '1px solid #f3f4f6',
+    background: 'var(--surface-card, #fff)', borderRadius: 16,
+    border: '1px solid var(--line)',
     boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
     overflow: 'hidden', ...style,
   }}>
@@ -101,7 +101,7 @@ const Btn = ({ children, onClick, disabled, variant = 'ghost', icon, size = 'md'
     success: { background: 'linear-gradient(135deg,#10b981,#059669)', color: 'white', border: 'none' },
     danger:  { background: 'linear-gradient(135deg,#ef4444,#dc2626)', color: 'white', border: 'none' },
     ghost:   { background: purpleLt, color: purple, border: `1.5px solid ${purpleBd}` },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb' },
+    outline: { background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--line)' },
     warning: { background: 'linear-gradient(135deg,#f59e0b,#d97706)', color: 'white', border: 'none' },
   };
   const pad = size === 'sm' ? '6px 14px' : '9px 20px';
@@ -216,7 +216,7 @@ export default function PromoCodeDetail() {
       <div style={{ marginBottom: 24 }}>
         <button
           onClick={() => navigate('/admin/promo-codes')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: '0.78rem', fontWeight: 600, padding: 0, marginBottom: 12 }}>
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: '0.78rem', fontWeight: 600, padding: 0, marginBottom: 12 }}>
           <ChevronLeft size={14} /> Back to Promo Codes
         </button>
 
@@ -265,7 +265,7 @@ export default function PromoCodeDetail() {
 
           {/* Reward details */}
           <Panel>
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--line)' }}>
               <SectionLabel icon={Tag}>Reward Details</SectionLabel>
             </div>
             <div style={{ padding: '18px 22px' }}>
@@ -276,15 +276,15 @@ export default function PromoCodeDetail() {
                   { label: 'Stackable',    value: code.stackable ? '✓ Yes' : '✕ No', color: code.stackable ? '#10b981' : '#6b7280' },
                 ].map(({ label, value, color }) => (
                   <div key={label} style={{ padding: '12px 14px', borderRadius: 10, background: purpleLt, border: `1px solid ${purpleBd}`, textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.62rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>{label}</p>
+                    <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>{label}</p>
                     <p style={{ fontSize: '0.92rem', fontWeight: 800, color: color || '#111827', margin: 0 }}>{value}</p>
                   </div>
                 ))}
               </div>
 
               {code.description && (
-                <div style={{ padding: '12px 14px', borderRadius: 10, background: '#f9fafb', border: '1px solid #f3f4f6', marginBottom: 12 }}>
-                  <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, lineHeight: 1.6 }}>
+                <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface-input)', border: '1px solid var(--line)', marginBottom: 12 }}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, lineHeight: 1.6 }}>
                     {code.description}
                   </p>
                 </div>
@@ -301,8 +301,8 @@ export default function PromoCodeDetail() {
                   { label: 'Valid Until',         value: code.valid_until     ? fmtDate(code.valid_until) : 'No expiry' },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f9fafb', fontSize: '0.8rem' }}>
-                    <span style={{ color: '#6b7280' }}>{label}</span>
-                    <span style={{ fontWeight: 700, color: '#111827' }}>{value}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{value}</span>
                   </div>
                 ))}
               </div>
@@ -311,20 +311,20 @@ export default function PromoCodeDetail() {
 
           {/* Redemptions */}
           <Panel>
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--line)' }}>
               <SectionLabel icon={ShoppingBag}>Redemptions</SectionLabel>
             </div>
             <div style={{ padding: '18px 22px' }}>
               {redemptions.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '32px 0', color: '#9ca3af', fontSize: '0.85rem' }}>
+                <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
                   No sale has used this code yet.
                 </div>
               ) : (
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
+                    <tr style={{ borderBottom: '2px solid var(--line)' }}>
                       {['Voucher', 'Customer', 'Subtotal', 'Discount', 'Status', 'Date'].map(h => (
-                        <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#6b7280', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
+                        <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--text-secondary)', fontWeight: 700, fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -333,11 +333,11 @@ export default function PromoCodeDetail() {
                       <tr key={`${r.voucher_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
                         <td style={{ padding: '10px 10px', fontWeight: 700 }}>
                           <a href={`/admin/books/vouchers/${r.voucher_id}`} style={{ color: purple, textDecoration: 'none', fontFamily: 'monospace' }}>{r.voucher_number}</a>
-                          <div style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 500 }}>{r.type}</div>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>{r.type}</div>
                         </td>
                         <td style={{ padding: '10px 10px' }}>
-                          <div style={{ fontWeight: 600, color: '#111827' }}>{r.customer_name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{r.customer_email}</div>
+                          <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{r.customer_name}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{r.customer_email}</div>
                         </td>
                         <td style={{ padding: '10px 10px', fontWeight: 700 }}>{fmt(r.subtotal, r.currency)}</td>
                         <td style={{ padding: '10px 10px', color: '#ef4444', fontWeight: 700 }}>- {fmt(r.promo_discount, r.currency)}</td>
@@ -348,7 +348,7 @@ export default function PromoCodeDetail() {
                             color:      r.status === 'cancelled' ? '#991b1b' : '#065f46',
                           }}>{r.status}</span>
                         </td>
-                        <td style={{ padding: '10px 10px', color: '#6b7280' }}>{r.redeemed_at ? new Date(r.redeemed_at).toLocaleDateString() : '—'}</td>
+                        <td style={{ padding: '10px 10px', color: 'var(--text-secondary)' }}>{r.redeemed_at ? new Date(r.redeemed_at).toLocaleDateString() : '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -359,7 +359,7 @@ export default function PromoCodeDetail() {
 
           {/* Performance */}
           <Panel>
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--line)' }}>
               <SectionLabel icon={BarChart2}>Performance</SectionLabel>
             </div>
             <div style={{ padding: '18px 22px' }}>
@@ -371,7 +371,7 @@ export default function PromoCodeDetail() {
                   { label: 'Conversion',    value: `${Number(code.conversion_rate ?? 0).toFixed(1)}%` },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ padding: '12px 14px', borderRadius: 10, background: purpleLt, border: `1px solid ${purpleBd}`, textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.62rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>{label}</p>
+                    <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px' }}>{label}</p>
                     <p style={{ fontSize: '0.92rem', fontWeight: 800, color: purple, margin: 0 }}>{value}</p>
                   </div>
                 ))}
@@ -381,19 +381,19 @@ export default function PromoCodeDetail() {
               {code.max_uses && (
                 <div style={{ marginBottom: 16 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: '0.78rem' }}>
-                    <span style={{ color: '#6b7280' }}>Usage</span>
-                    <span style={{ fontWeight: 700, color: '#111827' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Usage</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
                       {code.times_used} / {code.max_uses} uses
                     </span>
                   </div>
-                  <div style={{ height: 8, borderRadius: 99, background: '#f3f4f6', overflow: 'hidden' }}>
+                  <div style={{ height: 8, borderRadius: 99, background: 'var(--surface-input)', overflow: 'hidden' }}>
                     <div style={{
                       height: '100%', borderRadius: 99, transition: 'width 0.4s ease',
                       width: `${usagePct}%`,
                       background: usagePct >= 90 ? '#ef4444' : usagePct >= 70 ? '#f59e0b' : purple,
                     }} />
                   </div>
-                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 }}>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 }}>
                     {code.uses_remaining !== null ? `${code.uses_remaining} uses remaining` : ''}
                   </p>
                 </div>
@@ -402,7 +402,7 @@ export default function PromoCodeDetail() {
               {/* Funnel: views → attempts → uses */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {[
-                  { label: 'Views',    value: code.views    ?? 0, color: '#6b7280' },
+                  { label: 'Views',    value: code.views    ?? 0, color: 'var(--text-secondary)' },
                   { label: 'Attempts', value: code.attempts ?? 0, color: '#f59e0b' },
                   { label: 'Successes',value: code.successful_uses ?? 0, color: '#10b981' },
                 ].map(({ label, value, color }) => (
@@ -418,11 +418,11 @@ export default function PromoCodeDetail() {
           {/* Admin notes */}
           {code.admin_notes && (
             <Panel>
-              <div style={{ padding: '18px 22px', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--line)' }}>
                 <SectionLabel>Admin Notes (Internal)</SectionLabel>
               </div>
               <div style={{ padding: '16px 22px' }}>
-                <p style={{ fontSize: '0.85rem', color: '#374151', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', lineHeight: 1.6, margin: 0, whiteSpace: 'pre-wrap' }}>
                   {code.admin_notes}
                 </p>
               </div>
@@ -435,7 +435,7 @@ export default function PromoCodeDetail() {
 
           {/* Status */}
           <Panel>
-            <div style={{ padding: '16px 18px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)' }}>
               <SectionLabel>Status</SectionLabel>
             </div>
             <div style={{ padding: '14px 18px' }}>
@@ -450,7 +450,7 @@ export default function PromoCodeDetail() {
                 { label: 'Auto-Gen',   value: code.auto_generated ? '✓ Yes' : 'No', color: code.auto_generated ? '#0891b2' : '#6b7280' },
               ].map(({ label, value, color }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f9fafb', fontSize: '0.78rem' }}>
-                  <span style={{ color: '#9ca3af' }}>{label}</span>
+                  <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>
                   <span style={{ fontWeight: 700, color }}>{value}</span>
                 </div>
               ))}
@@ -460,7 +460,7 @@ export default function PromoCodeDetail() {
           {/* Target customer */}
           {code.target_customer && (
             <Panel>
-              <div style={{ padding: '16px 18px', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)' }}>
                 <SectionLabel icon={UserCheck}>Target Customer</SectionLabel>
               </div>
               <div style={{ padding: '14px 18px' }}>
@@ -468,13 +468,13 @@ export default function PromoCodeDetail() {
                   <img
                     src={code.target_customer.profile_image_url}
                     alt={code.target_customer.full_name}
-                    style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', background: '#f3f4f6' }}
+                    style={{ width: 36, height: 36, borderRadius: 8, objectFit: 'cover', background: 'var(--surface-input)' }}
                   />
                   <div>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0 }}>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                       {code.target_customer.full_name}
                     </p>
-                    <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
                       {code.target_customer.email}
                     </p>
                   </div>
@@ -495,7 +495,7 @@ export default function PromoCodeDetail() {
 
           {/* Timeline */}
           <Panel>
-            <div style={{ padding: '16px 18px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)' }}>
               <SectionLabel icon={Clock}>Timeline</SectionLabel>
             </div>
             <div style={{ padding: '14px 18px' }}>
@@ -506,10 +506,10 @@ export default function PromoCodeDetail() {
                 { label: 'Valid Until',  value: code.valid_until },
               ].filter(t => t.value).map(({ label, value }) => (
                 <div key={label} style={{ marginBottom: 10 }}>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>
                     {label}
                   </p>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', margin: 0 }}>
+                  <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                     {fmtDT(value)}
                   </p>
                 </div>
@@ -534,7 +534,7 @@ export default function PromoCodeDetail() {
           {/* Generation info */}
           {code.auto_generated && (
             <Panel>
-              <div style={{ padding: '16px 18px', borderBottom: '1px solid #f3f4f6' }}>
+              <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--line)' }}>
                 <SectionLabel icon={RefreshCw}>Generation Info</SectionLabel>
               </div>
               <div style={{ padding: '14px 18px' }}>
@@ -544,8 +544,8 @@ export default function PromoCodeDetail() {
                   { label: 'Inactive Days', value: code.inactive_days ? `${code.inactive_days} days` : '—' },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f9fafb', fontSize: '0.78rem' }}>
-                    <span style={{ color: '#9ca3af' }}>{label}</span>
-                    <span style={{ fontWeight: 700, color: '#374151', fontFamily: 'monospace', fontSize: '0.72rem' }}>{value}</span>
+                    <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace', fontSize: '0.72rem' }}>{value}</span>
                   </div>
                 ))}
               </div>

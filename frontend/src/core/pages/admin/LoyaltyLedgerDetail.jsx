@@ -11,8 +11,8 @@ import { useAuthStore } from '../../../_shared/store/index';
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
@@ -27,7 +27,7 @@ const btn = (variant = 'primary', size = 'md') => {
   const variants = {
     primary: { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.18)' },
-    ghost:   { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' },
+    ghost:   { background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)', border: '1.5px solid var(--line)' },
     success: { background: 'rgba(5,150,105,0.08)', color: '#059669', border: '1.5px solid rgba(5,150,105,0.18)' },
   };
   return { ...base, ...variants[variant] };
@@ -35,13 +35,13 @@ const btn = (variant = 'primary', size = 'md') => {
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
-  color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
 const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
@@ -76,9 +76,9 @@ function Modal({ title, onClose, children, width = 420 }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
     }}>
       <div style={{ ...card, width: '100%', maxWidth: width, position: 'relative' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4 }}>
             <X size={16} />
           </button>
         </div>
@@ -91,7 +91,7 @@ function Modal({ title, onClose, children, width = 420 }) {
 function Field({ label, children, required }) {
   return (
     <div style={{ marginBottom: 14 }}>
-      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>
+      <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>
         {label}{required && <span style={{ color: '#dc2626', marginLeft: 2 }}>*</span>}
       </label>
       {children}
@@ -178,7 +178,7 @@ function DeductPointsModal({ customerId, currentPoints, onClose, onSuccess }) {
 
   return (
     <Modal title="Deduct Loyalty Points" onClose={onClose}>
-      <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '0 0 14px' }}>Current balance: <strong style={{ color: 'var(--color-primary-600)' }}>{fmtPts(currentPoints)} pts</strong></p>
+      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 14px' }}>Current balance: <strong style={{ color: 'var(--color-primary-600)' }}>{fmtPts(currentPoints)} pts</strong></p>
       <Field label="Points to deduct" required>
         <input type="number" min="1" max={currentPoints} value={form.points} onChange={e => setForm(p => ({ ...p, points: e.target.value }))} style={inputStyle} />
       </Field>
@@ -255,7 +255,7 @@ function DeductCreditModal({ customerId, currentCredit, onClose, onSuccess }) {
 
   return (
     <Modal title="Deduct Gift Voucher" onClose={onClose}>
-      <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '0 0 14px' }}>Current balance: <strong style={{ color: '#059669' }}>{fmtKes(currentCredit)}</strong></p>
+      <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 14px' }}>Current balance: <strong style={{ color: '#059669' }}>{fmtKes(currentCredit)}</strong></p>
       <Field label="Amount (KES)" required>
         <input type="number" min="0.01" step="0.01" value={form.amount} onChange={e => setForm(p => ({ ...p, amount: e.target.value }))} style={inputStyle} />
       </Field>
@@ -293,7 +293,7 @@ function RedeemModal({ customerId, rules, onClose, onSuccess }) {
   return (
     <Modal title="Redeem Points" onClose={onClose} width={500}>
       {rules.length === 0 ? (
-        <p style={{ fontSize: '0.82rem', color: '#9ca3af', textAlign: 'center', padding: '16px 0' }}>No active redemption rules at the moment.</p>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>No active redemption rules at the moment.</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
           {rules.map(r => (
@@ -308,8 +308,8 @@ function RedeemModal({ customerId, rules, onClose, onSuccess }) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <div>
-                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 3px' }}>{r.name}</p>
-                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0, textTransform: 'capitalize' }}>{r.type}</p>
+                  <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 3px' }}>{r.name}</p>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0, textTransform: 'capitalize' }}>{r.type}</p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 2px' }}>{fmtPts(r.points_required)} pts</p>
@@ -317,7 +317,7 @@ function RedeemModal({ customerId, rules, onClose, onSuccess }) {
                 </div>
               </div>
               {(r.valid_from || r.valid_until) && (
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '6px 0 0' }}>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '6px 0 0' }}>
                   {r.valid_from && `From ${new Date(r.valid_from).toLocaleDateString('en-KE')} `}
                   {r.valid_until && `· Until ${new Date(r.valid_until).toLocaleDateString('en-KE')}`}
                 </p>
@@ -371,26 +371,26 @@ function TxRow({ tx, ledger }) {
 
       {/* Balance after */}
       <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-        <span style={{ fontSize: '0.78rem', color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>{balance}</span>
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>{balance}</span>
       </td>
 
       {/* Note */}
       <td style={{ padding: '10px 16px', maxWidth: 220 }}>
-        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {tx.note ?? '—'}
         </p>
       </td>
 
       {/* Who */}
       <td style={{ padding: '10px 16px' }}>
-        <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
           {tx.created_by ? tx.created_by.name : 'System'}
         </span>
       </td>
 
       {/* When */}
       <td style={{ padding: '10px 16px', textAlign: 'right' }}>
-        <span style={{ fontSize: '0.7rem', color: '#9ca3af', whiteSpace: 'nowrap' }}>{fmtDate(tx.created_at)}</span>
+        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{fmtDate(tx.created_at)}</span>
       </td>
     </tr>
   );
@@ -470,14 +470,14 @@ export default function LoyaltyLedgerDetail() {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-      <Loader2 size={28} style={{ color: '#c4b5fd', animation: 'spin 700ms linear infinite' }} />
+      <Loader2 size={28} style={{ color: 'var(--text-tertiary)', animation: 'spin 700ms linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (!customer) return (
     <div style={{ padding: 40, textAlign: 'center' }}>
-      <p style={{ color: '#9ca3af' }}>Customer not found.</p>
+      <p style={{ color: 'var(--text-tertiary)' }}>Customer not found.</p>
     </div>
   );
 
@@ -518,7 +518,7 @@ export default function LoyaltyLedgerDetail() {
         {/* Avatar + name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: '1 1 220px' }}>
           {customer.profile_image_url ? (
-            <img src={customer.profile_image_url} alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', flexShrink: 0 }} />
+            <img src={customer.profile_image_url} alt="" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--line)', flexShrink: 0 }} />
           ) : (
             <div style={{
               width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
@@ -528,10 +528,10 @@ export default function LoyaltyLedgerDetail() {
             }}>{initials}</div>
           )}
           <div>
-            <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#111827', margin: '0 0 3px', letterSpacing: '-0.01em' }}>
+            <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.01em' }}>
               {customer.full_name}
             </h2>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 5px', fontFamily: 'monospace' }}>{customer.customer_number}</p>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 5px', fontFamily: 'monospace' }}>{customer.customer_number}</p>
             <span style={{
               display: 'inline-block', padding: '2px 9px', borderRadius: 20,
               fontSize: '0.65rem', fontWeight: 700, textTransform: 'capitalize',
@@ -544,11 +544,11 @@ export default function LoyaltyLedgerDetail() {
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', flex: '1 1 300px' }}>
           <div style={{
             flex: 1, minWidth: 130, padding: '12px 16px', borderRadius: 10,
-            background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+            background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <Coins size={14} style={{ color: 'var(--color-primary-500)' }} />
-              <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Points</p>
+              <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Points</p>
             </div>
             <p style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--color-primary-600)', margin: 0, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
               {fmtPts(customer.loyalty_points)}
@@ -560,7 +560,7 @@ export default function LoyaltyLedgerDetail() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <CreditCard size={14} style={{ color: '#059669' }} />
-              <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Gift Voucher</p>
+              <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>Gift Voucher</p>
             </div>
             <p style={{ fontSize: '1.4rem', fontWeight: 900, color: '#059669', margin: 0, letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
               {fmtKes(customer.store_credit)}
@@ -583,7 +583,7 @@ export default function LoyaltyLedgerDetail() {
       {/* Ledger tabs + table */}
       <div style={card}>
         {/* Tabs */}
-        <div style={{ display: 'flex', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--line)' }}>
           {[
             { key: 'points', label: 'Loyalty Points', icon: <Coins size={14} /> },
             { key: 'credit', label: 'Gift Voucher',   icon: <CreditCard size={14} /> },
@@ -613,13 +613,13 @@ export default function LoyaltyLedgerDetail() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+              <tr style={{ background: 'var(--surface-card, #fff)' }}>
                 {['Type','Amount','Balance After','Note','By','When'].map((h, i) => (
                   <th key={h} style={{
                     padding: '9px 16px', fontSize: '0.63rem', fontWeight: 700,
                     color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.07em',
                     textAlign: i >= 1 && i <= 2 ? 'right' : i === 5 ? 'right' : 'left',
-                    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+                    borderBottom: '1px solid var(--line)',
                   }}>{h}</th>
                 ))}
               </tr>
@@ -627,11 +627,11 @@ export default function LoyaltyLedgerDetail() {
             <tbody>
               {txLoading ? (
                 <tr><td colSpan={6} style={{ padding: '40px 0', textAlign: 'center' }}>
-                  <Loader2 size={20} style={{ color: '#c4b5fd', animation: 'spin 700ms linear infinite', display: 'inline-block' }} />
+                  <Loader2 size={20} style={{ color: 'var(--text-tertiary)', animation: 'spin 700ms linear infinite', display: 'inline-block' }} />
                 </td></tr>
               ) : transactions.length === 0 ? (
                 <tr><td colSpan={6} style={{ padding: '40px 0', textAlign: 'center' }}>
-                  <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No {ledger === 'points' ? 'point' : 'credit'} transactions yet.</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>No {ledger === 'points' ? 'point' : 'credit'} transactions yet.</p>
                 </td></tr>
               ) : transactions.map(tx => (
                 <TxRow key={tx.id} tx={tx} ledger={ledger} />
@@ -643,14 +643,14 @@ export default function LoyaltyLedgerDetail() {
         {/* Pagination */}
         {!txLoading && transactions.length > 0 && meta.last_page > 1 && (
           <div style={{
-            padding: '12px 16px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+            padding: '12px 16px', borderTop: '1px solid var(--line)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', gap: 4,
+            background: 'var(--surface-card, #fff)', gap: 4,
         }}>
             {/* Prev */}
             <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={meta.current_page <= 1} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+            borderRadius: 7, border: '1.5px solid var(--line)', background: 'none',
             color: 'var(--color-primary-500)', cursor: meta.current_page <= 1 ? 'not-allowed' : 'pointer',
             opacity: meta.current_page <= 1 ? 0.3 : 1,
             }}>
@@ -666,7 +666,7 @@ export default function LoyaltyLedgerDetail() {
                 return acc;
             }, [])
             .map((p, i) => p === '...' ? (
-                <span key={`ellipsis-${i}`} style={{ width: 30, textAlign: 'center', fontSize: '0.78rem', color: '#9ca3af' }}>…</span>
+                <span key={`ellipsis-${i}`} style={{ width: 30, textAlign: 'center', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>…</span>
             ) : (
                 <button key={p} onClick={() => setPage(p)} style={{
                 width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -683,7 +683,7 @@ export default function LoyaltyLedgerDetail() {
             {/* Next */}
             <button onClick={() => setPage(p => Math.min(meta.last_page, p + 1))} disabled={meta.current_page >= meta.last_page} style={{
             width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+            borderRadius: 7, border: '1.5px solid var(--line)', background: 'none',
             color: 'var(--color-primary-500)', cursor: meta.current_page >= meta.last_page ? 'not-allowed' : 'pointer',
             opacity: meta.current_page >= meta.last_page ? 0.3 : 1,
             }}>

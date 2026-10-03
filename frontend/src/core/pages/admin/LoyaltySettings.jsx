@@ -13,8 +13,8 @@ import { formatMoney } from '../../../_shared/lib/money';
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
@@ -29,20 +29,20 @@ const btn = (variant = 'primary', size = 'md') => {
   const variants = {
     primary: { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#dc2626', border: '1.5px solid rgba(239,68,68,0.2)' },
-    ghost:   { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' },
+    ghost:   { background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)', border: '1.5px solid var(--line)' },
   };
   return { ...base, ...variants[variant] };
 };
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
-  color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
 const label = {
   display: 'block', fontSize: '0.7rem', fontWeight: 700,
-  color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5,
+  color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5,
 };
 
 const RULE_TYPE_COLORS = {
@@ -146,11 +146,11 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
     }}>
       <div style={{ ...card, width: '100%', maxWidth: 480 }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             {rule ? 'Edit Rule' : 'New Redemption Rule'}
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={16} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={16} /></button>
         </div>
 
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -173,7 +173,7 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
                     fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                     textTransform: 'capitalize',
                     background: active ? tc.bg : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
-                    color: active ? tc.color : '#9ca3af',
+                    color: active ? tc.color : 'var(--text-tertiary)',
                     border: `1.5px solid ${active ? tc.color + '40' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`,
                   }}>{t}</button>
                 );
@@ -213,21 +213,21 @@ function RuleModal({ rule, onClose, onSave, minRedemptionPoints, pointsPer100Kes
 
           <div style={{ padding: '12px 14px', borderRadius: 8, background: 'rgba(5,150,105,0.04)', border: '1.5px solid rgba(5,150,105,0.12)' }}>
             <p style={{ fontSize: '0.76rem', fontWeight: 800, color: '#065f46', margin: '0 0 6px' }}>Simple rule math</p>
-            <p style={{ fontSize: '0.72rem', color: '#374151', lineHeight: 1.5, margin: 0 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-primary)', lineHeight: 1.5, margin: 0 }}>
               Example order: <strong>{money(exampleOrder)}</strong> spent on an order earns about <strong>{examplePoints}</strong> point{examplePoints !== 1 ? 's' : ''} at <strong>{pointsRate}</strong> point{pointsRate !== 1 ? 's' : ''} per {money(100)}. To reach <strong>{pointsRequired || 0}</strong> points, a customer usually needs about <strong>{estimatedSpendToReachRule ? money(estimatedSpendToReachRule) : '—'}</strong> in spending. If this rule awards <strong>{money(valueKes, form.currency_id)}</strong>{sameCurrency ? <>, that is usually a <strong>{rewardMath ?? '—'}</strong> compared with that spend.</> : <> (in {money(0, form.currency_id).split(' ')[0]}), it is not compared with the spend because the currencies differ.</>}
             </p>
           </div>
 
           {/* Active toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', borderRadius: 8, background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)' }}>
             <div>
-              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', margin: '0 0 2px' }}>Active</p>
-              <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Customers can see and redeem this rule</p>
+              <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>Active</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>Customers can see and redeem this rule</p>
             </div>
             <button onClick={() => set('active', !form.active)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               {form.active
                 ? <ToggleRight size={28} style={{ color: 'var(--color-primary-500)' }} />
-                : <ToggleLeft  size={28} style={{ color: '#d1d5db' }} />}
+                : <ToggleLeft  size={28} style={{ color: 'var(--text-tertiary)' }} />}
             </button>
           </div>
 
@@ -262,8 +262,8 @@ function DeleteConfirm({ rule, onClose, onConfirm }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div style={{ ...card, maxWidth: 360, width: '100%', padding: 24 }}>
-        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: '0 0 8px' }}>Delete rule?</p>
-        <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: '0 0 20px' }}>
+        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>Delete rule?</p>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: '0 0 20px' }}>
           <strong>{rule.name}</strong> will be permanently removed. This can't be undone.
         </p>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -352,7 +352,7 @@ export default function LoyaltySettings() {
 
   if (loading || !form) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
-      <Loader2 size={26} style={{ color: '#c4b5fd', animation: 'spin 700ms linear infinite' }} />
+      <Loader2 size={26} style={{ color: 'var(--text-tertiary)', animation: 'spin 700ms linear infinite' }} />
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
@@ -378,12 +378,12 @@ export default function LoyaltySettings() {
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--surface-card, #fff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Settings2 size={18} style={{ color: 'var(--color-primary-500)' }} />
         </div>
         <div>
-          <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#111827', margin: '0 0 2px', letterSpacing: '-0.02em' }}>Loyalty Settings</h1>
-          <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Configure earning rules, redemption thresholds and rewards</p>
+          <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px', letterSpacing: '-0.02em' }}>Loyalty Settings</h1>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>Configure earning rules, redemption thresholds and rewards</p>
         </div>
       </div>
 
@@ -411,12 +411,12 @@ export default function LoyaltySettings() {
                 onFocus={e => { e.target.style.borderColor = 'var(--color-primary-500)'; e.target.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
                 onBlur={e  => { e.target.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; e.target.style.boxShadow = 'none'; }}
               />
-              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '4px 0 0' }}>{hint}</p>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>{hint}</p>
             </div>
           ))}
         </div>
 
-        <p style={{ fontSize: '0.74rem', color: '#6b7280', margin: '16px 0 0', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: '16px 0 0', lineHeight: 1.5 }}>
           What a referrer earns (loyalty points and/or a gift voucher, and what the new customer gets off) is set in
           {' '}<button type="button" onClick={() => navigate('/admin/referrals')} style={{ background: 'none', border: 'none', padding: 0, color: 'var(--color-primary-600)', fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>Referrals → Referral programme</button>.
         </p>
@@ -431,11 +431,11 @@ export default function LoyaltySettings() {
 
       {/* ── Redemption rules ── */}
       <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--line)' }}>
           <div>
             <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 2px' }}>Redemption Rules</p>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{rules.length} rule{rules.length !== 1 ? 's' : ''}</p>
-            <p style={{ fontSize: '0.76rem', color: '#6b7280', margin: '8px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>{rules.length} rule{rules.length !== 1 ? 's' : ''}</p>
+            <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', margin: '8px 0 0', maxWidth: 620, lineHeight: 1.5 }}>
               Gift redemptions deduct the customer's points but do not add gift voucher. They should be used for physical rewards or manually fulfilled items, while cashback and voucher rules turn points into a gift voucher automatically, in the currency of the rule.
             </p>
           </div>
@@ -452,12 +452,12 @@ export default function LoyaltySettings() {
 
         {rules.length === 0 ? (
           <div style={{ padding: '48px 0', textAlign: 'center' }}>
-            <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No redemption rules yet. Create one to let customers redeem points.</p>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>No redemption rules yet. Create one to let customers redeem points.</p>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+              <tr style={{ background: 'var(--surface-card, #fff)', borderBottom: '1px solid var(--line)' }}>
                 {['Rule', 'Type', 'Points', 'Value', 'Validity', 'Status', ''].map((h, i) => (
                   <th key={i} style={{
                     padding: '9px 16px', fontSize: '0.63rem', fontWeight: 700,
@@ -475,7 +475,7 @@ export default function LoyaltySettings() {
                   <tr key={r.id} style={{ borderBottom: isLast ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
                     {/* Name */}
                     <td style={{ padding: '11px 16px' }}>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: 0 }}>{r.name}</p>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{r.name}</p>
                     </td>
 
                     {/* Type */}
@@ -502,7 +502,7 @@ export default function LoyaltySettings() {
 
                     {/* Validity */}
                     <td style={{ padding: '11px 16px' }}>
-                      <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, whiteSpace: 'nowrap' }}>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'nowrap' }}>
                         {r.valid_from || r.valid_until
                           ? `${r.valid_from ? new Date(r.valid_from).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '∞'} → ${r.valid_until ? new Date(r.valid_until).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '∞'}`
                           : 'Always active'}

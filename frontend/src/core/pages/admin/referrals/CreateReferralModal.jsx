@@ -124,7 +124,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
                   className="px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all"
                   style={form.type === t.value
                     ? { background: t.color + '18', color: t.color, borderColor: t.color + '55', boxShadow: `0 0 0 3px ${t.color}18` }
-                    : { background: 'transparent', color: '#9ca3af', borderColor: '#e5e7eb' }
+                    : { background: 'transparent', color: 'var(--text-tertiary)', borderColor: '#e5e7eb' }
                   }>
                   {t.label}
                 </button>
@@ -216,7 +216,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
                   className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all"
                   style={form.status === s.value
                     ? { background: s.dot + '18', color: s.dot === '#9ca3af' ? '#6b7280' : '#15803d', borderColor: s.dot + '66' }
-                    : { background: 'transparent', color: '#9ca3af', borderColor: '#e5e7eb' }
+                    : { background: 'transparent', color: 'var(--text-tertiary)', borderColor: '#e5e7eb' }
                   }>
                   <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
                   {s.label}
@@ -236,7 +236,7 @@ export default function CreateReferralModal({ onClose, onSuccess }) {
                 className="flex items-start gap-3 p-3.5 rounded-2xl border text-left transition-all"
                 style={form[key]
                   ? { background: '#f5f3ff', borderColor: '#c4b5fd' }
-                  : { background: '#f9fafb', borderColor: '#f3f4f6' }
+                  : { background: 'var(--surface-input)', borderColor: '#f3f4f6' }
                 }>
                 <div className="mt-0.5 w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
                   style={{ background: form[key] ? 'var(--color-primary-600)' : '#e5e7eb' }}>

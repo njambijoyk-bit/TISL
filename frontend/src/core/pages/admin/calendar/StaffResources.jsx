@@ -142,7 +142,7 @@ function Editor({ r, data, onSaved }) {
       </div>
       <div style={{ display: 'flex', gap: 4, margin: '14px 0 8px' }}>
         {[['hours', 'Working hours'], ['off', 'Time off'], ['services', 'Services'], ['slots', 'Free times']].map(([k, l]) => (
-          <button key={k} type="button" onClick={() => setTab(k)} style={{ ...ghost, fontWeight: tab === k ? 700 : 500, background: tab === k ? '#eff6ff' : undefined }}>{l}</button>
+          <button key={k} type="button" onClick={() => setTab(k)} style={{ ...ghost, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : undefined }}>{l}</button>
         ))}
       </div>
       {tab === 'hours' && <Hours key={JSON.stringify(r.hours)} r={r} onSaved={(x) => { onSaved(x); toast.success('Hours saved'); }} />}
@@ -197,7 +197,7 @@ export default function StaffResources() {
             <section style={{ ...card, padding: 8 }}>
               {!data.rows.length && <p style={{ padding: 12, color: colors.textMuted, fontSize: '0.84rem' }}>Nothing bookable yet.</p>}
               {data.rows.map((r) => (
-                <div key={r.id} style={{ borderBottom: '1px solid #f3f4f6', padding: '8px 10px', opacity: r.is_active ? 1 : 0.55 }}>
+                <div key={r.id} style={{ borderBottom: '1px solid var(--line)', padding: '8px 10px', opacity: r.is_active ? 1 : 0.55 }}>
                   <button type="button" onClick={() => setOpen(open === r.id ? null : r.id)} style={{ all: 'unset', cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center', width: '100%' }}>
                     <strong style={{ fontSize: '0.88rem' }}>{r.name}</strong>
                     <span style={{ fontSize: '0.72rem', color: colors.textFaint }}>{TYPES[r.type]}{r.location ? ` · ${r.location}` : ''}{r.capacity > 1 ? ` · ${r.capacity} at once` : ''}</span>

@@ -23,16 +23,16 @@ const EVENT_META = {
   seasonal:          { label: 'Seasonal',          color: '#065f46', bg: 'rgba(16,185,129,0.1)',  ring: 'rgba(16,185,129,0.25)'  },
   flash_sale:        { label: 'Flash Sale',        color: '#b45309', bg: 'rgba(245,158,11,0.1)',  ring: 'rgba(245,158,11,0.25)'  },
   bulk_order:        { label: 'Bulk Order',        color: '#4338ca', bg: 'rgba(99,102,241,0.1)',  ring: 'rgba(99,102,241,0.25)'  },
-  general:           { label: 'General',           color: '#4b5563', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)'  },
+  general:           { label: 'General',           color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)'  },
 };
 
 const STATUS_STYLES = {
-  draft:    { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
+  draft:    { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
   active:   { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
   paused:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
   expired:  { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
   depleted: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', dot: 'var(--color-primary-500)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
-  archived: { bg: 'rgba(107,114,128,0.08)',color: '#9ca3af', dot: '#d1d5db', ring: 'rgba(107,114,128,0.15)' },
+  archived: { bg: 'rgba(107,114,128,0.08)',color: 'var(--text-tertiary)', dot: '#d1d5db', ring: 'rgba(107,114,128,0.15)' },
 };
 
 const REWARD_META = {
@@ -57,17 +57,17 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numer
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#374151', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
@@ -75,7 +75,7 @@ const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-pr
 const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
-  <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
+  <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
     {children}
   </span>
 );
@@ -93,7 +93,7 @@ function StatCard({ icon, label, value, accent, bg }) {
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
+        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
         <p style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
       </div>
     </div>
@@ -126,8 +126,8 @@ function CopyCode({ code }) {
       display: 'inline-flex', alignItems: 'center', gap: 5,
       padding: '3px 9px', borderRadius: 7,
       fontFamily: 'monospace', fontSize: '0.75rem', fontWeight: 700,
-      background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-700)',
-      border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', cursor: 'pointer',
+      background: 'var(--surface-card, #fff)', color: 'var(--color-primary-700)',
+      border: '1px solid var(--line)', cursor: 'pointer',
       transition: 'background 120ms, border-color 120ms',
     }}
       onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 35%, transparent)'; }}
@@ -136,7 +136,7 @@ function CopyCode({ code }) {
       {code}
       {copied
         ? <Check size={10} style={{ color: '#10b981', flexShrink: 0 }} />
-        : <Copy size={10} style={{ color: '#c4b5fd', flexShrink: 0 }} />
+        : <Copy size={10} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
       }
     </button>
   );
@@ -162,7 +162,7 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
         style={{
           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer',
-          color: '#c4b5fd', transition: 'background 120ms, color 120ms',
+          color: 'var(--text-tertiary)', transition: 'background 120ms, color 120ms',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
@@ -175,14 +175,14 @@ function ActionMenu({ code, onView, onActivate, onPause, onArchive, onDelete }) 
           <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setOpen(false)} />
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 180, zIndex: 20,
-            background: 'white', borderRadius: 12, padding: '6px 0',
-            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            background: 'var(--surface-card, #fff)', borderRadius: 12, padding: '6px 0',
+            border: '1.5px solid var(--line)',
             boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           }}
             onClick={e => e.stopPropagation()}
           >
             {items.map((item, i) => item === null ? (
-              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
+              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid var(--line)' }} />
             ) : (
               <button key={i} onClick={() => { item.onClick(); setOpen(false); }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 8,
@@ -210,7 +210,7 @@ function SkeletonRow() {
     <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       {[180, 90, 100, 70, 110, 60, 80, 0].map((w, j) => (
         <td key={j} style={{ padding: '14px 20px' }}>
-          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }} />}
+          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'var(--surface-card, #fff)' }} />}
         </td>
       ))}
     </tr>
@@ -297,7 +297,7 @@ export default function PromoCodes() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
             Promo Codes
           </h1>
-          <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
             Manage discount codes, seasonal campaigns and auto-generated rewards
           </p>
         </div>
@@ -313,8 +313,8 @@ export default function PromoCodes() {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: triggerLoading ? 'not-allowed' : 'pointer',
-              background: 'transparent', color: '#9ca3af',
-              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+              background: 'transparent', color: 'var(--text-tertiary)',
+              border: '1.5px solid var(--line)',
               opacity: triggerLoading && triggerLoading !== key ? 0.5 : 1,
               transition: 'border-color 150ms, color 150ms',
             }}
@@ -355,7 +355,7 @@ export default function PromoCodes() {
       {/* ── Event type breakdown ── */}
       {statistics?.by_event_type?.length > 0 && (
         <div style={{ ...card, padding: '16px 20px' }}>
-          <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 12px' }}>
+          <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: '0 0 12px' }}>
             By event type
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -388,7 +388,7 @@ export default function PromoCodes() {
       <div style={card}>
         <div style={{ padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
-            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#c4b5fd', pointerEvents: 'none' }} />
+            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Search name or code…"
@@ -396,9 +396,9 @@ export default function PromoCodes() {
               onChange={e => setFilter('search', e.target.value)}
               style={{
                 width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-                color: '#111827', outline: 'none', fontFamily: 'inherit',
+                background: 'var(--surface-card, #fff)',
+                border: '1.5px solid var(--line)',
+                color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
                 boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
               }}
               onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
@@ -434,7 +434,7 @@ export default function PromoCodes() {
         {showFilters && (
           <div style={{
             padding: '12px 16px 14px',
-            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+            borderTop: '1px solid var(--line)',
             display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
           }}>
             <select value={filters.status ?? ''} onChange={e => setFilter('status', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
@@ -467,7 +467,7 @@ export default function PromoCodes() {
 
             {hasFilters && (
               <button onClick={resetFilters} style={{
-                fontSize: '0.78rem', fontWeight: 600, color: '#c4b5fd',
+                fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-tertiary)',
                 background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 padding: '0 4px', transition: 'color 150ms',
               }}
@@ -486,7 +486,7 @@ export default function PromoCodes() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+              <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
                 <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 200 }}><TH_LABEL>Code / Name</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 130 }}><TH_LABEL>Event type</TH_LABEL></th>
                 <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 120 }}><TH_LABEL>Reward</TH_LABEL></th>
@@ -508,7 +508,7 @@ export default function PromoCodes() {
                     <tr>
                       <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
                         <Tag size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No promo codes found</p>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>No promo codes found</p>
                         <button onClick={() => setShowCreate(true)} style={{
                           fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
                           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -540,7 +540,7 @@ export default function PromoCodes() {
                           {/* Code / Name */}
                           <td style={{ padding: '12px 20px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
-                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
                                 {code.name}
                               </p>
                               {code.auto_generated && (
@@ -565,18 +565,18 @@ export default function PromoCodes() {
 
                           {/* Reward */}
                           <td style={{ padding: '12px 16px' }}>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                               {rewardStr(code)}
                             </span>
                             {code.min_order_value > 0 && (
-                              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
                                 min. {fmt(code.min_order_value, codeCurrency(code))}
                               </p>
                             )}
                           </td>
 
                           {/* Currency */}
-                          <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#6b7280', fontFamily: 'monospace' }}>
+                          <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
                             {code.reward_type === 'fixed_amount' || code.min_order_value > 0 ? codeCurrency(code) : '—'}
                           </td>
 
@@ -592,23 +592,23 @@ export default function PromoCodes() {
                           <td style={{ padding: '12px 16px' }}>
                             {code.target_customer ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <UserCheck size={12} style={{ color: '#c4b5fd', flexShrink: 0 }} />
-                                <span style={{ fontSize: '0.75rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+                                <UserCheck size={12} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                                <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
                                   {code.target_customer.full_name || code.target_customer.email}
                                 </span>
                               </div>
                             ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#d1d5db' }}>Public</span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Public</span>
                             )}
                           </td>
 
                           {/* Uses */}
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {(code.times_used ?? 0).toLocaleString()}
                             </span>
                             {code.max_uses && (
-                              <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
                                 {' '}/ {code.max_uses.toLocaleString()}
                               </span>
                             )}
@@ -633,7 +633,7 @@ export default function PromoCodes() {
                                 </span>
                               </div>
                             ) : (
-                              <span style={{ fontSize: '0.72rem', color: '#d1d5db' }}>No expiry</span>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>No expiry</span>
                             )}
                           </td>
 
@@ -660,11 +660,11 @@ export default function PromoCodes() {
         {!loading && codes.length > 0 && pagination.last_page > 1 && (
           <div style={{
             padding: '12px 20px',
-            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+            borderTop: '1px solid var(--line)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+            background: 'var(--surface-card, #fff)',
           }}>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} codes
             </p>
 
@@ -675,7 +675,7 @@ export default function PromoCodes() {
                 style={{
                   width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 8, cursor: pagination.current_page <= 1 ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  border: '1.5px solid var(--line)', background: 'none',
                   color: 'var(--color-primary-500)', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
                 }}
                 onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
@@ -717,7 +717,7 @@ export default function PromoCodes() {
                 style={{
                   width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   borderRadius: 8, cursor: pagination.current_page >= pagination.last_page ? 'not-allowed' : 'pointer',
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                  border: '1.5px solid var(--line)', background: 'none',
                   color: 'var(--color-primary-500)', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
                 }}
                 onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}

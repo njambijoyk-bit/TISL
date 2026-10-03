@@ -24,28 +24,28 @@ const TYPE_META = {
 };
 
 const STATUS_STYLES = {
-  draft:    { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
+  draft:    { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
   active:   { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
   paused:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
   expired:  { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
   depleted: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', dot: 'var(--color-primary-500)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
-  archived: { bg: 'rgba(107,114,128,0.08)',color: '#9ca3af', dot: '#d1d5db', ring: 'rgba(107,114,128,0.15)' },
+  archived: { bg: 'rgba(107,114,128,0.08)',color: 'var(--text-tertiary)', dot: '#d1d5db', ring: 'rgba(107,114,128,0.15)' },
 };
 
 const USAGE_STATUS = {
   pending:   { label: 'Pending',   color: '#b45309', dot: '#f59e0b' },
   completed: { label: 'Completed', color: '#065f46', dot: '#10b981' },
   expired:   { label: 'Expired',   color: '#b91c1c', dot: '#ef4444' },
-  cancelled: { label: 'Cancelled', color: '#4b5563', dot: '#9ca3af' },
+  cancelled: { label: 'Cancelled', color: 'var(--text-secondary)', dot: '#9ca3af' },
 };
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -58,8 +58,8 @@ const labelStyle = {
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
@@ -92,9 +92,9 @@ function StatBlock({ label, value, color }) {
   return (
     <div style={{
       padding: '14px 16px', borderRadius: 10,
-      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+      background: 'var(--surface-card, #fff)', border: '1px solid var(--line)',
     }}>
-      <p style={{ fontSize: '0.62rem', color: '#9ca3af', fontWeight: 700, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+      <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 700, margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
       <p style={{ fontSize: '1.2rem', fontWeight: 800, color: color || '#111827', margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
     </div>
   );
@@ -115,7 +115,7 @@ function EditField({ label, value, onChange, editMode, type = 'text' }) {
       {editMode
         ? <input type={type} value={value ?? ''} onChange={e => onChange(e.target.value)}
             style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-        : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{value || '—'}</p>
+        : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{value || '—'}</p>
       }
     </Field>
   );
@@ -129,8 +129,8 @@ function CopyCode({ code }) {
         display: 'inline-flex', alignItems: 'center', gap: 6,
         padding: '5px 12px', borderRadius: 8,
         fontFamily: 'monospace', fontSize: '0.85rem', fontWeight: 700,
-        background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-700)',
-        border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer',
+        background: 'var(--surface-card, #fff)', color: 'var(--color-primary-700)',
+        border: '1px solid var(--line)', cursor: 'pointer',
         transition: 'background 120ms, border-color 120ms',
       }}
       onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; }}
@@ -139,7 +139,7 @@ function CopyCode({ code }) {
       {code}
       {copied
         ? <Check size={12} style={{ color: '#10b981' }} />
-        : <Copy size={12} style={{ color: '#c4b5fd' }} />
+        : <Copy size={12} style={{ color: 'var(--text-tertiary)' }} />
       }
     </button>
   );
@@ -159,8 +159,8 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
         background: 'rgba(239,68,68,0.06)', color: '#b91c1c',
         border: '1.5px solid rgba(239,68,68,0.2)',
       } : {
-        background: 'transparent', color: '#6b7280',
-        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+        background: 'transparent', color: 'var(--text-secondary)',
+        border: '1.5px solid var(--line)',
       }),
     }}
       onMouseEnter={e => {
@@ -183,12 +183,12 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
 }
 
 function SkeletonBlock({ height }) {
-  return <div style={{ height, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />;
+  return <div style={{ height, borderRadius: 12, background: 'var(--surface-card, #fff)', marginBottom: 16 }} />;
 }
 
 function TH_LABEL({ children }) {
   return (
-    <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
+    <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
       {children}
     </span>
   );
@@ -291,7 +291,7 @@ export default function ReferralDetail() {
       {/* ── Back ── */}
       <button onClick={() => navigate('/admin/referrals')} style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
-        fontSize: '0.82rem', color: '#9ca3af', background: 'none', border: 'none',
+        fontSize: '0.82rem', color: 'var(--text-tertiary)', background: 'none', border: 'none',
         cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start', transition: 'color 150ms',
       }}
         onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
@@ -319,7 +319,7 @@ export default function ReferralDetail() {
           {/* Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
-              <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#111827', margin: 0 }}>{code.name}</h1>
+              <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{code.name}</h1>
               <Badge bg={tm.bg} color={tm.color} ring={tm.ring}>{tm.label}</Badge>
               <Badge bg={sm.bg} color={sm.color} ring={sm.ring}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: sm.dot, flexShrink: 0 }} />
@@ -332,7 +332,7 @@ export default function ReferralDetail() {
               )}
             </div>
             {code.description && (
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '0 0 10px', lineHeight: 1.5 }}>{code.description}</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: '0 0 10px', lineHeight: 1.5 }}>{code.description}</p>
             )}
             <CopyCode code={code.code} />
           </div>
@@ -353,7 +353,7 @@ export default function ReferralDetail() {
 
       {/* ── Tabs + content ── */}
       <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '0 20px' }}>
+        <div style={{ display: 'flex', borderBottom: '2px solid var(--line)', padding: '0 20px' }}>
           {['overview', 'settings', 'usage'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '12px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
@@ -384,7 +384,7 @@ export default function ReferralDetail() {
 
               {/* Main metrics */}
               <div>
-                <p style={sectionHeader}><TrendingUp size={14} style={{ color: '#c4b5fd' }} /> Performance</p>
+                <p style={sectionHeader}><TrendingUp size={14} style={{ color: 'var(--text-tertiary)' }} /> Performance</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 10 }}>
                   <StatBlock label="Total uses"      value={(metrics?.total_uses_count ?? code.times_used ?? 0).toLocaleString()} color="var(--color-primary-600)" />
                   <StatBlock label="Revenue"         value={fmt(metrics?.total_revenue, baseCur)}  color="#065f46" />
@@ -401,19 +401,19 @@ export default function ReferralDetail() {
 
               {/* Usage by status */}
               <div>
-                <p style={sectionHeader}><Zap size={14} style={{ color: '#c4b5fd' }} /> Usage by status</p>
+                <p style={sectionHeader}><Zap size={14} style={{ color: 'var(--text-tertiary)' }} /> Usage by status</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
                   {Object.entries(USAGE_STATUS).map(([status, meta]) => (
                     <div key={status} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '12px 14px', borderRadius: 10,
-                      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+                      background: 'var(--surface-card, #fff)', border: '1px solid var(--line)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                         <span style={{ width: 7, height: 7, borderRadius: '50%', background: meta.dot, flexShrink: 0 }} />
-                        <span style={{ fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>{meta.label}</span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{meta.label}</span>
                       </div>
-                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#111827' }}>{byStatus[status] ?? 0}</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--text-primary)' }}>{byStatus[status] ?? 0}</span>
                     </div>
                   ))}
                 </div>
@@ -422,13 +422,13 @@ export default function ReferralDetail() {
               {/* Monthly trend */}
               {monthly.length > 0 && (
                 <div>
-                  <p style={sectionHeader}><TrendingUp size={14} style={{ color: '#c4b5fd' }} /> Monthly trend</p>
+                  <p style={sectionHeader}><TrendingUp size={14} style={{ color: 'var(--text-tertiary)' }} /> Monthly trend</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {(() => {
                       const max = Math.max(...monthly.map(m => m.count), 1);
                       return monthly.map(m => (
                         <div key={m.month} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontSize: '0.72rem', color: '#9ca3af', width: 56, flexShrink: 0 }}>{m.month}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', width: 56, flexShrink: 0 }}>{m.month}</span>
                           <div style={{ flex: 1, height: 6, borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflow: 'hidden' }}>
                             <div style={{
                               height: '100%', borderRadius: 99,
@@ -436,8 +436,8 @@ export default function ReferralDetail() {
                               background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))',
                             }} />
                           </div>
-                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#374151', width: 24, textAlign: 'right' }}>{m.count}</span>
-                          <span style={{ fontSize: '0.72rem', color: '#9ca3af', width: 80, textAlign: 'right' }}>{fmt(m.revenue, baseCur)}</span>
+                          <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-primary)', width: 24, textAlign: 'right' }}>{m.count}</span>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', width: 80, textAlign: 'right' }}>{fmt(m.revenue, baseCur)}</span>
                         </div>
                       ));
                     })()}
@@ -447,7 +447,7 @@ export default function ReferralDetail() {
 
               {/* Configuration */}
               <div>
-                <p style={sectionHeader}><Tag size={14} style={{ color: '#c4b5fd' }} /> Code configuration</p>
+                <p style={sectionHeader}><Tag size={14} style={{ color: 'var(--text-tertiary)' }} /> Code configuration</p>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
                   {[
                     { label: 'Reward',            value: rewardStr },
@@ -464,15 +464,15 @@ export default function ReferralDetail() {
                     { label: 'Created by',        value: code.created_by?.name || '—' },
                   ].map(({ label, value }) => (
                     <div key={label}>
-                      <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 4px' }}>{label}</p>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: 0 }}>{value}</p>
+                      <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: '0 0 4px' }}>{label}</p>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{value}</p>
                     </div>
                   ))}
                 </div>
                 {code.admin_notes && (
-                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-                    <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 6px' }}>Admin notes</p>
-                    <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>{code.admin_notes}</p>
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+                    <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: '0 0 6px' }}>Admin notes</p>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{code.admin_notes}</p>
                   </div>
                 )}
               </div>
@@ -485,7 +485,7 @@ export default function ReferralDetail() {
 
               {/* Basic */}
               <div>
-                <p style={sectionHeader}><Tag size={14} style={{ color: '#c4b5fd' }} /> Basic</p>
+                <p style={sectionHeader}><Tag size={14} style={{ color: 'var(--text-tertiary)' }} /> Basic</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <EditField label="Name"        value={formData.name}        onChange={setF('name')}        editMode={editMode} />
                   <EditField label="Description" value={formData.description} onChange={setF('description')} editMode={editMode} />
@@ -494,7 +494,7 @@ export default function ReferralDetail() {
 
               {/* Limits */}
               <div>
-                <p style={sectionHeader}><Zap size={14} style={{ color: '#c4b5fd' }} /> Limits</p>
+                <p style={sectionHeader}><Zap size={14} style={{ color: 'var(--text-tertiary)' }} /> Limits</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                   <EditField label="Max uses"          value={formData.max_uses}              onChange={setF('max_uses')}              editMode={editMode} type="number" />
                   <EditField label="Per customer"      value={formData.max_uses_per_customer} onChange={setF('max_uses_per_customer')} editMode={editMode} type="number" />
@@ -506,7 +506,7 @@ export default function ReferralDetail() {
 
               {/* Validity */}
               <div>
-                <p style={sectionHeader}><Calendar size={14} style={{ color: '#c4b5fd' }} /> Validity</p>
+                <p style={sectionHeader}><Calendar size={14} style={{ color: 'var(--text-tertiary)' }} /> Validity</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <EditField label="Valid from"  value={formData.valid_from}  onChange={setF('valid_from')}  editMode={editMode} type="date" />
                   <EditField label="Valid until" value={formData.valid_until} onChange={setF('valid_until')} editMode={editMode} type="date" />
@@ -515,7 +515,7 @@ export default function ReferralDetail() {
 
               {/* Notes */}
               <div>
-                <p style={sectionHeader}><Tag size={14} style={{ color: '#c4b5fd' }} /> Admin notes</p>
+                <p style={sectionHeader}><Tag size={14} style={{ color: 'var(--text-tertiary)' }} /> Admin notes</p>
                 {editMode
                   ? <textarea rows={4} value={formData.admin_notes} onChange={e => setF('admin_notes')(e.target.value)}
                       placeholder="Internal notes for this code…"
@@ -545,14 +545,14 @@ export default function ReferralDetail() {
               {!usageData || usageData.data?.length === 0 ? (
                 <div style={{ padding: '64px 24px', textAlign: 'center' }}>
                   <Users size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 10px', display: 'block' }} />
-                  <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No usage records yet</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>No usage records yet</p>
                 </div>
               ) : (
                 <>
-                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+                  <div style={{ overflowX: 'auto', borderRadius: 10, border: '1px solid var(--line)' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
                       <thead>
-                        <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+                        <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
                           {['Referrer', 'Referred Customer', 'Order', 'Referred Discount', 'Referrer Reward', 'Status', 'IP Address', 'User Agent', 'Date'].map(h => (
                             <th key={h} style={{ padding: '10px 16px', textAlign: 'left', whiteSpace: 'nowrap' }}>
                               <TH_LABEL>{h}</TH_LABEL>
@@ -574,35 +574,35 @@ export default function ReferralDetail() {
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.referrer ? (
                                   <>
-                                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>
+                                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>
                                       {u.referrer.user?.name || '—'}
                                     </p>
-                                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>
+                                    <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'monospace' }}>
                                       {u.referrer.customer_number}
                                     </p>
                                   </>
-                                ) : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                                ) : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>}
                               </td>
 
                               {/* Referred Customer */}
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.customer ? (
                                   <>
-                                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>
+                                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>
                                       {u.customer.user?.name || '—'}
                                     </p>
-                                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>
+                                    <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'monospace' }}>
                                       {u.customer.customer_number}
                                     </p>
                                   </>
-                                ) : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                                ) : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>}
                               </td>
 
                               {/* Order */}
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.voucher
                                   ? <a href={`/admin/books/vouchers/${u.voucher.id}`} style={{ fontFamily: 'monospace', fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 700, textDecoration: 'none' }}>{u.voucher.voucher_number}</a>
-                                  : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                                  : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>}
                               </td>
 
                               {/* Referred Discount */}
@@ -611,7 +611,7 @@ export default function ReferralDetail() {
                                   const discount = parseFloat(u.discount_amount) || 0;
                                   return discount > 0
                                     ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#b91c1c' }}>-{fmt(discount, baseCur)}</span>
-                                    : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>;
+                                    : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>;
                                 })()}
                               </td>
 
@@ -619,12 +619,12 @@ export default function ReferralDetail() {
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
                                 {u.referrer_reward_amount ? (
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{fmt(u.referrer_reward_amount, baseCur)}</span>
+                                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{fmt(u.referrer_reward_amount, baseCur)}</span>
                                     {u.referrer_reward_paid
                                       ? <BadgeCheck size={13} style={{ color: '#10b981' }} />
                                       : <AlertCircle size={13} style={{ color: '#f59e0b' }} />}
                                   </div>
-                                ) : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>}
+                                ) : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>}
                               </td>
 
                               {/* Status */}
@@ -642,7 +642,7 @@ export default function ReferralDetail() {
 
                               {/* IP Address */}
                               <td style={{ padding: '11px 16px' }}>
-                                <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#6b7280' }}>
+                                <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                                   {u.ip_address || '—'}
                                 </span>
                               </td>
@@ -652,7 +652,7 @@ export default function ReferralDetail() {
                                 <span
                                   title={u.user_agent}
                                   style={{
-                                    fontSize: '0.68rem', color: '#9ca3af',
+                                    fontSize: '0.68rem', color: 'var(--text-tertiary)',
                                     display: 'block', overflow: 'hidden',
                                     textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                                     maxWidth: 180,
@@ -664,7 +664,7 @@ export default function ReferralDetail() {
 
                               {/* Date */}
                               <td style={{ padding: '11px 16px', whiteSpace: 'nowrap' }}>
-                                <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{fmtDT(u.created_at)}</span>
+                                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{fmtDT(u.created_at)}</span>
                               </td>
                             </tr>
                           );
@@ -676,13 +676,13 @@ export default function ReferralDetail() {
                   {/* Pagination — unchanged */}
                   {usageData.last_page > 1 && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 4 }}>
-                      <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
                         {usageData.from}–{usageData.to} of {usageData.total} records
                       </p>
                       <div style={{ display: 'flex', gap: 4 }}>
                         <button onClick={() => setUsagePage(p => p - 1)} disabled={usagePage === 1} style={{
                           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                          borderRadius: 8, border: '1.5px solid var(--line)', background: 'none',
                           color: 'var(--color-primary-500)', cursor: usagePage === 1 ? 'not-allowed' : 'pointer',
                           opacity: usagePage === 1 ? 0.3 : 1,
                         }}>
@@ -698,7 +698,7 @@ export default function ReferralDetail() {
                         </span>
                         <button onClick={() => setUsagePage(p => p + 1)} disabled={usagePage === usageData.last_page} style={{
                           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                          borderRadius: 8, border: '1.5px solid var(--line)', background: 'none',
                           color: 'var(--color-primary-500)', cursor: usagePage === usageData.last_page ? 'not-allowed' : 'pointer',
                           opacity: usagePage === usageData.last_page ? 0.3 : 1,
                         }}>

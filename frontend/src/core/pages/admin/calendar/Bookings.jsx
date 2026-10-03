@@ -33,7 +33,7 @@ function NoticeModal({ id, event, onClose }) {
   if (!n) return null;
   return (
     <Modal title="Tell the customer" onClose={onClose}>
-      <p style={{ fontSize: '0.84rem', background: '#f9fafb', padding: 10, borderRadius: 8 }}>{n.message}</p>
+      <p style={{ fontSize: '0.84rem', background: 'var(--surface-input)', padding: 10, borderRadius: 8 }}>{n.message}</p>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
         <button type="button" style={btnPrimary} disabled={busy || !n.to_email} onClick={mail}>{n.to_email ? `E-mail ${n.to_email}` : 'No e-mail on file'}</button>
         <a href={n.whatsapp_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-block', opacity: n.whatsapp_to_number ? 1 : 0.5 }}>WhatsApp{n.to_phone ? ` ${n.to_phone}` : ' (no number)'}</a>
@@ -113,7 +113,7 @@ function NewBooking({ onClose, onDone }) {
           {f.on_site && <Field label="Address"><TextInput value={f.address} onChange={(e) => set('address', e.target.value)} /></Field>}
           <Field label="Note (optional)"><TextInput value={f.notes} onChange={(e) => set('notes', e.target.value)} /></Field>
           {quote && (
-            <div style={{ background: '#f9fafb', borderRadius: 8, padding: 10, fontSize: '0.8rem' }}>
+            <div style={{ background: 'var(--surface-input)', borderRadius: 8, padding: 10, fontSize: '0.8rem' }}>
               <div>{quote.minutes} minutes · price <strong>{money(quote.price)}</strong> (before tax)</div>
               {quote.fees.map((x) => <div key={x.ledger_id} style={{ color: colors.textMuted }}>{x.name}: {money(x.amount)} <span style={{ color: colors.textFaint }}>— {({ booking: 'at booking', completion: 'when done', late_cancel: 'if cancelled late', no_show: 'if no-show', reschedule: 'if moved late' })[x.timing]}</span></div>)}
               {quote.due_at_booking > 0 && <div style={{ marginTop: 4 }}>Invoiced now: <strong>{money(quote.due_at_booking)}</strong></div>}
@@ -170,7 +170,7 @@ function Detail({ b, reload, tell }) {
       <div style={{ margin: '6px 0' }}>{link(b.order)}{link(b.upfront)}{link(b.invoice)}{link(b.fee_invoice)}</div>
       {b.deposit_amount > 0 && <div>Deposit {money(b.deposit_amount)}: {b.deposit_status === 'released' ? 'on the customer\'s account' : b.deposit_paid ? 'paid, held' : 'not paid yet'}</div>}
       {b.fees.length > 0 && <div style={{ color: colors.textFaint }}>{b.fees.map((x) => `${x.name} ${money(x.amount)}`).join(' · ')}</div>}
-      {b.status === 'cancelled' && <div style={{ color: '#6b7280' }}>Cancelled{b.cancelled_late ? ' late' : ''}{b.cancel_reason ? ` — ${b.cancel_reason}` : ''}</div>}
+      {b.status === 'cancelled' && <div style={{ color: 'var(--text-secondary)' }}>Cancelled{b.cancelled_late ? ' late' : ''}{b.cancel_reason ? ` — ${b.cancel_reason}` : ''}</div>}
       <div style={{ marginTop: 8 }}>
         <button type="button" style={small} title="What this booking earned (Calculator)" onClick={() => { const st = useCalculatorStore.getState(); st.publish('booking-row', { type: 'booking', id: b.id }); st.setOpen(true); }}>What it earned</button>{' '}
         {b.can_change && (
@@ -238,7 +238,7 @@ export default function Bookings() {
                         <td style={{ ...td, textAlign: 'right' }}>{money(b.price)}</td>
                         <td style={td}><span style={{ color: TONE[b.status], fontWeight: 700 }}>{LABEL[b.status]}</span></td>
                       </tr>
-                      {open === b.id && <tr><td colSpan={6} style={{ background: '#f9fafb' }}><Detail b={b} reload={load} tell={(id, ev) => setNotice({ id, event: ev })} /></td></tr>}
+                      {open === b.id && <tr><td colSpan={6} style={{ background: 'var(--surface-input)' }}><Detail b={b} reload={load} tell={(id, ev) => setNotice({ id, event: ev })} /></td></tr>}
                     </Fragment>
                   ))}
                 </tbody>

@@ -46,7 +46,7 @@ export default function ReferralSettingsModal({ onClose }) {
             </FormGrid>
             <FormGrid min={170}>
               <Field label="Amounts are in" hint="For a fixed amount, the cap and the minimum order.">
-                <CurrencySelect value={f.referral_discount_currency_id ?? ''} onChange={set('referral_discount_currency_id')} style={{ width: '100%', padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
+                <CurrencySelect value={f.referral_discount_currency_id ?? ''} onChange={set('referral_discount_currency_id')} style={{ width: '100%', padding: 9, borderRadius: 8, border: '1.5px solid var(--line)' }} />
               </Field>
               <Field label="Cap the discount at (optional)" error={errs.referral_discount_max}><NumberInput min="0" step="0.01" value={f.referral_discount_max ?? ''} onChange={(e) => set('referral_discount_max')(e.target.value)} /></Field>
               <Field label="Minimum first order (optional)" error={errs.referral_min_order}><NumberInput min="0" step="0.01" value={f.referral_min_order ?? ''} onChange={(e) => set('referral_min_order')(e.target.value)} /></Field>
@@ -61,7 +61,7 @@ export default function ReferralSettingsModal({ onClose }) {
                 <NumberInput min="0" step="0.01" value={f.referral_referrer_gift_amount} onChange={(e) => set('referral_referrer_gift_amount')(e.target.value)} />
               </Field>
               <Field label="Gift voucher currency">
-                <CurrencySelect value={f.referral_referrer_gift_currency_id ?? ''} onChange={set('referral_referrer_gift_currency_id')} style={{ width: '100%', padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
+                <CurrencySelect value={f.referral_referrer_gift_currency_id ?? ''} onChange={set('referral_referrer_gift_currency_id')} style={{ width: '100%', padding: 9, borderRadius: 8, border: '1.5px solid var(--line)' }} />
               </Field>
             </FormGrid>
             <ModalActions onCancel={onClose} submitLabel="Save programme" busy={busy} />

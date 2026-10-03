@@ -77,7 +77,7 @@ export const hint = { fontSize: '0.68rem', color: colors.textFaint, marginTop: 4
 
 export const card = {
   background: colors.surface, borderRadius: radius.xl,
-  border: `1px solid ${colors.tint(0.1)}`,
+  border: '1px solid var(--line)',
   boxShadow: `0 2px 12px ${colors.tint(0.06)}`,
 };
 
@@ -92,7 +92,7 @@ export const btnPrimary = {
 export const btnGhost = {
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
   padding: '8px 16px', borderRadius: radius.md, fontSize: font.md, fontWeight: 600,
-  background: 'transparent', border: `1.5px solid ${colors.tint(0.18)}`, color: colors.textMuted,
+  background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)', color: colors.text,
   cursor: 'pointer', fontFamily: 'inherit',
 };
 

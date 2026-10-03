@@ -56,7 +56,7 @@ function Spinner({ size = 18 }) {
   return (
     <div style={{
       width: size, height: size, borderRadius: '50%',
-      border: '2px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)',
+      border: '2px solid var(--line)', borderTopColor: 'var(--color-primary-500)',
       animation: 'cbSpin 600ms linear infinite', display: 'inline-block', flexShrink: 0,
     }} />
   );
@@ -91,7 +91,7 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
       <td style={td}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {row.main_image ? (
-            <img src={row.main_image} alt="" style={{ width: 36, height: 36, borderRadius: 7, objectFit: 'cover', flexShrink: 0, border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }} />
+            <img src={row.main_image} alt="" style={{ width: 36, height: 36, borderRadius: 7, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--line)' }} />
           ) : (
             <div style={{ width: 36, height: 36, borderRadius: 7, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {row.entity_type === 'service' ? <Wrench size={14} color="var(--color-primary-500)" /> : <Package size={14} color="var(--color-primary-500)" />}
@@ -171,7 +171,7 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
               position: 'absolute', top: 3,
               left: isActive ? 19 : 3,
               width: 16, height: 16, borderRadius: '50%',
-              background: '#fff', transition: 'left 0.2s',
+              background: 'var(--surface-card, #fff)', transition: 'left 0.2s',
               boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
             }} />
           </div>
@@ -215,7 +215,7 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
               onClick={() => onEdit(row.id, row.entity_type, '__reset__', null)}
               style={{
                 padding: '5px 8px', borderRadius: 7, border: '1px solid rgba(107,114,128,0.2)',
-                background: 'transparent', color: '#9ca3af', fontSize: 12, cursor: 'pointer',
+                background: 'transparent', color: 'var(--text-tertiary)', fontSize: 12, cursor: 'pointer',
               }}>
               <X size={12} />
             </button>
@@ -395,7 +395,7 @@ export default function CatalogueBoostPage() {
   const th = {
     padding: '9px 14px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
     letterSpacing: '0.07em', color: 'var(--text-secondary,#6b7280)', textAlign: 'left',
-    borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+    borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)',
   };
   const td = {
     padding: '10px 14px', fontSize: 13, color: 'var(--text-primary,#111)',
@@ -460,7 +460,7 @@ export default function CatalogueBoostPage() {
         </div>
 
         {/* ── Entity type tabs ── */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: 6, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 12, width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: 6, background: 'var(--surface-card, #fff)', borderRadius: 12, width: 'fit-content' }}>
           {[
             { key: 'product', label: 'Products', Icon: Package },
             { key: 'service', label: 'Services', Icon: Wrench  },
@@ -508,7 +508,7 @@ export default function CatalogueBoostPage() {
           {(search || catFilter) && (
             <button
               onClick={() => { setSearch(''); setCatFilter(''); fetchRows(1, { search: '', category_id: '' }); }}
-              style={{ ...inputStyle, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: '#6b7280', fontSize: 12 }}>
+              style={{ ...inputStyle, display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: 'var(--text-secondary)', fontSize: 12 }}>
               <X size={12} /> Clear
             </button>
           )}
@@ -524,16 +524,16 @@ export default function CatalogueBoostPage() {
         {/* ── Table ── */}
         <div style={{
           background: 'var(--bg-secondary,#fff)', borderRadius: 16,
-          border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+          border: '1px solid var(--line)',
           boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)', overflow: 'hidden',
         }}>
           {loading ? (
             <div style={{ padding: '60px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
               <Spinner size={32} />
-              <span style={{ fontSize: 13, color: '#6b7280' }}>Loading {entityType}s…</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Loading {entityType}s…</span>
             </div>
           ) : rows.length === 0 ? (
-            <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>
+            <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-secondary)' }}>
               <div style={{ fontSize: 36, marginBottom: 10 }}>
                 {entityType === 'product' ? '📦' : '🔧'}
               </div>
@@ -579,7 +579,7 @@ export default function CatalogueBoostPage() {
             <PageBtn icon={ChevronLeft}  label="Prev" disabled={page <= 1}        onClick={() => fetchRows(page - 1)} />
             {getPaginationRange(page, lastPage).map((p, i) =>
               p === '...'
-                ? <span key={`d${i}`} style={{ padding: '6px 4px', color: '#6b7280', fontSize: 12 }}>…</span>
+                ? <span key={`d${i}`} style={{ padding: '6px 4px', color: 'var(--text-secondary)', fontSize: 12 }}>…</span>
                 : <PageBtn key={p} label={p} active={p === page} onClick={() => fetchRows(p)} />
             )}
             <PageBtn icon={ChevronRight} label="Next" disabled={page >= lastPage} onClick={() => fetchRows(page + 1)} />
@@ -598,11 +598,11 @@ export default function CatalogueBoostPage() {
             display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
             background: 'var(--bg-primary,#fff)', padding: '28px 40px', borderRadius: 16,
             boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-            border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+            border: '1px solid var(--line)',
           }}>
             <Spinner size={32} />
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary,#111)' }}>Saving boosts…</span>
-            <span style={{ fontSize: 12, color: '#6b7280' }}>Please wait</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Please wait</span>
           </div>
         </div>
       )}
