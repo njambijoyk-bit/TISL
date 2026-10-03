@@ -15,7 +15,7 @@ const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
 const Btn = ({ children, onClick, disabled, variant = 'outline', size = 'md', type = 'button' }) => {
   const variants = {
     primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--line)', boxShadow: 'none' },
+    outline: { background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--line)', boxShadow: 'none' },
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled} style={{
@@ -36,7 +36,7 @@ const Btn = ({ children, onClick, disabled, variant = 'outline', size = 'md', ty
 
 const StyledInput = ({ icon, ...props }) => (
   <div style={{ position: 'relative' }}>
-    {icon && <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }}>{icon}</div>}
+    {icon && <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }}>{icon}</div>}
     <input {...props} style={{
       width: '100%', padding: icon ? '9px 12px 9px 36px' : '9px 12px', borderRadius: 10,
       border: '1.5px solid var(--border,#e5e7eb)', background: 'var(--panel-bg,white)',
@@ -197,7 +197,7 @@ const ServiceSelectorModalAdmin = ({ onClose, onSelect, selectedServices = [] })
           {/* Header */}
           <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: purpleLt }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 900, color: purple, margin: 0 }}>Select Services</h2>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: '#9ca3af', display: 'flex' }}>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: 'var(--text-tertiary)', display: 'flex' }}>
               <X size={20} />
             </button>
           </div>
@@ -232,7 +232,7 @@ const ServiceSelectorModalAdmin = ({ onClose, onSelect, selectedServices = [] })
                 <div style={{ width: 32, height: 32, border: `3px solid ${purpleLt}`, borderTopColor: purple, borderRadius: '50%', animation: 'ssmSpin 0.8s linear infinite' }} />
               </div>
             ) : displayServices.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 24px', color: '#9ca3af' }}>
+              <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-tertiary)' }}>
                 <Wrench size={48} style={{ margin: '0 auto 12px', opacity: 0.25 }} />
                 <p style={{ fontSize: '0.85rem' }}>{searchTerm || selectedCategory || selectedType ? 'No services match your filters' : 'Loading services...'}</p>
               </div>
@@ -264,22 +264,22 @@ const ServiceSelectorModalAdmin = ({ onClose, onSelect, selectedServices = [] })
                         </div>
                         <div style={{ textAlign: 'right', flexShrink: 0 }}>
                           <p style={{ fontSize: '0.88rem', fontWeight: 800, color: purple, margin: '0 0 2px' }}>{getPricingDisplay(service)}</p>
-                          {service.minimum_charge && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Min: {fmt(service.minimum_charge, service)}</p>}
+                          {service.minimum_charge && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>Min: {fmt(service.minimum_charge, service)}</p>}
                         </div>
                       </div>
 
                       {service.short_description && (
-                        <p style={{ fontSize: '0.78rem', color: '#6b7280', margin: '0 0 6px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{service.short_description}</p>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0 0 6px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{service.short_description}</p>
                       )}
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                        {service.estimated_duration && <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />{service.estimated_duration}</span>}
-                        {service.rating > 0 && <span style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}><Star size={11} color="#f59e0b" fill="#f59e0b" />{service.rating.toFixed(1)} ({service.review_count})</span>}
-                        {service.lead_time && <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Lead: {service.lead_time}</span>}
+                        {service.estimated_duration && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />{service.estimated_duration}</span>}
+                        {service.rating > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}><Star size={11} color="#f59e0b" fill="#f59e0b" />{service.rating.toFixed(1)} ({service.review_count})</span>}
+                        {service.lead_time && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Lead: {service.lead_time}</span>}
                       </div>
 
                       {service.features?.length > 0 && (
-                        <div style={{ marginTop: 8, fontSize: '0.72rem', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <div style={{ marginTop: 8, fontSize: '0.72rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 2 }}>
                           {service.features.slice(0, 3).map((f, i) => <span key={i}>• {f}</span>)}
                           {service.features.length > 3 && <span style={{ fontStyle: 'italic' }}>+ {service.features.length - 3} more</span>}
                         </div>
@@ -293,8 +293,8 @@ const ServiceSelectorModalAdmin = ({ onClose, onSelect, selectedServices = [] })
 
           {/* Footer */}
           <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{displayServices.length} service{displayServices.length !== 1 ? 's' : ''} available</p>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>{displayServices.length} service{displayServices.length !== 1 ? 's' : ''} available</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               {pagination.total} service{pagination.total !== 1 ? 's' : ''} available
             </p>
             

@@ -39,7 +39,7 @@ export default function VariantAtBranchPicker({ productId, locationId, value, on
     onChange(pick.id);
   }, [data, locationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!data) return <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Loading variants…</span>;
+  if (!data) return <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Loading variants…</span>;
   if (!variants.length) return <span style={{ fontSize: '0.75rem', color: '#b45309' }}>No variants yet — give this product stock first.</span>;
 
   const chosen = variants.find((v) => String(v.id) === String(value));

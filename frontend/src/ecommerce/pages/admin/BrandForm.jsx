@@ -12,17 +12,17 @@ import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
 const inputDisabled = {
   ...inputStyle,
-  background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+  background: 'var(--surface-card, #fff)',
   borderColor: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
-  color: '#9ca3af', cursor: 'not-allowed',
+  color: 'var(--text-tertiary)', cursor: 'not-allowed',
 };
 const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
 const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
@@ -31,11 +31,11 @@ const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
   letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
-const hintStyle = { fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 };
+const hintStyle = { fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 24,
 };
@@ -43,7 +43,7 @@ const card = {
 const sectionHeader = {
   fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-600)',
   margin: '0 0 16px', paddingBottom: 12,
-  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+  borderBottom: '1px solid var(--line)',
 };
 
 // ── Atom components ───────────────────────────────────────────────────────────
@@ -83,12 +83,12 @@ function Toggle({ checked, onChange, disabled, label, sub }) {
     <div onClick={() => !disabled && onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+      background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
       opacity: disabled ? 0.6 : 1, userSelect: 'none',
     }}>
       <div>
-        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>{label}</p>
-        {sub && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{sub}</p>}
+        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{label}</p>
+        {sub && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>{sub}</p>}
       </div>
       <div style={{
         width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
@@ -251,7 +251,7 @@ export default function BrandForm() {
           <div>
             <button onClick={() => navigate('/admin/brands')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: '0.78rem', color: '#9ca3af', background: 'none', border: 'none',
+              fontSize: '0.78rem', color: 'var(--text-tertiary)', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, transition: 'color 150ms',
             }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
@@ -262,7 +262,7 @@ export default function BrandForm() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
               {isView ? 'View brand' : isEdit ? 'Edit brand' : 'New brand'}
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               {isView ? 'View brand details' : isEdit ? 'Update brand information' : 'Add a new brand to your store'}
             </p>
           </div>
@@ -283,8 +283,8 @@ export default function BrandForm() {
                 <button onClick={() => navigate('/admin/brands')} disabled={loading || deleting} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600,
-                  background: 'transparent', color: '#9ca3af',
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
+                  background: 'transparent', color: 'var(--text-tertiary)',
+                  border: '1.5px solid var(--line)', cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'border-color 150ms, color 150ms',
                 }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
@@ -371,7 +371,7 @@ export default function BrandForm() {
               <div style={{ position: 'relative', display: 'inline-block', marginBottom: 16 }}>
                 <img src={imagePreview} alt="Logo preview" style={{
                   width: 120, height: 120, objectFit: 'cover', borderRadius: 10,
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'block',
+                  border: '1.5px solid var(--line)', display: 'block',
                 }} />
                 {!isView && (
                   <button type="button" onClick={handleRemoveImage} style={{
@@ -386,7 +386,7 @@ export default function BrandForm() {
             )}
 
             {isView && !imagePreview && (
-              <p style={{ fontSize: '0.78rem', color: '#d1d5db', margin: 0 }}>No logo set</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>No logo set</p>
             )}
 
             {!isView && (
@@ -397,7 +397,7 @@ export default function BrandForm() {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
-                  <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>OR</span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>OR</span>
                   <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                 </div>
 

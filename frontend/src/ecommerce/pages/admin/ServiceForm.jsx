@@ -19,9 +19,9 @@ import { getAvailableServices, getAvailableProducts } from '../../../_shared/api
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -32,11 +32,11 @@ const labelStyle = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
   letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
-const hintStyle = { fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 };
+const hintStyle = { fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
@@ -44,7 +44,7 @@ const card = {
 const sectionHeader = {
   fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-600)',
   margin: '0 0 16px', paddingBottom: 12,
-  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+  borderBottom: '1px solid var(--line)',
 };
 
 // ── Atom components ───────────────────────────────────────────────────────────
@@ -88,12 +88,12 @@ function Toggle({ checked, onChange, label, sub }) {
     <div onClick={() => onChange(!checked)} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
-      background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+      background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
       userSelect: 'none',
     }}>
       <div>
-        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>{label}</p>
-        {sub && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{sub}</p>}
+        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{label}</p>
+        {sub && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>{sub}</p>}
       </div>
       <div style={{
         width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
@@ -144,7 +144,7 @@ function OutlineBtn({ onClick, children }) {
       padding: '6px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
       fontFamily: 'inherit', cursor: 'pointer',
       border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
-      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', transition: 'background 150ms',
+      background: 'var(--surface-card, #fff)', transition: 'background 150ms',
     }}
       onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
       onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
@@ -179,11 +179,11 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
             <span key={item.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+              background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
               border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             }}>
               {item.name}
-              {item.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{item.sku}</span>}
+              {item.sku && <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{item.sku}</span>}
               <button
                 type="button"
                 onClick={() => onToggle(item.id)}
@@ -223,13 +223,13 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
         {open && (
           <div style={{
             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
-            background: 'white', borderRadius: 10,
-            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+            background: 'var(--surface-card, #fff)', borderRadius: 10,
+            border: '1.5px solid var(--line)',
             boxShadow: '0 8px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
             maxHeight: 220, overflowY: 'auto',
           }}>
             {filtered.length === 0 ? (
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '10px 14px', margin: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '10px 14px', margin: 0 }}>
                 {items.length === 0 ? emptyMsg : 'No matches'}
               </p>
             ) : filtered.map(item => {
@@ -262,16 +262,16 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
                       </svg>
                     )}
                   </span>
-                  <span style={{ fontSize: '0.82rem', color: '#374151', fontWeight: isSelected ? 600 : 400, flex: 1 }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: isSelected ? 600 : 400, flex: 1 }}>
                     {item.name}
                   </span>
                   {item.sku && (
-                    <span style={{ fontSize: '0.65rem', color: '#9ca3af', fontFamily: 'monospace', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', flexShrink: 0 }}>
                       {item.sku}
                     </span>
                   )}
                   {item.price != null && (
-                    <span style={{ fontSize: '0.72rem', color: '#9ca3af', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', flexShrink: 0 }}>
                       {currencyCode(item.currency_id) ?? 'KES'} {Number(item.price).toLocaleString()}
                     </span>
                   )}
@@ -284,7 +284,7 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
 
       {/* Count hint */}
       {selectedItems.length > 0 && (
-        <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 5 }}>
+        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 5 }}>
           {selectedItems.length} selected
         </p>
       )}
@@ -482,7 +482,7 @@ const ServiceForm = () => {
           <div>
             <button onClick={() => navigate('/admin/services')} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
-              fontSize: '0.78rem', color: '#9ca3af', background: 'none', border: 'none',
+              fontSize: '0.78rem', color: 'var(--text-tertiary)', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, transition: 'color 150ms',
             }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
@@ -493,15 +493,15 @@ const ServiceForm = () => {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
               {isEditMode ? 'Edit service' : 'New service'}
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               {isEditMode ? 'Update service information' : 'Add a new service to your catalogue'}
             </p>
           </div>
           <button onClick={() => navigate('/admin/services')} style={{
             display: 'flex', alignItems: 'center', gap: 6,
             padding: '8px 14px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600,
-            background: 'transparent', color: '#9ca3af',
-            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
+            background: 'transparent', color: 'var(--text-tertiary)',
+            border: '1.5px solid var(--line)', cursor: 'pointer', fontFamily: 'inherit',
             transition: 'border-color 150ms, color 150ms',
           }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
@@ -620,7 +620,7 @@ const ServiceForm = () => {
                 <ServiceCatalogEditor serviceId={Number(id)} currencyCode={priceCurrencyCode} />
               ) : (
                 <SectionCard title="Options & packages">
-                  <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0 }}>
                     Save the service first. It starts with a "Standard" package at the starting price; then add options and packages here.
                   </p>
                 </SectionCard>
@@ -634,7 +634,7 @@ const ServiceForm = () => {
               </SectionCard>
               {isEditMode && id
                 ? <TaxOverridesPanel taxableType="service" taxableId={Number(id)} />
-                : <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '0 0 16px' }}>Exemptions for a single customer or district can be added once the service is saved.</p>}
+                : <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '0 0 16px' }}>Exemptions for a single customer or district can be added once the service is saved.</p>}
 
               {/* Service details */}
               <SectionCard title="Service details">
@@ -701,7 +701,7 @@ const ServiceForm = () => {
                           <span key={s.id} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 6,
                             padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-                            background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                            background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                             border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                           }}>
                             {s.name}
@@ -721,7 +721,7 @@ const ServiceForm = () => {
                     <button type="button" onClick={() => setShowServiceSelector(true)} style={{
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
-                      background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                      background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                       border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
                     }}
                       onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)'}
@@ -752,11 +752,11 @@ const ServiceForm = () => {
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '10px 12px', borderRadius: 8, marginBottom: 12,
-                  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+                  background: 'var(--surface-card, #fff)', border: '1px solid var(--line)',
                 }}>
                   <div>
-                    <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151', margin: '0 0 1px' }}>Status</p>
-                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+                    <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1px' }}>Status</p>
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>
                       {formData.status === 'active' ? 'Published' : 'Draft'}
                     </p>
                   </div>
@@ -774,7 +774,7 @@ const ServiceForm = () => {
                     width: '100%', padding: '10px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 700,
                     fontFamily: 'inherit', cursor: submitting ? 'not-allowed' : 'pointer',
                     border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-600)',
-                    background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                    background: 'var(--surface-card, #fff)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
                     opacity: submitting ? 0.6 : 1, transition: 'background 150ms',
                   }}
                     onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
@@ -803,7 +803,7 @@ const ServiceForm = () => {
                 <p style={sectionHeader}>Main image</p>
                 {mainImagePreview && (
                   <div style={{ position: 'relative', marginBottom: 12 }}>
-                    <img src={mainImagePreview} alt="Preview" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', display: 'block' }} />
+                    <img src={mainImagePreview} alt="Preview" style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 8, border: '1.5px solid var(--line)', display: 'block' }} />
                     <button type="button" onClick={() => { setMainImageFile(null); setMainImagePreview(''); setMainImageUrl(''); }} style={{
                       position: 'absolute', top: -8, right: -8, width: 24, height: 24,
                       borderRadius: '50%', background: '#ef4444', border: 'none', cursor: 'pointer',
@@ -816,14 +816,14 @@ const ServiceForm = () => {
                 <label style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   height: 100, borderRadius: 9, cursor: 'pointer', gap: 6,
-                  border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
+                  border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'var(--surface-card, #fff)',
                   transition: 'background 150ms',
                 }}
                   onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}
                   onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
                 >
-                  <Upload size={20} style={{ color: '#c4b5fd' }} />
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>Click to upload</span>
+                  <Upload size={20} style={{ color: 'var(--text-tertiary)' }} />
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Click to upload</span>
                   <input type="file" accept="image/*" onChange={handleMainImageChange} style={{ display: 'none' }} />
                 </label>
                 <div style={{ marginTop: 12 }}>
@@ -846,7 +846,7 @@ const ServiceForm = () => {
                   {galleryPreviews.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                       {galleryPreviews.map((p, i) => (
-                        <img key={i} src={p} alt={`Gallery ${i + 1}`} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }} />
+                        <img key={i} src={p} alt={`Gallery ${i + 1}`} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--line)' }} />
                       ))}
                     </div>
                   )}
@@ -895,7 +895,7 @@ const ServiceForm = () => {
               </div>
 
               {/* SEO note */}
-              <div style={{ ...card, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
+              <div style={{ ...card, background: 'var(--surface-card, #fff)' }}>
                 <p style={{ ...sectionHeader, marginBottom: 10 }}>SEO</p>
                 <p style={{ fontSize: '0.75rem', color: 'var(--color-primary-600)', margin: 0, lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
                   <Info size={13} style={{ flexShrink: 0, marginTop: 1 }} />

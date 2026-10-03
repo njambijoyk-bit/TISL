@@ -17,7 +17,7 @@ const UNIT_LABELS = { 'each':'Each','unit':'Unit','piece':'Piece','box':'Box','p
 const Btn = ({ children, onClick, disabled, variant = 'outline', icon, type = 'button' }) => {
   const variants = {
     primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--line)', boxShadow: 'none' },
+    outline: { background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--line)', boxShadow: 'none' },
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled} style={{
@@ -82,7 +82,7 @@ const StyledSelect = ({ options, ...props }) => (
   </select>
 );
 
-const FieldHint = ({ children }) => <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 5 }}>{children}</p>;
+const FieldHint = ({ children }) => <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 5 }}>{children}</p>;
 const FieldError = ({ children }) => children ? <p style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: 4, fontWeight: 600 }}>{children}</p> : null;
 
 const Grid2 = ({ children }) => (
@@ -177,7 +177,7 @@ const CustomItemModal = ({ type = 'product', onClose, onSave, isAdmin = false })
               </div>
               <h2 style={{ fontSize: '1rem', fontWeight: 900, color: purple, margin: 0 }}>Add Custom {itemLabel}</h2>
             </div>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: '#9ca3af', display: 'flex' }}>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: 'var(--text-tertiary)', display: 'flex' }}>
               <X size={20} />
             </button>
           </div>
@@ -303,7 +303,7 @@ const CustomItemModal = ({ type = 'product', onClose, onSave, isAdmin = false })
             {/* Info box */}
             <div style={{ borderRadius: 12, border: '1.5px solid rgba(59,130,246,0.2)', background: 'rgba(59,130,246,0.05)', padding: '14px 16px' }}>
               <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#3b82f6', margin: '0 0 8px' }}>💡 Why Add Custom Items?</p>
-              <div style={{ fontSize: '0.78rem', color: '#6b7280', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {[`Request items not currently in our catalog`, `Specify unique requirements or modifications`, `Get quotes for specialized ${itemLabel.toLowerCase()}s`, `Help us understand your exact needs`].map((t, i) => (
                   <span key={i}>• {t}</span>
                 ))}

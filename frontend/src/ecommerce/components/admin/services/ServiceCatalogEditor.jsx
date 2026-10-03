@@ -10,7 +10,7 @@ import resourcesAPI from '../../../../_shared/api/resources';
 
 const cell = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: `1px solid ${colors.border ?? '#eee'}` };
-const td = { padding: '6px 8px', verticalAlign: 'middle', borderBottom: '1px solid #f3f4f6' };
+const td = { padding: '6px 8px', verticalAlign: 'middle', borderBottom: '1px solid var(--line)' };
 const FIELD_TYPES = [['text', 'Short text'], ['textarea', 'Long text'], ['number', 'Number'], ['select', 'Choice'], ['file', 'File / photo']];
 
 function Section({ title, description, action, children }) {
@@ -73,13 +73,13 @@ function PackageMaterials({ variants, serviceId, readOnly, busy, run }) {
         <div style={{ position: 'relative', maxWidth: 360, marginTop: 8 }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Add a product used by this package…" style={cell} />
           {found.length > 0 && (
-            <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 220, overflowY: 'auto' }}>
+            <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 220, overflowY: 'auto' }}>
               {found.map((f) => {
                 const base = f.units.find((u) => u.role === 'base') ?? f.units[0];
                 return (
                   <button key={f.variant_id} type="button" onClick={() => { setRows((rs) => [...rs, { variant_id: f.variant_id, quantity: 1, mode: 'included', product: f.product, variant: f.variant, unit_code: base?.code, for_sale: f.for_sale }]); setQ(''); }}
                     style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
-                    {f.product} <span style={{ color: '#9ca3af' }}>{f.variant && f.variant !== 'Standard' ? `${f.variant} · ` : ''}{f.sku}</span>
+                    {f.product} <span style={{ color: 'var(--text-tertiary)' }}>{f.variant && f.variant !== 'Standard' ? `${f.variant} · ` : ''}{f.sku}</span>
                   </button>
                 );
               })}
@@ -272,7 +272,7 @@ function WhoDoesIt({ variants, staff, readOnly }) {
             <tbody>
               {groups.map((g) => (
                 <Fragment key={g.name}>
-                  <tr><td colSpan={variants.length + 2} style={{ ...td, fontSize: '0.7rem', fontWeight: 800, color: colors.textFaint, textTransform: 'uppercase', background: '#fafafa' }}>{g.name}</td></tr>
+                  <tr><td colSpan={variants.length + 2} style={{ ...td, fontSize: '0.7rem', fontWeight: 800, color: colors.textFaint, textTransform: 'uppercase', background: 'var(--surface-input)' }}>{g.name}</td></tr>
                   {g.rows.map((r) => (
                     <tr key={r.id}>
                       <td style={td}>{r.name} <span style={{ color: colors.textFaint, fontSize: '0.72rem' }}>{r.type}{!r.has_hours ? ' · no working hours yet' : ''}</span></td>

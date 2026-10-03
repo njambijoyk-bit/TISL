@@ -15,7 +15,7 @@ const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
 const Btn = ({ children, onClick, disabled, variant = 'outline', icon, size = 'md', type = 'button' }) => {
   const variants = {
     primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--line)', boxShadow: 'none' },
+    outline: { background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--line)', boxShadow: 'none' },
     ghost:   { background: purpleLt, color: purple, border: `1.5px solid ${purpleBd}`, boxShadow: 'none' },
   };
   const pad = size === 'sm' ? '5px 12px' : '8px 18px';
@@ -37,7 +37,7 @@ const Btn = ({ children, onClick, disabled, variant = 'outline', icon, size = 'm
 
 const StyledInput = ({ icon, ...props }) => (
   <div style={{ position: 'relative' }}>
-    {icon && <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }}>{icon}</div>}
+    {icon && <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }}>{icon}</div>}
     <input {...props} style={{
       width: '100%', padding: icon ? '9px 12px 9px 36px' : '9px 12px', borderRadius: 10,
       border: '1.5px solid var(--border,#e5e7eb)', background: 'var(--panel-bg,white)',
@@ -173,7 +173,7 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
           {/* Header */}
           <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: purpleLt }}>
             <h2 style={{ fontSize: '1rem', fontWeight: 900, color: purple, margin: 0 }}>Select Products</h2>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: '#9ca3af', display: 'flex' }}>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 6, borderRadius: 8, color: 'var(--text-tertiary)', display: 'flex' }}>
               <X size={20} />
             </button>
           </div>
@@ -205,7 +205,7 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
                 <div style={{ width: 32, height: 32, border: `3px solid ${purpleLt}`, borderTopColor: purple, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
               </div>
             ) : displayProducts.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 24px', color: '#9ca3af' }}>
+              <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--text-tertiary)' }}>
                 <Package size={48} style={{ margin: '0 auto 12px', opacity: 0.25 }} />
                 <p style={{ fontSize: '0.85rem' }}>{searchTerm || selectedCategory ? 'No products match your filters' : 'No products available'}</p>
               </div>
@@ -235,11 +235,11 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
                       {/* Info */}
                       <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
                         <p style={{ fontSize: '0.83rem', fontWeight: 700, color: 'var(--text,#111827)', margin: 0, lineHeight: 1.3 }}>{product.name}</p>
-                        {product.sku && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>SKU: {product.sku}</p>}
+                        {product.sku && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>SKU: {product.sku}</p>}
                         {product.brand?.name && (
-                          <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: 'var(--surface-input)', color: '#6b7280', width: 'fit-content' }}>{product.brand.name}</span>
+                          <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: 'var(--surface-input)', color: 'var(--text-secondary)', width: 'fit-content' }}>{product.brand.name}</span>
                         )}
-                        {product.category?.name && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{product.category.name}</p>}
+                        {product.category?.name && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>{product.category.name}</p>}
                         {product.price && <p style={{ fontSize: '0.82rem', fontWeight: 800, color: purple, margin: 0 }}>{fmt(product.price, product)}</p>}
                         {product.stock_quantity !== undefined && (
                           <p style={{ fontSize: '0.7rem', fontWeight: 600, color: product.stock_quantity > 0 ? '#10b981' : '#ef4444', margin: 0 }}>
@@ -256,7 +256,7 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
 
           {/* Footer — FIX 7: AdminPagination only here, removed the duplicate above */}
           <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border,#f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{pagination.total} product{pagination.total !== 1 ? 's' : ''} available</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>{pagination.total} product{pagination.total !== 1 ? 's' : ''} available</p>
             <AdminPagination
               pagination={pagination}
               onPageChange={(newPage) => setPage(newPage)}

@@ -24,17 +24,17 @@ import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
 const inputDisabled = {
   ...inputStyle,
-  background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+  background: 'var(--surface-card, #fff)',
   borderColor: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
-  color: '#9ca3af', cursor: 'not-allowed',
+  color: 'var(--text-tertiary)', cursor: 'not-allowed',
 };
 const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
 const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
@@ -44,19 +44,19 @@ const labelStyle = {
   letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5,
 };
 const hintStyle = {
-  fontSize: '0.68rem', color: '#9ca3af', marginTop: 4,
+  fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4,
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const sectionHeader = {
   fontSize: '0.875rem', fontWeight: 700, color: 'var(--color-primary-600)',
   margin: '0 0 20px', paddingBottom: 12,
-  borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+  borderBottom: '1px solid var(--line)',
 };
 
 // ── Atom components ───────────────────────────────────────────────────────────
@@ -117,13 +117,13 @@ function Toggle({ checked, onChange, disabled, label, sub }) {
       style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 14px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+        background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
         opacity: disabled ? 0.6 : 1, userSelect: 'none',
       }}
     >
       <div>
-        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>{label}</p>
-        {sub && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{sub}</p>}
+        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{label}</p>
+        {sub && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>{sub}</p>}
       </div>
       <div style={{
         width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
@@ -156,18 +156,18 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
 
   if (disabled) {
     return selectedItems.length === 0
-      ? <p style={{ fontSize: '0.78rem', color: '#d1d5db', margin: 0 }}>No related products</p>
+      ? <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>No related products</p>
       : (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           {selectedItems.map(item => (
             <span key={item.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
-              border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
+              border: '1px solid var(--line)',
             }}>
               {item.name}
-              {item.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{item.sku}</span>}
+              {item.sku && <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{item.sku}</span>}
             </span>
           ))}
         </div>
@@ -183,11 +183,11 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
             <span key={item.id} style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+              background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
               border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
             }}>
               {item.name}
-              {item.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{item.sku}</span>}
+              {item.sku && <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{item.sku}</span>}
               <button type="button" onClick={() => onToggle(item.id)} style={{
                 width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
                 background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--color-primary-600)',
@@ -218,13 +218,13 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
         {open && (
           <div style={{
             position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 20,
-            background: 'white', borderRadius: 10,
-            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+            background: 'var(--surface-card, #fff)', borderRadius: 10,
+            border: '1.5px solid var(--line)',
             boxShadow: '0 8px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
             maxHeight: 220, overflowY: 'auto',
           }}>
             {filtered.length === 0 ? (
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '10px 14px', margin: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '10px 14px', margin: 0 }}>
                 {items.length === 0 ? 'No products available' : 'No matches'}
               </p>
             ) : filtered.map(item => {
@@ -254,11 +254,11 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
                       </svg>
                     )}
                   </span>
-                  <span style={{ fontSize: '0.82rem', color: '#374151', fontWeight: isSel ? 600 : 400, flex: 1 }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: isSel ? 600 : 400, flex: 1 }}>
                     {item.name}
                   </span>
                   {item.sku && (
-                    <span style={{ fontSize: '0.65rem', color: '#9ca3af', fontFamily: 'monospace', flexShrink: 0 }}>
+                    <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', flexShrink: 0 }}>
                       {item.sku}
                     </span>
                   )}
@@ -270,7 +270,7 @@ function SearchPicker({ items, selected, onToggle, disabled, placeholder = 'Sear
       </div>
 
       {selectedItems.length > 0 && (
-        <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 5 }}>
+        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 5 }}>
           {selectedItems.length} selected
         </p>
       )}
@@ -715,7 +715,7 @@ export default function ProductForm() {
               onClick={() => navigate(returnTo ?? '/admin/products')}
               style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                fontSize: '0.78rem', color: '#9ca3af', background: 'none', border: 'none',
+                fontSize: '0.78rem', color: 'var(--text-tertiary)', background: 'none', border: 'none',
                 cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8, transition: 'color 150ms',
               }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
@@ -726,7 +726,7 @@ export default function ProductForm() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 3px' }}>
               {isView ? 'View product' : isEdit ? 'Edit product' : 'New product'}
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               {isView ? 'View product details' : isEdit ? 'Update product information' : 'Add a new product to your catalogue'}
             </p>
           </div>
@@ -748,8 +748,8 @@ export default function ProductForm() {
                 <button onClick={() => navigate(returnTo ?? '/admin/products')} disabled={loading || deleting} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 9, fontSize: '0.82rem', fontWeight: 600,
-                  background: 'transparent', color: '#9ca3af',
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
+                  background: 'transparent', color: 'var(--text-tertiary)',
+                  border: '1.5px solid var(--line)', cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'border-color 150ms, color 150ms',
                 }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 45%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
@@ -777,7 +777,7 @@ export default function ProductForm() {
           borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
           borderBottom: 'none',
         }}>
-          <div style={{ display: 'flex', padding: '0 20px', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', padding: '0 20px', borderBottom: '2px solid var(--line)', overflowX: 'auto' }}>
             {TABS.map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
                 padding: '12px 14px', fontSize: '0.8rem',
@@ -996,7 +996,7 @@ export default function ProductForm() {
                 <label style={labelStyle}>Main image *</label>
                 {mainImagePreview && (
                   <div style={{ position: 'relative', display: 'inline-block', marginBottom: 14 }}>
-                    <img src={mainImagePreview} alt="Main" style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'block' }} />
+                    <img src={mainImagePreview} alt="Main" style={{ width: 160, height: 160, objectFit: 'cover', borderRadius: 10, border: '1.5px solid var(--line)', display: 'block' }} />
                     {!isView && (
                       <button type="button" onClick={() => { setMainImage(null); setMainImagePreview(''); setFormData(p => ({ ...p, main_image_url: '' })); }} style={{
                         position: 'absolute', top: -8, right: -8, width: 24, height: 24,
@@ -1015,7 +1015,7 @@ export default function ProductForm() {
                     </Field>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
-                      <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>OR</span>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>OR</span>
                       <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                     </div>
                     <Field label="Image URL">
@@ -1034,7 +1034,7 @@ export default function ProductForm() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10, marginBottom: 14 }}>
                     {additionalPreviews.map((preview, i) => (
                       <div key={i} style={{ position: 'relative' }}>
-                        <img src={preview} alt={`Additional ${i + 1}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'block' }} />
+                        <img src={preview} alt={`Additional ${i + 1}`} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8, border: '1.5px solid var(--line)', display: 'block' }} />
                         {!isView && (
                           <button type="button" onClick={() => removeAdditionalImage(i)} style={{
                             position: 'absolute', top: -7, right: -7, width: 22, height: 22,
@@ -1055,7 +1055,7 @@ export default function ProductForm() {
                     </Field>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                       <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
-                      <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>OR</span>
+                      <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>OR</span>
                       <div style={{ flex: 1, height: 1, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }} />
                     </div>
                     <Field label="Image URLs" hint="One per line, max 5 total">
@@ -1151,7 +1151,7 @@ export default function ProductForm() {
             ) : (
               <div style={{
                 padding: '40px 24px', borderRadius: 10, textAlign: 'center',
-                border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: '#6b7280', fontSize: '0.82rem',
+                border: '1.5px dashed var(--line)', color: 'var(--text-secondary)', fontSize: '0.82rem',
               }}>
                 Create the product first — then come back here to add options like size or colour, and a price for each variant.
               </div>
@@ -1171,7 +1171,7 @@ export default function ProductForm() {
               </div>
               {id
                 ? <TaxOverridesPanel taxableType="product" taxableId={Number(id)} readOnly={isView} />
-                : <p style={{ marginTop: 16, fontSize: '0.75rem', color: '#9ca3af' }}>Exemptions for a single customer or district can be added here once the product is saved.</p>}
+                : <p style={{ marginTop: 16, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Exemptions for a single customer or district can be added here once the product is saved.</p>}
             </>
           )}
 
@@ -1213,11 +1213,11 @@ export default function ProductForm() {
                       <span key={p.id} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 6,
                         padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600,
-                        background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                        background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                         border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
                       }}>
                         {p.name}
-                        {p.sku && <span style={{ fontSize: '0.62rem', color: '#c4b5fd', fontFamily: 'monospace' }}>{p.sku}</span>}
+                        {p.sku && <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{p.sku}</span>}
                         {!isView && (
                           <button type="button" onClick={() => setSelectedRelated(prev => prev.filter(x => x.id !== p.id))}
                             style={{ width: 16, height: 16, borderRadius: '50%', border: 'none', cursor: 'pointer',
@@ -1235,14 +1235,14 @@ export default function ProductForm() {
                 )}
 
                 {isView && selectedRelated.length === 0 && (
-                  <p style={{ fontSize: '0.78rem', color: '#d1d5db', margin: 0 }}>No related products</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>No related products</p>
                 )}
 
                 {!isView && (
                   <button type="button" onClick={() => setShowProductSelector(true)} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '7px 14px', borderRadius: 9, fontSize: '0.78rem', fontWeight: 700,
-                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                    background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                     border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 30%, transparent)', cursor: 'pointer',
                     transition: 'background 150ms',
                   }}

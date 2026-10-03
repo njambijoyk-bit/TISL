@@ -52,14 +52,14 @@ export default function BranchStockPanel({ productId, embedded = false }) {
   // Only meaningful with more than one branch and at least one variant.
   if (locations.length <= 1 || variants.length === 0) {
     return embedded ? (
-      <p style={{ margin: 0, fontSize: '0.8rem', color: '#9ca3af' }}>
+      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
         {variants.length === 0 ? 'No variants yet — open the product to add stock.' : 'Only one branch — nothing to split.'}
       </p>
     ) : null;
   }
 
-  const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid #eee' };
-  const td = { padding: '6px 10px', borderBottom: '1px solid #f6f6f6' };
+  const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.03em', borderBottom: '1px solid #eee' };
+  const td = { padding: '6px 10px', borderBottom: '1px solid var(--line)' };
 
   return (
     <div style={embedded
@@ -73,14 +73,14 @@ export default function BranchStockPanel({ productId, embedded = false }) {
       )}
 
       {!embedded && (
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', padding: '10px 12px', borderRadius: 9, fontSize: '0.78rem', color: '#4b5563' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', background: 'var(--surface-card, #fff)', padding: '10px 12px', borderRadius: 9, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
         <Info size={15} style={{ flexShrink: 0, marginTop: 1, color: 'var(--color-primary-500)' }} />
         <span>Quantity per variant, per branch. It is not typed in: it moves with purchases, sales, stock counts, write-offs and transfers. To change it use <Link to="/admin/stock/counts">a stock count</Link> (shortage or surplus), <Link to="/admin/purchases/new">a purchase</Link> (stock arrived) or <Link to="/admin/stock/transfers">a transfer</Link> (between branches).</span>
       </div>
       )}
 
       <div style={{ overflowX: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360 }}>
+        <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 360, color: 'var(--text-primary)' }}>
           <thead>
             <tr>
               <th style={th}>Variant</th>
@@ -91,7 +91,7 @@ export default function BranchStockPanel({ productId, embedded = false }) {
             {variants.map((v) => (
               <tr key={v.id}>
                 <td style={{ ...td, fontWeight: 600, fontSize: '0.84rem' }}>
-                  {v.name}{v.is_default && <span style={{ color: '#9ca3af', fontWeight: 400 }}> · default</span>}
+                  {v.name}{v.is_default && <span style={{ color: 'var(--text-tertiary)', fontWeight: 400 }}> · default</span>}
                 </td>
                 {locations.map((l) => (
                   <td key={l.id} style={{ ...td, textAlign: 'center' }}>

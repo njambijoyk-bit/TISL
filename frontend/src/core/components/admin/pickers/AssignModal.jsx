@@ -16,7 +16,7 @@ const fOut = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(
 const Btn = ({ children, onClick, disabled, variant = 'primary', type = 'button' }) => {
   const v = {
     primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--line)', boxShadow: 'none' },
+    outline: { background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--line)', boxShadow: 'none' },
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled} style={{
@@ -32,7 +32,7 @@ const Btn = ({ children, onClick, disabled, variant = 'primary', type = 'button'
 };
 
 const FieldLabel = ({ children, required }) => (
-  <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 8 }}>
+  <p style={{ fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
     {children}{required && <span style={{ color: '#ef4444', marginLeft: 3 }}>*</span>}
   </p>
 );
@@ -127,9 +127,9 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
           style={{
             width: '100%', paddingLeft: 36, paddingRight: 36, paddingTop: 9, paddingBottom: 9,
             borderRadius: 10, fontSize: '0.83rem',
-            background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+            background: 'var(--surface-card, #fff)',
             border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
-            color: '#111827', outline: 'none', boxSizing: 'border-box',
+            color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
             transition: 'border-color 150ms, box-shadow 150ms',
             fontFamily: 'inherit',
           }}
@@ -139,7 +139,7 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
         ) : query ? (
           <button type="button" onClick={handleClear} style={{
             position: 'absolute', right: 10, background: 'none', border: 'none',
-            cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2,
+            cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2,
           }}
             onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
@@ -152,12 +152,12 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
       {open && (
         <div style={{
           position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 6, zIndex: 50,
-          borderRadius: 12, overflow: 'hidden', background: 'white',
+          borderRadius: 12, overflow: 'hidden', background: 'var(--surface-card, #fff)',
           border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
         }}>
           {results.length === 0 ? (
-            <p style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#6b7280', fontStyle: 'italic', margin: 0 }}>
+            <p style={{ padding: '12px 16px', fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>
               No admins found for "{query}"
             </p>
           ) : (
@@ -184,11 +184,11 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
                         {fullName(admin).split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'}
                       </div>
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <p style={{ fontSize: '0.83rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p style={{ fontSize: '0.83rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {fullName(admin)}
                           {isCurrent && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: 'var(--color-primary-500)', fontWeight: 700 }}>Currently assigned</span>}
                         </p>
-                        <p style={{ fontSize: '0.71rem', color: '#6b7280', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p style={{ fontSize: '0.71rem', color: 'var(--text-secondary)', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {admin.email}
                         </p>
                       </div>
@@ -220,7 +220,7 @@ const AdminPicker = ({ selected, onSelect, currentAssignedId }) => {
             <p style={{ fontSize: '0.83rem', fontWeight: 600, color: 'var(--color-primary-400)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {fullName(selected)}
             </p>
-            <p style={{ fontSize: '0.71rem', color: '#9ca3af', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: '0.71rem', color: 'var(--text-tertiary)', margin: '1px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {selected.email}
             </p>
           </div>
@@ -252,7 +252,7 @@ const AssignModal = ({ onClose, onAssign, currentAssignedId = null }) => {
   return (
     <Modal isOpen={true} onClose={onClose} title={<span style={{ color: purple }}>Assign Admin</span>} size="md">
       <form onSubmit={handleSubmit}>
-        <p style={{ fontSize: '0.83rem', color: '#6b7280', marginBottom: 20, lineHeight: 1.65 }}>
+        <p style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', marginBottom: 20, lineHeight: 1.65 }}>
           Select an admin to take responsibility for this.
         </p>
 
@@ -272,7 +272,7 @@ const AssignModal = ({ onClose, onAssign, currentAssignedId = null }) => {
             onSelect={setSelectedAdmin}
             currentAssignedId={currentAssignedId}
           />
-          <p style={{ fontSize: '0.7rem', color: '#9ca3af', marginTop: 6 }}>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', marginTop: 6 }}>
             The selected admin can manage their assignment through their profile work tab
           </p>
         </div>

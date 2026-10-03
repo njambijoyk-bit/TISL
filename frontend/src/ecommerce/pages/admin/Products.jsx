@@ -222,7 +222,7 @@ function Modal({ children, onClose, maxWidth = 480 }) {
     >
       <div style={{
         ...card,
-        background: 'white', color: '#08070a',
+        background: 'var(--surface-card, #fff)', color: '#08070a',
         width: '100%', maxWidth,
         maxHeight: '92vh',
         display: 'flex', flexDirection: 'column',
@@ -376,7 +376,7 @@ export default function Products() {
             {/* Filter toggle */}
             <Btn
               onClick={() => setShowFilters(v => !v)}
-              style={showFilters ? { background: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', borderColor: 'var(--color-primary-600)', color: 'var(--color-primary-600)' } : {}}
+              style={showFilters ? { background: 'var(--surface-card, #fff)', borderColor: 'var(--color-primary-600)', color: 'var(--color-primary-600)' } : {}}
             >
               <Filter size={15} /> Filters {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-600)', display: 'inline-block' }} />}
             </Btn>

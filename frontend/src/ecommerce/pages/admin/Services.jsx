@@ -446,7 +446,7 @@ const Services = () => {
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
                   fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
-                  background: 'transparent', color: '#6b7280',
+                  background: 'transparent', color: 'var(--text-secondary)',
                   border: '1.5px solid rgba(107,114,128,0.25)',
                   transition: 'all 150ms',
                 }}
@@ -496,7 +496,7 @@ const Services = () => {
           {[
             { label: 'Total',    value: statistics.total_services    || 0, color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',   Icon: BarChart3   },
             { label: 'Active',   value: statistics.active_services   || 0, color: '#10b981', bg: 'rgba(16,185,129,0.1)',  Icon: Power       },
-            { label: 'Draft',    value: statistics.draft_services    || 0, color: '#6b7280', bg: 'rgba(107,114,128,0.1)', Icon: Archive     },
+            { label: 'Draft',    value: statistics.draft_services    || 0, color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', Icon: Archive     },
             { label: 'Featured', value: statistics.featured_services || 0, color: '#eab308', bg: 'rgba(234,179,8,0.1)',   Icon: CheckSquare },
           ].map(({ label, value, color, bg, Icon }) => (
             <div key={label} style={{
@@ -526,8 +526,8 @@ const Services = () => {
       {/* Bulk Actions Bar */}
       {selectedIds.length > 0 && (
         <div style={{
-          background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
-          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+          background: 'var(--surface-card, #fff)',
+          border: '1.5px solid var(--line)',
           borderRadius: 10, padding: '12px 16px', marginBottom: 20,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -548,7 +548,7 @@ const Services = () => {
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '5px 12px', borderRadius: 8, cursor: 'pointer',
                   fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
-                  background: 'transparent', color: '#6b7280',
+                  background: 'transparent', color: 'var(--text-secondary)',
                   border: '1.5px solid rgba(107,114,128,0.25)',
                   transition: 'all 150ms',
                 }}
@@ -610,7 +610,7 @@ const Services = () => {
           <div style={{ position: 'relative' }}>
             <Search size={15} style={{
               position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)',
-              color: '#9ca3af', pointerEvents: 'none',
+              color: 'var(--text-tertiary)', pointerEvents: 'none',
             }} />
             <input
               type="text"
@@ -724,10 +724,10 @@ const Services = () => {
         title="Move Services to Trash"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <p style={{ fontSize: '0.88rem', color: '#111827', margin: 0 }}>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-primary)', margin: 0 }}>
             Are you sure you want to move <strong style={{ color: 'var(--color-primary-800)' }}>{selectedIds.length} service(s)</strong> to trash?
           </p>
-          <p style={{ fontSize: '0.8rem', color: '#4b5563', margin: 0 }}>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>
             You can restore them later from the trash.
           </p>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
@@ -740,7 +740,7 @@ const Services = () => {
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '7px 14px', borderRadius: 8, cursor: actionLoading ? 'not-allowed' : 'pointer',
                 fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
-                background: 'transparent', color: '#6b7280',
+                background: 'transparent', color: 'var(--text-secondary)',
                 border: '1.5px solid rgba(107,114,128,0.25)',
                 opacity: actionLoading ? 0.5 : 1, transition: 'all 150ms',
               }}
@@ -802,8 +802,8 @@ const Services = () => {
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '10px 14px',
-              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
-              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+              background: 'var(--surface-card, #fff)',
+              border: '1.5px solid var(--line)',
               borderRadius: 8,
             }}>
               <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-800)' }}>
@@ -819,7 +819,7 @@ const Services = () => {
                     display: 'inline-flex', alignItems: 'center', gap: 6,
                     padding: '6px 12px', borderRadius: 8,
                     fontSize: '0.78rem', fontWeight: 600, fontFamily: 'inherit',
-                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                    background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                     border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
                     cursor: actionLoading ? 'not-allowed' : 'pointer',
                     opacity: actionLoading ? 0.5 : 1, transition: 'all 150ms',
