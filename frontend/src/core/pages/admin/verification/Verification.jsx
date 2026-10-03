@@ -175,7 +175,7 @@ export default function Verification() {
         <HubHeader title="Verification" description="A second pair of eyes on the month's records. It never changes the books — it records that someone looked, and what they found." />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         {data && !data.table_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>Run script 65_verification.sql to use verification.</p>}
-        {data?.is_manager && <div style={{ display: 'flex', gap: 6, margin: '4px 0 10px' }}>{[['work', 'Verification'], ['setup', 'Set-up']].map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} style={{ ...small, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : undefined }}>{l}</button>)}</div>}
+        {data?.is_manager && <div style={{ display: 'flex', gap: 6, margin: '4px 0 10px' }}>{[['work', 'Verification'], ['setup', 'Set-up']].map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} style={{ ...small, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)' }}>{l}</button>)}</div>}
         {data?.table_ready && tab === 'setup' && <Setup month={month} onChanged={load} />}
         {data?.table_ready && tab === 'work' && (
           <div style={{ display: 'grid', gap: 14 }}>
@@ -184,7 +184,7 @@ export default function Verification() {
               <span style={{ fontSize: '0.76rem', color: colors.textFaint }}>Due by {new Date(data.due).toLocaleDateString([], { day: 'numeric', month: 'long' })}</span>
               {data.is_manager && <label style={{ marginLeft: 'auto', fontSize: '0.78rem' }}><input type="checkbox" checked={all} onChange={(e) => { setAll(e.target.checked); setType(null); }} /> Show everyone's</label>}
             </div>
-            {data.months.length > 0 && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{data.months.map((m) => <button key={m.month} type="button" style={{ ...small, background: m.month === month ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : undefined }} onClick={() => { setType(null); setMonth(m.month); }}>{mname(m.month)} · {m.open ? `${m.open} left` : 'done'}</button>)}</div>}
+            {data.months.length > 0 && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{data.months.map((m) => <button key={m.month} type="button" style={{ ...small, background: m.month === month ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)' }} onClick={() => { setType(null); setMonth(m.month); }}>{mname(m.month)} · {m.open ? `${m.open} left` : 'done'}</button>)}</div>}
             {!data.types.length && <p style={{ ...card, padding: 18, fontSize: '0.84rem', color: colors.textMuted }}>Nothing to verify for {mname(month)}. {data.is_manager ? 'Assign people under Set-up.' : 'Nothing has been assigned to you for this month.'}</p>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(230px,1fr))', gap: 10 }}>
               {data.types.map((t) => (
