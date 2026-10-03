@@ -258,9 +258,15 @@ class BooksVoucherController extends Controller
     }
 
     /** Every cash ledger with its book balance and last count, and the cash-on-delivery orders still to collect. */
-    public function cash(\App\Services\Books\CashCountService $cash): JsonResponse
+    public function cash(\App\Services\Books\CashCountService $cash, \App\Services\Books\LedgerService $ledgers): JsonResponse
     {
-        return response()->json($cash->overview());
+        // cash is counted; banks (and mobile money) are shown with what the books say, ready to be reconciled against the statement
+        $group = \App\Models\Books\LedgerGroup::where('name', 'Bank Accounts')->first();
+        $banks = $group ? \App\Models\Books\Ledger::whereIn('group_id', $group->selfAndDescendantIds())->where('is_active', true)->orderBy('name')->get()
+            ->map(fn ($l) => ['ledger_id' => (int) $l->id, 'name' => $l->name, 'balance' => $ledgers->balance($l->id), 'bank_name' => $l->bank_name, 'account_number' => $l->account_number, 'branch' => $l->branch,
+                'mobile_kind' => $l->mobile_kind, 'mobile_number' => $l->mobile_number])->values() : collect();
+
+        return response()->json($cash->overview() + ['banks' => $banks, 'banks_total' => round((float) $banks->sum('balance'), 2)]);
     }
 
     public function cashCounts(Request $request, \App\Services\Books\CashCountService $cash): JsonResponse
@@ -645,6 +651,17 @@ class BooksVoucherController extends Controller
                 $d = app(\App\Services\Books\ComplianceReportService::class)->withholdingRegister($from, $to);
 
                 return [$d, ['title' => 'Withholding certificates', 'subtitle' => $period, 'columns' => ['date' => 'Date', 'certificate_number' => 'Certificate', 'voucher_number' => 'Voucher', 'direction' => 'Direction', 'party' => 'Party', 'tax' => 'Tax', 'gross_amount' => 'Gross', 'withheld_amount' => 'Withheld', 'status' => 'Certificate', 'credit_status' => 'Credit'], 'rows' => $d['rows'], 'totals' => ['party' => 'Withheld from us / by us', 'gross_amount' => $d['totals']['receivable'], 'withheld_amount' => $d['totals']['payable']]]];
+            case 'ratio-analysis':
+                $d = app(\App\Services\Books\RatioAnalysisService::class)->compute($from, $to);
+                $rows = [];
+                foreach ($d['groups'] as $g) {
+                    $rows[] = ['part' => 'Principal group', 'name' => $g['label'], 'figure' => isset($g['amount']) ? number_format((float) $g['amount'], 2) . ' ' . $g['side'] : ($g['value'] ?? '')];
+                }
+                foreach ($d['ratios'] as $g) {
+                    $rows[] = ['part' => 'Principal ratio', 'name' => $g['label'], 'figure' => $g['value'] === null ? '—' : ($g['kind'] === 'ratio' ? number_format($g['value'], 2) . ' : 1' : ($g['kind'] === 'pct' ? number_format($g['value'], 2) . ' %' : number_format($g['value'], 2) . ' days'))];
+                }
+
+                return [$d, ['title' => 'Ratio analysis', 'subtitle' => $period, 'columns' => ['part' => 'Part', 'name' => 'Item', 'figure' => 'Figure'], 'rows' => $rows]];
             case 'reconciliation':
                 $d = app(\App\Services\Books\ComplianceReportService::class)->reconciliation($to);
 

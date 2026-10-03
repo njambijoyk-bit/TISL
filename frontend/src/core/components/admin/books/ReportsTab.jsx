@@ -17,6 +17,7 @@ const REPORTS = [
   { id: 'payables', label: 'Payables ageing', asOf: true },
   { id: 'tax-return', label: 'Tax return', range: true },
   { id: 'withholding', label: 'Withholding certificates', range: true },
+  { id: 'ratio-analysis', label: 'Ratio analysis', range: true },
   { id: 'reconciliation', label: 'Reconciliation', asOf: true },
 ];
 
@@ -164,6 +165,33 @@ function ViewBody({ id, data, nav, onRefresh }) {
       <p style={{ fontSize: '0.78rem', color: colors.textMuted }}>Held from us {money(data.totals.receivable)} · Held by us {money(data.totals.payable)} · {data.totals.awaiting_certificate} certificate(s) still awaited.</p>
     </>
   );
+  if (id === 'ratio-analysis') {
+    const rv = (r) => (r.value === null || r.value === undefined ? '—' : r.kind === 'ratio' ? `${r.value.toFixed(2)} : 1` : r.kind === 'pct' ? `${r.value.toFixed(2)} %` : `${r.value.toFixed(2)} days`);
+    const row = (g) => (
+      <div key={g.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: g.sub ? '0 0 6px 18px' : '6px 0 0', fontWeight: g.bold || !g.sub ? 700 : 400, color: g.sub ? colors.textMuted : undefined }}>
+        <span>{g.label}{g.note && <span style={{ display: 'block', fontWeight: 400, fontStyle: 'italic', fontSize: '0.74rem', color: colors.textMuted }}>({g.note})</span>}</span>
+        <span style={{ ...num, whiteSpace: 'nowrap' }}>{g.amount !== undefined ? (g.amount === null ? '' : `${money(g.amount)} ${g.side}`) : g.value === null ? '—' : g.value.toFixed(2)}</span>
+      </div>
+    );
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(340px,1fr))', gap: 14 }}>
+        <div style={{ ...card, padding: 16 }}>
+          <p style={{ margin: '0 0 6px', fontWeight: 800, letterSpacing: '0.12em', fontSize: '0.74rem', color: colors.textFaint }}>PRINCIPAL GROUPS</p>
+          <p style={{ margin: '0 0 8px', fontSize: '0.72rem', color: colors.textFaint }}>Balances as at {data.to}; sales, purchases and profit for {data.from} to {data.to}.</p>
+          {data.groups.map(row)}
+        </div>
+        <div style={{ ...card, padding: 16 }}>
+          <p style={{ margin: '0 0 6px', fontWeight: 800, letterSpacing: '0.12em', fontSize: '0.74rem', color: colors.textFaint }}>PRINCIPAL RATIOS</p>
+          {data.ratios.map((r) => (
+            <div key={r.key} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '8px 0 0' }}>
+              <span style={{ fontWeight: 700 }}>{r.label}{r.note && <span style={{ display: 'block', fontWeight: 400, fontStyle: 'italic', fontSize: '0.74rem', color: colors.textMuted }}>({r.note})</span>}</span>
+              <span style={{ ...num, fontWeight: 700, whiteSpace: 'nowrap' }}>{rv(r)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
   if (id === 'reconciliation') return (
     <>
       <Table head={[['Check'], ['Books', true], ['Register', true], ['Difference', true], ['Explained', true], ['Agrees']]}>

@@ -106,9 +106,9 @@ export default function CashPage() {
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
         {!canReadFinance(user) ? <NoAccess what="the cash ledgers" /> : (
           <>
-            <HubHeader title="Cash" description="Count each till against the books, and hand in the cash drivers collected on delivery." />
+            <HubHeader title="Cash & bank" description="Count each till against the books, hand in the cash drivers collected on delivery, and see what each bank account holds." />
             {err && <p role="alert" style={{ color: colors.dangerText }}>{err}</p>}
-            {data && data.ledgers.length === 0 && <p style={{ color: colors.textMuted }}>No cash ledgers yet. Add one under Cash-in-hand in the chart of accounts.</p>}
+            {data && data.ledgers.length === 0 && !data.banks?.length && <p style={{ color: colors.textMuted }}>No cash or bank ledgers yet. Add them under Cash-in-hand and Bank Accounts in the chart of accounts.</p>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12, margin: '14px 0' }}>
               {(data?.ledgers ?? []).map((l) => (
                 <div key={l.ledger_id} style={{ ...card, padding: 16 }}>
@@ -130,6 +130,25 @@ export default function CashPage() {
                 </div>
               ))}
             </div>
+
+            {data?.banks?.length > 0 && (
+              <>
+                <p style={{ margin: '18px 0 6px', fontWeight: 700 }}>Bank and mobile money accounts <span style={{ fontWeight: 500, color: colors.textFaint, fontSize: '0.8rem' }}>· {money(data.banks_total)} in all, as the books say</span></p>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 12, margin: '0 0 16px' }}>
+                  {data.banks.map((b) => (
+                    <div key={b.ledger_id} style={{ ...card, padding: 16 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'baseline' }}>
+                        <strong>{b.name}</strong><span style={{ fontSize: '0.68rem', color: colors.textFaint }}>{b.mobile_kind ? 'Mobile money' : 'Bank'}</span>
+                      </div>
+                      <div style={{ fontSize: '1.35rem', fontWeight: 800, margin: '6px 0 2px', color: b.balance < 0 ? colors.dangerText : undefined }}>{money(Math.abs(b.balance))}{b.balance < 0 ? ' Cr' : ''}</div>
+                      <div style={{ fontSize: '0.72rem', color: colors.textMuted }}>{b.balance < 0 ? 'overdrawn, the books say' : 'the books say'}</div>
+                      <div style={{ fontSize: '0.74rem', color: colors.textMuted, margin: '6px 0' }}>{[b.bank_name, b.account_number, b.branch, b.mobile_number].filter(Boolean).join(' · ') || 'No bank details on the ledger'}</div>
+                      <Link to={`/admin/books?tab=reports&report=ledger&ledger=${b.ledger_id}`} style={{ fontSize: '0.78rem' }}>Statement →</Link>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
             {data?.cod_orders?.length > 0 && (
               <div style={{ ...card, padding: 14, marginBottom: 16 }}>
