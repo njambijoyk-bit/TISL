@@ -9,9 +9,10 @@ import useServicePackages from '../../../ecommerce/components/storefront/service
 import ServicePackagePicker from '../../../ecommerce/components/storefront/services/ServicePackagePicker';
 
 const rowsOf = (res) => res?.data ?? res?.products?.data ?? res?.services?.data ?? (Array.isArray(res) ? res : []);
-const box = { border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, background: 'rgba(255,255,255,0.5)' };
-const tabBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, background: on ? 'var(--color-primary-500)' : 'transparent', color: on ? 'white' : 'inherit' });
-const qtyInput = { width: 80, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', textAlign: 'right' };
+const box = { border: '1px solid var(--line)', borderRadius: 12, padding: 14, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' };
+const inner = { background: 'var(--surface-input)' };
+const tabBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, border: '1px solid var(--line)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, background: on ? 'var(--color-primary-500)' : 'transparent', color: on ? 'white' : 'inherit' });
+const qtyInput = { width: 80, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--line)', textAlign: 'right', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' };
 const addBtn = { padding: '10px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, color: 'white', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' };
 
 function ProductChooser({ product, onDone }) {
@@ -27,13 +28,13 @@ function ProductChooser({ product, onDone }) {
     onDone();
   };
   return (
-    <div style={{ ...box, marginTop: 10 }}>
+    <div style={{ ...box, ...inner, marginTop: 10 }}>
       <strong>{product.name}</strong>
       <div style={{ margin: '10px 0' }}><VariantPicker product={product} onChange={setChoice} onLoaded={setStructured} /></div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <label style={{ fontSize: '0.8rem' }}>Qty <input type="number" min="1" step="any" value={qty} onChange={(e) => setQty(e.target.value)} style={qtyInput} aria-label="Quantity" /></label>
         <button type="button" onClick={submit} style={addBtn}>Add to request</button>
-        <button type="button" onClick={onDone} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>Cancel</button>
+        <button type="button" onClick={onDone} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>Cancel</button>
       </div>
     </div>
   );
@@ -50,13 +51,13 @@ function ServiceChooser({ service, onDone }) {
     onDone();
   };
   return (
-    <div style={{ ...box, marginTop: 10 }}>
+    <div style={{ ...box, ...inner, marginTop: 10 }}>
       <strong>{service.name}</strong>
       <div style={{ margin: '10px 0' }}><ServicePackagePicker picker={picker} /></div>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <label style={{ fontSize: '0.8rem' }}>Qty <input type="number" min="1" step="any" value={qty} onChange={(e) => setQty(e.target.value)} style={qtyInput} aria-label="Quantity" /></label>
         <button type="button" onClick={submit} style={addBtn}>Add to request</button>
-        <button type="button" onClick={onDone} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>Cancel</button>
+        <button type="button" onClick={onDone} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}>Cancel</button>
       </div>
     </div>
   );
@@ -84,18 +85,18 @@ export default function QuoteItemPicker() {
         <button type="button" style={tabBtn(tab === 'service')} onClick={() => { setTab('service'); setOpen(null); }}>Services</button>
       </div>
       <div style={{ position: 'relative' }}>
-        <Search size={15} style={{ position: 'absolute', left: 10, top: 11, color: '#9ca3af' }} />
+        <Search size={15} style={{ position: 'absolute', left: 10, top: 11, color: 'var(--text-tertiary)' }} />
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${tab === 'product' ? 'products' : 'services'} to add…`} aria-label="Search items"
-          style={{ width: '100%', padding: '9px 10px 9px 32px', borderRadius: 10, border: '1px solid #e5e7eb', fontSize: '0.88rem' }} />
+          style={{ width: '100%', padding: '9px 10px 9px 32px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontSize: '0.88rem' }} />
       </div>
       <div style={{ display: 'grid', gap: 4, marginTop: 8 }}>
         {rows.map((r) => (
           <button key={r.id} type="button" onClick={() => setOpen(open?.id === r.id ? null : r)}
-            style={{ textAlign: 'left', padding: '8px 10px', borderRadius: 8, border: `1px solid ${open?.id === r.id ? 'var(--color-primary-500)' : '#f3f4f6'}`, background: 'transparent', cursor: 'pointer', color: 'inherit', fontSize: '0.85rem' }}>
+            style={{ textAlign: 'left', padding: '8px 10px', borderRadius: 8, border: `1px solid ${open?.id === r.id ? 'var(--color-primary-500)' : 'var(--line)'}`, background: 'transparent', cursor: 'pointer', color: 'inherit', fontSize: '0.85rem' }}>
             {r.name}
           </button>
         ))}
-        {rows.length === 0 && <span style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Nothing found.</span>}
+        {rows.length === 0 && <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Nothing found.</span>}
       </div>
       {open && (tab === 'product' ? <ProductChooser key={`p${open.id}`} product={open} onDone={() => setOpen(null)} /> : <ServiceChooser key={`s${open.id}`} service={open} onDone={() => setOpen(null)} />)}
     </div>
