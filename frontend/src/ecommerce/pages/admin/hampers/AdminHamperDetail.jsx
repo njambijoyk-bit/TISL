@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import {
   ChevronLeft, Package, Users, ShoppingBag, Settings,
   Plus, Trash2, Search, CheckCircle, AlertTriangle,
@@ -920,6 +921,7 @@ function ActivityTab({ hamperId }) {
 
 export default function AdminHamperDetail() {
   const { id }              = useParams();
+  useCalculatorContext(id ? { type: 'hamper', id: Number(id) } : null);   // Alt+C: is this hamper priced right
   const navigate            = useNavigate();
   const [hamper, setHamper] = useState(null);
   const [loading, setLoading]   = useState(true);

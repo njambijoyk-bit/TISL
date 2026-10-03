@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { ArrowLeft, Pencil, Send, Ban } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
@@ -16,6 +17,7 @@ const r = { textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
 export default function QuotationDetailPage() {
   const { id } = useParams();
+  useCalculatorContext(id ? { type: 'voucher', id: Number(id) } : null);   // Alt+C: what did this quote earn
   const nav = useNavigate();
   const [q, setQ] = useState(null);
   const [error, setError] = useState(null);

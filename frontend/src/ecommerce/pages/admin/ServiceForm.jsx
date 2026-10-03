@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import useCalculatorContext from '../../../_shared/hooks/useCalculatorContext';
 import {
   ChevronLeft, Save, Eye, Upload, X, Plus, Trash2, Info,
 } from 'lucide-react';
@@ -295,6 +296,7 @@ function SearchPicker({ items, selected, onToggle, emptyMsg, placeholder = 'Sear
 
 const ServiceForm = () => {
   const { id }      = useParams();
+  useCalculatorContext(id ? { type: 'service', id: Number(id) } : null);   // Alt+C: what did this service earn
   const navigate    = useNavigate();
   const isEditMode  = !!id;
 

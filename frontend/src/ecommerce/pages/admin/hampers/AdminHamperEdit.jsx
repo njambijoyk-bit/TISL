@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import BranchSelect from '../../../../_shared/components/common/BranchSelect';
 import { useNavigate, useParams } from 'react-router-dom';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { ChevronLeft, Save, Upload, X, Search, Check } from 'lucide-react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import hampersAPI from '../../../../_shared/api/hampers';
@@ -188,6 +189,7 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
 
 export default function AdminHamperEdit() {
   const { id }              = useParams();
+  useCalculatorContext(id ? { type: 'hamper', id: Number(id) } : null);
   const navigate            = useNavigate();
   const [form, setForm]     = useState(null);
 

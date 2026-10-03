@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
 import {
@@ -145,6 +146,7 @@ const Checkbox = ({ checked, onChange, label }) => (
 
 export default function AdminAuctionDetail() {
   const { id } = useParams();
+  useCalculatorContext(id ? { type: 'auction', id: Number(id) } : null);   // Alt+C: did it beat the shelf price
   const navigate = useNavigate();
   const [auction, setAuction] = useState(null);
   const [loading, setLoading] = useState(true);

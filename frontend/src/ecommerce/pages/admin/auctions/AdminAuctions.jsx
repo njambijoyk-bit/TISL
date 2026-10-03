@@ -1,3 +1,4 @@
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -114,6 +115,7 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function AdminAuctions() {
+  useCalculatorContext({ type: 'auctions' });   // Alt+C: how the sold auctions did against the shelf price
   const navigate = useNavigate();
   const [auctions, setAuctions] = useState([]);
   const [loading, setLoading] = useState(true);
