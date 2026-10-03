@@ -11,8 +11,20 @@ const aiAnalyticsAPI = {
   addKey: (payload) =>
     api.post(`${BASE}/keys`, payload).then(r => r.data),
 
+  // switch a key on or off (several can be in use at once)
   activateKey: (id) =>
     api.post(`${BASE}/keys/${id}/activate`).then(r => r.data),
+
+  updateKey: (id, payload) =>
+    api.put(`${BASE}/keys/${id}`, payload).then(r => r.data),
+
+  // make a key the first one tried
+  firstChoice: (id) =>
+    api.post(`${BASE}/keys/${id}/first`).then(r => r.data),
+
+  // send a tiny question with the key: { ok, model, reply, ms } or { ok: false, message }
+  testKey: (id) =>
+    api.post(`${BASE}/keys/${id}/test`).then(r => r.data),
 
   deleteKey: (id) =>
     api.delete(`${BASE}/keys/${id}`).then(r => r.data),

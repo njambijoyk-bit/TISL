@@ -27,13 +27,9 @@ const C = {
   glowCyan: '0 0 20px rgba(6,182,212,0.3)',
 };
 
-const PROVIDERS = [
-  { value: 'anthropic', label: 'Anthropic',  color: 'var(--color-primary-500)', desc: 'Claude models' },
-  { value: 'gemini',    label: 'Gemini',     color: '#3b82f6', desc: 'Google AI'     },
-  { value: 'openai',    label: 'OpenAI',     color: '#10b981', desc: 'GPT models'    },
-  { value: 'mistral',   label: 'Mistral',    color: '#f59e0b', desc: 'Mistral AI'    },
-  { value: 'cohere',    label: 'Cohere',     color: '#06b6d4', desc: 'Command models'},
-];
+const COLORS = { anthropic: 'var(--color-primary-500)', gemini: '#3b82f6', openai: '#10b981', qwen: '#f59e0b' };
+const USED_FOR = [['all', 'Everything'], ['analytics', 'AI analytics'], ['mimi', 'Mimi chat'], ['screening', 'Careers screening']];
+const usedLabel = (u) => USED_FOR.find(([k]) => k === u)?.[1] ?? u;
 
 // ── Audio engine ──────────────────────────────────────────────────────────────
 function useAudioEngine() {
@@ -365,14 +361,22 @@ export default function AiKeysPage() {
   const [saving,     setSaving]     = useState(false);
   const [ambientOn,  setAmbientOn]  = useState(false);
 
-  const [form, setForm] = useState({ provider: 'anthropic', label: '', api_key: '' });
+  const BLANK = { provider: 'anthropic', label: '', api_key: '', model: '', base_url: '', used_for: 'all' };
+  const [form, setForm] = useState(BLANK);
+  const [meta, setMeta] = useState({ providers: [], first_choice: {}, columns_ready: true });
+  const [editing, setEditing] = useState(null);     // id of the key being edited
+  const [testing, setTesting] = useState(null);
+  const [tests, setTests] = useState({});           // id → test result
+  const [formError, setFormError] = useState(null);
+  const PROVIDERS = (meta.providers ?? []).map(p => ({ ...p, color: COLORS[p.value] ?? '#6b7280' }));
 
   // ── Load keys ─────────────────────────────────────────────────────
   const load = async () => {
     setLoading(true);
     try {
       const data = await aiAnalyticsAPI.getKeys();
-      setKeys(data);
+      setKeys(data.keys ?? []);
+      setMeta({ providers: data.providers ?? [], first_choice: data.first_choice ?? {}, columns_ready: data.columns_ready, purposes: data.purposes });
     } catch {
       setError('Failed to load keys.');
       audio.playError();
@@ -391,24 +395,51 @@ export default function AiKeysPage() {
     }
   };
 
-  // ── Add key ───────────────────────────────────────────────────────
+  // ── Add or change a key ───────────────────────────────────────────
   const handleAdd = async () => {
-    if (!form.label.trim() || !form.api_key.trim()) {
+    if (!form.label.trim() || (!editing && !form.api_key.trim())) {
+      setFormError(editing ? 'Give the key a label.' : 'Give the key a label and paste the key.');
       audio.playError();
       return;
     }
-    setSaving(true);
+    setSaving(true); setFormError(null);
     try {
-      await aiAnalyticsAPI.addKey(form);
+      const payload = { ...form, model: form.model || null, base_url: form.base_url || null };
+      if (editing) await aiAnalyticsAPI.updateKey(editing, payload); else await aiAnalyticsAPI.addKey(payload);
       audio.playSuccess();
-      setForm({ provider: 'anthropic', label: '', api_key: '' });
+      setForm(BLANK); setEditing(null);
       setShowForm(false);
       await load();
-    } catch {
+    } catch (e) {
+      setFormError(e?.response?.data?.message ?? Object.values(e?.response?.data?.errors ?? {})[0]?.[0] ?? 'Could not save the key.');
       audio.playError();
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEdit = (k) => {
+    setEditing(k.id); setShowForm(true); setFormError(null);
+    setForm({ provider: k.provider, label: k.label, api_key: '', model: k.model ?? '', base_url: k.base_url ?? '', used_for: k.used_for ?? 'all' });
+  };
+
+  const handleTest = async (id) => {
+    setTesting(id);
+    try {
+      const r = await aiAnalyticsAPI.testKey(id);
+      setTests(t => ({ ...t, [id]: r }));
+      r.ok ? audio.playSuccess() : audio.playError();
+      await load();
+    } catch {
+      setTests(t => ({ ...t, [id]: { ok: false, message: 'The test could not be run.' } }));
+      audio.playError();
+    } finally {
+      setTesting(null);
+    }
+  };
+
+  const handleFirst = async (id) => {
+    try { await aiAnalyticsAPI.firstChoice(id); audio.playActivate(); await load(); } catch (e) { setError(e?.response?.data?.message ?? 'Could not change the order.'); audio.playError(); }
   };
 
   // ── Activate ──────────────────────────────────────────────────────
@@ -440,7 +471,7 @@ export default function AiKeysPage() {
     }
   };
 
-  const providerMeta = (p) => PROVIDERS.find(pr => pr.value === p) ?? PROVIDERS[0];
+  const providerMeta = (p) => PROVIDERS.find(pr => pr.value === p) ?? { value: p, label: p, color: '#6b7280', desc: '', models: [] };
 
   return (
     <GeneralLayout>
@@ -526,7 +557,7 @@ export default function AiKeysPage() {
           {showForm && (
             <div style={{ marginBottom: 24, padding: 24, borderRadius: 14, border: `1px solid ${C.borderHi}`, background: 'rgba(59,130,246,0.04)', backdropFilter: 'blur(12px)', animation: 'fadeIn 0.2s ease', boxShadow: C.glow }}>
               <p style={{ margin: '0 0 20px', fontSize: '0.72rem', fontFamily: 'monospace', color: C.cyan, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                ▸ REGISTER NEW PROVIDER KEY
+                ▸ {editing ? 'CHANGE KEY' : 'REGISTER NEW PROVIDER KEY'}
               </p>
 
               {/* Provider selector */}
@@ -544,6 +575,32 @@ export default function AiKeysPage() {
                 ))}
               </div>
 
+              {/* Model + what it is used for */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>MODEL (EMPTY = {providerMeta(form.provider).model ?? 'THE DEFAULT'})</label>
+                  <input list="ai-models" value={form.model} onChange={e => setForm(f => ({ ...f, model: e.target.value }))} placeholder={providerMeta(form.provider).model}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }} />
+                  <datalist id="ai-models">{(providerMeta(form.provider).models ?? []).map(m => <option key={m} value={m} />)}</datalist>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>USED FOR</label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {USED_FOR.map(([k, l]) => (
+                      <button key={k} type="button" onClick={() => setForm(f => ({ ...f, used_for: k }))}
+                        style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${form.used_for === k ? C.cyan : C.border}`, background: form.used_for === k ? 'rgba(6,182,212,0.12)' : 'transparent', color: form.used_for === k ? C.cyan : C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.7rem', fontWeight: 700 }}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {['openai', 'qwen'].includes(form.provider) && (
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>ENDPOINT (OPTIONAL — {form.provider === 'qwen' ? 'E.G. https://dashscope.aliyuncs.com/compatible-mode/v1 FOR CHINA' : 'FOR AN OPENAI-COMPATIBLE SERVICE'})</label>
+                  <input value={form.base_url} onChange={e => setForm(f => ({ ...f, base_url: e.target.value }))} placeholder={providerMeta(form.provider).base}
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: C.bgInput, color: C.text, fontFamily: 'monospace', fontSize: '0.82rem', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              )}
+
               {/* Label */}
               <div style={{ marginBottom: 12 }}>
                 <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>KEY LABEL</label>
@@ -559,7 +616,7 @@ export default function AiKeysPage() {
 
               {/* API key */}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>API KEY</label>
+                <label style={{ display: 'block', fontSize: '0.65rem', fontFamily: 'monospace', color: C.textMid, letterSpacing: '0.12em', marginBottom: 6, textTransform: 'uppercase' }}>API KEY{editing ? ' (LEAVE EMPTY TO KEEP THE CURRENT ONE)' : ''}</label>
                 <input
                   type="password"
                   value={form.api_key}
@@ -571,10 +628,12 @@ export default function AiKeysPage() {
                 />
               </div>
 
+              {formError && <p role="alert" style={{ margin: '0 0 12px', fontFamily: 'monospace', fontSize: '0.74rem', color: C.red }}>{formError}</p>}
+
               {/* Actions */}
               <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                 <button
-                  onClick={() => { setShowForm(false); audio.playHover(); }}
+                  onClick={() => { setShowForm(false); setEditing(null); setForm(BLANK); setFormError(null); audio.playHover(); }}
                   onMouseEnter={audio.playHover}
                   style={{ padding: '8px 18px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.78rem' }}
                 >
@@ -587,7 +646,7 @@ export default function AiKeysPage() {
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 20px', borderRadius: 8, border: `1px solid ${C.cyan}`, background: `rgba(6,182,212,0.12)`, color: C.cyan, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'monospace', fontSize: '0.78rem', fontWeight: 700, boxShadow: C.glowCyan, opacity: saving ? 0.7 : 1 }}
                 >
                   {saving ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <Shield size={13} />}
-                  {saving ? 'REGISTERING…' : 'REGISTER KEY'}
+                  {saving ? 'SAVING…' : (editing ? 'SAVE CHANGES' : 'REGISTER KEY')}
                 </button>
               </div>
             </div>
@@ -631,8 +690,16 @@ export default function AiKeysPage() {
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 700, color: C.text, fontFamily: 'monospace' }}>{key.label}</p>
                         <p style={{ margin: '3px 0 0', fontSize: '0.68rem', color: C.textDim, fontFamily: 'monospace' }}>
-                          Added by {key.created_by} · {key.last_used_at ? `Last used ${new Date(key.last_used_at).toLocaleDateString()}` : 'Never used'}
+                          {key.effective_model} · {key.key_hint} · added by {key.created_by} · {key.last_used_at ? `last used ${new Date(key.last_used_at).toLocaleDateString()}` : 'never used'}
                         </p>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                          <span style={{ fontSize: '0.62rem', fontFamily: 'monospace', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.border}`, color: C.textMid }}>{usedLabel(key.used_for).toUpperCase()}</span>
+                          {Object.entries(meta.first_choice ?? {}).filter(([, id]) => id === key.id).map(([purpose]) => (
+                            <span key={purpose} style={{ fontSize: '0.62rem', fontFamily: 'monospace', padding: '2px 8px', borderRadius: 10, border: `1px solid ${C.green}60`, color: C.green }}>FIRST CHOICE · {usedLabel(purpose).toUpperCase()}</span>
+                          ))}
+                        </div>
+                        {key.last_error && <p style={{ margin: '6px 0 0', fontSize: '0.68rem', color: C.red, fontFamily: 'monospace', wordBreak: 'break-word' }}>⚠ {key.last_error}</p>}
+                        {tests[key.id] && <p style={{ margin: '6px 0 0', fontSize: '0.68rem', color: tests[key.id].ok ? C.green : C.red, fontFamily: 'monospace', wordBreak: 'break-word' }}>{tests[key.id].ok ? `✓ Works — ${tests[key.id].model} answered in ${tests[key.id].ms} ms` : `✗ ${tests[key.id].message}`}</p>}
                       </div>
 
                       {/* Status */}
@@ -645,13 +712,27 @@ export default function AiKeysPage() {
                         ) : (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, background: 'rgba(71,85,105,0.15)', border: `1px solid ${C.border}` }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: C.textDim }} />
-                            <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: C.textDim, fontWeight: 700, letterSpacing: '0.08em' }}>STANDBY</span>
+                            <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: C.textDim, fontWeight: 700, letterSpacing: '0.08em' }}>OFF</span>
                           </div>
                         )}
                       </div>
 
                       {/* Actions */}
                       <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                        <button onClick={() => handleTest(key.id)} disabled={testing === key.id}
+                          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>
+                          {testing === key.id ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} /> : <CheckCircle size={11} />} TEST
+                        </button>
+                        <button onClick={() => startEdit(key)}
+                          style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textMid, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>EDIT</button>
+                        {meta.columns_ready && key.is_active && Object.values(meta.first_choice ?? {}).some(id => id !== key.id) && (
+                          <button onClick={() => handleFirst(key.id)}
+                            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.green}50`, background: 'transparent', color: C.green, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>FIRST</button>
+                        )}
+                        {key.is_active && (
+                          <button onClick={() => handleActivate(key.id)} disabled={!!activating}
+                            style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.textDim, cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.72rem', fontWeight: 700 }}>SWITCH OFF</button>
+                        )}
                         {!key.is_active && (
                           <button
                             onClick={() => handleActivate(key.id)}
@@ -662,7 +743,7 @@ export default function AiKeysPage() {
                             {activating === key.id
                               ? <Loader2 size={11} style={{ animation: 'spin 1s linear infinite' }} />
                               : <Zap size={11} />}
-                            ACTIVATE
+                            SWITCH ON
                           </button>
                         )}
 

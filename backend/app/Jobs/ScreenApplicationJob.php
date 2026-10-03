@@ -9,7 +9,6 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -38,9 +37,9 @@ class ScreenApplicationJob implements ShouldQueue
         }
 
         try {
-            $resolved = $this->resolveKey();
             $prompt   = $this->buildPrompt($application);
-            $result   = $this->callProvider($resolved, $prompt);
+            $resolved = ['provider' => 'ai'];
+            $result   = $this->parseJson($this->ask($prompt, $resolved));
 
             $application->update([
                 'ai_score'          => $result['score']          ?? null,
@@ -66,142 +65,32 @@ class ScreenApplicationJob implements ShouldQueue
         }
     }
 
-    private function resolveKey(): array
+    /**
+     * Ask the model set up for screening under AI → Keys (any company's; the next key if one fails). Until a key is entered there, the key that used to live in
+     * the server's environment (ANTHROPIC_API_KEY) is still used, if it is set.
+     */
+    private function ask(string $prompt, array &$resolved): string
     {
-        $key = env('ANTHROPIC_API_KEY');
-
-        if (!$key) {
-            throw new \RuntimeException('ANTHROPIC_API_KEY not set in .env');
+        $gateway  = app(\App\Services\Ai\AiGateway::class);
+        $messages = [['role' => 'user', 'content' => $prompt]];
+        try {
+            $r = $gateway->run('screening', null, $messages, ['max_tokens' => 1024, 'timeout' => 45]);
+        } catch (\App\Services\Ai\AiGatewayException $e) {
+            $env = env('ANTHROPIC_API_KEY');
+            if ($e->kind !== 'none' || ! $env) {
+                throw new \RuntimeException($e->getMessage());
+            }
+            $provider = str_starts_with($env, 'sk-ant-') ? 'anthropic' : (str_starts_with($env, 'sk-') ? 'openai' : (str_starts_with($env, 'AI') || str_starts_with($env, 'AQ.') ? 'gemini' : null));
+            if (! $provider) {
+                throw new \RuntimeException('Add an AI key for screening under AI → Keys.');
+            }
+            $key = new AiProviderKey(['provider' => $provider, 'label' => 'Server environment']);
+            $key->api_key = $env;
+            $r = $gateway->chat($key, null, $messages, ['max_tokens' => 1024, 'timeout' => 45]);
         }
+        $resolved['provider'] = $r['provider'];
 
-        $provider = match(true) {
-            str_starts_with($key, 'sk-ant-')                          => 'anthropic',
-            str_starts_with($key, 'sk-proj-'), 
-            str_starts_with($key, 'sk-')                              => 'openai',
-            str_starts_with($key, 'AI') || str_starts_with($key, 'AQ.') => 'gemini',
-            preg_match('/^[a-f0-9-]{36}$/i', $key)                   => 'cohere',
-            default                                                    => 'mistral',
-        };
-
-        return ['key' => $key, 'provider' => $provider];
-    }
-
-    // ── Active key ────────────────────────────────────────────────────────────
-
-    private function getApiKey(): string
-    {
-        $key = env('GEMINI_API_KEY');
-        if (!$key) throw new \RuntimeException('GEMINI_API_KEY not set in .env');
-        return $key;
-    }
-
-    // ── Route to provider ─────────────────────────────────────────────────────
-
-    private function callProvider(array $resolved, string $prompt): array
-    {
-        return match ($resolved['provider']) {
-            'anthropic' => $this->callAnthropic($resolved['key'], $prompt),
-            'gemini'    => $this->callGemini($resolved['key'], $prompt),
-            'openai'    => $this->callOpenAI($resolved['key'], $prompt),
-            'mistral'   => $this->callMistral($resolved['key'], $prompt),
-            'cohere'    => $this->callCohere($resolved['key'], $prompt),
-            default     => throw new \RuntimeException("Unknown provider"),
-        };
-    }
-
-    // ── Provider calls ────────────────────────────────────────────────────────
-
-    private function callAnthropic(string $apiKey, string $prompt): array
-    {
-        $response = Http::withHeaders([
-            'x-api-key'         => $apiKey,
-            'anthropic-version' => '2023-06-01',
-            'content-type'      => 'application/json',
-        ])->timeout(45)->post('https://api.anthropic.com/v1/messages', [
-            'model'      => 'claude-sonnet-4-20250514',
-            'max_tokens' => 1024,
-            'messages'   => [['role' => 'user', 'content' => $prompt]],
-        ]);
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('Anthropic API error: ' . $response->status() . ' ' . $response->body());
-        }
-
-        return $this->parseJson($response->json('content.0.text') ?? '');
-    }
-
-    private function callGemini(string $apiKey, string $prompt): array
-    {
-        $model    = 'gemini-2.5-flash';
-        $response = Http::timeout(45)->post(
-            "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}",
-            ['contents' => [['parts' => [['text' => $prompt]]]]]
-        );
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('Gemini API error: ' . $response->status() . ' ' . $response->body());
-        }
-
-        return $this->parseJson(
-            $response->json('candidates.0.content.parts.0.text') ?? ''
-        );
-    }
-
-    private function callOpenAI(string $apiKey, string $prompt): array
-    {
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
-            'Content-Type'  => 'application/json',
-        ])->timeout(45)->post('https://api.openai.com/v1/chat/completions', [
-            'model'    => 'gpt-4o-mini',
-            'messages' => [['role' => 'user', 'content' => $prompt]],
-        ]);
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('OpenAI API error: ' . $response->status() . ' ' . $response->body());
-        }
-
-        return $this->parseJson(
-            $response->json('choices.0.message.content') ?? ''
-        );
-    }
-
-    private function callMistral(string $apiKey, string $prompt): array
-    {
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
-            'Content-Type'  => 'application/json',
-        ])->timeout(45)->post('https://api.mistral.ai/v1/chat/completions', [
-            'model'    => 'mistral-small-latest',
-            'messages' => [['role' => 'user', 'content' => $prompt]],
-        ]);
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('Mistral API error: ' . $response->status() . ' ' . $response->body());
-        }
-
-        return $this->parseJson(
-            $response->json('choices.0.message.content') ?? ''
-        );
-    }
-
-    private function callCohere(string $apiKey, string $prompt): array
-    {
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
-            'Content-Type'  => 'application/json',
-        ])->timeout(45)->post('https://api.cohere.com/v2/chat', [
-            'model'    => 'command-r-plus',
-            'messages' => [['role' => 'user', 'content' => $prompt]],
-        ]);
-
-        if (!$response->successful()) {
-            throw new \RuntimeException('Cohere API error: ' . $response->status() . ' ' . $response->body());
-        }
-
-        return $this->parseJson(
-            $response->json('message.content.0.text') ?? ''
-        );
+        return $r['text'];
     }
 
     // ── Shared JSON parser ────────────────────────────────────────────────────

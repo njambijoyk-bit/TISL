@@ -10,6 +10,7 @@ class AiProviderKey extends Model
     protected $fillable = [
         'provider', 'label', 'api_key',
         'is_active', 'created_by', 'last_used_at',
+        'model', 'base_url', 'used_for', 'priority', 'last_error', 'last_error_at',
     ];
 
     protected $hidden = ['api_key']; // never serialise raw key
@@ -17,6 +18,8 @@ class AiProviderKey extends Model
     protected $casts = [
         'is_active'    => 'boolean',
         'last_used_at' => 'datetime',
+        'last_error_at' => 'datetime',
+        'priority'     => 'integer',
     ];
 
     // ── Encrypt on save, decrypt on read ────────────────────────────
@@ -28,6 +31,16 @@ class AiProviderKey extends Model
     public function getDecryptedKey(): string
     {
         return Crypt::decryptString($this->attributes['api_key']);
+    }
+
+    /** The last four characters, so a key can be recognised on screen without showing it. */
+    public function hint(): string
+    {
+        try {
+            return '••••' . substr($this->getDecryptedKey(), -4);
+        } catch (\Throwable) {
+            return '(unreadable — enter it again)';
+        }
     }
 
     // ── Relationships ────────────────────────────────────────────────

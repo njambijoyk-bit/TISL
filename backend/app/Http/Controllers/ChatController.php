@@ -800,67 +800,77 @@ LIVE PUBLIC DATA
     // GEMINI API CALL
     // =========================================================================
 
+    /**
+     * Ask the model behind Mimi. The conversation arrives in the shape the chat has always built it ([{role: user|model, parts: [{text}]}], the first turn being
+     * the instructions); it is handed to the AI gateway, which uses the keys set up for Mimi under AI → Keys — any company's model, the next key if one fails.
+     * (Until a key is added there, the old GEMINI_API_KEY in the server's environment is still used, if it is set.)
+     */
     private function callGemini(array $contents)
     {
         try {
-            $response = Http::timeout(30)
-                ->withHeaders(['Content-Type' => 'application/json'])
-                ->post(
-                    'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=' . env('GEMINI_API_KEY'),
-                    [
-                        'contents'         => $contents,
-                        'generationConfig' => [
-                            'temperature'    => 0.7,
-                            'maxOutputTokens'=> 2048,
-                            'topP'           => 0.95,
-                        ],
-                        'safetySettings' => [
-                            ['category' => 'HARM_CATEGORY_HARASSMENT',  'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'],
-                            ['category' => 'HARM_CATEGORY_HATE_SPEECH', 'threshold' => 'BLOCK_MEDIUM_AND_ABOVE'],
-                        ],
-                    ]
-                );
-
-            if ($response->status() === 429) {
-                $errorBody = $response->json();
-                $message = $errorBody['error']['message'] ?? 'Rate limit exceeded';
-                
-                Log::warning('Gemini quota exhausted', [
-                    'user_id' => Auth::id(),
-                    'message' => $message
-                ]);
-                
-                // 💡 Friendly fallback response
-                return response()->json([
-                    'reply' => "🙏 I'm temporarily at capacity due to high demand. Please try again in a few minutes, or contact web@targetisl.co.ke for urgent assistance."
-                ]);
+            // the instructions are the first turn; the made-up "Understood!" answer that followed is not needed
+            $system   = null;
+            $messages = [];
+            foreach ($contents as $i => $c) {
+                $text = (string) ($c['parts'][0]['text'] ?? '');
+                if ($i === 0 && ($c['role'] ?? '') === 'user') {
+                    $system = $text;
+                    continue;
+                }
+                if ($i === 1 && ($c['role'] ?? '') === 'model' && $system !== null) {
+                    continue;
+                }
+                $messages[] = ['role' => ($c['role'] ?? 'user') === 'model' ? 'assistant' : 'user', 'content' => $text];
             }
 
-            if ($response->failed()) {
-                Log::error('Gemini API failed', ['status' => $response->status(), 'body' => $response->body()]);
-                return response()->json(['error' => 'Mimi is unavailable right now. Please try again shortly.'], 500);
+            $gateway = app(\App\Services\Ai\AiGateway::class);
+            try {
+                $r = $gateway->run('mimi', $system, $messages, ['max_tokens' => 2048, 'temperature' => 0.7, 'timeout' => 30]);
+            } catch (\App\Services\Ai\AiGatewayException $e) {
+                if ($e->kind !== 'none' || ! env('GEMINI_API_KEY')) {
+                    throw $e;
+                }
+                $r = $this->legacyGemini($system, $messages);   // no key entered on the screen yet
             }
 
-            $reply = $response->json('candidates.0.content.parts.0.text')
-                ?? 'Sorry, I could not process that. Please try again.';
-
-            $finishReason = $response->json('candidates.0.finishReason');
-            if ($finishReason === 'SAFETY') {
+            if ($r['blocked']) {
                 return response()->json([
                     'error' => "I'm not able to help with that. Please keep our conversation focused on {$this->company()} topics. 💜"
                 ], 422);
             }
 
-            return response()->json(['reply' => trim($reply)]);
+            return response()->json(['reply' => $r['text'] !== '' ? $r['text'] : 'Sorry, I could not process that. Please try again.']);
 
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            Log::error('Gemini connection error', ['error' => $e->getMessage()]);
-            return response()->json(['error' => 'Mimi could not connect. Please check your connection and try again.'], 503);
+        } catch (\App\Services\Ai\AiGatewayException $e) {
+            Log::warning('Mimi model call failed', ['kind' => $e->kind, 'status' => $e->status, 'message' => $e->getMessage(), 'user_id' => Auth::id()]);
+            if ($e->kind === 'quota') {
+                return response()->json([
+                    'reply' => "🙏 I'm temporarily at capacity due to high demand. Please try again in a few minutes, or contact web@targetisl.co.ke for urgent assistance."
+                ]);
+            }
+            if ($e->kind === 'none') {
+                return response()->json(['error' => 'Mimi is not set up yet. An admin needs to add an AI key under AI → Keys.'], 503);
+            }
+            if ($e->kind === 'connection') {
+                return response()->json(['error' => 'Mimi could not connect. Please check your connection and try again.'], 503);
+            }
+
+            return response()->json(['error' => 'Mimi is unavailable right now. Please try again shortly.'], 500);
         } catch (\Exception $e) {
-            Log::error('Gemini unexpected error', ['error' => $e->getMessage()]);
+            Log::error('Mimi unexpected error', ['error' => $e->getMessage()]);
             return response()->json(['error' => 'An unexpected error occurred. Please try again.'], 500);
         }
     }
+
+    /** The key that used to live only in the server's environment — used only while no key has been entered on the screen. */
+    private function legacyGemini(?string $system, array $messages): array
+    {
+        $key = new \App\Models\AiProviderKey(['provider' => 'gemini', 'label' => 'Server environment', 'model' => 'gemini-2.5-flash']);
+        $key->api_key = (string) env('GEMINI_API_KEY');
+
+        return app(\App\Services\Ai\AiGateway::class)->chat($key, $system, $messages, ['max_tokens' => 2048, 'temperature' => 0.7, 'timeout' => 30]);
+    }
+
     private function extractGeminiMeta(\Illuminate\Http\JsonResponse $response): array
     {
         $data       = $response->getData(true);

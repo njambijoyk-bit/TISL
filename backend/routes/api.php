@@ -1443,6 +1443,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get   ('keys',              [AiAnalyticsController::class, 'indexKeys']);
             Route::post  ('keys',              [AiAnalyticsController::class, 'storeKey']);
             Route::post  ('keys/{key}/activate',[AiAnalyticsController::class, 'activateKey']);
+            Route::put   ('keys/{key}',        [AiAnalyticsController::class, 'updateKey']);
+            Route::post  ('keys/{key}/first',  [AiAnalyticsController::class, 'firstChoice']);
+            Route::post  ('keys/{key}/test',   [AiAnalyticsController::class, 'testKey']);
             Route::delete('keys/{key}',        [AiAnalyticsController::class, 'destroyKey']);
 
             // Modules

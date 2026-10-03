@@ -15,7 +15,7 @@ class AiAnalyticsService
     // ── Get active key or throw ──────────────────────────────────────
     public function getActiveKey(): AiProviderKey
     {
-        $key = AiProviderKey::active()->first();
+        $key = app(\App\Services\Ai\AiGateway::class)->keysFor('analytics')->first();
 
         if (!$key) {
             throw new \Exception('No active AI provider key configured.');
@@ -49,17 +49,15 @@ class AiAnalyticsService
         // ── Build prompt server-side ─────────────────────────────────
         $prompt = $this->buildPrompt($moduleKey, $outputType, $entityId, $entityType, $customPrompt, $extraData);
 
-        $key       = $this->getActiveKey();
+        $key       = null;
         $startTime = microtime(true);
 
         try {
-            // ── Call the right provider ──────────────────────────────
-            $result = match($key->provider) {
-                'anthropic' => $this->callAnthropic($key->getDecryptedKey(), $prompt),
-                'gemini'    => $this->callGemini($key->getDecryptedKey(), $prompt),
-                'openai'    => $this->callOpenAI($key->getDecryptedKey(), $prompt),
-                default     => throw new \Exception("Unsupported provider: {$key->provider}"),
-            };
+            // ── Ask the first key in use for analytics (the next one if it fails) ──
+            $gateway = app(\App\Services\Ai\AiGateway::class);
+            $r       = $gateway->run('analytics', null, [['role' => 'user', 'content' => $prompt]], ['max_tokens' => 1024]);
+            $key     = $r['key'];
+            $result  = ['content' => $r['text'], 'prompt_tokens' => $r['prompt_tokens'], 'completion_tokens' => $r['completion_tokens'], 'model' => $r['model']];
 
             $duration = (int) ((microtime(true) - $startTime) * 1000);
 
@@ -70,7 +68,7 @@ class AiAnalyticsService
                 'admin_id'          => $adminId,
                 'prompt_tokens'     => $result['prompt_tokens'],
                 'completion_tokens' => $result['completion_tokens'],
-                'cost_estimate'     => $this->estimateCost($key->provider, $result['prompt_tokens'], $result['completion_tokens']),
+                'cost_estimate'     => $gateway->estimateCost($key->provider, $result['prompt_tokens'], $result['completion_tokens']),
                 'model_used'        => $result['model'],
                 'status'            => 'success',
                 'response_time_ms'  => $duration,
@@ -1114,105 +1112,5 @@ class AiAnalyticsService
                 . 'Consider geographic clustering where addresses are available. '
                 . 'Return a recommended sequence by stop ID with brief reasoning.',
         ];
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // ── Provider calls ───────────────────────────────────────────────
-    // ════════════════════════════════════════════════════════════════
-
-    private function callAnthropic(string $apiKey, string $prompt): array
-    {
-        $response = Http::withHeaders([
-            'x-api-key'         => $apiKey,
-            'anthropic-version' => '2023-06-01',
-            'content-type'      => 'application/json',
-        ])->post('https://api.anthropic.com/v1/messages', [
-            'model'      => 'claude-sonnet-4-5',
-            //'claude-sonnet-4-20250514',
-            'max_tokens' => 1024,
-            'messages'   => [
-                ['role' => 'user', 'content' => $prompt]
-            ],
-        ]);
-
-        if (!$response->successful()) {
-            throw new \Exception('Anthropic API error: ' . $response->body());
-        }
-
-        $data = $response->json();
-
-        return [
-            'content'           => $data['content'][0]['text'] ?? '',
-            'prompt_tokens'     => $data['usage']['input_tokens'] ?? 0,
-            'completion_tokens' => $data['usage']['output_tokens'] ?? 0,
-            'model'             => $data['model'] ?? 'claude-sonnet-4-5',
-            //claude-sonnet-4-20250514',
-        ];
-    }
-
-    private function callGemini(string $apiKey, string $prompt): array
-    {
-        $model    = 'gemini-2.5-flash';
-        $response = Http::post(
-            "https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}",
-            [
-                'contents' => [['parts' => [['text' => $prompt]]]],
-            ]
-        );
-
-        if (!$response->successful()) {
-            throw new \Exception('Gemini API error: ' . $response->body());
-        }
-
-        $data = $response->json();
-
-        return [
-            'content'           => $data['candidates'][0]['content']['parts'][0]['text'] ?? '',
-            'prompt_tokens'     => $data['usageMetadata']['promptTokenCount'] ?? 0,
-            'completion_tokens' => $data['usageMetadata']['candidatesTokenCount'] ?? 0,
-            'model'             => $model,
-        ];
-    }
-
-    private function callOpenAI(string $apiKey, string $prompt): array
-    {
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$apiKey}",
-            'Content-Type'  => 'application/json',
-        ])->post('https://api.openai.com/v1/chat/completions', [
-            'model'    => 'gpt-4o-mini',
-            'messages' => [['role' => 'user', 'content' => $prompt]],
-        ]);
-
-        if (!$response->successful()) {
-            throw new \Exception('OpenAI API error: ' . $response->body());
-        }
-
-        $data = $response->json();
-
-        return [
-            'content'           => $data['choices'][0]['message']['content'] ?? '',
-            'prompt_tokens'     => $data['usage']['prompt_tokens'] ?? 0,
-            'completion_tokens' => $data['usage']['completion_tokens'] ?? 0,
-            'model'             => $data['model'] ?? 'gpt-4o-mini',
-        ];
-    }
-
-    // ── Cost estimator ───────────────────────────────────────────────
-    private function estimateCost(string $provider, int $promptTokens, int $completionTokens): float
-    {
-        $rates = [
-            'anthropic' => ['in' => 0.003,   'out' => 0.015],
-            'gemini'    => ['in' => 0.000075, 'out' => 0.0003],
-            'openai'    => ['in' => 0.00015,  'out' => 0.0006],
-        ];
-
-        $rate = $rates[$provider] ?? ['in' => 0, 'out' => 0];
-
-        return round(
-            ($promptTokens / 1000 * $rate['in']) +
-            ($completionTokens / 1000 * $rate['out']),
-            6
-        );
     }
 }
