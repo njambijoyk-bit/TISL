@@ -126,7 +126,7 @@ function ExceptionEditor({ defaults, onSaved, onCancel, editing }) {
               <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${scope === 'category' ? 'categories' : 'products'}…`} style={input} />
                 {found.length > 0 && (
-                  <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, maxHeight: 220, overflowY: 'auto' }}>
+                  <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 220, overflowY: 'auto' }}>
                     {found.map((f) => <button key={f.id} type="button" onClick={() => setTarget({ id: f.id, name: f.name })} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>{f.name}{f.sku ? <span style={{ color: '#9ca3af' }}> · {f.sku}</span> : null}</button>)}
                   </div>
                 )}

@@ -95,7 +95,7 @@ function AdminReportHTML({ data }) {
                 </div>
 
                 {data.manifest.notes && (
-                    <div style={{ background: '#f9fafb', border: '1px solid var(--line)', padding: '7px 10px', marginBottom: 10, fontSize: '10pt' }}>
+                    <div style={{ background: 'var(--surface-input)', border: '1px solid var(--line)', padding: '7px 10px', marginBottom: 10, fontSize: '10pt' }}>
                         <span className="label">Notes: </span>{data.manifest.notes}
                     </div>
                 )}
@@ -221,7 +221,7 @@ function DriverSheetHTML({ data }) {
                     </div>
 
                     {/* Item checklist */}
-                    <div style={{ border: '1px solid #ddd', padding: '8px 12px', background: '#fafafa' }}>
+                    <div style={{ border: '1px solid #ddd', padding: '8px 12px', background: 'var(--surface-input)' }}>
                         <div className="label" style={{ marginBottom: 6 }}>Items to deliver — tick each item as you hand it over</div>
                         {stop.orderItems.map((oi, j) => (
                             <div key={j} className="checkbox-row">

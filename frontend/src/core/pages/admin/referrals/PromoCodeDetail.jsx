@@ -330,7 +330,7 @@ export default function PromoCodeDetail() {
                   </thead>
                   <tbody>
                     {redemptions.map((r, i) => (
-                      <tr key={`${r.voucher_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                      <tr key={`${r.voucher_id}`} style={{ borderBottom: '1px solid #f9fafb', background: i % 2 === 0 ? '#fff' : 'var(--surface-input)' }}>
                         <td style={{ padding: '10px 10px', fontWeight: 700 }}>
                           <a href={`/admin/books/vouchers/${r.voucher_id}`} style={{ color: purple, textDecoration: 'none', fontFamily: 'monospace' }}>{r.voucher_number}</a>
                           <div style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>{r.type}</div>

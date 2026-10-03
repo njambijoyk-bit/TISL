@@ -41,7 +41,7 @@ function SectionLabel({ children }) {
 
 function InfoBlock({ rows }) {
     return (
-        <div style={{ borderRadius: 8, border: '1px solid #e5e7eb', overflow: 'hidden', background: '#ffffff' }}>
+        <div style={{ borderRadius: 8, border: '1px solid var(--line)', overflow: 'hidden', background: '#ffffff' }}>
             {rows.map(({ label, value, href }, i) => (
                 <div key={label} style={{
                     display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
@@ -348,7 +348,7 @@ function StopDetailModal({ item, onClose }) {
                 {/* header */}
                 <div style={{
                     padding: '14px 18px',
-                    borderBottom: '1px solid #e5e7eb',
+                    borderBottom: '1px solid var(--line)',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     flexShrink: 0,
                 }}>
@@ -372,7 +372,7 @@ function StopDetailModal({ item, onClose }) {
                     <button
                         onClick={onClose}
                         style={{
-                            background: 'none', border: '1px solid #e5e7eb',
+                            background: 'none', border: '1px solid var(--line)',
                             borderRadius: 8, width: 30, height: 30,
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', color: '#6b7280', fontSize: '1rem',
@@ -456,7 +456,7 @@ function StopDetailModal({ item, onClose }) {
 
                     <SectionLabel>Delivery Note Summary</SectionLabel>
                     <div style={{
-                        background: '#f9fafb', border: '1px solid #e5e7eb',
+                        background: 'var(--surface-input)', border: '1px solid var(--line)',
                         borderRadius: 8, padding: '12px',
                         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
                     }}>
@@ -502,17 +502,17 @@ function StopDetailModal({ item, onClose }) {
                                 <div key={oi.id} style={{
                                     display: 'flex', alignItems: 'center', gap: 10,
                                     padding: '10px 12px', borderRadius: 8,
-                                    background: '#f9fafb', border: '1px solid #e5e7eb',
+                                    background: 'var(--surface-input)', border: '1px solid var(--line)',
                                 }}>
                                     {oi.product_image ? (
                                         <img
                                             src={oi.product_image.startsWith('http') ? oi.product_image : `${import.meta.env.VITE_API_URL ?? ''}${oi.product_image}`}
                                             alt={oi.product_name}
-                                            style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid #e5e7eb' }}
+                                            style={{ width: 42, height: 42, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--line)' }}
                                             onError={e => { e.currentTarget.style.display = 'none'; }}
                                         />
                                     ) : (
-                                        <div style={{ width: 42, height: 42, borderRadius: 8, background: '#f3f4f6', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <div style={{ width: 42, height: 42, borderRadius: 8, background: 'var(--surface-input)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                             <Package size={18} color="#9ca3af" />
                                         </div>
                                     )}

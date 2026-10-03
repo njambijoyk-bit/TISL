@@ -230,7 +230,7 @@ export default function Bookings() {
                 <tbody>
                   {data.rows.map((b) => (
                     <Fragment key={b.id}>
-                      <tr onClick={() => setOpen(open === b.id ? null : b.id)} style={{ cursor: 'pointer', background: open === b.id ? '#f9fafb' : undefined }}>
+                      <tr onClick={() => setOpen(open === b.id ? null : b.id)} style={{ cursor: 'pointer', background: open === b.id ? 'var(--surface-hover)' : undefined }}>
                         <td style={td}>{when(b.starts_at)}</td>
                         <td style={td}><strong>{b.number}</strong><br /><span style={{ color: colors.textFaint }}>{b.service}{b.package && b.package !== 'Standard' ? ` — ${b.package}` : ''}</span></td>
                         <td style={td}>{b.customer?.name}</td>

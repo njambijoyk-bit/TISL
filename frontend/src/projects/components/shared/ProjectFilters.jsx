@@ -20,7 +20,7 @@ const PRIORITY_OPTIONS = [
 ];
 
 const selectStyle = {
-  padding: '9px 12px', borderRadius: 10, border: '1.5px solid #e5e7eb',
+  padding: '9px 12px', borderRadius: 10, border: '1.5px solid var(--line)',
   fontSize: '0.82rem', outline: 'none', color: '#374151',
   cursor: 'pointer', fontWeight: 500,
 };
@@ -49,7 +49,7 @@ const ProjectFilters = ({ filters, onFilterChange, onSearch, loading }) => {
     filters.customer_id || filters.owner_admin_id;
 
   return (
-    <div style={{ borderRadius: 14, border: '1px solid #f3f4f6', padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+    <div style={{ borderRadius: 14, border: '1px solid var(--line)', padding: '14px 16px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
 
         {/* Search */}
@@ -60,7 +60,7 @@ const ProjectFilters = ({ filters, onFilterChange, onSearch, loading }) => {
             placeholder="Search by title or project number…"
             value={searchInput}
             onChange={e => setSearchInput(e.target.value)}
-            style={{ width: '100%', padding: '9px 36px', borderRadius: 10, border: '1.5px solid #e5e7eb', fontSize: '0.82rem', outline: 'none', color: '#111827', boxSizing: 'border-box', fontWeight: 500 }}
+            style={{ width: '100%', padding: '9px 36px', borderRadius: 10, border: '1.5px solid var(--line)', fontSize: '0.82rem', outline: 'none', color: '#111827', boxSizing: 'border-box', fontWeight: 500 }}
             onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
             onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
           />

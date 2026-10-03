@@ -362,9 +362,9 @@ export default function AdminAuctionDetail() {
         <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
           {auction.product?.main_image_url ? (
             <img src={auction.product.main_image_url} alt={auction.product.name}
-              style={{ width: 100, height: 100, borderRadius: 12, objectFit: 'cover', flexShrink: 0, background: '#f3f4f6' }} />
+              style={{ width: 100, height: 100, borderRadius: 12, objectFit: 'cover', flexShrink: 0, background: 'var(--surface-input)' }} />
           ) : (
-            <div style={{ width: 100, height: 100, borderRadius: 12, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div style={{ width: 100, height: 100, borderRadius: 12, background: 'var(--surface-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Package size={32} style={{ color: 'var(--text-tertiary)' }} />
             </div>
           )}
@@ -494,7 +494,7 @@ export default function AdminAuctionDetail() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb', textAlign: 'left' }}>
+                  <tr style={{ background: 'var(--surface-input)', textAlign: 'left' }}>
                     {['Bidder', 'Status', 'Entry fee', 'Deposit', 'Deposit is'].map(h => <th key={h} style={{ padding: '8px 14px', fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>{h}</th>)}
                   </tr>
                 </thead>
@@ -572,7 +572,7 @@ export default function AdminAuctionDetail() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb' }}>
+                  <tr style={{ background: 'var(--surface-input)' }}>
                     {['Bidder', 'Amount', 'Max Bid', 'Time'].map(h => (
                       <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{h}</th>
                     ))}

@@ -35,7 +35,7 @@ export default function OrderPaymentsPanel({ orderId, orderTotalKes }) {
 
   return (
     <Panel style={{ marginTop:16 }}>
-      <div style={{ padding:'16px 20px', borderBottom:'1px solid #f3f4f6', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+      <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--line)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <h4 style={{ margin:0, fontWeight:800, color:'#374151', display:'flex', alignItems:'center', gap:8 }}>
           <CreditCard size={16} color={purple} /> Payment History
         </h4>
@@ -56,7 +56,7 @@ export default function OrderPaymentsPanel({ orderId, orderTotalKes }) {
         ) : (
           <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:12 }}>
             {data.payments.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px', borderRadius:10, border:'1px solid #e5e7eb', cursor:'pointer' }} onClick={() => navigate(`/admin/finance/payments/${p.id}`)}>
+              <div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px', borderRadius:10, border:'1px solid var(--line)', cursor:'pointer' }} onClick={() => navigate(`/admin/finance/payments/${p.id}`)}>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                   {p.status === 'confirmed' && <CheckCircle size={16} color="#10b981"/>}
                   {p.status === 'pending' && <Clock size={16} color="#f59e0b"/>}

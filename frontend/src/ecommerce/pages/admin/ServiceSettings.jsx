@@ -22,7 +22,7 @@ const BUCKETS = [
 ];
 const TAX = { taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Not taxed' };
 const cell = { ...input, padding: '6px 8px', fontSize: '0.82rem' };
-const td = { padding: '7px 8px', borderBottom: '1px solid #f3f4f6', verticalAlign: 'middle' };
+const td = { padding: '7px 8px', borderBottom: '1px solid var(--line)', verticalAlign: 'middle' };
 
 export default function ServiceSettings() {
   const [data, setData] = useState(null);

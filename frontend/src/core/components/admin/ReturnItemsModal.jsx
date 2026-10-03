@@ -4,7 +4,7 @@ import { XCircle, AlertTriangle, DollarSign, Package, AlertCircle, X } from 'luc
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 10,
-  border: '1.5px solid #e5e7eb', fontSize: '0.82rem', outline: 'none',
+  border: '1.5px solid var(--line)', fontSize: '0.82rem', outline: 'none',
   color: '#111827', boxSizing: 'border-box', fontWeight: 500,
 };
 const focusIn  = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
@@ -276,13 +276,13 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
   // ── No order data ───────────────────────────────────────────────────────────
   if (!order) return (
     <Overlay>
-      <div style={{ borderRadius: 20, border: '1px solid #f3f4f6', boxShadow: '0 24px 64px rgba(0,0,0,0.15)', maxWidth: 440, width: '100%', padding: 32, textAlign: 'center' }}>
+      <div style={{ borderRadius: 20, border: '1px solid var(--line)', boxShadow: '0 24px 64px rgba(0,0,0,0.15)', maxWidth: 440, width: '100%', padding: 32, textAlign: 'center' }}>
         <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(239,68,68,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <AlertTriangle size={26} color="#ef4444" />
         </div>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#111827', marginBottom: 8 }}>Order Data Missing</h3>
         <p style={{ fontSize: '0.85rem', color: '#9ca3af', marginBottom: 24 }}>Unable to load order information. Please refresh and try again.</p>
-        <button onClick={onClose} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: '1.5px solid #e5e7eb', color: '#374151', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', background: 'transparent' }}>Close</button>
+        <button onClick={onClose} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: '1.5px solid var(--line)', color: '#374151', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', background: 'transparent' }}>Close</button>
       </div>
     </Overlay>
   );
@@ -291,7 +291,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
   const validation = canCancel();
   if (!validation.valid) return (
     <Overlay>
-      <div style={{ borderRadius: 20, border: '1px solid #f3f4f6', boxShadow: '0 24px 64px rgba(0,0,0,0.15)', maxWidth: 480, width: '100%', padding: 28 }}>
+      <div style={{ borderRadius: 20, border: '1px solid var(--line)', boxShadow: '0 24px 64px rgba(0,0,0,0.15)', maxWidth: 480, width: '100%', padding: 28 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(239,68,68,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <XCircle size={20} color="#ef4444" />
@@ -317,8 +317,8 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
           ))}
         </div>
 
-        <div style={{ paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
-          <button onClick={onClose} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: '1.5px solid #e5e7eb', color: '#374151', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', background: 'transparent' }}>Close</button>
+        <div style={{ paddingTop: 16, borderTop: '1px solid var(--line)' }}>
+          <button onClick={onClose} style={{ width: '100%', padding: '10px 0', borderRadius: 10, border: '1.5px solid var(--line)', color: '#374151', fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', background: 'transparent' }}>Close</button>
         </div>
       </div>
     </Overlay>
@@ -340,10 +340,10 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
 
   return (
     <Overlay>
-      <div style={{ borderRadius: 20, border: '1px solid #f3f4f6', boxShadow: '0 24px 64px rgba(0,0,0,0.15)', maxWidth: 860, width: '100%', margin: '32px auto', overflow: 'hidden', background: 'white'  }}>
+      <div style={{ borderRadius: 20, border: '1px solid var(--line)', boxShadow: '0 24px 64px rgba(0,0,0,0.15)', maxWidth: 860, width: '100%', margin: '32px auto', overflow: 'hidden', background: 'white'  }}>
 
         {/* Header */}
-        <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, position: 'relative' }}>
+        <div style={{ padding: '24px 28px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, position: 'relative' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg,#ef4444,#dc2626)', borderRadius: '20px 20px 0 0' }} />
           <div>
             <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#ef4444', marginBottom: 4 }}>Order Management</p>
@@ -447,7 +447,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
 
           {/* Manual Refund Override Section */}
           {requiresRefund && (
-          <div style={{ padding: '16px 18px', borderRadius: 12, border: '1px solid #f3f4f6', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+          <div style={{ padding: '16px 18px', borderRadius: 12, border: '1px solid var(--line)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <DollarSign size={16} color="var(--color-primary-500)" />
@@ -489,7 +489,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
             </div>
 
             {manualRefundMode && (
-              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
                   <p style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#9ca3af', margin: 0 }}>Refund Options</p>
                   
@@ -508,7 +508,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                           padding: '10px 12px',
                           borderRadius: 10,
                           border: `1.5px solid ${opt.disabled ? '#f3f4f6' : refundType === opt.id ? 'var(--color-primary-500)' : '#f3f4f6'}`,
-                          background: opt.disabled ? '#fafafa' : refundType === opt.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
+                          background: opt.disabled ? 'var(--surface-hover)' : refundType === opt.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
                           cursor: opt.disabled ? 'not-allowed' : 'pointer',
                           opacity: opt.disabled ? 0.5 : 1,
                           transition: 'all 0.2s',
@@ -543,7 +543,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                       if (refundType !== 'custom') setRefundType('custom');
                     }}
                     placeholder="Enter total refund amount..."
-                    style={{ ...inputStyle, background: refundType === 'custom' ? 'white' : '#f9fafb' }}
+                    style={{ ...inputStyle, background: refundType === 'custom' ? 'white' : 'var(--surface-input)' }}
                     onFocus={focusIn} onBlur={focusOut}
                   />
                   <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 6 }}>
@@ -583,14 +583,14 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
               </div>
 
               {!hasItems ? (
-                <div style={{ textAlign: 'center', padding: '32px 24px', borderRadius: 12, border: '1px solid #f3f4f6' }}>
+                <div style={{ textAlign: 'center', padding: '32px 24px', borderRadius: 12, border: '1px solid var(--line)' }}>
                   <Package size={28} color="#d1d5db" style={{ margin: '0 auto 12px' }} />
                   <p style={{ fontSize: '0.85rem', color: '#9ca3af' }}>No items found in this order</p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {refundItems.map((item, index) => (
-                    <div key={index} style={{ borderRadius: 12, border: '1px solid #f3f4f6', padding: '16px 18px', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+                    <div key={index} style={{ borderRadius: 12, border: '1px solid var(--line)', padding: '16px 18px', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
                       {/* Item header */}
                       <div style={{ marginBottom: 14 }}>
                         <p style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 3px' }}>{item.product_name}</p>
@@ -614,7 +614,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                             value={item.quantity_returned}
                             onChange={e => handleQuantityChange(index, e.target.value)}
                             disabled={returnlessRefund}
-                            style={{ ...inputStyle, opacity: returnlessRefund ? 0.5 : 1, background: returnlessRefund ? '#f9fafb' : 'white' }}
+                            style={{ ...inputStyle, opacity: returnlessRefund ? 0.5 : 1, background: returnlessRefund ? 'var(--surface-hover)' : 'white' }}
                             onFocus={focusIn}
                             onBlur={focusOut}
                           />
@@ -629,7 +629,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                             value={item.refund_amount}
                             disabled={!canRefund || manualRefundMode}
                             onChange={e => handleRefundAmountChange(index, e.target.value)}
-                            style={{ ...inputStyle, opacity: (canRefund && !manualRefundMode) ? 1 : 0.5, background: manualRefundMode ? '#f9fafb' : 'white' }}
+                            style={{ ...inputStyle, opacity: (canRefund && !manualRefundMode) ? 1 : 0.5, background: manualRefundMode ? 'var(--surface-hover)' : 'white' }}
                             onFocus={focusIn} onBlur={focusOut}
                           />
                           {!canRefund && (
@@ -705,9 +705,9 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
           )}
 
           {/* Actions */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 20, borderTop: '1px solid #f3f4f6' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 20, borderTop: '1px solid var(--line)' }}>
             <button onClick={onClose} disabled={loading} type="button"
-              style={{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid #e5e7eb', color: '#6b7280', fontSize: '0.85rem', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', background: 'transparent', opacity: loading ? 0.5 : 1 }}>
+              style={{ padding: '10px 20px', borderRadius: 10, border: '1.5px solid var(--line)', color: '#6b7280', fontSize: '0.85rem', fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', background: 'transparent', opacity: loading ? 0.5 : 1 }}>
               Close
             </button>
             <button onClick={handleSubmit} disabled={loading} type="button"

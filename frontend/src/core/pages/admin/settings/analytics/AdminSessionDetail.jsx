@@ -25,7 +25,7 @@ const EVENT_META = {
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton({ w = '100%', h = 14, radius = 6 }) {
   return (
-    <div style={{ width: w, height: h, background: '#f3f4f6', borderRadius: radius, animation: 'pulse 1.5s ease-in-out infinite' }} />
+    <div style={{ width: w, height: h, background: 'var(--surface-input)', borderRadius: radius, animation: 'pulse 1.5s ease-in-out infinite' }} />
   );
 }
 
@@ -47,7 +47,7 @@ function EventRow({ event, index, startTime }) {
         <div style={{ width: 28, height: 28, borderRadius: 9, background: meta.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon size={13} style={{ color: meta.color }} />
         </div>
-        <div style={{ width: 2, flex: 1, background: '#f3f4f6', minHeight: 8, marginTop: 2 }} />
+        <div style={{ width: 2, flex: 1, background: 'var(--surface-input)', minHeight: 8, marginTop: 2 }} />
       </div>
 
       {/* Content */}
@@ -144,13 +144,13 @@ export default function AdminSessionDetail({ sessionId }) {
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 22, border: '1px solid #f3f4f6' }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 22, border: '1px solid var(--line)' }}>
         <Skeleton w="50%" h={18} />
         <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
           <Skeleton w="70%" /><Skeleton w="40%" />
         </div>
       </div>
-      <div style={{ background: 'white', borderRadius: 16, padding: 22, border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 22, border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} style={{ display: 'flex', gap: 12 }}>
             <Skeleton w={28} h={28} radius={9} />
@@ -185,7 +185,7 @@ export default function AdminSessionDetail({ sessionId }) {
       {/* ── Session summary card ────────────────────────────────────────── */}
       <div style={{
         background: 'white', borderRadius: 16, padding: 20,
-        border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+        border: '1px solid var(--line)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
       }} className="dark:bg-gray-800 dark:border-gray-700">
 
         <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -238,10 +238,10 @@ export default function AdminSessionDetail({ sessionId }) {
       </div>
 
       {/* ── Event timeline ────────────────────────────────────────────────── */}
-      <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }} className="dark:bg-gray-800 dark:border-gray-700">
+      <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--line)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }} className="dark:bg-gray-800 dark:border-gray-700">
 
         {/* Header + filter pills */}
-        <div style={{ padding: '13px 18px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }} className="dark:border-gray-700">
+        <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }} className="dark:border-gray-700">
           <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
             <Zap size={14} style={{ color: 'var(--color-primary-500)' }} />
             <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">

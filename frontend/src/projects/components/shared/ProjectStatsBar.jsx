@@ -4,7 +4,7 @@ const StatCard = ({ label, value, sub, color, onClick }) => (
   <div
     onClick={onClick}
     style={{
-      borderRadius: 16, border: '1px solid #f3f4f6', padding: '20px 24px',
+      borderRadius: 16, border: '1px solid var(--line)', padding: '20px 24px',
       boxShadow: '0 1px 4px rgba(0,0,0,0.05)', cursor: onClick ? 'pointer' : 'default',
       transition: 'box-shadow 200ms, transform 200ms, border-color 200ms',
       position: 'relative', overflow: 'hidden',
@@ -27,9 +27,9 @@ const ProjectStatsBar = ({ statistics, loading }) => {
   if (loading) return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 160px), 1fr))', gap: 16 }}>
       {Array.from({ length: 6 }).map((_, i) => (
-        <div key={i} style={{ borderRadius: 16, border: '1px solid #f3f4f6', padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-          <div style={{ height: 12, width: '60%', borderRadius: 6, background: '#f3f4f6', marginBottom: 12 }} />
-          <div style={{ height: 28, width: '40%', borderRadius: 6, background: '#f3f4f6' }} />
+        <div key={i} style={{ borderRadius: 16, border: '1px solid var(--line)', padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+          <div style={{ height: 12, width: '60%', borderRadius: 6, background: 'var(--surface-input)', marginBottom: 12 }} />
+          <div style={{ height: 28, width: '40%', borderRadius: 6, background: 'var(--surface-input)' }} />
         </div>
       ))}
     </div>

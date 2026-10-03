@@ -181,7 +181,7 @@ export default function PaymentDetail() {
             gap: 20,
         }}>
             <Panel>
-            <div style={{ padding: 18, borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: 18, borderBottom: '1px solid var(--line)' }}>
                 <SectionLabel>Transaction Details</SectionLabel>
             </div>
             <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -385,7 +385,7 @@ export default function PaymentDetail() {
             </Panel>
           
           <Panel>
-            <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid #f3f4f6' }}>
+            <div style={{ padding: '18px 18px 14px', borderBottom: '1px solid var(--line)' }}>
                 <SectionLabel>Order Snapshot</SectionLabel>
                 {payment.currency !== 'KES' && (
                 <div style={{
@@ -456,7 +456,7 @@ export default function PaymentDetail() {
                 </div>
                 ))}
 
-                <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
+                <hr style={{ margin: '10px 0', border: 'none', borderTop: '1px solid var(--line)' }} />
 
                 {/* Totals */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>

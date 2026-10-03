@@ -15,7 +15,7 @@ const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
 const Btn = ({ children, onClick, disabled, variant = 'outline', icon, size = 'md', type = 'button' }) => {
   const variants = {
     primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb', boxShadow: 'none' },
+    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--line)', boxShadow: 'none' },
     ghost:   { background: purpleLt, color: purple, border: `1.5px solid ${purpleBd}`, boxShadow: 'none' },
   };
   const pad = size === 'sm' ? '5px 12px' : '8px 18px';
@@ -217,7 +217,7 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
                     <div key={product.id} className={`psm-card${sel ? ' sel' : ''}`} onClick={() => toggleProduct(product)}>
                       {/* Check badge */}
                       <div style={{ position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 24, height: 24, borderRadius: '50%', background: sel ? purple : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' }}>
+                        <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 24, height: 24, borderRadius: '50%', background: sel ? purple : 'var(--surface-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.15s' }}>
                           <Check size={13} color={sel ? 'white' : '#d1d5db'} strokeWidth={3} />
                         </div>
 
@@ -225,7 +225,7 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
                         {product.main_image_url && (
                           <div
                             onClick={e => { e.stopPropagation(); setPreviewImage(product.main_image_url); }}
-                            style={{ width: '100%', height: 100, background: '#f9fafb', overflow: 'hidden', cursor: 'zoom-in' }}
+                            style={{ width: '100%', height: 100, background: 'var(--surface-input)', overflow: 'hidden', cursor: 'zoom-in' }}
                           >
                             <img src={product.main_image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { e.currentTarget.parentElement.style.display = 'none'; }} />
                           </div>
@@ -237,7 +237,7 @@ const ProductSelectorModalAdmin = ({ onClose, onSelect, selectedProducts = [] })
                         <p style={{ fontSize: '0.83rem', fontWeight: 700, color: 'var(--text,#111827)', margin: 0, lineHeight: 1.3 }}>{product.name}</p>
                         {product.sku && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>SKU: {product.sku}</p>}
                         {product.brand?.name && (
-                          <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: '#f3f4f6', color: '#6b7280', width: 'fit-content' }}>{product.brand.name}</span>
+                          <span style={{ display: 'inline-block', fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 9999, background: 'var(--surface-input)', color: '#6b7280', width: 'fit-content' }}>{product.brand.name}</span>
                         )}
                         {product.category?.name && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{product.category.name}</p>}
                         {product.price && <p style={{ fontSize: '0.82rem', fontWeight: 800, color: purple, margin: 0 }}>{fmt(product.price, product)}</p>}

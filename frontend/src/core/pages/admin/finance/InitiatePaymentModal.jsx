@@ -50,7 +50,7 @@ export default function InitiatePaymentModal({ orderId, orderTotalKes, orderBala
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:50, padding:16 }}>
       <Panel style={{ maxWidth:520, width:'100%' }}>
-        <div style={{ padding:'22px 26px 18px', borderBottom:'1px solid #f3f4f6' }}>
+        <div style={{ padding:'22px 26px 18px', borderBottom:'1px solid var(--line)' }}>
           <h3 style={{ fontSize:'1.15rem', fontWeight:800, margin:0, color:'#111827', display:'flex', alignItems:'center', gap:8 }}>
             <Zap size={18} color={purple} /> Request Payment
           </h3>
@@ -64,20 +64,20 @@ export default function InitiatePaymentModal({ orderId, orderTotalKes, orderBala
               Partial Payment
             </label>
             {form.is_partial && (
-              <input type="number" value={form.partial_amount} onChange={e=>setForm({...form, partial_amount:e.target.value})} placeholder={`Max: ${orderBalanceKes}`} min="10" max={orderBalanceKes} required style={{ width:'100%', marginTop:8, padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+              <input type="number" value={form.partial_amount} onChange={e=>setForm({...form, partial_amount:e.target.value})} placeholder={`Max: ${orderBalanceKes}`} min="10" max={orderBalanceKes} required style={{ width:'100%', marginTop:8, padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }} />
             )}
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
             <div>
               <label style={{ fontSize:'0.75rem', fontWeight:700, color:'#6b7280' }}>Phone Override (Optional)</label>
-              <input type="text" value={form.phone_override} onChange={e=>setForm({...form, phone_override:e.target.value})} placeholder="254712345678" style={{ width:'100%', marginTop:4, padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+              <input type="text" value={form.phone_override} onChange={e=>setForm({...form, phone_override:e.target.value})} placeholder="254712345678" style={{ width:'100%', marginTop:4, padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }} />
             </div>
             <div>
               <label style={{ fontSize:'0.75rem', fontWeight:700, color:'#6b7280' }}>Reason (if overridden)</label>
-              <input type="text" value={form.phone_override_reason} onChange={e=>setForm({...form, phone_override_reason:e.target.value})} placeholder="Required if phone changed" disabled={!form.phone_override} required={!!form.phone_override} style={{ width:'100%', marginTop:4, padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+              <input type="text" value={form.phone_override_reason} onChange={e=>setForm({...form, phone_override_reason:e.target.value})} placeholder="Required if phone changed" disabled={!form.phone_override} required={!!form.phone_override} style={{ width:'100%', marginTop:4, padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }} />
             </div>
           </div>
-          <textarea value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} placeholder="Admin notes..." rows={2} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+          <textarea value={form.notes} onChange={e=>setForm({...form, notes:e.target.value})} placeholder="Admin notes..." rows={2} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }} />
           
           {/* Force override — super_admin only */}
           {user?.role === 'super_admin' && (

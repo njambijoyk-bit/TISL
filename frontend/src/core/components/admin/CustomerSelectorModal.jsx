@@ -26,7 +26,7 @@ const initials = (c) =>
 const Btn = ({ children, onClick, disabled, variant = 'primary', type = 'button' }) => {
   const v = {
     primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb', boxShadow: 'none' },
+    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--line)', boxShadow: 'none' },
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled} style={{
@@ -280,7 +280,7 @@ const CustomerSelectorModal = ({ onClose, onSelect, currentCustomerId = null }) 
       </div>
 
       {/* Footer */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 16, borderTop: '1px solid #f3f4f6' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
         <Btn variant="outline" onClick={onClose}>Cancel</Btn>
         <Btn onClick={handleConfirm} disabled={!selected}>
           <UserCheck size={15} /> Select Customer

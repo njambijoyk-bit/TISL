@@ -64,7 +64,7 @@ export default function BranchStockPanel({ productId, embedded = false }) {
   return (
     <div style={embedded
       ? { display: 'flex', flexDirection: 'column', gap: 10 }
-      : { marginTop: 24, paddingTop: 20, borderTop: '1px dashed #e5e7eb', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      : { marginTop: 24, paddingTop: 20, borderTop: '1px dashed var(--line)', display: 'flex', flexDirection: 'column', gap: 14 }}>
       {!embedded && (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <MapPin size={18} color="var(--color-primary-600)" />

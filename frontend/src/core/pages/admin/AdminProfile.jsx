@@ -21,7 +21,7 @@ import employeesAPI from '../../../_shared/api/employees';
 const card = {
   background: 'white',
   borderRadius: 12,
-  border: '1px solid #e5e7eb',
+  border: '1px solid var(--line)',
   boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
   padding: 24,
 };
@@ -35,7 +35,7 @@ const sectionTitle = {
   gap: 8,
   margin: '0 0 18px',
   paddingBottom: 12,
-  borderBottom: '1px solid #f3f4f6',
+  borderBottom: '1px solid var(--line)',
 };
 
 const labelStyle = {
@@ -51,7 +51,7 @@ const inputStyle = {
   padding: '9px 12px',
   borderRadius: 8,
   fontSize: '0.875rem',
-  border: '1.5px solid #e5e7eb',
+  border: '1.5px solid var(--line)',
   color: '#111827',
   outline: 'none',
   fontFamily: 'inherit',
@@ -364,7 +364,7 @@ export default function AdminProfile() {
             {/* Tab bar */}
             <div style={{ 
               display: 'flex', gap: 2, marginBottom: 16, 
-              borderBottom: '2px solid #f3f4f6', 
+              borderBottom: '2px solid var(--line)', 
               flexWrap: 'wrap'  
             }}>
               {TABS.map(t => (
@@ -398,7 +398,7 @@ export default function AdminProfile() {
                         <label style={labelStyle}>{label}</label>
                         <p style={{
                           margin: 0, fontSize: '0.875rem', fontWeight: 600, color: '#111827',
-                          padding: '9px 12px', background: '#f9fafb', borderRadius: 8, border: '1px solid #f3f4f6',
+                          padding: '9px 12px', background: 'var(--surface-input)', borderRadius: 8, border: '1px solid var(--line)',
                         }}>
                           {value || '—'}
                         </p>
@@ -587,7 +587,7 @@ export default function AdminProfile() {
                         <span style={{
                           fontSize: '0.68rem', fontWeight: 600, flexShrink: 0,
                           padding: '2px 7px', borderRadius: 99,
-                          background: b.role === 'lead' ? '#fdf2f8' : '#f3f4f6',
+                          background: b.role === 'lead' ? '#fdf2f8' : 'var(--surface-input)',
                           color: b.role === 'lead' ? '#db2777' : '#6b7280',
                         }}>
                           {b.role}
@@ -707,7 +707,7 @@ export default function AdminProfile() {
                         ].map(({ label, value }) => value ? (
                           <div key={label}>
                             <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6' }}>{value}</p>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
                           </div>
                         ) : null)}
                       </div>
@@ -725,7 +725,7 @@ export default function AdminProfile() {
                         ].map(({ label, value }) => value ? (
                           <div key={label}>
                             <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6' }}>{value}</p>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
                           </div>
                         ) : null)}
                       </div>
@@ -743,7 +743,7 @@ export default function AdminProfile() {
                         ].map(({ label, value }) => value ? (
                           <div key={label}>
                             <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6', fontFamily: 'monospace' }}>{value}</p>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)', fontFamily: 'monospace' }}>{value}</p>
                           </div>
                         ) : null)}
                       </div>
@@ -761,7 +761,7 @@ export default function AdminProfile() {
                           ].map(({ label, value }) => value ? (
                             <div key={label}>
                               <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: '#f9fafb', borderRadius: 7, border: '1px solid #f3f4f6' }}>{value}</p>
+                              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
                             </div>
                           ) : null)}
                         </div>
@@ -788,7 +788,7 @@ export default function AdminProfile() {
                         <p style={sectionTitle}><Award size={14} style={{ color: 'var(--color-primary-600)' }} /> Certifications</p>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                           {empRecord.certifications.map((cert, i) => (
-                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 8, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
+                            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--surface-input)', border: '1px solid var(--line)' }}>
                               <Award size={15} style={{ color: 'var(--color-primary-600)', flexShrink: 0, marginTop: 1 }} />
                               <div>
                                 <p style={{ margin: '0 0 1px', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{cert.name || cert}</p>
@@ -973,7 +973,7 @@ export default function AdminProfile() {
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '8px 10px', borderRadius: 8, marginBottom: 4,
                         textDecoration: 'none',
-                        background: '#f9fafb', border: '1px solid #f3f4f6',
+                        background: 'var(--surface-input)', border: '1px solid var(--line)',
                       }}>
                         <div style={{
                           width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
@@ -1021,7 +1021,7 @@ export default function AdminProfile() {
 const rowStyle = {
   display: 'flex', alignItems: 'center', gap: 10,
   padding: '10px 12px', borderRadius: 8,
-  background: '#f9fafb', border: '1px solid #f3f4f6',
+  background: 'var(--surface-input)', border: '1px solid var(--line)',
   textDecoration: 'none', transition: 'background 120ms',
 };
 

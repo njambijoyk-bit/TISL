@@ -38,7 +38,7 @@ function StatCard({ icon: Icon, label, value, sub, color = 'var(--color-primary-
   return (
     <div style={{
       background: 'white', borderRadius: 14, padding: '18px 20px',
-      border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+      border: '1px solid var(--line)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       display: 'flex', flexDirection: 'column', gap: 10,
     }} className="dark:bg-gray-800 dark:border-gray-700">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -56,8 +56,8 @@ function StatCard({ icon: Icon, label, value, sub, color = 'var(--color-primary-
 // ── Section wrapper ───────────────────────────────────────────────────────────
 function Section({ title, icon: Icon, children, action }) {
   return (
-    <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }} className="dark:bg-gray-800 dark:border-gray-700">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
+    <div style={{ background: 'white', borderRadius: 16, border: '1px solid var(--line)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', overflow: 'hidden' }} className="dark:bg-gray-800 dark:border-gray-700">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--line)' }} className="dark:border-gray-700">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {Icon && <Icon size={15} style={{ color: 'var(--color-primary-500)' }} />}
           <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">{title}</span>
@@ -73,7 +73,7 @@ function Section({ title, icon: Icon, children, action }) {
 function MiniBar({ value, max, color = 'var(--color-primary-500)' }) {
   const w = max > 0 ? Math.max(2, (value / max) * 100) : 0;
   return (
-    <div style={{ flex: 1, height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
+    <div style={{ flex: 1, height: 6, background: 'var(--surface-input)', borderRadius: 3, overflow: 'hidden' }}>
       <div style={{ width: `${w}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 600ms ease' }} />
     </div>
   );
@@ -168,7 +168,7 @@ export default function AdminAnalyticsDashboard() {
                 {p.label}
               </button>
             ))}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8 }} className="dark:bg-gray-800 dark:border-gray-600">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', background: 'white', border: '1px solid var(--line)', borderRadius: 8 }} className="dark:bg-gray-800 dark:border-gray-600">
               <Calendar size={13} style={{ color: '#9ca3af' }} />
               <input type="date" value={from} onChange={e => { setFrom(e.target.value); setPreset(-1); }}
                 style={{ border: 'none', outline: 'none', fontSize: '0.78rem', background: 'transparent', color: '#374151', cursor: 'pointer' }}
@@ -178,14 +178,14 @@ export default function AdminAnalyticsDashboard() {
                 style={{ border: 'none', outline: 'none', fontSize: '0.78rem', background: 'transparent', color: '#374151', cursor: 'pointer' }}
                 className="dark:text-gray-200" />
             </div>
-            <button type="button" onClick={load} style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="dark:bg-gray-800 dark:border-gray-600">
+            <button type="button" onClick={load} style={{ width: 34, height: 34, borderRadius: 9, border: '1px solid var(--line)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className="dark:bg-gray-800 dark:border-gray-600">
               <RefreshCw size={14} style={{ color: '#9ca3af', animation: loading ? 'spin 1s linear infinite' : 'none' }} />
             </button>
             <button
               type="button"
               onClick={() => setDevModal(true)}
               style={{
-                padding: '6px 12px', borderRadius: 8, border: '1px solid #e5e7eb',
+                padding: '6px 12px', borderRadius: 8, border: '1px solid var(--line)',
                 background: 'white', cursor: 'pointer', fontSize: '0.72rem',
                 fontWeight: 700, color: '#9ca3af', fontFamily: 'monospace',
                 display: 'flex', alignItems: 'center', gap: 4,
@@ -198,7 +198,7 @@ export default function AdminAnalyticsDashboard() {
         </div>
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: '#f3f4f6', borderRadius: 10, padding: 4, width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--surface-input)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
           {['overview', 'customers', 'sessions'].map(t => (
             <button key={t} type="button" onClick={() => setTab(t)}
               style={{
@@ -284,7 +284,7 @@ export default function AdminAnalyticsDashboard() {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>
-                      <tr style={{ background: '#f9fafb' }} className="dark:bg-gray-700">
+                      <tr style={{ background: 'var(--surface-input)' }} className="dark:bg-gray-700">
                         {['Query', 'Searches', 'Cart Adds', 'Conv%'].map(h => (
                           <th key={h} style={{ padding: '8px 12px', textAlign: 'left', fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                         ))}
@@ -292,7 +292,7 @@ export default function AdminAnalyticsDashboard() {
                     </thead>
                     <tbody>
                       {data.top_searches?.slice(0, 12).map((row, i) => (
-                        <tr key={i} style={{ borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
+                        <tr key={i} style={{ borderBottom: '1px solid var(--line)' }} className="dark:border-gray-700">
                           <td style={{ padding: '8px 12px', fontWeight: 600, color: '#111827' }} className="dark:text-white">{row.query}</td>
                           <td style={{ padding: '8px 12px', color: '#6b7280' }}>{fmt(row.searches)}</td>
                           <td style={{ padding: '8px 12px', color: '#6b7280' }}>{fmt(row.cart_adds)}</td>
@@ -395,7 +395,7 @@ export default function AdminAnalyticsDashboard() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
-                  <tr style={{ background: '#f9fafb' }} className="dark:bg-gray-700">
+                  <tr style={{ background: 'var(--surface-input)' }} className="dark:bg-gray-700">
                     {['Customer', 'Tier', 'Cart', 'Wishlist', 'Quote List', 'Orders', 'Spent', 'Sessions', 'Last Activity', ''].map(h => (
                       <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
@@ -413,7 +413,7 @@ export default function AdminAnalyticsDashboard() {
                       </tr>
                     ))
                   ) : customers?.data?.map((c, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
+                    <tr key={i} style={{ borderBottom: '1px solid var(--line)', cursor: 'pointer' }}
                       className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:border-gray-700"
                       onClick={() => navigate(`/admin/settings/analytics/${c.customer_id}`)}>
                       <td style={{ padding: '10px 14px' }}>
@@ -454,7 +454,7 @@ export default function AdminAnalyticsDashboard() {
               </table>
             </div>
             {customers && (
-              <div style={{ padding: '12px 20px', borderTop: '1px solid #f3f4f6', fontSize: '0.75rem', color: '#9ca3af', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="dark:border-gray-700">
+              <div style={{ padding: '12px 20px', borderTop: '1px solid var(--line)', fontSize: '0.75rem', color: '#9ca3af', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="dark:border-gray-700">
                 <span>{fmt(customers.total)} customers total</span>
                 <span>Page {customers.current_page} of {customers.last_page}</span>
               </div>
@@ -486,7 +486,7 @@ export default function AdminAnalyticsDashboard() {
             className="dark:bg-gray-800">
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--line)' }} className="dark:border-gray-700">
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: '0.72rem', fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '3px 8px', borderRadius: 6 }}>
                   // dev
@@ -509,7 +509,7 @@ export default function AdminAnalyticsDashboard() {
                 4 pages: <strong style={{ color: '#111827' }}>Dashboard</strong> (overview / customers / sessions tabs) →
                 navigate by id → <strong style={{ color: '#111827' }}>AnalyticsDetail</strong> (detects numeric = customer, UUID = session) →
                 renders <strong style={{ color: '#111827' }}>CustomerAnalytics</strong> or <strong style={{ color: '#111827' }}>SessionDetail</strong> as tabs.
-                <code style={{ fontSize: '0.72rem', background: '#f3f4f6', padding: '1px 5px', borderRadius: 4, marginLeft: 4 }}>onSessionClick</code> switches tabs without navigation.
+                <code style={{ fontSize: '0.72rem', background: 'var(--surface-input)', padding: '1px 5px', borderRadius: 4, marginLeft: 4 }}>onSessionClick</code> switches tabs without navigation.
               </p>
               <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 14px' }}>
                 Click the diagram to open full view.
@@ -520,7 +520,7 @@ export default function AdminAnalyticsDashboard() {
                 onClick={() => setFullscreen(true)}
                 style={{
                   cursor: 'zoom-in', borderRadius: 12, overflow: 'hidden',
-                  border: '1px solid #f3f4f6', position: 'relative',
+                  border: '1px solid var(--line)', position: 'relative',
                   maxHeight: 160,  // ← crop here
                 }}
                 className="dark:border-gray-700">
@@ -604,7 +604,7 @@ function SessionsTable({ from, to, navigate }) {
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
           <thead>
-            <tr style={{ background: '#f9fafb' }} className="dark:bg-gray-700">
+            <tr style={{ background: 'var(--surface-input)' }} className="dark:bg-gray-700">
               {['Session', 'Customer', 'Events', 'Searches', 'Views', 'Cart', 'Wishlist', 'Started', 'Duration', ''].map(h => (
                 <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
               ))}
@@ -618,7 +618,7 @@ function SessionsTable({ from, to, navigate }) {
                 ? Math.round((new Date(s.last_event_at) - new Date(s.started_at)) / 60000)
                 : 0;
               return (
-                <tr key={i} style={{ borderBottom: '1px solid #f3f4f6', cursor: 'pointer' }}
+                <tr key={i} style={{ borderBottom: '1px solid var(--line)', cursor: 'pointer' }}
                   className="hover:bg-primary-50 dark:hover:bg-gray-700 dark:border-gray-700"
                   onClick={() => navigate(`/admin/settings/analytics/${s.session_id}`)}>
                   <td style={{ padding: '10px 14px', fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--color-primary-500)' }}>

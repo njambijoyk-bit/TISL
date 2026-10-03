@@ -162,7 +162,7 @@ const MyProjects = () => {
         {isLoading ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 16 }}>
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} style={{ height: 160, borderRadius: 16, background: '#f3f4f6', animation: 'pulse 1.5s ease-in-out infinite' }} />
+              <div key={i} style={{ height: 160, borderRadius: 16, background: 'var(--surface-input)', animation: 'pulse 1.5s ease-in-out infinite' }} />
             ))}
           </div>
 

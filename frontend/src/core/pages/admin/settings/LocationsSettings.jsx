@@ -147,7 +147,7 @@ function LocationModal({ open, onClose, editing, options, onSaved }) {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
-          <button onClick={onClose} style={{ ...btnPrimary, background: '#f3f4f6', color: '#374151' }}>Cancel</button>
+          <button onClick={onClose} style={{ ...btnPrimary, background: 'var(--surface-input)', color: '#374151' }}>Cancel</button>
           <button onClick={save} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
             {saving ? <RefreshCw size={15} /> : <Check size={15} />} {editing ? 'Save changes' : 'Create branch'}
           </button>
@@ -220,7 +220,7 @@ export default function LocationsSettings() {
                   <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{l.name}</span>
                   <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#9ca3af' }}>{l.code}</span>
                   {l.is_default && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', fontWeight: 700, color: '#b45309', background: 'rgba(217,119,6,0.12)', padding: '2px 8px', borderRadius: 999 }}><Star size={11} /> Default</span>}
-                  {!l.is_active && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6b7280', background: '#f3f4f6', padding: '2px 8px', borderRadius: 999 }}>Inactive</span>}
+                  {!l.is_active && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6b7280', background: 'var(--surface-input)', padding: '2px 8px', borderRadius: 999 }}>Inactive</span>}
                 </div>
                 <div style={{ fontSize: '0.76rem', color: '#6b7280', marginTop: 4 }}>
                   {[l.city, l.country].filter(Boolean).join(', ') || '—'}

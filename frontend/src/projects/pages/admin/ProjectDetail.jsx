@@ -104,7 +104,7 @@ const SectionLabel = ({ children, icon: Icon }) => (
 );
 
 const MetaChip = ({ icon: Icon, children }) => (
-  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 600, color: '#6b7280', background: '#f9fafb', border: '1px solid #f3f4f6' }}>
+  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 9999, fontSize: '0.72rem', fontWeight: 600, color: '#6b7280', background: 'var(--surface-input)', border: '1px solid var(--line)' }}>
     <Icon size={11} />{children}
   </div>
 );
@@ -393,7 +393,7 @@ const ProjectDetail = () => {
               {count > 0 && (
                 <span style={{
                   fontSize: '0.65rem', fontWeight: 800, padding: '1px 6px', borderRadius: 9999,
-                  background: active ? purple : '#f3f4f6',
+                  background: active ? purple : 'var(--surface-input)',
                   color: active ? 'white' : '#9ca3af',
                 }}>
                   {count}

@@ -29,7 +29,7 @@ const SkeletonRow = () => (
   <tr>
     {Array.from({ length: 7 }).map((_, i) => (
       <td key={i} style={tdStyle}>
-        <div style={{ height: 14, borderRadius: 6, background: '#f3f4f6', width: i === 0 ? '70%' : '50%' }} />
+        <div style={{ height: 14, borderRadius: 6, background: 'var(--surface-input)', width: i === 0 ? '70%' : '50%' }} />
       </td>
     ))}
   </tr>
@@ -39,7 +39,7 @@ const ProjectTable = ({ projects, loading, onDelete }) => {
   const navigate = useNavigate();
 
   return (
-    <div style={{ borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
+    <div style={{ borderRadius: 16, border: '1px solid var(--line)', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
       <div style={{ overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
           <thead>

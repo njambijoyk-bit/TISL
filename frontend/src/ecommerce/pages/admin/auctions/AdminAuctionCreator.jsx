@@ -128,7 +128,7 @@ export default function AdminAuctionCreator() {
                   <img src={selectedProduct.main_image_url || selectedProduct.main_image} alt={selectedProduct.name}
                     style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
-                  <div style={{ width: 52, height: 52, borderRadius: 10, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ width: 52, height: 52, borderRadius: 10, background: 'var(--surface-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Package size={20} style={{ color: 'var(--text-tertiary)' }} />
                   </div>
                 )}

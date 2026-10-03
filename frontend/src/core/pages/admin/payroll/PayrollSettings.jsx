@@ -153,7 +153,7 @@ export default function PayrollSettings() {
                 <div style={{ minWidth: 220 }}><Field label="Salaries payable (liability)"><SelectInput value={s.salaries_payable_ledger_id ?? ''} onChange={(e) => setS({ ...s, salaries_payable_ledger_id: e.target.value ? Number(e.target.value) : null })}><option value="">Choose…</option>{data.ledgers.filter((l) => l.nature === 'liability').map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</SelectInput></Field></div>
                 <button type="button" style={btnPrimary} onClick={save}>Save</button>
               </div>
-              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 12, paddingTop: 10, borderTop: '1px solid #f3f4f6' }}>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.84rem', width: '100%' }}>Gratuity (service pay) <Link to="/admin/payroll/gratuity" style={{ fontWeight: 400, fontSize: '0.76rem' }}>open the report →</Link></div>
                 {s.gratuity_columns ? (
                   <>

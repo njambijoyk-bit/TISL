@@ -67,7 +67,7 @@ function AdjustForm({ run, line, ledgers, onSaved }) {
     try { const r = await payrollAPI.adjust(run.id, { user_id: line.user_id, adjustments: rows.filter((x) => Number(x.amount) > 0), accept_unverified: accept }); toast.success(r.message); onSaved(r); } catch (e) { toast.error(errMsg(e, 'Could not save')); }
   };
   return (
-    <div style={{ background: '#f9fafb', borderRadius: 8, padding: 10, display: 'grid', gap: 8 }}>
+    <div style={{ background: 'var(--surface-input)', borderRadius: 8, padding: 10, display: 'grid', gap: 8 }}>
       {line.unverified_days > 0 && (
         <label style={{ fontSize: '0.78rem', color: '#92400e' }}><input type="checkbox" checked={accept} onChange={(e) => setAccept(e.target.checked)} /> {line.unverified_days} working day(s) are not verified in attendance — pay as it stands</label>
       )}
@@ -129,14 +129,14 @@ function RunView({ id, onBack, onChanged }) {
           <tbody>
             {run.lines.map((l) => (
               <Fragment key={l.user_id}>
-                <tr onClick={() => setOpen(open === l.user_id ? null : l.user_id)} style={{ cursor: 'pointer', background: open === l.user_id ? '#f9fafb' : undefined }}>
+                <tr onClick={() => setOpen(open === l.user_id ? null : l.user_id)} style={{ cursor: 'pointer', background: open === l.user_id ? 'var(--surface-hover)' : undefined }}>
                   <td style={td}><strong>{l.name}</strong>{l.unverified_days > 0 && <span style={{ color: l.accepted_unverified ? '#6b7280' : '#b45309', fontSize: '0.7rem' }}> · {l.unverified_days} unverified{l.accepted_unverified ? ' (accepted)' : ''}</span>}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{money(l.basic)}</td><td style={{ ...td, textAlign: 'right' }}>{l.days_unpaid || '—'}</td><td style={{ ...td, textAlign: 'right' }}>{l.overtime_pay ? money(l.overtime_pay) : '—'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{money(l.gross)}</td><td style={{ ...td, textAlign: 'right' }}>{money(l.total_deductions)}</td><td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{money(l.net)}</td><td style={{ ...td, textAlign: 'right' }}>{money(l.employer_cost)}</td>
                   <td style={td}><button type="button" style={small} onClick={(e) => { e.stopPropagation(); setSlip(l); }}>Payslip</button></td>
                 </tr>
                 {open === l.user_id && (
-                  <tr><td colSpan={9} style={{ background: '#f9fafb', padding: '4px 10px 12px' }}>
+                  <tr><td colSpan={9} style={{ background: 'var(--surface-input)', padding: '4px 10px 12px' }}>
                     <div style={{ fontSize: '0.78rem', color: colors.textMuted, marginBottom: 6 }}>{l.breakdown.filter((b) => b.amount > 0).map((b) => `${b.name} ${money(b.amount)}${b.kind === 'employer' ? ' (employer)' : ''}`).join(' · ') || 'No components apply.'}</div>
                     {draft && <AdjustForm run={run} line={l} ledgers={cfg.ledgers} onSaved={(r) => { setRun(r); onChanged(); }} />}
                   </td></tr>

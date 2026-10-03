@@ -145,7 +145,7 @@ export default function RestorePanel({ destinationDriver }) {
         <div style={{ overflowX: 'auto', border: '1px solid #eee', borderRadius: 9 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
             <thead>
-              <tr style={{ textAlign: 'left', color: '#9ca3af', background: '#fafafa' }}>
+              <tr style={{ textAlign: 'left', color: '#9ca3af', background: 'var(--surface-input)' }}>
                 <th style={{ padding: '6px 8px' }}>Table</th>
                 <th style={{ padding: '6px 8px' }}>Action</th>
                 <th style={{ padding: '6px 8px' }}>Rows</th>

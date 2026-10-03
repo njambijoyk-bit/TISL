@@ -116,7 +116,7 @@ export default function PaymentsDashboard() {
           <div style={{ display:'flex', gap:12, flexWrap:'wrap', alignItems:'flex-end' }}>
             <div style={{ flex:1, minWidth:140 }}>
               <label style={{ fontSize:'0.72rem', fontWeight:700, color:'#9ca3af' }}>Status</label>
-              <select value={filters.status} onChange={e=>setFilters({...filters, status:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }}>
+              <select value={filters.status} onChange={e=>setFilters({...filters, status:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }}>
                 <option value="">All</option>
                 <option value="pending">Pending</option>
                 <option value="confirmed">Confirmed</option>
@@ -126,22 +126,22 @@ export default function PaymentsDashboard() {
             </div>
             <div style={{ flex:1, minWidth:140 }}>
               <label style={{ fontSize:'0.72rem', fontWeight:700, color:'#9ca3af' }}>Order ID</label>
-              <input type="text" placeholder="e.g. 42" value={filters.order_id} onChange={e=>setFilters({...filters, order_id:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+              <input type="text" placeholder="e.g. 42" value={filters.order_id} onChange={e=>setFilters({...filters, order_id:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }} />
             </div>
             <div style={{ flex:1, minWidth:140 }}>
               <label style={{ fontSize:'0.72rem', fontWeight:700, color:'#9ca3af' }}>From Date</label>
-              <input type="date" value={filters.from_date} onChange={e=>setFilters({...filters, from_date:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+              <input type="date" value={filters.from_date} onChange={e=>setFilters({...filters, from_date:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }} />
             </div>
             <div style={{ flex:1, minWidth:140 }}>
               <label style={{ fontSize:'0.72rem', fontWeight:700, color:'#9ca3af' }}>To Date</label>
-              <input type="date" value={filters.to_date} onChange={e=>setFilters({...filters, to_date:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid #e5e7eb' }} />
+              <input type="date" value={filters.to_date} onChange={e=>setFilters({...filters, to_date:e.target.value})} style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1.5px solid var(--line)' }} />
             </div>
             <div style={{ flex: 1, minWidth: 140 }}>
               <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#9ca3af' }}>Dispute</label>
               <select
                 value={filters.dispute_status}
                 onChange={e => setFilters({ ...filters, dispute_status: e.target.value })}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #e5e7eb' }}
+                style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--line)' }}
               >
                 <option value="">All</option>
                 <option value="raised">Disputed</option>
@@ -178,7 +178,7 @@ export default function PaymentsDashboard() {
                 </td></tr>
             ) : (
               payments.map(p => (
-                <tr key={p.id} style={{ borderBottom:'1px solid #f3f4f6', cursor:'pointer' }} onClick={() => navigate(`/admin/finance/payments/${p.id}`)}>
+                <tr key={p.id} style={{ borderBottom:'1px solid var(--line)', cursor:'pointer' }} onClick={() => navigate(`/admin/finance/payments/${p.id}`)}>
                   <td style={{ padding:'12px 16px', fontWeight:700, color:'var(--color-primary-500)' }}>{p.payment_number}</td>
                   <td style={{ padding:'12px 16px' }}>
                     {p.customer ? (
@@ -232,7 +232,7 @@ export default function PaymentsDashboard() {
           </table>
           </div>
           {meta.last_page > 1 && (
-            <div style={{ padding:'12px 16px', display:'flex', justifyContent:'center', gap:8, borderTop:'1px solid #f3f4f6' }}>
+            <div style={{ padding:'12px 16px', display:'flex', justifyContent:'center', gap:8, borderTop:'1px solid var(--line)' }}>
               
               {Array.from({length: meta.last_page}, (_,i)=>i+1).map(pg => (
                 <button key={pg} onClick={() => setPage(pg)} style={{ padding:'6px 10px', borderRadius:6, border:`1px solid ${pg===meta.current_page?purple:'#e5e7eb'}`, background:pg===meta.current_page?purpleLt:'transparent', cursor:'pointer', fontWeight:700, color:purple }}>

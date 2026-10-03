@@ -36,7 +36,7 @@ const EVENT_META = {
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 function Skeleton({ w = '100%', h = 14, radius = 6 }) {
   return (
-    <div style={{ width: w, height: h, background: '#f3f4f6', borderRadius: radius, animation: 'pulse 1.5s ease-in-out infinite' }} />
+    <div style={{ width: w, height: h, background: 'var(--surface-input)', borderRadius: radius, animation: 'pulse 1.5s ease-in-out infinite' }} />
   );
 }
 
@@ -45,7 +45,7 @@ function StatCard({ icon: Icon, label, value, color = 'var(--color-primary-500)'
   return (
     <div style={{
       background: 'white', borderRadius: 14, padding: '16px 18px',
-      border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+      border: '1px solid var(--line)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
       display: 'flex', flexDirection: 'column', gap: 10,
     }} className="dark:bg-gray-800 dark:border-gray-700">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -63,10 +63,10 @@ function StatCard({ icon: Icon, label, value, color = 'var(--color-primary-500)'
 function Section({ title, icon: Icon, children, action, noPad }) {
   return (
     <div style={{
-      background: 'white', borderRadius: 16, border: '1px solid #f3f4f6',
+      background: 'white', borderRadius: 16, border: '1px solid var(--line)',
       boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden',
     }} className="dark:bg-gray-800 dark:border-gray-700">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid #f3f4f6' }} className="dark:border-gray-700">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid var(--line)' }} className="dark:border-gray-700">
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           {Icon && <Icon size={14} style={{ color: 'var(--color-primary-500)' }} />}
           <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#111827' }} className="dark:text-white">{title}</span>
@@ -82,7 +82,7 @@ function Section({ title, icon: Icon, children, action, noPad }) {
 function MiniBar({ value, max, color = 'var(--color-primary-500)' }) {
   const w = max > 0 ? Math.max(3, (value / max) * 100) : 0;
   return (
-    <div style={{ flex: 1, height: 5, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden', minWidth: 40 }}>
+    <div style={{ flex: 1, height: 5, background: 'var(--surface-input)', borderRadius: 3, overflow: 'hidden', minWidth: 40 }}>
       <div style={{ width: `${w}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 500ms ease' }} />
     </div>
   );
@@ -149,7 +149,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid #f3f4f6' }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: 24, border: '1px solid var(--line)' }}>
         <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
           <Skeleton w={64} h={64} radius={16} />
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -161,7 +161,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} style={{ background: 'white', borderRadius: 14, padding: 18, border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div key={i} style={{ background: 'white', borderRadius: 14, padding: 18, border: '1px solid var(--line)', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <Skeleton w="60%" /><Skeleton w="40%" h={28} />
           </div>
         ))}
@@ -184,7 +184,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
       {/* ── Profile card ─────────────────────────────────────────────────── */}
       <div style={{
         background: 'white', borderRadius: 16, padding: 22,
-        border: '1px solid #f3f4f6', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+        border: '1px solid var(--line)', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
       }} className="dark:bg-gray-800 dark:border-gray-700">
         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
@@ -265,7 +265,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
             </div>
           ))}
           {c.last_order_date && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: '#f9fafb', borderRadius: 10, border: '1px solid #f3f4f6' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--surface-input)', borderRadius: 10, border: '1px solid var(--line)' }}>
               <Calendar size={12} style={{ color: '#9ca3af' }} />
               <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Last order: {fmtDate(c.last_order_date)}</span>
             </div>
@@ -470,7 +470,7 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
 
             {/* saved snapshots — always visible regardless of live note */}
             {savedNotes.length > 0 && (
-              <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 14 }}>
+              <div style={{ borderTop: '1px solid var(--line)', paddingTop: 14 }}>
                 <button
                   onClick={() => setSavedOpen(v => !v)}
                   style={{
@@ -489,8 +489,8 @@ export default function AdminCustomerAnalytics({ customerId, from, to, onSession
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {savedNotes.map(s => (
                       <div key={s.id} style={{
-                        padding: '10px 12px', background: '#fafafa',
-                        border: '1px solid #f3f4f6', borderRadius: 10,
+                        padding: '10px 12px', background: 'var(--surface-input)',
+                        border: '1px solid var(--line)', borderRadius: 10,
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                           <div style={{ flex: 1 }}>

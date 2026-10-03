@@ -15,7 +15,7 @@ const purpleBd = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'
 const Btn = ({ children, onClick, disabled, variant = 'outline', size = 'md', type = 'button' }) => {
   const variants = {
     primary: { background: `linear-gradient(135deg,${purple},${purpleDk})`, color: 'white', border: 'none', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb', boxShadow: 'none' },
+    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid var(--line)', boxShadow: 'none' },
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled} style={{
@@ -242,7 +242,7 @@ const ServiceSelectorModalAdmin = ({ onClose, onSelect, selectedServices = [] })
                 <div key={service.id} className={`ssm-card${sel ? ' sel' : ''}`} onClick={() => toggleService(service)}>
                   <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                     {/* Check */}
-                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: sel ? purple : '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'background 0.15s' }}>
+                    <div style={{ width: 24, height: 24, borderRadius: '50%', background: sel ? purple : 'var(--surface-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, transition: 'background 0.15s' }}>
                       <Check size={13} color={sel ? 'white' : '#d1d5db'} strokeWidth={3} />
                     </div>
 

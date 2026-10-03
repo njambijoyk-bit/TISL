@@ -145,7 +145,7 @@ export default function AdminAnalyticsDetail() {
                   {p.label}
                 </button>
               ))}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8 }} className="dark:bg-gray-800 dark:border-gray-600">
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', background: 'white', border: '1px solid var(--line)', borderRadius: 8 }} className="dark:bg-gray-800 dark:border-gray-600">
                 <Calendar size={12} style={{ color: '#9ca3af' }} />
                 <input type="date" value={from} onChange={e => { setFrom(e.target.value); setPreset(-1); }}
                   style={{ border: 'none', outline: 'none', fontSize: '0.75rem', background: 'transparent', color: '#374151', cursor: 'pointer' }}
@@ -160,7 +160,7 @@ export default function AdminAnalyticsDetail() {
         </div>
 
         {/* ── Tabs ─────────────────────────────────────────────────────── */}
-        <div style={{ display: 'flex', gap: 2, marginBottom: 20, background: '#f3f4f6', borderRadius: 10, padding: 3, width: 'fit-content' }} className="dark:bg-gray-800">
+        <div style={{ display: 'flex', gap: 2, marginBottom: 20, background: 'var(--surface-input)', borderRadius: 10, padding: 3, width: 'fit-content' }} className="dark:bg-gray-800">
 
           <button
             type="button"
@@ -215,7 +215,7 @@ export default function AdminAnalyticsDetail() {
                 to={to}
                 onSessionClick={handleSessionClick}
               />
-            : <div style={{ padding: '48px 24px', textAlign: 'center', background: 'white', borderRadius: 16, border: '1px solid #f3f4f6' }} className="dark:bg-gray-800 dark:border-gray-700">
+            : <div style={{ padding: '48px 24px', textAlign: 'center', background: 'white', borderRadius: 16, border: '1px solid var(--line)' }} className="dark:bg-gray-800 dark:border-gray-700">
                 <AlertTriangle size={28} style={{ color: '#d1d5db', marginBottom: 12 }} />
                 <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>Guest session — no customer profile available.</p>
                 <p style={{ fontSize: '0.78rem', color: '#d1d5db', marginTop: 6 }}>Switch to the Session tab to view the journey.</p>
@@ -225,7 +225,7 @@ export default function AdminAnalyticsDetail() {
         {tab === 'session' && (
           activeSessionId
             ? <AdminSessionDetail sessionId={activeSessionId} />
-            : <div style={{ padding: '48px 24px', textAlign: 'center', background: 'white', borderRadius: 16, border: '1px solid #f3f4f6' }} className="dark:bg-gray-800 dark:border-gray-700">
+            : <div style={{ padding: '48px 24px', textAlign: 'center', background: 'white', borderRadius: 16, border: '1px solid var(--line)' }} className="dark:bg-gray-800 dark:border-gray-700">
                 <Activity size={28} style={{ color: '#d1d5db', marginBottom: 12 }} />
                 <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>No session selected. Click a session row from the Customer tab.</p>
               </div>
