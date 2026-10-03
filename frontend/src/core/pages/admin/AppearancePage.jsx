@@ -125,6 +125,7 @@ const TOKEN_FIELDS = [
   { key: '--text-primary',      label: 'Text primary' },
   { key: '--text-secondary',    label: 'Text secondary' },
   { key: '--border-primary',    label: 'Border primary' },
+  { key: '--border-secondary',  label: 'Border secondary' },
 ];
 
 function TokenEditor({ tokens, onChange, label }) {
@@ -218,6 +219,7 @@ const DEFAULT_LIGHT = {
   '--text-primary':      '#111827',
   '--text-secondary':    '#6b7280',
   '--border-primary':    '#e5e7eb',
+  '--border-secondary':  '#d1d5db',
 };
 
 const DEFAULT_DARK = {
@@ -238,6 +240,7 @@ const DEFAULT_DARK = {
   '--text-primary':      '#f9fafb',
   '--text-secondary':    '#9ca3af',
   '--border-primary':    '#2d2d3d',
+  '--border-secondary':  '#3f3f55',
 };
 
 // ── Tab: Colour Themes ────────────────────────────────────────────────────────
