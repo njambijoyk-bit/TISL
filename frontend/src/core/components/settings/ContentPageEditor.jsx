@@ -140,7 +140,7 @@ const SectionCard = ({ section, pageType, onSave, onDelete, onToggle, onUploadIm
       {/* Card header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px',
-        background: editing ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'white',
+        background: editing ? 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' : 'var(--surface-card, #fff)',
         borderBottom: editing ? '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'none',
       }}>
 

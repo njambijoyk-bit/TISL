@@ -412,7 +412,7 @@ export default function Work() {
               padding: '8px 16px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
               fontFamily: 'inherit', cursor: loading ? 'not-allowed' : 'pointer',
               border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
-              background: refreshHover ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'white',
+              background: refreshHover ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'var(--surface-card, #fff)',
               color: 'var(--color-primary-600)', opacity: loading ? 0.5 : 1,
               transition: 'background 150ms, border-color 150ms',
               boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',

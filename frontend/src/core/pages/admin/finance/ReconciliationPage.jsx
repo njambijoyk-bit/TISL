@@ -55,7 +55,7 @@ const S = {
   modalSelect:{ width: '100%', background: '#0f0f1a', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#e2e8f0', fontSize: '12px', padding: '9px 12px', fontFamily: 'monospace', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' },
   modalFooter:{ display: 'flex', gap: '10px', marginTop: '24px' },
   btnCancel: { flex: 1, padding: '10px', background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', borderRadius: '8px', color: '#94a3b8', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: 'pointer' },
-  btnCreate: (disabled) => ({ flex: 2, padding: '10px', background: disabled ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', border: 'none', borderRadius: '8px', color: disabled ? '#475569' : '#fff', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: disabled ? 'not-allowed' : 'pointer' }),
+  btnCreate: (disabled) => ({ flex: 2, padding: '10px', background: disabled ? 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', border: 'none', borderRadius: '8px', color: disabled ? '#475569' : 'white', fontSize: '12px', fontWeight: 700, fontFamily: 'monospace', cursor: disabled ? 'not-allowed' : 'pointer' }),
 };
 
 function CreateSessionModal({ onClose, onCreate }) {

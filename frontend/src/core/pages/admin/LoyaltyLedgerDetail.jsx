@@ -302,7 +302,7 @@ function RedeemModal({ customerId, rules, onClose, onSuccess }) {
               style={{
                 padding: '12px 14px', borderRadius: 10, cursor: 'pointer',
                 border: `2px solid ${selected === r.id ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`,
-                background: selected === r.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
+                background: selected === r.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'var(--surface-card, #fff)',
                 transition: 'all 150ms',
               }}
             >

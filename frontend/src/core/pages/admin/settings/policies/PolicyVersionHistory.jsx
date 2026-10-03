@@ -244,7 +244,7 @@ function LogEntry({ log, policyTitle }) {
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '12px 16px',
           cursor: 'pointer',
-          background: log.is_major_bump ? 'rgba(245,158,11,0.04)' : 'white',
+          background: log.is_major_bump ? 'rgba(245,158,11,0.04)' : 'var(--surface-card, #fff)',
           userSelect: 'none',
         }}
       >
@@ -297,7 +297,7 @@ function LogEntry({ log, policyTitle }) {
 
       {/* Expanded diff */}
       {open && (
-        <div style={{ padding: '0 16px 16px', background: log.is_major_bump ? 'rgba(245,158,11,0.02)' : 'white' }}>
+        <div style={{ padding: '0 16px 16px', background: log.is_major_bump ? 'rgba(245,158,11,0.02)' : 'var(--surface-card, #fff)' }}>
           {log.major_bump_note && (
             <div style={{
               display: 'flex', alignItems: 'flex-start', gap: 8,
@@ -394,7 +394,7 @@ export default function PolicyVersionHistory({ policies = [] }) {
           style={{
             padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
             border: `1.5px solid ${filterKey === 'all' ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-            background: filterKey === 'all' ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+            background: filterKey === 'all' ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'var(--surface-card, #fff)',
             color: filterKey === 'all' ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
             cursor: 'pointer', fontFamily: 'inherit',
           }}
@@ -408,7 +408,7 @@ export default function PolicyVersionHistory({ policies = [] }) {
             style={{
               padding: '5px 14px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
               border: `1.5px solid ${filterKey === p.key ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-              background: filterKey === p.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+              background: filterKey === p.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'var(--surface-card, #fff)',
               color: filterKey === p.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}

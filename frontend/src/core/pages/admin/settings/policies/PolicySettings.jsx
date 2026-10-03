@@ -133,8 +133,8 @@ function EditPolicyModal({ policy, onClose, onSave }) {
           {/* Content */}
           <Field label="Policy content" hint="Use {{cancellation_fee}}, {{cancellation_window_hours}} for booking policy placeholders.">
             <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-              <button type="button" onClick={() => setPreview(false)} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${!preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: !preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: !preview ? 'var(--color-primary-600)' : 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
-              <button type="button" onClick={() => setPreview(true)}  style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white', color: preview ? 'var(--color-primary-600)' : 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button type="button" onClick={() => setPreview(false)} style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${!preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: !preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'var(--surface-card, #fff)', color: !preview ? 'var(--color-primary-600)' : 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+              <button type="button" onClick={() => setPreview(true)}  style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 10px', borderRadius: 6, border: `1.5px solid ${preview ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: preview ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'var(--surface-card, #fff)', color: preview ? 'var(--color-primary-600)' : 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit' }}>
                 <Eye size={11} style={{ display: 'inline', marginRight: 4 }} />Preview
               </button>
             </div>
@@ -233,7 +233,7 @@ function AcceptancesPanel({ policyId }) {
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '4px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
             border: `1.5px solid ${filter === f ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-            background: filter === f ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+            background: filter === f ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'var(--surface-card, #fff)',
             color: filter === f ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
             cursor: 'pointer', fontFamily: 'inherit', textTransform: 'capitalize',
           }}>{f}</button>
@@ -247,7 +247,7 @@ function AcceptancesPanel({ policyId }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
           {data.map((row, i) => (
-            <div key={row.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', borderBottom: i < data.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none', background: row.response === 'disagreed' ? 'rgba(239,68,68,0.02)' : 'white' }}>
+            <div key={row.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', borderBottom: i < data.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none', background: row.response === 'disagreed' ? 'rgba(239,68,68,0.02)' : 'var(--surface-card, #fff)' }}>
               <div style={{ marginTop: 2, flexShrink: 0 }}>
                 {row.response === 'accepted'
                   ? <CheckCircle size={14} style={{ color: '#16a34a' }} />
@@ -307,7 +307,7 @@ function ChangeLogPanel({ policyId }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       {logs.map(log => (
-        <div key={log.id} style={{ padding: '12px 14px', borderRadius: 10, border: `1px solid ${log.is_major_bump ? 'rgba(245,158,11,0.3)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`, background: log.is_major_bump ? 'rgba(245,158,11,0.04)' : 'white' }}>
+        <div key={log.id} style={{ padding: '12px 14px', borderRadius: 10, border: `1px solid ${log.is_major_bump ? 'rgba(245,158,11,0.3)' : 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}`, background: log.is_major_bump ? 'rgba(245,158,11,0.04)' : 'var(--surface-card, #fff)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>
               v{log.previous_version} → v{log.new_version}
@@ -502,7 +502,7 @@ function PolicyRow({ policy, onEdit, index }) {
                     display: 'flex', alignItems: 'center', gap: 5,
                     padding: '5px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
                     border: `1.5px solid ${activePanel === t.key ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`,
-                    background: activePanel === t.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'white',
+                    background: activePanel === t.key ? 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' : 'var(--surface-card, #fff)',
                     color: activePanel === t.key ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                     cursor: 'pointer', fontFamily: 'inherit',
                   }}>

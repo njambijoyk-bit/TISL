@@ -508,7 +508,7 @@ export default function ReturnItemsModal({ isOpen, onClose, order, onConfirmCanc
                           padding: '10px 12px',
                           borderRadius: 10,
                           border: `1.5px solid ${opt.disabled ? '#f3f4f6' : refundType === opt.id ? 'var(--color-primary-500)' : '#f3f4f6'}`,
-                          background: opt.disabled ? 'var(--surface-hover)' : refundType === opt.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'white',
+                          background: opt.disabled ? 'var(--surface-hover)' : refundType === opt.id ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'var(--surface-card, #fff)',
                           cursor: opt.disabled ? 'not-allowed' : 'pointer',
                           opacity: opt.disabled ? 0.5 : 1,
                           transition: 'all 0.2s',
