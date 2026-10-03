@@ -13,7 +13,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
  */
 
 const TIMING = { booking: 'now', completion: 'when done', late_cancel: 'if cancelled late', no_show: 'if you do not come', reschedule: 'if moved late' };
-const box = { border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff' };
+const box = { border: '1.5px solid var(--line)', borderRadius: 12, padding: 14, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' };
 
 export default function BookServicePanel({ serviceId, variantId, money }) {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
     return (
       <div style={box}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, marginBottom: 6 }}><Calendar size={16} /> Booking required</div>
-        <p style={{ margin: 0, fontSize: '0.82rem', color: '#6b7280' }}>This service is booked in advance. Online booking is not open yet — request a quote or contact us and we will find you a time.</p>
+        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>This service is booked in advance. Online booking is not open yet — request a quote or contact us and we will find you a time.</p>
       </div>
     );
   }
@@ -70,32 +70,32 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
   return (
     <div style={box}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700, marginBottom: 8 }}><Calendar size={16} /> Book a time</div>
-      {!variantId && <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>Choose a package above first.</p>}
+      {!variantId && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Choose a package above first.</p>}
       {variantId && (
         <div style={{ display: 'grid', gap: 10 }}>
           {branches.length > 1 && !onSite && (
-            <select value={branch} onChange={(e) => setBranch(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }} aria-label="Branch">
+            <select value={branch} onChange={(e) => setBranch(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} aria-label="Branch">
               <option value="">Choose a branch…</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           )}
-          {branches.length === 1 && !onSite && <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>At {branches[0].name}</p>}
+          {branches.length === 1 && !onSite && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>At {branches[0].name}</p>}
           <label style={{ fontSize: '0.8rem' }}><input type="checkbox" checked={onSite} onChange={(e) => setOnSite(e.target.checked)} /> Come to my place</label>
-          <input type="date" min={new Date().toISOString().slice(0, 10)} value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }} />
+          <input type="date" min={new Date().toISOString().slice(0, 10)} value={date} onChange={(e) => setDate(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />
           {date && slots !== null && (slots.length
-            ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{slots.map((s) => <button key={s.time} type="button" onClick={() => setTime(s.time)} style={{ padding: '6px 12px', borderRadius: 8, cursor: 'pointer', border: `1.5px solid ${time === s.time ? 'var(--color-primary-500)' : '#e5e7eb'}`, background: time === s.time ? 'rgba(59,130,246,0.08)' : '#fff', fontWeight: time === s.time ? 700 : 500 }}>{s.time}</button>)}</div>
-            : <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>Nothing free that day — try another.</p>)}
+            ? <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>{slots.map((s) => <button key={s.time} type="button" onClick={() => setTime(s.time)} style={{ padding: '6px 12px', borderRadius: 8, cursor: 'pointer', border: `1.5px solid ${time === s.time ? 'var(--color-primary-500)' : 'var(--line)'}`, background: time === s.time ? 'color-mix(in srgb, var(--color-primary-500) 12%, var(--surface-card, #fff))' : 'var(--surface-input)', color: 'var(--text-primary)', fontWeight: time === s.time ? 700 : 500 }}>{s.time}</button>)}</div>
+            : <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Nothing free that day — try another.</p>)}
           {time && (
             <>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                <label style={{ fontSize: '0.8rem' }}>People <input type="number" min="1" value={people} onChange={(e) => setPeople(Number(e.target.value) || 1)} style={{ width: 64, padding: 6, borderRadius: 6, border: '1px solid #d1d5db' }} /></label>
+                <label style={{ fontSize: '0.8rem' }}>People <input type="number" min="1" value={people} onChange={(e) => setPeople(Number(e.target.value) || 1)} style={{ width: 64, padding: 6, borderRadius: 6, border: '1px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} /></label>
               </div>
-              {onSite && <input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid #d1d5db' }} />}
+              {onSite && <input placeholder="Address" value={address} onChange={(e) => setAddress(e.target.value)} style={{ padding: 10, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />}
               {quote && (
-                <div style={{ background: '#f9fafb', borderRadius: 8, padding: 10, fontSize: '0.8rem' }}>
-                  <div>Price <strong>{fmt(quote.price)}</strong> <span style={{ color: '#9ca3af' }}>(tax is added)</span></div>
-                  {quote.fees.filter((f) => !['late_cancel', 'no_show', 'reschedule'].includes(f.timing)).map((f) => <div key={f.ledger_id} style={{ color: '#6b7280' }}>{f.name}: {fmt(f.amount)} — {TIMING[f.timing]}</div>)}
+                <div style={{ background: 'var(--surface-input)', borderRadius: 8, padding: 10, fontSize: '0.8rem' }}>
+                  <div>Price <strong>{fmt(quote.price)}</strong> <span style={{ color: 'var(--text-tertiary)' }}>(tax is added)</span></div>
+                  {quote.fees.filter((f) => !['late_cancel', 'no_show', 'reschedule'].includes(f.timing)).map((f) => <div key={f.ledger_id} style={{ color: 'var(--text-secondary)' }}>{f.name}: {fmt(f.amount)} — {TIMING[f.timing]}</div>)}
                   {quote.due_at_booking > 0 && <div style={{ marginTop: 4 }}>To pay now: <strong>{fmt(quote.due_at_booking)}</strong></div>}
-                  <div style={{ marginTop: 4, color: '#9ca3af' }}>Cancel more than {info.window_hours} hours ahead and nothing is charged; later, a fee may apply and the deposit is kept.</div>
+                  <div style={{ marginTop: 4, color: 'var(--text-tertiary)' }}>Cancel more than {info.window_hours} hours ahead and nothing is charged; later, a fee may apply and the deposit is kept.</div>
                 </div>
               )}
               {user && info.terms?.required && !info.terms.accepted && (
