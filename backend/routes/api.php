@@ -1065,6 +1065,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/runs/{id}/pay',            [$c, 'pay'])->whereNumber('id');
             Route::post('/runs/{id}/cancel',         [$c, 'cancel'])->whereNumber('id');
             Route::get('/runs/{id}/csv',             [$c, 'csv'])->whereNumber('id');
+            Route::get('/gratuity',                  [$c, 'gratuity']);
             Route::get('/settings',                  [$c, 'settings']);
             Route::put('/settings',                  [$c, 'saveSettings']);
             Route::post('/components',               [$c, 'saveComponent']);

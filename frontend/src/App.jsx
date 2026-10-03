@@ -155,6 +155,7 @@ const VoucherForm        = lazy(() => import('./core/pages/admin/books/VoucherFo
 const Verification       = lazy(() => import('./core/pages/admin/verification/Verification'));
 const MyPayslips         = lazy(() => import('./core/pages/admin/payroll/MyPayslips'));
 const Payroll            = lazy(() => import('./core/pages/admin/payroll/Payroll'));
+const Gratuity           = lazy(() => import('./core/pages/admin/payroll/Gratuity'));
 const PayrollSettings    = lazy(() => import('./core/pages/admin/payroll/PayrollSettings'));
 const Attendance         = lazy(() => import('./core/pages/admin/attendance/Attendance'));
 const PettyCash          = lazy(() => import('./core/pages/admin/books/PettyCash'));
@@ -1502,6 +1503,7 @@ function App() {
               <Route path="/admin/verification" element={<ProtectedRoute requireAdmin><Verification /></ProtectedRoute>} />
               <Route path="/admin/my-payslips" element={<ProtectedRoute requireAdmin><MyPayslips /></ProtectedRoute>} />
               <Route path="/admin/payroll" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><Payroll /></ProtectedRoute>} />
+              <Route path="/admin/payroll/gratuity" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><Gratuity /></ProtectedRoute>} />
               <Route path="/admin/payroll/settings" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PayrollSettings /></ProtectedRoute>} />
               <Route path="/admin/attendance" element={<ProtectedRoute requireAdmin><Attendance /></ProtectedRoute>} />
               <Route path="/admin/petty-cash" element={<ProtectedRoute requireAdmin><PettyCash /></ProtectedRoute>} />

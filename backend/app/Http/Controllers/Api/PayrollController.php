@@ -90,6 +90,13 @@ class PayrollController extends Controller
         return $this->guard(fn () => response()->json($this->svc->runPayload($this->svc->cancel(PayrollRun::findOrFail($id), $request->user())) + ['message' => 'Cancelled.']));
     }
 
+    public function gratuity(Request $request): JsonResponse
+    {
+        $d = $request->validate(['as_of' => 'nullable|date', 'include_left' => 'nullable|boolean']);
+
+        return response()->json($this->svc->gratuity($d['as_of'] ?? null, $request->boolean('include_left')) + ['columns_ready' => \Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'gratuity_days_per_year')]);
+    }
+
     public function csv(int $id)
     {
         $run = PayrollRun::findOrFail($id);
@@ -107,7 +114,7 @@ class PayrollController extends Controller
 
         return response()->json([
             'table_ready' => PayrollService::ready(), 'kinds' => PayrollComponent::KINDS, 'calcs' => PayrollComponent::CALCS, 'bases' => PayrollComponent::BASES,
-            'settings' => $s->only(['overtime_multiplier', 'deduct_absence', 'salaries_expense_ledger_id', 'salaries_payable_ledger_id']),
+            'settings' => $s->only(['overtime_multiplier', 'deduct_absence', 'salaries_expense_ledger_id', 'salaries_payable_ledger_id', 'gratuity_days_per_year', 'gratuity_min_years', 'gratuity_divisor', 'gratuity_prorate']) + ['gratuity_columns' => \Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'gratuity_days_per_year')],
             'components' => PayrollService::ready() ? PayrollComponent::orderBy('sort_order')->orderBy('id')->get() : [],
             'ledgers' => $ledgers->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'nature' => $l->group?->nature])->values(),
             'sources' => $ledgers->filter(fn ($l) => $svc->isUnderGroup($l, 'Bank Accounts') || $svc->isUnderGroup($l, 'Cash-in-hand'))->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'balance' => $svc->balance($l->id)])->values(),
@@ -118,9 +125,13 @@ class PayrollController extends Controller
 
     public function saveSettings(Request $request): JsonResponse
     {
-        $d = $request->validate(['overtime_multiplier' => 'required|numeric|min:1|max:5', 'deduct_absence' => 'required|boolean', 'salaries_expense_ledger_id' => 'nullable|integer|exists:ledgers,id', 'salaries_payable_ledger_id' => 'nullable|integer|exists:ledgers,id']);
+        $d = $request->validate(['overtime_multiplier' => 'required|numeric|min:1|max:5', 'deduct_absence' => 'required|boolean', 'salaries_expense_ledger_id' => 'nullable|integer|exists:ledgers,id', 'salaries_payable_ledger_id' => 'nullable|integer|exists:ledgers,id',
+            'gratuity_days_per_year' => 'nullable|numeric|min:0|max:365', 'gratuity_min_years' => 'nullable|integer|min:0|max:50', 'gratuity_divisor' => 'nullable|integer|min:1|max:31', 'gratuity_prorate' => 'nullable|boolean']);
         if (! PayrollService::ready()) {
             return response()->json(['message' => 'Run script 64_payroll.sql first.'], 422);
+        }
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('payroll_settings', 'gratuity_days_per_year')) {
+            $d = array_diff_key($d, array_flip(['gratuity_days_per_year', 'gratuity_min_years', 'gratuity_divisor', 'gratuity_prorate']));   // script 66 not run yet
         }
         PayrollSetting::current()->update($d + ['updated_by' => $request->user()->id]);
 

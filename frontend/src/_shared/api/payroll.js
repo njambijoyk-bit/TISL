@@ -12,6 +12,7 @@ const payrollAPI = {
   cancel: async (id) => (await api.post(`/admin/payroll/runs/${id}/cancel`)).data,
   csvUrl: (id) => `/admin/payroll/runs/${id}/csv`,
   csv: async (id) => (await api.get(`/admin/payroll/runs/${id}/csv`, { responseType: 'blob' })).data,
+  gratuity: async (params) => (await api.get('/admin/payroll/gratuity', { params })).data,
   settings: async () => (await api.get('/admin/payroll/settings')).data,
   saveSettings: async (p) => (await api.put('/admin/payroll/settings', p)).data,
   saveComponent: async (p, id) => (id ? (await api.put(`/admin/payroll/components/${id}`, p)) : (await api.post('/admin/payroll/components', p))).data,

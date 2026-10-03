@@ -133,7 +133,7 @@ export default function PayrollSettings() {
   const [error, setError] = useState(null);
   const load = useCallback(() => payrollAPI.settings().then((d) => { setData(d); setS(d.settings); }).catch((e) => setError(errMsg(e, 'Could not load'))), []);
   useEffect(() => { load(); }, [load]);
-  const save = async () => { try { await payrollAPI.saveSettings({ ...s, overtime_multiplier: Number(s.overtime_multiplier), salaries_expense_ledger_id: s.salaries_expense_ledger_id || null, salaries_payable_ledger_id: s.salaries_payable_ledger_id || null }); toast.success('Saved'); load(); } catch (e) { toast.error(errMsg(e, 'Could not save')); } };
+  const save = async () => { try { await payrollAPI.saveSettings({ ...s, overtime_multiplier: Number(s.overtime_multiplier), salaries_expense_ledger_id: s.salaries_expense_ledger_id || null, salaries_payable_ledger_id: s.salaries_payable_ledger_id || null, ...(s.gratuity_columns ? { gratuity_days_per_year: Number(s.gratuity_days_per_year), gratuity_min_years: Number(s.gratuity_min_years), gratuity_divisor: Number(s.gratuity_divisor), gratuity_prorate: !!s.gratuity_prorate } : {}) }); toast.success('Saved'); load(); } catch (e) { toast.error(errMsg(e, 'Could not save')); } };
   const toggle = async (c) => { try { await payrollAPI.saveComponent({ ...c, is_active: !c.is_active }, c.id); load(); } catch (e) { toast.error(errMsg(e, 'Could not change it')); } };
   const del = async (c) => { if (!window.confirm(`Delete ${c.name}?`)) return; try { await payrollAPI.deleteComponent(c.id); load(); } catch (e) { toast.error(errMsg(e, 'Could not delete')); } };
   return (
@@ -152,6 +152,17 @@ export default function PayrollSettings() {
                 <div style={{ minWidth: 220 }}><Field label="Salaries & wages (expense)"><SelectInput value={s.salaries_expense_ledger_id ?? ''} onChange={(e) => setS({ ...s, salaries_expense_ledger_id: e.target.value ? Number(e.target.value) : null })}><option value="">Choose…</option>{data.ledgers.filter((l) => l.nature === 'expense').map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</SelectInput></Field></div>
                 <div style={{ minWidth: 220 }}><Field label="Salaries payable (liability)"><SelectInput value={s.salaries_payable_ledger_id ?? ''} onChange={(e) => setS({ ...s, salaries_payable_ledger_id: e.target.value ? Number(e.target.value) : null })}><option value="">Choose…</option>{data.ledgers.filter((l) => l.nature === 'liability').map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</SelectInput></Field></div>
                 <button type="button" style={btnPrimary} onClick={save}>Save</button>
+              </div>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 12, paddingTop: 10, borderTop: '1px solid #f3f4f6' }}>
+                <div style={{ fontWeight: 700, fontSize: '0.84rem', width: '100%' }}>Gratuity (service pay) <Link to="/admin/payroll/gratuity" style={{ fontWeight: 400, fontSize: '0.76rem' }}>open the report →</Link></div>
+                {s.gratuity_columns ? (
+                  <>
+                    <div style={{ width: 170 }}><Field label="Days of pay per year of service"><NumberInput min="0" step="any" value={s.gratuity_days_per_year ?? 15} onChange={(e) => setS({ ...s, gratuity_days_per_year: e.target.value })} /></Field></div>
+                    <div style={{ width: 150 }}><Field label="Completed years first"><NumberInput min="0" value={s.gratuity_min_years ?? 1} onChange={(e) => setS({ ...s, gratuity_min_years: e.target.value })} /></Field></div>
+                    <div style={{ width: 160 }}><Field label="A day's pay = basic ÷"><NumberInput min="1" max="31" value={s.gratuity_divisor ?? 30} onChange={(e) => setS({ ...s, gratuity_divisor: e.target.value })} /></Field></div>
+                    <button type="button" style={btnPrimary} onClick={save}>Save</button>
+                  </>
+                ) : <p style={{ margin: 0, fontSize: '0.76rem', color: '#92400e' }}>Run script 66_payroll_gratuity.sql to set these. Until then the report uses 15 days a year, after 1 completed year, with a day = basic ÷ 30.</p>}
               </div>
               <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: colors.textFaint }}>Pay for a month = basic salary, less unpaid absence (verified attendance), plus overtime. Working days and hours come from Attendance settings.</p>
             </section>

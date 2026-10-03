@@ -502,6 +502,53 @@ class PayrollService
             'total_deductions' => $l->total_deductions, 'net' => $l->net];
     }
 
+
+    /**
+     * Gratuity (service pay): for each person, completed years of service up to the date (or the day they left), times the days of pay per year set in
+     * Payroll settings, at a day's pay of basic ÷ the divisor. Nothing is due before the minimum completed years. Part-years are shown separately.
+     *
+     * @return array{as_of:string, rows:array, totals:array, settings:array, missing_hire_date:array}
+     */
+    public function gratuity(?string $asOf, bool $includeLeft = false): array
+    {
+        $asOf = Carbon::parse($asOf ?: today())->startOfDay();
+        $s = PayrollSetting::current();
+        $days = (float) ($s->gratuity_days_per_year ?? 15);
+        $min = (int) ($s->gratuity_min_years ?? 1);
+        $div = max(1, (int) ($s->gratuity_divisor ?? 30));
+        $rows = [];
+        $missing = [];
+        foreach (User::with('employee')->whereHas('employee', fn ($q) => $q->where('base_salary', '>', 0))->orderBy('name')->get() as $u) {
+            $e = $u->employee;
+            $left = $e->termination_date && $e->termination_date->lte($asOf);
+            if ($left && ! $includeLeft) {
+                continue;
+            }
+            if (! $e->hire_date) {
+                $missing[] = $u->name;
+                continue;
+            }
+            $start = Carbon::parse($e->hire_date->toDateString());
+            if ($start->gt($asOf)) {
+                continue;
+            }
+            $end = $left ? Carbon::parse($e->termination_date->toDateString()) : $asOf;
+            $full = (int) $start->diffInYears($end);
+            $years = round($start->diffInDays($end) / 365.25, 2);
+            $months = (int) $start->copy()->addYears($full)->diffInMonths($end);
+            $daily = (float) $e->base_salary / $div;
+            $perYear = round($daily * $days, 2);
+            $due = $full >= $min ? round($perYear * $full, 2) : 0.0;
+            $withPart = $years >= $min ? round($perYear * $years, 2) : 0.0;
+            $rows[] = ['user_id' => $u->id, 'name' => $u->name, 'hire_date' => $start->toDateString(), 'left' => $left ? $end->toDateString() : null, 'service' => "{$full}y {$months}m", 'full_years' => $full, 'years' => $years,
+                'basic' => (float) $e->base_salary, 'daily' => round($daily, 2), 'per_year' => $perYear, 'due' => $due, 'with_part_year' => $withPart, 'eligible' => $full >= $min];
+        }
+
+        return ['as_of' => $asOf->toDateString(), 'rows' => $rows, 'missing_hire_date' => $missing,
+            'totals' => ['due' => round(array_sum(array_column($rows, 'due')), 2), 'with_part_year' => round(array_sum(array_column($rows, 'with_part_year')), 2), 'basic' => round(array_sum(array_column($rows, 'basic')), 2)],
+            'settings' => ['days_per_year' => $days, 'min_years' => $min, 'divisor' => $div, 'prorate' => (bool) ($s->gratuity_prorate ?? false)]];
+    }
+
     /** The bank payment list as CSV: who, bank, account, amount. */
     public function csv(PayrollRun $run): string
     {

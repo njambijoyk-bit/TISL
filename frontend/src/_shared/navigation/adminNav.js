@@ -193,6 +193,7 @@ export const ADMIN_NAV = [
         id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: FINANCE_WRITE, keywords: 'salary payslip paye nssf deductions wages',
         tabs: [
           { title: 'Runs', path: '/admin/payroll', exact: true },
+          { title: 'Gratuity', path: '/admin/payroll/gratuity' },
           { title: 'Settings', path: '/admin/payroll/settings' },
         ],
       },
