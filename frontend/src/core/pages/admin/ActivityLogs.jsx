@@ -52,7 +52,7 @@ const REFERRAL_ACTION_CFG = {
   UPDATED:         { icon: Pencil,    bg: 'rgba(99,102,241,0.12)',  color: '#4f46e5' },
   ACTIVATED:       { icon: Power,     bg: 'rgba(34,197,94,0.12)',   color: '#16a34a' },
   PAUSED:          { icon: PowerOff,  bg: 'rgba(245,158,11,0.12)',  color: '#b45309' },
-  ARCHIVED:        { icon: Archive,   bg: 'rgba(107,114,128,0.12)', color: '#6b7280' },
+  ARCHIVED:        { icon: Archive,   bg: 'rgba(107,114,128,0.12)', color: 'var(--text-secondary)' },
   DELETED:         { icon: XCircle,   bg: 'rgba(239,68,68,0.12)',   color: '#dc2626' },
   USED:            { icon: Tag,       bg: 'rgba(8,145,178,0.12)',   color: '#0e7490' },
   REVERSED:        { icon: RefreshCw, bg: 'rgba(239,68,68,0.12)',   color: '#dc2626' },
@@ -62,7 +62,7 @@ const REFERRAL_ACTION_CFG = {
   REWARD_REVERSED: { icon: RefreshCw, bg: 'rgba(239,68,68,0.12)',   color: '#dc2626' },
 };
 
-const DEFAULT_CFG = { icon: RefreshCw, color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' };
+const DEFAULT_CFG = { icon: RefreshCw, color: 'var(--text-tertiary)', bg: 'rgba(156,163,175,0.12)' };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const fmtKes = (n) =>
@@ -152,10 +152,10 @@ function ActorCell({ name }) {
 function TimeCell({ ts }) {
   return (
     <div>
-      <p style={{ fontSize: '0.72rem', fontWeight: 600, color: '#6b7280', margin: 0 }}>
+      <p style={{ fontSize: '0.72rem', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>
         {format(new Date(ts), 'MMM d, yyyy')}
       </p>
-      <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+      <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>
         {format(new Date(ts), 'h:mm a')}
       </p>
     </div>
@@ -176,7 +176,7 @@ function TableHead({ cols, gridCols }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: gridCols, gap: 12, padding: '10px 18px', borderBottom: '1px solid var(--border, #f3f4f6)', background: 'var(--panel-bg-secondary, #fafafa)' }}>
       {cols.map((h, i) => (
-        <p key={i} style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', margin: 0 }}>{h}</p>
+        <p key={i} style={{ fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', margin: 0 }}>{h}</p>
       ))}
     </div>
   );
@@ -187,7 +187,7 @@ function PaginationBar({ meta, page, setPage, loading }) {
   if (!meta || meta.last_page <= 1) return null;
   return (
     <div style={{ padding: '14px 18px', borderTop: '1px solid var(--border, #f3f4f6)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-      <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>
+      <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0 }}>
         Showing {meta.from}–{meta.to} of {meta.total} entries
       </p>
       <div style={{ display: 'flex', gap: 6 }}>
@@ -220,7 +220,7 @@ function PaginationBar({ meta, page, setPage, loading }) {
 // ── Empty / loading / error states ────────────────────────────────────────────
 function StateDisplay({ loading, error, empty, onRetry }) {
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '48px 0', color: '#9ca3af', fontSize: '0.85rem' }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '48px 0', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>
       <div style={{ width: 18, height: 18, border: `2px solid ${purpleBd}`, borderTopColor: purple, borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
       Loading logs…
     </div>
@@ -236,7 +236,7 @@ function StateDisplay({ loading, error, empty, onRetry }) {
   if (empty) return (
     <div style={{ padding: '48px', textAlign: 'center' }}>
       <Clock size={32} color="#d1d5db" style={{ margin: '0 auto 12px' }} />
-      <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>No logs found.</p>
+      <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No logs found.</p>
     </div>
   );
   return null;
@@ -257,7 +257,7 @@ function MetadataExpander({ id, metadata, expanded, onToggle }) {
         <div style={{ margin: '0 18px 12px', marginLeft: 62, padding: '10px 12px', borderRadius: 8, background: purpleLt, border: `1px solid ${purpleBd}`, display: 'flex', flexWrap: 'wrap', gap: '8px 24px' }}>
           {Object.entries(metadata).map(([key, val]) => (
             <div key={key} style={{ fontSize: '0.72rem' }}>
-              <span style={{ color: '#9ca3af', fontWeight: 600, textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}: </span>
+              <span style={{ color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'capitalize' }}>{key.replace(/_/g, ' ')}: </span>
               <span style={{ color: purple, fontWeight: 700 }}>{typeof val === 'object' ? JSON.stringify(val) : String(val)}</span>
             </div>
           ))}
@@ -343,7 +343,7 @@ function OrderLogsTab() {
                 <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text, #111827)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                 </p>
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {log.description}
                 </p>
               </div>
@@ -434,7 +434,7 @@ function HamperLogsTab() {
                   <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text, #111827)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {(log.action || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                   </p>
-                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {log.description}
                   </p>
                 </div>
@@ -517,7 +517,7 @@ function AuctionLogsTab() {
                   </span>
                 </div>
                 {log.auction_order?.auction?.product?.name && (
-                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {log.auction_order.auction.product.name}
                   </p>
                 )}
@@ -526,7 +526,7 @@ function AuctionLogsTab() {
                 <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text, #111827)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {(log.action || '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
                 </p>
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {log.description}
                 </p>
               </div>
@@ -629,7 +629,7 @@ function ReferralLogsTab() {
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: meta.color, textTransform: 'lowercase' }}>
                     {(a.action || '').replace(/_/g, ' ')}
                   </span>
-                  <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                     {isPromo ? 'promo' : 'referral'} code
                   </span>
                   {a.metadata?.code && (
@@ -638,7 +638,7 @@ function ReferralLogsTab() {
                     </span>
                   )}
                   {a.metadata?.name && (
-                    <span style={{ fontSize: '0.75rem', color: '#374151', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)', fontWeight: 600 }}>
                       — {a.metadata.name}
                     </span>
                   )}
@@ -646,10 +646,10 @@ function ReferralLogsTab() {
 
                 {/* Field changes */}
                 {a.metadata?.changes?.length > 0 && (
-                  <ul style={{ margin: '4px 0', paddingLeft: 16, fontSize: '0.72rem', color: '#6b7280' }}>
+                  <ul style={{ margin: '4px 0', paddingLeft: 16, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                     {a.metadata.changes.map((c, j) => (
                       <li key={j}>
-                        <span style={{ fontWeight: 600, color: '#374151' }}>{c.field}</span>:{' '}
+                        <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{c.field}</span>:{' '}
                         <span style={{ color: '#dc2626' }}>{String(c.old ?? '—')}</span>
                         {' → '}
                         <span style={{ color: '#16a34a' }}>{String(c.new ?? '—')}</span>
@@ -667,14 +667,14 @@ function ReferralLogsTab() {
 
                 {/* Order ref */}
                 {a.order_id && a.metadata?.order_number && (
-                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
                     Order: <span style={{ color: purpleDk, fontWeight: 600 }}>{a.metadata.order_number}</span>
                   </p>
                 )}
 
                 {/* Timestamp + actor type */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
-                  <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0 }}>
                     {new Date(a.created_at).toLocaleString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                   {a.actor_type && (
@@ -796,25 +796,25 @@ function ShippingLogsTab() {
                   {item.action}
                 </span>
                 <div style={{ minWidth: 0, paddingTop: 2 }}>
-                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>{name}</p>
-                  <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>ID #{item.shipping_option_id}</p>
+                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{name}</p>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'monospace' }}>ID #{item.shipping_option_id}</p>
                 </div>
                 <div style={{ paddingTop: 2 }}>
                   {changes?.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: 14, fontSize: '0.72rem', color: '#6b7280' }}>
+                    <ul style={{ margin: 0, paddingLeft: 14, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                       {changes.map((c, j) => (
                         <li key={j}>
-                          <span style={{ color: '#374151', fontWeight: 600 }}>{c.field}</span>:{' '}
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{c.field}</span>:{' '}
                           <span style={{ color: '#dc2626' }}>{String(c.old ?? '—')}</span>{' → '}
                           <span style={{ color: '#16a34a' }}>{String(c.new ?? '—')}</span>
                         </li>
                       ))}
                     </ul>
-                  ) : <span style={{ fontSize: '0.72rem', color: '#d1d5db' }}>—</span>}
+                  ) : <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</span>}
                 </div>
                 <div style={{ paddingTop: 2 }}>
                   <ActorCell name={actorName} />
-                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '4px 0 0' }}>{formatDate(item.created_at)}</p>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>{formatDate(item.created_at)}</p>
                 </div>
               </div>
             </div>
@@ -938,25 +938,25 @@ function TierLogsTab() {
                   {isTier ? 'Tier' : 'Type'}
                 </span>
                 <div style={{ paddingTop: 2 }}>
-                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>{name}</p>
-                  {a.metadata?.slug && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>{a.metadata.slug}</p>}
+                  <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{name}</p>
+                  {a.metadata?.slug && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'monospace' }}>{a.metadata.slug}</p>}
                 </div>
                 <div style={{ paddingTop: 2 }}>
                   {a.metadata?.changes?.length > 0 ? (
-                    <ul style={{ margin: 0, paddingLeft: 14, fontSize: '0.72rem', color: '#6b7280' }}>
+                    <ul style={{ margin: 0, paddingLeft: 14, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                       {a.metadata.changes.map((c, j) => (
                         <li key={j}>
-                          <span style={{ color: '#374151', fontWeight: 600 }}>{c.field}</span>:{' '}
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{c.field}</span>:{' '}
                           <span style={{ color: '#dc2626' }}>{String(c.old ?? '—')}</span>{' → '}
                           <span style={{ color: '#16a34a' }}>{String(c.new ?? '—')}</span>
                         </li>
                       ))}
                     </ul>
-                  ) : <span style={{ fontSize: '0.72rem', color: '#d1d5db' }}>—</span>}
+                  ) : <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>—</span>}
                 </div>
                 <div style={{ paddingTop: 2 }}>
                   <ActorCell name={a.actor?.name ?? 'System'} />
-                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '4px 0 0' }}>{formatDate(a.created_at)}</p>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>{formatDate(a.created_at)}</p>
                 </div>
               </div>
             </div>
@@ -1003,7 +1003,7 @@ export default function ActivityLogs() {
           <h1 style={{ fontSize: '1.7rem', fontWeight: 900, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', margin: '0 0 4px' }}>
             Activity Logs
           </h1>
-          <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', margin: 0 }}>
             Track all actions taken across orders, hampers, auctions, referrals, shipping, and customer tiers.
           </p>
         </div>

@@ -100,37 +100,35 @@
 }
 
 /* ── Dark mode overrides ────────────────────────────────────── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bug-bg: var(--bug-bg-dark);
-    --bug-bg-secondary: var(--bug-bg-secondary-dark);
-    --bug-text: var(--bug-text-dark);
-    --bug-text-secondary: var(--bug-text-secondary-dark);
-    --bug-text-muted: var(--bug-text-muted-dark);
-    --bug-text-placeholder: var(--bug-text-placeholder-dark);
-    --bug-border: var(--bug-border-dark);
-    --bug-border-light: var(--bug-border-light-dark);
-    --bug-blue-light: var(--bug-blue-light-dark);
-    --bug-blue-text: var(--bug-blue-text-dark);
-    --bug-red-light: var(--bug-red-light-dark);
-    --bug-red-text: var(--bug-red-text-dark);
-    --bug-green-light: var(--bug-green-light-dark);
-    --bug-green-text: var(--bug-green-text-dark);
-    --bug-amber-light: var(--bug-amber-light-dark);
-    --bug-amber-text: var(--bug-amber-text-dark);
-    --bug-indigo-light: var(--bug-indigo-light-dark);
-    --bug-indigo-text: var(--bug-indigo-text-dark);
-    --bug-emerald-light: var(--bug-emerald-light-dark);
-    --bug-emerald-text: var(--bug-emerald-text-dark);
-    --bug-purple-light: var(--bug-purple-light-dark);
-    --bug-purple-text: var(--bug-purple-text-dark);
-    --bug-slate-light: var(--bug-slate-light-dark);
-    --bug-slate-text: var(--bug-slate-text-dark);
-    --bug-sky-text: var(--bug-sky-text-dark);
-    --bug-orange-text: var(--bug-orange-text-dark);
-    --bug-yellow-light: var(--bug-yellow-light-dark);
-    --bug-yellow-text: var(--bug-yellow-text-dark);
-  }
+:root[data-theme="dark"] {
+  --bug-bg: var(--bug-bg-dark);
+  --bug-bg-secondary: var(--bug-bg-secondary-dark);
+  --bug-text: var(--bug-text-dark);
+  --bug-text-secondary: var(--bug-text-secondary-dark);
+  --bug-text-muted: var(--bug-text-muted-dark);
+  --bug-text-placeholder: var(--bug-text-placeholder-dark);
+  --bug-border: var(--bug-border-dark);
+  --bug-border-light: var(--bug-border-light-dark);
+  --bug-blue-light: var(--bug-blue-light-dark);
+  --bug-blue-text: var(--bug-blue-text-dark);
+  --bug-red-light: var(--bug-red-light-dark);
+  --bug-red-text: var(--bug-red-text-dark);
+  --bug-green-light: var(--bug-green-light-dark);
+  --bug-green-text: var(--bug-green-text-dark);
+  --bug-amber-light: var(--bug-amber-light-dark);
+  --bug-amber-text: var(--bug-amber-text-dark);
+  --bug-indigo-light: var(--bug-indigo-light-dark);
+  --bug-indigo-text: var(--bug-indigo-text-dark);
+  --bug-emerald-light: var(--bug-emerald-light-dark);
+  --bug-emerald-text: var(--bug-emerald-text-dark);
+  --bug-purple-light: var(--bug-purple-light-dark);
+  --bug-purple-text: var(--bug-purple-text-dark);
+  --bug-slate-light: var(--bug-slate-light-dark);
+  --bug-slate-text: var(--bug-slate-text-dark);
+  --bug-sky-text: var(--bug-sky-text-dark);
+  --bug-orange-text: var(--bug-orange-text-dark);
+  --bug-yellow-light: var(--bug-yellow-light-dark);
+  --bug-yellow-text: var(--bug-yellow-text-dark);
 }
 
 /* ── Reset / Base ───────────────────────────────────────────── */
@@ -1778,4 +1776,17 @@
   .bug-note-bubble {
     background-color: rgba(31, 41, 55, 0.6);
   }
+}
+
+
+/* ── Neutrals follow the selected theme (card, input, text, borders) ── */
+:root:root {
+  --bug-bg: var(--surface-card, #fff);
+  --bug-bg-secondary: var(--surface-input);
+  --bug-text: var(--text-primary);
+  --bug-text-secondary: var(--text-secondary);
+  --bug-text-muted: var(--text-tertiary);
+  --bug-text-placeholder: var(--text-tertiary);
+  --bug-border: var(--line);
+  --bug-border-light: var(--line);
 }

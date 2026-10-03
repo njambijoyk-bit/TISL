@@ -7,9 +7,9 @@ import policyAPI from '../../../../../_shared/api/policy';
 // ── Shared primitives (mirrored from PolicySettings) ──────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
@@ -128,7 +128,7 @@ function DiffViewer({ previousContent, newContent }) {
   const PREFIX = { added: '+', removed: '−', equal: ' ' };
 
   return (
-    <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+    <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid var(--line)' }}>
 
       {/* Header bar */}
       <div style={{
@@ -257,7 +257,7 @@ function LogEntry({ log, policyTitle }) {
           }}>
             v{log.previous_version}
           </span>
-          <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>→</span>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>→</span>
           <span style={{
             fontSize: '0.72rem', fontWeight: 700,
             padding: '2px 8px', borderRadius: 99,
@@ -279,16 +279,16 @@ function LogEntry({ log, policyTitle }) {
         </div>
 
         {/* Policy name */}
-        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {policyTitle}
         </span>
 
         {/* Meta */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>
+          <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
             {log.changed_by_name}
           </span>
-          <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
+          <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>
             {log.changed_at ? format(new Date(log.changed_at), 'dd MMM yyyy, HH:mm') : '—'}
           </span>
           {open ? <ChevronUp size={13} color="#9ca3af" /> : <ChevronDown size={13} color="#9ca3af" />}
@@ -379,7 +379,7 @@ export default function PolicyVersionHistory({ policies = [] }) {
           { label: 'Policies tracked', value: policies.length,        color: '#0e7490' },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ ...card, padding: '16px 20px' }}>
-            <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 6px' }}>
+            <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: '0 0 6px' }}>
               {label}
             </p>
             <p style={{ fontSize: '1.5rem', fontWeight: 900, color, margin: 0 }}>{value}</p>
@@ -423,11 +423,11 @@ export default function PolicyVersionHistory({ policies = [] }) {
         <Spinner />
       ) : !flatLogs.length ? (
         <div style={{ ...card, padding: 48, textAlign: 'center' }}>
-          <GitCommit size={32} style={{ color: '#d1d5db', marginBottom: 10 }} />
-          <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#374151', margin: '0 0 4px' }}>
+          <GitCommit size={32} style={{ color: 'var(--text-tertiary)', marginBottom: 10 }} />
+          <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>
             No version history yet
           </p>
-          <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
             Changes will appear here after a policy is edited and saved.
           </p>
         </div>

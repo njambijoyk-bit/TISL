@@ -16,9 +16,9 @@ import { format } from 'date-fns';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -31,13 +31,13 @@ const labelStyle = {
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
-  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', display: 'block', textAlign: right ? 'right' : 'left' }}>
+  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', display: 'block', textAlign: right ? 'right' : 'left' }}>
     {children}
   </span>
 );
@@ -47,7 +47,7 @@ function Field({ label, children, hint }) {
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {hint && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 }}>{hint}</p>}
+      {hint && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 }}>{hint}</p>}
     </div>
   );
 }
@@ -58,7 +58,7 @@ function SensitivityBadge({ sensitivity }) {
   const map = {
     critical: { bg: 'rgba(239,68,68,0.1)',   color: '#dc2626', label: 'Critical' },
     standard: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', label: 'Standard' },
-    soft:     { bg: 'rgba(107,114,128,0.1)', color: '#6b7280', label: 'Soft'     },
+    soft:     { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', label: 'Soft'     },
   };
   const s = map[sensitivity] || map.standard;
   return (
@@ -103,15 +103,15 @@ function EditPolicyModal({ policy, onClose, onSave }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>
+            <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>
               Edit policy — {policy.title}
             </p>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Current version: <strong style={{ color: 'var(--color-primary-600)' }}>v{policy.major_version}.{policy.minor_version}</strong>
-              &nbsp;·&nbsp;key: <code style={{ fontSize: '0.68rem', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
+              &nbsp;·&nbsp;key: <code style={{ fontSize: '0.68rem', background: 'var(--surface-card, #fff)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
             </p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={16} /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}><X size={16} /></button>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -139,8 +139,8 @@ function EditPolicyModal({ policy, onClose, onSave }) {
               </button>
             </div>
             {preview ? (
-              <div style={{ ...inputStyle, minHeight: 200, padding: '12px', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', whiteSpace: 'pre-wrap', fontSize: '0.82rem', lineHeight: 1.7 }}>
-                {form.content || <span style={{ color: '#9ca3af' }}>Nothing to preview</span>}
+              <div style={{ ...inputStyle, minHeight: 200, padding: '12px', background: 'var(--surface-card, #fff)', whiteSpace: 'pre-wrap', fontSize: '0.82rem', lineHeight: 1.7 }}>
+                {form.content || <span style={{ color: 'var(--text-tertiary)' }}>Nothing to preview</span>}
               </div>
             ) : (
               <textarea
@@ -158,11 +158,11 @@ function EditPolicyModal({ policy, onClose, onSave }) {
 
           {/* Toggles */}
           <div style={{ display: 'flex', gap: 24 }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
               <input type="checkbox" checked={form.requires_acceptance} onChange={setBool('requires_acceptance')} />
               Requires acceptance
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
               <input type="checkbox" checked={form.is_active} onChange={setBool('is_active')} />
               Active
             </label>
@@ -200,7 +200,7 @@ function EditPolicyModal({ policy, onClose, onSave }) {
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
               <Save size={13} /> Save policy
             </button>
@@ -241,11 +241,11 @@ function AcceptancesPanel({ policyId }) {
       </div>
 
       {loading ? (
-        <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 0' }}>Loading...</p>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '16px 0' }}>Loading...</p>
       ) : !data.length ? (
-        <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 0' }}>No records found</p>
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '16px 0' }}>No records found</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
           {data.map((row, i) => (
             <div key={row.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 16px', borderBottom: i < data.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none', background: row.response === 'disagreed' ? 'rgba(239,68,68,0.02)' : 'white' }}>
               <div style={{ marginTop: 2, flexShrink: 0 }}>
@@ -255,14 +255,14 @@ function AcceptancesPanel({ policyId }) {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                     {row.customer ? `${row.customer.first_name} ${row.customer.last_name}` : row.customer_number || 'Unknown'}
                   </span>
-                  <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>{row.customer?.email}</span>
-                  <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)' }}>
+                  <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>{row.customer?.email}</span>
+                  <span style={{ fontSize: '0.62rem', fontWeight: 700, padding: '1px 6px', borderRadius: 99, background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)' }}>
                     v{row.policy_version}
                   </span>
-                  <span style={{ fontSize: '0.62rem', color: '#9ca3af', background: 'rgba(107,114,128,0.08)', padding: '1px 6px', borderRadius: 99 }}>
+                  <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', background: 'rgba(107,114,128,0.08)', padding: '1px 6px', borderRadius: 99 }}>
                     {row.action_context?.replace(/_/g, ' ')}
                   </span>
                   {row.flagged && (
@@ -276,7 +276,7 @@ function AcceptancesPanel({ policyId }) {
                     Reason: "{row.disagree_reason}"
                   </p>
                 )}
-                <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
                   {row.accepted_at ? format(new Date(row.accepted_at), 'dd MMM yyyy, HH:mm') : '—'}
                 </p>
               </div>
@@ -301,8 +301,8 @@ function ChangeLogPanel({ policyId }) {
       .finally(() => setLoading(false));
   }, [policyId]);
 
-  if (loading) return <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 0' }}>Loading...</p>;
-  if (!logs.length) return <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 0' }}>No changes recorded yet</p>;
+  if (loading) return <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '16px 0' }}>Loading...</p>;
+  if (!logs.length) return <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '16px 0' }}>No changes recorded yet</p>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -317,7 +317,7 @@ function ChangeLogPanel({ policyId }) {
                 Major
               </span>
             )}
-            <span style={{ fontSize: '0.72rem', color: '#6b7280', marginLeft: 'auto' }}>
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', marginLeft: 'auto' }}>
               {log.changed_by_name} · {log.changed_at ? format(new Date(log.changed_at), 'dd MMM yyyy, HH:mm') : '—'}
             </span>
           </div>
@@ -364,7 +364,7 @@ function ReportsTab() {
           { label: 'Flagged customers',   value: data.totals.flagged_customers,   color: '#b45309' },
         ].map(({ label, value, color }) => (
           <div key={label} style={{ ...card, padding: '16px 20px' }}>
-            <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: '0 0 6px' }}>{label}</p>
+            <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: '0 0 6px' }}>{label}</p>
             <p style={{ fontSize: '1.5rem', fontWeight: 900, color, margin: 0 }}>{value}</p>
           </div>
         ))}
@@ -373,15 +373,15 @@ function ReportsTab() {
       {/* Outdated acceptances */}
       {data.outdated_acceptances?.length > 0 && (
         <div style={{ ...card, padding: 20 }}>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <AlertTriangle size={14} style={{ color: '#f59e0b' }} /> Customers on outdated major version
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.outdated_acceptances.map(row => (
               <div key={row.policy_key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 8, background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
                 <div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>{row.policy_key.replace(/_/g, ' ')}</span>
-                  <span style={{ fontSize: '0.72rem', color: '#9ca3af', marginLeft: 8 }}>current: v{row.current_version}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{row.policy_key.replace(/_/g, ' ')}</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginLeft: 8 }}>current: v{row.current_version}</span>
                 </div>
                 <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#b45309' }}>{row.outdated_count} customers</span>
               </div>
@@ -393,13 +393,13 @@ function ReportsTab() {
       {/* Disagreements by policy */}
       {data.disagreements?.length > 0 && (
         <div style={{ ...card, padding: 20 }}>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <XCircle size={14} style={{ color: '#dc2626' }} /> Disagreements by policy
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {data.disagreements.map(row => (
-              <div key={row.policy_key} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'white' }}>
-                <span style={{ fontSize: '0.82rem', color: '#374151' }}>{row.policy_key.replace(/_/g, ' ')}</span>
+              <div key={row.policy_key} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
+                <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{row.policy_key.replace(/_/g, ' ')}</span>
                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#dc2626' }}>{row.total}</span>
               </div>
             ))}
@@ -410,20 +410,20 @@ function ReportsTab() {
       {/* Flagged customers */}
       {data.flagged_customers?.length > 0 && (
         <div style={{ ...card, padding: 20 }}>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 14px', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Shield size={14} style={{ color: '#ef4444' }} /> Flagged customers
           </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
             {data.flagged_customers.map((c, i) => (
               <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', borderBottom: i < data.flagged_customers.length - 1 ? '1px solid color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'none' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>{c.first_name} {c.last_name}</span>
-                  <span style={{ fontSize: '0.68rem', color: '#9ca3af', marginLeft: 8 }}>{c.customer_number}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>{c.first_name} {c.last_name}</span>
+                  <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginLeft: 8 }}>{c.customer_number}</span>
                   <p style={{ fontSize: '0.72rem', color: '#dc2626', margin: '2px 0 0' }}>
                     Disagreed with {c.policy_flagged_policy_key?.replace(/_/g, ' ')} v{c.policy_flagged_version}
                   </p>
                 </div>
-                <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
+                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>
                   {c.policy_flagged_at ? format(new Date(c.policy_flagged_at), 'dd MMM yyyy') : '—'}
                 </span>
               </div>
@@ -445,8 +445,8 @@ function PolicyRow({ policy, onEdit, index }) {
     <>
       <tr style={{ borderTop: index ? '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none' }}>
         <td style={{ padding: '12px 16px' }}>
-          <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>{policy.title}</p>
-          <code style={{ fontSize: '0.65rem', color: '#9ca3af', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
+          <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1px' }}>{policy.title}</p>
+          <code style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', background: 'var(--surface-card, #fff)', padding: '1px 5px', borderRadius: 4 }}>{policy.key}</code>
         </td>
         <td style={{ padding: '12px 16px' }}>
           <SensitivityBadge sensitivity={policy.sensitivity} />
@@ -456,7 +456,7 @@ function PolicyRow({ policy, onEdit, index }) {
             v{policy.major_version}.{policy.minor_version}
           </span>
         </td>
-        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#374151' }}>
+        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
           <span style={{ fontWeight: 700, color: '#16a34a' }}>{policy.total_acceptances ?? 0}</span>
           {' / '}
           <span style={{ fontWeight: 700, color: '#dc2626' }}>{policy.total_disagreements ?? 0}</span>
@@ -470,7 +470,7 @@ function PolicyRow({ policy, onEdit, index }) {
           <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
             <button
               onClick={() => { setExpanded(e => !e); }}
-              style={{ background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', display: 'flex' }}
+              style={{ background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)', border: 'none', borderRadius: 6, padding: '5px 7px', cursor: 'pointer', display: 'flex' }}
               title="View acceptances & history"
             >
               {expanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
@@ -490,7 +490,7 @@ function PolicyRow({ policy, onEdit, index }) {
       {expanded && (
         <tr>
           <td colSpan={6} style={{ padding: 0 }}>
-            <div style={{ padding: '16px 20px', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+            <div style={{ padding: '16px 20px', background: 'var(--surface-card, #fff)', borderTop: '1px solid var(--line)' }}>
 
               {/* Sub-tab switcher */}
               <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
@@ -575,17 +575,17 @@ export default function PolicySettings() {
           <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Shield size={18} style={{ color: 'var(--color-primary-500)' }} /> Policy Management
           </h2>
-          <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
             Manage platform policies, track customer acceptances and disagreements
           </p>
         </div>
-        <button onClick={loadPolicies} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button onClick={loadPolicies} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600, border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit' }}>
           <RefreshCw size={12} /> Refresh
         </button>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingBottom: 0 }}>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '1px solid var(--line)', paddingBottom: 0 }}>
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)} style={{
             display: 'flex', alignItems: 'center', gap: 5,
@@ -611,7 +611,7 @@ export default function PolicySettings() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
+                  <tr style={{ background: 'var(--surface-card, #fff)' }}>
                     {['Policy', 'Sensitivity', 'Version', 'Accepted / Disagreed', 'Status', ''].map((h, i) => (
                       <th key={i} style={{ padding: '10px 16px', textAlign: i >= 4 ? 'center' : 'left' }}>
                         <TH_LABEL right={i >= 4}>{h}</TH_LABEL>

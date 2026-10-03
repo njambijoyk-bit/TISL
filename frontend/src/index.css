@@ -177,6 +177,15 @@
   --status-error: var(--accent-error, var(--color-error, #ef4444));
   --status-info: var(--accent-info, var(--color-info, #3b82f6));
 
+  /* short names some older pages use, with their own fallbacks */
+  --panel-bg: var(--surface-card);
+  --panel-bg-secondary: var(--surface-input);
+  --input-bg: var(--surface-card);
+  --bug-card-bg: var(--surface-card);
+  --card: var(--surface-card);
+  --text: var(--text-primary);
+  --border: var(--line);
+
   --color-surface: var(--surface-card);
   --color-background-primary: var(--surface-card);
   --color-background-secondary: var(--bg-secondary);

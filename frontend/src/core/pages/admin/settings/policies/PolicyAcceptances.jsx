@@ -9,17 +9,17 @@ import policyAPI from '../../../../../_shared/api/policy';
 // ── Shared primitives (mirrored from PolicySettings) ─────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const inputStyle = {
   padding: '6px 10px', borderRadius: 8, fontSize: '0.78rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -66,14 +66,14 @@ const CONTEXT_COLORS = {
   login:               { bg: 'rgba(59,130,246,0.08)',  color: '#1d4ed8' },
   register:            { bg: 'rgba(16,185,129,0.08)',  color: '#059669' },
   cookie_consent:      { bg: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',  color: 'var(--color-primary-600)' },
-  website_policy:      { bg: 'rgba(107,114,128,0.08)', color: '#4b5563' },
+  website_policy:      { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' },
   standard_checkout:   { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
   hamper_checkout:     { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
   booking_checkout:    { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
 };
 
 function ContextBadge({ context }) {
-  const s = CONTEXT_COLORS[context] ?? { bg: 'rgba(107,114,128,0.08)', color: '#6b7280' };
+  const s = CONTEXT_COLORS[context] ?? { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' };
   const label = context?.replace(/_/g, ' ') ?? '—';
   return (
     <span style={{
@@ -107,14 +107,14 @@ function SnapshotModal({ acceptance, onClose }) {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>
+            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>
               Policy snapshot
             </p>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Exact text the customer agreed to · v{acceptance.policy_version}
             </p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
             <X size={16} />
           </button>
         </div>
@@ -123,7 +123,7 @@ function SnapshotModal({ acceptance, onClose }) {
         <div style={{
           display: 'flex', gap: 16, flexWrap: 'wrap',
           padding: '10px 14px', borderRadius: 8, marginBottom: 16,
-          background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+          background: 'var(--surface-card, #fff)', border: '1px solid var(--line)',
           fontSize: '0.75rem',
         }}>
           {[
@@ -137,8 +137,8 @@ function SnapshotModal({ acceptance, onClose }) {
             ['IP',        acceptance.ip_address ?? '—'],
           ].map(([lbl, val]) => (
             <div key={lbl}>
-              <span style={{ color: '#9ca3af', display: 'block', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{lbl}</span>
-              <span style={{ color: '#374151', fontWeight: 600 }}>{val}</span>
+              <span style={{ color: 'var(--text-tertiary)', display: 'block', fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{lbl}</span>
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{val}</span>
             </div>
           ))}
         </div>
@@ -147,12 +147,12 @@ function SnapshotModal({ acceptance, onClose }) {
         <div style={{
           flex: 1, overflowY: 'auto',
           padding: '14px 16px', borderRadius: 8,
-          background: '#f9fafb', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
-          fontSize: '0.8rem', lineHeight: 1.75, color: '#374151',
+          background: 'var(--surface-input)', border: '1px solid var(--line)',
+          fontSize: '0.8rem', lineHeight: 1.75, color: 'var(--text-primary)',
           whiteSpace: 'pre-wrap', wordBreak: 'break-word',
           fontFamily: 'Georgia, serif',
         }}>
-          {acceptance.policy_snapshot || <span style={{ color: '#9ca3af' }}>No snapshot stored.</span>}
+          {acceptance.policy_snapshot || <span style={{ color: 'var(--text-tertiary)' }}>No snapshot stored.</span>}
         </div>
 
         {/* Disagree reason */}
@@ -275,7 +275,7 @@ export default function PolicyAcceptances({ policies = [] }) {
           <div key={label} style={{ ...card, padding: '14px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
               <span style={{ color }}>{icon}</span>
-              <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: 0 }}>
+              <p style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: 0 }}>
                 {label}
               </p>
             </div>
@@ -286,7 +286,7 @@ export default function PolicyAcceptances({ policies = [] }) {
 
       {/* Filter bar */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <Filter size={13} style={{ color: '#9ca3af', flexShrink: 0 }} />
+        <Filter size={13} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
 
         <select
           value={filterResp}
@@ -327,7 +327,7 @@ export default function PolicyAcceptances({ policies = [] }) {
             onClick={clearFilters}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
-              fontSize: '0.72rem', color: '#9ca3af',
+              fontSize: '0.72rem', color: 'var(--text-tertiary)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             }}
           >
@@ -335,7 +335,7 @@ export default function PolicyAcceptances({ policies = [] }) {
           </button>
         )}
 
-        <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#9ca3af' }}>
+        <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
           {meta.from}–{meta.to} of {meta.total}
         </span>
       </div>
@@ -345,7 +345,7 @@ export default function PolicyAcceptances({ policies = [] }) {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
             <thead>
-              <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+              <tr style={{ background: 'var(--surface-card, #fff)', borderBottom: '1px solid var(--line)' }}>
                 {[
                   'Customer', 'Customer #', 'Response', 'Context',
                   'Version', 'Flagged', 'IP Address', 'Date', 'Snapshot',
@@ -353,7 +353,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                   <th key={h} style={{
                     padding: '10px 14px', textAlign: 'left',
                     fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
-                    letterSpacing: '0.08em', color: '#9ca3af', whiteSpace: 'nowrap',
+                    letterSpacing: '0.08em', color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
                   }}>
                     {h}
                   </th>
@@ -366,7 +366,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                     <tr key={i} style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
                       {[120, 80, 72, 110, 55, 50, 100, 110, 60].map((w, j) => (
                         <td key={j} style={{ padding: '12px 14px' }}>
-                          <div style={{ height: 11, width: w, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
+                          <div style={{ height: 11, width: w, borderRadius: 6, background: 'var(--surface-card, #fff)' }} />
                         </td>
                       ))}
                     </tr>
@@ -375,11 +375,11 @@ export default function PolicyAcceptances({ policies = [] }) {
                   ? (
                     <tr>
                       <td colSpan={9} style={{ padding: '52px 24px', textAlign: 'center' }}>
-                        <Users size={30} style={{ color: '#d1d5db', marginBottom: 10, display: 'block', margin: '0 auto 10px' }} />
-                        <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#374151', margin: '0 0 4px' }}>
+                        <Users size={30} style={{ color: 'var(--text-tertiary)', marginBottom: 10, display: 'block', margin: '0 auto 10px' }} />
+                        <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>
                           No acceptances found
                         </p>
-                        <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
                           {hasFilters ? 'Try adjusting your filters.' : 'No records yet for this policy.'}
                         </p>
                       </td>
@@ -404,14 +404,14 @@ export default function PolicyAcceptances({ policies = [] }) {
                         >
                           {/* Customer name + email */}
                           <td style={{ padding: '11px 14px', minWidth: 160 }}>
-                            <p style={{ margin: 0, fontWeight: 600, color: '#111827', fontSize: '0.8rem' }}>{name}</p>
-                            {email && <p style={{ margin: 0, fontSize: '0.68rem', color: '#9ca3af' }}>{email}</p>}
+                            <p style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)', fontSize: '0.8rem' }}>{name}</p>
+                            {email && <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{email}</p>}
                           </td>
 
                           {/* Customer number */}
                           <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                             <code style={{
-                              fontSize: '0.72rem', background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
+                              fontSize: '0.72rem', background: 'var(--surface-card, #fff)',
                               color: 'var(--color-primary-600)', padding: '2px 6px', borderRadius: 4,
                             }}>
                               {row.customer_number ?? '—'}
@@ -433,7 +433,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                             <span style={{
                               fontSize: '0.72rem', fontWeight: 700,
                               padding: '2px 7px', borderRadius: 99,
-                              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)',
+                              background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                             }}>
                               v{row.policy_version}
                             </span>
@@ -447,19 +447,19 @@ export default function PolicyAcceptances({ policies = [] }) {
                                   <Shield size={10} /> Flagged
                                 </span>
                               )
-                              : <span style={{ color: '#d1d5db', fontSize: '0.72rem' }}>—</span>
+                              : <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>—</span>
                             }
                           </td>
 
                           {/* IP */}
                           <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontFamily: 'monospace' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
                               {row.ip_address ?? '—'}
                             </span>
                           </td>
 
                           {/* Date */}
-                          <td style={{ padding: '11px 14px', whiteSpace: 'nowrap', fontSize: '0.72rem', color: '#9ca3af' }}>
+                          <td style={{ padding: '11px 14px', whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
                             {row.accepted_at
                               ? format(new Date(row.accepted_at), 'dd MMM yyyy, HH:mm')
                               : '—'}
@@ -475,7 +475,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                                     fontSize: '0.7rem', fontWeight: 700,
                                     padding: '3px 10px', borderRadius: 6,
                                     border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
-                                    background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+                                    background: 'var(--surface-card, #fff)',
                                     color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit',
                                     whiteSpace: 'nowrap',
                                     transition: 'background 120ms',
@@ -486,7 +486,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                                   View
                                 </button>
                               )
-                              : <span style={{ color: '#d1d5db', fontSize: '0.72rem' }}>—</span>
+                              : <span style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>—</span>
                             }
                           </td>
                         </tr>
@@ -500,11 +500,11 @@ export default function PolicyAcceptances({ policies = [] }) {
         {/* Pagination */}
         {!loading && rows.length > 0 && meta.last_page > 1 && (
           <div style={{
-            padding: '10px 14px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+            padding: '10px 14px', borderTop: '1px solid var(--line)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+            background: 'var(--surface-card, #fff)',
           }}>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Page {meta.current_page} of {meta.last_page} · {meta.total} records
             </p>
             <div style={{ display: 'flex', gap: 4 }}>
@@ -518,7 +518,7 @@ export default function PolicyAcceptances({ policies = [] }) {
                   disabled={disabled}
                   style={{
                     width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    borderRadius: 7, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                    borderRadius: 7, border: '1.5px solid var(--line)', background: 'none',
                     color: 'var(--color-primary-500)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
                   }}
                 >
