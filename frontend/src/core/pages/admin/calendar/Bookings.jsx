@@ -217,9 +217,9 @@ export default function Bookings() {
         {data && !data.table_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>Run script 61_bookings.sql to start taking bookings.</p>}
         <div style={{ display: 'flex', gap: 8, margin: '8px 0 12px', flexWrap: 'wrap' }}>
           {['', 'confirmed', 'completed', 'cancelled', 'no_show'].map((s) => (
-            <button key={s} type="button" onClick={() => setStatus(s)} style={{ ...small, fontWeight: status === s ? 700 : 500, background: status === s ? '#eff6ff' : undefined }}>{s ? `${LABEL[s]}${data?.counts?.[s] ? ` (${data.counts[s]})` : ''}` : 'All'}</button>
+            <button key={s} type="button" onClick={() => setStatus(s)} style={{ ...small, fontWeight: status === s ? 700 : 500, background: status === s ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)', color: status === s ? 'var(--color-primary-500)' : 'var(--text-primary)', border: `1.5px solid ${status === s ? 'var(--color-primary-500)' : 'var(--line)'}` }}>{s ? `${LABEL[s]}${data?.counts?.[s] ? ` (${data.counts[s]})` : ''}` : 'All'}</button>
           ))}
-          <input placeholder="Search number or customer" value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginLeft: 'auto', padding: '6px 10px', borderRadius: 8, border: `1px solid ${colors.tint(0.15)}`, fontSize: '0.8rem', minWidth: 220 }} />
+          <input placeholder="Search number or customer" value={search} onChange={(e) => setSearch(e.target.value)} style={{ marginLeft: 'auto', padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontSize: '0.8rem', minWidth: 220 }} />
         </div>
         {!data && !error && <p style={{ color: colors.textMuted }}>Loading…</p>}
         {data?.table_ready && (
