@@ -93,6 +93,7 @@ use App\Http\Controllers\Api\DeliveryInsightController;
 use App\Http\Controllers\Api\DriverManifestController;
 use App\Http\Controllers\Api\OrderShipmentController;
 use App\Http\Controllers\Api\DeliveryMoneyController;
+use App\Http\Controllers\Api\CustomerEnrouteController;
 use App\Http\Controllers\Api\DeliveryIncidentController;
 use App\Http\Controllers\Api\DeliveryRatingController;
 use App\Http\Controllers\Api\DeliveryStatsController;
@@ -749,6 +750,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // ── DELIVERY — CUSTOMER ────────────────────────────────────────────────────
         Route::prefix('delivery')->middleware('module:extras')->group(function () {
+            // The manifest carrying their goods while it is on the road
+            Route::get('/enroute',                    [CustomerEnrouteController::class, 'index']);
+            Route::get('/enroute/{manifestId}',       [CustomerEnrouteController::class, 'show'])->whereNumber('manifestId');
+
             // Track shipment for their order
             Route::get('/orders/{orderId}/shipment', [OrderShipmentController::class, 'showForOrder']);
             Route::get('/orders/{orderId}/pings',    [OrderShipmentController::class, 'getLivePings']);

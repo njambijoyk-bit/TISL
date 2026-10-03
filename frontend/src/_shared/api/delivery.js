@@ -285,6 +285,13 @@ const deliveryAPI = {
   // ========================================
 
   // Track shipment for their order
+  // Deliveries of theirs on a manifest that is on the road now, and one such manifest from their point of view
+  getEnrouteDeliveries: () =>
+    api.get('/customer/delivery/enroute').then(r => r.data),
+
+  getEnrouteManifest: (manifestId) =>
+    api.get(`/customer/delivery/enroute/${manifestId}`).then(r => r.data),
+
   getOrderShipment: (orderId) =>
     api.get(`/customer/delivery/orders/${orderId}/shipment`).then(r => r.data),
 
