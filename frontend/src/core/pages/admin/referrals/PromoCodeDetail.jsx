@@ -10,6 +10,7 @@ import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout
 import usePromoCodeStore from '../../../../_shared/store/promoCodeStore';
 import promoCodesAPI from '../../../../_shared/api/promoCodes';
 import toast from 'react-hot-toast';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { format } from 'date-fns';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -125,6 +126,7 @@ const fmtDT   = (d) => { try { return format(new Date(d), 'MMM d, yyyy · h:mm a
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function PromoCodeDetail() {
   const { id }     = useParams();
+  useCalculatorContext(id ? { type: 'promo', id: Number(id) } : null);   // Alt+C: did this promo pay for itself
   const navigate   = useNavigate();
   const { activateCode, pauseCode, archiveCode, deleteCode } = usePromoCodeStore();
 

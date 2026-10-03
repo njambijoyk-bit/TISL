@@ -9,6 +9,7 @@ import {
 import usePromoCodeStore from '../../../../_shared/store/promoCodeStore';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import toast from 'react-hot-toast';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import CreatePromoModal from './CreatePromoModal';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -219,6 +220,7 @@ function SkeletonRow() {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function PromoCodes() {
+  useCalculatorContext({ type: 'promos' });   // Alt+C: how every code did, fixed against percentage
   const navigate = useNavigate();
   const {
     codes, statistics, pagination, filters, loading,

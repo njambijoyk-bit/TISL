@@ -81,7 +81,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(\App\Services\Insight\InsightRegistry::class, function ($app) {
             $r = new \App\Services\Insight\InsightRegistry($app->make(\App\Services\Licensing\LicenseManager::class));
             foreach ([\App\Services\Insight\Packs\UnitPricePack::class, \App\Services\Insight\Packs\VoucherUnitsPack::class, \App\Services\Insight\Packs\LoyaltyJournalPack::class,
-                \App\Services\Insight\Packs\LoyaltySettingsPack::class, \App\Services\Insight\Packs\LoyaltyRulePack::class] as $pack) {
+                \App\Services\Insight\Packs\LoyaltySettingsPack::class, \App\Services\Insight\Packs\LoyaltyRulePack::class,
+                \App\Services\Insight\Packs\PromoPack::class, \App\Services\Insight\Packs\CustomerDiscountPack::class] as $pack) {
                 $r->register(new $pack());
             }
 

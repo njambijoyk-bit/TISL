@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import useCalculatorContext from '../../../_shared/hooks/useCalculatorContext';
 import {
   ChevronLeft, Camera, Edit2, Save, X, Plus, Trash2, Check,
   MapPin, ShieldCheck, ShieldOff, AlertTriangle, Ban,
@@ -391,6 +392,7 @@ function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel }) {
 
 export default function CustomerDetail() {
   const { id } = useParams();
+  useCalculatorContext(id ? { type: 'customer', id: Number(id) } : null);   // Alt+C: are their discounts right for them
   const navigate = useNavigate();
 
   const authUser = useAuthStore((st) => st.user);
