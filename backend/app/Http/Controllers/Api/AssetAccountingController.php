@@ -40,7 +40,8 @@ class AssetAccountingController extends Controller
             'currencies' => Currency::where('is_active', true)->orderByDesc('is_base')->get(['id', 'code', 'name', 'is_base', 'conversion_rate']),
             'asset_ledgers' => $pick(fn ($l) => $l->group?->name === 'Fixed Assets'),
             'expense_ledgers' => $pick(fn ($l) => $l->group?->nature === 'expense'),
-            'pay_from' => $pick(fn ($l) => in_array($l->group?->name, ['Cash-in-hand', 'Bank Accounts'], true))]);
+            'pay_from' => $pick(fn ($l) => in_array($l->group?->name, ['Cash-in-hand', 'Bank Accounts'], true)),
+            'debtors' => $pick(fn ($l) => $l->group?->name === 'Sundry Debtors')]);
     }
 
     public function setupCategoryLedgers(int $id): JsonResponse
@@ -80,7 +81,8 @@ class AssetAccountingController extends Controller
     {
         $rows = AssetDepreciation::selectRaw('voucher_id, MIN(period_end) as period_end, SUM(amount) as amount, COUNT(*) as assets, MIN(currency_id) as currency_id')->whereNotNull('voucher_id')
             ->groupBy('voucher_id')->orderByDesc('period_end')->limit(120)->get();
-        $v = Voucher::whereIn('id', $rows->pluck('voucher_id'))->get(['id', 'voucher_number', 'narration', 'status'])->keyBy('id');
+        $v = Voucher::whereIn('id', $rows->pluck('voucher_id'))->get(['id', 'voucher_number', 'narration', 'status', 'meta'])->keyBy('id');
+        $rows = $rows->reject(fn ($r) => ! empty($v[$r->voucher_id]->meta['asset']['disposal'] ?? null))->values();   // a disposal's part-month is part of the disposal, not a run
         $cur = Currency::pluck('code', 'id');
 
         return response()->json(['data' => $rows->map(fn ($r) => ['voucher_id' => $r->voucher_id, 'voucher_number' => $v[$r->voucher_id]->voucher_number ?? null, 'narration' => $v[$r->voucher_id]->narration ?? null,

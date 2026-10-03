@@ -140,6 +140,35 @@ class AssetAccountingService
         return $out;
     }
 
+    /**
+     * Depreciation for the days of the month up to the disposal date (inclusive), counted from the first day of the month, or from
+     * the in-service date when it went into service that month. The months before it must already be posted.
+     */
+    public function partialCharge(InventoryInstance $a, Carbon $on): float
+    {
+        if (($a->depreciation_method ?? 'none') === 'none' || ! $this->live($a) || $this->cost($a) <= 0 || ! ($start = $this->inService($a))) {
+            return 0.0;
+        }
+        $monthStart = $on->copy()->startOfMonth();
+        if ($on->lt($start)) {
+            return 0.0;   // sold before it went into service
+        }
+        $cost = $this->cost($a);
+        $floor = min(max(round((float) $a->floor_value, 2), 0), $cost);
+        $nbv = round($cost - $this->accumulated($a), 2);
+        if ($nbv - $floor <= 0.004) {
+            return 0.0;
+        }
+        $days = $monthStart->daysInMonth;
+        $from = $start->gt($monthStart) ? $start : $monthStart;
+        $factor = ($from->diffInDays($on->copy()->startOfDay()) + 1) / $days;
+        $charge = $a->depreciation_method === 'reducing_balance'
+            ? $nbv * ((float) $a->depreciation_rate / 100) / 12 * $factor
+            : ($cost - $floor) / max((int) $a->useful_life_years, 1) / 12 * $factor;
+
+        return round(max(0.0, min($charge, $nbv - $floor)), 2);
+    }
+
     // ── Preview and post ─────────────────────────────────────────────────────
 
     /** What posting up to $upTo would do: per asset, and per category + currency (one Journal each month). */
@@ -233,6 +262,9 @@ class AssetAccountingService
         $rows = AssetDepreciation::where('voucher_id', $voucherId)->get();
         if ($rows->isEmpty()) {
             throw new BooksException('That Journal is not a depreciation run.');
+        }
+        if (! empty(Voucher::find($voucherId)?->meta['asset']['disposal'])) {
+            throw new BooksException('That Journal is a disposal, not a depreciation run: cancel the disposal from the voucher itself.');
         }
         foreach ($rows as $r) {
             if (AssetDepreciation::where('instance_id', $r->instance_id)->where('period_end', '>', $r->period_end)->exists()) {
@@ -339,26 +371,42 @@ class AssetAccountingService
         if ($due) {
             throw new BooksException('Post depreciation up to ' . Carbon::parse(end($due)['period_end'])->format('F Y') . ' first (Depreciation & register), then record the disposal.');
         }
+        $part = $this->partialCharge($a, $date);   // the days of the disposal month it was still in use
         $acc = min($this->accumulated($a), $cost);
-        $proceeds = round((float) ($in['proceeds'] ?? 0), 2);
-        if ($proceeds < 0) {
-            throw new BooksException('Proceeds cannot be negative.');
+        $cash = round((float) ($in['proceeds'] ?? 0), 2);          // money received now
+        $credit = round((float) ($in['credit_amount'] ?? 0), 2);   // still owed by the buyer
+        if ($cash < 0 || $credit < 0) {
+            throw new BooksException('Amounts cannot be negative.');
         }
         $recv = null;
-        if ($proceeds > 0) {
+        if ($cash > 0) {
             $recv = Ledger::find($in['received_ledger_id'] ?? null);
             if (! $recv || (! $this->ledgers->isUnderGroup($recv, 'Cash-in-hand') && ! $this->ledgers->isUnderGroup($recv, 'Bank Accounts'))) {
                 throw new BooksException('Choose the cash or bank account the money went into.');
             }
         }
-        $nbv = round($cost - $acc, 2);
+        $buyer = null;
+        if ($credit > 0) {
+            $buyer = Ledger::find($in['buyer_ledger_id'] ?? null);
+            if (! $buyer || ! $this->ledgers->isUnderGroup($buyer, 'Sundry Debtors')) {
+                throw new BooksException('Choose the customer who owes the money for the sale.');
+            }
+        }
+        $proceeds = round($cash + $credit, 2);
+        $nbv = round($cost - $acc - $part, 2);
         $diff = round($proceeds - $nbv, 2);   // > 0 gain, < 0 loss
         $entries = [];
+        if ($part > 0) {
+            $entries[] = ['ledger_id' => $cat->expense_ledger_id, 'side' => 'D', 'amount' => $part, 'narration' => 'Depreciation to the date of disposal'];
+        }
         if ($acc > 0) {
             $entries[] = ['ledger_id' => $cat->accumulated_ledger_id, 'side' => 'D', 'amount' => $acc, 'narration' => 'Accumulated depreciation removed'];
         }
-        if ($proceeds > 0) {
-            $entries[] = ['ledger_id' => $recv->id, 'side' => 'D', 'amount' => $proceeds, 'narration' => 'Sale proceeds'];
+        if ($cash > 0) {
+            $entries[] = ['ledger_id' => $recv->id, 'side' => 'D', 'amount' => $cash, 'narration' => 'Sale proceeds'];
+        }
+        if ($credit > 0) {
+            $entries[] = ['ledger_id' => $buyer->id, 'side' => 'D', 'amount' => $credit, 'is_party' => true, 'narration' => 'Sale proceeds owed by the buyer'];
         }
         if ($diff < -0.004) {
             $entries[] = ['ledger_id' => $this->gainLossLedger('loss', $in)->id, 'side' => 'D', 'amount' => -$diff, 'narration' => 'Loss on disposal'];
@@ -369,13 +417,22 @@ class AssetAccountingService
         }
         $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
 
-        return DB::transaction(function () use ($a, $type, $date, $entries, $by, $proceeds, $in) {
-            $v = $this->vouchers->create([
+        return DB::transaction(function () use ($a, $type, $date, $entries, $by, $proceeds, $part, $credit, $buyer, $in) {
+            $data = [
                 'voucher_type_id' => $type->id, 'date' => $date->toDateString(), 'currency_id' => $a->currency_id, 'reference_no' => $a->asset_tag,
                 'narration' => ($proceeds > 0 ? 'Asset sold: ' : 'Asset written off: ') . $this->label($a),
                 'entries' => $entries, 'meta' => ['asset' => ['instance_id' => $a->id, 'disposal' => true]],
-            ], $by);
-            $a->update(['disposed_on' => $date->toDateString(), 'disposal_voucher_id' => $v->id, 'sale_proceeds' => $proceeds > 0 ? $proceeds : null]);
+            ];
+            if ($credit > 0) {
+                $data += ['party_ledger_id' => $buyer->id, 'customer_id' => $buyer->customer_id ?? null,
+                    'asset_sale_bill' => ['ledger_id' => $buyer->id, 'amount' => $credit, 'due' => $in['due_date'] ?? null]];
+                $data['meta']['asset_sale'] = ['owed' => $credit, 'due' => $in['due_date'] ?? null];
+            }
+            $v = $this->vouchers->create($data, $by);
+            if ($part > 0) {
+                AssetDepreciation::updateOrCreate(['instance_id' => $a->id, 'period_end' => $date->toDateString()], ['amount' => $part, 'currency_id' => $a->currency_id, 'voucher_id' => $v->id, 'created_by' => $by?->id]);
+            }
+            $a->update(['disposed_on' => $date->toDateString(), 'disposal_voucher_id' => $v->id, 'sale_proceeds' => $proceeds > 0 ? $proceeds : null, 'depreciated_to' => $part > 0 ? $date->toDateString() : $a->depreciated_to]);
 
             return $v;
         });

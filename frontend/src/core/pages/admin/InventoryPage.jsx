@@ -902,7 +902,7 @@ function MoveModal({ instance, locations, onClose, onSuccess, toast }) {
 }
 
 function WriteOffModal({ instance, mode = "write-off", onClose, onSuccess, toast }) {
-  const [form, setForm] = useState({ reason: "", notes: "", update_books: true, disposal_date: new Date().toISOString().split("T")[0], proceeds: "", received_ledger_id: "" });
+  const [form, setForm] = useState({ reason: "", notes: "", update_books: true, disposal_date: new Date().toISOString().split("T")[0], proceeds: "", received_ledger_id: "", credit_amount: "", buyer_ledger_id: "", due_date: "" });
   const [saving, setSaving] = useState(false);
   const accOpts = useAccountingOptions();
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -912,7 +912,7 @@ function WriteOffModal({ instance, mode = "write-off", onClose, onSuccess, toast
   const submit = async () => {
     setSaving(true);
     try {
-      const body = { ...form, proceeds: form.proceeds === "" ? 0 : parseFloat(form.proceeds), received_ledger_id: form.received_ledger_id || undefined };
+      const body = { ...form, proceeds: form.proceeds === "" ? 0 : parseFloat(form.proceeds), received_ledger_id: form.received_ledger_id || undefined, credit_amount: form.credit_amount === "" ? 0 : parseFloat(form.credit_amount), buyer_ledger_id: form.buyer_ledger_id || undefined, due_date: form.due_date || undefined };
       if (mode === "write-off") await inventoryAPI.instances.writeOff(instance.id, body);
       else if (mode === "dispose") await inventoryAPI.instances.dispose(instance.id, body);
       else if (mode === "obsolete") await inventoryAPI.instances.declareObsolete(instance.id, form);
@@ -945,7 +945,7 @@ function WriteOffModal({ instance, mode = "write-off", onClose, onSuccess, toast
             <>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <Field label="Date"><input style={inputStyle} type="date" max={new Date().toISOString().split("T")[0]} value={form.disposal_date} onChange={e => set("disposal_date", e.target.value)} /></Field>
-                <Field label="Money received (blank if none)"><input style={inputStyle} type="number" min="0" step="0.01" value={form.proceeds} onChange={e => set("proceeds", e.target.value)} /></Field>
+                <Field label="Money received now (blank if none)"><input style={inputStyle} type="number" min="0" step="0.01" value={form.proceeds} onChange={e => set("proceeds", e.target.value)} /></Field>
               </div>
               {Number(form.proceeds) > 0 && (
                 <Field label="Paid into">
@@ -953,6 +953,19 @@ function WriteOffModal({ instance, mode = "write-off", onClose, onSuccess, toast
                     <option value="">Choose cash or bank…</option>
                     {(accOpts?.pay_from ?? []).map(l => <option key={l.id} value={l.id}>{l.name} ({l.group})</option>)}
                   </select>
+                </Field>
+              )}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <Field label="Still owed by the buyer (sold on credit)"><input style={inputStyle} type="number" min="0" step="0.01" value={form.credit_amount} onChange={e => set("credit_amount", e.target.value)} /></Field>
+                {Number(form.credit_amount) > 0 && <Field label="Due on"><input style={inputStyle} type="date" value={form.due_date} onChange={e => set("due_date", e.target.value)} /></Field>}
+              </div>
+              {Number(form.credit_amount) > 0 && (
+                <Field label="Buyer (a customer account)">
+                  <select style={selectStyle} value={form.buyer_ledger_id} onChange={e => set("buyer_ledger_id", e.target.value)}>
+                    <option value="">Choose the customer who owes it…</option>
+                    {(accOpts?.debtors ?? []).map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                  </select>
+                  <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 4 }}>It appears as an open bill on that customer, and a Receipt settles it like an invoice.</div>
                 </Field>
               )}
             </>

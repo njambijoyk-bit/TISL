@@ -464,6 +464,7 @@ class InventoryController extends Controller
             'reason' => 'nullable|string',
             'update_books' => 'nullable|boolean', 'disposal_date' => 'nullable|date', 'proceeds' => 'nullable|numeric|min:0',
             'received_ledger_id' => 'nullable|integer', 'loss_ledger_id' => 'nullable|integer', 'gain_ledger_id' => 'nullable|integer',
+            'credit_amount' => 'nullable|numeric|min:0', 'buyer_ledger_id' => 'nullable|integer', 'due_date' => 'nullable|date',
         ]);
         $data['performed_by'] = Auth::id();
 
@@ -478,6 +479,7 @@ class InventoryController extends Controller
             'reason' => 'nullable|string',
             'update_books' => 'nullable|boolean', 'disposal_date' => 'nullable|date', 'proceeds' => 'nullable|numeric|min:0',
             'received_ledger_id' => 'nullable|integer', 'loss_ledger_id' => 'nullable|integer', 'gain_ledger_id' => 'nullable|integer',
+            'credit_amount' => 'nullable|numeric|min:0', 'buyer_ledger_id' => 'nullable|integer', 'due_date' => 'nullable|date',
         ]);
         $data['performed_by'] = Auth::id();
 
@@ -494,6 +496,7 @@ class InventoryController extends Controller
                 $voucher = app(\App\Services\Inventory\AssetAccountingService::class)->retire($instance->fresh(['item']), [
                     'date' => $data['disposal_date'] ?? null, 'proceeds' => $data['proceeds'] ?? 0, 'received_ledger_id' => $data['received_ledger_id'] ?? null,
                     'loss_ledger_id' => $data['loss_ledger_id'] ?? null, 'gain_ledger_id' => $data['gain_ledger_id'] ?? null,
+                    'credit_amount' => $data['credit_amount'] ?? 0, 'buyer_ledger_id' => $data['buyer_ledger_id'] ?? null, 'due_date' => $data['due_date'] ?? null,
                 ], Auth::user());
             }
             $result = $retire();

@@ -1531,7 +1531,7 @@ class VoucherService
                     throw new BooksException("{$inv->voucher_number} belongs to a different party.");
                 }
                 $wantBase = $base === VoucherType::RECEIPT ? VoucherType::SALES : VoucherType::PURCHASE;
-                $isFeeBill = $base === VoucherType::RECEIPT && $inv->type->base_type === VoucherType::JOURNAL && ! empty($inv->meta['bounce']);   // the fee billed after a bounced cheque
+                $isFeeBill = $base === VoucherType::RECEIPT && $inv->type->base_type === VoucherType::JOURNAL && (! empty($inv->meta['bounce']) || ! empty($inv->meta['asset_sale']));   // the fee billed after a bounced cheque, or an asset sold on credit
                 if ($inv->type->base_type !== $wantBase && ! $isFeeBill) {
                     throw new BooksException("A " . ($base === VoucherType::RECEIPT ? 'receipt' : 'payment') . " settles " . ($base === VoucherType::RECEIPT ? 'sales invoices' : 'purchase invoices') . ", not {$inv->voucher_number}.");
                 }
@@ -1651,6 +1651,18 @@ class VoucherService
             if ((float) ($data['fee_bill'] ?? 0) > 0) {
                 $bills[] = ['type' => 'new', 'ledger_id' => $partyEntry['ledger_id'], 'amount' => round((float) $data['fee_bill'], 2), 'due' => Carbon::today(), 'against' => null];
             }
+        }
+
+        // An asset sold on credit: the buyer's debit opens a bill (due on the date given), which a Receipt settles like an invoice.
+        if ($base === VoucherType::JOURNAL && ! empty($data['asset_sale_bill'])) {
+            $ob = $data['asset_sale_bill'];
+            $partyEntry = collect($entries)->first(fn ($e) => $e['is_party'] && $e['side'] === 'D' && (int) $e['ledger_id'] === (int) ($ob['ledger_id'] ?? 0))
+                ?? throw new BooksException('The buyer must be debited as the party for the amount owed.');
+            $owed = round((float) ($ob['amount'] ?? $partyEntry['amount']), 2);
+            if ($owed <= 0 || $owed - $partyEntry['amount'] > 0.005) {
+                throw new BooksException('The amount owed cannot be more than what the buyer is debited.');
+            }
+            $bills[] = ['type' => 'new', 'ledger_id' => $partyEntry['ledger_id'], 'amount' => $owed, 'due' => ! empty($ob['due']) ? Carbon::parse($ob['due']) : Carbon::today(), 'against' => null];
         }
 
         return [$entries, $bills, round($debit, 2)];
