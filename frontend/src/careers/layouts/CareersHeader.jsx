@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { Briefcase, LayoutDashboard, LogOut, ChevronDown, User, UserCircle } from 'lucide-react';
+import ThemeMenu from '../../_shared/components/common/ThemeMenu';
 import useCareersStore from '../../_shared/store/useCareersStore';
 
 export default function CareersHeader() {
@@ -72,7 +73,7 @@ export default function CareersHeader() {
                 display: 'flex',
                 alignItems: 'center',
                 padding: '0 40px',
-                background: scrolled ? 'rgba(15,15,15,0.88)' : 'var(--bg-primary)',
+                background: scrolled ? 'color-mix(in srgb, var(--bg-primary) 88%, transparent)' : 'var(--bg-primary)',
                 backdropFilter: scrolled ? 'blur(12px)' : 'none',
                 WebkitBackdropFilter: scrolled ? 'blur(12px)' : 'none',
                 borderBottom: `1px solid ${scrolled ? 'var(--line)' : 'var(--line)'}`,
@@ -112,6 +113,7 @@ export default function CareersHeader() {
 
                 {/* ── Auth ──────────────────────────────────────── */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ThemeMenu />
                     {applicant ? (
                         <div ref={menuRef} style={{ position: 'relative' }}>
                             <button
@@ -130,7 +132,7 @@ export default function CareersHeader() {
                                     width: 24, height: 24, borderRadius: '50%',
                                     background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 11, fontWeight: 700, color: '', flexShrink: 0,
+                                    fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
                                 }}>
                                     {applicant.first_name?.[0]?.toUpperCase() ?? <User size={12} />}
                                 </span>
@@ -218,7 +220,7 @@ export default function CareersHeader() {
                                 to="/careers/register"
                                 className="careers-auth-btn-primary"
                                 style={{
-                                    fontSize: 13, fontWeight: 600, color: '',
+                                    fontSize: 13, fontWeight: 600, color: '#fff',
                                     textDecoration: 'none', padding: '6px 14px',
                                     borderRadius: 7, background: 'var(--color-primary-500)',
                                     transition: 'background 0.15s',

@@ -40,7 +40,7 @@ const s = {
     toggleKnob: (on) => ({ position: 'absolute', top: 3, left: on ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }),
     footer: { display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--line)' },
     cancelBtn: { padding: '11px 24px', borderRadius: 9, border: '1px solid var(--line)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 14, cursor: 'pointer' },
-    saveBtn: { padding: '11px 28px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+    saveBtn: { padding: '11px 28px', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
     publishBtn: { padding: '11px 28px', borderRadius: 9, border: 'none', background: 'color-mix(in srgb, var(--status-success) 35%, transparent)', color: 'var(--status-success)', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
     errMsg: { color: 'var(--status-error)', fontSize: 13, marginTop: 8 },
 };

@@ -76,7 +76,7 @@ const s = {
 
     btn: (variant) => {
         const map = {
-            primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '' },
+            primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff' },
             danger:  { background: 'color-mix(in srgb, var(--status-error) 14%, transparent)', color: 'var(--status-error)', border: '1px solid color-mix(in srgb, var(--status-error) 35%, transparent)' },
             ghost:   { background: 'var(--surface-card)', color: 'var(--text-secondary)', border: '1px solid var(--line)' },
             green:   { background: 'color-mix(in srgb, var(--status-success) 14%, transparent)', color: 'var(--status-success)', border: '1px solid color-mix(in srgb, var(--status-success) 35%, transparent)' },
@@ -112,7 +112,7 @@ const s = {
     confirmBtn:(danger) => ({
         flex: 2, padding: '11px 0', borderRadius: 8, border: 'none',
         background: danger ? 'var(--status-error)' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))',
-        color: '', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
     }),
 };
 

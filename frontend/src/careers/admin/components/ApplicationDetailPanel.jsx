@@ -47,7 +47,7 @@ const s = {
     aiBody: { flex: 1 },
     aiSummary: { fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.65, marginBottom: 14 },
     aiTag: (color) => ({ display: 'inline-block', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 600, background: `color-mix(in srgb, ${color} 13%, transparent)`, color, marginRight: 6, marginBottom: 6 }),
-    screenBtn: { width: '100%', padding: '11px 0', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
+    screenBtn: { width: '100%', padding: '11px 0', borderRadius: 9, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
     rescreenBtn: { width: '100%', padding: '10px 0', borderRadius: 9, border: '1px solid var(--line)', background: 'transparent', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', marginTop: 8 },
     pollingMsg: { fontSize: 13, color: 'var(--color-primary-500)', textAlign: 'center', padding: '12px 0' },
 

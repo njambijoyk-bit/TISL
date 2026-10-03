@@ -12,7 +12,7 @@ const s = {
     field: { marginBottom: 18 },
     label: { display: 'block', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-tertiary)', marginBottom: 7, fontWeight: 600 },
     input: { width: '100%', padding: '11px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 14, outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit', transition: 'border-color 0.15s' },
-    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
+    btn: { width: '100%', padding: '13px 0', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, transition: 'opacity 0.2s', fontFamily: 'inherit' },
     errBox: { background: 'color-mix(in srgb, var(--status-error) 14%, transparent)', border: '1px solid color-mix(in srgb, var(--status-error) 40%, transparent)', borderRadius: 8, padding: '12px 14px', color: 'var(--status-error)', fontSize: 13, marginBottom: 20 },
     errField: { fontSize: 12, color: 'var(--status-error)', marginTop: 5 },
     successBox: { background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '16px 18px', color: 'var(--status-success)', fontSize: 14, lineHeight: 1.6, marginBottom: 20 },

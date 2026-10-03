@@ -103,7 +103,7 @@ export default function ApplicantProfilePage() {
                     width: 48, height: 48, borderRadius: '50%',
                     background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 18, fontWeight: 700, color: '', flexShrink: 0,
+                    fontSize: 18, fontWeight: 700, color: '#fff', flexShrink: 0,
                 }}>
                     {applicant?.first_name?.[0]?.toUpperCase()}
                 </div>
@@ -162,7 +162,7 @@ export default function ApplicantProfilePage() {
                             display: 'flex', alignItems: 'center', gap: 7,
                             padding: '10px 22px', borderRadius: 8,
                             background: saved ? 'var(--status-success)' : 'var(--color-primary-500)',
-                            border: 'none', color: '', fontSize: 14, fontWeight: 600,
+                            border: 'none', color: '#fff', fontSize: 14, fontWeight: 600,
                             cursor: saving ? 'default' : 'pointer',
                             opacity: saving ? 0.7 : 1,
                             transition: 'background 0.3s',
@@ -233,7 +233,7 @@ export default function ApplicantProfilePage() {
                             padding: '10px 22px', borderRadius: 8,
                             background: pwSaved ? 'var(--status-success)' : 'var(--surface-input)',
                             border: `1px solid ${pwSaved ? 'var(--status-success)' : 'var(--line)'}`,
-                            color: pwSaved ? '' : 'var(--text-primary)',
+                            color: pwSaved ? 'var(--text-primary)' : 'var(--text-primary)',
                             fontSize: 14, fontWeight: 600,
                             cursor: pwSaving ? 'default' : 'pointer',
                             opacity: pwSaving ? 0.7 : 1,

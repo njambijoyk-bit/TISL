@@ -27,7 +27,7 @@ const s = {
         display: 'block', width: '100%', textAlign: 'left', padding: '7px 12px',
         borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 13,
         background: active ? 'var(--color-primary-500)' : 'transparent',
-        color: active ? '' : 'var(--text-secondary)',
+        color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
         marginBottom: 2, transition: 'all 0.15s',
     }),
     searchBar: {

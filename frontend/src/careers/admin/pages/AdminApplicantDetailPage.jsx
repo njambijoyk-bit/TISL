@@ -114,7 +114,7 @@ export default function AdminApplicantDetailPage() {
                             width: 56, height: 56, borderRadius: '50%', flexShrink: 0,
                             background: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-500))',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 22, fontWeight: 700, color: '',
+                            fontSize: 22, fontWeight: 700, color: '#fff',
                         }}>
                             {applicant.first_name?.[0]?.toUpperCase()}
                         </div>

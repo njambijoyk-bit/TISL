@@ -39,7 +39,7 @@ const s = {
     salaryLabel: { fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 24 },
     applyBtn: {
         display: 'block', width: '100%', padding: '14px 0', textAlign: 'center',
-        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '',
+        background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff',
         borderRadius: 10, fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer',
         textDecoration: 'none', transition: 'opacity 0.2s',
     },
@@ -68,7 +68,7 @@ const s = {
     submitBtn: (disabled) => ({
         flex: 2, padding: '12px 0', borderRadius: 8, border: 'none',
         background: disabled ? 'var(--line)' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-        color: disabled ? 'var(--text-tertiary)' : '', fontSize: 14, fontWeight: 600,
+        color: disabled ? 'var(--text-tertiary)' : '#fff', fontSize: 14, fontWeight: 600,
         cursor: disabled ? 'not-allowed' : 'pointer', transition: 'background 0.2s',
     }),
     errMsg: { color: 'var(--status-error)', fontSize: 13, marginTop: 12 },

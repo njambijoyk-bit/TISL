@@ -96,7 +96,7 @@ export default function ContactCareersPage() {
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '11px 22px', borderRadius: 8,
                         background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-                        color: '', fontSize: 14, fontWeight: 600, textDecoration: 'none',
+                        color: '#fff', fontSize: 14, fontWeight: 600, textDecoration: 'none',
                     }}
                 >
                     My Applications <ArrowRight size={15} />

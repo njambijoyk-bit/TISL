@@ -21,7 +21,7 @@ export default function Pagination({ currentPage, lastPage, onPageChange }) {
                     style={{
                         padding: '6px 12px', borderRadius: 8, fontSize: 13, cursor: 'pointer',
                         background: p === currentPage ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : 'transparent',
-                        color: p === currentPage ? '' : 'var(--text-secondary)',
+                        color: p === currentPage ? '#fff' : 'var(--text-secondary)',
                         border: p === currentPage ? 'none' : '1px solid var(--line)',
                     }}
                 >

@@ -17,7 +17,7 @@ const s = {
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 },
     pageTitle: { fontSize: 26, fontWeight: 700, fontFamily: "var(--font-heading, serif), serif", marginBottom: 4 },
     pageSub: { fontSize: 14, color: 'var(--text-tertiary)' },
-    newBtn: { padding: '11px 22px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+    newBtn: { padding: '11px 22px', borderRadius: 10, border: 'none', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
     toolbar: { display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' },
     filterBtn: (active) => ({ padding: '7px 16px', borderRadius: 20, border: `1px solid ${active ? 'var(--color-primary-500)' : 'var(--line)'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)' : 'transparent', color: active ? 'var(--color-primary-400)' : 'var(--text-secondary)', fontSize: 13, cursor: 'pointer', fontWeight: active ? 600 : 400 }),
     search: { padding: '8px 14px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontSize: 13, outline: 'none', width: 240 },
