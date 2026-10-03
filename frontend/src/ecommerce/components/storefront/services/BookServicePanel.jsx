@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Calendar } from 'lucide-react';
 import { myBookingsAPI } from '../../../../_shared/api/bookings';
+import PolicyConsentCheckbox from '../../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 
@@ -28,6 +29,8 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
   const [address, setAddress] = useState('');
   const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [agreed, setAgreed] = useState(false);
+  const [acceptances, setAcceptances] = useState([]);
 
   useEffect(() => { myBookingsAPI.availability(serviceId).then(setInfo).catch(() => setInfo({ bookable: false, booking_required: false, reason: 'error' })); }, [serviceId]);
   // the branches a package is offered at are where the people who do it work; one branch is chosen for the customer
@@ -60,7 +63,7 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
   const go = async () => {
     if (!user) { navigate('/login', { state: { from: window.location.pathname } }); return; }
     setBusy(true);
-    try { const r = await myBookingsAPI.create({ service_id: serviceId, service_variant_id: variantId, starts_at: starts, people, on_site: onSite, address: address || undefined, location_id: onSite ? undefined : branch || undefined }); toast.success(r.message); navigate('/my-bookings'); }
+    try { const r = await myBookingsAPI.create({ service_id: serviceId, service_variant_id: variantId, starts_at: starts, people, on_site: onSite, address: address || undefined, location_id: onSite ? undefined : branch || undefined, policy_acceptances: acceptances.length ? acceptances : undefined }); toast.success(r.message); navigate('/my-bookings'); }
     catch (e) { toast.error(errMsg(e, 'Could not book')); } finally { setBusy(false); }
   };
   const fmt = (n) => (money ? money(n) : Number(n).toFixed(2));
@@ -95,7 +98,10 @@ export default function BookServicePanel({ serviceId, variantId, money }) {
                   <div style={{ marginTop: 4, color: '#9ca3af' }}>Cancel more than {info.window_hours} hours ahead and nothing is charged; later, a fee may apply and the deposit is kept.</div>
                 </div>
               )}
-              <button type="button" disabled={busy} onClick={go} style={{ height: 46, borderRadius: 12, border: 'none', cursor: 'pointer', color: '#fff', fontWeight: 700, background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' }}>{user ? (busy ? 'Booking…' : 'Confirm booking') : 'Log in to book'}</button>
+              {user && info.terms?.required && !info.terms.accepted && (
+                <PolicyConsentCheckbox policyKeys={[info.terms.policy_key]} actionContext="booking_checkout" onChange={(checked, a) => { setAgreed(checked); setAcceptances(a); }} />
+              )}
+              <button type="button" disabled={busy || (user && info.terms?.required && !info.terms.accepted && !agreed)} onClick={go} style={{ height: 46, borderRadius: 12, border: 'none', cursor: 'pointer', color: '#fff', fontWeight: 700, opacity: busy || (user && info.terms?.required && !info.terms.accepted && !agreed) ? 0.6 : 1, background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' }}>{user ? (busy ? 'Booking…' : 'Confirm booking') : 'Log in to book'}</button>
             </>
           )}
         </div>

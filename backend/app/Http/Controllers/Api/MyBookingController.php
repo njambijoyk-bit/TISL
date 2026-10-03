@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Service;
 use App\Models\ServiceSetting;
 use App\Models\ServiceVariant;
+use App\Services\BookingTermsService;
 use App\Services\Booking\BookingNoticeService;
 use App\Services\Booking\BookingService;
 use App\Services\Books\BooksException;
@@ -20,7 +21,7 @@ use Illuminate\Http\Request;
  */
 class MyBookingController extends Controller
 {
-    public function __construct(private BookingService $svc, private BookingNoticeService $notice) {}
+    public function __construct(private BookingService $svc, private BookingNoticeService $notice, private BookingTermsService $terms) {}
 
     private function mine(Request $request): \App\Models\Customer
     {
@@ -45,7 +46,7 @@ class MyBookingController extends Controller
                 'message' => 'This service is not open for online booking yet.']);
         }
         $variantId = $request->filled('service_variant_id') ? (int) $request->query('service_variant_id') : null;
-        $out = ['bookable' => true, 'booking_required' => (bool) $s->booking_required, 'branches' => $this->svc->branchesFor($s, $variantId), 'window_hours' => ServiceSetting::current()->cancellation_window_hours, 'packages' => $s->variants()->where('status', '!=', 'inactive')->get(['id', 'name', 'price'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price])];
+        $out = ['bookable' => true, 'booking_required' => (bool) $s->booking_required, 'branches' => $this->svc->branchesFor($s, $variantId), 'terms' => $this->terms->status($request->user('sanctum')?->customer), 'window_hours' => ServiceSetting::current()->cancellation_window_hours, 'packages' => $s->variants()->where('status', '!=', 'inactive')->get(['id', 'name', 'price'])->map(fn ($v) => ['id' => $v->id, 'name' => $v->name, 'price' => (float) $v->price])];
         if ($request->filled('date') && $request->filled('service_variant_id')) {
             $v = ServiceVariant::with('durationUnit')->where('service_id', $s->id)->findOrFail($request->query('service_variant_id'));
             $day = Carbon::parse($request->query('date'));
@@ -92,9 +93,12 @@ class MyBookingController extends Controller
     {
         $c = $this->mine($request);
         $d = $request->validate(['service_id' => 'required|integer', 'service_variant_id' => 'required|integer', 'starts_at' => 'required|date', 'people' => 'nullable|integer|min:1|max:50',
-            'on_site' => 'nullable|boolean', 'address' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:1000', 'location_id' => 'nullable|integer|exists:locations,id']);
+            'on_site' => 'nullable|boolean', 'address' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:1000', 'location_id' => 'nullable|integer|exists:locations,id',
+            'policy_acceptances' => 'nullable|array', 'policy_acceptances.*.key' => 'required_with:policy_acceptances|string|max:80', 'policy_acceptances.*.response' => 'nullable|in:accepted,disagreed']);
         try {
-            $b = $this->svc->create(['customer_id' => $c->id, 'source' => 'portal'] + $d, $request->user());
+            $agreement = $this->terms->enforce($c, $request->all());   // before anything is booked or invoiced
+            $b = $this->svc->create(['customer_id' => $c->id, 'source' => 'portal'] + array_diff_key($d, ['policy_acceptances' => 1]), $request->user());
+            $this->terms->tie($agreement, $b);
         } catch (\Throwable $e) {
             return $this->fail($e);
         }

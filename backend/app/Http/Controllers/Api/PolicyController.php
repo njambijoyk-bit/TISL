@@ -377,11 +377,10 @@ class PolicyController extends Controller
     // ── Private helpers ───────────────────────────────────────────────────────
 
     /**
-     * Policies may hold {{placeholders}}. The booking cancellation policy's (fee, window) were filled from the old booking
-     * settings; they are filled again from the new booking settings when Bookings are rebuilt.
+     * Policies may hold {{placeholders}}. The booking terms' (windows, fees) are filled from Service settings and the service fee ledgers.
      */
     private function renderPolicy(Policy $policy): Policy
     {
-        return $policy;
+        return app(\App\Services\BookingTermsService::class)->render($policy);   // the booking terms say what is actually charged today
     }
 }
