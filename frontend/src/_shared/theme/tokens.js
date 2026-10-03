@@ -7,21 +7,20 @@
  * variables) rather than touch every file.
  */
 
-const PURPLE = '168,85,247';
 
 export const colors = {
   primary:      'var(--color-primary-500)',
   primaryDeep:  'var(--color-primary-600)',
-  tint:         (alpha) => `rgba(${PURPLE},${alpha})`,
+  tint:         (alpha) => `color-mix(in srgb, var(--color-primary-500, #a855f7) ${Math.round(alpha*100)}%, transparent)`,
 
-  text:         '#111827',
-  textBody:     '#374151',
-  textMuted:    '#6b7280',
-  textFaint:    '#9ca3af',
+  text:         'var(--text-primary, #111827)',
+  textBody:     'var(--text-secondary, #374151)',
+  textMuted:    'var(--text-secondary, #6b7280)',
+  textFaint:    'var(--text-tertiary, #9ca3af)',
   textGhost:    '#d1d5db',
 
-  surface:      'white',
-  overlay:      'rgba(15,10,30,0.65)',
+  surface:      'var(--surface-card, #fff)',
+  overlay:      'var(--surface-overlay, rgba(15,10,30,0.65))',
 
   success:      '#10b981',
   successText:  '#065f46',
@@ -49,11 +48,11 @@ export const font = {
 
 export const input = {
   width: '100%', padding: '7px 11px', borderRadius: radius.md, fontSize: font.md,
-  background: colors.tint(0.04),
+  background: 'var(--surface-input, rgba(0,0,0,0.04))',
   border: `1.5px solid ${colors.tint(0.18)}`,
   color: colors.text, outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
-  fontFamily: 'inherit', boxSizing: 'border-box',
+  fontFamily: 'var(--font-body, inherit)', boxSizing: 'border-box',
 };
 
 export const inputDisabled = {

@@ -15,13 +15,13 @@ const C = {
   red:       "#ef4444",
   purple:    "var(--color-primary-500)",
   blue:      "var(--color-primary-500)",
-  dim:       "color-mix(in srgb, var(--color-primary-500) 5%, transparent)",
-  dimHov:    "color-mix(in srgb, var(--color-primary-500) 9%, transparent)",
+  dim:       "var(--surface-card, #fff)",
+  dimHov:    "var(--surface-hover, rgba(0,0,0,0.04))",
   border:    "color-mix(in srgb, var(--color-primary-500) 18%, transparent)",
   borderHov: "color-mix(in srgb, var(--color-primary-500) 40%, transparent)",
 };
-const mono = "inherit";
-const sans = "'DM Sans', 'Segoe UI', sans-serif";
+const mono = "var(--font-body, inherit)";
+const sans = "var(--font-body, system-ui, sans-serif)";
 
 // ─── STATUS CHIPS ─────────────────────────────────────────────────────────────
 const STATUS_COLOR = {
@@ -29,12 +29,12 @@ const STATUS_COLOR = {
   issued:     { bg: "color-mix(in srgb, var(--color-primary-500) 12%, transparent)",  border: "var(--color-primary-500)", text: "var(--color-primary-500)" },
   loaned:     { bg: "rgba(59,130,246,0.12)", border: "#3b82f6", text: "#3b82f6" },
   in_repair:  { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
-  retired:    { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
+  retired:    { bg: "rgba(130,130,130,0.12)",border: "var(--text-tertiary, #888)",    text: "var(--text-tertiary, #888)" },
   lost:       { bg: "rgba(239,68,68,0.12)",  border: "#ef4444", text: "#ef4444" },
   disposed:   { bg: "rgba(239,68,68,0.12)",  border: "#ef4444", text: "#ef4444" },
   damaged:    { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
   active:     { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
-  returned:   { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
+  returned:   { bg: "rgba(130,130,130,0.12)",border: "var(--text-tertiary, #888)",    text: "var(--text-tertiary, #888)" },
   overdue:    { bg: "rgba(239,68,68,0.12)",  border: "#ef4444", text: "#ef4444" },
   reported:   { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
   completed:  { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
@@ -42,14 +42,14 @@ const STATUS_COLOR = {
   unrepairable:{ bg:"rgba(239,68,68,0.12)", border: "#ef4444", text: "#ef4444" },
   open:       { bg: "rgba(245,158,11,0.12)",  border: "#f59e0b", text: "#f59e0b" },
   resolved:   { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
-  dismissed:  { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
-  draft:      { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
+  dismissed:  { bg: "rgba(130,130,130,0.12)",border: "var(--text-tertiary, #888)",    text: "var(--text-tertiary, #888)" },
+  draft:      { bg: "rgba(130,130,130,0.12)",border: "var(--text-tertiary, #888)",    text: "var(--text-tertiary, #888)" },
   finalised:  { bg: "rgba(16,185,129,0.12)",  border: "#10b981", text: "#10b981" },
-  obsolete:   { bg: "rgba(130,130,130,0.12)",border: "#888",    text: "#888" },
+  obsolete:   { bg: "rgba(130,130,130,0.12)",border: "var(--text-tertiary, #888)",    text: "var(--text-tertiary, #888)" },
 };
 
 function Chip({ label }) {
-  const s = STATUS_COLOR[label?.toLowerCase()] || { bg: "rgba(130,130,130,0.12)", border: "#888", text: "#888" };
+  const s = STATUS_COLOR[label?.toLowerCase()] || { bg: "rgba(130,130,130,0.12)", border: "var(--text-tertiary, #888)", text: "var(--text-tertiary, #888)" };
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 5,
@@ -90,7 +90,7 @@ function ActionBtn({ children, color = C.cyan, onClick, outline, small, disabled
         padding: small ? "5px 14px" : "8px 20px",
         border: `1px solid ${disabled ? "var(--color-text-tertiary)" : color}`,
         borderRadius: 6, background: disabled ? "transparent" : bg,
-        color: disabled ? "var(--color-text-tertiary)" : (outline ? color : "#000"),
+        color: disabled ? "var(--color-text-tertiary)" : (outline ? color : "var(--text-inverse, #fff)"),
         fontFamily: mono, fontSize: small ? 11 : 12, fontWeight: 600,
         letterSpacing: "0.05em", cursor: disabled ? "not-allowed" : "pointer",
         transition: "all 0.15s", whiteSpace: "nowrap", opacity: disabled ? 0.5 : 1,
@@ -290,7 +290,7 @@ function InstanceSearchDropdown({ value, label, onSelect, onClear }) {
       {open && !value && (
         <div style={{
           position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200,
-          background: "var(--color-background-secondary)", border: `1px solid ${C.border}`,
+          background: "var(--surface-card, #fff)", color: "var(--text-primary)", border: `1px solid ${C.border}`,
           borderRadius: 6, marginTop: 4, maxHeight: 240, overflowY: "auto",
         }}>
           {loading && (
@@ -312,7 +312,7 @@ function InstanceSearchDropdown({ value, label, onSelect, onClear }) {
               onMouseLeave={e => e.currentTarget.style.background = "transparent"}
             >
               <span style={{ color: C.cyan }}>{inst.asset_tag ?? `#${inst.id}`}</span>
-              <span style={{ color: "#888", marginLeft: 10 }}>{inst.item?.name ?? "—"}</span>
+              <span style={{ color: "var(--text-tertiary, #888)", marginLeft: 10 }}>{inst.item?.name ?? "—"}</span>
               <span style={{ color: "var(--color-text-tertiary)", marginLeft: 10, fontSize: 10 }}>{inst.condition}</span>
             </div>
           ))}
@@ -367,7 +367,7 @@ function GroupSearchDropdown({ value, label, onSelect, onClear }) {
         <input value={search} onChange={handleChange} onFocus={handleFocus} placeholder="Search groups…" style={inputStyle} />
       )}
       {open && !value && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200, background: "var(--color-background-secondary)", border: `1px solid ${C.border}`, borderRadius: 6, marginTop: 4, maxHeight: 240, overflowY: "auto" }}>
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 200, background: "var(--surface-card, #fff)", color: "var(--text-primary)", border: `1px solid ${C.border}`, borderRadius: 6, marginTop: 4, maxHeight: 240, overflowY: "auto" }}>
           {loading && <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)" }}>searching…</div>}
           {!loading && results.length === 0 && <div style={{ padding: "12px 14px", fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)" }}>// no groups found</div>}
           {results.map(g => (
@@ -495,12 +495,12 @@ function Modal({ title, onClose, children, width = 480 }) {
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 1000,
-      background: "rgba(0,0,0,0.75)", display: "flex",
+      background: "var(--surface-overlay, rgba(0,0,0,0.6))", display: "flex",
       alignItems: "center", justifyContent: "center",
     }} onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
         width, maxWidth: "90vw", maxHeight: "85vh", overflowY: "auto",
-        background: "var(--color-background-secondary)", border: `1px solid ${C.border}`,
+        background: "var(--surface-card, #fff)", color: "var(--text-primary)", border: `1px solid ${C.border}`,
         borderRadius: 10, padding: "24px 28px",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
@@ -516,7 +516,7 @@ function Modal({ title, onClose, children, width = 480 }) {
 function Field({ label, children, error }) {
   return (
     <div style={{ marginBottom: 16 }}>
-      <label style={{ fontFamily: mono, fontSize: 10, color: "#888", display: "block", marginBottom: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</label>
+      <label style={{ fontFamily: mono, fontSize: 10, color: "var(--text-tertiary, #888)", display: "block", marginBottom: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>{label}</label>
       {children}
       {error && <span style={{ fontFamily: mono, fontSize: 10, color: C.red, display: "block", marginTop: 4 }}>{error}</span>}
     </div>
@@ -524,8 +524,8 @@ function Field({ label, children, error }) {
 }
 
 const inputStyle = {
-  width: "100%", padding: "8px 12px", background: "color-mix(in srgb, var(--color-primary-500) 6%, transparent)",
-  border: `1px solid ${C.border}`, borderRadius: 6, color: "var(--color-text-primary)",
+  width: "100%", padding: "8px 12px", background: "var(--surface-input, rgba(0,0,0,0.04))",
+  border: `1px solid ${C.border}`, borderRadius: 6, color: "var(--text-primary)",
   fontFamily: mono, fontSize: 12, outline: "none", boxSizing: "border-box",
 };
 
@@ -550,9 +550,9 @@ function useToast() {
 // ─── MOVEMENT COLORS ─────────────────────────────────────────────────────────
 const MOVEMENT_COLOR = {
   procured: C.green, issued: C.cyan, loaned: C.blue,
-  returned: "#888", loan_returned: "#888", repair_out: C.amber,
+  returned: "var(--text-tertiary, #888)", loan_returned: "var(--text-tertiary, #888)", repair_out: C.amber,
   repair_in: C.green, condition_updated: C.purple, status_changed: C.amber,
-  written_off: C.red, disposed: C.red, declared_obsolete: "#888",
+  written_off: C.red, disposed: C.red, declared_obsolete: "var(--text-tertiary, #888)",
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -843,7 +843,7 @@ function ReturnModal({ assignment, onClose, onSuccess, toast }) {
 
   return (
     <Modal title="// process return" onClose={onClose}>
-      <div style={{ fontFamily: mono, fontSize: 12, color: "#888", marginBottom: 20 }}>
+      <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text-tertiary, #888)", marginBottom: 20 }}>
         Returning <span style={{ color: C.cyan }}>{assignment?.instance?.asset_tag ?? `Assignment #${assignment?.id}`}</span>
       </div>
       <Field label="Return Condition">
@@ -929,7 +929,7 @@ function WriteOffModal({ instance, mode = "write-off", onClose, onSuccess, toast
 
   return (
     <Modal title={label} onClose={onClose}>
-      <div style={{ fontFamily: mono, fontSize: 12, color: "#888", marginBottom: 20 }}>
+      <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text-tertiary, #888)", marginBottom: 20 }}>
         Instance: <span style={{ color: C.cyan }}>{instance?.asset_tag}</span>
       </div>
       <Field label="Reason">
@@ -1241,7 +1241,7 @@ function RepairActionModal({ repair, action, onClose, onSuccess, toast }) {
 
   return (
     <Modal title={`// ${titles[action]?.toLowerCase()}`} onClose={onClose}>
-      <div style={{ fontFamily: mono, fontSize: 12, color: "#888", marginBottom: 16 }}>
+      <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text-tertiary, #888)", marginBottom: 16 }}>
         Repair #{repair?.id} — {repair?.instance?.asset_tag ?? "instance"}
       </div>
       {action === "complete" && (
@@ -1836,7 +1836,7 @@ function ItemDetailPage({ itemId, onBack, toast }) {
             item · {item.type} · {item.is_serialized ? "serialized" : "non-serialized"}
           </div>
           <h2 style={{ margin: 0, fontFamily: sans, fontSize: 22, fontWeight: 600 }}>{item.name}</h2>
-          <div style={{ fontFamily: mono, fontSize: 12, color: "#888", marginTop: 4 }}>{item.category?.name ?? "—"}</div>
+          <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text-tertiary, #888)", marginTop: 4 }}>{item.category?.name ?? "—"}</div>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <ActionBtn color={C.green} outline small onClick={() => setModal("new-instance")}>+ Add Instance</ActionBtn>
@@ -1922,7 +1922,7 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
             instance · {instance.item?.name ?? "—"}
           </div>
           <h2 style={{ margin: 0, fontFamily: mono, fontSize: 22, fontWeight: 700, color: C.cyan }}>{instance.asset_tag}</h2>
-          <div style={{ fontFamily: mono, fontSize: 12, color: "#888", marginTop: 4 }}>SN: {instance.serial_number ?? "—"}</div>
+          <div style={{ fontFamily: mono, fontSize: 12, color: "var(--text-tertiary, #888)", marginTop: 4 }}>SN: {instance.serial_number ?? "—"}</div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <Chip label={instance.status} />
@@ -1950,7 +1950,7 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
             ["Warranty Expiry", instance.warranty_expiry],
           ].map(([k, v]) => (
             <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: `1px solid ${C.border}`, fontFamily: mono, fontSize: 12 }}>
-              <span style={{ color: "#888" }}>{k}</span>
+              <span style={{ color: "var(--text-tertiary, #888)" }}>{k}</span>
               <span>{v ?? "—"}</span>
             </div>
           ))}
@@ -1974,7 +1974,7 @@ function InstanceDetailPage({ instanceId, onBack, toast }) {
         <div style={{ fontFamily: mono, fontSize: 10, color: C.cyan, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 14 }}>// lifecycle ledger</div>
         <Table
           cols={[
-            { key: "movement_type", label: "Movement", render: v => <span style={{ color: MOVEMENT_COLOR[v] || "#888", fontWeight: 600 }}>{v}</span> },
+            { key: "movement_type", label: "Movement", render: v => <span style={{ color: MOVEMENT_COLOR[v] || "var(--text-tertiary, #888)", fontWeight: 600 }}>{v}</span> },
             { key: "performed_at", label: "Timestamp", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>{v?.slice(0, 16).replace("T", " ")}</span> },
             { key: "performed_by", label: "By", render: (_, row) => row.performedBy?.name ?? "System" },
             { key: "status_before", label: "Before", render: v => v ? <Chip label={v} /> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
@@ -2054,7 +2054,7 @@ function DashboardTab({ onNavigate, toast }) {
             ? <div style={{ color: "var(--color-text-tertiary)", fontFamily: mono, fontSize: 12 }}>No movements yet.</div>
             : data.recentMovements.map((m, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 0", borderBottom: `1px solid ${C.border}` }}>
-                <span style={{ fontFamily: mono, fontSize: 11, color: MOVEMENT_COLOR[m.movement_type] || "#888", fontWeight: 700, minWidth: 110 }}>{m.movement_type}</span>
+                <span style={{ fontFamily: mono, fontSize: 11, color: MOVEMENT_COLOR[m.movement_type] || "var(--text-tertiary, #888)", fontWeight: 700, minWidth: 110 }}>{m.movement_type}</span>
                 <span style={{ fontFamily: mono, fontSize: 11, flex: 1 }}>{m.instance?.asset_tag ?? "—"}</span>
                 <span style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)" }}>{m.performed_at?.slice(0, 16).replace("T", " ")}</span>
               </div>
@@ -2452,7 +2452,7 @@ function AssignmentsTab({ toast }) {
             { key: "item", label: "Item", render: (_, row) => row.instance?.item?.name ?? row.item?.name ?? "—" },
             { key: "assignment_type", label: "Type", render: v => <span style={{ color: v === "loan" ? C.blue : C.cyan, fontFamily: mono, fontSize: 11, fontWeight: 600 }}>{v}</span> },
             { key: "assignee_label", label: "Assignee" },
-            { key: "assignee_type", label: "To", render: v => <span style={{ color: "#888", fontSize: 11 }}>{v}</span> },
+            { key: "assignee_type", label: "To", render: v => <span style={{ color: "var(--text-tertiary, #888)", fontSize: 11 }}>{v}</span> },
             { key: "issued_at", label: "Issued", render: v => v?.slice(0, 10) },
             { key: "expected_return_date", label: "Due", render: v => v ? <span style={{ color: C.amber }}>{v?.slice(0,10)}</span> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
             { key: "status", label: "Status", render: v => <Chip label={v} /> },
@@ -2714,7 +2714,7 @@ function AuditsTab({ toast }) {
             { key: "id", label: "#", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>#{v}</span> },
             { key: "trigger_type", label: "Trigger", render: v => <span style={{ color: C.cyan, fontFamily: mono, fontSize: 11, fontWeight: 600 }}>{v}</span> },
             { key: "assignee_label", label: "Assignee" },
-            { key: "assignee_type", label: "Type", render: v => <span style={{ color: "#888", fontSize: 11 }}>{v}</span> },
+            { key: "assignee_type", label: "Type", render: v => <span style={{ color: "var(--text-tertiary, #888)", fontSize: 11 }}>{v}</span> },
             { key: "audit_date", label: "Date", render: v => v?.slice(0, 10) },
             { key: "status", label: "Status", render: v => <Chip label={v} /> },
             { key: "conductedBy", label: "Conducted By", render: (_, row) => row.conductedBy?.name ?? "—" },
@@ -2773,7 +2773,7 @@ function GroupsTab({ toast }) {
             <div>
               <span style={{ fontFamily: mono, fontSize: 14, fontWeight: 700 }}>{g.name}</span>
               <span style={{ fontFamily: mono, fontSize: 11, color: "var(--color-text-tertiary)", marginLeft: 12 }}>{g.members?.length ?? 0} members</span>
-              {g.description && <div style={{ fontFamily: mono, fontSize: 11, color: "#888", marginTop: 4 }}>{g.description}</div>}
+              {g.description && <div style={{ fontFamily: mono, fontSize: 11, color: "var(--text-tertiary, #888)", marginTop: 4 }}>{g.description}</div>}
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <ActionBtn small outline color={C.cyan} onClick={() => setExpanded(expanded === g.id ? null : g.id)}>{expanded === g.id ? "▲ Collapse" : "▼ Members"}</ActionBtn>
@@ -2798,7 +2798,7 @@ function GroupsTab({ toast }) {
                         <span style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)" }}>{m.member_type}</span>
                       </div>
                       {m.member_type === "customer" && m.member?.email && (
-                        <span style={{ fontFamily: mono, fontSize: 10, color: "#888" }}>{m.member.email}</span>
+                        <span style={{ fontFamily: mono, fontSize: 10, color: "var(--text-tertiary, #888)" }}>{m.member.email}</span>
                       )}
                       {m.member_type === "employee" && m.member?.is_admin && m.member?.work_email && (
                         <span style={{ fontFamily: mono, fontSize: 10, color: C.amber }}>⚑ {m.member.work_email}</span>
@@ -2886,12 +2886,12 @@ function LedgerTab({ toast }) {
           loading={loading}
           cols={[
             { key: "id", label: "#", render: v => <span style={{ color: "var(--color-text-tertiary)" }}>#{v}</span> },
-            { key: "movement_type", label: "Movement", render: v => <span style={{ color: MOVEMENT_COLOR[v] || "#888", fontWeight: 700, fontFamily: mono }}>{v}</span> },
+            { key: "movement_type", label: "Movement", render: v => <span style={{ color: MOVEMENT_COLOR[v] || "var(--text-tertiary, #888)", fontWeight: 700, fontFamily: mono }}>{v}</span> },
             { key: "instance", label: "Instance", render: (_, row) => <span style={{ color: C.cyan }}>{row.instance?.asset_tag ?? "—"}</span> },
             { key: "item", label: "Item", render: (_, row) => row.item?.name ?? row.instance?.item?.name ?? "—" },
             { key: "status_before", label: "Before", render: v => v ? <Chip label={v} /> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
             { key: "status_after", label: "After", render: v => v ? <Chip label={v} /> : <span style={{ color: "var(--color-text-tertiary)" }}>—</span> },
-            { key: "performedBy", label: "By", render: (_, row) => <span style={{ color: "#888", fontSize: 11 }}>{row.performedBy?.name ?? "System"}</span> },
+            { key: "performedBy", label: "By", render: (_, row) => <span style={{ color: "var(--text-tertiary, #888)", fontSize: 11 }}>{row.performedBy?.name ?? "System"}</span> },
             { key: "performed_at", label: "Timestamp", render: v => <span style={{ color: "var(--color-text-tertiary)", fontSize: 11 }}>{v?.slice(0,16).replace("T"," ")}</span> },
           ]}
           rows={movements}
@@ -2979,7 +2979,7 @@ function ExportTab({ toast }) {
             <ActionBtn color={C.green} onClick={runExport} disabled={running}>{running ? "Running…" : "⬇ Run Export"}</ActionBtn>
           </div>
           <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 20, paddingTop: 16 }}>
-            <div style={{ fontFamily: mono, fontSize: 10, color: "#888", marginBottom: 8 }}>Save as preset</div>
+            <div style={{ fontFamily: mono, fontSize: 10, color: "var(--text-tertiary, #888)", marginBottom: 8 }}>Save as preset</div>
             <div style={{ display: "flex", gap: 8 }}>
               <input style={{ ...inputStyle, flex: 1 }} value={presetName} onChange={e => setPresetName(e.target.value)} placeholder="Preset name" />
               <ActionBtn color={C.cyan} outline onClick={savePreset}>Save</ActionBtn>
@@ -3015,7 +3015,7 @@ function ExportTab({ toast }) {
                     <span style={{ fontFamily: mono, fontSize: 11, color: C.cyan }}>{l.file_name ?? l.export_type}</span>
                     <span style={{ fontFamily: mono, fontSize: 10, color: "var(--color-text-tertiary)" }}>{l.exported_at?.slice(0,16).replace("T"," ")}</span>
                   </div>
-                  <div style={{ fontFamily: mono, fontSize: 10, color: "#888" }}>{l.export_type} · {l.row_count ?? "?"} rows · by {l.exportedBy?.name ?? "?"}</div>
+                  <div style={{ fontFamily: mono, fontSize: 10, color: "var(--text-tertiary, #888)" }}>{l.export_type} · {l.row_count ?? "?"} rows · by {l.exportedBy?.name ?? "?"}</div>
                 </div>
               ))}
           </Panel>

@@ -158,6 +158,46 @@
   --z-tooltip: 1070;
 }
 
+
+/* ── Theme aliases + fallbacks ─────────────────────────────────────────────
+   Many pages use the --color-background-*, --color-text-* and --color-border-*
+   names. They are derived here from the real theme tokens (--bg-*, --text-*,
+   --border-*) so they follow the selected Colouring and light/dark mode. If a
+   Colouring leaves a token unset, the chain falls through to the defaults
+   declared above. */
+:root {
+  --surface-card: var(--bg-card, var(--bg-primary));
+  --surface-input: color-mix(in srgb, var(--text-primary) 5%, var(--surface-card));
+  --surface-hover: color-mix(in srgb, var(--color-primary-500, #6366f1) 8%, var(--surface-card));
+  --surface-overlay: color-mix(in srgb, var(--text-primary) 55%, transparent);
+  --line: var(--border-primary, var(--border-light));
+
+  --color-surface: var(--surface-card);
+  --color-background-primary: var(--surface-card);
+  --color-background-secondary: var(--bg-secondary);
+  --color-background-tertiary: var(--bg-tertiary);
+  --color-background-danger: color-mix(in srgb, var(--color-error, #ef4444) 12%, var(--surface-card));
+  --color-background-success: color-mix(in srgb, var(--color-success, #10b981) 12%, var(--surface-card));
+  --color-background-warning: color-mix(in srgb, var(--color-warning, #f59e0b) 12%, var(--surface-card));
+  --color-background-info: color-mix(in srgb, var(--color-info, #3b82f6) 12%, var(--surface-card));
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
+  --color-text-muted: var(--text-tertiary);
+  --color-text-disabled: var(--text-tertiary);
+  --color-text-danger: var(--color-error, #ef4444);
+  --color-text-success: var(--color-success, #10b981);
+  --color-text-warning: var(--color-warning, #f59e0b);
+  --color-text-info: var(--color-info, #3b82f6);
+
+  --color-border-primary: var(--line);
+  --color-border-secondary: var(--line);
+  --color-border-tertiary: var(--line);
+  --color-border-danger: var(--color-error, #ef4444);
+  --color-border-success: var(--color-success, #10b981);
+}
+
 /* Dark Mode Variables */
 .dark {
   --bg-primary: #111827;
