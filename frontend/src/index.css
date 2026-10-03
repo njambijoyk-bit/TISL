@@ -908,3 +908,13 @@ a:hover {
 :root[data-theme="dark"] {
   --surface-card: var(--bg-card, color-mix(in srgb, var(--bg-primary) 93%, var(--text-primary)));
 }
+
+/* ── Native dropdown lists (select / option / datalist) follow the theme ──
+   The open list is drawn by the browser, so it needs explicit colours and the
+   matching colour-scheme or it stays white with the page's light text. */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"]  { color-scheme: dark; }
+select, option, optgroup {
+  background-color: var(--surface-card, #fff);
+  color: var(--text-primary);
+}
