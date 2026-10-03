@@ -31,7 +31,7 @@ const SectionLabel = ({ children, icon: Icon }) => (
 );
 
 const Panel = ({ children, style = {} }) => (
-  <div style={{ background: 'white', border: '1px solid #f3f4f6', borderRadius: 16, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', ...style }}>
+  <div style={{ background: 'var(--surface-card, #fff)', border: '1px solid var(--line)', borderRadius: 16, padding: 24, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', ...style }}>
     {children}
   </div>
 );
@@ -128,7 +128,7 @@ export default function AdminTicketDetail() {
     return <AdminLayout><div style={{ display: 'flex', justifyContent: 'center', padding: 80 }}><LoadingSpinner /></div></AdminLayout>;
   }
 
-  if (!currentTicket) return <AdminLayout><p style={{ padding: 40, color: '#9ca3af' }}>Ticket not found.</p></AdminLayout>;
+  if (!currentTicket) return <AdminLayout><p style={{ padding: 40, color: 'var(--text-tertiary)' }}>Ticket not found.</p></AdminLayout>;
 
   const ticket = currentTicket;
   const replies = ticket.replies ?? [];
@@ -151,7 +151,7 @@ export default function AdminTicketDetail() {
             <TicketPriorityBadge priority={ticket.priority} />
           </div>
           <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>{ticket.subject}</h1>
-          <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#9ca3af' }}>
+          <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
             Opened {format(new Date(ticket.created_at), 'dd MMM yyyy, HH:mm')}
           </p>
         </div>
@@ -172,7 +172,7 @@ export default function AdminTicketDetail() {
               <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>
                 {ticket.customer?.first_name} {ticket.customer?.last_name}
               </span>
-              <span style={{ fontSize: '0.75rem', color: '#9ca3af', marginLeft: 'auto' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
                 {format(new Date(ticket.created_at), 'dd MMM yyyy, HH:mm')}
               </span>
             </div>
@@ -187,18 +187,18 @@ export default function AdminTicketDetail() {
             return (
               <div key={reply.id} style={{
                 padding: '14px 18px', borderRadius: 14,
-                background: internal ? '#fffbeb' : isStaff ? '#f8f5ff' : 'white',
-                border: `1px solid ${internal ? '#fde68a' : isStaff ? purpleBd : '#e5e7eb'}`,
+                background: internal ? '#fffbeb' : isStaff ? '#f8f5ff' : 'var(--surface-card, #fff)',
+                border: `1px solid ${internal ? '#fde68a' : isStaff ? purpleBd : 'var(--line)'}`,
                 marginLeft: isStaff ? 32 : 0,
                 marginRight: isStaff ? 0 : 32,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  {internal ? <Lock size={11} color="#f59e0b" /> : isStaff ? <UserCheck size={13} color={purple} /> : <User size={13} color="#6b7280" />}
-                  <span style={{ fontWeight: 700, fontSize: '0.82rem', color: isStaff ? purple : '#374151' }}>
+                  {internal ? <Lock size={11} color="#f59e0b" /> : isStaff ? <UserCheck size={13} color={purple} /> : <User size={13} color="var(--text-secondary)" />}
+                  <span style={{ fontWeight: 700, fontSize: '0.82rem', color: isStaff ? purple : 'var(--text-primary)' }}>
                     {reply.sender?.name ?? (isStaff ? 'Staff' : 'Customer')}
                   </span>
                   {internal && <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700, background: '#fef3c7', padding: '1px 7px', borderRadius: 6 }}>INTERNAL NOTE</span>}
-                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#9ca3af' }}>
+                  <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
                     {format(new Date(reply.created_at), 'dd MMM yyyy, HH:mm')}
                   </span>
                 </div>
@@ -245,7 +245,7 @@ export default function AdminTicketDetail() {
                 rows={5}
                 style={{
                   width: '100%', boxSizing: 'border-box', borderRadius: 10, padding: '12px 14px',
-                  border: `1.5px solid ${isInternal ? '#fde68a' : '#e5e7eb'}`,
+                  border: `1.5px solid ${isInternal ? '#fde68a' : 'var(--line)'}`,
                   fontSize: '0.88rem', resize: 'vertical', outline: 'none', lineHeight: 1.6,
                   background: isInternal ? '#fffbeb' : 'white',
                 }}
@@ -259,7 +259,7 @@ export default function AdminTicketDetail() {
           )}
 
           {ticket.status === 'closed' && (
-            <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.85rem', padding: '12px 0' }}>
+            <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem', padding: '12px 0' }}>
               This ticket is closed. No further replies can be added.
             </p>
           )}
@@ -276,9 +276,9 @@ export default function AdminTicketDetail() {
                 <p style={{ margin: '0 0 2px', fontWeight: 700, fontSize: '0.9rem' }}>
                   {ticket.customer.first_name} {ticket.customer.last_name}
                 </p>
-                <p style={{ margin: 0, fontSize: '0.78rem', color: '#6b7280' }}>{ticket.customer.email}</p>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{ticket.customer.email}</p>
               </div>
-            ) : <p style={{ color: '#9ca3af', fontSize: '0.82rem' }}>No customer</p>}
+            ) : <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>No customer</p>}
           </Panel>
 
           {/* Status */}
@@ -332,7 +332,7 @@ export default function AdminTicketDetail() {
                 { label: 'Resolved',   value: ticket.resolved_at ? format(new Date(ticket.resolved_at), 'dd MMM HH:mm') : '—' },
               ].map(row => (
                 <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-                  <span style={{ color: '#9ca3af' }}>{row.label}</span>
+                  <span style={{ color: 'var(--text-tertiary)' }}>{row.label}</span>
                   <span style={{ fontWeight: 600 }}>{row.value}</span>
                 </div>
               ))}

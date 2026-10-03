@@ -27,7 +27,7 @@ const TIER = {
 // ─── STATUS CONFIG ────────────────────────────────────────────────────────────
 const STATUS = {
   active:      { color: "#00FF88", dot: "#00FF88" },
-  inactive:    { color: "#666",    dot: "#555"    },
+  inactive:    { color: "var(--text-tertiary)",    dot: "#555"    },
   suspended:   { color: "#FFB300", dot: "#FFB300" },
   blacklisted: { color: "#FF3D57", dot: "#FF3D57" },
 };
@@ -177,7 +177,7 @@ export default function CustomerSelectorModal({
           </span>
           <button
             onClick={onClose}
-            style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 18, padding: 4 }}
+            style={{ background: "none", border: "none", color: "var(--text-tertiary)", cursor: "pointer", fontSize: 18, padding: 4 }}
           >✕</button>
         </div>
 
@@ -202,7 +202,7 @@ export default function CustomerSelectorModal({
             />
           </div>
           {meta && (
-            <div style={{ marginTop: 8, fontFamily: mono, fontSize: 10, color: "#555" }}>
+            <div style={{ marginTop: 8, fontFamily: mono, fontSize: 10, color: "var(--text-tertiary)" }}>
               {meta.total} customer{meta.total !== 1 ? "s" : ""} found
               {search && (
                 <span> · matching <span style={{ color: C.cyan }}>"{search}"</span></span>
@@ -214,11 +214,11 @@ export default function CustomerSelectorModal({
         {/* ── List ── */}
         <div style={{ overflowY: "auto", flex: 1 }}>
           {loading && customers.length === 0 ? (
-            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "#555" }}>
+            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "var(--text-tertiary)" }}>
               <span style={{ color: C.cyan }}>◈</span> loading...
             </div>
           ) : customers.length === 0 ? (
-            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "#555" }}>
+            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "var(--text-tertiary)" }}>
               // no customers found
             </div>
           ) : (
@@ -252,7 +252,7 @@ export default function CustomerSelectorModal({
                     )}
                   </div>
 
-                  <div style={{ fontFamily: mono, fontSize: 10, color: "#666", marginTop: 3 }}>
+                  <div style={{ fontFamily: mono, fontSize: 10, color: "var(--text-tertiary)", marginTop: 3 }}>
                     {[c.email, c.phone, c.company_name].filter(Boolean).join(" · ")}
                   </div>
 
@@ -264,7 +264,7 @@ export default function CustomerSelectorModal({
                       </span>
                     )}
                     {c.total_orders > 0 && (
-                      <span style={{ fontFamily: mono, fontSize: 9, color: "#555" }}>
+                      <span style={{ fontFamily: mono, fontSize: 9, color: "var(--text-tertiary)" }}>
                         {c.total_orders} order{c.total_orders !== 1 ? "s" : ""}
                       </span>
                     )}
@@ -279,7 +279,7 @@ export default function CustomerSelectorModal({
                     </span>
                   ) : null}
                   {c.total_spent > 0 && (
-                    <span style={{ fontFamily: mono, fontSize: 10, color: "#555" }}>
+                    <span style={{ fontFamily: mono, fontSize: 10, color: "var(--text-tertiary)" }}>
                       {Number(c.total_spent).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })} spent
                     </span>
                   )}
@@ -295,7 +295,7 @@ export default function CustomerSelectorModal({
               display: "flex", alignItems: "center", justifyContent: "space-between",
               fontFamily: mono, fontSize: 11,
             }}>
-              <span style={{ color: "#555" }}>
+              <span style={{ color: "var(--text-tertiary)" }}>
                 showing {customers.length} of {meta?.total}
               </span>
               <button

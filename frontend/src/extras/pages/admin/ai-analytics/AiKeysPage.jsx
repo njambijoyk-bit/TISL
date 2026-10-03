@@ -236,7 +236,7 @@ export default function AiKeysPage() {
   const [testing, setTesting] = useState(null);
   const [tests, setTests] = useState({});           // id → test result
   const [formError, setFormError] = useState(null);
-  const PROVIDERS = (meta.providers ?? []).map(p => ({ ...p, color: COLORS[p.value] ?? '#6b7280' }));
+  const PROVIDERS = (meta.providers ?? []).map(p => ({ ...p, color: COLORS[p.value] ?? 'var(--text-secondary)' }));
 
   // ── Load keys ─────────────────────────────────────────────────────
   const load = async () => {
@@ -339,7 +339,7 @@ export default function AiKeysPage() {
     }
   };
 
-  const providerMeta = (p) => PROVIDERS.find(pr => pr.value === p) ?? { value: p, label: p, color: '#6b7280', desc: '', models: [] };
+  const providerMeta = (p) => PROVIDERS.find(pr => pr.value === p) ?? { value: p, label: p, color: 'var(--text-secondary)', desc: '', models: [] };
 
   return (
     <GeneralLayout>

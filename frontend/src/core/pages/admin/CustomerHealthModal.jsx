@@ -12,7 +12,7 @@ import customerTiersAPI from '../../../_shared/api/customerTiers';
 
 const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
@@ -46,7 +46,7 @@ const TABS = [
 ];
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
@@ -56,7 +56,7 @@ const inputStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#374151', outline: 'none', fontFamily: 'inherit',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
   transition: 'border-color 150ms, box-shadow 150ms',
   width: 90,
 };
@@ -71,7 +71,7 @@ function Spinner() {
   return (
     <div style={{ padding: '48px 0', textAlign: 'center' }}>
       <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-      <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>Loading…</p>
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>Loading…</p>
     </div>
   );
 }
@@ -80,7 +80,7 @@ function Empty({ message }) {
   return (
     <div style={{ padding: '48px 0', textAlign: 'center' }}>
       <Activity size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-      <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>{message}</p>
+      <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>{message}</p>
     </div>
   );
 }
@@ -111,12 +111,12 @@ function CustomerRow({ c, onClick, right }) {
         </div>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-            <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {c.first_name} {c.last_name}
             </p>
             <TierBadge tier={c.tier} />
           </div>
-          <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</p>
+          <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email}</p>
         </div>
       </div>
       <div style={{ flexShrink: 0, textAlign: 'right' }}>{right}</div>
@@ -128,7 +128,7 @@ function Pagination({ meta, onPage }) {
   if (!meta || meta.last_page <= 1) return null;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-      <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+      <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>
         Page {meta.current_page} of {meta.last_page} · {meta.total} customers
       </p>
       <div style={{ display: 'flex', gap: 6 }}>
@@ -178,7 +178,7 @@ function LowLoyaltyTab({ navigate, onClose }) {
       {/* Config */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'rgba(234,179,8,0.05)', border: '1px solid rgba(234,179,8,0.15)' }}>
         <Star size={14} style={{ color: '#d97706', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Customers with fewer than</span>
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Customers with fewer than</span>
         <input
           type="number" min="0" value={input}
           onChange={e => setInput(e.target.value)}
@@ -187,7 +187,7 @@ function LowLoyaltyTab({ navigate, onClose }) {
           onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
           onBlur={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
         />
-        <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>points</span>
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>points</span>
         <button onClick={handleApply} style={{ padding: '5px 12px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white' }}>
           Apply
         </button>
@@ -245,7 +245,7 @@ function IdleCreditTab({ navigate, onClose }) {
       {/* Config */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '10px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-600) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-600) 12%, transparent)' }}>
         <CreditCard size={14} style={{ color: 'var(--color-primary-600)', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>Customers with credit above KES</span>
+        <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Customers with credit above KES</span>
         <input
           type="number" min="0" value={input}
           onChange={e => setInput(e.target.value)}
@@ -319,10 +319,10 @@ function AtRiskTab({ navigate, onClose }) {
                   </div>
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0 }}>{c.first_name} {c.last_name}</p>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{c.first_name} {c.last_name}</p>
                       <TierBadge tier={c.tier} />
                     </div>
-                    <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '0 0 3px' }}>{c.email}</p>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: '0 0 3px' }}>{c.email}</p>
                     {c.status_reason && (
                       <p style={{ fontSize: '0.68rem', color: s.color, margin: 0, fontStyle: 'italic' }}>
                         "{c.status_reason}"
@@ -383,7 +383,7 @@ function DormantTab({ navigate, onClose }) {
             padding: '6px 13px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 700,
             fontFamily: 'inherit', cursor: 'pointer', border: 'none', transition: 'all 120ms',
             background: subTab === id ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
-            color: subTab === id ? 'white' : '#9ca3af',
+            color: subTab === id ? 'white' : 'var(--text-tertiary)',
             boxShadow: subTab === id ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
           }}>
             <Icon size={13} /> {label}
@@ -414,8 +414,8 @@ function DormantTab({ navigate, onClose }) {
               <CustomerRow key={c.id} c={c} onClick={() => { onClose(); navigate(`/admin/customers/${c.id}`); }}
                 right={
                   <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '0 0 1px' }}>{dateLabel}</p>
-                    <p style={{ fontSize: '0.78rem', fontWeight: 700, color: isNever ? '#ef4444' : '#374151', margin: 0 }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '0 0 1px' }}>{dateLabel}</p>
+                    <p style={{ fontSize: '0.78rem', fontWeight: 700, color: isNever ? '#ef4444' : 'var(--text-primary)', margin: 0 }}>
                       {isNever ? 'Never' : fmtDate(date)}
                     </p>
                   </div>
@@ -447,11 +447,11 @@ export default function CustomerHealthModal({ onClose }) {
               <Activity size={18} style={{ color: 'var(--color-primary-500)' }} />
             </div>
             <div>
-              <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>Customer Health</p>
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>Loyalty, credit, risk and engagement insights</p>
+              <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1px' }}>Customer Health</p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>Loyalty, credit, risk and engagement insights</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
+          <button onClick={onClose} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
             onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
@@ -466,7 +466,7 @@ export default function CustomerHealthModal({ onClose }) {
               display: 'flex', alignItems: 'center', gap: 6,
               padding: '11px 15px', fontSize: '0.78rem',
               fontWeight: activeTab === tab.id ? 700 : 500,
-              color: activeTab === tab.id ? 'var(--color-primary-500)' : '#9ca3af',
+              color: activeTab === tab.id ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderBottom: `2.5px solid ${activeTab === tab.id ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -1, transition: 'color 150ms',

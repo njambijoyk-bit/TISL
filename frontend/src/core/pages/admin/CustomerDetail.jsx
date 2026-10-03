@@ -25,7 +25,7 @@ const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -33,7 +33,7 @@ const inputDisabledStyle = {
   ...inputStyle,
   background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
   borderColor: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
-  color: '#9ca3af', cursor: 'not-allowed',
+  color: 'var(--text-tertiary)', cursor: 'not-allowed',
 };
 const inputFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
 const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
@@ -44,7 +44,7 @@ const labelStyle = {
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
@@ -59,14 +59,14 @@ const sectionHeader = {
 
 const STATUS_STYLES = {
   active:      { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981',  ring: 'rgba(16,185,129,0.3)'  },
-  inactive:    { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af',  ring: 'rgba(107,114,128,0.25)' },
+  inactive:    { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af',  ring: 'rgba(107,114,128,0.25)' },
   suspended:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b',  ring: 'rgba(245,158,11,0.3)'  },
   blacklisted: { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444',  ring: 'rgba(239,68,68,0.3)'   },
 };
 
 const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.3)'  },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.25)' },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', ring: 'rgba(107,114,128,0.25)' },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.3)'   },
   platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'  },
 };
@@ -113,11 +113,11 @@ function StatBlock({ icon, label, value, sub }) {
       display: 'flex', alignItems: 'flex-start', gap: 12, padding: '10px 12px',
       borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
     }}>
-      <div style={{ marginTop: 2, color: '#c4b5fd', flexShrink: 0 }}>{icon}</div>
+      <div style={{ marginTop: 2, color: 'var(--text-tertiary)', flexShrink: 0 }}>{icon}</div>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: '0.62rem', color: '#9ca3af', fontWeight: 700, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
-        {sub && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '1px 0 0' }}>{sub}</p>}
+        <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 700, margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+        <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value}</p>
+        {sub && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>{sub}</p>}
       </div>
     </div>
   );
@@ -166,7 +166,7 @@ function QuickAddPanel({ type, onSubmit, onClose }) {
   return (
     <div style={{
       position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 272, zIndex: 30,
-      background: 'white', borderRadius: 12, padding: 16,
+      background: 'var(--surface-card, #fff)', borderRadius: 12, padding: 16,
       border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
       boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
     }}>
@@ -174,7 +174,7 @@ function QuickAddPanel({ type, onSubmit, onClose }) {
         <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>
           Add {type === 'credit' ? 'gift voucher' : 'loyalty points'}
         </p>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
           onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
           <X style={{ width: 14, height: 14 }} />
@@ -217,20 +217,20 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
   const actions = [
     { status: 'active',      label: 'Activate',   icon: <ShieldCheck size={14} />,   color: '#10b981' },
     { status: 'suspended',   label: 'Suspend',     icon: <AlertTriangle size={14} />, color: '#f59e0b' },
-    { status: 'inactive',    label: 'Deactivate',  icon: <ShieldOff size={14} />,     color: '#6b7280' },
+    { status: 'inactive',    label: 'Deactivate',  icon: <ShieldOff size={14} />,     color: 'var(--text-secondary)' },
     { status: 'blacklisted', label: 'Blacklist',   icon: <Ban size={14} />,           color: '#ef4444' },
   ].filter(a => a.status !== currentStatus);
 
   return (
     <div style={{
       position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 252, zIndex: 30,
-      background: 'white', borderRadius: 12, padding: 16,
+      background: 'var(--surface-card, #fff)', borderRadius: 12, padding: 16,
       border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
       boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: 0 }}>Change status</p>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}>
           <X style={{ width: 14, height: 14 }} />
         </button>
       </div>
@@ -251,7 +251,7 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
           ))
         ) : (
           <>
-            <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: '0 0 6px' }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: '0 0 6px' }}>
               Reason for setting to <strong style={{ color: 'var(--color-primary-600)', textTransform: 'capitalize' }}>{target}</strong>:
             </p>
             <textarea
@@ -264,7 +264,7 @@ function StatusPanel({ currentStatus, onStatusChange, onClose }) {
               <button onClick={() => setTarget('')} style={{
                 flex: 1, padding: '7px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 600,
                 background: 'transparent', border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)',
-                color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+                color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
               }}>
                 Back
               </button>
@@ -350,7 +350,7 @@ function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel }) {
       {/* Checkboxes */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
         {[['is_default_shipping', 'Default shipping'], ['is_default_billing', 'Default billing']].map(([key, lbl]) => (
-          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: '0.75rem', color: '#6b7280', userSelect: 'none' }}>
+          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontSize: '0.75rem', color: 'var(--text-secondary)', userSelect: 'none' }}>
             <span
               onClick={tog(key)}
               style={{
@@ -370,7 +370,7 @@ function AddressForm({ initial = EMPTY_ADDR, onSave, onCancel }) {
       <div style={{ display: 'flex', gap: 8, paddingTop: 4 }}>
         <button onClick={onCancel} style={{
           padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-          background: 'transparent', color: '#9ca3af',
+          background: 'transparent', color: 'var(--text-tertiary)',
           border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           Cancel
@@ -695,7 +695,7 @@ export default function CustomerDetail() {
             onClick={() => navigate('/admin/customers')}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: '0.82rem', color: '#9ca3af', background: 'none', border: 'none',
+              fontSize: '0.82rem', color: 'var(--text-tertiary)', background: 'none', border: 'none',
               cursor: 'pointer', fontFamily: 'inherit', transition: 'color 150ms',
             }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
@@ -710,7 +710,7 @@ export default function CustomerDetail() {
                 <button onClick={cancelEdit} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-                  background: 'transparent', color: '#9ca3af',
+                  background: 'transparent', color: 'var(--text-tertiary)',
                   border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'border-color 150ms, color 150ms',
                 }}
@@ -735,7 +735,7 @@ export default function CustomerDetail() {
               <button onClick={() => setEditing(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-                background: 'transparent', color: '#9ca3af',
+                background: 'transparent', color: 'var(--text-tertiary)',
                 border: '1px solid color-mix(in srgb, var(--color-primary-500) 22%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                 transition: 'border-color 150ms, color 150ms',
               }}
@@ -761,7 +761,7 @@ export default function CustomerDetail() {
                 onClick={() => imgInputRef.current?.click()}
                 style={{
                   position: 'absolute', bottom: -4, right: -4, width: 26, height: 26,
-                  borderRadius: '50%', background: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  borderRadius: '50%', background: 'var(--surface-card, #fff)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   cursor: 'pointer', transition: 'border-color 150ms',
                 }}
@@ -777,11 +777,11 @@ export default function CustomerDetail() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
                 <div>
-                  <h1 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>{customer.full_name}</h1>
-                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', fontFamily: 'monospace', margin: '0 0 4px' }}>{customer.customer_number}</p>
+                  <h1 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>{customer.full_name}</h1>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: '0 0 4px' }}>{customer.customer_number}</p>
                   {customer.company_name && (
-                    <p style={{ fontSize: '0.78rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5, margin: 0 }}>
-                      <Building2 size={12} style={{ color: '#c4b5fd' }} /> {customer.company_name}
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5, margin: 0 }}>
+                      <Building2 size={12} style={{ color: 'var(--text-tertiary)' }} /> {customer.company_name}
                     </p>
                   )}
                 </div>
@@ -806,7 +806,7 @@ export default function CustomerDetail() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5,
                         padding: '4px 10px', borderRadius: 8, fontSize: '0.68rem', fontWeight: 700,
-                        background: 'transparent', color: '#9ca3af',
+                        background: 'transparent', color: 'var(--text-tertiary)',
                         border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                         transition: 'border-color 150ms, color 150ms',
                       }}
@@ -826,20 +826,20 @@ export default function CustomerDetail() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 12, flexWrap: 'wrap' }}>
                 <a href={`mailto:${customer.email}`} style={{
                   display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem',
-                  color: '#9ca3af', textDecoration: 'none', transition: 'color 150ms',
+                  color: 'var(--text-tertiary)', textDecoration: 'none', transition: 'color 150ms',
                 }}
                   onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
                   onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
-                  <Mail size={12} style={{ color: '#c4b5fd' }} /> {customer.email}
+                  <Mail size={12} style={{ color: 'var(--text-tertiary)' }} /> {customer.email}
                 </a>
                 {customer.phone && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af' }}>
-                    <Phone size={12} style={{ color: '#c4b5fd' }} /> {customer.phone}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                    <Phone size={12} style={{ color: 'var(--text-tertiary)' }} /> {customer.phone}
                   </span>
                 )}
                 {customer.whatsapp && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#9ca3af' }}>
-                    <MessageCircle size={12} style={{ color: '#c4b5fd' }} /> {customer.whatsapp}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
+                    <MessageCircle size={12} style={{ color: 'var(--text-tertiary)' }} /> {customer.whatsapp}
                   </span>
                 )}
               </div>
@@ -852,7 +852,7 @@ export default function CustomerDetail() {
           {['overview', 'addresses', 'orders', 'credit', ...(showTaxTab ? ['tax'] : [])].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '10px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
+              color: tab === t ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderBottom: `2px solid ${tab === t ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -2, textTransform: 'capitalize', transition: 'color 150ms',
@@ -873,7 +873,7 @@ export default function CustomerDetail() {
 
                 {/* Personal info */}
                 <div style={card}>
-                  <p style={sectionHeader}><User size={14} style={{ color: '#c4b5fd' }} /> Personal information</p>
+                  <p style={sectionHeader}><User size={14} style={{ color: 'var(--text-tertiary)' }} /> Personal information</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <Field label="First name"><Input value={form.first_name} onChange={setField('first_name')} disabled={!editing} /></Field>
                     <Field label="Last name"><Input value={form.last_name} onChange={setField('last_name')} disabled={!editing} /></Field>
@@ -888,7 +888,7 @@ export default function CustomerDetail() {
 
                 {/* Business info */}
                 <div style={card}>
-                  <p style={sectionHeader}><Building2 size={14} style={{ color: '#c4b5fd' }} /> Business information</p>
+                  <p style={sectionHeader}><Building2 size={14} style={{ color: 'var(--text-tertiary)' }} /> Business information</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                     <Field label="Customer type">
                       <Select value={form.customer_type} onChange={setField('customer_type')} disabled={!editing}>
@@ -910,7 +910,7 @@ export default function CustomerDetail() {
 
                 {/* Account settings */}
                 <div style={card}>
-                  <p style={sectionHeader}><Settings size={14} style={{ color: '#c4b5fd' }} /> Account settings</p>
+                  <p style={sectionHeader}><Settings size={14} style={{ color: 'var(--text-tertiary)' }} /> Account settings</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
 
                     <Field label="Tier (auto-calculated)">
@@ -919,7 +919,7 @@ export default function CustomerDetail() {
                         borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                       }}>
                         <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>{customer.tier}</Badge>
-                        <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>based on orders & spend</span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>based on orders & spend</span>
                       </div>
                     </Field>
                     {/* Tier */}
@@ -941,7 +941,7 @@ export default function CustomerDetail() {
                           borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                         }}>
                           <Badge bg={tr.bg} color={tr.color} ring={tr.ring}>{customer.tier}</Badge>
-                          <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>manual override</span>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>manual override</span>
                         </div>
                       )}
                     </Field>
@@ -961,8 +961,8 @@ export default function CustomerDetail() {
                         onClick={() => editing && setForm(f => ({ ...f, has_credit_account: !f.has_credit_account }))}
                       >
                         <div>
-                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 2px' }}>Credit account</p>
-                          <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Allow this customer to purchase on credit</p>
+                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 2px' }}>Credit account</p>
+                          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>Allow this customer to purchase on credit</p>
                         </div>
                         <div style={{
                           width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
@@ -972,7 +972,7 @@ export default function CustomerDetail() {
                         }}>
                           <span style={{
                             position: 'absolute', top: 3, width: 14, height: 14, borderRadius: '50%',
-                            background: form.has_credit_account ? 'white' : '#c4b5fd',
+                            background: form.has_credit_account ? 'var(--surface-card, #fff)' : '#c4b5fd',
                             left: form.has_credit_account ? 19 : 3,
                             transition: 'left 200ms', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
                           }} />
@@ -1003,11 +1003,11 @@ export default function CustomerDetail() {
                               {`${customer.sales_rep.first_name ?? ''} ${customer.sales_rep.last_name ?? ''}`.trim().split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?'}
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {`${customer.sales_rep.first_name ?? ''} ${customer.sales_rep.last_name ?? ''}`.trim() || customer.sales_rep.name || customer.sales_rep.email}
                               </p>
                               {customer.sales_rep.email && (
-                                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{customer.sales_rep.email}</p>
+                                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{customer.sales_rep.email}</p>
                               )}
                             </div>
                           </div>
@@ -1029,7 +1029,7 @@ export default function CustomerDetail() {
                           padding: '8px 11px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
                           background: editing ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
                           border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
-                          color: editing ? 'var(--color-primary-500)' : '#c4b5fd',
+                          color: editing ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                           cursor: editing ? 'pointer' : 'not-allowed',
                           transition: 'background 150ms, border-color 150ms',
                         }}
@@ -1045,7 +1045,7 @@ export default function CustomerDetail() {
 
                 {/* Notes */}
                 <div style={card}>
-                  <p style={sectionHeader}><FileText size={14} style={{ color: '#c4b5fd' }} /> Notes</p>
+                  <p style={sectionHeader}><FileText size={14} style={{ color: 'var(--text-tertiary)' }} /> Notes</p>
                   <textarea
                     rows={4} value={form.notes} onChange={setField('notes')} disabled={!editing}
                     placeholder="Internal notes about this customer…"
@@ -1062,7 +1062,7 @@ export default function CustomerDetail() {
                 <div style={card}>
 
                   {/* Gift voucher balance */}
-                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
+                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 12px', letterSpacing: '-0.02em' }}>
                     {fmt(customer.credit_limit, acct)}
                   </p>
 
@@ -1084,7 +1084,7 @@ export default function CustomerDetail() {
                       }}>
                         {/* Header row */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             Credit account
                           </span>
                           {isOver && (
@@ -1106,8 +1106,8 @@ export default function CustomerDetail() {
                               <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3, transition: 'width 0.6s ease' }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-                              <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>{pct.toFixed(0)}% used</span>
-                              <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>Limit: {fmt(limit, acct)}</span>
+                              <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>{pct.toFixed(0)}% used</span>
+                              <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>Limit: {fmt(limit, acct)}</span>
                             </div>
                           </div>
                         )}
@@ -1115,12 +1115,12 @@ export default function CustomerDetail() {
                         {/* Three stat rows */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                           {[
-                            { label: 'Credit limit', value: fmt(limit, acct),     color: '#6b7280' },
-                            { label: 'Used',         value: fmt(used, acct),      color: isOver ? '#ef4444' : '#6b7280' },
+                            { label: 'Credit limit', value: fmt(limit, acct),     color: 'var(--text-secondary)' },
+                            { label: 'Used',         value: fmt(used, acct),      color: isOver ? '#ef4444' : 'var(--text-secondary)' },
                             { label: 'Available',    value: fmt(available, acct), color: available === 0 ? '#ef4444' : '#059669' },
                           ].map(({ label, value, color }) => (
                             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
-                              <span style={{ color: '#9ca3af' }}>{label}</span>
+                              <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>
                               <span style={{ color, fontWeight: 700 }}>{value}</span>
                             </div>
                           ))}
@@ -1131,7 +1131,7 @@ export default function CustomerDetail() {
                     <div style={{
                       padding: '10px 12px', borderRadius: 9,
                       background: 'rgba(107,114,128,0.04)', border: '1px dashed rgba(107,114,128,0.2)',
-                      fontSize: '0.72rem', color: '#9ca3af', textAlign: 'center',
+                      fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'center',
                     }}>
                       No credit account · enable in account settings
                     </div>
@@ -1145,7 +1145,7 @@ export default function CustomerDetail() {
                 {/* Order stats */}
                 <div style={card}>
                   <p style={sectionHeader}>
-                    <TrendingUp size={14} style={{ color: '#c4b5fd' }} />
+                    <TrendingUp size={14} style={{ color: 'var(--text-tertiary)' }} />
                     Order statistics
                     {statsLoading && <Loader2 size={12} style={{ marginLeft: 8, animation: 'spin 1s linear infinite' }} />}
                   </p>
@@ -1209,7 +1209,7 @@ export default function CustomerDetail() {
                 {/* Gift voucher */}
                 <div style={card}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <p style={{ ...sectionHeader, margin: 0 }}><CreditCard size={14} style={{ color: '#c4b5fd' }} /> Gift voucher</p>
+                    <p style={{ ...sectionHeader, margin: 0 }}><CreditCard size={14} style={{ color: 'var(--text-tertiary)' }} /> Gift voucher</p>
                     {canAct && (<div style={{ position: 'relative' }}>
                       <button
                         onClick={() => { setShowCredit(v => !v); setShowPoints(false); setShowStatus(false); }}
@@ -1223,15 +1223,15 @@ export default function CustomerDetail() {
                       {showCredit && <QuickAddPanel type="credit" onSubmit={handleAddCredit} onClose={() => setShowCredit(false)} />}
                     </div>)}
                   </div>
-                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
                     {fmt(customer.store_credit, acct)}
                   </p>
                   {customer.has_credit_account && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                       {[['Credit limit', fmt(customer.credit_limit, acct)], ['Used', fmt(customer.credit_used, acct)], ['Available', fmt(customer.available_credit, acct)]].map(([lbl, val]) => (
                         <div key={lbl} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
-                          <span style={{ color: '#9ca3af' }}>{lbl}</span>
-                          <span style={{ color: '#6b7280', fontWeight: 600 }}>{val}</span>
+                          <span style={{ color: 'var(--text-tertiary)' }}>{lbl}</span>
+                          <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{val}</span>
                         </div>
                       ))}
                     </div>
@@ -1241,7 +1241,7 @@ export default function CustomerDetail() {
                 {/* Loyalty points */}
                 <div style={card}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <p style={{ ...sectionHeader, margin: 0 }}><Coins size={14} style={{ color: '#c4b5fd' }} /> Loyalty points</p>
+                    <p style={{ ...sectionHeader, margin: 0 }}><Coins size={14} style={{ color: 'var(--text-tertiary)' }} /> Loyalty points</p>
                     <div style={{ position: 'relative' }}>
                       <button
                         onClick={() => { setShowPoints(v => !v); setShowCredit(false); setShowStatus(false); }}
@@ -1255,21 +1255,21 @@ export default function CustomerDetail() {
                       {showPoints && <QuickAddPanel type="points" onSubmit={handleAddPoints} onClose={() => setShowPoints(false)} />}
                     </div>
                   </div>
-                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#111827', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+                  <p style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
                     {(customer.loyalty_points ?? 0).toLocaleString()}
-                    <span style={{ fontSize: '0.9rem', fontWeight: 400, color: '#9ca3af', marginLeft: 4 }}>pts</span>
+                    <span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--text-tertiary)', marginLeft: 4 }}>pts</span>
                   </p>
-                  <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>
                     Tier multiplier: <strong style={{ color: 'var(--color-primary-500)' }}>×{customer.tier_benefits?.loyalty_points_multiplier ?? 1}</strong>
                   </p>
                 </div>
 
                 {/* Tags */}
                 <div style={card}>
-                  <p style={sectionHeader}><Tag size={14} style={{ color: '#c4b5fd' }} /> Tags</p>
+                  <p style={sectionHeader}><Tag size={14} style={{ color: 'var(--text-tertiary)' }} /> Tags</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                     {(customer.tags ?? []).length === 0
-                      ? <p style={{ fontSize: '0.72rem', color: '#d1d5db', margin: 0 }}>No tags yet</p>
+                      ? <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>No tags yet</p>
                       : (customer.tags ?? []).map(tag => (
                           <span key={tag} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -1279,7 +1279,7 @@ export default function CustomerDetail() {
                           }}>
                             {tag}
                             <button onClick={() => handleRemoveTag(tag)} style={{
-                              background: 'none', border: 'none', cursor: 'pointer', color: '#c4b5fd',
+                              background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)',
                               display: 'flex', padding: 0, marginLeft: 2, transition: 'color 120ms',
                             }}
                               onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
@@ -1312,7 +1312,7 @@ export default function CustomerDetail() {
 
                 {/* System info */}
                 <div style={card}>
-                  <p style={sectionHeader}><Clock size={14} style={{ color: '#c4b5fd' }} /> System info</p>
+                  <p style={sectionHeader}><Clock size={14} style={{ color: 'var(--text-tertiary)' }} /> System info</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
 
                     {/* Dates */}
@@ -1321,15 +1321,15 @@ export default function CustomerDetail() {
                       ['Last login',  fmtDate(customerUser?.last_login_at ?? customer.last_login_at)],
                     ].map(([lbl, val]) => (
                       <div key={lbl} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                        <span style={{ color: '#9ca3af' }}>{lbl}</span>
-                        <span style={{ color: '#374151', fontWeight: 600 }}>{val}</span>
+                        <span style={{ color: 'var(--text-tertiary)' }}>{lbl}</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{val}</span>
                       </div>
                     ))}
 
                     {/* Auth provider */}
                     {customerUser?.oauth_provider && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                        <span style={{ color: '#9ca3af' }}>Auth provider</span>
+                        <span style={{ color: 'var(--text-tertiary)' }}>Auth provider</span>
                         <span style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4,
                           padding: '2px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
@@ -1348,8 +1348,8 @@ export default function CustomerDetail() {
                     {/* Last IP */}
                     {(customerUser?.last_login_ip ?? customer.last_login_ip) && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem' }}>
-                        <span style={{ color: '#9ca3af' }}>Last IP</span>
-                        <span style={{ color: '#374151', fontWeight: 600, fontFamily: 'monospace', fontSize: '0.72rem' }}>
+                        <span style={{ color: 'var(--text-tertiary)' }}>Last IP</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: 600, fontFamily: 'monospace', fontSize: '0.72rem' }}>
                           {customerUser?.last_login_ip ?? customer.last_login_ip}
                         </span>
                       </div>
@@ -1358,9 +1358,9 @@ export default function CustomerDetail() {
                     {/* Last user agent */}
                     {(customerUser?.last_login_user_agent) && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 3, paddingTop: 2 }}>
-                        <span style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Last device</span>
+                        <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Last device</span>
                         <span style={{
-                          fontSize: '0.68rem', color: '#6b7280', lineHeight: 1.4,
+                          fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: 1.4,
                           overflow: 'hidden', display: '-webkit-box',
                           WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                         }}>
@@ -1411,7 +1411,7 @@ export default function CustomerDetail() {
             {/* ── Customer-entered default addresses (read-only) ── */}
               {(customer.default_shipping_address || customer.default_billing_address) && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 8 }}>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: 0 }}>
                     Customer-entered addresses (read-only)
                   </p>
                   {customer.default_shipping_address && (
@@ -1432,7 +1432,7 @@ export default function CustomerDetail() {
                           Customer entered
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                         {customer.default_shipping_address}
                       </p>
                     </div>
@@ -1455,20 +1455,20 @@ export default function CustomerDetail() {
                           Customer entered
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
                         {customer.default_billing_address}
                       </p>
                     </div>
                   )}
                   <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 12 }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', margin: 0 }}>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', margin: 0 }}>
                       Saved address book
                     </p>
                   </div>
                 </div>
               )}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
                 {addresses.length} address{addresses.length !== 1 ? 'es' : ''}
               </p>
               {!addingAddr && (
@@ -1501,7 +1501,7 @@ export default function CustomerDetail() {
                     border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent',
                   }}>
                     <MapPin size={28} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)', margin: '0 auto 8px', display: 'block' }} />
-                    <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No addresses saved by admin</p>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>No addresses saved by admin</p>
                   </div>
                 )
                 : addresses.map(addr => (
@@ -1512,12 +1512,12 @@ export default function CustomerDetail() {
                           <div style={card}>
                             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
                               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                                <span style={{ marginTop: 2, color: '#c4b5fd', flexShrink: 0 }}>
+                                <span style={{ marginTop: 2, color: 'var(--text-tertiary)', flexShrink: 0 }}>
                                   {ADDR_TYPE_ICONS[addr.address_type]}
                                 </span>
                                 <div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                                    <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0, textTransform: 'capitalize' }}>
+                                    <p style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, textTransform: 'capitalize' }}>
                                       {addr.label || addr.address_type}
                                     </p>
                                     {addr.is_default_shipping && (
@@ -1532,16 +1532,16 @@ export default function CustomerDetail() {
                                       </Badge>
                                     )}
                                   </div>
-                                  {addr.contact_name && <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 2px' }}>{addr.contact_name}</p>}
-                                  <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 1px' }}>{addr.address_line_1}</p>
-                                  {addr.address_line_2 && <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 1px' }}>{addr.address_line_2}</p>}
-                                  <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: '0 0 1px' }}>{[addr.city, addr.state, addr.postal_code].filter(Boolean).join(', ')}</p>
-                                  <p style={{ fontSize: '0.8rem', color: '#6b7280', margin: 0 }}>{addr.country}</p>
-                                  {addr.landmark && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '4px 0 0' }}>Near: {addr.landmark}</p>}
-                                  {addr.delivery_instructions && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0', fontStyle: 'italic' }}>"{addr.delivery_instructions}"</p>}
+                                  {addr.contact_name && <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 2px' }}>{addr.contact_name}</p>}
+                                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 1px' }}>{addr.address_line_1}</p>
+                                  {addr.address_line_2 && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 1px' }}>{addr.address_line_2}</p>}
+                                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 1px' }}>{[addr.city, addr.state, addr.postal_code].filter(Boolean).join(', ')}</p>
+                                  <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0 }}>{addr.country}</p>
+                                  {addr.landmark && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>Near: {addr.landmark}</p>}
+                                  {addr.delivery_instructions && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '2px 0 0', fontStyle: 'italic' }}>"{addr.delivery_instructions}"</p>}
                                   {addr.contact_phone && (
-                                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
-                                      <Phone size={11} style={{ color: '#c4b5fd' }} /> {addr.contact_phone}
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '4px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                                      <Phone size={11} style={{ color: 'var(--text-tertiary)' }} /> {addr.contact_phone}
                                     </p>
                                   )}
                                 </div>
@@ -1576,7 +1576,7 @@ export default function CustomerDetail() {
                                 <button onClick={() => setEditingAddr(addr.id)} style={{
                                   width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer',
-                                  color: '#9ca3af', transition: 'background 120ms, color 120ms',
+                                  color: 'var(--text-tertiary)', transition: 'background 120ms, color 120ms',
                                 }}
                                   onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}>
@@ -1585,7 +1585,7 @@ export default function CustomerDetail() {
                                 <button onClick={() => handleDeleteAddress(addr.id)} style={{
                                   width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                   borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer',
-                                  color: '#9ca3af', transition: 'background 120ms, color 120ms',
+                                  color: 'var(--text-tertiary)', transition: 'background 120ms, color 120ms',
                                 }}
                                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#ef4444'; }}
                                   onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}>
@@ -1608,7 +1608,7 @@ export default function CustomerDetail() {
 
             {/* Header row */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
                 {ordersLoading ? 'Loading…' : `${ordersMeta.total.toLocaleString()} order${ordersMeta.total !== 1 ? 's' : ''}`}
               </p>
               <Link to={`/admin/orders?customer=${id}`} style={{
@@ -1659,7 +1659,7 @@ export default function CustomerDetail() {
                           <tr>
                             <td colSpan={6} style={{ padding: '48px 24px', textAlign: 'center' }}>
                               <Package size={28} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 10px', display: 'block' }} />
-                              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No orders yet</p>
+                              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>No orders yet</p>
                             </td>
                           </tr>
                         )
@@ -1680,12 +1680,12 @@ export default function CustomerDetail() {
                               unpaid:           { bg: 'rgba(239,68,68,0.08)',   color: '#b91c1c' },
                               partially_paid:   { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
                               paid:             { bg: 'rgba(16,185,129,0.08)',  color: '#065f46' },
-                              refunded:         { bg: 'rgba(107,114,128,0.08)', color: '#4b5563' },
-                              partially_refunded:{ bg: 'rgba(107,114,128,0.08)', color: '#4b5563' },
+                              refunded:         { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' },
+                              partially_refunded:{ bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' },
                             };
 
-                            const os = ORDER_STATUS[o.status]   ?? { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af' };
-                            const ps = PAYMENT_STATUS[o.payment_status] ?? { bg: 'rgba(107,114,128,0.08)', color: '#4b5563' };
+                            const os = ORDER_STATUS[o.status]   ?? { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af' };
+                            const ps = PAYMENT_STATUS[o.payment_status] ?? { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' };
                             const cap = (s) => s?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? '—';
 
                             return (
@@ -1705,7 +1705,7 @@ export default function CustomerDetail() {
                                     {o.order_number}
                                   </p>
                                   {o.title && (
-                                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                                    <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
                                       {o.title}
                                     </p>
                                   )}
@@ -1737,14 +1737,14 @@ export default function CustomerDetail() {
 
                                 {/* Item count */}
                                 <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                                  <span style={{ fontSize: '0.82rem', color: '#6b7280', fontVariantNumeric: 'tabular-nums' }}>
+                                  <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
                                     {o.items_count ?? o.order_items?.length ?? '—'}
                                   </span>
                                 </td>
 
                                 {/* Total */}
                                 <td style={{ padding: '11px 16px', textAlign: 'right' }}>
-                                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', fontVariantNumeric: 'tabular-nums' }}>
+                                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
                                     {o.currency === 'KES' 
                                       ? fmt(o.total) 
                                       : `${o.currency} ${Number(o.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -1754,7 +1754,7 @@ export default function CustomerDetail() {
 
                                 {/* Date */}
                                 <td style={{ padding: '11px 16px' }}>
-                                  <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                                     {fmtDate(o.created_at)}
                                   </span>
                                 </td>
@@ -1773,7 +1773,7 @@ export default function CustomerDetail() {
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
                 }}>
-                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
                     Page {ordersMeta.current_page} of {ordersMeta.last_page}
                   </p>
                   <div style={{ display: 'flex', gap: 4 }}>

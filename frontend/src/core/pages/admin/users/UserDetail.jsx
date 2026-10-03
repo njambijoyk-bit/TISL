@@ -20,14 +20,14 @@ const ROLE_META = {
   finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
   logistics:   { label: 'Logistics',   color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
   sales_rep:   { label: 'Sales Rep',   color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
-  driver:      { label: 'Driver',      color: '#6b7280', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
+  driver:      { label: 'Driver',      color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
   customer:    { label: 'Customer',    color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
   vendor:      { label: 'Vendor',      color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   ring: 'rgba(220,38,38,0.25)'  },
 };
 
 const STATUS_STYLES = {
   active:               { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
-  inactive:             { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
+  inactive:             { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
   suspended:            { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
   pending_verification: { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
 };
@@ -52,7 +52,7 @@ const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -65,7 +65,7 @@ const labelStyle = {
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
@@ -106,10 +106,10 @@ function Field({ label, children }) {
 function InfoRow({ label, icon, value }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}>
         {icon} {label}
       </span>
-      <div style={{ fontSize: '0.82rem', color: '#374151' }}>{value}</div>
+      <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{value}</div>
     </div>
   );
 }
@@ -128,7 +128,7 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
         background: 'rgba(239,68,68,0.06)', color: '#b91c1c',
         border: '1.5px solid rgba(239,68,68,0.2)',
       } : {
-        background: 'transparent', color: '#6b7280',
+        background: 'transparent', color: 'var(--text-secondary)',
         border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
       }),
     }}
@@ -163,10 +163,10 @@ function Modal({ title, subtitle, onClose, children }) {
       <div style={{ ...card, width: '100%', maxWidth: 400, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: '0 0 3px' }}>{title}</p>
-            {subtitle && <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>}
+            <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 3px' }}>{title}</p>
+            {subtitle && <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0 }}>{subtitle}</p>}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
             <X size={16} />
@@ -195,7 +195,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
         />
         <button type="button" onClick={() => setShow(s => !s)} style={{
           position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-          background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex',
+          background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex',
         }}>
           {show ? <EyeOff size={14} /> : <Eye size={14} />}
         </button>
@@ -204,7 +204,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button onClick={onClose} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
         }}>Cancel</button>
         <button onClick={() => {
           if (password.length < 8) { setError('At least 8 characters required.'); return; }
@@ -256,7 +256,7 @@ function LockAccountModal({ onClose, onConfirm, loading }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button onClick={onClose} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
         }}>Cancel</button>
         <button onClick={() => onConfirm(duration)} disabled={loading} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
@@ -365,7 +365,7 @@ export default function UserDetail() {
       {/* ── Back ── */}
       <button onClick={() => navigate('/admin/users')} style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
-        fontSize: '0.82rem', color: '#9ca3af', background: 'none', border: 'none',
+        fontSize: '0.82rem', color: 'var(--text-tertiary)', background: 'none', border: 'none',
         cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'flex-start', transition: 'color 150ms',
       }}
         onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-600)'}
@@ -398,7 +398,7 @@ export default function UserDetail() {
           {/* Info */}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-              <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#111827', margin: 0 }}>{user.name}</h1>
+              <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{user.name}</h1>
               <Badge bg={rm.bg} color={rm.color} ring={rm.ring}>{rm.label}</Badge>
               <Badge bg={st.bg} color={st.color} ring={st.ring}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
@@ -415,12 +415,12 @@ export default function UserDetail() {
                 </Badge>
               )}
             </div>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 5 }}>
-              <Mail size={12} style={{ color: '#c4b5fd' }} /> {user.email}
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: '0 0 2px', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Mail size={12} style={{ color: 'var(--text-tertiary)' }} /> {user.email}
             </p>
             {user.phone && (
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Phone size={12} style={{ color: '#c4b5fd' }} /> {user.phone}
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Phone size={12} style={{ color: 'var(--text-tertiary)' }} /> {user.phone}
               </p>
             )}
           </div>
@@ -470,7 +470,7 @@ export default function UserDetail() {
           {['profile', 'security'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '12px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
-              color: tab === t ? 'var(--color-primary-500)' : '#9ca3af',
+              color: tab === t ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
               background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
               borderBottom: `2px solid ${tab === t ? 'var(--color-primary-500)' : 'transparent'}`,
               marginBottom: -2, textTransform: 'capitalize', transition: 'color 150ms',
@@ -487,30 +487,30 @@ export default function UserDetail() {
             <>
               {/* Personal info */}
               <div>
-                <p style={sectionHeader}><User size={14} style={{ color: '#c4b5fd' }} /> Personal information</p>
+                <p style={sectionHeader}><User size={14} style={{ color: 'var(--text-tertiary)' }} /> Personal information</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <Field label="Full name">
                     {editMode
                       ? <input value={formData.name} onChange={e => setF('name')(e.target.value)} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-                      : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{user.name}</p>
+                      : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{user.name}</p>
                     }
                   </Field>
                   <Field label="Email">
                     {editMode
                       ? <input type="email" value={formData.email} onChange={e => setF('email')(e.target.value)} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-                      : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{user.email}</p>
+                      : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{user.email}</p>
                     }
                   </Field>
                   <Field label="Phone">
                     {editMode
                       ? <input value={formData.phone} onChange={e => setF('phone')(e.target.value)} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-                      : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{user.phone || '—'}</p>
+                      : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{user.phone || '—'}</p>
                     }
                   </Field>
                   <Field label="Company">
                     {editMode
                       ? <input value={formData.company_name} onChange={e => setF('company_name')(e.target.value)} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-                      : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{user.company_name || '—'}</p>
+                      : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{user.company_name || '—'}</p>
                     }
                   </Field>
                 </div>
@@ -520,7 +520,7 @@ export default function UserDetail() {
                       {editMode
                         ? <textarea rows={3} value={formData.bio} onChange={e => setF('bio')(e.target.value)}
                             style={{ ...inputStyle, resize: 'none' }} onFocus={inputFocus} onBlur={inputBlur} />
-                        : <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>{user.bio}</p>
+                        : <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{user.bio}</p>
                       }
                     </Field>
                   </div>
@@ -530,7 +530,7 @@ export default function UserDetail() {
               {/* Role */}
               {canManage && editMode && (
                 <div>
-                  <p style={sectionHeader}><Shield size={14} style={{ color: '#c4b5fd' }} /> Role</p>
+                  <p style={sectionHeader}><Shield size={14} style={{ color: 'var(--text-tertiary)' }} /> Role</p>
                   <select value={formData.role} onChange={e => setF('role')(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: 180 }} onFocus={inputFocus} onBlur={inputBlur}>
                     {ROLES_ASSIGNABLE.filter(r => LEVELS[currentAdmin?.role] < LEVELS[r]).map(r => (
                       <option key={r} value={r}>{ROLE_META[r].label}</option>
@@ -542,24 +542,24 @@ export default function UserDetail() {
               {/* Organizational (staff only) */}
               {isStaff && (
                 <div>
-                  <p style={sectionHeader}><Building2 size={14} style={{ color: '#c4b5fd' }} /> Organizational</p>
+                  <p style={sectionHeader}><Building2 size={14} style={{ color: 'var(--text-tertiary)' }} /> Organizational</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
                     <Field label="Employee ID">
                       {editMode
                         ? <input value={formData.employee_id} onChange={e => setF('employee_id')(e.target.value)} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-                        : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{user.employee_id || '—'}</p>
+                        : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{user.employee_id || '—'}</p>
                       }
                     </Field>
                     <Field label="Department">
                       {editMode
                         ? <input value={formData.department} onChange={e => setF('department')(e.target.value)} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-                        : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{user.department || '—'}</p>
+                        : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{user.department || '—'}</p>
                       }
                     </Field>
                     <Field label="Hired">
                       {editMode
                         ? <input type="date" value={formData.hired_at} onChange={e => setF('hired_at')(e.target.value)} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} />
-                        : <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0, fontWeight: 500 }}>{fmtDate(user.hired_at)}</p>
+                        : <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{fmtDate(user.hired_at)}</p>
                       }
                     </Field>
                   </div>
@@ -569,13 +569,13 @@ export default function UserDetail() {
               {/* Notifications */}
               {editMode && (
                 <div>
-                  <p style={sectionHeader}><Bell size={14} style={{ color: '#c4b5fd' }} /> Notifications</p>
+                  <p style={sectionHeader}><Bell size={14} style={{ color: 'var(--text-tertiary)' }} /> Notifications</p>
                   <div style={{ display: 'flex', gap: 24 }}>
                     {[
                       { key: 'email_notifications', label: 'Email notifications' },
                       { key: 'sms_notifications',   label: 'SMS notifications'   },
                     ].map(({ key, label }) => (
-                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.82rem', color: '#6b7280', userSelect: 'none' }}>
+                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-secondary)', userSelect: 'none' }}>
                         <input type="checkbox" checked={formData[key]} onChange={e => setF(key)(e.target.checked)}
                           style={{ accentColor: 'var(--color-primary-500)', width: 15, height: 15, cursor: 'pointer' }}
                         />
@@ -593,7 +593,7 @@ export default function UserDetail() {
             <>
               {/* Account health */}
               <div>
-                <p style={sectionHeader}><Shield size={14} style={{ color: '#c4b5fd' }} /> Account health</p>
+                <p style={sectionHeader}><Shield size={14} style={{ color: 'var(--text-tertiary)' }} /> Account health</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <InfoRow label="Email verified" icon={<Mail size={11} />}
                     value={user.email_verified_at
@@ -620,16 +620,16 @@ export default function UserDetail() {
                     }
                   />
                   <InfoRow label="Failed login attempts" icon={<AlertCircle size={11} />}
-                    value={<span style={{ color: user.failed_login_attempts > 0 ? '#b45309' : '#374151', fontWeight: 600, fontSize: '0.82rem' }}>{user.failed_login_attempts}</span>}
+                    value={<span style={{ color: user.failed_login_attempts > 0 ? '#b45309' : 'var(--text-primary)', fontWeight: 600, fontSize: '0.82rem' }}>{user.failed_login_attempts}</span>}
                   />
                   <InfoRow label="Force password reset" icon={<KeyRound size={11} />}
                     value={user.force_password_change
                       ? <span style={{ color: '#b91c1c', fontWeight: 600, fontSize: '0.82rem' }}>Pending reset</span>
-                      : <span style={{ color: '#9ca3af', fontSize: '0.82rem' }}>Not required</span>
+                      : <span style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>Not required</span>
                     }
                   />
                   <InfoRow label="Password last changed" icon={<KeyRound size={11} />}
-                    value={<span style={{ color: '#374151', fontSize: '0.82rem' }}>{fmtDate(user.password_changed_at)}</span>}
+                    value={<span style={{ color: 'var(--text-primary)', fontSize: '0.82rem' }}>{fmtDate(user.password_changed_at)}</span>}
                   />
                   {user.phone_otp_expires_at && new Date(user.phone_otp_expires_at) > new Date() && (
                     <InfoRow label="Pending phone OTP" icon={<Phone size={11} />}
@@ -637,7 +637,7 @@ export default function UserDetail() {
                         <span style={{ fontFamily: 'monospace', fontWeight: 800, color: 'var(--color-primary-600)', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.15em' }}>
                           {user.phone_otp ?? '••••••'}
                         </span>
-                        <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>expires {fmtDT(user.phone_otp_expires_at)}</span>
+                        <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>expires {fmtDT(user.phone_otp_expires_at)}</span>
                       </span>}
                     />
                   )}
@@ -646,12 +646,12 @@ export default function UserDetail() {
 
               {/* Last session */}
               <div>
-                <p style={sectionHeader}><Monitor size={14} style={{ color: '#c4b5fd' }} /> Last session</p>
+                <p style={sectionHeader}><Monitor size={14} style={{ color: 'var(--text-tertiary)' }} /> Last session</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                  <InfoRow label="Login time" icon={<Clock size={11} />}  value={<span style={{ fontSize: '0.82rem', color: '#374151' }}>{fmtDT(user.last_login_at)}</span>} />
-                  <InfoRow label="IP address" icon={<MapPin size={11} />} value={<span style={{ fontSize: '0.82rem', color: '#374151', fontFamily: 'monospace' }}>{user.last_login_ip || '—'}</span>} />
+                  <InfoRow label="Login time" icon={<Clock size={11} />}  value={<span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{fmtDT(user.last_login_at)}</span>} />
+                  <InfoRow label="IP address" icon={<MapPin size={11} />} value={<span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontFamily: 'monospace' }}>{user.last_login_ip || '—'}</span>} />
                   <InfoRow label="Device" icon={<Monitor size={11} />}
-                    value={<span style={{ fontSize: '0.72rem', color: '#6b7280', display: '-webkit-box', overflow: 'hidden', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    value={<span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', display: '-webkit-box', overflow: 'hidden', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                       {user.last_login_user_agent || '—'}
                     </span>}
                   />
@@ -660,7 +660,7 @@ export default function UserDetail() {
 
               {/* Auth provider */}
               <div>
-                <p style={sectionHeader}><Settings size={14} style={{ color: '#c4b5fd' }} /> Auth provider</p>
+                <p style={sectionHeader}><Settings size={14} style={{ color: 'var(--text-tertiary)' }} /> Auth provider</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{
                     padding: '5px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
@@ -669,16 +669,16 @@ export default function UserDetail() {
                   }}>
                     {user.oauth_provider || 'email'}
                   </span>
-                  {user.google_id && <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Google ID linked</span>}
+                  {user.google_id && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Google ID linked</span>}
                 </div>
               </div>
 
               {/* Timeline */}
               <div>
-                <p style={sectionHeader}><Calendar size={14} style={{ color: '#c4b5fd' }} /> Account timeline</p>
+                <p style={sectionHeader}><Calendar size={14} style={{ color: 'var(--text-tertiary)' }} /> Account timeline</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                  <InfoRow label="Created" icon={<Calendar size={11} />} value={<span style={{ fontSize: '0.82rem', color: '#374151' }}>{fmtDate(user.created_at)}</span>} />
-                  <InfoRow label="Updated" icon={<Calendar size={11} />} value={<span style={{ fontSize: '0.82rem', color: '#374151' }}>{fmtDate(user.updated_at)}</span>} />
+                  <InfoRow label="Created" icon={<Calendar size={11} />} value={<span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{fmtDate(user.created_at)}</span>} />
+                  <InfoRow label="Updated" icon={<Calendar size={11} />} value={<span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{fmtDate(user.updated_at)}</span>} />
                   {user.deleted_at && <InfoRow label="Deleted" icon={<Trash2 size={11} />} value={<span style={{ fontSize: '0.82rem', color: '#b91c1c' }}>{fmtDate(user.deleted_at)}</span>} />}
                 </div>
               </div>

@@ -5,9 +5,9 @@ import ThemeSwitcher from '../../../../_shared/components/common/ThemeSwitcher';
 // ── Design tokens — amber/green financial cyberpunk ───────────────────────────
 export const F = {
     // Backgrounds
-    bg:         'var(--color-background-tertiary)',
-    bgCard:     'var(--color-background-secondary)',
-    bgInput:    'var(--color-background-secondary)',
+    bg:         'var(--bg-primary)',
+    bgCard:     'var(--surface-card, #fff)',
+    bgInput:    'var(--surface-input)',
 
     // Core accent palette
     amber:      '#f59e0b',

@@ -67,7 +67,7 @@ export default function PublicationListPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
                         <div>
                             <h1 style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>Content Studio</h1>
-                            <p style={{ color: '#64748b', marginTop: 4 }}>Manage your brochures, news, and blog posts.</p>
+                            <p style={{ color: 'var(--text-secondary)', marginTop: 4 }}>Manage your brochures, news, and blog posts.</p>
                         </div>
                         <button 
                             onClick={() => setShowCreateModal(true)}
@@ -92,7 +92,7 @@ export default function PublicationListPage() {
                     {/* Filters & Search */}
                     <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
                         <div style={{ flex: 1, position: 'relative' }}>
-                            <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                            <Search size={18} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)' }} />
                             <input 
                                 placeholder="Search publications..." 
                                 style={{ ...inputStyle, paddingLeft: 40 }}
@@ -113,9 +113,9 @@ export default function PublicationListPage() {
                     </div>
 
                     {/* Table */}
-                    <div style={{ background: 'white', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <thead style={{ background: 'var(--surface-input)', borderBottom: '1px solid var(--line)' }}>
                                 <tr>
                                     <th style={thStyle}>Publication</th>
                                     <th style={thStyle}>Type</th>
@@ -126,11 +126,11 @@ export default function PublicationListPage() {
                             </thead>
                             <tbody>
                                 {filteredPubs.map(pub => (
-                                    <tr key={pub.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <tr key={pub.id} style={{ borderBottom: '1px solid var(--line)' }}>
                                         <td style={tdStyle}>
                                             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                                 <div style={{ 
-                                                    width: 40, height: 40, borderRadius: 10, background: '#f1f5f9', 
+                                                    width: 40, height: 40, borderRadius: 10, background: 'var(--surface-input)', 
                                                     display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary-500)'
                                                 }}>
                                                     {pub.type === 'brochure' && <BookOpen size={20} />}
@@ -139,7 +139,7 @@ export default function PublicationListPage() {
                                                 </div>
                                                 <div>
                                                     <p style={{ margin: 0, fontWeight: 700, color: '#1e293b' }}>{pub.title}</p>
-                                                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#94a3b8' }}>/{pub.type}s/{pub.slug}</p>
+                                                    <p style={{ margin: 0, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>/{pub.type}s/{pub.slug}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -150,7 +150,7 @@ export default function PublicationListPage() {
                                             <StatusBadge status={pub.status} />
                                         </td>
                                         <td style={tdStyle}>
-                                            <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                            <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                                                 {new Date(pub.updated_at).toLocaleDateString()}
                                             </span>
                                         </td>
@@ -168,7 +168,7 @@ export default function PublicationListPage() {
                                 ))}
                                 {filteredPubs.length === 0 && !loading && (
                                     <tr>
-                                        <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>
+                                        <td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
                                             No publications found.
                                         </td>
                                     </tr>
@@ -231,7 +231,7 @@ function StatusBadge({ status }) {
     const styles = {
         published: { bg: '#dcfce7', color: '#166534', icon: CheckCircle },
         draft: { bg: '#fef9c3', color: '#854d0e', icon: Clock },
-        archived: { bg: '#f1f5f9', color: '#475569', icon: Archive },
+        archived: { bg: '#f1f5f9', color: 'var(--text-secondary)', icon: Archive },
     };
     const s = styles[status] || styles.draft;
     const Icon = s.icon;
@@ -251,22 +251,22 @@ function TypeOption({ active, onClick, icon: Icon, label }) {
         <div 
             onClick={onClick}
             style={{ 
-                padding: '12px 8px', borderRadius: 12, border: active ? '2px solid var(--color-primary-500)' : '1px solid #e2e8f0',
-                background: active ? '#fdf4ff' : 'white', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
+                padding: '12px 8px', borderRadius: 12, border: active ? '2px solid var(--color-primary-500)' : '1px solid var(--line)',
+                background: active ? '#fdf4ff' : 'var(--surface-card, #fff)', cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s'
             }}
         >
             <Icon size={20} color={active ? 'var(--color-primary-500)' : '#64748b'} style={{ marginBottom: 4 }} />
-            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: active ? 'var(--color-primary-500)' : '#64748b' }}>{label}</div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: active ? 'var(--color-primary-500)' : 'var(--text-secondary)' }}>{label}</div>
         </div>
     );
 }
 
-const thStyle = { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b', letterSpacing: '0.05em' };
+const thStyle = { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em' };
 const tdStyle = { padding: '16px 20px', fontSize: '0.9rem' };
-const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid #e2e8f0', outline: 'none', fontSize: '0.95rem' };
-const actionBtn = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', color: '#64748b' };
+const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--line)', outline: 'none', fontSize: '0.95rem' };
+const actionBtn = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', cursor: 'pointer', color: 'var(--text-secondary)' };
 const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
-const modalContent = { background: 'white', padding: 32, borderRadius: 20, width: 450, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' };
-const ghostBtn = { background: 'none', border: 'none', padding: '10px 20px', fontWeight: 700, cursor: 'pointer', color: '#64748b' };
+const modalContent = { background: 'var(--surface-card, #fff)', padding: 32, borderRadius: 20, width: 450, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' };
+const ghostBtn = { background: 'none', border: 'none', padding: '10px 20px', fontWeight: 700, cursor: 'pointer', color: 'var(--text-secondary)' };
 const primaryBtn = { background: 'var(--color-primary-500)', color: 'white', border: 'none', padding: '12px 24px', borderRadius: 12, fontWeight: 700, cursor: 'pointer' };
-const labelStyle = { fontSize: '0.8rem', fontWeight: 700, color: '#475569', marginBottom: 8, display: 'block' };
+const labelStyle = { fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8, display: 'block' };

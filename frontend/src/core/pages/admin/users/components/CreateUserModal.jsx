@@ -179,7 +179,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
                       className="px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all"
                       style={form.role === r.value
                         ? { background: r.bg, color: r.color, borderColor: r.ring, boxShadow: `0 0 0 3px ${r.color}18` }
-                        : { background: 'transparent', color: '#9ca3af', borderColor: '#e5e7eb' }
+                        : { background: 'transparent', color: 'var(--text-tertiary)', borderColor: 'var(--line)' }
                       }>
                       {r.label}
                     </button>
@@ -260,8 +260,8 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
                     <button key={s.value} type="button" onClick={() => set('status', s.value)}
                       className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all"
                       style={form.status === s.value
-                        ? { background: s.dot + '18', color: s.dot === '#9ca3af' ? '#6b7280' : s.dot, borderColor: s.dot + '66', boxShadow: `0 0 0 3px ${s.dot}18` }
-                        : { background: 'transparent', color: '#9ca3af', borderColor: '#e5e7eb' }
+                        ? { background: s.dot + '18', color: s.dot === 'var(--text-tertiary)' ? 'var(--text-secondary)' : s.dot, borderColor: s.dot + '66', boxShadow: `0 0 0 3px ${s.dot}18` }
+                        : { background: 'transparent', color: 'var(--text-tertiary)', borderColor: 'var(--line)' }
                       }>
                       <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.dot }} />
                       {s.label}
@@ -276,8 +276,8 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
                 onClick={() => set('force_password_change', !form.force_password_change)}
                 className="w-full flex items-start gap-3 p-4 rounded-2xl border text-left transition-all"
                 style={form.force_password_change
-                  ? { background: '#f5f3ff', borderColor: '#c4b5fd' }
-                  : { background: '#f9fafb', borderColor: '#f3f4f6' }
+                  ? { background: 'var(--surface-input)', borderColor: '#c4b5fd' }
+                  : { background: 'var(--surface-input)', borderColor: 'var(--line)' }
                 }>
                 <div
                   className="mt-0.5 w-4 h-4 rounded flex items-center justify-center flex-shrink-0 transition-all"

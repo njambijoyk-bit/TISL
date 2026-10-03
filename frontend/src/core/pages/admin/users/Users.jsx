@@ -22,14 +22,14 @@ const ROLE_META = {
   finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
   logistics:   { label: 'Logistics',   color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
   sales_rep:   { label: 'Sales Rep',   color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
-  driver:      { label: 'Driver',      color: '#6b7280', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
+  driver:      { label: 'Driver',      color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
   customer:    { label: 'Customer',    color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
   vendor:      { label: 'Vendor',      color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   ring: 'rgba(220,38,38,0.25)'  },
 };
 
 const STATUS_STYLES = {
   active:               { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
-  inactive:             { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
+  inactive:             { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
   suspended:            { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
   pending_verification: { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
 };
@@ -63,7 +63,7 @@ const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: 'numer
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
@@ -73,7 +73,7 @@ const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#374151', outline: 'none',
+  color: 'var(--text-primary)', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
@@ -82,7 +82,7 @@ const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-pr
 const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
-  <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
+  <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
     {children}
   </span>
 );
@@ -99,7 +99,7 @@ function StatCard({ icon, label, value, accent, bg }) {
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
+        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
         <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value ?? 0}</p>
       </div>
     </div>
@@ -169,7 +169,7 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
         style={{
           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer',
-          color: '#c4b5fd', transition: 'background 120ms, color 120ms',
+          color: 'var(--text-tertiary)', transition: 'background 120ms, color 120ms',
         }}
         onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
@@ -182,7 +182,7 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
           <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setOpen(false)} />
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 200, zIndex: 20,
-            background: 'white', borderRadius: 12, padding: '6px 0',
+            background: 'var(--surface-card, #fff)', borderRadius: 12, padding: '6px 0',
             border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           }}
@@ -195,7 +195,7 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
                 width: '100%', display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 14px', fontSize: '0.8rem', fontWeight: 500,
                 background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                color: item.danger ? '#ef4444' : '#374151',
+                color: item.danger ? '#ef4444' : 'var(--text-primary)',
                 transition: 'background 120ms',
               }}
                 onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.05)' : 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
@@ -340,17 +340,17 @@ function UsersDevNotesModal({ onClose }) {
       onClick={onClose}
     >
       <div
-        style={{ background: "white", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px color-mix(in srgb, var(--color-primary-500) 18%, transparent), 0 4px 20px rgba(0,0,0,0.12)" }}
+        style={{ background: "var(--surface-card, #fff)", borderRadius: 14, width: "100%", maxWidth: 820, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px color-mix(in srgb, var(--color-primary-500) 18%, transparent), 0 4px 20px rgba(0,0,0,0.12)" }}
         onClick={e => e.stopPropagation()}
       >
-        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid #f3f4f6" }}>
+        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--line)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 2 }}>
             <span style={{ fontFamily: "monospace", fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)" }}>
               // dev notes — users system
             </span>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af", lineHeight: 1 }}>✕</button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "var(--text-tertiary)", lineHeight: 1 }}>✕</button>
           </div>
-          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#9ca3af", marginBottom: 14 }}>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 14 }}>
             covers auth · oauth · customers · employees · user policy · employee policy
           </div>
           <div style={{ display: "flex", gap: 0 }}>
@@ -358,7 +358,7 @@ function UsersDevNotesModal({ onClose }) {
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: "9px 20px", background: "none", border: "none",
                 borderBottom: tab === t ? "2px solid var(--color-primary-500)" : "2px solid transparent",
-                color: tab === t ? "var(--color-primary-500)" : "#6b7280",
+                color: tab === t ? "var(--color-primary-500)" : "var(--text-secondary)",
                 fontFamily: "monospace", fontSize: 12, cursor: "pointer",
                 opacity: tab === t ? 1 : 0.6, marginBottom: -1, transition: "all 0.15s",
               }}>{t}</button>
@@ -371,11 +371,11 @@ function UsersDevNotesModal({ onClose }) {
             <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: `1px solid ${USEV[n.severity]}2a`, background: `${USEV[n.severity]}07` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 7 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.05em", color: USEV[n.severity], background: `${USEV[n.severity]}18`, padding: "2px 7px", borderRadius: 3 }}>{n.severity}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{n.title}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{n.title}</span>
               </div>
-              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65, marginBottom: 6 }}>{n.detail}</div>
-              <div style={{ fontSize: 11, fontFamily: "monospace", color: "#9ca3af" }}>
-                <span style={{ color: "#6b7280" }}>→ outcome: </span>{n.outcome}
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.65, marginBottom: 6 }}>{n.detail}</div>
+              <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-tertiary)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>→ outcome: </span>{n.outcome}
               </div>
             </div>
           ))}
@@ -383,17 +383,17 @@ function UsersDevNotesModal({ onClose }) {
           {tab === "strengths" && USERS_DEV_NOTES.strengths.map((n, i) => (
             <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid var(--color-primary-500)22", background: "var(--color-primary-500)05" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)", marginBottom: 6 }}>✓ {n.title}</div>
-              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{n.detail}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
 
           {tab === "future" && USERS_DEV_NOTES.future.map((n, i) => (
-            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb" }}>
+            <div key={i} style={{ padding: "14px 16px", borderRadius: 8, border: "1px solid var(--line)", background: "var(--surface-input)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                 <span style={{ fontSize: 10, fontWeight: 700, fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.05em", color: UHOV[n.horizon], background: `${UHOV[n.horizon]}18`, padding: "2px 7px", borderRadius: 3 }}>{n.horizon}-term</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>{n.title}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary)" }}>{n.title}</span>
               </div>
-              <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.65 }}>{n.detail}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
         </div>
@@ -527,7 +527,7 @@ export default function UsersPage() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
               Users
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               {statistics?.total?.toLocaleString() ?? 0} total users
             </p>
           </div>
@@ -569,7 +569,7 @@ export default function UsersPage() {
                     onMouseLeave={() => setShowInfo(false)}
                     style={{
                       position: 'absolute', right: 0, top: 'calc(100% + 10px)', width: 300, zIndex: 30,
-                      background: 'white', borderRadius: 12, padding: 16,
+                      background: 'var(--surface-card, #fff)', borderRadius: 12, padding: 16,
                       border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                       boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                     }}
@@ -577,10 +577,10 @@ export default function UsersPage() {
                     <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
                       <Info size={16} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 1 }} />
                       <div>
-                        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 4px' }}>
+                        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 4px' }}>
                           Customers can't be created by admins
                         </p>
-                        <p style={{ fontSize: '0.75rem', color: '#6b7280', margin: 0, lineHeight: 1.5 }}>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                           Customers register themselves or can be added in bulk via a manual import. No admin of any role can create a customer account directly.
                         </p>
                       </div>
@@ -593,14 +593,14 @@ export default function UsersPage() {
                       border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
                     }}>
                       <Upload size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
-                      <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, lineHeight: 1.4 }}>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
                         Need to add many customers at once?{' '}
                         <span style={{ color: 'var(--color-primary-600)', fontWeight: 600 }}>Use the import tool</span> on the Customers tab.
                       </p>
                     </div>
 
                     <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingTop: 12 }}>
-                      <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 8px' }}>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
                         Looking to add a staff member instead?
                       </p>
                       <button
@@ -663,7 +663,7 @@ export default function UsersPage() {
                 return (
                   <button key={tab} onClick={() => setTab(tab)} style={{
                     padding: '12px 18px', fontSize: '0.82rem', fontWeight: filters.tab === tab ? 700 : 500,
-                    color: filters.tab === tab ? 'var(--color-primary-500)' : '#9ca3af',
+                    color: filters.tab === tab ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                     background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     borderBottom: `2px solid ${filters.tab === tab ? 'var(--color-primary-500)' : 'transparent'}`,
                     marginBottom: -1, textTransform: 'capitalize', transition: 'color 150ms',
@@ -690,7 +690,7 @@ export default function UsersPage() {
               const phoneCount = users.filter(u => selectedIds.includes(u.id) && u.phone && !u.phone_verified_at).length;
               return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
-                  <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>{selectedIds.length} selected</span>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{selectedIds.length} selected</span>
 
                   {emailCount > 0 && (
                     <button onClick={handleBulkVerifyEmail} style={{
@@ -741,7 +741,7 @@ export default function UsersPage() {
           {/* Search + filter toggle */}
           <div style={{ padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1 }}>
-              <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#c4b5fd', pointerEvents: 'none' }} />
+              <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
               <input
                 type="text"
                 placeholder="Search name, email, phone…"
@@ -751,7 +751,7 @@ export default function UsersPage() {
                   width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
                   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
                   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-                  color: '#111827', outline: 'none', fontFamily: 'inherit',
+                  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
                   boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
                 }}
                 onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
@@ -830,7 +830,7 @@ export default function UsersPage() {
 
               {hasFilters && (
                 <button onClick={resetFilters} style={{
-                  fontSize: '0.78rem', fontWeight: 600, color: '#c4b5fd',
+                  fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-tertiary)',
                   background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                   padding: '0 4px', transition: 'color 150ms',
                 }}
@@ -889,7 +889,7 @@ export default function UsersPage() {
                       <tr>
                         <td colSpan={8} style={{ padding: '64px 24px', textAlign: 'center' }}>
                           <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-                          <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No users found</p>
+                          <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>No users found</p>
                           {hasFilters && (
                             <button onClick={resetFilters} style={{
                               fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
@@ -943,14 +943,14 @@ export default function UsersPage() {
                                 }}
                               />
                               <div style={{ minWidth: 0 }}>
-                                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {user.name}
                                 </p>
-                                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {user.email}
                                 </p>
                                 {user.phone && (
-                                  <p style={{ fontSize: '0.65rem', color: '#c4b5fd', fontFamily: 'monospace', margin: 0 }}>
+                                  <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: 0 }}>
                                     {user.phone}
                                   </p>
                                 )}
@@ -959,7 +959,7 @@ export default function UsersPage() {
                           </td>
 
                           <td style={{ padding: '12px 16px' }}>
-                            <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>
+                            <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                               {showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab ? (user.department || '—') : (user.company_name || '—')}
                             </span>
                           </td>
@@ -978,11 +978,11 @@ export default function UsersPage() {
                           </td>
 
                           <td style={{ padding: '12px 16px' }}>
-                            <span style={{ fontSize: '0.75rem', color: user.last_login_at ? '#374151' : '#d1d5db' }}>
+                            <span style={{ fontSize: '0.75rem', color: user.last_login_at ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                               {fmtDate(user.last_login_at)}
                             </span>
                             {user.last_login_at && (
-                              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '1px 0 0' }}>
+                              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>
                                 {new Date(user.last_login_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
                               </p>
                             )}
@@ -1014,7 +1014,7 @@ export default function UsersPage() {
                                 <span style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 3,
                                   padding: '2px 7px', borderRadius: 20, fontSize: '0.62rem', fontWeight: 700,
-                                  background: 'rgba(107,114,128,0.08)', color: '#6b7280',
+                                  background: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)',
                                   boxShadow: '0 0 0 1px rgba(107,114,128,0.2)',
                                 }}>
                                   <AlertCircle size={9} /> Unverified
@@ -1063,7 +1063,7 @@ export default function UsersPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
             }}>
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
                 Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} users
               </p>
 
@@ -1099,7 +1099,7 @@ export default function UsersPage() {
                         cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms',
                         background: isActive ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'none',
                         border: isActive ? 'none' : '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-                        color: isActive ? 'white' : '#9ca3af',
+                        color: isActive ? 'white' : 'var(--text-tertiary)',
                         boxShadow: isActive ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
                       }}
                       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}

@@ -106,7 +106,7 @@ function SearchableDropdown({ type, value, onSelect, inputSt, labelSt, audio }) 
             {open && results.length > 0 && (
                 <div style={{
                     position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 200,
-                    background: '#1a1a2e', border: `1px solid ${C.border}`,
+                    background: 'var(--surface-card, #fff)', border: `1px solid ${C.border}`,
                     borderRadius: 8, marginTop: 4, overflow: 'hidden',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                 }}>

@@ -146,7 +146,7 @@ export default function AdminTickets() {
       render: (row) => (
         <div>
           <p style={{ fontWeight: 600, fontSize: '0.85rem', margin: 0 }}>{row.subject}</p>
-          <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '2px 0 0' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
             {row.category?.charAt(0).toUpperCase() + row.category?.slice(1)}
           </p>
         </div>
@@ -174,7 +174,7 @@ export default function AdminTickets() {
       label: 'Assigned To',
       render: (row) => row.assigned_to
         ? <span style={{ fontSize: '0.82rem' }}>{row.assigned_to.name}</span>
-        : <span style={{ fontSize: '0.78rem', color: '#9ca3af', fontStyle: 'italic' }}>Unassigned</span>,
+        : <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Unassigned</span>,
     },
     {
       key: 'replies_count',
@@ -188,7 +188,7 @@ export default function AdminTickets() {
     {
       key: 'created_at',
       label: 'Created',
-      render: (row) => <span style={{ fontSize: '0.78rem', color: '#6b7280' }}>{format(new Date(row.created_at), 'dd MMM yy')}</span>,
+      render: (row) => <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{format(new Date(row.created_at), 'dd MMM yy')}</span>,
     },
     {
       key: 'actions',
@@ -278,18 +278,18 @@ export default function AdminTickets() {
         {trashLoading ? (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}><LoadingSpinner /></div>
         ) : trashedTickets.length === 0 ? (
-          <p style={{ textAlign: 'center', color: '#9ca3af', padding: 40 }}>Trash is empty</p>
+          <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: 40 }}>Trash is empty</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {trashedTickets.map(t => (
               <div key={t.id} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '12px 16px', borderRadius: 10, border: '1px solid #f3f4f6', background: '#fafafa'
+                padding: '12px 16px', borderRadius: 10, border: '1px solid var(--line)', background: 'var(--surface-input)'
               }}>
                 <div>
                   <span style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--color-primary-500)', fontSize: '0.8rem' }}>{t.ticket_number}</span>
                   <span style={{ marginLeft: 12, fontSize: '0.85rem' }}>{t.subject}</span>
-                  <span style={{ marginLeft: 12, fontSize: '0.75rem', color: '#9ca3af' }}>
+                  <span style={{ marginLeft: 12, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
                     Deleted {t.deleted_at ? format(new Date(t.deleted_at), 'dd MMM yyyy') : ''}
                   </span>
                 </div>

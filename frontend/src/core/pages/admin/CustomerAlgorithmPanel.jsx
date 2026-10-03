@@ -31,7 +31,7 @@ const BOOST_BADGES = [
   { key: 'social_proof', label: 'Social Proof', color: '#3b82f6' },
   { key: 'bundle',       label: 'Bundle',       color: '#10b981' },
   { key: 'urgency',      label: 'Urgency',      color: '#ef4444' },
-  { key: 'tip',          label: 'Tip',          color: '#6b7280' },
+  { key: 'tip',          label: 'Tip',          color: 'var(--text-secondary)' },
 ];
 
 const SEGMENT_META = {
@@ -40,12 +40,12 @@ const SEGMENT_META = {
   at_risk:  { bg: 'rgba(249,115,22,0.12)', color: '#c2410c', label: 'At Risk'  },
   dormant:  { bg: 'rgba(239,68,68,0.12)',   color: '#b91c1c', label: 'Dormant'  },
   new:      { bg: 'rgba(59,130,246,0.12)',  color: '#1d4ed8', label: 'New'      },
-  default:  { bg: 'rgba(107,114,128,0.12)', color: '#4b5563', label: 'Default'  },
+  default:  { bg: 'rgba(107,114,128,0.12)', color: 'var(--text-secondary)', label: 'Default'  },
 };
 
 const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
   diamond:  { bg: 'rgba(6,182,212,0.1)',   color: '#0e7490', ring: 'rgba(6,182,212,0.25)'   },
@@ -95,7 +95,7 @@ function Toggle({ checked, onChange, disabled }) {
         position: 'absolute', top: 4,
         left: checked ? 22 : 4,
         width: 16, height: 16, borderRadius: '50%',
-        background: '#fff', transition: 'left 0.2s',
+        background: 'var(--surface-card, #fff)', transition: 'left 0.2s',
         boxShadow: '0 1px 3px rgba(0,0,0,0.25)',
       }} />
     </div>
@@ -174,18 +174,18 @@ function RuleModal({ rule, onClose, onSave }) {
   const inp = {
     width: '100%', padding: '8px 12px', borderRadius: 8,
     border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
-    background: 'var(--bg-secondary,#f9fafb)',
-    color: 'var(--text-primary,#111827)',
+    background: 'var(--bg-secondary,var(--surface-input))',
+    color: 'var(--text-primary,var(--text-primary))',
     fontSize: 13, outline: 'none', boxSizing: 'border-box',
   };
-  const lbl = { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary,#6b7280)', marginBottom: 4, display: 'block' };
+  const lbl = { fontSize: 12, fontWeight: 600, color: 'var(--text-secondary,var(--text-secondary))', marginBottom: 4, display: 'block' };
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'var(--bg-primary,#fff)', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 24px 60px rgba(0,0,0,0.2)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', overflow: 'hidden' }}>
+      <div style={{ background: 'var(--bg-primary,var(--surface-card, #fff))', borderRadius: 16, width: '100%', maxWidth: 520, boxShadow: '0 24px 60px rgba(0,0,0,0.2)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', overflow: 'hidden' }}>
         <div style={{ padding: '18px 24px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'linear-gradient(135deg,color-mix(in srgb, var(--color-primary-500) 8%, transparent),color-mix(in srgb, var(--color-primary-600) 4%, transparent))' }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>{rule ? 'Edit Segment Rule' : 'New Segment Rule'}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: '#6b7280', lineHeight: 1 }}>×</button>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,var(--text-primary))' }}>{rule ? 'Edit Segment Rule' : 'New Segment Rule'}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--text-secondary)', lineHeight: 1 }}>×</button>
         </div>
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
@@ -222,11 +222,11 @@ function RuleModal({ rule, onClose, onSave }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Toggle checked={form.is_active} onChange={v => set('is_active', v)} />
-            <span style={{ fontSize: 13, color: '#6b7280' }}>Active</span>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Active</span>
           </div>
         </div>
         <div style={{ padding: '14px 24px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent', color: '#6b7280', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+          <button onClick={onClose} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
           <button onClick={handleSave} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: saving ? 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)' : 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
             {saving && <Spinner size={14} />}
             {saving ? 'Saving…' : 'Save Rule'}
@@ -368,20 +368,20 @@ function AlgoDevNotesModal({ onClose }) {
       zIndex: 1000, padding: 24,
     }} onClick={onClose}>
       <div style={{
-        background: "var(--bg-primary, #fff)", borderRadius: 12, width: "100%", maxWidth: 800,
+        background: "var(--bg-primary, var(--surface-card, #fff))", borderRadius: 12, width: "100%", maxWidth: 800,
         maxHeight: "90vh", display: "flex", flexDirection: "column",
         boxShadow: "0 20px 60px rgba(0,0,0,0.3)",
       }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--border,#e5e7eb)" }}>
+        <div style={{ padding: "20px 24px 0", borderBottom: "1px solid var(--border,var(--line))" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
             <span style={{ fontFamily: "monospace", fontSize: 14, fontWeight: 700, color: "var(--color-primary-500)" }}>
               // dev notes — algorithm system
             </span>
-            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "#9ca3af" }}>✕</button>
+            <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 18, color: "var(--text-tertiary)" }}>✕</button>
           </div>
-          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#9ca3af", marginBottom: 14 }}>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "var(--text-tertiary)", marginBottom: 14 }}>
             internal analysis · not visible to customers
           </div>
           <div style={{ display: "flex", gap: 0 }}>
@@ -389,7 +389,7 @@ function AlgoDevNotesModal({ onClose }) {
               <button key={t} onClick={() => setTab(t)} style={{
                 padding: "9px 18px", background: "none", border: "none",
                 borderBottom: tab === t ? "2px solid var(--color-primary-500)" : "2px solid transparent",
-                color: tab === t ? "var(--color-primary-500)" : "var(--text-secondary,#6b7280)",
+                color: tab === t ? "var(--color-primary-500)" : "var(--text-secondary,var(--text-secondary))",
                 fontFamily: "monospace", fontSize: 12, cursor: "pointer",
                 opacity: tab === t ? 1 : 0.6, marginBottom: -1,
               }}>{t}</button>
@@ -413,11 +413,11 @@ function AlgoDevNotesModal({ onClose }) {
                   background: `${SEV_COLOR[n.severity]}18`,
                   padding: "2px 7px", borderRadius: 3,
                 }}>{n.severity}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary,#111)" }}>{n.title}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary,var(--text-primary))" }}>{n.title}</span>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65, marginBottom: 6 }}>{n.detail}</div>
-              <div style={{ fontSize: 11, fontFamily: "monospace", color: "#9ca3af" }}>
-                <span style={{ color: "#6b7280" }}>→ outcome: </span>{n.outcome}
+              <div style={{ fontSize: 12, color: "var(--text-secondary,var(--text-secondary))", lineHeight: 1.65, marginBottom: 6 }}>{n.detail}</div>
+              <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-tertiary)" }}>
+                <span style={{ color: "var(--text-secondary)" }}>→ outcome: </span>{n.outcome}
               </div>
             </div>
           ))}
@@ -428,14 +428,14 @@ function AlgoDevNotesModal({ onClose }) {
               border: "1px solid var(--color-primary-500)22", background: "var(--color-primary-500)06",
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--color-primary-500)", marginBottom: 6 }}>✓ {n.title}</div>
-              <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65 }}>{n.detail}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary,var(--text-secondary))", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
 
           {tab === "future" && ALGO_DEV_NOTES.future.map((n, i) => (
             <div key={i} style={{
               padding: "14px 16px", borderRadius: 8,
-              border: "1px solid var(--border,#e5e7eb)",
+              border: "1px solid var(--border,var(--line))",
               background: "var(--bg-secondary,#f9fafb)",
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
@@ -446,9 +446,9 @@ function AlgoDevNotesModal({ onClose }) {
                   background: `${HOR_COLOR[n.horizon]}18`,
                   padding: "2px 7px", borderRadius: 3,
                 }}>{n.horizon}-term</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary,#111)" }}>{n.title}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text-primary,var(--text-primary))" }}>{n.title}</span>
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)", lineHeight: 1.65 }}>{n.detail}</div>
+              <div style={{ fontSize: 12, color: "var(--text-secondary,var(--text-secondary))", lineHeight: 1.65 }}>{n.detail}</div>
             </div>
           ))}
         </div>
@@ -737,11 +737,11 @@ export default function CustomerAlgorithmPanel() {
   // ── Styles ────────────────────────────────────────────────────────────────────
   const s = {
     page: {
-      minHeight: '100vh', background: 'var(--bg-primary,#f9fafb)',
+      minHeight: '100vh', background: 'var(--bg-primary,var(--surface-input))',
       padding: '24px', fontFamily: 'var(--font-body,system-ui,sans-serif)',
     },
     card: {
-      background: 'var(--bg-secondary,#fff)', borderRadius: 16,
+      background: 'var(--bg-secondary,var(--surface-card, #fff))', borderRadius: 16,
       border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
       boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)', overflow: 'hidden',
     },
@@ -764,27 +764,27 @@ export default function CustomerAlgorithmPanel() {
       padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
       fontSize: 13, fontWeight: 600, border: 'none',
       background: active ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'transparent',
-      color: active ? '#fff' : 'var(--text-secondary,#6b7280)',
+      color: active ? '#fff' : 'var(--text-secondary,var(--text-secondary))',
       transition: 'all 0.2s',
     }),
     th: {
       padding: '10px 14px', fontSize: 11, fontWeight: 700,
-      color: 'var(--text-secondary,#6b7280)', textTransform: 'uppercase',
+      color: 'var(--text-secondary,var(--text-secondary))', textTransform: 'uppercase',
       letterSpacing: '0.06em', textAlign: 'left',
       borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
       background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
     },
     td: {
       padding: '12px 14px', fontSize: 13,
-      color: 'var(--text-primary,#111827)',
+      color: 'var(--text-primary,var(--text-primary))',
       borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)',
       verticalAlign: 'middle',
     },
     miniInput: {
       padding: '7px 10px', borderRadius: 8, fontSize: 12,
       border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
-      background: 'var(--bg-secondary,#f9fafb)',
-      color: 'var(--text-primary,#111)', outline: 'none',
+      background: 'var(--bg-secondary,var(--surface-input))',
+      color: 'var(--text-primary,var(--text-primary))', outline: 'none',
       boxSizing: 'border-box', width: '100%',
     },
   };
@@ -806,7 +806,7 @@ export default function CustomerAlgorithmPanel() {
             <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--color-primary-500)' }}>
               Customer Scoring Algorithm
             </h1>
-            <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--text-secondary,#6b7280)' }}>
+            <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--text-secondary,var(--text-secondary))' }}>
               RFM + Loyalty + Engagement weighted scoring across {scoresMeta?.total?.toLocaleString() ?? '—'} customers
             </p>
           </div>
@@ -848,7 +848,7 @@ export default function CustomerAlgorithmPanel() {
             ].map(({ label, value }) => (
               <div key={label} style={{ ...s.card, padding: '14px 18px' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--color-primary-500)' }}>{value}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary,#6b7280)', fontWeight: 600, marginTop: 2 }}>{label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary,var(--text-secondary))', fontWeight: 600, marginTop: 2 }}>{label}</div>
               </div>
             ))}
           </div>
@@ -878,7 +878,7 @@ export default function CustomerAlgorithmPanel() {
             {loadingScores ? (
               <div style={{ padding: 60, display: 'flex', justifyContent: 'center' }}><Spinner size={32} /></div>
             ) : scores.length === 0 ? (
-              <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>
+              <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>📊</div>
                 <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>No scores yet</div>
                 <div style={{ fontSize: 13 }}>
@@ -902,12 +902,12 @@ export default function CustomerAlgorithmPanel() {
                         const sc   = parseFloat(row.total_score);
                         return (
                           <tr key={row.customer_id} className="algo-row">
-                            <td style={{ ...s.td, width: 44, fontWeight: 700, color: rank <= 3 ? 'var(--color-primary-500)' : '#6b7280' }}>
+                            <td style={{ ...s.td, width: 44, fontWeight: 700, color: rank <= 3 ? 'var(--color-primary-500)' : 'var(--text-secondary)' }}>
                               {rank <= 3 ? ['🥇','🥈','🥉'][rank - 1] : rank}
                             </td>
                             <td style={s.td}>
                               <div style={{ fontWeight: 600, fontSize: 13 }}>{row.full_name}</div>
-                              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{row.email}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{row.email}</div>
                             </td>
                             <td style={s.td}><TierBadge tier={row.tier} tierOptions={tierOptions} /></td>
                             <td style={{ ...s.td, minWidth: 100 }}>
@@ -918,11 +918,11 @@ export default function CustomerAlgorithmPanel() {
                             </td>
                             {['recency_raw','frequency_raw','monetary_raw','loyalty_raw','engagement_raw'].map(sig => (
                               <td key={sig} style={{ ...s.td, minWidth: 70 }}>
-                                <div style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', marginBottom: 3 }}>{row[sig]}</div>
+                                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 3 }}>{row[sig]}</div>
                                 <ScoreBar value={row[sig]} height={4} color="color-mix(in srgb, var(--color-primary-500) 50%, transparent)" />
                               </td>
                             ))}
-                            <td style={{ ...s.td, fontSize: 11, color: '#6b7280', whiteSpace: 'nowrap' }}>
+                            <td style={{ ...s.td, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                               {row.scored_at ? new Date(row.scored_at).toLocaleDateString() : '—'}
                             </td>
                           </tr>
@@ -933,7 +933,7 @@ export default function CustomerAlgorithmPanel() {
                 </div>
                 {scoresMeta && scoresMeta.last_page > 1 && (
                   <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-                    <span style={{ fontSize: 12, color: '#6b7280' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                       Showing {scoresMeta.from}–{scoresMeta.to} of {scoresMeta.total?.toLocaleString()}
                     </span>
                     <div style={{ display: 'flex', gap: 6 }}>
@@ -955,8 +955,8 @@ export default function CustomerAlgorithmPanel() {
             <div style={s.card}>
               <div style={{ padding: '18px 24px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>Signal Weights</h2>
-                  <p style={{ margin: '3px 0 0', fontSize: 12, color: '#6b7280' }}>Adjust how much each signal contributes to the final score.</p>
+                  <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,var(--text-primary))' }}>Signal Weights</h2>
+                  <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>Adjust how much each signal contributes to the final score.</p>
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 700, padding: '4px 14px', borderRadius: 20, background: Math.abs(totalWeight - 100) <= 1 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: Math.abs(totalWeight - 100) <= 1 ? '#10b981' : '#ef4444' }}>
                   Total: {totalWeight}
@@ -975,8 +975,8 @@ export default function CustomerAlgorithmPanel() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <sig.icon size={18} style={{ color: sig.color, flexShrink: 0 }} />
                             <div>
-                              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary,#111827)' }}>{sig.label}</div>
-                              <div style={{ fontSize: 11, color: '#6b7280' }}>{sig.desc}</div>
+                              <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary,var(--text-primary))' }}>{sig.label}</div>
+                              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{sig.desc}</div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -1005,7 +1005,7 @@ export default function CustomerAlgorithmPanel() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={s.card}>
                 <div style={{ padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
-                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>Scoring Formula</h3>
+                  <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: 'var(--text-primary,var(--text-primary))' }}>Scoring Formula</h3>
                 </div>
                 <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ fontFamily: 'monospace', fontSize: 12, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderRadius: 8, padding: '10px 14px', lineHeight: 1.7 }}>
@@ -1015,7 +1015,7 @@ export default function CustomerAlgorithmPanel() {
                   </div>
                   {SIGNALS.map(sig => (
                     <div key={sig.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
-                      <span style={{ color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
                         <sig.icon size={12} style={{ color: sig.color }} /> {sig.label}
                       </span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1027,12 +1027,12 @@ export default function CustomerAlgorithmPanel() {
                 </div>
               </div>
               <div style={{ ...s.card, padding: '16px 20px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', marginBottom: 8 }}>SCORE BANDS</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 8 }}>SCORE BANDS</div>
                 {[['75–100','#10b981','High value'],['50–74','#f59e0b','Growing'],['25–49','#f97316','At risk'],['0–24','#ef4444','Dormant']].map(([range, color, label]) => (
                   <div key={range} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary,#111827)', minWidth: 60 }}>{range}</span>
-                    <span style={{ fontSize: 12, color: '#6b7280' }}>{label}</span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary,var(--text-primary))', minWidth: 60 }}>{range}</span>
+                    <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{label}</span>
                   </div>
                 ))}
               </div>
@@ -1047,15 +1047,15 @@ export default function CustomerAlgorithmPanel() {
           <div style={s.card}>
             <div style={{ padding: '18px 24px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,#111827)' }}>Segment Rules</h2>
-                <p style={{ margin: '3px 0 0', fontSize: 12, color: '#6b7280' }}>Conditional multipliers applied on top of base weights during scoring.</p>
+                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary,var(--text-primary))' }}>Segment Rules</h2>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--text-secondary)' }}>Conditional multipliers applied on top of base weights during scoring.</p>
               </div>
               <button className="algo-btn" style={s.btn('primary')} onClick={() => setRuleModal('new')}>+ Add Rule</button>
             </div>
             {loadingConfig ? (
               <div style={{ padding: 40, display: 'flex', justifyContent: 'center' }}><Spinner size={28} /></div>
             ) : segmentRules.length === 0 ? (
-              <div style={{ padding: 60, textAlign: 'center', color: '#6b7280' }}>
+              <div style={{ padding: 60, textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <div style={{ fontSize: 36, marginBottom: 10 }}>📐</div>
                 <div style={{ fontWeight: 700, marginBottom: 6 }}>No segment rules yet</div>
                 <div style={{ fontSize: 13 }}>Rules let you boost or penalise specific signals for matching customers.</div>
@@ -1096,7 +1096,7 @@ export default function CustomerAlgorithmPanel() {
                             {rule.boost_percent >= 0 ? '+' : ''}{rule.boost_percent}%
                           </span>
                         </td>
-                        <td style={{ ...s.td, fontSize: 12, color: '#6b7280' }}>{rule.action_label || '—'}</td>
+                        <td style={{ ...s.td, fontSize: 12, color: 'var(--text-secondary)' }}>{rule.action_label || '—'}</td>
                         <td style={s.td}>
                           <div style={{ width: 10, height: 10, borderRadius: '50%', background: rule.is_active ? '#10b981' : '#9ca3af' }} />
                         </td>
@@ -1140,7 +1140,7 @@ export default function CustomerAlgorithmPanel() {
                 {loadingScores ? (
                   <div style={{ padding: 30, display: 'flex', justifyContent: 'center' }}><Spinner size={24} /></div>
                 ) : filteredScores.length === 0 ? (
-                  <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: '#9ca3af' }}>No customers found</div>
+                  <div style={{ padding: 30, textAlign: 'center', fontSize: 12, color: 'var(--text-tertiary)' }}>No customers found</div>
                 ) : (
                   filteredScores.map(row => {
                     const sc = parseFloat(row.total_score);
@@ -1160,8 +1160,8 @@ export default function CustomerAlgorithmPanel() {
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 }}>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary,#111)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.full_name}</div>
-                            <div style={{ fontSize: 10, color: '#9ca3af', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.email}</div>
+                            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary,var(--text-primary))', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.full_name}</div>
+                            <div style={{ fontSize: 10, color: 'var(--text-tertiary)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.email}</div>
                           </div>
                           <span style={{ fontWeight: 800, fontSize: 13, color: scoreColor(sc), flexShrink: 0, marginLeft: 8 }}>{sc}</span>
                         </div>
@@ -1182,7 +1182,7 @@ export default function CustomerAlgorithmPanel() {
                     disabled={scoresPage <= 1}
                     onClick={() => loadScores(scoresPage - 1)}
                     style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent', color: 'var(--color-primary-500)', fontSize: 12, cursor: 'pointer', opacity: scoresPage <= 1 ? 0.4 : 1 }}>←</button>
-                  <span style={{ fontSize: 11, color: '#9ca3af' }}>{scoresPage} / {scoresMeta.last_page}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{scoresPage} / {scoresMeta.last_page}</span>
                   <button
                     disabled={scoresPage >= scoresMeta.last_page}
                     onClick={() => loadScores(scoresPage + 1)}
@@ -1193,7 +1193,7 @@ export default function CustomerAlgorithmPanel() {
 
             {/* ── Right: Customer detail + ranked products ── */}
             {!selectedCustomer ? (
-              <div style={{ ...s.card, padding: 60, textAlign: 'center', color: '#6b7280' }}>
+              <div style={{ ...s.card, padding: 60, textAlign: 'center', color: 'var(--text-secondary)' }}>
                 <div style={{ fontSize: 40, marginBottom: 12 }}>👈</div>
                 <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 6 }}>Select a customer</div>
                 <div style={{ fontSize: 13 }}>Click any customer on the left to see their personalised product ranking and manage pins.</div>
@@ -1206,18 +1206,18 @@ export default function CustomerAlgorithmPanel() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text-primary,#111827)' }}>{selectedCustomer.full_name}</h2>
+                        <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text-primary,var(--text-primary))' }}>{selectedCustomer.full_name}</h2>
                         <TierBadge tier={selectedCustomer.tier} tierOptions={tierOptions} />
                         {rankedMeta?.segment && <SegmentBadge segment={rankedMeta.segment} />}
                       </div>
-                      <div style={{ fontSize: 12, color: '#9ca3af' }}>{selectedCustomer.email}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>{selectedCustomer.email}</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 28, fontWeight: 900, color: scoreColor(parseFloat(selectedCustomer.total_score)), lineHeight: 1 }}>
                           {selectedCustomer.total_score}
                         </div>
-                        <div style={{ fontSize: 10, color: '#9ca3af', fontWeight: 600, marginTop: 2 }}>TOTAL SCORE</div>
+                        <div style={{ fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 600, marginTop: 2 }}>TOTAL SCORE</div>
                       </div>
                       {isSuperAdmin && (
                         <button className="algo-btn"
@@ -1238,7 +1238,7 @@ export default function CustomerAlgorithmPanel() {
                         <div key={sig.key}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                             <span style={{ fontSize: 9, fontWeight: 700, color: sig.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{sig.label}</span>
-                            <span style={{ fontSize: 9, fontWeight: 700, color: '#9ca3af' }}>{raw}</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-tertiary)' }}>{raw}</span>
                           </div>
                           <ScoreBar value={raw} color={sig.color} height={5} />
                         </div>
@@ -1279,7 +1279,7 @@ export default function CustomerAlgorithmPanel() {
                   {loadingRanked ? (
                     <div style={{ padding: 50, display: 'flex', justifyContent: 'center' }}><Spinner size={28} /></div>
                   ) : rankedProducts.length === 0 ? (
-                    <div style={{ padding: 50, textAlign: 'center', color: '#9ca3af', fontSize: 13 }}>
+                    <div style={{ padding: 50, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>
                       No {productEntityType}s found.
                     </div>
                   ) : (
@@ -1320,7 +1320,7 @@ export default function CustomerAlgorithmPanel() {
                                     <div>
                                       <div style={{ fontWeight: 600, fontSize: 13 }}>{product.name}</div>
                                       {product.category_name && (
-                                        <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>{product.category_name}</div>
+                                        <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 1 }}>{product.category_name}</div>
                                       )}
                                     </div>
                                   </div>
@@ -1343,7 +1343,7 @@ export default function CustomerAlgorithmPanel() {
                                   {product.boost_message ? (
                                     <Pill color={badgeMeta?.color ?? '#6b7280'}>{product.badge_type}</Pill>
                                   ) : (
-                                    <span style={{ color: '#d1d5db', fontSize: 12 }}>—</span>
+                                    <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>—</span>
                                   )}
                                 </td>
 
@@ -1376,7 +1376,7 @@ export default function CustomerAlgorithmPanel() {
                   {/* Pagination */}
                   {rankedMeta && rankedMeta.last_page > 1 && (
                     <div style={{ padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-                      <span style={{ fontSize: 12, color: '#9ca3af' }}>
+                      <span style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
                         {rankedMeta.from}–{rankedMeta.to} of {rankedMeta.total?.toLocaleString()}
                       </span>
                       <div style={{ display: 'flex', gap: 6 }}>

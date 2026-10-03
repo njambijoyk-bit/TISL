@@ -15,14 +15,14 @@ import customerTiersAPI from '../../../_shared/api/customerTiers';
 
 const STATUS_STYLES = {
   active:      { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981',  ring: 'rgba(16,185,129,0.25)'  },
-  inactive:    { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af',  ring: 'rgba(107,114,128,0.2)'  },
+  inactive:    { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af',  ring: 'rgba(107,114,128,0.2)'  },
   suspended:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b',  ring: 'rgba(245,158,11,0.25)'  },
   blacklisted: { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444',  ring: 'rgba(239,68,68,0.25)'   },
 };
 
 const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
@@ -68,7 +68,7 @@ const fmtPts  = (n) => Number(n ?? 0).toLocaleString();
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, var(--surface-card, #fff))',
   borderRadius: 12,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
@@ -78,7 +78,7 @@ const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#374151', outline: 'none',
+  color: 'var(--text-primary)', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
@@ -86,7 +86,7 @@ const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-pr
 const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
-  <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
+  <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
     {children}
   </span>
 );
@@ -104,9 +104,9 @@ function StatCard({ icon, label, value, sub, accent, bg }) {
         {icon}
       </div>
       <div style={{ minWidth: 0 }}>
-        <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
+        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
         <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value}</p>
-        {sub && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>{sub}</p>}
+        {sub && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '3px 0 0' }}>{sub}</p>}
       </div>
     </div>
   );
@@ -137,7 +137,7 @@ function SortButton({ field, sortBy, sortOrder, onSort, align = 'left' }) {
         justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
         width: '100%',
         fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-        color: active ? 'var(--color-primary-500)' : '#9ca3af',
+        color: active ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
         background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         transition: 'color 150ms',
       }}
@@ -293,7 +293,7 @@ export default function Customers() {
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
             Customers
           </h1>
-          <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
             {meta.total.toLocaleString()} total customers
           </p>
         </div>
@@ -375,7 +375,7 @@ export default function Customers() {
       <div style={card}>
         <div style={{ padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
-            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#c4b5fd', pointerEvents: 'none' }} />
+            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
             <input
               type="text"
               placeholder="Search by name, email, phone, company…"
@@ -385,7 +385,7 @@ export default function Customers() {
                 width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
                 background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
                 border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-                color: '#111827', outline: 'none', fontFamily: 'inherit',
+                color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
                 boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
               }}
               onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
@@ -457,7 +457,7 @@ export default function Customers() {
             </select>
             {hasFilters && (
               <button onClick={clearFilters} style={{
-                fontSize: '0.78rem', fontWeight: 600, color: '#c4b5fd',
+                fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-tertiary)',
                 background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 padding: '0 4px', transition: 'color 150ms',
               }}
@@ -543,7 +543,7 @@ export default function Customers() {
                     <tr>
                       <td colSpan={11} style={{ padding: '64px 24px', textAlign: 'center' }}>
                         <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>No customers found</p>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>No customers found</p>
                         {hasFilters && (
                           <button onClick={clearFilters} style={{
                             fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-500)',
@@ -581,13 +581,13 @@ export default function Customers() {
                                 style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block' }}
                               />
                               <div style={{ minWidth: 0 }}>
-                                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {c.full_name}
                                 </p>
-                                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                   {c.email}
                                 </p>
-                                <p style={{ fontSize: '0.65rem', color: '#c4b5fd', fontFamily: 'monospace', margin: 0 }}>
+                                <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', margin: 0 }}>
                                   {c.customer_number}
                                 </p>
                               </div>
@@ -617,18 +617,18 @@ export default function Customers() {
 
                           {/* ── Orders ── */}
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {(c.total_orders ?? 0).toLocaleString()}
                             </span>
                           </td>
 
                           {/* ── Total spent ── */}
                           <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827' }}>
+                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>
                               {fmt(c.total_spent)}
                             </span>
                             {c.average_order_value > 0 && (
-                              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '2px 0 0', whiteSpace: 'nowrap' }}>
+                              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '2px 0 0', whiteSpace: 'nowrap' }}>
                                 avg {fmt(c.average_order_value)}
                               </p>
                             )}
@@ -636,7 +636,7 @@ export default function Customers() {
 
                           {/* ── Last order ── */}
                           <td style={{ padding: '12px 16px' }}>
-                            <span style={{ fontSize: '0.78rem', color: c.last_order_date ? '#374151' : '#d1d5db' }}>
+                            <span style={{ fontSize: '0.78rem', color: c.last_order_date ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
                               {fmtDate(c.last_order_date)}
                             </span>
                           </td>
@@ -647,7 +647,7 @@ export default function Customers() {
                               ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>
                                   {Number(c.discount_percentage).toFixed(1)}%
                                 </span>
-                              : <span style={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</span>
+                              : <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>—</span>
                             }
                           </td>
 
@@ -657,7 +657,7 @@ export default function Customers() {
                               ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#059669' }}>
                                   {fmt(c.store_credit)}
                                 </span>
-                              : <span style={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</span>
+                              : <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>—</span>
                             }
                           </td>
 
@@ -667,15 +667,15 @@ export default function Customers() {
                               ? <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#d97706' }}>
                                   {fmtPts(c.loyalty_points)}
                                 </span>
-                              : <span style={{ fontSize: '0.78rem', color: '#d1d5db' }}>—</span>
+                              : <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>—</span>
                             }
                           </td>
 
                           {/* ── Sales rep ── */}
                           <td style={{ padding: '12px 16px' }}>
                             {c.sales_rep
-                              ? <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>{c.sales_rep.name}</span>
-                              : <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>
+                              ? <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{c.sales_rep.name}</span>
+                              : <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>
                             }
                           </td>
 
@@ -686,7 +686,7 @@ export default function Customers() {
                               style={{
                                 width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer',
-                                color: '#c4b5fd', transition: 'background 120ms, color 120ms',
+                                color: 'var(--text-tertiary)', transition: 'background 120ms, color 120ms',
                               }}
                               onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
@@ -711,7 +711,7 @@ export default function Customers() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
           }}>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Showing {customers.length.toLocaleString()} of {meta.total.toLocaleString()} customers
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
@@ -741,7 +741,7 @@ export default function Customers() {
                   padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer',
                   background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
-                  color: '#9ca3af', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
+                  color: 'var(--text-tertiary)', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
                 }}
                 onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-600)'; } }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
@@ -756,7 +756,7 @@ export default function Customers() {
         )}
         {!loading && customers.length > 0 && page >= meta.last_page && (
           <div style={{ padding: '10px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               All {meta.total.toLocaleString()} customers loaded
             </p>
           </div>
@@ -774,11 +774,11 @@ export default function Customers() {
                   <Gift size={18} style={{ color: '#d97706' }} />
                 </div>
                 <div>
-                  <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>Customer Birthdays</p>
-                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>Plan birthday promos in advance</p>
+                  <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1px' }}>Customer Birthdays</p>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>Plan birthday promos in advance</p>
                 </div>
               </div>
-              <button onClick={() => setShowBirthdaysModal(false)} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
+              <button onClick={() => setShowBirthdaysModal(false)} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
                 onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
                 onMouseLeave={e => e.currentTarget.style.background = 'none'}
               >
@@ -814,19 +814,19 @@ export default function Customers() {
               {birthdaysLoading ? (
                 <div style={{ padding: '48px 0', textAlign: 'center' }}>
                   <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-                  <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>Loading…</p>
                 </div>
               ) : birthdays.length === 0 ? (
                 <div style={{ padding: '48px 0', textAlign: 'center' }}>
                   <Gift size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-                  <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>
                     No customer birthdays in the next {birthdayDays} days
                   </p>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   {/* Count summary */}
-                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 6px' }}>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 6px' }}>
                     {birthdays.length} customer{birthdays.length !== 1 ? 's' : ''} · next {birthdayDays} days
                   </p>
 
@@ -858,17 +858,17 @@ export default function Customers() {
                           </div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 1 }}>
-                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</p>
+                              <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</p>
                               {/* Tier badge */}
                               <span style={{ flexShrink: 0, padding: '1px 7px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: tr.bg, color: tr.color, boxShadow: `0 0 0 1px ${tr.ring}` }}>
                                 {c.tier}
                               </span>
                             </div>
-                            <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: '0 0 1px' }}>
+                            <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: '0 0 1px' }}>
                               {new Date(c.birthday).toLocaleDateString('en-KE', { day: 'numeric', month: 'long' })}
                               {c.turning && ` · Turning ${c.turning}`}
                             </p>
-                            <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>{c.email}</p>
+                            <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'monospace' }}>{c.email}</p>
                           </div>
                         </div>
 

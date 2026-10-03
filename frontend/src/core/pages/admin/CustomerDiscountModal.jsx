@@ -19,7 +19,7 @@ const pct    = (n) => `${Number(n ?? 0).toFixed(1)}%`;
 
 const TIER_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
@@ -59,7 +59,7 @@ function Spinner({ size = 30 }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: 12 }}>
       <div style={{ width: size, height: size, border: '3px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'dm-spin 0.8s linear infinite' }} />
-      <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Loading…</p>
+      <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>Loading…</p>
     </div>
   );
 }
@@ -70,7 +70,7 @@ function SectionHeading({ icon, label, color = 'var(--color-primary-500)' }) {
       <div style={{ width: 26, height: 26, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${color}18`, color, flexShrink: 0 }}>
         {icon}
       </div>
-      <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#6b7280' }}>{label}</span>
+      <span style={{ fontSize: '0.72rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-secondary)' }}>{label}</span>
     </div>
   );
 }
@@ -88,8 +88,8 @@ function DiscountRow({ label, sub, value, highlight, color = '#374151' }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, background: highlight ? 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' : 'transparent', border: highlight ? '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : '1px solid transparent' }}>
       <div>
-        <p style={{ fontSize: '0.8rem', color: '#374151', margin: 0, fontWeight: highlight ? 600 : 400 }}>{label}</p>
-        {sub && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>{sub}</p>}
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', margin: 0, fontWeight: highlight ? 600 : 400 }}>{label}</p>
+        {sub && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{sub}</p>}
       </div>
       <span style={{ fontSize: highlight ? '1rem' : '0.85rem', fontWeight: highlight ? 800 : 600, color, letterSpacing: highlight ? '-0.02em' : 0 }}>{value}</span>
     </div>
@@ -221,28 +221,28 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
       {/* search bar */}
       <div style={{ padding: '14px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }}>
         <div ref={dropRef} style={{ position: 'relative' }}>
-          <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: '#c4b5fd', pointerEvents: 'none' }} />
+          <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
           <input
             type="text"
             placeholder="Search customer by name or email…"
             value={query}
             onChange={e => { setQuery(e.target.value); if (!e.target.value) clearCustomer(); }}
-            style={{ width: '100%', padding: '8px 34px 8px 34px', borderRadius: 9, fontSize: '0.82rem', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms' }}
+            style={{ width: '100%', padding: '8px 34px 8px 34px', borderRadius: 9, fontSize: '0.82rem', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms' }}
             onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; if (results.length) setShowDrop(true); }}
             onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
           />
           {selected && (
-            <button onClick={clearCustomer} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 0 }}>
+            <button onClick={clearCustomer} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 0 }}>
               <X size={14} />
             </button>
           )}
 
           {showDrop && !selected && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 10, background: 'white', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', boxShadow: '0 8px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, zIndex: 10, background: 'var(--surface-card, #fff)', borderRadius: 10, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', boxShadow: '0 8px 24px color-mix(in srgb, var(--color-primary-500) 12%, transparent)', overflow: 'hidden' }}>
               {searching ? (
-                <div style={{ padding: '14px 16px', fontSize: '0.78rem', color: '#9ca3af' }}>Searching…</div>
+                <div style={{ padding: '14px 16px', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Searching…</div>
               ) : results.length === 0 ? (
-                <div style={{ padding: '14px 16px', fontSize: '0.78rem', color: '#9ca3af' }}>No customers found</div>
+                <div style={{ padding: '14px 16px', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>No customers found</div>
               ) : results.map(c => {
                 const ts2 = tierStyle(c.tier, tierOptions);
                 return (
@@ -252,12 +252,12 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.first_name} {c.last_name}</p>
-                      <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace' }}>{c.email}</p>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.first_name} {c.last_name}</p>
+                      <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'monospace' }}>{c.email}</p>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 10 }}>
                       <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: ts2.bg, color: ts2.color, textTransform: 'capitalize' }}>{c.tier}</span>
-                      <ChevronRight size={12} style={{ color: '#c4b5fd' }} />
+                      <ChevronRight size={12} style={{ color: 'var(--text-tertiary)' }} />
                     </div>
                   </div>
                 );
@@ -272,7 +272,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
         {!selected && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 24px' }}>
             <Search size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
-            <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0, textAlign: 'center' }}>Search for a customer above to see their full discount &amp; wallet breakdown</p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0, textAlign: 'center' }}>Search for a customer above to see their full discount &amp; wallet breakdown</p>
           </div>
         )}
 
@@ -293,11 +293,11 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: 0 }}>{selected.first_name} {selected.last_name}</p>
+                <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{selected.first_name} {selected.last_name}</p>
                 <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: ts.bg, color: ts.color, textTransform: 'capitalize' }}>{selected.tier}</span>
-                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: 'rgba(107,114,128,0.08)', color: '#6b7280', textTransform: 'capitalize' }}>{selected.customer_type}</span>
+                <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: '0.6rem', fontWeight: 700, background: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)', textTransform: 'capitalize' }}>{selected.customer_type}</span>
               </div>
-              <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0', fontFamily: 'monospace' }}>{selected.email}</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '2px 0 0', fontFamily: 'monospace' }}>{selected.email}</p>
             </div>
           </div>
 
@@ -330,7 +330,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
           <div>
             <SectionHeading icon={<Gift size={13} />} label="Redemption Options" color="var(--color-primary-600)" />
             {redemptionRules.length === 0 ? (
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, padding: '8px 0' }}>No active redemption rules configured.</p>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0, padding: '8px 0' }}>No active redemption rules configured.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {redemptionRules.map(rule => {
@@ -345,12 +345,12 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                       opacity: affordable ? 1 : 0.7,
                     }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: affordable ? 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)' : 'rgba(156,163,175,0.1)', color: affordable ? 'var(--color-primary-600)' : '#9ca3af' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: affordable ? 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)' : 'rgba(156,163,175,0.1)', color: affordable ? 'var(--color-primary-600)' : 'var(--text-tertiary)' }}>
                           {rule.type === 'cashback' ? <Zap size={13} /> : rule.type === 'gift' ? <Gift size={13} /> : <Package size={13} />}
                         </div>
                         <div>
-                          <p style={{ fontSize: '0.8rem', fontWeight: 600, color: affordable ? '#111827' : '#6b7280', margin: '0 0 2px' }}>{rule.name}</p>
-                          <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+                          <p style={{ fontSize: '0.8rem', fontWeight: 600, color: affordable ? 'var(--text-primary)' : 'var(--text-secondary)', margin: '0 0 2px' }}>{rule.name}</p>
+                          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>
                             {fmtPts(rule.points_required)} pts
                             {affordable
                               ? <span style={{ color: '#059669', fontWeight: 600 }}> · unlocked ✓</span>
@@ -360,8 +360,8 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 10 }}>
-                        <p style={{ fontSize: '0.88rem', fontWeight: 800, color: affordable ? 'var(--color-primary-600)' : '#9ca3af', margin: '0 0 1px', letterSpacing: '-0.02em' }}>{fmt(rule.value_kes)}</p>
-                        <p style={{ fontSize: '0.62rem', color: '#9ca3af', margin: 0, textTransform: 'capitalize' }}>{rule.type}</p>
+                        <p style={{ fontSize: '0.88rem', fontWeight: 800, color: affordable ? 'var(--color-primary-600)' : 'var(--text-tertiary)', margin: '0 0 1px', letterSpacing: '-0.02em' }}>{fmt(rule.value_kes)}</p>
+                        <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', margin: 0, textTransform: 'capitalize' }}>{rule.type}</p>
                       </div>
                     </div>
                   );
@@ -409,8 +409,8 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
               <SectionHeading icon={<Star size={13} />} label="Points Multiplier" color="#d97706" />
               <div style={{ padding: '10px 12px', borderRadius: 8, background: 'rgba(217,119,6,0.05)', border: '1px solid rgba(217,119,6,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p style={{ fontSize: '0.8rem', color: '#374151', fontWeight: 500, margin: '0 0 2px' }}>{tierObj.name} multiplier</p>
-                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>Earns {tierObj.loyalty_points_multiplier}× points on every order</p>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', fontWeight: 500, margin: '0 0 2px' }}>{tierObj.name} multiplier</p>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>Earns {tierObj.loyalty_points_multiplier}× points on every order</p>
                 </div>
                 <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#d97706', letterSpacing: '-0.02em' }}>{tierObj.loyalty_points_multiplier}×</span>
               </div>
@@ -429,14 +429,14 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 600, margin: '0 0 2px', color: tierAlwaysFreeShipping ? '#065f46' : hasFreeThreshold ? '#1d4ed8' : '#6b7280' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 600, margin: '0 0 2px', color: tierAlwaysFreeShipping ? '#065f46' : hasFreeThreshold ? '#1d4ed8' : 'var(--text-secondary)' }}>
                       {tierAlwaysFreeShipping
                         ? 'Free shipping on all orders'
                         : hasFreeThreshold
                           ? `Free shipping above ${fmt(freeShippingThreshold)}`
                           : 'No free shipping privilege'}
                     </p>
-                    <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+                    <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>
                       {tierAlwaysFreeShipping
                         ? `${tierObj?.name ?? selected.tier} tier — all orders ship free regardless of amount`
                         : hasFreeThreshold
@@ -448,7 +448,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                     ? <ShieldCheck size={16} style={{ color: '#059669', flexShrink: 0 }} />
                     : hasFreeThreshold
                       ? <ShieldCheck size={16} style={{ color: '#2563eb', flexShrink: 0 }} />
-                      : <AlertCircle size={16} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                      : <AlertCircle size={16} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
                   }
                 </div>
 
@@ -469,7 +469,7 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
 
               {shippingOptions.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 2 }}>
-                  <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', margin: '0 0 4px' }}>Available shipping methods</p>
+                  <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', margin: '0 0 4px' }}>Available shipping methods</p>
                   {shippingOptions.map(opt => {
                     const baseCost  = Number(opt.cost ?? 0);
                     const freeAbove = Number(opt.free_above ?? 0);
@@ -488,16 +488,16 @@ function Tab1({ initialCustomer, tierOptions, typeOptions, loyaltySettings, ship
                       <div key={opt.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 11px', borderRadius: 8, background: 'rgba(37,99,235,0.03)', border: '1px solid rgba(37,99,235,0.1)' }}>
                         <div>
                           <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#1e40af', margin: '0 0 1px' }}>{opt.name}</p>
-                          <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>{subLabel}</p>
+                          <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0 }}>{subLabel}</p>
                         </div>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: customerGetsFree ? '#059669' : '#374151' }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 700, color: customerGetsFree ? '#059669' : 'var(--text-primary)' }}>
                           {displayCost}
                         </span>
                       </div>
                     );
                   })}
                   {tierAlwaysFreeShipping && shippingOptions.some(o => Number(o.cost) > 0) && (
-                    <p style={{ fontSize: '0.65rem', color: '#6b7280', margin: '2px 0 0 2px' }}>* Free on all orders ({tierObj?.name ?? selected.tier} tier benefit)</p>
+                    <p style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', margin: '2px 0 0 2px' }}>* Free on all orders ({tierObj?.name ?? selected.tier} tier benefit)</p>
                   )}
                 </div>
               )}
@@ -610,7 +610,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
           width: '100%', background: 'none', border: 'none', cursor: 'pointer',
           fontFamily: 'inherit', padding: 0,
           fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase',
-          letterSpacing: '0.07em', color: active ? 'var(--color-primary-500)' : '#9ca3af',
+          letterSpacing: '0.07em', color: active ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
           transition: 'color 150ms',
         }}
       >
@@ -635,11 +635,11 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
           <StatPill label="Total pts (loaded)" value={fmtPts(totalLoyaltyPoints)}       accent="#d97706" bg="rgba(217,119,6,0.06)"  />
         </div>
         <div style={{ position: 'relative', marginTop: 10 }}>
-          <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: '#c4b5fd', pointerEvents: 'none' }} />
+          <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 13, height: 13, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
           <input
             type="text" placeholder="Filter customers…" value={search}
             onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '7px 12px 7px 30px', borderRadius: 8, fontSize: '0.78rem', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
+            style={{ width: '100%', padding: '7px 12px 7px 30px', borderRadius: 8, fontSize: '0.78rem', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }}
             onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
             onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
           />
@@ -651,7 +651,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
         {loading ? <Spinner /> : customers.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '40px 24px' }}>
             <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }} />
-            <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: 0 }}>No customers found</p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: 0 }}>No customers found</p>
           </div>
         ) : (<>
 
@@ -661,7 +661,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
             <SortBtn field={TAB2_SORT_FIELDS[1]} />
             <SortBtn field={TAB2_SORT_FIELDS[2]} />
             <SortBtn field={TAB2_SORT_FIELDS[3]} />
-            <p style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#9ca3af', margin: 0, textAlign: 'center' }}>Tier</p>
+            <p style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--text-tertiary)', margin: 0, textAlign: 'center' }}>Tier</p>
             <p style={{ margin: 0 }} />
           </div>
 
@@ -679,8 +679,8 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
               >
                 {/* name + email */}
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: '0.8rem', fontWeight: 600, color: '#111827', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.first_name} {c.last_name}</p>
-                  <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0, fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</p>
+                  <p style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.first_name} {c.last_name}</p>
+                  <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0, fontFamily: 'monospace', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</p>
                 </div>
 
                 {/* effective discount with tooltip */}
@@ -690,7 +690,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
                       display: 'inline-block', padding: '3px 8px', borderRadius: 20,
                       fontSize: '0.72rem', fontWeight: 700, cursor: 'default',
                       background: disc.effective > 0 ? 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)' : 'rgba(156,163,175,0.1)',
-                      color: disc.effective > 0 ? 'var(--color-primary-600)' : '#9ca3af',
+                      color: disc.effective > 0 ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                       borderBottom: disc.effective > 0 ? '1.5px dashed color-mix(in srgb, var(--color-primary-600) 30%, transparent)' : 'none',
                     }}>
                       {pct(disc.effective)}
@@ -699,12 +699,12 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
                 </div>
 
                 {/* gift voucher */}
-                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: Number(c.store_credit) > 0 ? '#059669' : '#9ca3af', margin: 0, textAlign: 'center' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: Number(c.store_credit) > 0 ? '#059669' : 'var(--text-tertiary)', margin: 0, textAlign: 'center' }}>
                   {Number(c.store_credit) > 0 ? fmt(c.store_credit) : '—'}
                 </p>
 
                 {/* loyalty points */}
-                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: Number(c.loyalty_points) > 0 ? '#d97706' : '#9ca3af', margin: 0, textAlign: 'center' }}>
+                <p style={{ fontSize: '0.75rem', fontWeight: 600, color: Number(c.loyalty_points) > 0 ? '#d97706' : 'var(--text-tertiary)', margin: 0, textAlign: 'center' }}>
                   {Number(c.loyalty_points) > 0 ? fmtPts(c.loyalty_points) : '—'}
                 </p>
 
@@ -738,7 +738,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', flexShrink: 0,
         }}>
-          <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>
             {customers.length.toLocaleString()} of {meta.total.toLocaleString()} loaded
           </p>
           <div style={{ display: 'flex', gap: 6 }}>
@@ -757,7 +757,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
             <button
               onClick={handleLoadAll}
               disabled={loadingMore || loadingAll}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer', background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: '#9ca3af', opacity: loadingMore || loadingAll ? 0.6 : 1, transition: 'all 150ms' }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700, fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer', background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', color: 'var(--text-tertiary)', opacity: loadingMore || loadingAll ? 0.6 : 1, transition: 'all 150ms' }}
               onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-600)'; } }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}
             >
@@ -771,7 +771,7 @@ function Tab2({ tierOptions, typeOptions, onViewCustomer }) {
       )}
       {!loading && customers.length > 0 && page >= meta.last_page && (
         <div style={{ padding: '8px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)', flexShrink: 0 }}>
-          <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>All {meta.total.toLocaleString()} customers loaded</p>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>All {meta.total.toLocaleString()} customers loaded</p>
         </div>
       )}
     </div>
@@ -815,7 +815,7 @@ export default function CustomerDiscountModal({ onClose }) {
 
       <div style={{ position: 'fixed', inset: 0, zIndex: 51, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, pointerEvents: 'none' }}>
         <div style={{
-          background: 'white', borderRadius: 14, border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+          background: 'var(--surface-card, #fff)', borderRadius: 14, border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
           boxShadow: '0 4px 32px color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           width: '100%', maxWidth: 680, height: '88vh', maxHeight: 720,
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -829,8 +829,8 @@ export default function CustomerDiscountModal({ onClose }) {
                 <Percent size={15} style={{ color: 'var(--color-primary-500)' }} />
               </div>
               <div>
-                <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>Discount Overview</p>
-                <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Discounts · wallet · loyalty · shipping</p>
+                <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1px' }}>Discount Overview</p>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>Discounts · wallet · loyalty · shipping</p>
               </div>
             </div>
 
@@ -841,8 +841,8 @@ export default function CustomerDiscountModal({ onClose }) {
                   style={{
                     padding: '5px 14px', borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                     fontSize: '0.75rem', fontWeight: 600, transition: 'all 150ms',
-                    background: activeTab === i ? 'white' : 'transparent',
-                    color:      activeTab === i ? 'var(--color-primary-600)' : '#9ca3af',
+                    background: activeTab === i ? 'var(--surface-card, #fff)' : 'transparent',
+                    color:      activeTab === i ? 'var(--color-primary-600)' : 'var(--text-tertiary)',
                     boxShadow:  activeTab === i ? '0 1px 4px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none',
                   }}
                 >{t}</button>
@@ -850,7 +850,7 @@ export default function CustomerDiscountModal({ onClose }) {
             </div>
 
             <button onClick={onClose}
-              style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
+              style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
               onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
               onMouseLeave={e => e.currentTarget.style.background = 'none'}
             >

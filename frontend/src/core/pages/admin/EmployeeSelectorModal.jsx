@@ -101,7 +101,7 @@ export default function EmployeeSelectorModal({ onSelect, onClose, title = "Sele
           <span style={{ fontFamily: mono, fontSize: 11, color: C.cyan, letterSpacing: "0.1em", textTransform: "uppercase" }}>
             ◈ {title}
           </span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555", cursor: "pointer", fontSize: 18, padding: 4 }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "var(--text-tertiary)", cursor: "pointer", fontSize: 18, padding: 4 }}>✕</button>
         </div>
 
         {/* Search */}
@@ -122,7 +122,7 @@ export default function EmployeeSelectorModal({ onSelect, onClose, title = "Sele
             />
           </div>
           {meta && (
-            <div style={{ marginTop: 8, fontFamily: mono, fontSize: 10, color: "#555" }}>
+            <div style={{ marginTop: 8, fontFamily: mono, fontSize: 10, color: "var(--text-tertiary)" }}>
               {meta.total} employee{meta.total !== 1 ? "s" : ""} found
             </div>
           )}
@@ -131,11 +131,11 @@ export default function EmployeeSelectorModal({ onSelect, onClose, title = "Sele
         {/* List */}
         <div style={{ overflowY: "auto", flex: 1 }}>
           {loading && employees.length === 0 ? (
-            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "#555" }}>
+            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "var(--text-tertiary)" }}>
               <span style={{ color: C.cyan }}>◈</span> loading...
             </div>
           ) : employees.length === 0 ? (
-            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "#555" }}>
+            <div style={{ padding: "40px 0", textAlign: "center", fontFamily: mono, fontSize: 12, color: "var(--text-tertiary)" }}>
               // no employees found
             </div>
           ) : (
@@ -158,7 +158,7 @@ export default function EmployeeSelectorModal({ onSelect, onClose, title = "Sele
                   <div style={{ fontFamily: mono, fontSize: 13, color: "#e0e0e0", fontWeight: 600 }}>
                     {emp.work_email}
                   </div>
-                  <div style={{ fontFamily: mono, fontSize: 10, color: "#666", marginTop: 2 }}>
+                  <div style={{ fontFamily: mono, fontSize: 10, color: "var(--text-tertiary)", marginTop: 2 }}>
                     {[emp.email, emp.department, emp.job_title].filter(Boolean).join(" · ")}
                   </div>
                 </div>
@@ -178,7 +178,7 @@ export default function EmployeeSelectorModal({ onSelect, onClose, title = "Sele
               display: "flex", alignItems: "center", justifyContent: "space-between",
               fontFamily: mono, fontSize: 11,
             }}>
-              <span style={{ color: "#555" }}>showing {employees.length} of {meta?.total}</span>
+              <span style={{ color: "var(--text-tertiary)" }}>showing {employees.length} of {meta?.total}</span>
               <button
                 onClick={loadMore}
                 disabled={loading}
