@@ -3,7 +3,7 @@
 -- AI keys that are entered on the screen, for any company's model, and chosen per purpose — no more keys in the server's .env.
 --   model        which model this key calls (empty = the provider's default)
 --   base_url     optional: a different endpoint (Qwen in China, an OpenAI-compatible service, a proxy)
---   used_for     analytics | mimi | all — what this key may be used for
+--   used_for     analytics | mimi | screening | all — what this key may be used for (all = every purpose)
 --   priority     lowest is tried first; if a key fails (busy, over quota, bad key) the next one is tried
 --   last_error / last_error_at   what went wrong the last time, shown on the screen
 -- Providers: anthropic, openai, gemini, qwen. Existing keys become used_for = all. Several keys can be in use at once.
