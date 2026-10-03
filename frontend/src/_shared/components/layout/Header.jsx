@@ -489,7 +489,7 @@ export default function Header() {
           </Link>
 
           {/* ── Nav links (desktop) ──────────────────────────────────────── */}
-          <nav ref={navRef} style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16, flex: 1, minWidth: 0, overflow: 'hidden', whiteSpace: 'nowrap' }} className="hidden-mobile">
+          <nav ref={navRef} style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 16, flex: 1, minWidth: 0, overflowX: 'clip', overflowY: 'visible', whiteSpace: 'nowrap' }} className="hidden-mobile">
 
             {navHas('home') && (
             <Link to="/" style={{ padding: '6px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, color: isActive('/') && location.pathname === '/' ? 'var(--color-primary-500)' : navColor, textDecoration: 'none', transition: 'all 150ms' }} className="dark:text-gray-200">

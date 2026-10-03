@@ -13,17 +13,17 @@
    ============================================ */
 
 :root {
-  /* Primary Brand Colors - Purple (fallback; overridden by ThemeProvider at runtime) */
-  --color-primary-50:  #faf5ff;
-  --color-primary-100: #f3e8ff;
-  --color-primary-200: #e9d5ff;
-  --color-primary-300: #d8b4fe;
-  --color-primary-400: #c084fc;
-  --color-primary-500: #a855f7; /* Main Purple */
-  --color-primary-600: #9333ea;
-  --color-primary-700: #7e22ce;
-  --color-primary-800: #6b21a8;
-  --color-primary-900: #581c87;
+  /* Primary Brand Colors - neutral grey until the saved theme loads (ThemeProvider overrides these at runtime), so a refresh never flashes another colour first */
+  --color-primary-50:  #f9fafb;
+  --color-primary-100: #f3f4f6;
+  --color-primary-200: #e5e7eb;
+  --color-primary-300: #d1d5db;
+  --color-primary-400: #9ca3af;
+  --color-primary-500: #6b7280; /* Main (grey fallback) */
+  --color-primary-600: #4b5563;
+  --color-primary-700: #374151;
+  --color-primary-800: #1f2937;
+  --color-primary-900: #111827;
 
   /* Secondary Brand Colors - Red */
   --color-secondary-50: #fef2f2;
@@ -559,7 +559,7 @@ a:hover {
 .form-select:focus,
 .form-textarea:focus {
   border-color: var(--color-primary-500);
-  box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-500) 12%, transparent);
 }
 
 .form-input:disabled,
