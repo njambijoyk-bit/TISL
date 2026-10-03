@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LogOut, ChevronLeft, ChevronDown, Menu, X, HomeIcon, Volume2, VolumeX, Search, UserCircle,
-  Sun, Moon, Monitor,
+  Sun, Moon, Monitor, Calculator,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '../../theme';
@@ -163,13 +163,13 @@ function SidebarThemePicker() {
  * Rendered once by AdminShell (`shell`). Older pages that still draw
  * <Sidebar /> themselves get nothing inside the shell, so there's never two.
  */
-export default function Sidebar({ shell = false, onOpenSearch }) {
+export default function Sidebar({ shell = false, onOpenSearch, onOpenCalc }) {
   const inShell = useAdminShell();
   if (inShell && !shell) return null;
-  return <SidebarInner onOpenSearch={onOpenSearch} />;
+  return <SidebarInner onOpenSearch={onOpenSearch} onOpenCalc={onOpenCalc} />;
 }
 
-function SidebarInner({ onOpenSearch }) {
+function SidebarInner({ onOpenSearch, onOpenCalc }) {
   const audio = useLayoutAudio();
   const location = useLocation();
   const navigate = useNavigate();
@@ -387,6 +387,34 @@ function SidebarInner({ onOpenSearch }) {
                 <>
                   <span style={{ flex: 1, textAlign: 'left' }}>Jump to…</span>
                   <kbd style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '1px 5px', borderRadius: 4, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)' }}>Ctrl K</kbd>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+        {onOpenCalc && (
+          <div style={{ padding: collapsed ? '6px 8px 2px' : '6px 10px 2px', flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={onOpenCalc}
+              onMouseEnter={audio.playHover}
+              title="Calculator (Alt+C)"
+              style={{
+                width: '100%', height: 34,
+                display: 'flex', alignItems: 'center', gap: 8,
+                justifyContent: collapsed ? 'center' : 'flex-start',
+                padding: collapsed ? 0 : '0 10px',
+                borderRadius: 8,
+                background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                color: TEXT_2, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem',
+              }}
+            >
+              <Calculator size={14} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
+              {!collapsed && (
+                <>
+                  <span style={{ flex: 1, textAlign: 'left' }}>Calculator</span>
+                  <kbd style={{ fontSize: '0.62rem', fontFamily: 'inherit', padding: '1px 5px', borderRadius: 4, border: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', color: 'var(--color-primary-500)' }}>Alt C</kbd>
                 </>
               )}
             </button>

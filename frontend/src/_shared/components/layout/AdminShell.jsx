@@ -3,6 +3,8 @@ import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import SectionTabs from './SectionTabs';
 import CommandPalette from './CommandPalette';
+import Calculator from '../../../core/components/calculator/Calculator';
+import useCalculatorStore from '../../store/calculatorStore';
 import { AdminShellContext } from './adminShellContext';
 import useAuthStore from '../../store/authStore';
 import { visibleNav, findActive } from '../../navigation/adminNav';
@@ -22,6 +24,19 @@ export default function AdminShell() {
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
 
+  // Alt+C anywhere in the admin: the finance calculator
+  const toggleCalc = useCalculatorStore((s) => s.toggle);
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        toggleCalc();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggleCalc]);
+
   // Ctrl+K / ⌘K anywhere in the admin
   useEffect(() => {
     const onKey = (e) => {
@@ -39,13 +54,14 @@ export default function AdminShell() {
   return (
     <AdminShellContext.Provider value={ctx}>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)' }}>
-        <Sidebar shell onOpenSearch={openSearch} />
+        <Sidebar shell onOpenSearch={openSearch} onOpenCalc={toggleCalc} />
         <main className="admin-shell-main" style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>
           <SectionTabs item={active.item} activeTab={active.tab} />
           <Outlet />
         </main>
       </div>
       {searchOpen && <CommandPalette onClose={closeSearch} nav={nav} />}
+      <Calculator />
       <style>{'@media (max-width:767px){.admin-shell-main{padding-top:56px}}'}</style>
     </AdminShellContext.Provider>
   );

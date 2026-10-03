@@ -95,6 +95,7 @@ use App\Http\Controllers\Api\OrderShipmentController;
 use App\Http\Controllers\Api\DeliveryMoneyController;
 use App\Http\Controllers\Api\CustomerEnrouteController;
 use App\Http\Controllers\Api\AssetAccountingController;
+use App\Http\Controllers\Api\InsightController;
 use App\Http\Controllers\Api\DeliveryIncidentController;
 use App\Http\Controllers\Api\DeliveryRatingController;
 use App\Http\Controllers\Api\DeliveryStatsController;
@@ -1891,6 +1892,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/blocks',                [MimiAnalyticsController::class, 'blocks']);
         });
         
+    // CALCULATOR — every staff role; each insight pack inside checks the role of the pages its figures come from
+    Route::middleware('role:super_admin,admin,manager,finance,sales_rep,logistics')->prefix('admin/insight')->group(function () {
+        Route::get('/reference',  [InsightController::class, 'reference']);
+        Route::post('/contexts',  [InsightController::class, 'contexts']);
+        Route::post('/answer',    [InsightController::class, 'answer']);
+        Route::post('/explain',   [InsightController::class, 'explain'])->middleware('throttle:20,1');
+    });
+
     // ASSETS — depreciation, register and the ledgers a category posts to: finance too (they review and post it)
     Route::middleware('role:admin,super_admin,manager,finance')->prefix('admin/inventory')->group(function () {
         Route::get('/accounting/options',              [AssetAccountingController::class, 'options']);

@@ -10,6 +10,7 @@ import taxAPI from '../../../../_shared/api/tax';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import WriteOffModal from '../../../components/admin/books/WriteOffModal';
 import AddToManifest from '../../../components/admin/books/AddToManifest';
@@ -182,6 +183,7 @@ export default function VoucherView() {
   const user = useAuthStore((s) => s.user);
   const canWrite = canWriteFinance(user);
   const [v, setV] = useState(null);
+  useCalculatorContext(v ? { type: 'voucher', id: v.id } : null);   // Alt+C explains this document
   const [error, setError] = useState(null);
   const [methods, setMethods] = useState([]);
   const [modal, setModal] = useState(null);
