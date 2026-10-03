@@ -440,7 +440,7 @@ const DOC_TYPES = [
         id:    'customer',
         icon:  User,
         label: 'Customer Delivery Notes',
-        desc:  'One delivery note per order. Customer keeps as proof of receipt.',
+        desc:  'One delivery note per stop. Customer keeps as proof of receipt.',
         color: '#f59e0b',
     },
 ];
@@ -792,7 +792,7 @@ export default function PrintManifestModal({ manifest, open, onClose, audio }) {
                                     {docType === 'driver' &&
                                         `Driver sheet — ${driverData?.totalStops} stop${driverData?.totalStops !== 1 ? 's' : ''} with item checklists and signature blocks.`}
                                     {docType === 'customer' &&
-                                        `${selectedCount} delivery note${selectedCount !== 1 ? 's' : ''} — one per order, all in one print job.`}
+                                        `${selectedCount} delivery note${selectedCount !== 1 ? 's' : ''} — one per stop, all in one print job.`}
                                 </div>
 
                                 {/* Summary pill */}

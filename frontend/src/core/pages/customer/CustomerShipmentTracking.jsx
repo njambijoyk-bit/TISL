@@ -186,7 +186,7 @@ export default function CustomerShipmentTracking() {
   const buildTimeline = (s) => {
     if (!s) return [];
     const steps = [
-      { key: 'dispatched',  label: 'Order Dispatched', color: 'var(--color-primary-500)' },
+      { key: 'dispatched',  label: 'Dispatched', color: 'var(--color-primary-500)' },
       { key: 'in_transit',  label: 'In Transit',       color: '#3b82f6' },
       { key: 'delivered',   label: 'Delivered',        color: '#10b981' },
     ];

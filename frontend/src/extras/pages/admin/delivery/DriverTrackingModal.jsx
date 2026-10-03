@@ -172,7 +172,7 @@ function DeliveredCard({ shipment, tracking }) {
             <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(20,184,166,0.12)', border: '2px solid rgba(20,184,166,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, boxShadow: '0 0 0 8px rgba(20,184,166,0.06)' }}>
                 <CheckCircle size={32} color="#14b8a6" />
             </div>
-            <p style={{ fontSize: '1.15rem', fontWeight: 800, color: '#14b8a6', margin: '0 0 4px' }}>Order Delivered!</p>
+            <p style={{ fontSize: '1.15rem', fontWeight: 800, color: '#14b8a6', margin: '0 0 4px' }}>Delivered!</p>
             {delAt && <p style={{ fontSize: '0.78rem', color: '#94a3b8', margin: '0 0 20px' }}>{fmtDateTime(delAt)}</p>}
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.15)', borderRadius: 10, padding: '10px 14px', marginBottom: 20, maxWidth: 400, width: '100%' }}>
                 <MapPin size={13} color="#94a3b8" style={{ flexShrink: 0, marginTop: 2 }} />

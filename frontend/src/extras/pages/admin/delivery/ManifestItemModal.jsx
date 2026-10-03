@@ -908,7 +908,7 @@ function TabIncidents({ item, manifest }) {
 
 // ─── MAIN MODAL ───────────────────────────────────────────────────────────────
 const TABS = [
-    { id: 'customer', label: 'Customer & Order', icon: User    },
+    { id: 'customer', label: 'Customer & Delivery Note', icon: User    },
     { id: 'manifest', label: 'Stop Details',     icon: Truck   },
     { id: 'incidents',label: 'Incidents',        icon: ShieldAlert },
 ];

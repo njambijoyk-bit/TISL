@@ -43,11 +43,11 @@ const STATUS_LABELS = {
 };
 
 const INELIGIBLE_REASON = {
-    pending:   'Order not yet confirmed — confirm it before adding to a manifest.',
+    pending:   'Not ready for a manifest.',
     shipped:   'Already shipped.',
     delivered: 'Already delivered.',
-    failed:    'Failed order — cannot be manifested.',
-    cancelled: 'Cancelled order — cannot be manifested.',
+    failed:    'Cannot be manifested.',
+    cancelled: 'Cancelled — cannot be manifested.',
 };
 
 function isEligible(status) {
@@ -596,7 +596,7 @@ function ManualFlow({ onBack, onSuccess, audio }) {
                     .map(s => s.manifest_number ? `(${s.manifest_number})` : '')
                     .filter(Boolean)
                     .join(', ');
-                console.warn(`${res.skipped_count} order(s) were skipped — already in another manifest. ${skippedNums}`);
+                console.warn(`${res.skipped_count} Delivery Note(s) were skipped — already in another manifest. ${skippedNums}`);
             }
 
             audio.playSuccess();

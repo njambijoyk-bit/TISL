@@ -21,6 +21,25 @@ const deliveryAPI = {
   getDeliveryNotes: (params = {}) =>
     api.get('/admin/delivery/manifests/delivery-notes', { params }).then(r => r.data),
 
+  addItemsToManifest: (manifestId, data) =>
+    api.post(`/admin/delivery/manifests/${manifestId}/items`, data).then(r => r.data),
+
+  // Money: cash collected at the door (a Receipt) and what a trip cost (a Payment)
+  getManifestMoney: (id) =>
+    api.get(`/admin/delivery/manifests/${id}/money`).then(r => r.data),
+
+  collectOnStop: (manifestId, itemId, data) =>
+    api.post(`/admin/delivery/manifests/${manifestId}/items/${itemId}/collect`, data).then(r => r.data),
+
+  cancelCollection: (manifestId, itemId) =>
+    api.delete(`/admin/delivery/manifests/${manifestId}/items/${itemId}/collect`).then(r => r.data),
+
+  addManifestCost: (manifestId, data) =>
+    api.post(`/admin/delivery/manifests/${manifestId}/costs`, data).then(r => r.data),
+
+  cancelManifestCost: (manifestId, costId) =>
+    api.delete(`/admin/delivery/manifests/${manifestId}/costs/${costId}`).then(r => r.data),
+
   getManifestStatistics: () =>
     api.get('/admin/delivery/manifests/statistics').then(r => r.data),
 

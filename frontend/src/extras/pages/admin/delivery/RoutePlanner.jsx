@@ -483,7 +483,7 @@ export default function RoutePlanner({
 
                 const manifestItems = manifestData.items ?? [];
                 if (manifestItems.length === 0) {
-                    setError('This manifest has no orders. Add orders before planning the route.');
+                    setError('This manifest has no stops. Add Delivery Notes before planning the route.');
                     setLoading(false);
                     return;
                 }

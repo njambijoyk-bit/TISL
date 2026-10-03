@@ -9,6 +9,7 @@ import { Toolbar } from '../ui/HubHeader';
 import { btnPrimary, colors } from '../../../../_shared/theme/tokens';
 import { Chip, DeliveryChip, ExportMenu } from './booksUi';
 import { money, filterStyle } from './booksFmt';
+import AddToManifest from './AddToManifest';
 
 /** `newPath` swaps the "choose a type" button for a plain button to a dedicated screen (e.g. the Purchases page). */
 export default function VouchersTab({ canWrite, baseType = '', newPath = null, newLabel = 'New voucher', viewPath = null }) {
@@ -42,7 +43,7 @@ export default function VouchersTab({ canWrite, baseType = '', newPath = null, n
     { key: 'type', label: 'Type', render: (v) => v.type?.name },
     { key: 'party', label: 'Party', render: (v) => v.party_ledger?.name ?? '—' },
     { key: 'branch', label: 'Branch', render: (v) => v.location?.code ?? v.location?.name ?? '—' },
-    { key: 'status', label: 'Status', render: (v) => <><Chip status={v.status} /> {v.fulfilment_status && v.fulfilment_status !== 'closed' && <Chip status={v.fulfilment_status} />} <DeliveryChip delivery={v.delivery} /></> },
+    { key: 'status', label: 'Status', render: (v) => <><Chip status={v.status} /> {v.fulfilment_status && v.fulfilment_status !== 'closed' && <Chip status={v.fulfilment_status} />} <DeliveryChip delivery={v.delivery} /> <AddToManifest voucher={v} compact onDone={load} /></> },
     { key: 'total', label: 'Amount', align: 'right', render: (v) => <span style={{ fontVariantNumeric: 'tabular-nums', textDecoration: v.status === 'cancelled' ? 'line-through' : 'none' }}>{v.currency?.code} {money(v.total_amount)}</span> },
   ];
 

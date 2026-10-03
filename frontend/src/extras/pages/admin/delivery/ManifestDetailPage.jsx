@@ -12,6 +12,7 @@ import ManifestItemModal from './ManifestItemModal';
 import DriverTrackingModal from './DriverTrackingModal';
 import deliveryAPI from '../../../../_shared/api/delivery';
 import PrintManifestModal from './PrintManifestModal';
+import ManifestMoneyPanel from './ManifestMoneyPanel';
 import { useDeliveryAudio } from './useDeliveryAudio';
 import {
     D, DeliveryPageShell, DeliveryPageHeader, DeliveryBreadcrumb,
@@ -239,7 +240,7 @@ function StopCard({ item, index, expanded, onToggle, onHover, onInfo, onOverride
                     {/* order items */}
                     {item.order?.items?.length > 0 && (
                         <div>
-                            <Label>Order items</Label>
+                            <Label>Items on the Delivery Note</Label>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
                                 {item.order.items.map((oi, i) => (
                                     <div key={i} style={{ fontSize: '0.75rem', color: D.textMid, display: 'flex', justifyContent: 'space-between' }}>
@@ -1430,7 +1431,7 @@ export default function ManifestDetailPage() {
                         <DeliveryEmptyState
                             icon={Package}
                             title="No stops yet"
-                            sub="Add orders to this manifest before dispatching."
+                            sub="Add Delivery Notes to this manifest before dispatching."
                         />
                     </DeliveryCard>
                 ) : (
@@ -1450,6 +1451,8 @@ export default function ManifestDetailPage() {
                         ))}
                     </div>
                 )}
+
+                {manifest.status !== 'cancelled' && items.length > 0 && <ManifestMoneyPanel manifestId={manifest.id} items={items} onChanged={() => fetchManifest(true)} />}
 
                 {/* ── activity log ── */}
                 <DeliveryDivider label="Activity log" />

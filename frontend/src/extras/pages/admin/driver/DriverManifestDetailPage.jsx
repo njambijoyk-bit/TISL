@@ -454,7 +454,7 @@ function StopDetailModal({ item, onClose }) {
                         </>
                     )}
 
-                    <SectionLabel>Order Summary</SectionLabel>
+                    <SectionLabel>Delivery Note Summary</SectionLabel>
                     <div style={{
                         background: '#f9fafb', border: '1px solid #e5e7eb',
                         borderRadius: 8, padding: '12px',

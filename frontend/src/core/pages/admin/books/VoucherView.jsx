@@ -12,6 +12,7 @@ import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import WriteOffModal from '../../../components/admin/books/WriteOffModal';
+import AddToManifest from '../../../components/admin/books/AddToManifest';
 import CreditPanel from '../../../components/admin/books/CreditPanel';
 import { Chip, DeliveryChip, ExportMenu } from '../../../components/admin/books/booksUi';
 import { money, today } from '../../../components/admin/books/booksFmt';
@@ -228,6 +229,7 @@ export default function VoucherView() {
             <Link to={`/admin/books/edit-log?voucher=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }}><History size={14} /> Edit log</Link>
             <ExportMenu onExport={(f) => booksAPI.exportVoucher(v.id, f)} />
             {canWrite && convertible && !lockedBy && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
+            <AddToManifest voucher={v} onDone={load} />
             {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}
             {canWrite && receivable && <button type="button" style={btnPrimary} onClick={() => setModal('receive')}><Banknote size={14} /> Receive payment</button>}
             {canWrite && live && SENDABLE.includes(base) && <button type="button" style={btnGhost} onClick={() => setModal('send')}><Send size={14} /> Send</button>}

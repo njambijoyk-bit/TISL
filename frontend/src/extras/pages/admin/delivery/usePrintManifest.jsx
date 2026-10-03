@@ -242,12 +242,12 @@ export function exportAdminCSV(data, manifest) {
 
     // Column headers
     rows.push([
-        'Stop #', 'Order Number', 'Status',
+        'Stop #', 'Delivery Note No.', 'Status',
         'Customer #', 'Customer Name', 'Phone', 'Company',
         'Customer Type', 'Tier', 'Has Credit', 'Credit Limit', 'Credit Used', 'Available Credit',
         'Shipping Address', 'Payment Method',
         'Product', 'SKU', 'Qty', 'Unit Price', 'Line Total',
-        'Order Subtotal', 'Shipping Cost', 'Order Total',
+        'Subtotal', 'Shipping Cost', 'Total',
         'Delivered At', 'Failed Reason',
     ]);
 
@@ -336,13 +336,13 @@ export function exportAdminXLS(data, manifest) {
 
     // ── Sheet 2: Stops Detail ────────────────────────────────────────────────
     const headers = [
-        'Stop #', 'Order Number', 'Stop Status',
+        'Stop #', 'Delivery Note No.', 'Stop Status',
         'Customer #', 'Customer Name', 'Phone', 'Company',
         'Customer Type', 'Tier', 'Has Credit',
         'Credit Limit', 'Credit Used', 'Available Credit',
         'Shipping Address', 'Payment Method', 'Shipping Method',
         'Product', 'SKU', 'Qty', 'Unit Price', 'Line Total',
-        'Order Subtotal', 'Shipping Cost', 'Order Total',
+        'Subtotal', 'Shipping Cost', 'Total',
         'Delivered At', 'Attempted At', 'Failed Reason', 'Delivery Notes',
     ];
 

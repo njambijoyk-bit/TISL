@@ -14,3 +14,6 @@ export const yearStart = () => `${new Date().getFullYear()}-01-01`;
 export const filterStyle = {
   padding: '7px 10px', borderRadius: radius.md, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem', fontFamily: 'inherit', background: 'white',
 };
+
+/** Which Delivery Notes can still be put on a manifest: not on a live stop (a failed stop frees its notes). */
+export const canManifest = (v) => v?.status === 'posted' && v?.type?.base_type === 'delivery_note' && ['not_assigned', 'failed'].includes(v?.delivery?.status);

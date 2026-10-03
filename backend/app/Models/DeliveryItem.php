@@ -18,6 +18,9 @@ class DeliveryItem extends Model
         'contact_phone',
         'address',
         'stop_key',
+        'cod_amount',
+        'cod_voucher_id',
+        'cod_at',
         'status',
         'sort_order',
         'estimated_arrival',
@@ -47,6 +50,8 @@ class DeliveryItem extends Model
         'distance_from_prev_km'  => 'decimal:2',
         'time_from_prev_minutes' => 'integer',
         'sort_order'             => 'integer',
+        'cod_amount'             => 'decimal:2',
+        'cod_at'                 => 'datetime',
     ];
 
     protected $appends = [
@@ -108,6 +113,7 @@ class DeliveryItem extends Model
             'total'            => (float) $vouchers->sum('total_amount'),
             'total_kes'        => (float) $vouchers->sum('base_total'),
             'subtotal'         => (float) $vouchers->sum('subtotal'),
+            'tax'              => (float) $vouchers->sum('tax_total'),
             'delivery_method'  => $this->relationLoaded('manifest') ? $this->manifest?->delivery_method : null,
         ];
     }

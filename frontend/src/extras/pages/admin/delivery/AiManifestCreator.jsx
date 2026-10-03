@@ -527,14 +527,14 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
         <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 18 }}>
                 <div>
-                    <label style={field.label}>Order period</label>
+                    <label style={field.label}>Delivery Note period</label>
                     <select value={periodDays} onChange={e => setPeriodDays(Number(e.target.value))}
                         style={{ ...field.input, cursor: 'pointer' }}>
                         {PERIOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </select>
                 </div>
                 <div>
-                    <label style={field.label}>Scheduled date <span style={{ color: D.textDim, fontWeight: 400 }}>(optional — AI picks from order priority)</span></label>
+                    <label style={field.label}>Scheduled date <span style={{ color: D.textDim, fontWeight: 400 }}>(optional — AI picks tomorrow)</span></label>
                     <input type="date" value={scheduledDate} min={today()}
                         onChange={e => setScheduledDate(e.target.value)}
                         style={field.input} />
@@ -584,7 +584,7 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
             <div>
                 <label style={field.label}>Custom instruction <span style={{ color: D.textDim, fontWeight: 400 }}>(optional)</span></label>
                 <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)}
-                    placeholder="e.g. Prioritise Westlands area orders, avoid driver 12…"
+                    placeholder="e.g. Prioritise Westlands area deliveries, avoid driver 12…"
                     rows={2} style={{ ...field.input, resize: 'vertical' }} />
             </div>
         </>
@@ -612,7 +612,7 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
                             icon:  Zap,
                             color: '#f59e0b',
                             title: 'Autopilot  mode',
-                            desc:  'Pick a delivery method and let AI do everything — select orders, assign the best driver, set the date from order priority, and sequence stops. One click, manifest created. Note: Very High AI token usage!',
+                            desc:  'Pick a delivery method and let AI do everything — select Delivery Notes, assign the best driver, set the date, and sequence stops. One click, manifest created. Note: Very High AI token usage!',
                         },
                     ].map(o => {
                         const Icon = o.icon;
@@ -659,7 +659,7 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
                 )}
 
                 {renderSharedConfig()}
-                <DeliveryDivider label="Order selection" />
+                <DeliveryDivider label="Delivery Note selection" />
                 {renderOrderConfig()}
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
@@ -691,7 +691,7 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
                 <div style={{ marginBottom: 16, padding: '10px 14px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: D.radiusSm, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                     <Zap size={15} color="#f59e0b" style={{ flexShrink: 0, marginTop: 1 }} />
                     <span style={{ fontSize: '0.78rem', color: '#f59e0b', lineHeight: 1.5 }}>
-                        <strong>Autopilot mode.</strong> AI will select orders, assign the best available driver, set a date based on order priority, and sequence all stops. You only need to confirm after.
+                        <strong>Autopilot mode.</strong> AI will select Delivery Notes, assign the best available driver, set the date, and sequence all stops. You only need to confirm after.
                     </span>
                 </div>
 
@@ -733,14 +733,14 @@ export default function AiManifestCreator({ onBack, onSuccess, audio }) {
                 <div style={{ marginBottom: 18 }}>
                     <label style={field.label}>Custom instruction <span style={{ color: D.textDim, fontWeight: 400 }}>(optional)</span></label>
                     <textarea value={customPrompt} onChange={e => setCustomPrompt(e.target.value)}
-                        placeholder="e.g. Focus on urgent orders in Mombasa CBD only…"
+                        placeholder="e.g. Focus on Mombasa CBD deliveries only…"
                         rows={2} style={{ ...field.input, resize: 'vertical' }} />
                 </div>
 
-                <DeliveryDivider label="Order pool" />
+                <DeliveryDivider label="Delivery Note pool" />
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 8 }}>
                     <div>
-                        <label style={field.label}>Order period</label>
+                        <label style={field.label}>Delivery Note period</label>
                         <select value={periodDays} onChange={e => setPeriodDays(Number(e.target.value))}
                             style={{ ...field.input, cursor: 'pointer' }}>
                             {PERIOD_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}

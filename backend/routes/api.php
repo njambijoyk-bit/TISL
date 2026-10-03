@@ -92,6 +92,7 @@ use App\Http\Controllers\Api\DeliveryRouteController;
 use App\Http\Controllers\Api\DeliveryInsightController;
 use App\Http\Controllers\Api\DriverManifestController;
 use App\Http\Controllers\Api\OrderShipmentController;
+use App\Http\Controllers\Api\DeliveryMoneyController;
 use App\Http\Controllers\Api\DeliveryIncidentController;
 use App\Http\Controllers\Api\DeliveryRatingController;
 use App\Http\Controllers\Api\DeliveryStatsController;
@@ -1788,6 +1789,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
                 // Admin force-complete (non-internal-driver workflows)
                 Route::post('/{id}/complete', [DeliveryManifestController::class, 'completeManifest']);
+
+                // Money: cash collected at the door (Receipt) and what the trip cost (Payment)
+                Route::get('/{id}/money',                    [DeliveryMoneyController::class, 'show']);
+                Route::post('/{id}/items/{itemId}/collect',  [DeliveryMoneyController::class, 'collect']);
+                Route::delete('/{id}/items/{itemId}/collect',[DeliveryMoneyController::class, 'cancelCollection']);
+                Route::post('/{id}/costs',                   [DeliveryMoneyController::class, 'addCost']);
+                Route::delete('/{id}/costs/{costId}',        [DeliveryMoneyController::class, 'cancelCost']);
 
                 // Items
                 Route::post('/{id}/items',                   [DeliveryManifestController::class, 'addItems']);
