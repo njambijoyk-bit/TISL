@@ -18,7 +18,7 @@ import { format } from 'date-fns';
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   border: '1px solid #dcb6ff',
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
@@ -47,7 +47,7 @@ const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8,
   fontSize: '0.875rem', border: '1px solid var(--color-border-tertiary)',
   background: 'var(--color-background-primary)',
-  color: '#111827',
+  color: 'var(--text-primary)',
   outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 
@@ -106,7 +106,7 @@ function Toggle({ value, label }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
       <div style={{ width: 32, height: 18, borderRadius: 9, background: value ? 'var(--color-primary-500)' : '#e3cdf8', position: 'relative', transition: 'background 200ms' }}>
-        <div style={{ position: 'absolute', top: 2, left: value ? 16 : 2, width: 14, height: 14, borderRadius: '50%', background: 'white', transition: 'left 200ms', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+        <div style={{ position: 'absolute', top: 2, left: value ? 16 : 2, width: 14, height: 14, borderRadius: '50%', background: 'var(--surface-input)', transition: 'left 200ms', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
       </div>
       <span style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>{label}</span>
     </div>
@@ -118,15 +118,15 @@ function StatusBadge({ status }) {
     active:      { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
     suspended:   { bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b' },
     blacklisted: { bg: 'rgba(239,68,68,0.1)',   color: '#ef4444' },
-    draft:       { bg: 'rgba(107,114,128,0.1)', color: '#6b7280' },
-    inactive:    { bg: 'rgba(107,114,128,0.1)', color: '#6b7280' },
+    draft:       { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)' },
+    inactive:    { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)' },
     pending:     { bg: 'rgba(245,158,11,0.1)',  color: '#f59e0b' },
     confirmed:   { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
     shipped:     { bg: 'rgba(59,130,246,0.1)',  color: '#3b82f6' },
     delivered:   { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
     cancelled:   { bg: 'rgba(239,68,68,0.1)',   color: '#ef4444' },
   };
-  const s = map[status] || { bg: 'rgba(107,114,128,0.1)', color: '#6b7280' };
+  const s = map[status] || { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)' };
   return (
     <span style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700, background: s.bg, color: s.color }}>
       {(status || '').toUpperCase()}
@@ -667,7 +667,7 @@ function EligibilityTab({ hamper }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Criteria banner */}
-      <div style={{ padding: '12px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.82rem', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: '12px 16px', borderRadius: 10, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)', fontSize: '0.82rem', color: 'var(--color-primary-600)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Shield size={14} style={{ flexShrink: 0 }} />
         <span><strong>{hamper.eligibility_type?.toUpperCase()}</strong> — {criteriaSummary()}</span>
       </div>
@@ -679,7 +679,7 @@ function EligibilityTab({ hamper }) {
             Eligibility Records ({filteredRows.length})
           </p>
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            style={{ ...inputStyle, width: 'auto', padding: '6px 10px', cursor: 'pointer', color: '#111827' }}>
+            style={{ ...inputStyle, width: 'auto', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-primary)' }}>
             <option value="">All Statuses</option>
             <option value="active">Active</option>
             <option value="suspended">Suspended</option>
@@ -903,13 +903,13 @@ function ActivityTab({ hamperId }) {
   if (logs === null) return <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem' }}>Loading…</p>;
   if (!logs.length) return <p style={{ color: 'var(--color-text-secondary)', fontSize: '0.85rem', padding: '24px 0' }}>Nothing has been recorded for this hamper yet.</p>;
   return (
-    <div style={{ background: 'white', border: '1px solid var(--color-border-tertiary)', borderRadius: 14, padding: '6px 20px' }}>
+    <div style={{ background: 'var(--surface-card, #fff)', border: '1px solid var(--color-border-tertiary)', borderRadius: 14, padding: '6px 20px' }}>
       {logs.map((l) => (
-        <div key={l.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid #f3f4f6' }}>
+        <div key={l.id} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--line)' }}>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: dot[l.severity] ?? '#9ca3af', marginTop: 6, flexShrink: 0 }} />
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontSize: '0.85rem', color: '#111827' }}>{l.description || String(l.action ?? '').replace(/_/g, ' ')}</div>
-            <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 2 }}>
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>{l.description || String(l.action ?? '').replace(/_/g, ' ')}</div>
+            <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 2 }}>
               {l.performed_by ? `${l.performed_by} · ` : ''}{(() => { try { return format(new Date(l.created_at), 'MMM d, yyyy · h:mm a'); } catch { return ''; } })()}
             </div>
           </div>

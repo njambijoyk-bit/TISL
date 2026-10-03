@@ -13,7 +13,7 @@ import useCurrencyStore from '../../../../_shared/store/currencyStore';
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   border: '1px solid #dfbeff',
   borderRadius: 12,
   boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
@@ -24,8 +24,8 @@ const card = {
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 8,
   fontSize: '0.875rem', border: '1px solid #dfbeff',
-  background: 'white',
-  color: '#111827',
+  background: 'var(--surface-card, #fff)',
+  color: 'var(--text-primary)',
   outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
@@ -73,7 +73,7 @@ function ToggleRow({ label, hint, name, value, onChange }) {
     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--color-border-tertiary)' }}>
       <div>
         <p style={{ margin: '0 0 2px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-500)' }}>{label}</p>
-        {hint && <p style={{ margin: 0, fontSize: '0.72rem', color: '#9ca3af' }}>{hint}</p>}
+        {hint && <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{hint}</p>}
       </div>
       <button type="button" onClick={() => onChange(name, !value)} style={{
         width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', flexShrink: 0,
@@ -83,7 +83,7 @@ function ToggleRow({ label, hint, name, value, onChange }) {
         <div style={{
           position: 'absolute', top: 3, left: value ? 23 : 3,
           width: 18, height: 18, borderRadius: '50%',
-          background: 'white', transition: 'left 200ms',
+          background: 'var(--surface-card, #fff)', transition: 'left 200ms',
           boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
         }} />
       </button>
@@ -129,7 +129,7 @@ function MultiSelect({ label, hint, options, selected, onChange, placeholder }) 
         }}
       >
         {selected.length === 0 ? (
-          <span style={{ color: '#9ca3af', fontSize: '0.875rem' }}>{placeholder || 'Select…'}</span>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: '0.875rem' }}>{placeholder || 'Select…'}</span>
         ) : selectedLabels.map(name => (
           <span key={name} style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -152,7 +152,7 @@ function MultiSelect({ label, hint, options, selected, onChange, placeholder }) 
           overflow: 'hidden',
         }}>
           <div style={{ padding: 8, borderBottom: '1px solid var(--color-border-tertiary)', position: 'relative' }}>
-            <Search size={13} style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+            <Search size={13} style={{ position: 'absolute', left: 18, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
             <input
               autoFocus
               value={query}
@@ -163,14 +163,14 @@ function MultiSelect({ label, hint, options, selected, onChange, placeholder }) 
           </div>
           <div style={{ maxHeight: 200, overflowY: 'auto' }}>
             {filtered.length === 0 ? (
-              <p style={{ padding: '12px 14px', margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>No results</p>
+              <p style={{ padding: '12px 14px', margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>No results</p>
             ) : filtered.map(opt => {
               const isSelected = selected.includes(opt.slug);
               return (
                 <div key={opt.slug} onClick={() => toggle(opt.slug)} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '9px 14px', cursor: 'pointer', fontSize: '0.82rem',
-                  color: '#111827',
+                  color: 'var(--text-primary)',
                   background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' : 'transparent',
                   transition: 'background 100ms',
                 }}
@@ -222,8 +222,8 @@ function CoverImageUpload({ preview, onFileChange, onClear }) {
           onMouseLeave={e => e.currentTarget.style.borderColor = '#dfbeff'}
         >
           <Upload size={24} style={{ color: 'var(--color-primary-500)' }} />
-          <p style={{ margin: 0, fontSize: '0.78rem', color: '#9ca3af' }}>Click to upload cover image</p>
-          <p style={{ margin: 0, fontSize: '0.68rem', color: '#9ca3af' }}>PNG, JPG, WEBP</p>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Click to upload cover image</p>
+          <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>PNG, JPG, WEBP</p>
         </div>
       )}
       <input ref={inputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={onFileChange} />
@@ -413,7 +413,7 @@ export default function AdminHamperCreate() {
                     </Field>
                     <Field label="Status">
                       <select name="status" value={form.status} onChange={handleChange}
-                        style={{ ...inputStyle, cursor: 'pointer', color: '#111827' }}>
+                        style={{ ...inputStyle, cursor: 'pointer', color: 'var(--text-primary)' }}>
                         <option value="draft">Draft</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
@@ -442,7 +442,7 @@ export default function AdminHamperCreate() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <Field label="Eligibility Type">
                     <select name="eligibility_type" value={form.eligibility_type} onChange={handleChange}
-                      style={{ ...inputStyle, cursor: 'pointer', color: '#111827' }}>
+                      style={{ ...inputStyle, cursor: 'pointer', color: 'var(--text-primary)' }}>
                       <option value="all">All Customers</option>
                       <option value="tier">By Tier</option>
                       <option value="customer_type">By Customer Type</option>
@@ -473,7 +473,7 @@ export default function AdminHamperCreate() {
                   )}
 
                   {form.eligibility_type === 'manual' && (
-                    <div style={{ padding: '12px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', fontSize: '0.78rem', color: 'var(--color-primary-600)' }}>
+                    <div style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)', fontSize: '0.78rem', color: 'var(--color-primary-600)' }}>
                       After creating this hamper, go to the <strong>Eligibility tab</strong> to add customers individually.
                     </div>
                   )}
@@ -517,7 +517,7 @@ export default function AdminHamperCreate() {
                     style={{ width: 52, height: 52, borderRadius: 10, border: '2px solid #ffffff', cursor: 'pointer', padding: 3, background: 'none' }}
                   />
                   <div>
-                    <p style={{ margin: '0 0 4px', fontSize: '0.82rem', fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>{form.accent_color}</p>
+                    <p style={{ margin: '0 0 4px', fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{form.accent_color}</p>
                     <p style={{ margin: 0, fontSize: '0.72rem', color: 'var(--color-text-tertiary)' }}>Used on the customer checkout page</p>
                     <div style={{ marginTop: 8, height: 6, borderRadius: 3, background: `linear-gradient(90deg, ${form.accent_color}, ${form.accent_color}80)` }} />
                   </div>

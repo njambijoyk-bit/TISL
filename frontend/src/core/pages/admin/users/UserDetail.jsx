@@ -50,8 +50,8 @@ const LEVELS = {
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
   color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
@@ -66,7 +66,7 @@ const labelStyle = {
 
 const card = {
   background: 'var(--surface-card, #fff)', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
   padding: 20,
 };
@@ -129,7 +129,7 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
         border: '1.5px solid rgba(239,68,68,0.2)',
       } : {
         background: 'transparent', color: 'var(--text-secondary)',
-        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+        border: '1.5px solid var(--line)',
       }),
     }}
       onMouseEnter={e => {
@@ -152,7 +152,7 @@ function ActionBtn({ icon: Icon, label, onClick, loading, danger, primary }) {
 }
 
 function SkeletonBlock({ height }) {
-  return <div style={{ height, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />;
+  return <div style={{ height, borderRadius: 12, background: 'var(--surface-card, #fff)', marginBottom: 16 }} />;
 }
 
 // ── Modals ────────────────────────────────────────────────────────────────────
@@ -204,7 +204,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button onClick={onClose} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
+          background: 'transparent', border: '1.5px solid var(--line)', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
         }}>Cancel</button>
         <button onClick={() => {
           if (password.length < 8) { setError('At least 8 characters required.'); return; }
@@ -256,7 +256,7 @@ function LockAccountModal({ onClose, onConfirm, loading }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
         <button onClick={onClose} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-          background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
+          background: 'transparent', border: '1.5px solid var(--line)', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
         }}>Cancel</button>
         <button onClick={() => onConfirm(duration)} disabled={loading} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
@@ -391,7 +391,7 @@ export default function UserDetail() {
             alt={user.name}
             style={{
               width: 64, height: 64, borderRadius: '50%', objectFit: 'cover',
-              flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block',
+              flexShrink: 0, background: 'var(--surface-card, #fff)', display: 'block',
             }}
           />
 
@@ -466,7 +466,7 @@ export default function UserDetail() {
 
       {/* ── Tab bar + content ── */}
       <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', borderBottom: '2px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '0 20px' }}>
+        <div style={{ display: 'flex', borderBottom: '2px solid var(--line)', padding: '0 20px' }}>
           {['profile', 'security'].map(t => (
             <button key={t} onClick={() => setTab(t)} style={{
               padding: '12px 16px', fontSize: '0.82rem', fontWeight: tab === t ? 700 : 500,
@@ -634,7 +634,7 @@ export default function UserDetail() {
                   {user.phone_otp_expires_at && new Date(user.phone_otp_expires_at) > new Date() && (
                     <InfoRow label="Pending phone OTP" icon={<Phone size={11} />}
                       value={<span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: 'var(--color-primary-600)', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.15em' }}>
+                        <span style={{ fontFamily: 'monospace', fontWeight: 800, color: 'var(--color-primary-600)', background: 'var(--surface-card, #fff)', padding: '2px 8px', borderRadius: 6, letterSpacing: '0.15em' }}>
                           {user.phone_otp ?? '••••••'}
                         </span>
                         <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>expires {fmtDT(user.phone_otp_expires_at)}</span>
@@ -664,8 +664,8 @@ export default function UserDetail() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{
                     padding: '5px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
-                    background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-600)',
-                    border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', textTransform: 'capitalize',
+                    background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
+                    border: '1px solid var(--line)', textTransform: 'capitalize',
                   }}>
                     {user.oauth_provider || 'email'}
                   </span>

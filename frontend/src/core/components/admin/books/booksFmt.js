@@ -12,7 +12,7 @@ export const yearStart = () => `${new Date().getFullYear()}-01-01`;
 
 /** Shared look for the small filter inputs above the books tables. */
 export const filterStyle = {
-  padding: '7px 10px', borderRadius: radius.md, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem', fontFamily: 'var(--font-body, inherit)', background: 'var(--surface-input, #fff)', color: 'var(--text-primary, #111827)',
+  padding: '7px 10px', borderRadius: radius.md, border: '1.5px solid var(--line)', fontSize: '0.8rem', fontFamily: 'var(--font-body, inherit)', background: 'var(--bg-primary)', color: 'var(--text-primary, #111827)',
 };
 
 /** Which Delivery Notes can still be put on a manifest: not on a live stop (a failed stop frees its notes). */

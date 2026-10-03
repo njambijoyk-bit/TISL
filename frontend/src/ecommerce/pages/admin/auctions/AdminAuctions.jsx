@@ -52,7 +52,7 @@ const tdStyle = {
 const STATUS_CONFIG = {
   active:    { color: '#059669', bg: 'rgba(16,185,129,0.08)',  border: 'rgba(16,185,129,0.25)',  dot: '#10b981', pulse: true },
   scheduled: { color: '#2563eb', bg: 'rgba(59,130,246,0.08)',  border: 'rgba(59,130,246,0.25)',  dot: '#3b82f6', pulse: false },
-  ended:     { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af', pulse: false },
+  ended:     { color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af', pulse: false },
   cancelled: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)',   border: 'rgba(220,38,38,0.25)',   dot: '#ef4444', pulse: false },
   failed:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.25)',  dot: '#f59e0b', pulse: false },
 };
@@ -219,7 +219,7 @@ export default function AdminAuctions() {
         </div>
 
         {/* ── Search + filters ── */}
-        <div style={{ ...card, padding: 16 }}>
+        <div style={{ ...card, background: 'transparent', boxShadow: 'none', padding: 16 }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 200, position: 'relative' }}>
               <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
@@ -228,7 +228,7 @@ export default function AdminAuctions() {
                 style={{ ...inputStyle, paddingLeft: 32 }} />
             </div>
             <Btn onClick={() => setShowFilters(v => !v)}
-              style={showFilters ? { background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', borderColor: 'var(--color-primary-500)', color: 'var(--color-primary-500)' } : {}}>
+              style={showFilters ? { background: 'var(--surface-card, #fff)', borderColor: 'var(--color-primary-500)', color: 'var(--color-primary-500)' } : {}}>
               <Filter size={15} /> Filters
               {hasFilters && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', display: 'inline-block' }} />}
             </Btn>
@@ -247,11 +247,11 @@ export default function AdminAuctions() {
               <div>
                 <label style={labelStyle}>Status</label>
                 <select value={filters.status} onChange={e => handleFilterChange('status', e.target.value)} style={{ ...inputStyle, cursor: 'pointer', color: 'var(--color-primary-500)' }}>
-                  <option value="" style={{ color: '#111827' }}>All Statuses</option>
-                  <option value="active" style={{ color: '#111827' }}>Active</option>
-                  <option value="scheduled" style={{ color: '#111827' }}>Scheduled</option>
-                  <option value="ended" style={{ color: '#111827' }}>Ended</option>
-                  <option value="cancelled" style={{ color: '#111827' }}>Cancelled</option>
+                  <option value="" style={{ color: 'var(--text-primary)' }}>All Statuses</option>
+                  <option value="active" style={{ color: 'var(--text-primary)' }}>Active</option>
+                  <option value="scheduled" style={{ color: 'var(--text-primary)' }}>Scheduled</option>
+                  <option value="ended" style={{ color: 'var(--text-primary)' }}>Ended</option>
+                  <option value="cancelled" style={{ color: 'var(--text-primary)' }}>Cancelled</option>
                 </select>
               </div>
               <div>
@@ -259,11 +259,11 @@ export default function AdminAuctions() {
                 <select value={`${filters.sort_by}:${filters.sort_dir}`}
                   onChange={e => { const [by, dir] = e.target.value.split(':'); handleFilterChange('sort_by', by); handleFilterChange('sort_dir', dir); }}
                   style={{ ...inputStyle, cursor: 'pointer', color: 'var(--color-primary-500)' }}>
-                  <option value="end_time:asc" style={{ color: '#111827' }}>End Time ↑</option>
-                  <option value="end_time:desc" style={{ color: '#111827' }}>End Time ↓</option>
-                  <option value="current_price:desc" style={{ color: '#111827' }}>Price ↓</option>
-                  <option value="current_price:asc" style={{ color: '#111827' }}>Price ↑</option>
-                  <option value="created_at:desc" style={{ color: '#111827' }}>Newest</option>
+                  <option value="end_time:asc" style={{ color: 'var(--text-primary)' }}>End Time ↑</option>
+                  <option value="end_time:desc" style={{ color: 'var(--text-primary)' }}>End Time ↓</option>
+                  <option value="current_price:desc" style={{ color: 'var(--text-primary)' }}>Price ↓</option>
+                  <option value="current_price:asc" style={{ color: 'var(--text-primary)' }}>Price ↑</option>
+                  <option value="created_at:desc" style={{ color: 'var(--text-primary)' }}>Newest</option>
                 </select>
               </div>
             </div>
@@ -391,7 +391,7 @@ export default function AdminAuctions() {
         </div>
         {showTrash && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 760, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, width: '100%', maxWidth: 760, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
               
               {/* Modal header */}
               <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--color-border-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>

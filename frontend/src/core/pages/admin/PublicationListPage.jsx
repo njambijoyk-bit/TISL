@@ -264,7 +264,7 @@ function TypeOption({ active, onClick, icon: Icon, label }) {
 const thStyle = { padding: '16px 20px', textAlign: 'left', fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-secondary)', letterSpacing: '0.05em' };
 const tdStyle = { padding: '16px 20px', fontSize: '0.9rem' };
 const inputStyle = { width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--line)', outline: 'none', fontSize: '0.95rem' };
-const actionBtn = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', cursor: 'pointer', color: 'var(--text-secondary)' };
+const actionBtn = { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-input)', cursor: 'pointer', color: 'var(--text-secondary)' };
 const modalOverlay = { position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 };
 const modalContent = { background: 'var(--surface-card, #fff)', padding: 32, borderRadius: 20, width: 450, boxShadow: '0 20px 50px rgba(0,0,0,0.2)' };
 const ghostBtn = { background: 'none', border: 'none', padding: '10px 20px', fontWeight: 700, cursor: 'pointer', color: 'var(--text-secondary)' };

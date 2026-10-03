@@ -168,7 +168,7 @@ function IncidentRow({ incident, expanded, onToggle, onUpdate, onHover, onVisibi
 
                 <div style={{ gridColumn: '1 / -1' }}>
                     <Label>Description {incident.is_redacted && <span style={{ fontSize: '0.6rem', padding: '1px 6px', borderRadius: 4, background: 'rgba(239,68,68,0.12)', color: '#ef4444', fontWeight: 700, textTransform: 'uppercase', marginLeft: 6 }}>Redacted active</span>}</Label>
-                    <Value style={{ padding: 10, borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+                    <Value style={{ padding: 10, borderRadius: 8, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
                         {incident.description
                             ? incident.description.length > 100
                                 ? incident.description.slice(0, 100) + '…'
@@ -178,7 +178,7 @@ function IncidentRow({ incident, expanded, onToggle, onUpdate, onHover, onVisibi
                     {incident.is_redacted && incident.redacted_description && (
                         <div style={{ marginTop: 8 }}>
                             <Label style={{ color: '#dc2626' }}>Redacted version (shown to driver/customer)</Label>
-                            <Value style={{ padding: 10, borderRadius: 8, background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', color: '#374151' }}>
+                            <Value style={{ padding: 10, borderRadius: 8, background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', color: 'var(--text-primary)' }}>
                                 {incident.redacted_description.length > 100
                                     ? incident.redacted_description.slice(0, 100) + '…'
                                     : incident.redacted_description}
@@ -255,7 +255,7 @@ function IncidentRow({ incident, expanded, onToggle, onUpdate, onHover, onVisibi
                     {incident.is_redacted && incident.redacted_description && (
                         <div style={{ marginTop: 8 }}>
                             <Label style={{ color: '#dc2626' }}>Redacted version (shown to driver/customer)</Label>
-                            <Value style={{ padding: 10, borderRadius: 8, background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', color: '#374151' }}>
+                            <Value style={{ padding: 10, borderRadius: 8, background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', color: 'var(--text-primary)' }}>
                                 {incident.redacted_description}
                             </Value>
                         </div>
@@ -463,24 +463,24 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }}>
             <div onClick={e => e.stopPropagation()} style={{
-                background: 'white', borderRadius: 20, width: '100%', maxWidth: 480,
+                background: 'var(--surface-card, #fff)', borderRadius: 20, width: '100%', maxWidth: 480,
                 boxShadow: '0 24px 60px rgba(0,0,0,0.18)', overflow: 'hidden',
             }}>
                 <div style={{ height: 4, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
                 <div style={{ padding: 20 }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#111827' }}>
+                    <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>
                         {incident.is_redacted ? 'Edit Redacted Description' : 'Redact Description'}
                     </h3>
-                    <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9ca3af' }}>
+                    <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--text-tertiary)' }}>
                         This text is what drivers and customers will see when redaction is active.
                     </p>
 
                     {/* Original description for reference */}
-                    <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                    <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 10, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
                         <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', color: 'var(--color-primary-500)', marginBottom: 4 }}>
                             Original (admin only)
                         </div>
-                        <div style={{ fontSize: 12, color: '#374151', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.5 }}>
                             {incident.description
                                 ? incident.description.length > 200
                                     ? incident.description.slice(0, 200) + '…'
@@ -503,7 +503,7 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                                 width: '100%', resize: 'vertical', boxSizing: 'border-box',
                                 border: `1px solid ${overLimit ? 'rgba(239,68,68,0.4)' : 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}`,
                                 borderRadius: 12,
-                                padding: '10px 12px', fontSize: 13, color: '#111827',
+                                padding: '10px 12px', fontSize: 13, color: 'var(--text-primary)',
                                 outline: 'none', fontFamily: 'inherit',
                             }}
                         />
@@ -520,8 +520,8 @@ function RedactModal({ incident, onClose, onSave, onUnredact }) {
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button onClick={onClose} disabled={loading} style={{
                             flex: 1, padding: '10px 14px', borderRadius: 12,
-                            border: '1px solid #e5e7eb', background: 'transparent',
-                            fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer',
+                            border: '1px solid var(--line)', background: 'transparent',
+                            fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer',
                         }}>
                             Cancel
                         </button>
@@ -585,7 +585,7 @@ function AdminNotesField({ incident, onSave, onHover }) {
                 rows={3}
                 style={{
                     width: '100%', boxSizing: 'border-box', resize: 'vertical',
-                    background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: `1px solid ${D.purpleBorder}`,
+                    background: 'var(--surface-card, #fff)', border: `1px solid ${D.purpleBorder}`,
                     borderRadius: D.radiusSm, color: D.text,
                     fontSize: '0.82rem', padding: '8px 10px', outline: 'none',
                     fontFamily: 'inherit', marginTop: 4,

@@ -188,7 +188,7 @@ function Modal({ children, onClose, maxWidth = 480 }) {
       }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ ...card, background: 'white', color: 'var(--color-primary-600)', width: '100%', maxWidth, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div style={{ ...card, background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)', width: '100%', maxWidth, maxHeight: '92vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {children}
       </div>
     </div>
@@ -593,7 +593,7 @@ export default function ServiceCategories() {
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 4,
                               padding: '2px 7px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
-                              background: 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)', color: 'var(--color-primary-600)',
+                              background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                             }}>
                               Root
                             </span>

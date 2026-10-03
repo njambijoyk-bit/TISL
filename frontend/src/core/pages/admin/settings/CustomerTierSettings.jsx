@@ -15,9 +15,9 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -30,13 +30,13 @@ const labelStyle = {
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
-  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', display: 'block', textAlign: right ? 'right' : 'left' }}>
+  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', display: 'block', textAlign: right ? 'right' : 'left' }}>
     {children}
   </span>
 );
@@ -48,7 +48,7 @@ function Field({ label, children, hint }) {
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {hint && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 }}>{hint}</p>}
+      {hint && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 }}>{hint}</p>}
     </div>
   );
 }
@@ -57,7 +57,7 @@ function Field({ label, children, hint }) {
 
 function AddTierModal({ onClose, onSave }) {
   const [form, setForm] = useState({
-    slug: '', name: '', description: '', color: '#9ca3af',
+    slug: '', name: '', description: '', color: 'var(--text-tertiary)',
     discount_percentage: '', free_shipping_threshold: '',
     loyalty_points_multiplier: '1', priority_support: false,
     min_orders: '', min_spent: '', sort_order: '0', currency_id: '',
@@ -81,8 +81,8 @@ function AddTierModal({ onClose, onSave }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,10,30,0.65)', backdropFilter: 'blur(6px)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 540, padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>Add tier</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={16} /></button>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add tier</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -104,11 +104,11 @@ function AddTierModal({ onClose, onSave }) {
             <Field label="Min spent" hint="In the tier currency; leave empty = manual only"><input type="number" step="0.01" value={form.min_spent} onChange={set('min_spent')} placeholder="500000" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
           <Field label="Money amounts are in" hint="Free-shipping threshold and min spent"><CurrencySelect value={form.currency_id} onChange={(v) => setForm(f => ({ ...f, currency_id: v }))} style={inputStyle} /></Field>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
             <input type="checkbox" checked={form.priority_support} onChange={setBool('priority_support')} /> Priority support
           </label>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Add tier</button>
           </div>
         </form>
@@ -144,8 +144,8 @@ function EditTierModal({ tier, onClose, onSave }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,10,30,0.65)', backdropFilter: 'blur(6px)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 540, padding: 24, maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>Edit tier — {tier.name}</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={16} /></button>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Edit tier — {tier.name}</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -167,11 +167,11 @@ function EditTierModal({ tier, onClose, onSave }) {
             <Field label="Min spent"><input type="number" step="0.01" value={form.min_spent} onChange={set('min_spent')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
           <Field label="Money amounts are in"><CurrencySelect value={form.currency_id} onChange={(v) => setForm(f => ({ ...f, currency_id: v }))} style={inputStyle} /></Field>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#374151', cursor: 'pointer' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: 'var(--text-primary)', cursor: 'pointer' }}>
             <input type="checkbox" checked={form.priority_support} onChange={setBool('priority_support')} /> Priority support
           </label>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Save changes</button>
           </div>
         </form>
@@ -195,8 +195,8 @@ function AddTypeModal({ onClose, onSave }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,10,30,0.65)', backdropFilter: 'blur(6px)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 460, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>Add customer type</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={16} /></button>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add customer type</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -209,7 +209,7 @@ function AddTypeModal({ onClose, onSave }) {
             <Field label="Sort order"><input type="number" value={form.sort_order} onChange={set('sort_order')} placeholder="0" style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Add type</button>
           </div>
         </form>
@@ -236,8 +236,8 @@ function EditTypeModal({ type, onClose, onSave }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,10,30,0.65)', backdropFilter: 'blur(6px)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 460, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>Edit type — {type.name}</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}><X size={16} /></button>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Edit type — {type.name}</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -250,7 +250,7 @@ function EditTypeModal({ type, onClose, onSave }) {
             <Field label="Sort order"><input type="number" value={form.sort_order} onChange={set('sort_order')} style={inputStyle} onFocus={inputFocus} onBlur={inputBlur} /></Field>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+            <button type="button" onClick={onClose} style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600, border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             <button type="submit" style={{ flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' }}>Save changes</button>
           </div>
         </form>
@@ -270,8 +270,8 @@ const ACTION_META = {
 };
 
 function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types = [] }) {
-  if (loading) return <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 20px' }}>Loading activity...</p>;
-  if (!items.length) return <p style={{ fontSize: '0.78rem', color: '#9ca3af', padding: '16px 20px' }}>No activity yet</p>;
+  if (loading) return <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '16px 20px' }}>Loading activity...</p>;
+  if (!items.length) return <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '16px 20px' }}>No activity yet</p>;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -294,7 +294,7 @@ function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types =
               {meta.icon}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '0.78rem', color: '#374151', margin: 0 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-primary)', margin: 0 }}>
                 <strong>{a.actor?.name ?? 'System'}</strong>{' '}
                 <span style={{ color: meta.color, fontWeight: 600, textTransform: 'lowercase' }}>{a.action}</span>{' '}
                 <span style={{
@@ -308,10 +308,10 @@ function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types =
                   {entityLabel}
                 </span>
                 <strong>{displayName}</strong>
-                {a.metadata?.slug && <span style={{ color: '#9ca3af' }}> ({a.metadata.slug})</span>}
+                {a.metadata?.slug && <span style={{ color: 'var(--text-tertiary)' }}> ({a.metadata.slug})</span>}
               </p>
               {a.metadata?.changes && (
-                <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: '0.72rem', color: '#6b7280' }}>
+                <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                   {a.metadata.changes.map((c, j) => (
                     <li key={j}>
                       {c.field}:{' '}
@@ -322,7 +322,7 @@ function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types =
                   ))}
                 </ul>
               )}
-              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '3px 0 0' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '3px 0 0' }}>
                 {new Date(a.created_at).toLocaleString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
@@ -333,7 +333,7 @@ function ActivityTimeline({ items, pag, onLoadMore, loading, tiers = [], types =
         <button onClick={() => onLoadMore(pag.current_page + 1)} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           padding: '10px', fontSize: '0.75rem', fontWeight: 600, color: 'var(--color-primary-600)',
-          background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+          background: 'var(--surface-card, #fff)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         }}>
           <RefreshCw size={12} /> Load more
         </button>
@@ -478,7 +478,7 @@ export default function CustomerTierSettings() {
     <SettingsLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {[80, 400].map((h, i) => (
-          <div key={i} style={{ height: h, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />
+          <div key={i} style={{ height: h, borderRadius: 12, background: 'var(--surface-card, #fff)', marginBottom: 16 }} />
         ))}
       </div>
     </SettingsLayout>
@@ -496,7 +496,7 @@ export default function CustomerTierSettings() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
               Customer Tiers & Types
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Manage discount tiers, loyalty multipliers, and customer type classifications
             </p>
           </div>
@@ -517,7 +517,7 @@ export default function CustomerTierSettings() {
         </div>
 
         {/* ── Tabs ── */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', borderRadius: 10, padding: 3 }}>
+        <div style={{ display: 'flex', gap: 4, marginBottom: 20, background: 'var(--surface-card, #fff)', borderRadius: 10, padding: 3 }}>
           {[
             { key: 'tiers', label: 'Tiers', icon: <Crown size={13} /> },
             { key: 'types', label: 'Customer Types', icon: <Users size={13} /> },
@@ -542,7 +542,7 @@ export default function CustomerTierSettings() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
+                  <tr style={{ background: 'var(--surface-card, #fff)' }}>
                     {['Tier', 'Discount', 'Loyalty ×', 'Shipping', 'Upgrade at', 'Status', ''].map((h, i) => (
                       <th key={i} style={{ padding: '10px 16px', textAlign: i >= 5 ? 'center' : 'left' }}>
                         <TH_LABEL right={i >= 5}>{h}</TH_LABEL>
@@ -559,17 +559,17 @@ export default function CustomerTierSettings() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
                             <div>
-                              <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#111827', margin: 0 }}>{t.name}</p>
-                              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{t.slug}{t.description ? ` — ${t.description}` : ''}</p>
+                              <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t.name}</p>
+                              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{t.slug}{t.description ? ` — ${t.description}` : ''}</p>
                             </div>
                           </div>
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-600)' }}>{t.discount_percentage}%</td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#374151' }}>×{t.loyalty_points_multiplier}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#6b7280' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: 'var(--text-primary)' }}>×{t.loyalty_points_multiplier}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                           {t.free_shipping_threshold === null || t.free_shipping_threshold === '0.00' ? 'Always free' : `Free above ${fmtNum(t.free_shipping_threshold)}`}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.72rem', color: '#6b7280' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
                           {t.min_orders || t.min_spent
                             ? `${t.min_orders ? t.min_orders + ' orders' : ''}${t.min_orders && t.min_spent ? ' or ' : ''}${t.min_spent ? fmtNum(t.min_spent) + ' ' + (t.currency?.code ?? '') : ''}`
                             : 'Manual only'}
@@ -616,7 +616,7 @@ export default function CustomerTierSettings() {
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
+                  <tr style={{ background: 'var(--surface-card, #fff)' }}>
                     {['Type', 'Discount', 'Description', 'Status', ''].map((h, i) => (
                       <th key={i} style={{ padding: '10px 16px', textAlign: i >= 3 ? 'center' : 'left' }}>
                         <TH_LABEL right={i >= 3}>{h}</TH_LABEL>
@@ -630,11 +630,11 @@ export default function CustomerTierSettings() {
                     return (
                       <tr key={t.id} style={{ borderTop: i ? '1px solid color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none' }}>
                         <td style={{ padding: '12px 16px' }}>
-                          <p style={{ fontSize: '0.85rem', fontWeight: 600, color: '#111827', margin: 0 }}>{t.name}</p>
-                          <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{t.slug}</p>
+                          <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{t.name}</p>
+                          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{t.slug}</p>
                         </td>
                         <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-600)' }}>{t.discount_percentage}%</td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#6b7280' }}>{t.description || '—'}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{t.description || '—'}</td>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                           <button
                             onClick={() => !isProtected && handleToggleType(t.id, t.is_active)}
@@ -675,7 +675,7 @@ export default function CustomerTierSettings() {
         <div style={{ ...card, overflow: 'hidden' }}>
           <button onClick={() => setShowLog(!showLog)} style={{
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 20px', background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            padding: '14px 20px', background: 'var(--surface-card, #fff)', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           }}>
             <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>Activity Log</span>
             {showLog ? <ChevronUp size={14} color="var(--color-primary-600)" /> : <ChevronDown size={14} color="var(--color-primary-600)" />}

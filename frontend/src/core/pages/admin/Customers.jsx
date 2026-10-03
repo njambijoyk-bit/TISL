@@ -68,22 +68,22 @@ const fmtPts  = (n) => Number(n ?? 0).toLocaleString();
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'var(--surface-card, var(--surface-card, #fff))',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
   color: 'var(--text-primary)', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
 const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
-const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
+const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
   <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
@@ -159,16 +159,16 @@ function SkeletonRow() {
       {/* Customer cell */}
       <td style={{ padding: '12px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }} />
+          <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--surface-input)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ width: 112, height: 11, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
-            <div style={{ width: 148, height: 9, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }} />
+            <div style={{ width: 112, height: 11, borderRadius: 6, background: 'var(--surface-input)' }} />
+            <div style={{ width: 148, height: 9, borderRadius: 6, background: 'var(--surface-input)' }} />
           </div>
         </div>
       </td>
       {widths.map((w, j) => (
         <td key={j} style={{ padding: '12px 16px' }}>
-          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }} />}
+          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'var(--surface-input)' }} />}
         </td>
       ))}
     </tr>
@@ -319,7 +319,7 @@ export default function Customers() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: 'pointer',
-              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)',
+              background: 'var(--surface-card, #fff)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)',
               transition: 'all 150ms',
             }}
             onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 11%, transparent)'}
@@ -333,7 +333,7 @@ export default function Customers() {
               display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600,
               fontFamily: 'inherit', cursor: 'pointer',
-              background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)',
+              background: 'var(--surface-card, #fff)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)',
               transition: 'all 150ms',
             }}
             onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 11%, transparent)'}
@@ -372,7 +372,7 @@ export default function Customers() {
       )}
 
       {/* ── Search + filters ── */}
-      <div style={card}>
+      <div style={{ borderRadius: 12, border: '1px solid var(--line)' }}>
         <div style={{ padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
             <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
@@ -383,13 +383,13 @@ export default function Customers() {
               onChange={e => setSearch(e.target.value)}
               style={{
                 width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                background: 'var(--surface-card, #fff)',
+                border: '1.5px solid var(--line)',
                 color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
                 boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
               }}
               onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
-              onBlur={e  => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
+              onBlur={e  => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none'; }}
             />
           </div>
 
@@ -421,7 +421,7 @@ export default function Customers() {
         {showFilters && (
           <div style={{
             padding: '12px 16px 14px',
-            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+            borderTop: '1px solid var(--line)',
             display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
           }}>
             <select value={status} onChange={e => setStatus(e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
@@ -476,7 +476,7 @@ export default function Customers() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+              <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
 
                 {/* Customer */}
                 <th style={{ padding: '10px 20px', textAlign: 'left', minWidth: 220 }}>
@@ -578,7 +578,7 @@ export default function Customers() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                               <img
                                 src={c.profile_image_url} alt={c.full_name}
-                                style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block' }}
+                                style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, background: 'var(--surface-input)', display: 'block' }}
                               />
                               <div style={{ minWidth: 0 }}>
                                 <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -707,9 +707,9 @@ export default function Customers() {
         {!loading && customers.length > 0 && page < meta.last_page && (
           <div style={{
             padding: '14px 20px',
-            borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+            borderTop: '1px solid var(--line)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+            background: 'var(--surface-card, #fff)',
           }}>
             <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Showing {customers.length.toLocaleString()} of {meta.total.toLocaleString()} customers
@@ -722,7 +722,7 @@ export default function Customers() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer',
-                  background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                  background: 'var(--surface-card, #fff)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
                   color: 'var(--color-primary-600)', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
                 }}
                 onMouseEnter={e => { if (!loadingMore && !loadingAll) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'; }}
@@ -740,7 +740,7 @@ export default function Customers() {
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                   fontFamily: 'inherit', cursor: loadingMore || loadingAll ? 'not-allowed' : 'pointer',
-                  background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+                  background: 'transparent', border: '1.5px solid var(--line)',
                   color: 'var(--text-tertiary)', transition: 'all 150ms', opacity: loadingMore || loadingAll ? 0.6 : 1,
                 }}
                 onMouseEnter={e => { if (!loadingMore && !loadingAll) { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-600)'; } }}
@@ -755,7 +755,7 @@ export default function Customers() {
           </div>
         )}
         {!loading && customers.length > 0 && page >= meta.last_page && (
-          <div style={{ padding: '10px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+          <div style={{ padding: '10px 20px', borderTop: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
             <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               All {meta.total.toLocaleString()} customers loaded
             </p>
@@ -768,7 +768,7 @@ export default function Customers() {
           <div style={{ ...card, width: '100%', maxWidth: 620, maxHeight: '82vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(217,119,6,0.1)' }}>
                   <Gift size={18} style={{ color: '#d97706' }} />

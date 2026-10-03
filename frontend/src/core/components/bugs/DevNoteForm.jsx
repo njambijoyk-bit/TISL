@@ -52,7 +52,7 @@ const STATUS_COLORS = {
   open:        { bg: 'rgba(37,99,235,0.08)',  color: '#1d4ed8' },
   in_progress: { bg: 'rgba(217,119,6,0.08)',  color: '#b45309' },
   resolved:    { bg: 'rgba(22,163,74,0.08)',   color: '#15803d' },
-  wont_fix:    { bg: 'rgba(107,114,128,0.08)', color: '#6b7280' },
+  wont_fix:    { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' },
 };
 
 function BugSearchField({ value, onChange }) {

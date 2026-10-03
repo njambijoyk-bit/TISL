@@ -52,7 +52,7 @@ const Modal = ({ isOpen, onClose, title, size = 'md', children }) => {
           style={{
             position: 'relative', width: '100%',
             maxWidth: sizeMap[size] ?? sizeMap.md,
-            background: 'white', borderRadius: 14,
+            background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', borderRadius: 14,
             border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
             boxShadow: '0 8px 40px color-mix(in srgb, var(--color-primary-500) 12%, transparent), 0 2px 12px rgba(0,0,0,0.08)',
           }}
@@ -87,7 +87,7 @@ const Modal = ({ isOpen, onClose, title, size = 'md', children }) => {
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.background = 'none';
-                e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
               }}
             >
               <X size={16} />

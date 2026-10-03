@@ -871,3 +871,24 @@ a:hover {
     box-shadow: none;
   }
 }
+
+/* ── Tailwind neutral utilities follow the theme ───────────────────────────
+   Older pages use bg-white / bg-gray-* / border-gray-* directly. Mapping the
+   utilities here makes them take the selected Colouring's card, input and
+   border colours (light and dark) without editing each page. */
+:root:root .bg-white,
+:root:root .dark\:bg-gray-800,
+:root:root .dark\:bg-gray-900 { background-color: var(--surface-card, #fff); }
+:root:root .bg-gray-50,
+:root:root .bg-gray-100,
+:root:root .dark\:bg-gray-700 { background-color: var(--surface-input); }
+:root:root .hover\:bg-gray-50:hover,
+:root:root .hover\:bg-gray-100:hover,
+:root:root .dark\:hover\:bg-gray-700:hover { background-color: var(--surface-hover); }
+:root:root .border-gray-100,
+:root:root .border-gray-200,
+:root:root .border-gray-300,
+:root:root .dark\:border-gray-600,
+:root:root .dark\:border-gray-700 { border-color: var(--line); }
+:root:root .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+:root:root .dark\:divide-gray-700 > :not([hidden]) ~ :not([hidden]) { border-color: var(--line); }

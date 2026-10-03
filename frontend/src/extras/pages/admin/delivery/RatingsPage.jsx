@@ -188,17 +188,17 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
         }}>
             <div onClick={e => e.stopPropagation()} style={{
-                background: 'white', borderRadius: 20, width: '100%', maxWidth: 420,
+                background: 'var(--surface-card, #fff)', borderRadius: 20, width: '100%', maxWidth: 420,
                 boxShadow: '0 24px 60px rgba(0,0,0,0.18)', overflow: 'hidden',
             }}>
                 <div style={{ height: 4, background: 'linear-gradient(90deg,var(--color-primary-500),var(--color-primary-600))' }} />
                 <div style={{ padding: 20 }}>
-                    <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: '#111827' }}>
+                    <h3 style={{ margin: '0 0 4px', fontSize: 17, fontWeight: 700, color: 'var(--text-primary)' }}>
                         Adjust Rating
                     </h3>
-                    <p style={{ margin: '0 0 16px', fontSize: 12, color: '#9ca3af' }}>
+                    <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--text-tertiary)' }}>
                         {driver.driver_name} · Current overall:{' '}
-                        <strong style={{ color: '#111827' }}>{driver.overall_rating ?? 'N/A'}</strong>
+                        <strong style={{ color: 'var(--text-primary)' }}>{driver.overall_rating ?? 'N/A'}</strong>
                     </p>
 
                     <div style={{ marginBottom: 16 }}>
@@ -208,17 +208,17 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
                             <button
                                 onClick={() => setValue(v => Math.max(-4, parseFloat((v - 0.5).toFixed(1))))}
-                                style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: 18, color: '#ef4444' }}
+                                style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--surface-input)', cursor: 'pointer', fontSize: 18, color: '#ef4444' }}
                             >−</button>
                             <span style={{ fontSize: 24, fontWeight: 800, color: value > 0 ? '#059669' : value < 0 ? '#ef4444' : '#111827', minWidth: 60, textAlign: 'center' }}>
                                 {value > 0 ? '+' : ''}{value.toFixed(1)}
                             </span>
                             <button
                                 onClick={() => setValue(v => Math.min(4, parseFloat((v + 0.5).toFixed(1))))}
-                                style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid #e5e7eb', background: 'white', cursor: 'pointer', fontSize: 18, color: '#059669' }}
+                                style={{ width: 36, height: 36, borderRadius: 10, border: '1px solid var(--line)', background: 'var(--surface-input)', cursor: 'pointer', fontSize: 18, color: '#059669' }}
                             >+</button>
                         </div>
-                        <p style={{ textAlign: 'center', fontSize: 11, color: '#9ca3af', margin: '8px 0 0' }}>Range: −4.0 to +4.0</p>
+                        <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--text-tertiary)', margin: '8px 0 0' }}>Range: −4.0 to +4.0</p>
                     </div>
 
                     <div style={{ marginBottom: 20 }}>
@@ -233,7 +233,7 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                             style={{
                                 width: '100%', resize: 'vertical', boxSizing: 'border-box',
                                 border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderRadius: 12,
-                                padding: '10px 12px', fontSize: 13, color: '#111827',
+                                padding: '10px 12px', fontSize: 13, color: 'var(--text-primary)',
                                 outline: 'none', fontFamily: 'inherit',
                             }}
                         />
@@ -242,8 +242,8 @@ function AdjustRatingModal({ driver, onClose, onSubmit }) {
                     <div style={{ display: 'flex', gap: 10 }}>
                         <button onClick={onClose} style={{
                             flex: 1, padding: '10px 16px', borderRadius: 12,
-                            border: '1px solid #e5e7eb', background: 'transparent',
-                            fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer',
+                            border: '1px solid var(--line)', background: 'transparent',
+                            fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer',
                         }}>Cancel</button>
                         <button onClick={handleSubmit} disabled={!canSubmit} style={{
                             flex: 2, padding: '10px 16px', borderRadius: 12, border: 'none',

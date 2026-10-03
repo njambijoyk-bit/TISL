@@ -21,9 +21,9 @@ import useCurrencyStore from '../../../../_shared/store/currencyStore';
 import { formatMoney } from '../../../../_shared/lib/money';
 
 const inputStyle = {
-  width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb',
-  borderRadius: 10, fontSize: '0.875rem', color: '#111827',
-  background: 'white', outline: 'none', boxSizing: 'border-box',
+  width: '100%', padding: '9px 12px', border: '1.5px solid var(--line)',
+  borderRadius: 10, fontSize: '0.875rem', color: 'var(--text-primary)',
+  background: 'var(--surface-card, #fff)', outline: 'none', boxSizing: 'border-box',
 };
 
 const labelStyle = {
@@ -34,7 +34,7 @@ const labelStyle = {
 const statusConfig = {
   active:    { color: '#059669', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', dot: '#10b981' },
   scheduled: { color: '#2563eb', bg: 'rgba(59,130,246,0.08)', border: 'rgba(59,130,246,0.25)', dot: '#3b82f6' },
-  ended:     { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af' },
+  ended:     { color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.25)', dot: '#9ca3af' },
   cancelled: { color: '#dc2626', bg: 'rgba(220,38,38,0.08)', border: 'rgba(220,38,38,0.25)', dot: '#ef4444' },
   failed:    { color: '#d97706', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', dot: '#f59e0b' },
 };
@@ -68,7 +68,7 @@ const SectionLabel = ({ children, icon: Icon }) => (
 
 const Panel = ({ children, style = {}, accent = false }) => (
   <div style={{
-    background: 'white',
+    background: 'var(--surface-card, #fff)',
     border: `1px solid ${accent ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : '#f3f4f6'}`,
     borderRadius: 16,
     overflow: 'hidden',
@@ -84,11 +84,11 @@ const Panel = ({ children, style = {}, accent = false }) => (
 const ActionBtn = ({ children, onClick, variant = 'primary', icon: Icon, disabled }) => {
   const variants = {
     primary: { background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', border: 'none' },
-    outline: { background: 'transparent', color: '#6b7280', border: '1.5px solid #e5e7eb' },
+    outline: { background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--line)' },
     success: { background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1.5px solid rgba(16,185,129,0.2)' },
     danger:  { background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1.5px solid rgba(239,68,68,0.2)' },
     warning: { background: 'rgba(245,158,11,0.08)', color: '#d97706', border: '1.5px solid rgba(245,158,11,0.2)' },
-    ghost:   { background: 'transparent', color: '#6b7280', border: 'none' },
+    ghost:   { background: 'transparent', color: 'var(--text-secondary)', border: 'none' },
   };
   return (
     <button onClick={onClick} disabled={disabled} style={{
@@ -113,12 +113,12 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = 560 }) => {
       zIndex: 1000, padding: 16, backdropFilter: 'blur(4px)'
     }} onClick={onClose}>
       <div style={{
-        background: 'white', borderRadius: 20, width: '100%', maxWidth,
+        background: 'var(--surface-card, #fff)', borderRadius: 20, width: '100%', maxWidth,
         maxHeight: '92vh', overflow: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.15)'
       }} onClick={e => e.stopPropagation()}>
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#111827', margin: 0 }}>{title}</h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 4 }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{title}</h3>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 4 }}>
             <X size={18} />
           </button>
         </div>
@@ -129,7 +129,7 @@ const Modal = ({ isOpen, onClose, title, children, maxWidth = 560 }) => {
 };
 
 const Checkbox = ({ checked, onChange, label }) => (
-  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.82rem', color: '#374151', fontWeight: 600 }}>
+  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.82rem', color: 'var(--text-primary)', fontWeight: 600 }}>
     <div style={{
       width: 18, height: 18, borderRadius: 5,
       border: checked ? '2px solid var(--color-primary-500)' : '2px solid #e5e7eb',
@@ -288,14 +288,14 @@ export default function AdminAuctionDetail() {
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 400, flexDirection: 'column', gap: 12 }}>
       <Gavel size={36} style={{ color: 'var(--color-primary-500)', opacity: 0.4 }} />
-      <p style={{ color: '#9ca3af', fontWeight: 600 }}>Loading auction...</p>
+      <p style={{ color: 'var(--text-tertiary)', fontWeight: 600 }}>Loading auction...</p>
     </div>
   );
 
   if (!auction) return (
     <div style={{ textAlign: 'center', padding: '60px 24px' }}>
       <AlertTriangle size={48} style={{ color: '#f59e0b', margin: '0 auto 16px' }} />
-      <p style={{ color: '#6b7280', fontWeight: 600, marginBottom: 12 }}>Auction not found</p>
+      <p style={{ color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 12 }}>Auction not found</p>
       <button onClick={() => navigate('/admin/auctions')} style={{ color: 'var(--color-primary-500)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
         ← Back to auctions
       </button>
@@ -309,7 +309,7 @@ export default function AdminAuctionDetail() {
 
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-          <button onClick={() => navigate('/admin/auctions')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}
+          <button onClick={() => navigate('/admin/auctions')} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.875rem' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}
           >
@@ -320,7 +320,7 @@ export default function AdminAuctionDetail() {
             {editing ? (
               <>
                 <button onClick={() => { setEditing(false); }} disabled={saving}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid #e5e7eb', borderRadius: 10, background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid var(--line)', borderRadius: 10, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}>
                   <X size={14} /> Cancel
                 </button>
                 <button onClick={handleSave} disabled={saving}
@@ -331,7 +331,7 @@ export default function AdminAuctionDetail() {
             ) : (
               <>
                 <button onClick={() => setEditing(true)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid #e5e7eb', borderRadius: 10, background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid var(--line)', borderRadius: 10, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}>
                   <Edit size={14} /> Edit
                 </button>
                 {auction.status === 'active' && (
@@ -359,13 +359,13 @@ export default function AdminAuctionDetail() {
         </div>
 
         {/* ── Product card ── */}
-        <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', padding: 20, display: 'flex', gap: 20, alignItems: 'flex-start' }}>
           {auction.product?.main_image_url ? (
             <img src={auction.product.main_image_url} alt={auction.product.name}
               style={{ width: 100, height: 100, borderRadius: 12, objectFit: 'cover', flexShrink: 0, background: '#f3f4f6' }} />
           ) : (
             <div style={{ width: 100, height: 100, borderRadius: 12, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Package size={32} style={{ color: '#d1d5db' }} />
+              <Package size={32} style={{ color: 'var(--text-tertiary)' }} />
             </div>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -373,23 +373,23 @@ export default function AdminAuctionDetail() {
               <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0 }}>{auction.product?.name}</h1>
               <StatusBadge status={auction.status} />
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '0 0 10px' }}>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: '0 0 10px' }}>
               SKU: {auction.product?.sku ?? '—'} {auction.product?.brand?.name ? `• ${auction.product.brand.name}` : ''}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280', fontWeight: 600 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <Clock size={13} style={{ color: 'var(--color-primary-500)' }} /> Ends: {formatDate(auction.end_time)}
               </span>
               {auction.reserve_price && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280', fontWeight: 600 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                   <Shield size={13} style={{ color: 'var(--color-primary-500)' }} /> Reserve: {formatPrice(auction.reserve_price)}
                 </span>
               )}
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280', fontWeight: 600 }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <Users size={13} style={{ color: 'var(--color-primary-500)' }} /> Max Winners: {maxWinners}
               </span>
               {auction.location?.name && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: '#6b7280', fontWeight: 600 }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                   <MapPin size={13} style={{ color: 'var(--color-primary-500)' }} /> {auction.location.name}
                   {auction.variant?.name && auction.variant.name !== 'Standard' ? ` · ${auction.variant.name}` : ''}
                 </span>
@@ -408,7 +408,7 @@ export default function AdminAuctionDetail() {
             { label: 'Highest Bid', value: bidStats.highestBid > 0 ? formatPrice(bidStats.highestBid) : '—', color: '#059669', icon: <TrendingUp size={16} /> },
             { label: 'Bid Increment', value: formatPrice(auction.bid_increment), color: 'var(--color-primary-500)', icon: <Gavel size={16} /> },
           ].map((s, i) => (
-            <div key={i} style={{ background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', padding: '14px 16px' }}>
+            <div key={i} style={{ background: 'var(--surface-card, #fff)', borderRadius: 14, border: '1px solid var(--line)', padding: '14px 16px' }}>
               <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px' }}>{s.label}</p>
               <p style={{ fontSize: '1.1rem', fontWeight: 800, color: s.color, margin: 0 }}>{s.value}</p>
             </div>
@@ -417,7 +417,7 @@ export default function AdminAuctionDetail() {
 
         {/* ── Edit form ── */}
         {editing && (
-          <div style={{ background: 'white', borderRadius: 16, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', padding: 24 }}>
+          <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', padding: 24 }}>
             <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 20px' }}>Edit Auction Settings</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
               {[
@@ -453,7 +453,7 @@ export default function AdminAuctionDetail() {
                   style={{ padding: '10px 14px' }}
                 />
                 {hasBids && (
-                  <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>Locked — bids have been placed in {auctionCode}.</p>
+                  <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '5px 0 0' }}>Locked — bids have been placed in {auctionCode}.</p>
                 )}
               </div>
               <div style={{ gridColumn: '1 / -1' }}>
@@ -480,10 +480,10 @@ export default function AdminAuctionDetail() {
 
         {/* ── Registrations & deposits ── */}
         {registrations.length > 0 && (
-          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 20 }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>Registrations &amp; deposits</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>{registrations.length}</span>
+          <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>Registrations &amp; deposits</span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>{registrations.length}</span>
               {registrations.some(r => r.deposit_status === 'held') && ['ended', 'cancelled'].includes(auction.status) && (
                 <button onClick={releaseDeposits} disabled={releasing}
                   style={{ marginLeft: 'auto', padding: '6px 12px', borderRadius: 8, border: 'none', background: 'var(--color-primary-500)', color: 'white', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer' }}>
@@ -495,12 +495,12 @@ export default function AdminAuctionDetail() {
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                 <thead>
                   <tr style={{ background: '#f9fafb', textAlign: 'left' }}>
-                    {['Bidder', 'Status', 'Entry fee', 'Deposit', 'Deposit is'].map(h => <th key={h} style={{ padding: '8px 14px', fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase' }}>{h}</th>)}
+                    {['Bidder', 'Status', 'Entry fee', 'Deposit', 'Deposit is'].map(h => <th key={h} style={{ padding: '8px 14px', fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>{h}</th>)}
                   </tr>
                 </thead>
                 <tbody>
                   {registrations.map(r => (
-                    <tr key={r.id} style={{ borderTop: '1px solid #f3f4f6' }}>
+                    <tr key={r.id} style={{ borderTop: '1px solid var(--line)' }}>
                       <td style={{ padding: '8px 14px' }}>{[r.customer?.first_name, r.customer?.last_name].filter(Boolean).join(' ') || r.customer?.email || `#${r.customer_id}`}</td>
                       <td style={{ padding: '8px 14px' }}>{r.status === 'registered' ? 'Paid — may bid' : r.status === 'awaiting_payment' ? 'Awaiting payment' : r.status}</td>
                       <td style={{ padding: '8px 14px' }}>{formatMoney(Number(r.entry_amount), auctionCode, { decimals: 'auto' })}</td>
@@ -516,19 +516,19 @@ export default function AdminAuctionDetail() {
 
         {/* ── Charges this auction carries (the ticked ones) ── */}
         {!editing && (
-          <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 24 }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', overflow: 'hidden', marginBottom: 24 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Tag size={16} style={{ color: 'var(--color-primary-500)' }} />
-              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>Charges on this auction</span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>{charges.filter((c) => c.is_enabled).length} ticked</span>
+              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>Charges on this auction</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>{charges.filter((c) => c.is_enabled).length} ticked</span>
             </div>
             {charges.filter((c) => c.is_enabled).length === 0 ? (
-              <p style={{ margin: 0, padding: '18px 20px', fontSize: '0.8rem', color: '#9ca3af' }}>No other charges are ticked — the winner pays the winning bid{auction.tax_info ? ' plus tax' : ''} only.</p>
+              <p style={{ margin: 0, padding: '18px 20px', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>No other charges are ticked — the winner pays the winning bid{auction.tax_info ? ' plus tax' : ''} only.</p>
             ) : (
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ textAlign: 'left', fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    <tr style={{ textAlign: 'left', fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                       {['Charge', 'Charged', 'Amount', 'Limits', 'Tax'].map((h, i) => <th key={h} style={{ padding: '8px 16px', textAlign: i === 2 ? 'right' : 'left' }}>{h}</th>)}
                     </tr>
                   </thead>
@@ -539,15 +539,15 @@ export default function AdminAuctionDetail() {
                       const how = c.basis === 'percent' ? `${amount}% of the winning bid` : c.basis === 'per_day' ? `${auctionSymbol} ${amount}/day` : `${auctionSymbol} ${amount}`;
                       const limits = [c.min_amount != null && Number(c.min_amount) > 0 ? `min ${Number(c.min_amount)}` : null, c.max_amount != null && Number(c.max_amount) > 0 ? `max ${Number(c.max_amount)}` : null, c.basis === 'per_day' && c.free_days ? `first ${c.free_days} days free` : null].filter(Boolean).join(' · ');
                       return (
-                        <tr key={c.id ?? c.ledger_id} style={{ borderTop: '1px solid #f3f4f6', fontSize: '0.82rem' }}>
+                        <tr key={c.id ?? c.ledger_id} style={{ borderTop: '1px solid var(--line)', fontSize: '0.82rem' }}>
                           <td style={{ padding: '10px 16px' }}>
-                            <strong style={{ color: '#111827' }}>{c.ledger?.name ?? `Account ${c.ledger_id}`}</strong>
-                            <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{CHARGE_KIND[kind] ?? 'Charge'}{c.refundable ? ' · refundable' : ''}</div>
+                            <strong style={{ color: 'var(--text-primary)' }}>{c.ledger?.name ?? `Account ${c.ledger_id}`}</strong>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{CHARGE_KIND[kind] ?? 'Charge'}{c.refundable ? ' · refundable' : ''}</div>
                           </td>
                           <td style={{ padding: '10px 16px' }}>{CHARGE_DUE[c.timing] ?? c.timing}</td>
                           <td style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap', fontWeight: 700 }}>{how}</td>
-                          <td style={{ padding: '10px 16px', color: '#6b7280' }}>{limits || '—'}</td>
-                          <td style={{ padding: '10px 16px', color: '#6b7280' }}>{CHARGE_TAX[c.ledger?.tax_nature] ?? '—'}</td>
+                          <td style={{ padding: '10px 16px', color: 'var(--text-secondary)' }}>{limits || '—'}</td>
+                          <td style={{ padding: '10px 16px', color: 'var(--text-secondary)' }}>{CHARGE_TAX[c.ledger?.tax_nature] ?? '—'}</td>
                         </tr>
                       );
                     })}
@@ -559,11 +559,11 @@ export default function AdminAuctionDetail() {
         )}
 
         {/* ── Bid history ── */}
-        <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden' }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid #f3f4f6', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Users size={16} style={{ color: 'var(--color-primary-500)' }} />
-            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#374151' }}>Bid History</span>
-            <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)' }}>Bid History</span>
+            <span style={{ marginLeft: 'auto', fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>
               {auction.bids?.length ?? 0} bids
             </span>
           </div>
@@ -581,7 +581,7 @@ export default function AdminAuctionDetail() {
                 <tbody>
                   {auction.bids.map((bid, idx) => {
                     return (
-                      <tr key={bid.id ?? idx} style={{ borderTop: '1px solid #f3f4f6', background: 'transparent' }}
+                      <tr key={bid.id ?? idx} style={{ borderTop: '1px solid var(--line)', background: 'transparent' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary))')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                       >
@@ -591,8 +591,8 @@ export default function AdminAuctionDetail() {
                               {bid.bidder?.name?.charAt(0) ?? 'U'}
                             </div>
                             <div>
-                              <p style={{ fontSize: '0.825rem', fontWeight: 600, color: '#374151', margin: 0 }}>{bid.bidder?.name ?? 'Unknown'}</p>
-                              <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{bid.bidder?.email ?? ''}</p>
+                              <p style={{ fontSize: '0.825rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{bid.bidder?.name ?? 'Unknown'}</p>
+                              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>{bid.bidder?.email ?? ''}</p>
                             </div>
                           </div>
                         </td>
@@ -600,8 +600,8 @@ export default function AdminAuctionDetail() {
                           {formatPrice(bid.amount)}
                           {idx === 0 && <span style={{ marginLeft: 6, fontSize: '0.6rem', fontWeight: 800, background: 'rgba(220,38,38,0.1)', color: '#dc2626', padding: '1px 6px', borderRadius: 99 }}>TOP</span>}
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.825rem', color: '#6b7280' }}>{formatPrice(bid.max_bid)}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#9ca3af' }}>{formatDate(bid.created_at)}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>{formatPrice(bid.max_bid)}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{formatDate(bid.created_at)}</td>
                       </tr>
                     );
                   })}
@@ -609,7 +609,7 @@ export default function AdminAuctionDetail() {
               </table>
             </div>
           ) : (
-            <div style={{ padding: '48px 24px', textAlign: 'center', color: '#9ca3af' }}>
+            <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
               <Gavel size={36} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
               <p style={{ fontWeight: 600, margin: 0 }}>No bids yet</p>
             </div>

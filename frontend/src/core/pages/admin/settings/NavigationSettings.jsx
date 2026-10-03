@@ -7,8 +7,8 @@ import {
 import toast from 'react-hot-toast';
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
@@ -79,7 +79,7 @@ export default function NavigationSettings() {
   };
 
   if (loading) {
-    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
+    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
   }
 
   return (
@@ -89,12 +89,12 @@ export default function NavigationSettings() {
           <Compass size={22} color="var(--color-primary-600)" />
           <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>Storefront navigation</h1>
         </div>
-        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>
+        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
           Choose which links customers see in the header. Only links for modules you've licensed appear here; a module that's switched off locks its links until you switch it back on.
         </p>
 
         {groups.length === 0 && (
-          <div style={{ ...card, padding: 20, color: '#6b7280', fontSize: '0.85rem' }}>
+          <div style={{ ...card, padding: 20, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             No navigation links yet. Run the <code>12_nav_links.sql</code> script to seed them.
           </div>
         )}
@@ -112,12 +112,12 @@ export default function NavigationSettings() {
               </div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {group.links.map((link, li) => (
-                  <div key={link.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 10px', borderRadius: 9, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' }}>
+                  <div key={link.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '8px 10px', borderRadius: 9, background: 'var(--surface-card, #fff)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                       <Link2 size={14} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontSize: '0.86rem', fontWeight: 600 }}>{link.label}</div>
-                        <div style={{ fontSize: '0.72rem', color: '#9ca3af', fontFamily: 'monospace' }}>{link.path}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{link.path}</div>
                       </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

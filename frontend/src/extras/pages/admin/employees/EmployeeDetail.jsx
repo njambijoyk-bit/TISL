@@ -18,7 +18,7 @@ const STATUS_META = {
   on_leave:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)',  label: 'On Leave'   },
   probation:  { bg: 'rgba(99,102,241,0.1)',  color: '#3730a3', dot: '#6366f1', ring: 'rgba(99,102,241,0.25)',  label: 'Probation'  },
   suspended:  { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)',   label: 'Suspended'  },
-  terminated: { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)',  label: 'Terminated' },
+  terminated: { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)',  label: 'Terminated' },
 };
 
 const ROLE_META = {
@@ -32,7 +32,7 @@ const STATUS_OPTIONS = [
   { value: 'on_leave',   label: 'On Leave',   color: '#f59e0b' },
   { value: 'probation',  label: 'Probation',  color: '#6366f1' },
   { value: 'suspended',  label: 'Suspended',  color: '#ef4444' },
-  { value: 'terminated', label: 'Terminated', color: '#9ca3af' },
+  { value: 'terminated', label: 'Terminated', color: 'var(--text-tertiary)' },
 ];
 
 const EMPLOYMENT_TYPE_LABELS = {
@@ -44,9 +44,9 @@ const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numer
 // ── Shared styles ──────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
@@ -63,7 +63,7 @@ function Badge({ status }) {
 }
 
 function RoleBadge({ role }) {
-  const r = ROLE_META[role] || { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', label: role || '—' };
+  const r = ROLE_META[role] || { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', label: role || '—' };
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, background: r.bg, color: r.color, whiteSpace: 'nowrap' }}>
       <Shield size={10} />
@@ -75,8 +75,8 @@ function RoleBadge({ role }) {
 function InfoRow({ label, value, mono }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '9px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
-      <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0, marginRight: 16 }}>{label}</span>
-      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', textAlign: 'right', fontFamily: mono ? 'monospace' : 'inherit' }}>
+      <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', flexShrink: 0, marginRight: 16 }}>{label}</span>
+      <span style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', fontFamily: mono ? 'monospace' : 'inherit' }}>
         {value || '—'}
       </span>
     </div>
@@ -86,12 +86,12 @@ function InfoRow({ label, value, mono }) {
 function SectionCard({ title, icon: Icon, children, action }) {
   return (
     <div style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--line)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-input)', color: 'var(--color-primary-500)' }}>
             <Icon size={14} />
           </div>
-          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151' }}>{title}</span>
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</span>
         </div>
         {action}
       </div>
@@ -104,15 +104,15 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 420, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--line)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg }}>{icon}</div>
             <div>
-              <p style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>{title}</p>
-              {subtitle && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>}
+              <p style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1px' }}>{title}</p>
+              {subtitle && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>{subtitle}</p>}
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
+          <button onClick={onClose} style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
             onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           ><X size={15} /></button>
@@ -125,8 +125,8 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
 
 const inputStyle = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
 const iFocus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
@@ -248,7 +248,7 @@ export default function EmployeeDetail() {
   if (!employee) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', flexDirection: 'column', gap: 12 }}>
       <AlertCircle size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }} />
-      <p style={{ color: '#9ca3af', fontSize: '0.85rem' }}>Employee not found</p>
+      <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Employee not found</p>
       <Link to="/admin/employees" style={{ color: 'var(--color-primary-500)', fontSize: '0.82rem', fontWeight: 600 }}>Back to Employees</Link>
     </div>
   );
@@ -268,7 +268,7 @@ export default function EmployeeDetail() {
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button onClick={() => navigate('/admin/employees')} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', cursor: 'pointer', color: '#9ca3af', transition: 'all 150ms' }}
+          <button onClick={() => navigate('/admin/employees')} style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', transition: 'all 150ms' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
           >
@@ -276,13 +276,13 @@ export default function EmployeeDetail() {
           </button>
           <div>
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>{employee.full_name}</h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{employee.employee_number} · {employee.job_title}</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>{employee.employee_number} · {employee.job_title}</p>
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <button
             onClick={() => setShowStatusModal(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)', transition: 'all 150ms' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderRadius: 9, fontSize: '0.8rem', fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', background: 'var(--surface-card, #fff)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', color: 'var(--color-primary-600)', transition: 'all 150ms' }}
             onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
           >
@@ -317,23 +317,23 @@ export default function EmployeeDetail() {
             {[
               { label: 'Status',          content: <Badge status={employee.status} /> },
               { label: 'Role',            content: <RoleBadge role={employee.user?.role} /> },
-              { label: 'Department',      content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 5 }}><Building2 size={13} style={{ color: '#c4b5fd' }} />{employee.department || '—'}</span> },
-              { label: 'Employment Type', content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{EMPLOYMENT_TYPE_LABELS[employee.employment_type] || '—'}</span> },
-              { label: 'Hire Date',       content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 5 }}><Calendar size={13} style={{ color: '#c4b5fd' }} />{fmtDate(employee.hire_date)}</span> },
-              { label: 'Email',           content: <span style={{ fontSize: '0.78rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5 }}><Mail size={12} style={{ color: '#c4b5fd' }} />{employee.user?.email || '—'}</span> },
-              { label: 'Phone',           content: <span style={{ fontSize: '0.78rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'monospace' }}><Phone size={12} style={{ color: '#c4b5fd' }} />{employee.work_phone || employee.user?.phone || '—'}</span> },
-              { label: 'Tenure',          content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', display: 'flex', alignItems: 'center', gap: 5 }}><Clock size={13} style={{ color: '#c4b5fd' }} />{employee.tenure_years ? `${employee.tenure_years} years` : '—'}</span> },
+              { label: 'Department',      content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Building2 size={13} style={{ color: 'var(--text-tertiary)' }} />{employee.department || '—'}</span> },
+              { label: 'Employment Type', content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{EMPLOYMENT_TYPE_LABELS[employee.employment_type] || '—'}</span> },
+              { label: 'Hire Date',       content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Calendar size={13} style={{ color: 'var(--text-tertiary)' }} />{fmtDate(employee.hire_date)}</span> },
+              { label: 'Email',           content: <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}><Mail size={12} style={{ color: 'var(--text-tertiary)' }} />{employee.user?.email || '—'}</span> },
+              { label: 'Phone',           content: <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'monospace' }}><Phone size={12} style={{ color: 'var(--text-tertiary)' }} />{employee.work_phone || employee.user?.phone || '—'}</span> },
+              { label: 'Tenure',          content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Clock size={13} style={{ color: 'var(--text-tertiary)' }} />{employee.tenure_years ? `${employee.tenure_years} years` : '—'}</span> },
               { label: 'Leave Balance',   content: <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', gap: 5 }}><TrendingUp size={13} style={{ color: 'var(--color-primary-500)' }} />{employee.leave_balance} days</span> },
             ].map(({ label, content }) => (
               <div key={label}>
-                <p style={{ fontSize: '0.62rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 5px' }}>{label}</p>
+                <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 5px' }}>{label}</p>
                 {content}
               </div>
             ))}
           </div>
         </div>
         {/* Set / Reset Password link */}
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--line)' }}>
           <Link
             to={`/admin/users/${employee.user_id}`}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 600, color: 'var(--color-primary-500)', textDecoration: 'none' }}
@@ -346,14 +346,14 @@ export default function EmployeeDetail() {
         </div>
         {/* Termination Date — inline editable */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0, marginRight: 16 }}>Termination Date</span>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', flexShrink: 0, marginRight: 16 }}>Termination Date</span>
           {editingTermDate ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <input
                 type="date"
                 value={termDate}
                 onChange={e => setTermDate(e.target.value)}
-                style={{ fontSize: '0.78rem', padding: '4px 8px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)', outline: 'none', color: '#374151', fontFamily: 'inherit', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' }}
+                style={{ fontSize: '0.78rem', padding: '4px 8px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)', outline: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', background: 'var(--surface-card, #fff)' }}
                 onFocus={iFocus} onBlur={iBlur}
                 autoFocus
               />
@@ -362,7 +362,7 @@ export default function EmployeeDetail() {
                 {actionLoading ? '…' : 'Save'}
               </button>
               <button onClick={() => setEditingTermDate(false)}
-                style={{ fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: '#6b7280', fontFamily: 'inherit' }}>
+                style={{ fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
                 Cancel
               </button>
             </div>
@@ -373,7 +373,7 @@ export default function EmployeeDetail() {
               </span>
               <button
                 onClick={() => { setTermDate(employee.termination_date ? employee.termination_date.toString().slice(0, 10) : ''); setEditingTermDate(true); }}
-                style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: '#9ca3af', fontFamily: 'inherit' }}
+                style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: 'var(--text-tertiary)', fontFamily: 'inherit' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
               >
@@ -386,7 +386,7 @@ export default function EmployeeDetail() {
 
       {/* ── Tabs ── */}
       <div style={{ ...card, overflow: 'hidden' }}>
-        <div style={{ display: 'flex', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', padding: '0 4px' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', padding: '0 4px' }}>
           {tabs.map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
               display: 'flex', alignItems: 'center', gap: 6,
@@ -408,7 +408,7 @@ export default function EmployeeDetail() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               {/* Quick actions */}
               <div>
-                <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Quick Actions</p>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Quick Actions</p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {[
                     { label: 'Add Leave Days', icon: Plus,  bg: 'rgba(5,150,105,0.08)',   color: '#065f46', hov: 'rgba(5,150,105,0.14)',   onClick: () => { setLeaveAction('add'); setShowLeaveModal(true); } },
@@ -428,14 +428,14 @@ export default function EmployeeDetail() {
               {/* Manager */}
               {employee.manager && (
                 <div>
-                  <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Reports To</p>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }}>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Reports To</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
                     <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(37,99,235,0.1)', color: '#2563eb', fontWeight: 800 }}>
                       {employee.manager.user?.name?.[0]}
                     </div>
                     <div>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>{employee.manager.user?.name}</p>
-                      <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{employee.manager.job_title}</p>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{employee.manager.user?.name}</p>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>{employee.manager.job_title}</p>
                     </div>
                   </div>
                 </div>
@@ -444,19 +444,19 @@ export default function EmployeeDetail() {
               {/* Direct reports */}
               {employee.subordinates?.length > 0 && (
                 <div>
-                  <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Direct Reports ({employee.subordinates.length})</p>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Direct Reports ({employee.subordinates.length})</p>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 8 }}>
                     {employee.subordinates.map(sub => (
-                      <Link key={sub.id} to={`/admin/employees/${sub.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', textDecoration: 'none', transition: 'all 150ms' }}
+                      <Link key={sub.id} to={`/admin/employees/${sub.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--line)', textDecoration: 'none', transition: 'all 150ms' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; e.currentTarget.style.background = 'none'; }}
                       >
-                        <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)', fontSize: '0.75rem', fontWeight: 800 }}>
+                        <div style={{ width: 30, height: 30, borderRadius: 8, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-input)', color: 'var(--color-primary-600)', fontSize: '0.75rem', fontWeight: 800 }}>
                           {sub.user?.name?.[0]}
                         </div>
                         <div>
-                          <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>{sub.user?.name}</p>
-                          <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{sub.job_title}</p>
+                          <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{sub.user?.name}</p>
+                          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{sub.job_title}</p>
                         </div>
                       </Link>
                     ))}
@@ -467,8 +467,8 @@ export default function EmployeeDetail() {
               {/* Notes */}
               {employee.notes && (
                 <div>
-                  <p style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Notes</p>
-                  <p style={{ fontSize: '0.82rem', color: '#374151', lineHeight: 1.6, padding: '12px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', margin: 0, whiteSpace: 'pre-wrap' }}>
+                  <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 10px' }}>Notes</p>
+                  <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.6, padding: '12px 14px', borderRadius: 10, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)', margin: 0, whiteSpace: 'pre-wrap' }}>
                     {employee.notes}
                   </p>
                 </div>
@@ -493,14 +493,14 @@ export default function EmployeeDetail() {
                 <InfoRow label="Hire Date" value={fmtDate(employee.hire_date)} />
                  {/* Termination Date — inline editable */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#9ca3af', flexShrink: 0, marginRight: 16 }}>Termination Date</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', flexShrink: 0, marginRight: 16 }}>Termination Date</span>
                   {editingTermDate ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <input
                         type="date"
                         value={termDate}
                         onChange={e => setTermDate(e.target.value)}
-                        style={{ fontSize: '0.78rem', padding: '4px 8px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)', outline: 'none', color: '#374151', fontFamily: 'inherit', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)' }}
+                        style={{ fontSize: '0.78rem', padding: '4px 8px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 35%, transparent)', outline: 'none', color: 'var(--text-primary)', fontFamily: 'inherit', background: 'var(--surface-card, #fff)' }}
                         onFocus={iFocus} onBlur={iBlur}
                         autoFocus
                       />
@@ -509,7 +509,7 @@ export default function EmployeeDetail() {
                         {actionLoading ? '…' : 'Save'}
                       </button>
                       <button onClick={() => setEditingTermDate(false)}
-                        style={{ fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: '#6b7280', fontFamily: 'inherit' }}>
+                        style={{ fontSize: '0.72rem', fontWeight: 600, padding: '4px 10px', borderRadius: 6, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
                         Cancel
                       </button>
                     </div>
@@ -520,7 +520,7 @@ export default function EmployeeDetail() {
                       </span>
                       <button
                         onClick={() => { setTermDate(employee.termination_date ? employee.termination_date.toString().slice(0, 10) : ''); setEditingTermDate(true); }}
-                        style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: '#9ca3af', fontFamily: 'inherit' }}
+                        style={{ fontSize: '0.68rem', fontWeight: 600, padding: '2px 8px', borderRadius: 5, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', background: 'none', color: 'var(--text-tertiary)', fontFamily: 'inherit' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
                         onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
                       >
@@ -573,16 +573,16 @@ export default function EmployeeDetail() {
           {activeTab === 'skills' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
               <SectionCard title="Skills" icon={Award} action={
-                <button onClick={() => setShowSkillModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)' }}>
+                <button onClick={() => setShowSkillModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)' }}>
                   <Plus size={12} /> Add Skill
                 </button>
               }>
                 {employee.skills?.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, paddingTop: 4 }}>
                     {employee.skills.map((skill, i) => (
-                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-600)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+                      <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600, background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)', border: '1px solid var(--line)' }}>
                         {skill}
-                        <button onClick={() => handleRemoveSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#c4b5fd', display: 'flex', alignItems: 'center', lineHeight: 1 }}
+                        <button onClick={() => handleRemoveSkill(skill)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', lineHeight: 1 }}
                           onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                           onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
                         ><X size={12} /></button>
@@ -590,28 +590,28 @@ export default function EmployeeDetail() {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ fontSize: '0.78rem', color: '#d1d5db', padding: '8px 0' }}>No skills added yet</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '8px 0' }}>No skills added yet</p>
                 )}
               </SectionCard>
 
               <SectionCard title="Certifications" icon={GraduationCap} action={
-                <button onClick={() => setShowCertModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)' }}>
+                <button onClick={() => setShowCertModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 7, fontSize: '0.73rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: 'none', background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)' }}>
                   <Plus size={12} /> Add Certification
                 </button>
               }>
                 {employee.certifications?.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
                     {employee.certifications.map((cert, i) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 9, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+                      <div key={i} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, padding: '10px 12px', borderRadius: 9, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                           <Award size={16} style={{ color: 'var(--color-primary-500)', flexShrink: 0, marginTop: 1 }} />
                           <div>
-                            <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>{cert.name || cert}</p>
-                            {cert.issuer && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 1px' }}>{cert.issuer}</p>}
-                            {cert.date && <p style={{ fontSize: '0.65rem', color: '#d1d5db', margin: 0 }}>{fmtDate(cert.date)}</p>}
+                            <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{cert.name || cert}</p>
+                            {cert.issuer && <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 1px' }}>{cert.issuer}</p>}
+                            {cert.date && <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0 }}>{fmtDate(cert.date)}</p>}
                           </div>
                         </div>
-                        <button onClick={() => handleRemoveCertification(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#c4b5fd', display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                        <button onClick={() => handleRemoveCertification(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', flexShrink: 0 }}
                           onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                           onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
                         ><X size={13} /></button>
@@ -619,7 +619,7 @@ export default function EmployeeDetail() {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ fontSize: '0.78rem', color: '#d1d5db', padding: '8px 0' }}>No certifications added yet</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', padding: '8px 0' }}>No certifications added yet</p>
                 )}
               </SectionCard>
             </div>
@@ -638,7 +638,7 @@ export default function EmployeeDetail() {
                 onMouseLeave={e => { if (employee.status !== opt.value) e.currentTarget.style.background = 'none'; }}
               >
                 <span style={{ width: 9, height: 9, borderRadius: '50%', background: opt.color, flexShrink: 0 }} />
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', flex: 1, textAlign: 'left' }}>{opt.label}</span>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', flex: 1, textAlign: 'left' }}>{opt.label}</span>
                 {employee.status === opt.value && <CheckCircle size={14} style={{ color: opt.color }} />}
               </button>
             ))}
@@ -651,15 +651,15 @@ export default function EmployeeDetail() {
         <Modal onClose={() => { setShowLeaveModal(false); setLeaveDays(''); setLeaveReason(''); }} title={leaveAction === 'add' ? 'Add Leave Days' : 'Use Leave Days'} subtitle={`Current balance: ${employee.leave_balance} days`} icon={leaveAction === 'add' ? <Plus size={16} style={{ color: '#059669' }} /> : <Minus size={16} style={{ color: '#d97706' }} />} iconBg={leaveAction === 'add' ? 'rgba(5,150,105,0.1)' : 'rgba(245,158,11,0.1)'}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Number of Days</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Number of Days</label>
               <input type="number" step="0.5" min="0" value={leaveDays} onChange={e => setLeaveDays(e.target.value)} placeholder="e.g. 5" style={inputStyle} onFocus={iFocus} onBlur={iBlur} />
             </div>
             <div>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Reason (optional)</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Reason (optional)</label>
               <textarea value={leaveReason} onChange={e => setLeaveReason(e.target.value)} rows={3} placeholder="Enter reason…" style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} onFocus={iFocus} onBlur={iBlur} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setShowLeaveModal(false); setLeaveDays(''); setLeaveReason(''); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => { setShowLeaveModal(false); setLeaveDays(''); setLeaveReason(''); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid var(--line)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleLeaveAction} disabled={actionLoading} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: leaveAction === 'add' ? '#059669' : '#d97706', color: 'white', opacity: actionLoading ? 0.6 : 1 }}>
                 {actionLoading ? 'Processing…' : leaveAction === 'add' ? 'Add Days' : 'Use Days'}
               </button>
@@ -673,11 +673,11 @@ export default function EmployeeDetail() {
         <Modal onClose={() => { setShowSkillModal(false); setNewSkill(''); }} title="Add Skill" icon={<Award size={16} style={{ color: 'var(--color-primary-600)' }} />} iconBg="color-mix(in srgb, var(--color-primary-500) 10%, transparent)">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Skill Name</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Skill Name</label>
               <input type="text" value={newSkill} onChange={e => setNewSkill(e.target.value)} onKeyPress={e => e.key === 'Enter' && handleAddSkill()} placeholder="e.g. Project Management" style={inputStyle} onFocus={iFocus} onBlur={iBlur} autoFocus />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setShowSkillModal(false); setNewSkill(''); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => { setShowSkillModal(false); setNewSkill(''); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid var(--line)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleAddSkill} disabled={actionLoading} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', opacity: actionLoading ? 0.6 : 1 }}>
                 {actionLoading ? 'Adding…' : 'Add Skill'}
               </button>
@@ -690,19 +690,19 @@ export default function EmployeeDetail() {
         <Modal onClose={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '' }); }} title="Add Certification" icon={<GraduationCap size={16} style={{ color: 'var(--color-primary-600)' }} />} iconBg="color-mix(in srgb, var(--color-primary-500) 10%, transparent)">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Certification Name *</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Certification Name *</label>
               <input type="text" value={newCert.name} onChange={e => setNewCert(p => ({ ...p, name: e.target.value }))} placeholder="e.g. AWS Solutions Architect" style={inputStyle} onFocus={iFocus} onBlur={iBlur} autoFocus />
             </div>
             <div>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Issuing Body</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Issuing Body</label>
               <input type="text" value={newCert.issuer} onChange={e => setNewCert(p => ({ ...p, issuer: e.target.value }))} placeholder="e.g. Amazon Web Services" style={inputStyle} onFocus={iFocus} onBlur={iBlur} />
             </div>
             <div>
-              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6b7280', display: 'block', marginBottom: 6 }}>Date Obtained</label>
+              <label style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', display: 'block', marginBottom: 6 }}>Date Obtained</label>
               <input type="date" value={newCert.date} onChange={e => setNewCert(p => ({ ...p, date: e.target.value }))} style={inputStyle} onFocus={iFocus} onBlur={iBlur} />
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '' }); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={() => { setShowCertModal(false); setNewCert({ name: '', issuer: '', date: '' }); }} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid var(--line)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
               <button onClick={handleAddCertification} disabled={actionLoading} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', opacity: actionLoading ? 0.6 : 1 }}>
                 {actionLoading ? 'Adding…' : 'Add Certification'}
               </button>

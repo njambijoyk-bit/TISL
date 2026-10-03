@@ -181,7 +181,7 @@ function DeliveredCard({ shipment, tracking }) {
                 </p>
             </div>
             {notes && (
-                <div style={{ width: '100%', maxWidth: 400, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+                <div style={{ width: '100%', maxWidth: 400, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
                     <p style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--color-primary-500)', margin: '0 0 6px' }}>Delivery Notes</p>
                     <p style={{ fontSize: '0.82rem', color: '#e2e8f0', margin: 0, lineHeight: 1.5, fontStyle: 'italic' }}>"{notes}"</p>
                 </div>
@@ -240,7 +240,7 @@ function AdminLegend({ stops }) {
     ];
 
     return (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', padding: '7px 14px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px', padding: '7px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
             {items.map(({ color, label, dashed }) => (
                 <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.68rem', color: '#94a3b8' }}>
                     {dashed
@@ -368,7 +368,7 @@ function AdminMapView({ pings, manifestItems }) {
             <AdminLegend stops={stops} />
 
             {/* progress strip */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '7px 14px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '7px 14px', borderBottom: '1px solid var(--line)', flexShrink: 0, flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: '#14b8a6', fontWeight: 600 }}>
                     <CheckCircle size={11} /> {delivered} delivered
                 </div>
@@ -532,7 +532,7 @@ export default function DriverTrackingModal({
                 }}
             >
                 {/* header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--line)', flexShrink: 0, background: 'var(--surface-card, #fff)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ width: 38, height: 38, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Navigation size={17} color="var(--color-primary-500)" />
@@ -549,7 +549,7 @@ export default function DriverTrackingModal({
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         {(isAdminMode || (customerState !== 'delivered' && customerState !== 'failed')) && (
-                            <button onClick={fetchAll} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Refresh">
+                            <button onClick={fetchAll} style={{ width: 32, height: 32, borderRadius: 8, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'var(--surface-input)', color: 'var(--color-primary-500)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }} title="Refresh">
                                 <RefreshCw size={13} />
                             </button>
                         )}

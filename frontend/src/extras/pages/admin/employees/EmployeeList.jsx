@@ -18,7 +18,7 @@ const STATUS_META = {
   on_leave:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)',  label: 'On Leave'   },
   probation:  { bg: 'rgba(99,102,241,0.1)',  color: '#3730a3', dot: '#6366f1', ring: 'rgba(99,102,241,0.25)',  label: 'Probation'  },
   suspended:  { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)',   label: 'Suspended'  },
-  terminated: { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)',  label: 'Terminated' },
+  terminated: { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)',  label: 'Terminated' },
 };
 
 const STAT_META = [
@@ -36,21 +36,21 @@ const EMPLOYMENT_TYPE_LABELS = {
 // ── Shared styles ──────────────────────────────────────────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#374151', outline: 'none', fontFamily: 'inherit',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
   cursor: 'pointer', transition: 'border-color 150ms, box-shadow 150ms',
 };
 const sFocus = e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
-const sBlur  = e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
+const sBlur  = e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH = ({ children, sortable, onClick }) => (
   <th
@@ -61,7 +61,7 @@ const TH = ({ children, sortable, onClick }) => (
       userSelect: 'none',
     }}
   >
-    <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
+    <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
       {children}
     </span>
   </th>
@@ -76,7 +76,7 @@ function StatCard({ label, value, icon: Icon, accent, bg }) {
         <Icon size={18} />
       </div>
       <div>
-        <p style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
+        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 2px' }}>{label}</p>
         <p style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary-500)', lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em' }}>{value ?? 0}</p>
       </div>
     </div>
@@ -102,7 +102,7 @@ function SkeletonRow() {
     <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       {[220, 160, 120, 80, 100, 60].map((w, i) => (
         <td key={i} style={{ padding: '14px 16px' }}>
-          <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }} />
+          <div style={{ width: w, height: 10, borderRadius: 6, background: 'var(--surface-input)' }} />
         </td>
       ))}
     </tr>
@@ -249,7 +249,7 @@ export default function EmployeeList() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>Employees</h1>
-          <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
             {statistics?.total_employees?.toLocaleString() ?? 0} total employees
           </p>
         </div>
@@ -344,11 +344,11 @@ export default function EmployeeList() {
       )}
 
       {/* ── Search + filter panel ── */}
-      <div style={card}>
+      <div style={{ borderRadius: 12, border: '1px solid var(--line)' }}>
         {/* Search row */}
         <div style={{ padding: '14px 16px', display: 'flex', gap: 10, alignItems: 'center' }}>
           <div style={{ position: 'relative', flex: 1 }}>
-            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#c4b5fd', pointerEvents: 'none' }} size={14} />
+            <Search style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} size={14} />
             <input
               type="text"
               placeholder="Search by name, email, employee number…"
@@ -357,8 +357,8 @@ export default function EmployeeList() {
               onKeyPress={e => e.key === 'Enter' && fetchEmployees(1)}
               style={{
                 width: '100%', padding: '8px 12px 8px 32px', borderRadius: 8, fontSize: '0.82rem',
-                background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-                color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+                background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
+                color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
                 transition: 'border-color 150ms, box-shadow 150ms',
               }}
               onFocus={sFocus} onBlur={sBlur}
@@ -368,7 +368,7 @@ export default function EmployeeList() {
 
         {/* Expanded filters */}
         {showFilters && (
-          <div style={{ padding: '12px 16px 14px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+          <div style={{ padding: '12px 16px 14px', borderTop: '1px solid var(--line)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
             <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} style={selectStyle} onFocus={sFocus} onBlur={sBlur}>
               <option value="">All statuses</option>
               {Object.entries(STATUS_META).map(([v, { label }]) => <option key={v} value={v}>{label}</option>)}
@@ -390,7 +390,7 @@ export default function EmployeeList() {
             {hasFilters && (
               <button
                 onClick={() => { setFilters({ search: '', status: '', department: '', employment_type: '' }); setTimeout(() => fetchEmployees(1), 0); }}
-                style={{ fontSize: '0.78rem', fontWeight: 600, color: '#c4b5fd', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0 4px', transition: 'color 150ms' }}
+                style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-tertiary)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', padding: '0 4px', transition: 'color 150ms' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                 onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
               >
@@ -406,7 +406,7 @@ export default function EmployeeList() {
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <thead>
-              <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+              <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
                 <TH sortable onClick={() => handleSort('employee_number')}>
                   Employee <SortArrow col="employee_number" />
                 </TH>
@@ -432,7 +432,7 @@ export default function EmployeeList() {
                     <tr>
                       <td colSpan={7} style={{ padding: '64px 24px', textAlign: 'center' }}>
                         <Users size={36} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-                        <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: '0 0 8px' }}>
+                        <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
                           {hasFilters ? 'No employees match your filters' : 'No employees found'}
                         </p>
                         {hasFilters && (
@@ -466,13 +466,13 @@ export default function EmployeeList() {
                             {emp.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
                           </div>
                           <div style={{ minWidth: 0 }}>
-                            <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {emp.full_name || 'Unknown'}
                             </p>
-                            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 1px' }}>
+                            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 1px' }}>
                               {emp.employee_number || 'N/A'}{emp.employee_id && ` · ${emp.employee_id}`}
                             </p>
-                            <p style={{ fontSize: '0.68rem', color: '#c4b5fd', margin: 0 }}>{emp.job_title || '—'}</p>
+                            <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{emp.job_title || '—'}</p>
                           </div>
                         </div>
                       </td>
@@ -480,15 +480,15 @@ export default function EmployeeList() {
                       {/* Contact */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                          <Mail size={11} style={{ color: '#c4b5fd', flexShrink: 0 }} />
-                          <span style={{ fontSize: '0.75rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
+                          <Mail size={11} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
                             {emp.user?.email || '—'}
                           </span>
                         </div>
                         {emp.work_phone && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                            <Phone size={11} style={{ color: '#c4b5fd', flexShrink: 0 }} />
-                            <span style={{ fontSize: '0.72rem', color: '#9ca3af', fontFamily: 'monospace' }}>{emp.work_phone}</span>
+                            <Phone size={11} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>{emp.work_phone}</span>
                           </div>
                         )}
                       </td>
@@ -496,10 +496,10 @@ export default function EmployeeList() {
                       {/* Department */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                          <Building2 size={12} style={{ color: '#c4b5fd', flexShrink: 0 }} />
-                          <span style={{ fontSize: '0.78rem', color: '#374151' }}>{emp.department || '—'}</span>
+                          <Building2 size={12} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-primary)' }}>{emp.department || '—'}</span>
                         </div>
-                        <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0 17px' }}>
+                        <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0 17px' }}>
                           {EMPLOYMENT_TYPE_LABELS[emp.employment_type] || '—'}
                         </p>
                       </td>
@@ -516,15 +516,15 @@ export default function EmployeeList() {
                             <div style={{
                               width: 26, height: 26, borderRadius: 7, flexShrink: 0,
                               display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)', fontSize: '0.72rem', fontWeight: 700,
+                              background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)', fontSize: '0.72rem', fontWeight: 700,
                               boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
                             }}>
                               {emp.manager.user.name?.[0] || '?'}
                             </div>
-                            <span style={{ fontSize: '0.75rem', color: '#374151' }}>{emp.manager.user.name}</span>
+                            <span style={{ fontSize: '0.75rem', color: 'var(--text-primary)' }}>{emp.manager.user.name}</span>
                           </div>
                         ) : (
-                          <span style={{ fontSize: '0.75rem', color: '#d1d5db' }}>—</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>—</span>
                         )}
                       </td>
 
@@ -534,7 +534,7 @@ export default function EmployeeList() {
                           {emp.hire_date ? new Date(emp.hire_date).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                         </span>
                         {emp.tenure_years && (
-                          <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '1px 0 0' }}>{emp.tenure_years}y tenure</p>
+                          <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>{emp.tenure_years}y tenure</p>
                         )}
                       </td>
 
@@ -551,8 +551,8 @@ export default function EmployeeList() {
 
         {/* Pagination */}
         {!loading && employees.length > 0 && pagination.last_page > 1 && (
-          <div style={{ padding: '12px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>
+          <div style={{ padding: '12px 20px', borderTop: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--surface-card, #fff)' }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} employees
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -587,30 +587,30 @@ export default function EmployeeList() {
           {trashLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-              <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>Loading…</p>
             </div>
           ) : trashedEmployees.length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <Trash2 size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>Trash is empty</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>Trash is empty</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {trashedEmployees.map(emp => (
-                <div key={emp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', transition: 'border-color 150ms' }}
+                <div key={emp.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--line)', transition: 'border-color 150ms' }}
                   onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'}
                   onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)'}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(107,114,128,0.1)', color: '#6b7280', fontSize: '0.8rem', fontWeight: 800 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 9, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 800 }}>
                       {emp.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '?'}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.full_name || 'Unknown'}</p>
-                      <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.full_name || 'Unknown'}</p>
+                      <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>
                         {emp.job_title || '—'}{emp.department && ` · ${emp.department}`}
                       </p>
-                      <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: '1px 0 0' }}>
+                      <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: '1px 0 0' }}>
                         Deleted {emp.deleted_at ? new Date(emp.deleted_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                       </p>
                     </div>
@@ -625,7 +625,7 @@ export default function EmployeeList() {
                   </div>
                 </div>
               ))}
-              <p style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center', marginTop: 8 }}>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 8 }}>
                 {trashedEmployees.length} deleted — permanently deleted records cannot be recovered
               </p>
             </div>
@@ -642,22 +642,22 @@ export default function EmployeeList() {
                 {confirmModal.type === 'restore' ? <RotateCcw size={20} style={{ color: '#059669' }} /> : <ShieldAlert size={20} style={{ color: '#b91c1c' }} />}
               </div>
               <div>
-                <p style={{ fontSize: '0.92rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>
+                <p style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>
                   {confirmModal.type === 'restore' ? 'Restore Employee' : 'Permanently Delete'}
                 </p>
-                <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0 }}>
                   {confirmModal.type === 'restore' ? 'This will reactivate the employee record.' : 'This action cannot be undone.'}
                 </p>
               </div>
             </div>
-            <p style={{ fontSize: '0.82rem', color: '#374151', margin: 0 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-primary)', margin: 0 }}>
               {confirmModal.type === 'restore'
                 ? <>Are you sure you want to restore <strong>{confirmModal.employee.full_name}</strong>?</>
                 : <>Permanently delete <strong>{confirmModal.employee.full_name}</strong>? All data will be lost forever.</>
               }
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setConfirmModal(null)} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button onClick={() => setConfirmModal(null)} style={{ flex: 1, padding: '9px 0', borderRadius: 9, border: '1.5px solid var(--line)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}>
                 Cancel
               </button>
               <button
@@ -704,12 +704,12 @@ export default function EmployeeList() {
           {leaveLogsLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-              <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading logs…</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>Loading logs…</p>
             </div>
           ) : leaveLogs.filter(l => leaveLogsFilter === '' || l.action === leaveLogsFilter).length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <History size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>No leave logs yet</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>No leave logs yet</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -734,13 +734,13 @@ export default function EmployeeList() {
                           {isAdd ? '+' : '−'}
                         </span>
                         <div style={{ minWidth: 0 }}>
-                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {log.employee?.user?.name || 'Unknown Employee'}
                           </p>
-                          <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '0 0 1px' }}>
-                            {log.reason || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No reason given</span>}
+                          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '0 0 1px' }}>
+                            {log.reason || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No reason given</span>}
                           </p>
-                          <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
                             <Clock size={10} />
                             {new Date(log.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
                             {log.actioned_by && ` · by ${log.actioned_by.name}`}
@@ -752,7 +752,7 @@ export default function EmployeeList() {
                         <p style={{ fontSize: '0.88rem', fontWeight: 800, color: isAdd ? '#059669' : '#d97706', margin: '0 0 2px' }}>
                           {isAdd ? '+' : '−'}{log.days}d
                         </p>
-                        <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>
+                        <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0 }}>
                           {log.balance_before} → {log.balance_after} days
                         </p>
                       </div>
@@ -763,8 +763,8 @@ export default function EmployeeList() {
           )}
           {/* Pagination */}
           {leaveLogsPagination.last_page > 1 && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line)' }}>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>
                 Page {leaveLogsPagination.current_page} of {leaveLogsPagination.last_page} · {leaveLogsPagination.total} entries
               </p>
               <div style={{ display: 'flex', gap: 6 }}>
@@ -822,12 +822,12 @@ export default function EmployeeList() {
           {birthdaysLoading ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <div style={{ width: 32, height: 32, border: '3px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', borderTopColor: 'var(--color-primary-500)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 12px' }} />
-              <p style={{ fontSize: '0.82rem', color: '#9ca3af' }}>Loading…</p>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)' }}>Loading…</p>
             </div>
           ) : birthdays.length === 0 ? (
             <div style={{ padding: '48px 0', textAlign: 'center' }}>
               <Gift size={32} style={{ color: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', margin: '0 auto 12px', display: 'block' }} />
-              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>
                 No upcoming birthdays in the next {birthdayDays} days  {/* ← was hardcoded 30 */}
               </p>
             </div>
@@ -857,8 +857,8 @@ export default function EmployeeList() {
                         {emp.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                       </div>
                       <div>
-                        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#111827', margin: '0 0 1px' }}>{emp.name}</p>
-                        <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>
+                        <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>{emp.name}</p>
+                        <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>
                           {new Date(emp.date_of_birth).toLocaleDateString('en-KE', { day: 'numeric', month: 'long' })}
                           {emp.age && ` · Turning ${emp.age + 1}`}
                         </p>
@@ -894,7 +894,7 @@ function RowActions({ empId, onDelete, navigate }) {
     <div style={{ position: 'relative' }}>
       <button
         onClick={e => { e.stopPropagation(); setOpen(v => !v); }}
-        style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#c4b5fd', transition: 'background 120ms, color 120ms' }}
+        style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', transition: 'background 120ms, color 120ms' }}
         onMouseEnter={e => { e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
         onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#c4b5fd'; }}
       >
@@ -903,14 +903,14 @@ function RowActions({ empId, onDelete, navigate }) {
       {open && (
         <>
           <div style={{ position: 'fixed', inset: 0, zIndex: 19 }} onClick={() => setOpen(false)} />
-          <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 168, zIndex: 20, background: 'white', borderRadius: 12, padding: '6px 0', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)', boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }} onClick={e => e.stopPropagation()}>
+          <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 168, zIndex: 20, background: 'var(--surface-card, #fff)', borderRadius: 12, padding: '6px 0', border: '1.5px solid var(--line)', boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }} onClick={e => e.stopPropagation()}>
             {[
-              { icon: Eye,    label: 'View',    color: '#374151', onClick: () => navigate(`/admin/employees/${empId}`) },
-              { icon: Edit3,  label: 'Edit',    color: '#374151', onClick: () => navigate(`/admin/employees/${empId}/edit`) },
+              { icon: Eye,    label: 'View',    color: 'var(--text-primary)', onClick: () => navigate(`/admin/employees/${empId}`) },
+              { icon: Edit3,  label: 'Edit',    color: 'var(--text-primary)', onClick: () => navigate(`/admin/employees/${empId}/edit`) },
               null,
               { icon: Trash2, label: 'Delete',  color: '#ef4444', onClick: onDelete },
             ].map((item, i) => item === null ? (
-              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
+              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid var(--line)' }} />
             ) : (
               <button key={i} onClick={() => { item.onClick(); setOpen(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', fontSize: '0.8rem', fontWeight: 500, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: item.color, transition: 'background 120ms' }}
                 onMouseEnter={e => e.currentTarget.style.background = item.color === '#ef4444' ? 'rgba(239,68,68,0.05)' : 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)'}
@@ -930,15 +930,15 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 600, maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--line)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: iconBg }}>{icon}</div>
             <div>
-              <p style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111827', margin: '0 0 1px' }}>{title}</p>
-              <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>
+              <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 1px' }}>{title}</p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>{subtitle}</p>
             </div>
           </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: '#9ca3af' }}
+          <button onClick={onClose} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}
             onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.background = 'none'}
           >
@@ -953,7 +953,7 @@ function Modal({ onClose, title, subtitle, icon, iconBg, children }) {
 
 function PaginationBtn({ onClick, disabled, children }) {
   return (
-    <button onClick={onClick} disabled={disabled} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none', color: 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1, transition: 'background 120ms' }}
+    <button onClick={onClick} disabled={disabled} style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, cursor: disabled ? 'not-allowed' : 'pointer', border: '1.5px solid var(--line)', background: 'none', color: 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1, transition: 'background 120ms' }}
       onMouseEnter={e => { if (!disabled) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
       onMouseLeave={e => e.currentTarget.style.background = 'none'}
     >{children}</button>

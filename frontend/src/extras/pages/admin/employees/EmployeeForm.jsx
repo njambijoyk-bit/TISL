@@ -88,16 +88,16 @@ const EMPTY_FORM = {
 
 // ── Shared styles ──────────────────────────────────────────────────────────────
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const baseInput = {
   width: '100%', padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
 
@@ -115,11 +115,11 @@ const eBlur  = e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.5)';
 function SectionCard({ title, icon: Icon, children }) {
   return (
     <div style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
-        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-500)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '14px 18px', borderBottom: '1px solid var(--line)' }}>
+        <div style={{ width: 28, height: 28, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface-input)', color: 'var(--color-primary-500)' }}>
           <Icon size={14} />
         </div>
-        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#374151' }}>{title}</span>
+        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)' }}>{title}</span>
       </div>
       <div style={{ padding: '16px 18px' }}>{children}</div>
     </div>
@@ -142,7 +142,7 @@ function Input({ value, onChange, error, type = 'text', placeholder, icon: Icon 
   const style = error ? errorInput : baseInput;
   return (
     <div style={{ position: 'relative' }}>
-      {Icon && <Icon size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#c4b5fd', pointerEvents: 'none' }} />}
+      {Icon && <Icon size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />}
       <input
         type={type} value={value}
         onChange={e => onChange(e.target.value)}
@@ -329,7 +329,7 @@ export default function EmployeeForm() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <button 
             onClick={() => navigate('/admin/employees')} 
-            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', cursor: 'pointer', color: '#9ca3af', transition: 'all 150ms' }}
+            style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', transition: 'all 150ms' }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
           >
@@ -339,7 +339,7 @@ export default function EmployeeForm() {
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 2px' }}>
               {isEditing ? 'Edit Employee' : 'New Employee'}
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               {isEditing ? 'Update employee details' : 'Add a new employee record'}
             </p>
           </div>
@@ -347,7 +347,7 @@ export default function EmployeeForm() {
         <div style={{ display: 'flex', gap: 10 }}>
           <button 
             onClick={() => navigate('/admin/employees')} 
-            style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms' }}
+            style={{ padding: '8px 16px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 150ms' }}
             onMouseEnter={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)'}
             onMouseLeave={e => e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'}
           >
@@ -428,7 +428,7 @@ export default function EmployeeForm() {
                 </p>
               )}
               {form.role === 'driver' && (
-                <p style={{ fontSize: '0.7rem', color: '#6b7280', margin: 0, fontWeight: 500 }}>
+                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 500 }}>
                   Drivers can report to anyone in the organization.
                 </p>
               )}
@@ -437,14 +437,14 @@ export default function EmployeeForm() {
               {form.manager_id && (() => {
                 const m = managers.find(m => String(m.id) === String(form.manager_id));
                 return m ? (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 7, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderRadius: 7, background: 'var(--surface-card, #fff)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)' }}>
                     <span style={{ fontSize: '0.78rem', color: 'var(--color-primary-600)', fontWeight: 600 }}>
                       {m.name}{m.job_title ? ` · ${m.job_title}` : ''}
                     </span>
                     <button 
                       type="button" 
                       onClick={() => set('manager_id', '')}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#c4b5fd', display: 'flex', padding: 2 }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}
                       onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
                       onMouseLeave={e => e.currentTarget.style.color = '#c4b5fd'}
                     >
@@ -464,12 +464,12 @@ export default function EmployeeForm() {
                   onFocus={iFocus} 
                   onBlur={iBlur}
                 />
-                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#c4b5fd', pointerEvents: 'none' }} />
+                <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
                 {managerSearch && (
                   <button 
                     type="button" 
                     onClick={() => setManagerSearch('')}
-                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 2 }}
+                    style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}
                     onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
                     onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
                   >
@@ -497,7 +497,7 @@ export default function EmployeeForm() {
               )}
 
               {managerSearch && filteredManagers.length === 0 && (
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', fontStyle: 'italic', margin: 0 }}>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontStyle: 'italic', margin: 0 }}>
                   No eligible managers match "{managerSearch}"
                 </p>
               )}
@@ -622,7 +622,7 @@ export default function EmployeeForm() {
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
         <button 
           onClick={() => navigate('/admin/employees')} 
-          style={{ padding: '9px 20px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit' }}
+          style={{ padding: '9px 20px', borderRadius: 9, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'none', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit' }}
         >
           Cancel
         </button>

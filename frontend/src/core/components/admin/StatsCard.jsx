@@ -21,7 +21,7 @@ export default function StatsCard({
 
   return (
     <div style={{
-      borderRadius: 16, border: '1px solid #f3f4f6',
+      borderRadius: 16, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)',
       padding: '20px 24px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
       position: 'relative', overflow: 'hidden',
     }}>
@@ -30,9 +30,9 @@ export default function StatsCard({
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginTop: 4 }}>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#9ca3af', margin: '0 0 8px' }}>{title}</p>
+          <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-tertiary)', margin: '0 0 8px' }}>{title}</p>
           {loading ? (
-            <div style={{ height: 32, width: 80, borderRadius: 8, background: '#f3f4f6' }} />
+            <div style={{ height: 32, width: 80, borderRadius: 8, background: 'var(--surface-input)' }} />
           ) : (
             <p style={{ fontSize: '1.9rem', fontWeight: 800, color: 'var(--color-primary-400)', margin: 0, letterSpacing: '-0.03em', lineHeight: 1 }}>
               {value}

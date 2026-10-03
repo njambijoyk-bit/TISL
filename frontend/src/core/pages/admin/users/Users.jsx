@@ -65,21 +65,21 @@ const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-GB', { day: 'numer
 const card = {
   background: 'var(--surface-card, #fff)',
   borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const selectStyle = {
   padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
   color: 'var(--text-primary)', outline: 'none',
   fontFamily: 'inherit', cursor: 'pointer',
   transition: 'border-color 150ms, box-shadow 150ms',
 };
 
 const selectFocus = (e) => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; };
-const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; };
+const selectBlur  = (e) => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none'; };
 
 const TH_LABEL = ({ children }) => (
   <span style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
@@ -123,20 +123,20 @@ function SkeletonRow({ cols }) {
   return (
     <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }}>
       <td style={{ padding: '12px 16px', width: 44 }}>
-        <div style={{ width: 16, height: 16, borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
+        <div style={{ width: 16, height: 16, borderRadius: 4, background: 'var(--surface-input)' }} />
       </td>
       <td style={{ padding: '12px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', flexShrink: 0 }} />
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--surface-input)', flexShrink: 0 }} />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ width: 120, height: 11, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
-            <div style={{ width: 160, height: 9, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' }} />
+            <div style={{ width: 120, height: 11, borderRadius: 6, background: 'var(--surface-input)' }} />
+            <div style={{ width: 160, height: 9, borderRadius: 6, background: 'var(--surface-input)' }} />
           </div>
         </div>
       </td>
       {[80, 70, 64, 90, 60, 0].map((w, j) => (
         <td key={j} style={{ padding: '12px 16px' }}>
-          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }} />}
+          {w > 0 && <div style={{ width: w, height: 10, borderRadius: 6, background: 'var(--surface-input)' }} />}
         </td>
       ))}
     </tr>
@@ -183,13 +183,13 @@ function ActionMenu({ user, onView, onStatusChange, onUnlock, onForceReset, onDe
           <div style={{
             position: 'absolute', right: 0, top: 'calc(100% + 6px)', width: 200, zIndex: 20,
             background: 'var(--surface-card, #fff)', borderRadius: 12, padding: '6px 0',
-            border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+            border: '1.5px solid var(--line)',
             boxShadow: '0 8px 32px color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
           }}
             onClick={e => e.stopPropagation()}
           >
             {items.map((item, i) => item === null ? (
-              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }} />
+              <div key={i} style={{ margin: '4px 0', borderTop: '1px solid var(--line)' }} />
             ) : (
               <button key={i} onClick={() => { item.onClick(); setOpen(false); }} style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 8,
@@ -589,8 +589,8 @@ export default function UsersPage() {
                     <div style={{
                       display: 'flex', alignItems: 'center', gap: 8,
                       padding: '8px 10px', borderRadius: 8, marginBottom: 12,
-                      background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-                      border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
+                      background: 'var(--surface-card, #fff)',
+                      border: '1px solid var(--line)',
                     }}>
                       <Upload size={13} style={{ color: 'var(--color-primary-500)', flexShrink: 0 }} />
                       <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
@@ -599,7 +599,7 @@ export default function UsersPage() {
                       </p>
                     </div>
 
-                    <div style={{ borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', paddingTop: 12 }}>
+                    <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
                       <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 8px' }}>
                         Looking to add a staff member instead?
                       </p>
@@ -633,12 +633,12 @@ export default function UsersPage() {
         )}
 
         {/* ── Tabs + search + filters ── */}
-        <div style={card}>
+        <div style={{ borderRadius: 12, border: '1px solid var(--line)' }}>
           {/* Tab bar */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0 16px',
-            borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+            borderBottom: '1px solid var(--line)',
           }}>
             <div style={{ display: 'flex' }}>
               {['staff', 'finance', 'logistics', 'drivers', 'customers', 'vendors'].map(tab => {
@@ -749,13 +749,13 @@ export default function UsersPage() {
                 onChange={e => setFilter('search', e.target.value)}
                 style={{
                   width: '100%', padding: '7px 12px 7px 32px', borderRadius: 8, fontSize: '0.82rem',
-                  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
+                  background: 'var(--surface-card, #fff)',
+                  border: '1.5px solid var(--line)',
                   color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit',
                   boxSizing: 'border-box', transition: 'border-color 150ms, box-shadow 150ms',
                 }}
                 onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 10%, transparent)'; }}
-                onBlur={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.boxShadow = 'none'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.boxShadow = 'none'; }}
               />
             </div>
 
@@ -788,7 +788,7 @@ export default function UsersPage() {
           {showFilters && (
             <div style={{
               padding: '12px 16px 14px',
-              borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+              borderTop: '1px solid var(--line)',
               display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
             }}>
               {(showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab) && (
@@ -849,7 +849,7 @@ export default function UsersPage() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+                <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
                   <th style={{ padding: '10px 16px', width: 44 }}>
                     <input
                       type="checkbox"
@@ -939,7 +939,7 @@ export default function UsersPage() {
                                 alt={user.name}
                                 style={{ 
                                   width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
-                                  flexShrink: 0, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', display: 'block',
+                                  flexShrink: 0, background: 'var(--surface-card, #fff)', display: 'block',
                                 }}
                               />
                               <div style={{ minWidth: 0 }}>
@@ -1059,9 +1059,9 @@ export default function UsersPage() {
           {!loading && users.length > 0 && pagination.last_page > 1 && (
             <div style={{
               padding: '12px 20px',
-              borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+              borderTop: '1px solid var(--line)',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
+              background: 'var(--surface-card, #fff)',
             }}>
               <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>
                 Page {pagination.current_page} of {pagination.last_page} — {pagination.total?.toLocaleString()} users
@@ -1074,7 +1074,7 @@ export default function UsersPage() {
                   style={{
                     width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 8, cursor: pagination.current_page <= 1 ? 'not-allowed' : 'pointer',
-                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                    border: '1.5px solid var(--line)', background: 'none',
                     color: 'var(--color-primary-500)', opacity: pagination.current_page <= 1 ? 0.3 : 1, transition: 'background 120ms',
                   }}
                   onMouseEnter={e => { if (pagination.current_page > 1) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}
@@ -1116,7 +1116,7 @@ export default function UsersPage() {
                   style={{
                     width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 8, cursor: pagination.current_page >= pagination.last_page ? 'not-allowed' : 'pointer',
-                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'none',
+                    border: '1.5px solid var(--line)', background: 'none',
                     color: 'var(--color-primary-500)', opacity: pagination.current_page >= pagination.last_page ? 0.3 : 1, transition: 'background 120ms',
                   }}
                   onMouseEnter={e => { if (pagination.current_page < pagination.last_page) e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)'; }}

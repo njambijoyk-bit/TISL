@@ -46,21 +46,21 @@ export default function AuctionChargesEditor({ currencyId, currencyCode, value, 
   const patch = (id, p) => onChange(rows.map((r) => (Number(r.ledger_id) === Number(id) ? { ...r, ...p } : r)));
 
   if (error) return <p style={{ color: '#dc2626', fontSize: '0.8rem' }}>{error}</p>;
-  if (!options) return <p style={{ color: '#9ca3af', fontSize: '0.8rem' }}>Loading charges…</p>;
+  if (!options) return <p style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>Loading charges…</p>;
   if (options.length === 0) {
     return (
-      <p style={{ color: '#6b7280', fontSize: '0.8rem', margin: 0 }}>
+      <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>
         No auction charges are set up yet. Add them under <Link to="/admin/books?tab=accounts">Books → Chart of accounts → Auction Charges</Link> (buyer's premium, deposit, handling…) and they will appear here.
       </p>
     );
   }
 
-  const cell = { padding: '8px 10px', fontSize: '0.8rem', borderBottom: '1px solid #f3f4f6', verticalAlign: 'middle' };
+  const cell = { padding: '8px 10px', fontSize: '0.8rem', borderBottom: '1px solid var(--line)', verticalAlign: 'middle' };
   return (
     <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead>
-          <tr style={{ textAlign: 'left', fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <tr style={{ textAlign: 'left', fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             <th style={cell} />
             <th style={cell}>Charge</th>
             <th style={cell}>Charged</th>
@@ -77,15 +77,15 @@ export default function AuctionChargesEditor({ currencyId, currencyCode, value, 
               <tr key={o.ledger.id} style={{ opacity: r.is_enabled ? 1 : 0.55 }}>
                 <td style={cell}><input type="checkbox" disabled={locked} checked={Boolean(r.is_enabled)} onChange={(e) => patch(o.ledger.id, { is_enabled: e.target.checked })} aria-label={`Apply ${o.ledger.name}`} /></td>
                 <td style={cell}>
-                  <strong style={{ color: '#111827' }}>{o.ledger.name}</strong>
-                  <div style={{ fontSize: '0.7rem', color: '#9ca3af' }}>{KIND[o.charge_kind] ?? 'Charge'}{o.refundable ? ' · refundable' : ''}{o.basis === 'per_day' && o.free_days ? ` · first ${o.free_days} days free` : ''}</div>
+                  <strong style={{ color: 'var(--text-primary)' }}>{o.ledger.name}</strong>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{KIND[o.charge_kind] ?? 'Charge'}{o.refundable ? ' · refundable' : ''}{o.basis === 'per_day' && o.free_days ? ` · first ${o.free_days} days free` : ''}</div>
                 </td>
                 <td style={cell}>{DUE[o.timing] ?? o.timing}</td>
                 <td style={{ ...cell, textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <input type="number" min="0" step="any" disabled={locked || !r.is_enabled} value={r.amount ?? ''}
                     onChange={(e) => patch(o.ledger.id, { amount: e.target.value })}
-                    style={{ width: 90, padding: '5px 8px', border: '1px solid #e5e7eb', borderRadius: 6, textAlign: 'right', fontSize: '0.8rem' }} />
-                  <span style={{ marginLeft: 6, color: '#6b7280', fontSize: '0.72rem' }}>{unit}</span>
+                    style={{ width: 90, padding: '5px 8px', border: '1px solid var(--line)', borderRadius: 6, textAlign: 'right', fontSize: '0.8rem' }} />
+                  <span style={{ marginLeft: 6, color: 'var(--text-secondary)', fontSize: '0.72rem' }}>{unit}</span>
                 </td>
                 <td style={cell}>{o.tax_follows === 'auction' ? 'As the auction\'s account' : `${TAX[o.ledger.tax_nature] ?? '—'}${o.tax_rate?.rate_value != null && o.ledger.tax_nature === 'taxable' ? ` ${Number(o.tax_rate.rate_value)}%` : ''}`}</td>
               </tr>
@@ -93,7 +93,7 @@ export default function AuctionChargesEditor({ currencyId, currencyCode, value, 
           })}
         </tbody>
       </table>
-      {locked && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '8px 0 0' }}>Charges are fixed once bidding has started.</p>}
+      {locked && <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '8px 0 0' }}>Charges are fixed once bidding has started.</p>}
     </div>
   );
 }

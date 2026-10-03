@@ -199,7 +199,7 @@ function Modal({ children, onClose }) {
     >
       <div style={{
         ...card,
-        background: 'white', color: '#08070a',
+        background: 'var(--surface-card, #fff)', color: '#08070a',
         width: '100%', maxWidth: 480,
         maxHeight: '92vh',
         display: 'flex', flexDirection: 'column',

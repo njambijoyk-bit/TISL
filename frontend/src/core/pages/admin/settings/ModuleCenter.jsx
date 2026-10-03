@@ -10,15 +10,15 @@ import toast from 'react-hot-toast';
 
 // ── Shared styles (match settings pages) ────────────────────────────────────
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
   boxSizing: 'border-box', letterSpacing: '0.03em',
 };
 const btn = (bg, fg = 'white') => ({
@@ -34,7 +34,7 @@ const label = {
 const STATUS = {
   active:       { text: 'Active',           color: '#059669', bg: 'rgba(5,150,105,0.10)',  Icon: CheckCircle2 },
   licensed_off: { text: 'Licensed — off',   color: '#d97706', bg: 'rgba(217,119,6,0.10)',  Icon: PowerOff },
-  unlicensed:   { text: 'Not licensed',     color: '#6b7280', bg: 'rgba(107,114,128,0.10)', Icon: Lock },
+  unlicensed:   { text: 'Not licensed',     color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.10)', Icon: Lock },
 };
 
 const RESULT_LABEL = {
@@ -82,7 +82,7 @@ function OwnershipBanner({ verified, businessName, onVerified }) {
           <ShieldAlert size={20} color="#d97706" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Installation not verified</div>
-            <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.5 }}>
+            <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               Paste the <strong>ownership code</strong> for this business to unlock module keys.
               You can browse and switch modules below meanwhile, but keys are accepted only after this step.
             </p>
@@ -118,14 +118,14 @@ function ModuleCard({ mod, onActivate, onToggle, busy, canActivate }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
         <div>
           <div style={{ fontSize: '0.95rem', fontWeight: 700 }}>{mod.name}</div>
-          <div style={{ fontSize: '0.72rem', color: '#9ca3af' }}>Module {mod.number}</div>
+          <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Module {mod.number}</div>
         </div>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 9px', borderRadius: 999, background: s.bg, color: s.color, fontSize: '0.68rem', fontWeight: 700 }}>
           <s.Icon size={13} /> {s.text}
         </span>
       </div>
 
-      <p style={{ margin: 0, fontSize: '0.78rem', color: '#6b7280', lineHeight: 1.45, minHeight: 34 }}>
+      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, minHeight: 34 }}>
         {mod.description}
       </p>
 
@@ -172,11 +172,11 @@ function AttemptsLog({ rows }) {
       {open && (
         <div style={{ overflowX: 'auto', marginTop: 12 }}>
           {!rows.length ? (
-            <p style={{ color: '#9ca3af', fontSize: '0.8rem' }}>No activity yet.</p>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>No activity yet.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.76rem' }}>
               <thead>
-                <tr style={{ textAlign: 'left', color: '#9ca3af' }}>
+                <tr style={{ textAlign: 'left', color: 'var(--text-tertiary)' }}>
                   <th style={{ padding: '6px 8px' }}>When</th>
                   <th style={{ padding: '6px 8px' }}>Result</th>
                   <th style={{ padding: '6px 8px' }}>Module</th>
@@ -209,7 +209,7 @@ function Stat({ n, label: lbl, color }) {
   return (
     <div style={{ ...card, padding: '12px 16px', minWidth: 120 }}>
       <div style={{ fontSize: '1.4rem', fontWeight: 800, color }}>{n}</div>
-      <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#9ca3af', fontWeight: 700 }}>{lbl}</div>
+      <div style={{ fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', fontWeight: 700 }}>{lbl}</div>
     </div>
   );
 }
@@ -267,7 +267,7 @@ export default function ModuleCenter() {
   if (loading) {
     return (
       <SettingsLayout>
-        <div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>
           <RefreshCw size={18} /> Loading Module Center…
         </div>
       </SettingsLayout>
@@ -286,7 +286,7 @@ export default function ModuleCenter() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>Module Center</h1>
-            <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: '0.82rem' }}>
+            <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
               Core runs free, always. The 11 paid modules each unlock with their own key.
             </p>
           </div>

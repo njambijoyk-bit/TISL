@@ -17,9 +17,9 @@ import { useBaseCode } from '../../../../_shared/lib/baseCurrency';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -32,13 +32,13 @@ const labelStyle = {
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
-  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', display: 'block', textAlign: right ? 'right' : 'left' }}>
+  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', display: 'block', textAlign: right ? 'right' : 'left' }}>
     {children}
   </span>
 );
@@ -50,7 +50,7 @@ function Field({ label, children, hint }) {
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {hint && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 }}>{hint}</p>}
+      {hint && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 }}>{hint}</p>}
     </div>
   );
 }
@@ -129,8 +129,8 @@ function AddShippingModal({ onClose, onSave }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,10,30,0.65)', backdropFilter: 'blur(6px)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 460, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>Add shipping option</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add shipping option</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
             <X size={16} />
           </button>
         </div>
@@ -170,7 +170,7 @@ function AddShippingModal({ onClose, onSave }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280',
+              border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>Cancel</button>
             <button type="submit" style={{
@@ -221,8 +221,8 @@ function EditShippingModal({ option, onClose, onSave }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,10,30,0.65)', backdropFilter: 'blur(6px)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 460, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>Edit: {option.name}</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Edit: {option.name}</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
             <X size={16} />
           </button>
         </div>
@@ -255,7 +255,7 @@ function EditShippingModal({ option, onClose, onSave }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-              border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: '#6b7280',
+              border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>Cancel</button>
             <button type="submit" style={{
@@ -280,7 +280,7 @@ const ACTION_CFG = {
   DEACTIVATED: { Icon: PowerOff, color: '#f59e0b', bg: 'rgba(245,158,11,0.12)'  },
   DELETED:     { Icon: Trash2,   color: '#ef4444', bg: 'rgba(239,68,68,0.12)'   },
 };
-const DEFAULT_CFG = { Icon: RefreshCw, color: '#9ca3af', bg: 'rgba(156,163,175,0.12)' };
+const DEFAULT_CFG = { Icon: RefreshCw, color: 'var(--text-tertiary)', bg: 'rgba(156,163,175,0.12)' };
 
 const formatDate = (dateStr) => {
   if (!dateStr) return '';
@@ -306,7 +306,7 @@ function describeActivity(item, options = []) {
         return (
           <>
             updated <strong>"{resolvedName}"</strong>
-            <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: '0.72rem', color: '#6b7280' }}>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 16, fontSize: '0.72rem', color: 'var(--text-secondary)' }}>
               {changes.map((c, j) => (
                 <li key={j}>
                   {c.field}:{' '}
@@ -340,8 +340,8 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
           <div key={i} style={{ display: 'flex', gap: 12 }}>
             <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ height: 12, borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', width: '60%', marginBottom: 6 }} />
-              <div style={{ height: 10, borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', width: '30%' }} />
+              <div style={{ height: 12, borderRadius: 4, background: 'var(--surface-input)', width: '60%', marginBottom: 6 }} />
+              <div style={{ height: 10, borderRadius: 4, background: 'var(--surface-input)', width: '30%' }} />
             </div>
           </div>
         ))}
@@ -350,7 +350,7 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
   }
 
   if (!activity.length) {
-    return <p style={{ fontSize: '0.82rem', color: '#9ca3af', fontStyle: 'italic' }}>No activity yet.</p>;
+    return <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No activity yet.</p>;
   }
 
   return (
@@ -380,11 +380,11 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
 
             {/* Content */}
             <div style={{ flex: 1, paddingBottom: isLast ? 0 : 16, minWidth: 0 }}>
-              <p style={{ fontSize: '0.78rem', color: '#374151', margin: '0 0 2px', lineHeight: 1.5 }}>
-                <strong style={{ color: '#111827' }}>{actorName}</strong>{' '}
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-primary)', margin: '0 0 2px', lineHeight: 1.5 }}>
+                <strong style={{ color: 'var(--text-primary)' }}>{actorName}</strong>{' '}
                 {describeActivity(item, options)}
               </p>
-              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: 0 }}>{formatDate(item.created_at)}</p>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{formatDate(item.created_at)}</p>
             </div>
           </div>
         );
@@ -393,7 +393,7 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
       {pagination && pagination.current_page < pagination.last_page && (
         <button onClick={onLoadMore} style={{
           marginTop: 12, padding: '6px 14px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
-          border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white', color: 'var(--color-primary-600)',
+          border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
           cursor: 'pointer', fontFamily: 'inherit', alignSelf: 'center',
         }}>
           Load more
@@ -498,7 +498,7 @@ export default function ShippingSettings() {
     <SettingsLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {[80, 400].map((h, i) => (
-          <div key={i} style={{ height: h, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />
+          <div key={i} style={{ height: h, borderRadius: 12, background: 'var(--surface-card, #fff)', marginBottom: 16 }} />
         ))}
       </div>
     </SettingsLayout>
@@ -514,7 +514,7 @@ export default function ShippingSettings() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em', margin: '0 0 4px' }}>
               Shipping Settings
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
               Manage delivery methods and costs for checkout
             </p>
           </div>
@@ -537,7 +537,7 @@ export default function ShippingSettings() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+                <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
                   {[
                     { label: 'ID',         w: 60  },
                     { label: 'Name',       w: 180 },
@@ -563,23 +563,23 @@ export default function ShippingSettings() {
                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                   >
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#9ca3af', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>
                         #{opt.id}
                       </span>
                     </td>
                     {/* Name */}
                     <td style={{ padding: '12px 16px' }}>
                       <div>
-                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: '#111827' }}>{opt.name}</span>
+                        <span style={{ fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)' }}>{opt.name}</span>
                         {opt.description && (
-                          <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '2px 0 0' }}>{opt.description}</p>
+                          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{opt.description}</p>
                         )}
                       </div>
                     </td>
 
                     {/* Slug */}
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#6b7280', fontFamily: 'monospace' }}>{opt.slug}</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{opt.slug}</span>
                     </td>
 
                     {/* Cost */}
@@ -622,7 +622,7 @@ export default function ShippingSettings() {
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => setEditing(opt)} style={{
                           width: 28, height: 28, borderRadius: 6, border: 'none', cursor: 'pointer',
-                          background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-500)',
+                          background: 'var(--surface-card, #fff)', color: 'var(--color-primary-500)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           transition: 'background 120ms',
                         }}
@@ -662,14 +662,14 @@ export default function ShippingSettings() {
             width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '14px 20px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
           }}>
-            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <RefreshCw size={14} style={{ color: 'var(--color-primary-500)' }} /> Shipping activity log
             </span>
-            {showLog ? <ChevronUp size={14} style={{ color: '#9ca3af' }} /> : <ChevronDown size={14} style={{ color: '#9ca3af' }} />}
+            {showLog ? <ChevronUp size={14} style={{ color: 'var(--text-tertiary)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />}
           </button>
 
           {showLog && (
-            <div style={{ padding: '0 20px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 16 }}>
+            <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--line)', paddingTop: 16 }}>
               <ShippingActivityFeed
                 activity={activity}
                 pagination={activityPag}

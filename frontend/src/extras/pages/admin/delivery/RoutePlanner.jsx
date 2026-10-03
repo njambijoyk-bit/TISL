@@ -190,7 +190,7 @@ function PlaceSearch({ onSelect, onHover, placeholder = 'Search address or place
                     top: 'calc(100% + 4px)',
                     left: 0, right: 0,
                     zIndex: 9999,
-                    background: '#ffffff',
+                    background: 'var(--surface-card, #fff)',
                     border: '1px solid #d1d5db',
                     borderRadius: D.radiusSm,
                     boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
@@ -212,16 +212,16 @@ function PlaceSearch({ onSelect, onHover, placeholder = 'Search address or place
                                 cursor: 'pointer',
                                 borderTop: i > 0 ? '1px solid #e5e7eb' : 'none',
                                 transition: 'background 0.1s',
-                                background: '#ffffff',
+                                background: 'var(--surface-card, #fff)',
                             }}
                             onMouseOver={e => e.currentTarget.style.background = '#f3f4f6'}
                             onMouseOut={e => e.currentTarget.style.background = '#ffffff'}
                         >
-                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#111827' }}>
+                            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                                 {r.short_name}
                             </div>
                             <div style={{
-                                fontSize: '0.68rem', color: '#6b7280',
+                                fontSize: '0.68rem', color: 'var(--text-secondary)',
                                 marginTop: 2, lineHeight: 1.35,
                                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                             }}>

@@ -64,8 +64,8 @@ function StatCard({ label, value, icon: Icon, iconBg, iconColor }) {
 function StatusBadge({ status }) {
   const map = {
     active:   { bg: 'rgba(34,197,94,0.1)',   color: '#22c55e' },
-    draft:    { bg: 'rgba(107,114,128,0.1)', color: '#6b7280' },
-    inactive: { bg: 'rgba(107,114,128,0.1)', color: '#6b7280' },
+    draft:    { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)' },
+    inactive: { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)' },
   };
   const s = map[status] || map.draft;
   return (
@@ -170,7 +170,7 @@ export default function AdminHampers() {
         </div>
 
         {/* Filters */}
-        <div style={{ ...card, padding: 16 }}>
+        <div style={{ ...card, background: 'transparent', boxShadow: 'none', padding: 16 }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <div style={{ flex: 2, minWidth: 200, position: 'relative' }}>
               <Search size={15} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-tertiary)', pointerEvents: 'none' }} />
@@ -281,7 +281,7 @@ export default function AdminHampers() {
 
                         {/* Eligibility */}
                         <td style={tdStyle}>
-                          <span style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: 'var(--color-primary-600)' }}>
+                          <span style={{ padding: '3px 8px', borderRadius: 99, fontSize: '0.65rem', fontWeight: 700, background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)' }}>
                             {hamper.eligibility_type?.toUpperCase()}
                           </span>
                         </td>

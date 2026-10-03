@@ -11,9 +11,9 @@ import toast from 'react-hot-toast';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.82rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  background: 'var(--surface-card, #fff)',
+  border: '1.5px solid var(--line)',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -26,13 +26,13 @@ const labelStyle = {
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 
 const TH_LABEL = ({ children, right }) => (
-  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', display: 'block', textAlign: right ? 'right' : 'left' }}>
+  <span style={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)', display: 'block', textAlign: right ? 'right' : 'left' }}>
     {children}
   </span>
 );
@@ -44,7 +44,7 @@ function Field({ label, children, hint }) {
     <div>
       <label style={labelStyle}>{label}</label>
       {children}
-      {hint && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 4 }}>{hint}</p>}
+      {hint && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 4 }}>{hint}</p>}
     </div>
   );
 }
@@ -73,7 +73,7 @@ function InlineEdit({ value, onSave, onCancel, step = '0.00000001', width = 160,
       <button onClick={onCancel} style={{
         width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderRadius: 7, border: 'none', cursor: 'pointer',
-        background: 'rgba(107,114,128,0.1)', color: '#6b7280',
+        background: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)',
       }}>
         <X size={13} />
       </button>
@@ -93,11 +93,11 @@ const fmtRate = (n, dp = 4) => (n == null || !isFinite(n) ? '—' : Number(n).to
 function EditTrigger({ value, onEdit }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ fontSize: '0.82rem', color: '#374151', fontFamily: 'monospace' }}>{value}</span>
+      <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)', fontFamily: 'monospace' }}>{value}</span>
       <button onClick={onEdit} style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         width: 26, height: 26, borderRadius: 6, border: 'none', cursor: 'pointer',
-        background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-500)', transition: 'background 120ms',
+        background: 'var(--surface-card, #fff)', color: 'var(--color-primary-500)', transition: 'background 120ms',
       }}
         onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)'}
         onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)'}
@@ -119,15 +119,15 @@ function InfoPanel() {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Info size={14} style={{ color: 'var(--color-primary-500)' }} />
-          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151' }}>How currency rates work</span>
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)' }}>How currency rates work</span>
         </div>
-        {open ? <ChevronUp size={14} style={{ color: '#9ca3af' }} /> : <ChevronDown size={14} style={{ color: '#9ca3af' }} />}
+        {open ? <ChevronUp size={14} style={{ color: 'var(--text-tertiary)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-tertiary)' }} />}
       </button>
 
       {open && (
-        <div style={{ padding: '0 20px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', paddingTop: 16 }}>
-          <p style={{ fontSize: '0.78rem', color: '#6b7280', lineHeight: 1.7, margin: '0 0 12px' }}>
-            Two values are stored per currency: <strong style={{ color: '#374151' }}>Anchor Rate</strong> and <strong style={{ color: '#374151' }}>Conversion Rate</strong>.
+        <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--line)', paddingTop: 16 }}>
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 12px' }}>
+            Two values are stored per currency: <strong style={{ color: 'var(--text-primary)' }}>Anchor Rate</strong> and <strong style={{ color: 'var(--text-primary)' }}>Conversion Rate</strong>.
             The anchor rate is the source of truth — it stays fixed to a single reference currency (typically USD).
             The conversion rate is automatically derived based on whichever currency is currently set as the base.
           </p>
@@ -143,16 +143,16 @@ function InfoPanel() {
                 def: 'Derived from anchor rates when you change the base: conversion_rate = currency.anchor_rate / base.anchor_rate. The base currency always has conversion_rate = 1.00.',
               },
             ].map(({ term, def }) => (
-              <div key={term} style={{ padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)' }}>
+              <div key={term} style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
                 <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 3px' }}>{term}</p>
-                <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, lineHeight: 1.6 }}>{def}</p>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{def}</p>
               </div>
             ))}
           </div>
 
-          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
+          <div style={{ marginTop: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
             <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Example</p>
-            <p style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: '#374151', margin: 0, lineHeight: 1.8 }}>
+            <p style={{ fontSize: '0.72rem', fontFamily: 'monospace', color: 'var(--text-primary)', margin: 0, lineHeight: 1.8 }}>
               Base = KES (anchor = 0.00775), USD (anchor = 1.0)<br />
               USD conversion_rate = 1.0 / 0.00775 = 129.03<br />
               → 1 USD = 129.03 KES
@@ -182,8 +182,8 @@ function AddCurrencyModal({ onClose, onSave, baseCurrency, saving }) {
     <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,10,30,0.65)', backdropFilter: 'blur(6px)' }}>
       <div style={{ ...card, width: '100%', maxWidth: 420, padding: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: '#111827', margin: 0 }}>Add currency</p>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex' }}>
+          <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Add currency</p>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex' }}>
             <X size={16} />
           </button>
         </div>
@@ -221,7 +221,7 @@ function AddCurrencyModal({ onClose, onSave, baseCurrency, saving }) {
           <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{
               flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
-              background: 'transparent', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', color: '#9ca3af',
+              background: 'transparent', border: '1.5px solid var(--line)', color: 'var(--text-tertiary)',
               cursor: 'pointer', fontFamily: 'inherit',
             }}>Cancel</button>
             <button type="submit" style={{
@@ -290,7 +290,7 @@ export default function CurrencySettings() {
     <SettingsLayout>
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 24px' }}>
         {[80, 400].map((h, i) => (
-          <div key={i} style={{ height: h, borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', marginBottom: 16 }} />
+          <div key={i} style={{ height: h, borderRadius: 12, background: 'var(--surface-card, #fff)', marginBottom: 16 }} />
         ))}
       </div>
     </SettingsLayout>
@@ -307,9 +307,9 @@ export default function CurrencySettings() {
               Currency Settings
             </h1>
             {baseCurrency && (
-              <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Star size={11} style={{ color: '#f59e0b' }} />
-                Base: <strong style={{ color: '#374151' }}>{baseCurrency.code}</strong> ({baseCurrency.symbol})
+                Base: <strong style={{ color: 'var(--text-primary)' }}>{baseCurrency.code}</strong> ({baseCurrency.symbol})
               </p>
             )}
           </div>
@@ -332,7 +332,7 @@ export default function CurrencySettings() {
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)' }}>
+                <tr style={{ borderBottom: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
                   {[
                     { label: 'Code',            w: 120 },
                     { label: 'Name',            w: 180 },
@@ -368,7 +368,7 @@ export default function CurrencySettings() {
                       {/* Code */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#111827', fontFamily: 'monospace' }}>{c.code}</span>
+                          <span style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{c.code}</span>
                           {isBase && (
                             <span style={{
                               display: 'inline-flex', alignItems: 'center', gap: 3,
@@ -384,20 +384,20 @@ export default function CurrencySettings() {
 
                       {/* Name */}
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: '0.82rem', color: '#374151' }}>{c.name}</span>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>{c.name}</span>
                       </td>
 
                       {/* Symbol */}
                       <td style={{ padding: '12px 16px' }}>
-                        <span style={{ fontSize: '0.88rem', color: '#6b7280', fontWeight: 600 }}>{c.symbol}</span>
+                        <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', fontWeight: 600 }}>{c.symbol}</span>
                       </td>
 
                       {/* Value in base — derived from anchor rates, not editable */}
                       <td style={{ padding: '12px 16px' }}>
                         {isBase ? (
-                          <span style={{ fontSize: '0.78rem', color: '#9ca3af' }}>Base currency</span>
+                          <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Base currency</span>
                         ) : (
-                          <span style={{ fontSize: '0.8rem', color: '#374151' }}>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}>
                             1 {c.code} = <strong style={{ fontFamily: 'monospace' }}>{fmtRate(Number(c.conversion_rate), 6)}</strong> {baseCurrency?.code}
                           </span>
                         )}
@@ -406,7 +406,7 @@ export default function CurrencySettings() {
                       {/* Anchor rate */}
                       <td style={{ padding: '12px 16px' }}>
                         {isUSD ? (
-                          <span style={{ fontSize: '0.82rem', color: '#d1d5db', fontFamily: 'monospace' }}>1.00000000</span>
+                          <span style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', fontFamily: 'monospace' }}>1.00000000</span>
                         ) : editingAnchor?.id === c.id ? (
                           <InlineEdit
                             value={editingAnchor.value}
@@ -421,7 +421,7 @@ export default function CurrencySettings() {
                               value={Number(c.anchor_rate).toFixed(8)}
                               onEdit={() => setEditingAnchor({ id: c.id, value: c.anchor_rate })}
                             />
-                            <p style={{ fontSize: '0.66rem', color: '#9ca3af', margin: '3px 0 0' }}>
+                            <p style={{ fontSize: '0.66rem', color: 'var(--text-tertiary)', margin: '3px 0 0' }}>
                               1 USD = {fmtRate(unitsPerUsd(c.anchor_rate))} {c.code}
                             </p>
                           </div>
@@ -439,7 +439,7 @@ export default function CurrencySettings() {
                             cursor: 'pointer', border: 'none', fontFamily: 'inherit', transition: 'all 150ms',
                             ...(c.is_active
                               ? { background: 'rgba(16,185,129,0.1)', color: '#065f46', boxShadow: '0 0 0 1px rgba(16,185,129,0.25)' }
-                              : { background: 'rgba(107,114,128,0.1)', color: '#4b5563', boxShadow: '0 0 0 1px rgba(107,114,128,0.2)' }
+                              : { background: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', boxShadow: '0 0 0 1px rgba(107,114,128,0.2)' }
                             ),
                           }}
                         >
@@ -454,7 +454,7 @@ export default function CurrencySettings() {
                           {!isBase && (
                             <button onClick={() => handleSetBase(c)} disabled={!c.is_active} title={!c.is_active ? 'Activate it first' : undefined} style={{
                               padding: '4px 10px', borderRadius: 7, fontSize: '0.7rem', fontWeight: 700,
-                              background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', color: 'var(--color-primary-600)',
+                              background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                               border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', cursor: 'pointer', fontFamily: 'inherit',
                               transition: 'background 120ms',
                             }}
@@ -471,7 +471,7 @@ export default function CurrencySettings() {
                             style={{
                               width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
                               borderRadius: 7, border: 'none', cursor: isBase ? 'not-allowed' : 'pointer',
-                              background: 'none', color: '#d1d5db', opacity: isBase ? 0.4 : 1,
+                              background: 'none', color: 'var(--text-tertiary)', opacity: isBase ? 0.4 : 1,
                               transition: 'background 120ms, color 120ms',
                             }}
                             onMouseEnter={e => { if (!isBase) { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#ef4444'; } }}

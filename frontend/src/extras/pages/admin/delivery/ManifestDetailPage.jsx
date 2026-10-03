@@ -298,7 +298,7 @@ function StopCard({ item, index, expanded, onToggle, onHover, onInfo, onOverride
                                 style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 5,
                                     padding: '5px 12px',
-                                    background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+                                    background: 'var(--surface-card, #fff)',
                                     border: `1px solid ${D.purpleBorder}`,
                                     borderRadius: D.radiusSm,
                                     color: D.purple, fontSize: '0.75rem', fontWeight: 600,
@@ -383,7 +383,7 @@ function ActivityEntry({ log }) {
                 {hasNewOrder && (
                     <div style={{
                         marginTop: 4, padding: '4px 8px',
-                        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+                        background: 'var(--surface-card, #fff)',
                         borderRadius: D.radiusSm,
                         fontSize: '0.68rem', color: D.textDim, fontFamily: 'monospace',
                     }}>
@@ -399,7 +399,7 @@ function ActivityEntry({ log }) {
                 {!hasSafetyWarning && !hasNewOrder && cleanPayload && (
                     <div style={{
                         marginTop: 4, padding: '4px 8px',
-                        background: 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
+                        background: 'var(--surface-card, #fff)',
                         borderRadius: D.radiusSm,
                         fontSize: '0.68rem', color: D.textDim,
                         fontFamily: 'monospace', wordBreak: 'break-all',
@@ -493,8 +493,8 @@ function ReassignModal({ manifest, onClose, onSuccess, onHover, audio }) {
                 padding: 16,
             }} onClick={onClose}>
                 <div onClick={e => e.stopPropagation()} style={{
-                    background: '#ffffff',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--surface-card, #fff)',
+                    border: '1px solid var(--line)',
                     borderRadius: D.radiusLg,
                     padding: 'clamp(20px, 4vw, 28px)',
                     width: '100%', maxWidth: 420,
@@ -562,7 +562,7 @@ function ReassignModal({ manifest, onClose, onSuccess, onHover, audio }) {
                     padding: 16,
                 }} onClick={() => setOverrideModal(null)}>
                     <div onClick={e => e.stopPropagation()} style={{
-                        background: '#ffffff',
+                        background: 'var(--surface-card, #fff)',
                         border: '1px solid rgba(245,158,11,0.4)',
                         borderRadius: D.radiusLg,
                         padding: 'clamp(20px, 4vw, 28px)',
@@ -576,7 +576,7 @@ function ReassignModal({ manifest, onClose, onSuccess, onHover, audio }) {
                             </div>
                         </div>
 
-                        <div style={{ fontSize: '0.82rem', color: '#374151', lineHeight: 1.6, marginBottom: 16 }}>
+                        <div style={{ fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 16 }}>
                             <strong style={{ color: '#111' }}>{overrideModal.driver_name}</strong> has unresolved safety incidents with one or more customers in this manifest:
                             <div style={{
                                 marginTop: 10, padding: '10px 14px',

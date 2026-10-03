@@ -20,7 +20,7 @@ import {
 const L = {
     text:    '#111111',
     textDim: '#6b7280',
-    border:  '#e5e7eb',
+    border:  'var(--line)',
     bg:      '#f9fafb',
     bgHover: '#f3f4f6',
 };
@@ -95,7 +95,7 @@ function AdminReportHTML({ data }) {
                 </div>
 
                 {data.manifest.notes && (
-                    <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', padding: '7px 10px', marginBottom: 10, fontSize: '10pt' }}>
+                    <div style={{ background: '#f9fafb', border: '1px solid var(--line)', padding: '7px 10px', marginBottom: 10, fontSize: '10pt' }}>
                         <span className="label">Notes: </span>{data.manifest.notes}
                     </div>
                 )}
@@ -382,8 +382,8 @@ const overlay = {
 };
 
 const modal = {
-    background:    '#ffffff',
-    border:        '1px solid #e5e7eb',
+    background:    'var(--surface-card, #fff)',
+    border:        '1px solid var(--line)',
     borderRadius:  D.radiusLg,
     width:         '100%',
     maxWidth:      560,
@@ -398,7 +398,7 @@ const modalHeader = {
     alignItems:      'center',
     justifyContent:  'space-between',
     padding:         '16px 20px',
-    borderBottom:    '1px solid #e5e7eb',
+    borderBottom:    '1px solid var(--line)',
     flexShrink:      0,
 };
 
@@ -410,7 +410,7 @@ const modalBody = {
 
 const modalFooter = {
     padding:         '14px 20px',
-    borderTop:       '1px solid #e5e7eb',
+    borderTop:       '1px solid var(--line)',
     display:         'flex',
     gap:             10,
     justifyContent:  'flex-end',

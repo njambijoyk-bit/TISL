@@ -12,7 +12,7 @@ import { D, StatusBadge } from './DeliveryShared';
 const M = {
     bg:          '#ffffff',
     surface:     '#f8fafc',
-    border:      '#e2e8f0',
+    border:      'var(--line)',
     borderStrong:'#cbd5e1',
     text:        '#0f172a',
     textMid:     '#475569',
@@ -229,8 +229,8 @@ function TabCustomer({ item }) {
                 {customer.tier_benefits && (
                     <div style={{
                         marginTop: 12, padding: '8px 12px',
-                        background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
-                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
+                        background: 'var(--surface-card, #fff)',
+                        border: '1px solid var(--line)',
                         borderRadius: M.radiusSm,
                         display: 'flex', gap: 16, flexWrap: 'wrap',
                     }}>

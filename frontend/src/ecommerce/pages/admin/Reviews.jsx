@@ -303,7 +303,7 @@ export default function Reviews() {
         </div>
 
         {/* ── Filters ─────────────────────────────────────────────────────── */}
-        <div style={{ ...card, padding: 16 }}>
+        <div style={{ ...card, background: 'transparent', boxShadow: 'none', padding: 16 }}>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {/* search */}
             <div style={{ flex: 2, minWidth: 200, position: 'relative' }}>
@@ -320,7 +320,7 @@ export default function Reviews() {
             <select
               value={filters.approved}
               onChange={e => setFilters(f => ({ ...f, approved: e.target.value }))}
-              style={{ ...inputStyle, flex: 1, minWidth: 140, cursor: 'pointer', color: '#9ca3af' }}
+              style={{ ...inputStyle, flex: 1, minWidth: 140, cursor: 'pointer', color: 'var(--text-tertiary)' }}
             >
               <option value="">All Statuses</option>
               <option value="true">Approved</option>
@@ -330,7 +330,7 @@ export default function Reviews() {
             <select
               value={filters.rating}
               onChange={e => setFilters(f => ({ ...f, rating: e.target.value }))}
-              style={{ ...inputStyle, flex: 1, minWidth: 140, cursor: 'pointer', color: '#9ca3af' }}
+              style={{ ...inputStyle, flex: 1, minWidth: 140, cursor: 'pointer', color: 'var(--text-tertiary)' }}
             >
               <option value="">All Ratings</option>
               {[5, 4, 3, 2, 1].map(n => (
@@ -574,7 +574,7 @@ export default function Reviews() {
       {/* ── Delete modal ──────────────────────────────────────────────────── */}
       {deleteModal.isOpen && (
         <Modal onClose={() => setDeleteModal({ isOpen: false, review: null, loading: false })}>
-          <div style={{ padding: 24, background: '#fff' }}>
+          <div style={{ padding: 24, background: 'var(--surface-card, #fff)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
               <div style={{ width: 44, height: 44, borderRadius: 10, background: 'var(--color-background-danger)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Trash2 size={20} style={{ color: '#f87171' }} />

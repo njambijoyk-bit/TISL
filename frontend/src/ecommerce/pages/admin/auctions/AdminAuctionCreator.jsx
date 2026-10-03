@@ -14,9 +14,9 @@ import VariantAtBranchPicker from '../../../../core/components/admin/pickers/Var
 import ProductSelectorModalAdmin from '../../../../core/components/admin/pickers/ProductSelectorModalAdmin';
 
 const inputStyle = {
-  width: '100%', padding: '10px 14px', border: '1.5px solid #e5e7eb',
-  borderRadius: 10, fontSize: '0.875rem', color: '#111827',
-  background: 'white', outline: 'none', boxSizing: 'border-box',
+  width: '100%', padding: '10px 14px', border: '1.5px solid var(--line)',
+  borderRadius: 10, fontSize: '0.875rem', color: 'var(--text-primary)',
+  background: 'var(--surface-card, #fff)', outline: 'none', boxSizing: 'border-box',
   transition: 'border-color 150ms ease',
 };
 
@@ -26,7 +26,7 @@ const labelStyle = {
 };
 
 const sectionStyle = {
-  background: 'white', borderRadius: 14, border: '1px solid #f3f4f6', padding: '20px 24px',
+  background: 'var(--surface-card, #fff)', borderRadius: 14, border: '1px solid var(--line)', padding: '20px 24px',
 };
 
 export default function AdminAuctionCreator() {
@@ -92,7 +92,7 @@ export default function AdminAuctionCreator() {
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <button onClick={() => navigate(-1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontWeight: 600, fontSize: '0.875rem' }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 600, fontSize: '0.875rem' }}
             onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
             onMouseLeave={e => e.currentTarget.style.color = '#6b7280'}
           >
@@ -102,7 +102,7 @@ export default function AdminAuctionCreator() {
             <h1 style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: 0, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}>
               <Gavel size={22} /> Create New Auction
             </h1>
-            <p style={{ fontSize: '0.8rem', color: '#9ca3af', margin: '2px 0 0' }}>Fill in the details to launch a live auction</p>
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>Fill in the details to launch a live auction</p>
           </div>
         </div>
 
@@ -116,25 +116,25 @@ export default function AdminAuctionCreator() {
 
             {!selectedProduct ? (
               <button type="button" onClick={() => setShowProductModal(true)}
-                style={{ width: '100%', padding: '20px', border: '2px dashed #e5e7eb', borderRadius: 12, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#9ca3af', fontWeight: 600, fontSize: '0.875rem', transition: 'all 150ms ease' }}
+                style={{ width: '100%', padding: '20px', border: '2px dashed var(--line)', borderRadius: 12, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--text-tertiary)', fontWeight: 600, fontSize: '0.875rem', transition: 'all 150ms ease' }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'; }}
                 onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#9ca3af'; e.currentTarget.style.background = 'none'; }}
               >
                 <Package size={20} /> Click to select a product
               </button>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, background: 'var(--surface-card, #fff)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }}>
                 {selectedProduct.main_image_url || selectedProduct.main_image ? (
                   <img src={selectedProduct.main_image_url || selectedProduct.main_image} alt={selectedProduct.name}
                     style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 52, height: 52, borderRadius: 10, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Package size={20} style={{ color: '#d1d5db' }} />
+                    <Package size={20} style={{ color: 'var(--text-tertiary)' }} />
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--color-primary-500)', margin: '0 0 2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedProduct.name}</p>
-                  <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0 }}>
                     SKU: {selectedProduct.sku ?? 'N/A'} {selectedProduct.brand?.name ? `• ${selectedProduct.brand.name}` : ''} • {formatMoney(selectedProduct.price, selectedProduct.currency?.symbol || selectedProduct.currency?.code || 'KSh', { decimals: 'auto' })}
                   </p>
                 </div>
@@ -158,7 +158,7 @@ export default function AdminAuctionCreator() {
 
           <div style={sectionStyle}>
             <p style={{ ...labelStyle, marginBottom: 6 }}>Charges</p>
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 12px' }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 12px' }}>
               Added to what the winner pays, on top of the winning bid, each with its own tax. They come from the auction charge accounts; switch them on or off and change amounts for this auction.
             </p>
             <AuctionChargesEditor currencyId={form.currency_id} currencyCode={code} value={charges} onChange={setCharges} />
@@ -171,7 +171,7 @@ export default function AdminAuctionCreator() {
               <div>
                 <label style={labelStyle}>Branch *</label>
                 <BranchSelect value={form.location_id} onChange={v => setForm(prev => ({ ...prev, location_id: v }))} />
-                <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '6px 0 0' }}>The auction belongs to this branch; the item must be in stock there.</p>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '6px 0 0' }}>The auction belongs to this branch; the item must be in stock there.</p>
               </div>
               <div>
                 <label style={labelStyle}>Variant</label>
@@ -183,7 +183,7 @@ export default function AdminAuctionCreator() {
                     onChange={v => setForm(prev => ({ ...prev, variant_id: v }))}
                   />
                 ) : (
-                  <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>Choose a product and branch first.</p>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>Choose a product and branch first.</p>
                 )}
               </div>
             </div>
@@ -203,7 +203,7 @@ export default function AdminAuctionCreator() {
                   allowEmpty
                   emptyLabel="Base currency"
                 />
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '5px 0 0' }}>
                   Bidders see and bid in this currency. It can't change once someone has bid.
                 </p>
               </div>
@@ -216,13 +216,13 @@ export default function AdminAuctionCreator() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Reserve price ({code}, excl. tax) <span style={{ color: '#9ca3af', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
+                <label style={labelStyle}>Reserve price ({code}, excl. tax) <span style={{ color: 'var(--text-tertiary)', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
                 <input type="number" name="reserve_price" value={form.reserve_price} onChange={handleChange}
                   style={inputStyle} min="0" step="any" placeholder="Leave empty for no reserve"
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '5px 0 0', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <Shield size={10} /> Hidden from bidders — protects your minimum sale price
                 </p>
               </div>
@@ -233,7 +233,7 @@ export default function AdminAuctionCreator() {
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '5px 0 0' }}>
                   Minimum amount each bid must exceed the current by
                 </p>
               </div>
@@ -247,13 +247,13 @@ export default function AdminAuctionCreator() {
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
-                <label style={labelStyle}>Start Time <span style={{ color: '#9ca3af', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
+                <label style={labelStyle}>Start Time <span style={{ color: 'var(--text-tertiary)', textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></label>
                 <input type="datetime-local" name="start_time" value={form.start_time} onChange={handleChange}
                   style={inputStyle}
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>Leave blank to go live immediately</p>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '5px 0 0' }}>Leave blank to go live immediately</p>
               </div>
               <div>
                 <label style={labelStyle}>End Time <span style={{ color: '#ef4444' }}>*</span></label>
@@ -262,7 +262,7 @@ export default function AdminAuctionCreator() {
                   onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                   onBlur={e => e.target.style.borderColor = '#e5e7eb'}
                 />
-                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '5px 0 0' }}>Auto-extends 2 mins if a bid lands in final 2 mins</p>
+                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '5px 0 0' }}>Auto-extends 2 mins if a bid lands in final 2 mins</p>
               </div>
             </div>
           </div>
@@ -270,7 +270,7 @@ export default function AdminAuctionCreator() {
           {/* ── Actions ── */}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => navigate(-1)}
-              style={{ padding: '10px 20px', border: '1.5px solid #e5e7eb', borderRadius: 10, background: 'white', color: '#374151', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
+              style={{ padding: '10px 20px', border: '1.5px solid var(--line)', borderRadius: 10, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.875rem', cursor: 'pointer' }}>
               Cancel
             </button>
             <button type="submit" disabled={loading}
