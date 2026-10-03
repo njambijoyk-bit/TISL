@@ -89,8 +89,8 @@ export default function CustomerOrderPage() {
     <>
       <Header />
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 16px 64px' }}>
-        <Link to="/orders" style={{ fontSize: '0.8rem', color: '#6b7280' }}>← My orders</Link>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>Order <span style={{ fontFamily: 'monospace' }}>{o.number}</span></h1>
+        <Link to="/orders" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-500)', textDecoration: 'none' }}>← My orders</Link>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>Order <span style={{ fontFamily: 'monospace', color: 'var(--color-primary-500)' }}>{o.number}</span></h1>
         <p style={{ color: '#6b7280', fontSize: '0.85rem' }}><span style={{ color, fontWeight: 700 }}>{label}</span></p>
         {o.stock_pending && <p style={{ padding: 10, borderRadius: 8, background: 'rgba(245,158,11,0.1)', fontSize: '0.82rem' }}>Paid — some items are being restocked; we'll deliver as soon as they arrive.</p>}
         {/* where the order is: placed, then paid, then delivered */}
