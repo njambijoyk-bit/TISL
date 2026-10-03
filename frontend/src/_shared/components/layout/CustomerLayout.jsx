@@ -43,6 +43,7 @@ const CUSTOMER_GROUPS = [
       { name: 'My Projects',     icon: FolderOpen,    bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/my-projects',       active: true },
       { name: 'My Tickets',      icon: LifeBuoy,      bg: 'linear-gradient(135deg,var(--color-primary-400),var(--color-primary-400))', path: '/my-tickets',        active: true },
       { name: 'My Hampers',      icon: Gift,          bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/hampers/my-orders', active: true },
+      { name: 'On the way',       icon: Truck,         bg: 'linear-gradient(135deg,#0ea5e9,#38bdf8)', path: '/my-deliveries',     active: true },
       { name: 'Delivery History',icon: Truck,         bg: 'linear-gradient(135deg,#10b981,#34d399)', path: '/delivery-history',  active: true },
       { name: 'Bug Reports',     icon: Bug,           bg: 'linear-gradient(135deg,#c2410c,#ea580c)', path: '/account/bug-reports', active: true },
     ],

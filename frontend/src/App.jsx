@@ -229,6 +229,7 @@ const DevPortalPage       = lazy(() => import('./core/pages/admin/DevPortalPage'
 
 
 const CustomerShipmentTracking = lazy(() => import('./core/pages/customer/CustomerShipmentTracking'));
+const CustomerEnroute          = lazy(() => import('./core/pages/customer/CustomerEnroute'));
 const CustomerDeliveryHistory  = lazy(() => import('./core/pages/customer/CustomerDeliveryHistoryPage'));
 
 // ── Admin Settings Pages ──────────────────────────────────────────────────────
@@ -540,6 +541,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <CustomerShipmentTracking />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/my-deliveries"
+              element={
+                <ProtectedRoute>
+                  <CustomerEnroute />
                 </ProtectedRoute>
               }
             />
