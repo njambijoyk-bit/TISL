@@ -258,10 +258,10 @@ export default function ReportsTab() {
   const [params, setParams] = useSearchParams();
   const id = REPORTS.some((r) => r.id === params.get('report')) ? params.get('report') : 'day-book';
   const def = REPORTS.find((r) => r.id === id);
-  // Alt+C: what the profit and loss, balance sheet or trial balance says, on the dates shown
-  useCalculatorContext(['profit-loss', 'balance-sheet', 'trial-balance'].includes(id) ? { type: 'report', report: id, from, to } : null);
   const [from, setFrom] = useState(yearStart());
   const [to, setTo] = useState(today());
+  // Alt+C: what the profit and loss, balance sheet or trial balance says, on the dates shown
+  useCalculatorContext(['profit-loss', 'balance-sheet', 'trial-balance'].includes(id) ? { type: 'report', report: id, from, to } : null);
   const [ledgerId, setLedgerId] = useState(params.get('ledger') ?? '');
   const [ledgers, setLedgers] = useState([]);
   const [result, setResult] = useState(null);   // { id, data }: a report never draws another report's figures
