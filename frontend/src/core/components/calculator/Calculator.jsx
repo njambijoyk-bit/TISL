@@ -72,8 +72,8 @@ function Keypad({ onAnswer }) {
         ))}
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-        <button type="button" onClick={() => press('⌫')} style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: `1px solid ${colors.tint(0.15)}`, background: 'white', cursor: 'pointer' }}><Delete size={14} /></button>
-        <button type="button" disabled={res === null && live === null} onClick={() => navigator.clipboard?.writeText(String(res ?? live))} style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: `1px solid ${colors.tint(0.15)}`, background: 'white', cursor: 'pointer' }} title="Copy"><Copy size={14} /></button>
+        <button type="button" onClick={() => press('⌫')} style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: `1px solid ${colors.tint(0.15)}`, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', cursor: 'pointer' }}><Delete size={14} /></button>
+        <button type="button" disabled={res === null && live === null} onClick={() => navigator.clipboard?.writeText(String(res ?? live))} style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: `1px solid ${colors.tint(0.15)}`, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', cursor: 'pointer' }} title="Copy"><Copy size={14} /></button>
       </div>
       {tape.length > 0 && (
         <div style={{ marginTop: 10 }}>
@@ -193,8 +193,8 @@ function Insight({ data }) {
           {words && <div style={{ background: colors.tint(0.07), borderRadius: 8, padding: '9px 11px', fontSize: '0.8rem', lineHeight: 1.5, marginBottom: 8 }}><Sparkles size={12} style={{ verticalAlign: -1, marginRight: 4, color: colors.primary }} />{words}</div>}
           {err && <div role="alert" style={{ color: colors.dangerText, fontSize: '0.76rem', marginBottom: 8 }}>{err}</div>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-            <button type="button" disabled={busy} onClick={() => run(true)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${colors.tint(0.25)}`, background: 'white', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 600 }}>{busy ? 'Working…' : 'Explain in words'}</button>
-            {ans.has_another && <button type="button" disabled={busy} onClick={() => run(false, 1)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${colors.tint(0.25)}`, background: 'white', cursor: 'pointer', fontSize: '0.76rem' }}><RefreshCw size={12} style={{ verticalAlign: -2 }} /> Another example</button>}
+            <button type="button" disabled={busy} onClick={() => run(true)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${colors.tint(0.25)}`, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.76rem', fontWeight: 600 }}>{busy ? 'Working…' : 'Explain in words'}</button>
+            {ans.has_another && <button type="button" disabled={busy} onClick={() => run(false, 1)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${colors.tint(0.25)}`, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: '0.76rem' }}><RefreshCw size={12} style={{ verticalAlign: -2 }} /> Another example</button>}
           </div>
           {ans.basis && <div style={{ fontSize: '0.66rem', color: colors.textFaint, marginTop: 10 }}>{ans.basis} Estimates only: nothing here changes your books.</div>}
         </>
@@ -222,7 +222,7 @@ export default function Calculator() {
   if (!open) return null;
 
   return (
-    <div role="dialog" aria-label="Calculator" style={{ position: 'fixed', right: 16, bottom: 16, width: 'min(380px, calc(100vw - 32px))', maxHeight: 'min(640px, calc(100vh - 32px))', display: 'flex', flexDirection: 'column', background: 'white', border: `1px solid ${colors.tint(0.25)}`, borderRadius: 14, boxShadow: '0 18px 50px rgba(0,0,0,0.22)', zIndex: 1200 }}>
+    <div role="dialog" aria-label="Calculator" style={{ position: 'fixed', right: 16, bottom: 16, width: 'min(380px, calc(100vw - 32px))', maxHeight: 'min(640px, calc(100vh - 32px))', display: 'flex', flexDirection: 'column', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: '0 18px 50px rgba(0,0,0,0.22)', zIndex: 1200 }}>
       <div style={{ display: 'flex', alignItems: 'center', padding: '10px 14px 0' }}>
         <strong style={{ flex: 1, fontSize: '0.9rem' }}>Calculator <span style={{ fontWeight: 400, color: colors.textFaint, fontSize: '0.68rem' }}>Alt+C</span></strong>
         <button type="button" onClick={() => setOpen(false)} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted }}><X size={16} /></button>
