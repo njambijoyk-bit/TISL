@@ -27,17 +27,17 @@ export default function MyBookings() {
         <h1 style={{ fontSize: '1.4rem', fontWeight: 800, marginBottom: 16 }}>My bookings</h1>
         {error && <p role="alert" style={{ color: '#991b1b' }}>{error}</p>}
         {!rows && !error && <p>Loading…</p>}
-        {rows && !rows.length && <p style={{ color: '#6b7280' }}>You have no bookings yet. Open a service and choose "Book a time".</p>}
+        {rows && !rows.length && <p style={{ color: 'var(--text-secondary)' }}>You have no bookings yet. Open a service and choose "Book a time".</p>}
         <div style={{ display: 'grid', gap: 10 }}>
           {rows?.map((b) => (
-            <div key={b.id} style={{ border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 14, background: '#fff' }}>
+            <div key={b.id} style={{ border: '1.5px solid var(--line)', borderRadius: 12, padding: 14, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                 <strong>{b.service}{b.package && b.package !== 'Standard' ? ` — ${b.package}` : ''}</strong>
                 <span style={{ color: TONE[b.status], fontWeight: 700, fontSize: '0.8rem' }}>{LABEL[b.status]}</span>
               </div>
-              <div style={{ fontSize: '0.84rem', color: '#374151', marginTop: 4 }}>{new Date(b.starts_at).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}{b.with ? ` · with ${b.with}` : ''}</div>
-              <div style={{ fontSize: '0.76rem', color: '#9ca3af' }}>{b.number}{b.deposit_amount > 0 ? ` · deposit ${b.deposit_amount.toFixed(2)}` : ''}</div>
-              {b.can_cancel && <button type="button" onClick={() => cancel(b)} style={{ marginTop: 8, padding: '6px 12px', borderRadius: 8, border: '1px solid #d1d5db', background: '#fff', cursor: 'pointer' }}>Cancel booking</button>}
+              <div style={{ fontSize: '0.84rem', color: 'var(--text-primary)', marginTop: 4 }}>{new Date(b.starts_at).toLocaleString([], { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}{b.with ? ` · with ${b.with}` : ''}</div>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>{b.number}{b.deposit_amount > 0 ? ` · deposit ${b.deposit_amount.toFixed(2)}` : ''}</div>
+              {b.can_cancel && <button type="button" onClick={() => cancel(b)} style={{ marginTop: 8, padding: '6px 12px', borderRadius: 8, border: '1px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', cursor: 'pointer' }}>Cancel booking</button>}
             </div>
           ))}
         </div>

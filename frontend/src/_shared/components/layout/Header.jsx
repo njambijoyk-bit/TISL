@@ -6,7 +6,7 @@ import {
   Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, LogInIcon,
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
-  Bug, Volume2, VolumeX, Gift,
+  Bug, Volume2, VolumeX, Gift, CalendarCheck, Truck,
 } from 'lucide-react';
 import logo from '../../../assets/images/logo.png';
 import { ThemePicker } from '../common/ThemePicker';
@@ -423,6 +423,8 @@ export default function Header() {
     { label: 'My Account',         icon: User,          to: '/my-account' },
     { label: 'My Wallet',          icon: Gift,          to: '/gift-vouchers' },
     { label: 'My Quotes',         icon: FileText,      to: '/my-quotes' },
+    { label: 'My Bookings',       icon: CalendarCheck, to: '/my-bookings', module: MODULES.BOOKINGS },
+    { label: 'My Deliveries',     icon: Truck,         to: '/my-deliveries', module: MODULES.EXTRAS },
     { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects', module: MODULES.PROJECTS },
     { label: 'My Tickets',        icon: FolderOpen,    to: '/my-tickets' },
     { label: 'My Hampers',        icon: Package,       to: '/hampers', module: MODULES.HAMPERS },
