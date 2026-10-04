@@ -308,7 +308,7 @@ export default function AdminTicketDetail() {
               <div>
                 <p style={{ margin: '0 0 8px', fontWeight: 600, fontSize: '0.87rem' }}>{ticket.assigned_to.name}</p>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <Button size="sm" variant="outline" onClick={() => { setSelectedStaff(String(ticket.assigned_to.id)); setAssignModal(true); }}>
+                  <Button size="sm" variant="outline" onClick={() => setAssignModal(true)}>
                     Reassign
                   </Button>
                   <Button size="sm" variant="ghost" onClick={handleUnassign}>Unassign</Button>
