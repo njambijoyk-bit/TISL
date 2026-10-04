@@ -146,6 +146,12 @@ class BooksMasterController extends Controller
             'settings.charge_kind' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::KINDS, \App\Services\Books\ServiceFeeService::KINDS)), 'settings.timing' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::TIMINGS, \App\Services\Books\ServiceFeeService::TIMINGS)), 'settings.applies_to' => 'nullable|in:service',
             'settings.refundable' => 'nullable|boolean', 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
         ]);
+        // the opening balance and its side can never be empty in the books: a blank means "leave it as it is"
+        foreach (['opening_balance', 'opening_side'] as $k) {
+            if (array_key_exists($k, $d) && $d[$k] === null) {
+                unset($d[$k]);
+            }
+        }
         $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id, $l);
         if ($l->is_system) {
             unset($d['group_id']);   // the system relies on where these sit
