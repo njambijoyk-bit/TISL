@@ -143,7 +143,10 @@ class MyAccountController extends Controller
         $format = in_array(strtolower((string) $request->query('format', 'pdf')), ExportService::FORMATS, true) ? strtolower((string) $request->query('format', 'pdf')) : 'pdf';
 
         $party = ['company_name' => $c->company_name, 'ledger_name' => $ledger->name ?: ($request->user()->name ?? null),
-            'address' => $ledger->address ?: ($c->default_billing_address ?: $c->default_shipping_address), 'tax_pin' => $c->tax_id, 'phone' => $c->phone ?: $request->user()->phone, 'email' => $c->email ?: $request->user()->email];
+            'address' => $ledger->address ?: ($c->default_billing_address ?: $c->default_shipping_address), 'tax_pin' => $c->tax_id, 'phone' => $c->phone ?: $request->user()->phone, 'email' => $c->email ?: $request->user()->email,
+            'first_name' => $c->first_name ?: null, 'last_name' => $c->last_name ?: null, 'from' => $from, 'to' => $to, 'currency' => $code,
+            // the line about negative balances only when this statement actually shows one
+            'negative' => (float) $st['closing'] < 0 || (bool) array_filter($st['rows'], fn ($r) => (float) $r['balance'] < 0) || (float) $st['opening'] < 0];
 
         return $export->statement($table, $party, $format, "statement-{$from}-to-{$to}");
     }

@@ -308,6 +308,9 @@ class ExportService
         $co = $this->company();
         $lines = static fn (array $l) => implode('', array_map(fn ($x) => $x === null ? '<div>&nbsp;</div>' : '<div>' . $x . '</div>', $l));
         $note = 'This is a computer-generated document and does not require a signature.';
+        $who = trim(($party['first_name'] ?? '') . ' ' . ($party['last_name'] ?? '')) ?: ($party['ledger_name'] ?? 'there');
+        $greeting = "Hello {$who}, here is your statement for the period " . ($party['from'] ?? '') . ' to ' . ($party['to'] ?? '') . '. Amounts are in ' . ($party['currency'] ?? 'the base currency') . '.'
+            . (! empty($party['negative']) ? ' A negative balance means we hold money for you.' : '');
 
         // our contacts: the default phone and email, the number marked WhatsApp, and the website — each on its own line
         $profile = \App\Models\CompanyProfile::current();
@@ -343,14 +346,14 @@ class ExportService
         // the computer-generated note closes the page in small, light ink; our details sit top right, the customer's start below on the left
         $body = "<table class='sthead'><tr><td class='stl'></td><td class='str'>" . $lines($clean($ours)) . '</td></tr>'
             . "<tr><td class='stl stcust' colspan='2'>" . $lines($clean($theirs)) . '</td></tr></table>'
-            . "<div class='sttitle'>STATEMENT</div>"
-            . (! empty($table['subtitle']) ? "<p class='stsub'>{$e($table['subtitle'])}</p>" : '')
+            . "<div class='sttitle'>STATEMENT OF ACCOUNTS</div>"
+            . "<p class='stbody'>{$e($greeting)}</p>"
             . preg_replace('~^<h1>.*?</h1>~s', '', $this->tableBody(['rows' => $table['rows'] ?? [], 'columns' => $table['columns'] ?? [], 'totals' => $table['totals'] ?? null]))   // the layout supplies its own title
             . "<div class='sttag'>" . (! empty($co['tagline']) ? "<div class='sttl'>{$e($co['tagline'])}</div>" : '') . "<div class='stnote'>{$e($note)}</div></div>";
 
         $html = $this->html($body, $table['title'] ?? 'Statement');
         $html = str_replace('</style>', '.sthead{margin:0 0 6px}.sthead td{border:0;vertical-align:top;padding:0;font-size:12px;line-height:1.5}.stl{width:55%}.str{width:45%;text-align:left}.stcust{padding-top:16px}'
-            . '.sttitle{text-align:center;font-size:22px;font-weight:700;letter-spacing:0.25em;margin:18px 0 2px}.stsub{text-align:center;color:#555;margin:0 0 10px}'
+            . '.sttitle{text-align:center;font-size:20px;font-weight:700;letter-spacing:0.18em;margin:18px 0 8px}.stbody{margin:4px 0 12px;line-height:1.5}'
             . '.sttag{position:fixed;left:24px;right:24px;bottom:10px;text-align:center;padding-top:6px;border-top:1px solid #ddd}.sttl{color:#555;font-style:italic;margin-bottom:3px}.stnote{text-align:center;font-size:9px;color:#999}</style>', $html);
 
         return $format === 'pdf' ? $this->pdf($html, "$filename.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$filename.html", false);
