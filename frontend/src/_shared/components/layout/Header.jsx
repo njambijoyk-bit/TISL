@@ -160,6 +160,11 @@ function FloatingShapes() {
         .hs-dot  { background: color-mix(in srgb, var(--color-primary-500) 8%, transparent); transform-origin: center; }
         .hs-dot2 { background: rgba(192,132,252,0.06); transform-origin: center; }
 
+        /* account menu rows: plain on the white panel, theme card colour + accent ink on hover */
+        .hdr-menu-link { transition: background 150ms, color 150ms; }
+        .hdr-menu-link:hover { background: var(--surface-card, #fff) !important; color: var(--color-primary-500) !important; }
+        .hdr-menu-link:hover svg { color: var(--color-primary-500) !important; }
+
 
         /* ── Dark mode overrides ── */
         .dark .hs      { background: color-mix(in srgb, var(--color-primary-500) 5%, transparent); border-color: color-mix(in srgb, var(--color-primary-500) 10%, transparent); }
@@ -340,7 +345,8 @@ export default function Header() {
   }, []);
 
   // Then define your text colors
-  const navColor = isDark ? '#aaabac' : '#374151';
+  // nav links use the accent ink (the same one as order numbers); the active one is full strength
+  const navColor = 'color-mix(in srgb, var(--color-primary-500) 78%, var(--text-primary))';
   const hasCurrencyChoice = useCurrencyStore(st => st.currencies.length > 1);
   const hasBranchChoice = useLocationStore(st => st.locations.length > 1);
   const navActiveBg = isDark ? 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)' : 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
@@ -777,7 +783,7 @@ export default function Header() {
                         .map(link => (
                         <Link key={link.to} to={link.to} onClick={() => setUserMenuOpen(false)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
-                          className="dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-700">
+                          className="hdr-menu-link">
                           <link.icon size={15} style={{ color: '#9ca3af' }} />
                           {link.label}
                         </Link>
@@ -790,7 +796,7 @@ export default function Header() {
                         <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 6px' }}>Admin</p>
                         <Link to="/admin/profile" onClick={() => setUserMenuOpen(false)}
       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
-      className="dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-700">
+      className="hdr-menu-link">
       <User size={14} style={{ color: 'var(--color-primary-500)' }} />
       My Admin Profile
     </Link>
@@ -801,7 +807,7 @@ export default function Header() {
                             {group.items.map(item => (
                               <Link key={item.to} to={item.to} onClick={() => setUserMenuOpen(false)}
                                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
-                                className="dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-gray-700 hover:text-primary-700">
+                                className="hdr-menu-link">
                                 <item.icon size={14} style={{ color: 'var(--color-primary-500)' }} />
                                 {item.label}
                               </Link>
