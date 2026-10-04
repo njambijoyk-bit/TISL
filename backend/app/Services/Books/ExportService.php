@@ -340,9 +340,8 @@ class ExportService
         }
         $clean = fn (array $l) => array_values(array_filter($l, fn ($x) => $x !== false));
 
-        // the computer-generated note opens and closes the page in small, light ink; our details sit top right, the customer's start below on the left
-        $body = "<div class='stnote' style='margin-bottom:14px'>{$e($note)}</div>"
-            . "<table class='sthead'><tr><td class='stl'></td><td class='str'>" . $lines($clean($ours)) . '</td></tr>'
+        // the computer-generated note closes the page in small, light ink; our details sit top right, the customer's start below on the left
+        $body = "<table class='sthead'><tr><td class='stl'></td><td class='str'>" . $lines($clean($ours)) . '</td></tr>'
             . "<tr><td class='stl stcust' colspan='2'>" . $lines($clean($theirs)) . '</td></tr></table>'
             . "<div class='sttitle'>STATEMENT</div>"
             . (! empty($table['subtitle']) ? "<p class='stsub'>{$e($table['subtitle'])}</p>" : '')
