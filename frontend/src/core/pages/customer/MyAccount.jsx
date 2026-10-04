@@ -13,9 +13,12 @@ const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', color:
 const ctl = { padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.8rem' };
 const td = { padding: '9px 10px', fontSize: '0.84rem', borderTop: '1px solid var(--line)' };
 
-/** My invoices and receipts, each downloadable as a PDF, and my ledger as a statement or an outstandings letter. */
-function DocumentsTab() {
-  const [kind, setKind] = useState('invoices');        // invoices | receipts | ledgers
+const DOC_TABS = [['invoices', 'Invoices'], ['receipts', 'Receipts'], ['ledgers', 'Ledgers']];
+const ORDER_TABS = [['quotations', 'Quotations'], ['orders', 'Sales orders'], ['deliveries', 'Delivery notes']];
+
+/** A list of my documents, each downloadable as a PDF; with `ledgers` among the choices, my statement and outstandings letter too. */
+function DocumentsTab({ choices = DOC_TABS }) {
+  const [kind, setKind] = useState(choices[0][0]);
   const [q, setQ] = useState('');
   const [rows, setRows] = useState(null);
   const [busy, setBusy] = useState(null);
@@ -32,7 +35,7 @@ function DocumentsTab() {
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {[['invoices', 'Invoices'], ['receipts', 'Receipts'], ['ledgers', 'Ledgers']].map(([id, label]) => (
+        {choices.map(([id, label]) => (
           <button key={id} type="button" onClick={() => setKind(id)} aria-pressed={kind === id}
             style={{ ...ctl, cursor: 'pointer', fontWeight: 700, borderColor: kind === id ? 'var(--color-primary-500)' : 'var(--line)', background: kind === id ? 'var(--color-primary-500)' : 'var(--surface-input)', color: kind === id ? '#fff' : 'var(--text-primary)' }}>{label}</button>
         ))}
@@ -46,7 +49,7 @@ function DocumentsTab() {
             <thead><tr><th style={th}>Number</th><th style={th}>Date</th><th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Download</th></tr></thead>
             <tbody>
               {!rows && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={4}>Loading…</td></tr>}
-              {rows && rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={4}>No {kind} yet.</td></tr>}
+              {rows && rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={4}>No {kind === 'deliveries' ? 'delivery notes' : kind} yet.</td></tr>}
               {rows && rows.map((r) => (
                 <tr key={r.id}>
                   <td style={td}><strong style={{ fontFamily: 'monospace' }}>{r.voucher_number}</strong><div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{r.type_name}</div></td>
@@ -128,12 +131,13 @@ export default function MyAccount() {
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 6px' }}>My account</h1>
         <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>What you owe us, what you have paid us over, and how to pay. <Link to="/orders">My orders</Link> · <Link to="/gift-vouchers">My wallet</Link></p>
         <div role="tablist" style={{ display: 'flex', gap: 6, margin: '0 0 18px', borderBottom: '1px solid var(--line)' }}>
-          {[['account', 'Account'], ['documents', 'Documents']].map(([id, label]) => (
+          {[['account', 'Account'], ['documents', 'Documents'], ['orders', 'Orders & deliveries']].map(([id, label]) => (
             <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
               style={{ padding: '8px 16px', border: 'none', borderBottom: `3px solid ${tab === id ? 'var(--color-primary-500)' : 'transparent'}`, background: 'transparent', color: tab === id ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: 'inherit', fontSize: '0.9rem', cursor: 'pointer' }}>{label}</button>
           ))}
         </div>
         {tab === 'documents' && <DocumentsTab />}
+        {tab === 'orders' && <DocumentsTab choices={ORDER_TABS} />}
         {tab === 'account' && error && <p role="alert" style={{ color: '#991b1b' }}>{error}</p>}
         {tab === 'account' && !a && !error && <p>Loading…</p>}
         {tab === 'account' && a && (

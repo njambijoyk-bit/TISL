@@ -175,23 +175,34 @@ class MyAccountController extends Controller
         return $export->outstandings($bills, $party, $format, 'ledger-outstandings-' . today()->toDateString());
     }
 
-    /** The vouchers of mine that are mine to download: posted, on my ledger or against my customer record. */
+    /** The kinds of document a customer can download, and the voucher types behind each. */
+    private const DOC_KINDS = [
+        'invoices' => [VoucherType::SALES, VoucherType::CASH_SALE], 'receipts' => [VoucherType::RECEIPT], 'quotations' => [VoucherType::QUOTATION],
+        'orders' => [VoucherType::SALES_ORDER], 'deliveries' => [VoucherType::DELIVERY_NOTE],
+    ];
+
+    private function docKind(Request $request): string
+    {
+        return array_key_exists((string) $request->query('kind'), self::DOC_KINDS) ? (string) $request->query('kind') : 'invoices';
+    }
+
+    /** The vouchers of mine that are mine to download: posted, on my ledger or against my customer record. A quotation still only requested has no prices yet. */
     private function myDocuments(Request $request, string $kind)
     {
         $c = $request->user()?->customer;
         abort_unless($c, 404);
         $ledgerId = Ledger::where('customer_id', $c->id)->value('id');
-        $bases = $kind === 'receipts' ? [VoucherType::RECEIPT] : [VoucherType::SALES, VoucherType::CASH_SALE];
 
         return Voucher::with(['type', 'currency'])->where('status', Voucher::POSTED)
-            ->whereHas('type', fn ($t) => $t->whereIn('base_type', $bases))
+            ->whereHas('type', fn ($t) => $t->whereIn('base_type', self::DOC_KINDS[$kind]))
+            ->when($kind === 'quotations', fn ($q) => $q->where('doc_status', '!=', 'requested'))
             ->where(fn ($w) => $w->where('customer_id', $c->id)->when($ledgerId, fn ($q) => $q->orWhere('party_ledger_id', $ledgerId)));
     }
 
-    /** My invoices (`kind=invoices`, the default) or receipts (`kind=receipts`), newest first, optionally within a date range or matching a number. */
+    /** My invoices (the default), receipts, quotations, orders or deliveries (`kind=`), newest first, optionally within a date range or matching a number. */
     public function documents(Request $request): JsonResponse
     {
-        $kind = $request->query('kind') === 'receipts' ? 'receipts' : 'invoices';
+        $kind = $this->docKind($request);
         $q = $this->myDocuments($request, $kind)
             ->when($request->filled('from'), fn ($w) => $w->whereDate('date', '>=', (string) $request->query('from')))
             ->when($request->filled('to'), fn ($w) => $w->whereDate('date', '<=', (string) $request->query('to')))
@@ -206,11 +217,11 @@ class MyAccountController extends Controller
     /** One of my invoices or receipts as a printable document (pdf or html). Anyone else's is a 404. */
     public function documentDownload(Request $request, ExportService $export, $id)
     {
-        $kind = $request->query('kind') === 'receipts' ? 'receipts' : 'invoices';
+        $kind = $this->docKind($request);
         $found = $this->myDocuments($request, $kind)->whereKey((int) $id)->first();
         abort_unless($found, 404);
         $format = strtolower((string) $request->query('format', 'pdf')) === 'html' ? 'html' : 'pdf';
 
-        return $kind === 'receipts' ? $export->receipt($found, $format) : $export->invoice($found, $format);
+        return $export->document($found, $format);
     }
 }

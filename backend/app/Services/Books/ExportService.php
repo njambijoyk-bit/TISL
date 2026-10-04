@@ -478,16 +478,26 @@ class ExportService
 
     // ── customer invoice and receipt ─────────────────────────────────────
 
-    /** A customer's tax invoice as pdf or html (see customerDocument). */
-    public function invoice(Voucher $v, string $format): Response
+    /** A customer's document (invoice, cash sale, receipt, sales order, delivery note or quotation) as pdf or html; what it is follows from its type. */
+    public function document(Voucher $v, string $format): Response
     {
-        return $this->customerDocument($v, $format, 'invoice');
+        $v->loadMissing('type');
+        $kind = match ($v->type?->base_type) {
+            VoucherType::RECEIPT => 'receipt', VoucherType::DELIVERY_NOTE => 'delivery', VoucherType::SALES_ORDER => 'order', VoucherType::QUOTATION => 'quotation', default => 'invoice',
+        };
+
+        return $this->customerDocument($v, $format, $kind);
     }
 
-    /** A customer's receipt as pdf or html. */
-    public function receipt(Voucher $v, string $format): Response
+    /** The tint of each kind of customer document: the page, the heading band and the table headings. Invoices tint only the band. */
+    private function docTint(string $kind): array
     {
-        return $this->customerDocument($v, $format, 'receipt');
+        return match ($kind) {
+            'delivery'  => ['page' => '#e6fbc0', 'band' => '#cfee95', 'light' => '#dcf5ab'],
+            'order'     => ['page' => '#fff8cf', 'band' => '#ffe98a', 'light' => '#fff2b0'],
+            'quotation' => ['page' => '#ececec', 'band' => '#cfcfcf', 'light' => '#dedede'],
+            default     => ['page' => null, 'band' => '#c9e8f3', 'light' => '#e3f3f9'],
+        };
     }
 
     /**
@@ -511,7 +521,8 @@ class ExportService
         $sym = $v->currency?->symbol ?: ($v->currency?->code ?: '');
         $unit = $v->currency?->name ?: ($v->currency?->code ?: '');
         $cash = $kind === 'invoice' && $v->type?->base_type === VoucherType::CASH_SALE;   // a cash sale is not an invoice: it is paid at once
-        $label = $kind === 'receipt' ? 'Receipt' : ($cash ? 'Cash Sale' : 'Invoice');
+        $label = ['receipt' => 'Receipt', 'delivery' => 'Delivery Note', 'order' => 'Sales Order', 'quotation' => 'Quotation'][$kind] ?? ($cash ? 'Cash Sale' : 'Invoice');
+        $fin = $kind === 'invoice';   // payment instructions and the declaration belong on invoices and cash sales only
         $title = strtoupper($label);
 
         // the band: logo, legal name, address, PIN, website, what we sell, then contacts
@@ -541,7 +552,8 @@ class ExportService
         $buyerHtml = implode('', array_map(fn ($l) => "<div>{$l}</div>", array_filter($buyer)));
 
         // what this came from (an order, a delivery note) and where it went
-        $so = $dn = null;
+        $so = $kind === 'order' ? $v : null;
+        $dn = null;
         for ($s = $v->source, $i = 0; $s && $i < 3; $s = $s->source, $i++) {
             $so ??= $s->type?->base_type === VoucherType::SALES_ORDER ? $s : null;
             $dn ??= $s->type?->base_type === VoucherType::DELIVERY_NOTE ? $s : null;
@@ -557,11 +569,12 @@ class ExportService
             . "<div class='im'><b>Dated:</b> {$e($day($v->date))}</div>"
             . ($kind === 'receipt'
                 ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
-                : (! $cash ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
-                    . (! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : ''));
+                : (! $cash && $kind !== 'delivery' ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
+                    . ($fin && ! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : '')
+                    . ($kind === 'quotation' && $v->valid_until ? "<div class='im'><b>Valid until:</b> {$e($day($v->valid_until))}</div>" : ''));
         $refs = $kind === 'receipt' ? '' : ($isOrder ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($isOrder ? $kv('Order Dated', $day($so->date)) : '')
             . ($isOrder && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
-            . $kv('Delivery Address', $ship) . ($dn ? $kv('Terms of Delivery', $co['delivery_terms'] ?? null) : '');
+            . $kv('Delivery Address', $ship) . ($dn || $kind === 'delivery' ? $kv('Terms of Delivery', $co['delivery_terms'] ?? null) : '');
         $top = "<table class='it0'><tr><td class='itl'>{$buyerHtml}</td><td class='itr'>{$meta}</td></tr>" . ($refs ? "<tr><td colspan='2' class='itl'>{$refs}</td></tr>" : '') . '</table>';
 
         if ($kind === 'receipt') {
@@ -615,28 +628,29 @@ class ExportService
             if (trim((string) $v->narration) !== '') {
                 $body .= "<div class='ipm'><b>Narration</b><br>" . nl2br($e($v->narration)) . '</div>';
             }
-            if (! $cash && ! empty($co['payment_mode'])) {
+            if ($fin && ! $cash && ! empty($co['payment_mode'])) {
                 $body .= "<div class='ipm'><b>Mode of payment</b><br>" . nl2br($e($co['payment_mode'])) . '</div>';
             }
-            if (! empty($co['declaration'])) {
+            if ($fin && ! empty($co['declaration'])) {
                 $body .= "<div class='ipm'><b>Declaration</b><br>" . nl2br($e($co['declaration'])) . '</div>';
             }
         }
 
         $note = 'This is a computer generated ' . strtolower($label);
-        $body = "<div class='ittl'>{$title}</div>" . $band . $body
+        $body = "<div class='icopy'>(Buyer's Copy)</div><div class='ittl'>{$title}</div>" . $band . $body
             . "<div class='ifaith'>Yours faithfully,<br><b>for {$e($legal)}</b></div>"
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
-        $html = str_replace('</style>', $this->customerDocCss() . '</style>', $this->html($body, $v->voucher_number));
+        $html = str_replace('</style>', $this->customerDocCss($this->docTint($kind)) . '</style>', $this->html($body, $v->voucher_number));
         $name = ($cash ? 'cash-sale' : $kind) . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);   // e.g. invoice-WNKJ-INV-00019
 
         return $format === 'pdf' ? $this->pdf($html, "$name.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$name.html", false);
     }
 
-    private function customerDocCss(): string
+    private function customerDocCss(array $t): string
     {
-        return '@page{margin:8mm}body{margin:0}.ittl{text-align:center;font-weight:700;font-size:15px;margin:0 0 4px}.ib{background:#c9e8f3;text-align:center;padding:8px 6px 6px}.ibn{font-size:21px;font-weight:700}.ibd{font-size:10.5px;line-height:1.4}.ibt{font-size:13px;font-weight:700;margin-top:6px}'
+        // a tinted page paints to the very edge, so the margin becomes padding inside it
+        $css = ($t['page'] ? '@page{margin:0}body{margin:0;padding:8mm;background:' . $t['page'] . '}' : '@page{margin:8mm}body{margin:0}') . '.icopy{position:absolute;' . ($t['page'] ? 'top:8mm;right:8mm' : 'top:0;right:0') . ';font-size:10px;color:#333}.ittl{text-align:center;font-weight:700;font-size:15px;margin:0 0 4px}.ib{background:#c9e8f3;text-align:center;padding:8px 6px 6px}.ibn{font-size:21px;font-weight:700}.ibd{font-size:10.5px;line-height:1.4}.ibt{font-size:13px;font-weight:700;margin-top:6px}'
             . '.ic{margin:0 0 8px;background:#e3f3f9;border-top:1px solid #8cbfd1;border-bottom:1px solid #8cbfd1}.ic td{border:0;padding:3px 10px;font-size:11px}.rt{text-align:right}'
             . '.it0{margin:8px 0}.it0 td{border:0;vertical-align:top;padding:2px 0;font-size:11px;line-height:1.45}.itl{width:58%}.itr{width:42%}.im{margin-bottom:2px}'
             . '.gd{border:1px solid #444;margin:8px 0 0}.gd th{background:#e3f3f9;border:1px solid #444;text-align:center;font-weight:400;font-size:11px}.gd td{border-top:0;border-bottom:0;border-left:1px solid #444;border-right:1px solid #444;padding:4px 6px;font-size:11px}'
@@ -645,6 +659,8 @@ class ExportService
             . '.vt{margin:0;border:1px solid #444}.vt th{background:#e3f3f9;border:1px solid #444;font-weight:400;font-size:11px;text-align:center}.vt td{border:1px solid #444;font-size:11px}.vt .tt td{font-weight:400}'
             . '.ipm{margin-top:14px;font-size:11px;line-height:1.5}.ifaith{text-align:right;margin-top:26px;font-size:11px;line-height:1.6}.itag{text-align:center;margin-top:18px;font-style:italic;font-size:11px}'
             . '.inote{text-align:center;margin-top:6px;padding:3px;background:#c9e8f3;font-size:10px}';
+
+        return strtr($css, ['#c9e8f3' => $t['band'], '#e3f3f9' => $t['light'], '#8cbfd1' => $t['band']]);
     }
 
     /** An amount in words, as printed on a tax invoice: "Kenyan Shilling Two Thousand Nine Hundred and Fifty Cents Only". */
