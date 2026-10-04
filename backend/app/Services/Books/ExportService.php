@@ -697,7 +697,7 @@ class ExportService
         }
 
         $note = 'This is a computer generated ' . strtolower($label);
-        $body = "<div class='icopy'>(Buyer's Copy)</div><div class='ittl'>{$title}</div>" . $band . $body
+        $body = "<div class='icopy'>(Original)</div><div class='ittl'>{$title}</div>" . $band . $body
             . "<table class='isig'><tr><td class='isl'><b>Customer's Seal and Signature</b></td><td class='isr'><b>for {$e($legal)}</b><br><br><b>Authorised Signatory</b></td></tr></table>"
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
