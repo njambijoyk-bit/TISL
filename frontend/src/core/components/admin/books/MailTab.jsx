@@ -10,7 +10,7 @@ import { btnPrimary, btnGhost, colors } from '../../../../_shared/theme/tokens';
 import { money, filterStyle } from './booksFmt';
 import { whatsappDocument } from './shareDocument';
 
-const KINDS = [['', 'All documents'], ['invoices', 'Invoices & cash sales'], ['receipts', 'Receipts'], ['quotations', 'Quotations'], ['orders', 'Sales orders'], ['deliveries', 'Delivery notes']];
+const KINDS = [['', 'All documents'], ['invoices', 'Invoices & cash sales'], ['receipts', 'Receipts'], ['quotations', 'Quotations'], ['orders', 'Sales orders'], ['deliveries', 'Delivery notes'], ['credits', 'Credit notes']];
 const when = (s) => (s ? s.replace('T', ' ').slice(0, 16) : '');
 const pager = (meta, page, setPage, what) => meta.last_page > 1 && (
   <div style={{ display: 'flex', justifyContent: 'center', gap: 12, alignItems: 'center', marginTop: 14, fontSize: '0.8rem', color: colors.textMuted }}>

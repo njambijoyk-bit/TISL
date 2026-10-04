@@ -13,7 +13,7 @@ const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', color:
 const ctl = { padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.8rem' };
 const td = { padding: '9px 10px', fontSize: '0.84rem', borderTop: '1px solid var(--line)' };
 
-const DOC_TABS = [['invoices', 'Invoices'], ['receipts', 'Receipts'], ['ledgers', 'Ledgers']];
+const DOC_TABS = [['invoices', 'Invoices'], ['receipts', 'Receipts'], ['credits', 'Credit notes'], ['ledgers', 'Ledgers']];
 const ORDER_TABS = [['quotations', 'Quotations'], ['orders', 'Sales orders'], ['deliveries', 'Delivery notes']];
 
 /** A list of my documents, each downloadable as a PDF; with `ledgers` among the choices, my statement and outstandings letter too. */
@@ -49,7 +49,7 @@ function DocumentsTab({ choices = DOC_TABS }) {
             <thead><tr><th style={th}>Number</th><th style={th}>Date</th>{kind === 'deliveries' && <th style={th}>Status</th>}<th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Download</th></tr></thead>
             <tbody>
               {!rows && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={5}>Loading…</td></tr>}
-              {rows && rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={5}>No {kind === 'deliveries' ? 'delivery notes' : kind} yet.</td></tr>}
+              {rows && rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={5}>No {({ deliveries: 'delivery notes', credits: 'credit notes' })[kind] ?? kind} yet.</td></tr>}
               {rows && rows.map((r) => (
                 <tr key={r.id}>
                   <td style={td}><strong style={{ fontFamily: 'monospace' }}>{r.voucher_number}</strong><div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{r.type_name}</div></td>

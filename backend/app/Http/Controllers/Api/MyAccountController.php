@@ -178,7 +178,7 @@ class MyAccountController extends Controller
     /** The kinds of document a customer can download, and the voucher types behind each. */
     private const DOC_KINDS = [
         'invoices' => [VoucherType::SALES, VoucherType::CASH_SALE], 'receipts' => [VoucherType::RECEIPT], 'quotations' => [VoucherType::QUOTATION],
-        'orders' => [VoucherType::SALES_ORDER], 'deliveries' => [VoucherType::DELIVERY_NOTE],
+        'orders' => [VoucherType::SALES_ORDER], 'deliveries' => [VoucherType::DELIVERY_NOTE], 'credits' => [VoucherType::CREDIT_NOTE],
     ];
 
     private function docKind(Request $request): string

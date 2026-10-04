@@ -485,14 +485,14 @@ class ExportService
     }
 
     /** The voucher types that have a customer copy. */
-    public const CUSTOMER_DOCS = [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::RECEIPT, VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE, VoucherType::QUOTATION];
+    public const CUSTOMER_DOCS = [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::RECEIPT, VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE, VoucherType::QUOTATION, VoucherType::CREDIT_NOTE];
 
     private function kindOf(Voucher $v): string
     {
         $v->loadMissing('type');
 
         return match ($v->type?->base_type) {
-            VoucherType::RECEIPT => 'receipt', VoucherType::DELIVERY_NOTE => 'delivery', VoucherType::SALES_ORDER => 'order', VoucherType::QUOTATION => 'quotation', default => 'invoice',
+            VoucherType::RECEIPT => 'receipt', VoucherType::DELIVERY_NOTE => 'delivery', VoucherType::SALES_ORDER => 'order', VoucherType::QUOTATION => 'quotation', VoucherType::CREDIT_NOTE => 'credit', default => 'invoice',
         };
     }
 
@@ -538,6 +538,7 @@ class ExportService
         return match ($kind) {
             'delivery'  => ['page' => '#e6fbc0', 'band' => '#cfee95', 'light' => '#dcf5ab'],
             'order'     => ['page' => '#fff8cf', 'band' => '#ffe98a', 'light' => '#fff2b0'],
+            'credit'    => ['page' => '#fff39a', 'band' => '#ffe147', 'light' => '#ffec7a'],
             'quotation' => ['page' => '#ececec', 'band' => '#cfcfcf', 'light' => '#dedede'],
             default     => ['page' => null, 'band' => '#c9e8f3', 'light' => '#e3f3f9'],
         };
@@ -564,7 +565,7 @@ class ExportService
         $sym = $v->currency?->symbol ?: ($v->currency?->code ?: '');
         $unit = $v->currency?->name ?: ($v->currency?->code ?: '');
         $cash = $kind === 'invoice' && $v->type?->base_type === VoucherType::CASH_SALE;   // a cash sale is not an invoice: it is paid at once
-        $label = ['receipt' => 'Receipt', 'delivery' => 'Delivery Note', 'order' => 'Sales Order', 'quotation' => 'Quotation'][$kind] ?? ($cash ? 'Cash Sale' : 'Invoice');
+        $label = ['receipt' => 'Receipt', 'delivery' => 'Delivery Note', 'order' => 'Sales Order', 'quotation' => 'Quotation', 'credit' => 'Credit Note'][$kind] ?? ($cash ? 'Cash Sale' : 'Invoice');
         $fin = $kind === 'invoice';   // payment instructions and the declaration belong on invoices and cash sales only
         $title = strtoupper($label);
 
@@ -627,12 +628,13 @@ class ExportService
                         . ($ins['type'] === 'cheque' && in_array($ins['status'], ['received', 'deposited', 'cleared', 'bounced'], true)
                             ? "<div class='im'><b>Cheque Status:</b> " . ($ins['status'] === 'bounced' ? "<b style='color:#b91c1c'>Bounced</b>" : $e(ucfirst($ins['status']))) . '</div>' : '') : '')
                     . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
-                : (! $cash && ! in_array($kind, ['delivery', 'quotation'], true) ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
+                : (! $cash && ! in_array($kind, ['delivery', 'quotation', 'credit'], true) ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
                     . ($fin && ! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : '')
                     . ($dlv ? "<div class='im'><b>Status:</b> {$e($dlv['status_label'])}" . ($dlv['status'] === 'delivered' && $dlv['delivered_at'] ? ' on ' . $e($day($dlv['delivered_at'])) : '') . '</div>'
                         . ($dlv['manifest'] ? "<div class='im'><b>Manifest:</b> {$e($dlv['manifest'])}</div>" : '') : '')
                     . ($kind === 'quotation' && $v->valid_until ? "<div class='im'><b>Valid until:</b> {$e($day($v->valid_until))}</div>" : ''));
         $refs = $kind === 'receipt' ? '' : ($isOrder ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($isOrder ? $kv('Order Dated', $day($so->date)) : '')
+            . ($kind === 'credit' && $v->source ? $kv('Against Invoice', $v->source->voucher_number) . $kv('Invoice Dated', $day($v->source->date)) : '')
             . ($isOrder && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
             . ($dn || $kind === 'delivery' ? $kv('Terms of Delivery', $co['delivery_terms'] ?? null) : '');
         $top = "<table class='it0'><tr><td class='itl'>{$buyerHtml}</td><td class='itr'>{$meta}</td></tr>" . ($refs ? "<tr><td colspan='2' class='itl'>{$refs}</td></tr>" : '') . '</table>';

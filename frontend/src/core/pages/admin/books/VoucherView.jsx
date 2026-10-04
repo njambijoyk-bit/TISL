@@ -27,7 +27,7 @@ const TARGETS = { quotation: [['sales_order', 'Sales order'], ['sales', 'Sales i
 
 const SENDABLE = ['sales', 'cash_sale', 'receipt', 'quotation', 'credit_note', 'sales_order', 'delivery_note', 'debit_note', 'purchase_order'];
 /** Types that have the customer copy (the layout customers see), as against the internal export. */
-const CUSTOMER_COPY = ['sales', 'cash_sale', 'receipt', 'quotation', 'sales_order', 'delivery_note'];
+const CUSTOMER_COPY = ['sales', 'cash_sale', 'receipt', 'quotation', 'credit_note', 'sales_order', 'delivery_note'];
 
 /** Send a document to the customer: e-mail from the company's default address, or a WhatsApp message quoting the default phone. */
 function SendModal({ v, onClose }) {
