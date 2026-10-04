@@ -567,6 +567,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('role:super_admin')->group(function () {
             Route::put('/settings',                 [BooksMasterController::class, 'updateSettings']);
             Route::put('/company',                  [CompanyProfileController::class, 'update']);
+            Route::post('/company/logo',            [CompanyProfileController::class, 'uploadLogo']);
+            Route::delete('/company/logo',          [CompanyProfileController::class, 'removeLogo']);
             Route::put('/edit-limits',              [BooksMasterController::class, 'saveEditLimits']);
             Route::post('/financial-years/{id}/close', [BooksMasterController::class, 'closeYear']);
         });

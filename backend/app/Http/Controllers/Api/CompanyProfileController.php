@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CompanyProfile;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /** Who the business is — read by the storefront and documents, edited by a super admin. */
 class CompanyProfileController extends Controller
@@ -46,5 +47,37 @@ class CompanyProfileController extends Controller
         $c->fill($d + ['updated_by' => $request->user()->id])->save();
 
         return response()->json(['message' => 'Company details saved', 'data' => $c]);
+    }
+
+    /** Set the company logo: a PNG, JPG, WebP or GIF up to 2 MB, kept on the public disk and printed on statements, letters and documents. */
+    public function uploadLogo(Request $request): JsonResponse
+    {
+        $request->validate(['logo' => 'required|file|mimes:png,jpg,jpeg,webp,gif|max:2048']);
+        $c = CompanyProfile::first() ?? new CompanyProfile(['id' => 1]);
+        $c->id = 1;
+        $this->forget($c->logo_url);
+        $c->fill(['logo_url' => Storage::url($request->file('logo')->store('company', 'public')), 'updated_by' => $request->user()->id])->save();
+
+        return response()->json(['message' => 'Logo saved', 'logo_url' => $c->logo_url]);
+    }
+
+    public function removeLogo(Request $request): JsonResponse
+    {
+        $c = CompanyProfile::first();
+        if ($c) {
+            $this->forget($c->logo_url);
+            $c->fill(['logo_url' => null, 'updated_by' => $request->user()->id])->save();
+        }
+
+        return response()->json(['message' => 'Logo removed', 'logo_url' => null]);
+    }
+
+    /** Delete the file behind an earlier logo, if it is one of ours (an external URL is left alone). */
+    private function forget(?string $url): void
+    {
+        $path = $url ? ltrim((string) preg_replace('#^/?storage/#', '', $url), '/') : null;
+        if ($path && str_starts_with($path, 'company/') && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

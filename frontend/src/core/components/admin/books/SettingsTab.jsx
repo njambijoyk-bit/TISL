@@ -6,6 +6,7 @@ import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
 import api from '../../../../_shared/api/axios';
 import { resetCompany } from '../../../../_shared/lib/useCompany';
+import { storageUrl } from '../../../../_shared/lib/storageUrl';
 import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState';
 import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
@@ -454,9 +455,44 @@ function CompanySection({ isSuper }) {
     catch (x) { setErrs(fieldErrors(x)); toast.error(errMsg(x, 'Could not save')); }
     finally { setBusy(false); }
   };
+  const uploadLogo = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const body = new FormData();
+    body.append('logo', file);
+    setBusy(true);
+    try {
+      const r = await api.post('/admin/books/company/logo', body, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setF((x) => ({ ...x, logo_url: r.data.logo_url })); resetCompany(); toast.success('Logo saved');
+    } catch (x) { toast.error(errMsg(x, 'Could not upload the logo')); } finally { setBusy(false); }
+  };
+  const removeLogo = async () => {
+    setBusy(true);
+    try { await api.delete('/admin/books/company/logo'); setF((x) => ({ ...x, logo_url: null })); resetCompany(); toast.success('Logo removed'); }
+    catch (x) { toast.error(errMsg(x, 'Could not remove the logo')); } finally { setBusy(false); }
+  };
   const rows = [['name', 'Trading name'], ['short_code', 'Short code'], ['legal_name', 'Legal name'], ['tax_pin', 'Tax PIN'], ['address', 'Address'], ['city', 'City'], ['country', 'Country'], ['website', 'Website'], ['tagline', 'Tagline']];
   return (
     <Section title="Company" hint="Emails, documents and the chat assistant use these — nothing is written into the code.">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div style={{ width: 160, height: 80, borderRadius: 10, border: '1.5px dashed var(--line)', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {f.logo_url ? <img src={storageUrl(f.logo_url)} alt="Company logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: '0.72rem', color: '#9ca3af' }}>No logo yet</span>}
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Company logo</div>
+          <p style={{ margin: '2px 0 8px', fontSize: '0.74rem', color: colors.textMuted }}>Printed top left on statements, letters and documents. PNG, JPG, WebP or GIF, up to 2 MB. A wide logo on a white or transparent background works best.</p>
+          {isSuper && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <label style={{ ...btnPrimary, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}>
+                {f.logo_url ? 'Replace logo' : 'Upload logo'}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onChange={uploadLogo} disabled={busy} style={{ display: 'none' }} />
+              </label>
+              {f.logo_url && <button type="button" style={btnGhost} disabled={busy} onClick={removeLogo}>Remove</button>}
+            </div>
+          )}
+        </div>
+      </div>
       <FormGrid min={240}>
         {rows.map(([k, l]) => <Field key={k} label={l} error={errs[k]}><TextInput disabled={!isSuper} value={f[k] ?? ''} onChange={set(k)} /></Field>)}
       </FormGrid>

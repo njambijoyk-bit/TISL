@@ -140,13 +140,26 @@ class ExportService
         ], fn ($x) => $x !== null && $x !== '' && $x !== []);
     }
 
+    /** The logo as a data URI (the PDF engine does not fetch remote files), or null when there is none or it cannot be read. */
+    private function logoData(?string $url): ?string
+    {
+        $path = $url ? ltrim((string) preg_replace('#^/?storage/#', '', $url), '/') : null;
+        if (! $path || ! str_starts_with($path, 'company/') || ! \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+            return null;
+        }
+        $mime = ['png' => 'image/png', 'jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'webp' => 'image/webp', 'gif' => 'image/gif'][strtolower(pathinfo($path, PATHINFO_EXTENSION))] ?? null;
+
+        return $mime ? 'data:' . $mime . ';base64,' . base64_encode(\Illuminate\Support\Facades\Storage::disk('public')->get($path)) : null;
+    }
+
     private function companyHeader(array $co): string
     {
         $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
         if (! $co) {
             return '';
         }
-        $h = "<div class='co'><div class='coname'>{$e($co['name'] ?? '')}</div>";
+        $logo = $this->logoData(\App\Models\CompanyProfile::current()->logo_url ?? null);   // only on the printed page, never in json/xml exports
+        $h = "<div class='co'>" . ($logo ? "<img src='{$logo}' style='max-height:54px;max-width:180px;margin-bottom:6px'><br>" : '') . "<div class='coname'>{$e($co['name'] ?? '')}</div>";
         if (! empty($co['legal_name']) && ($co['legal_name'] !== ($co['name'] ?? null))) {
             $h .= "<div>{$e($co['legal_name'])}</div>";
         }
@@ -433,7 +446,10 @@ class ExportService
             $theirs[] = 'PIN: ' . $e($party['tax_pin']);
         }
 
-        return "<table class='sthead'><tr><td class='stl'></td><td class='str'>" . $lines($clean($ours)) . '</td></tr>'
+        $data = $this->logoData(\App\Models\CompanyProfile::current()->logo_url ?? null);
+        $logo = $data ? "<img src='{$data}' style='max-height:70px;max-width:200px'>" : '';
+
+        return "<table class='sthead'><tr><td class='stl'>{$logo}</td><td class='str'>" . $lines($clean($ours)) . '</td></tr>'
             . "<tr><td class='stl stcust' colspan='2'>" . $lines($clean($theirs)) . '</td></tr></table>';
     }
 
