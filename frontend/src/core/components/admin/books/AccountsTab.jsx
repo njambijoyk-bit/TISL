@@ -52,6 +52,7 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
     min_amount: ledger?.min_amount ?? '', max_amount: ledger?.max_amount ?? '', free_above: ledger?.free_above ?? '', transit_days: ledger?.transit_days ?? '', side: ledger?.side ?? 'income',
     charge_kind: ledger?.settings?.charge_kind ?? 'other', timing: ledger?.settings?.timing ?? 'on_win', refundable: ledger?.settings?.refundable ?? false,
     default_on: ledger?.settings?.default_on ?? false, free_days: ledger?.settings?.free_days ?? 0, tax_follows: ledger?.settings?.tax_follows ?? 'own',
+    delivery_tax_rate_id: ledger?.settings?.tax_rate_id ?? '',
   });
   // The group decides which fields exist (Tally: the group carries the behaviour).
   const behaviour = flat(groups).find((g) => String(g.id) === String(f.group_id))?.behaviour ?? 'standard';
@@ -68,9 +69,9 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
   const isParty = (() => { const all = flat(groups); let g = all.find((x) => String(x.id) === String(f.group_id)); while (g) { if (['Sundry Debtors', 'Sundry Creditors'].includes(g.name)) return true; g = all.find((x) => x.id === g.parent_id); } return false; })();
   const [rateChoices, setRateChoices] = useState([]);
   useEffect(() => {
-    if (!taxed) return;
+    if (!taxed && !(behaviour === 'delivery' && !expense)) return;
     taxAPI.getRates({ active: true }).then((r) => setRateChoices((r.tax_rates ?? []).filter((x) => x.rate_type === 'percentage' && x.tax_type?.application_mode !== 'withheld'))).catch(() => {});
-  }, [taxed]);
+  }, [taxed, behaviour, expense]);
   const taxChoice = (f.tax_nature === 'taxable' || f.tax_nature === 'zero_rated') && f.tax_rate_ledger_id ? `rate:${f.tax_rate_ledger_id}` : (f.tax_nature || '');
   const rateGroups = rateChoices.reduce((m, r) => { const k = r.tax_type?.name || r.tax_type?.code || 'Tax rates'; (m[k] = m[k] || []).push(r); return m; }, {});
   const [busy, setBusy] = useState(false);
@@ -88,6 +89,8 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
         ['rate_type', 'rate_value', 'valid_from', 'valid_until', 'min_amount', 'max_amount', 'free_above', 'transit_days'].forEach((k) => { body[k] = null; });
       }
       if (behaviour !== 'delivery') body.side = null;
+      // a delivery charge's tax is kept with its settings (the same place the Shipping settings page puts it); what else is there stays
+      if (behaviour === 'delivery') body.settings = { ...(ledger?.settings ?? {}), tax_rate_id: !expense && f.delivery_tax_rate_id ? Number(f.delivery_tax_rate_id) : null };
       if (charging) body.settings = { charge_kind: f.charge_kind, timing: f.timing, refundable: Boolean(f.refundable), default_on: Boolean(f.default_on), free_days: Number(f.free_days) || 0, tax_follows: f.tax_follows };
       if (!taxed) { body.tax_nature = null; body.tax_rate_ledger_id = null; body.affects_stock = false; } else {
         body.tax_nature = f.tax_nature || null;
@@ -246,6 +249,14 @@ function LedgerForm({ ledger, groups, defaultGroupId, onClose, onSaved }) {
           {behaviour === 'delivery' && (
             <Field label="This ledger is" error={errs.side} hint="Charges we bill customers are income; what the courier costs us is an expense.">
               <SelectInput value={f.side} onChange={(e) => set('side')(e.target.value)}><option value="income">A delivery charge (income)</option><option value="expense">A delivery cost (expense)</option></SelectInput>
+            </Field>
+          )}
+          {behaviour === 'delivery' && !expense && (
+            <Field label="Tax on delivery" error={errs['settings.tax_rate_id']} hint="Adds this tax to the shipping charge. Leave on No tax if delivery is not taxed.">
+              <SelectInput value={f.delivery_tax_rate_id} onChange={(e) => set('delivery_tax_rate_id')(e.target.value)}>
+                <option value="">No tax</option>
+                {rateChoices.map((r) => <option key={r.id} value={r.id}>{r.tax_type?.code} {Number(r.rate_value)}%</option>)}
+              </SelectInput>
             </Field>
           )}
           {rated && !expense && (

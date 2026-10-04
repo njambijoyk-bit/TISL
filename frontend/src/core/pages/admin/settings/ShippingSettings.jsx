@@ -584,14 +584,14 @@ export default function ShippingSettings() {
 
                     {/* Cost */}
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: opt.cost == 0 ? '#10b981' : '#374151', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 600, color: opt.cost == 0 ? 'var(--status-success, #10b981)' : 'var(--text-primary)', fontFamily: 'monospace' }}>
                         {opt.cost == 0 ? 'Free' : opt.rate_type === 'percent' ? `${Number(opt.cost)}% of goods` : `${opt.currency?.code ?? ''} ${fmtCost(opt.cost)}`}
                       </span>
                     </td>
 
                     {/* Free above */}
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ fontSize: '0.8rem', color: opt.free_above ? '#374151' : 'var(--text-tertiary)', fontFamily: 'monospace' }}>
+                      <span style={{ fontSize: '0.8rem', color: opt.free_above ? 'var(--text-primary)' : 'var(--text-tertiary)', fontFamily: 'monospace' }}>
                         {opt.free_above ? `${opt.currency?.code ?? ''} ${fmtCost(opt.free_above)}` : '—'}
                       </span>
                     </td>
