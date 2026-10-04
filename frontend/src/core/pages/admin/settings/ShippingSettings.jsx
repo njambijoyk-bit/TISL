@@ -380,10 +380,10 @@ function ShippingActivityFeed({ activity, pagination, loading, onLoadMore, optio
 
             {/* Content */}
             <div style={{ flex: 1, paddingBottom: isLast ? 0 : 16, minWidth: 0 }}>
-              <p style={{ fontSize: '0.78rem', color: 'var(--text-primary)', margin: '0 0 2px', lineHeight: 1.5 }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-primary)', margin: '0 0 2px', lineHeight: 1.5 }}>
                 <strong style={{ color: 'var(--text-primary)' }}>{actorName}</strong>{' '}
                 {describeActivity(item, options)}
-              </p>
+              </div>
               <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{formatDate(item.created_at)}</p>
             </div>
           </div>
