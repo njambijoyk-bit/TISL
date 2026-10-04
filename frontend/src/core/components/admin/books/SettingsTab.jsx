@@ -501,8 +501,8 @@ function CompanySection({ isSuper }) {
         <FormGrid min={320}>
           <Field label="Description (the line under the company name)" error={errs.description}><TextInput disabled={!isSuper} value={f.description ?? ''} onChange={set('description')} /></Field>
           <Field label="Terms of payment (top right of an invoice)" error={errs.payment_terms}><TextInput disabled={!isSuper} value={f.payment_terms ?? ''} onChange={set('payment_terms')} /></Field>
-          <Field label="Mode of payment (M-Pesa till, bank details…)" error={errs.payment_mode}><textarea rows={3} disabled={!isSuper} value={f.payment_mode ?? ''} onChange={(e) => set('payment_mode')(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
-          <Field label="Declaration" error={errs.declaration}><textarea rows={3} disabled={!isSuper} value={f.declaration ?? ''} onChange={(e) => set('declaration')(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
+          <Field label="Mode of payment (M-Pesa till, bank details…)" error={errs.payment_mode}><textarea rows={3} disabled={!isSuper} value={f.payment_mode ?? ''} onChange={set('payment_mode')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
+          <Field label="Declaration" error={errs.declaration}><textarea rows={3} disabled={!isSuper} value={f.declaration ?? ''} onChange={set('declaration')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
         </FormGrid>
       </div>
       <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
