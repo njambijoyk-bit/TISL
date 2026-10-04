@@ -4,13 +4,13 @@ import EmptyState from '../../../_shared/components/layout/EmptyState';
 
 const thStyle = {
   padding: '10px 20px', textAlign: 'left',
-  fontSize: '0.7rem', fontWeight: 700, color: '#9ca3af',
+  fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)',
   textTransform: 'uppercase', letterSpacing: '0.08em',
   borderBottom: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', whiteSpace: 'nowrap',
 };
 
 const tdStyle = {
-  padding: '12px 20px', fontSize: '0.82rem', color: '#374151',
+  padding: '12px 20px', fontSize: '0.82rem', color: 'var(--text-primary)',
   verticalAlign: 'middle',
 };
 
@@ -18,7 +18,7 @@ const pageBtn = (disabled) => ({
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   width: 32, height: 32, borderRadius: 8,
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', cursor: disabled ? 'not-allowed' : 'pointer',
-  color: disabled ? '#d1d5db' : 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1,
+  color: disabled ? 'var(--line, #d1d5db)' : 'var(--color-primary-500)', opacity: disabled ? 0.3 : 1,
   transition: 'all 150ms', background: 'transparent',
 });
 
@@ -54,7 +54,7 @@ export default function DataTable({
                         ? <CheckSquare size={18} color="var(--color-primary-500)" />
                         : someSelected
                           ? <div style={{ width: 18, height: 18, border: '2px solid var(--color-primary-500)', borderRadius: 4, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)' }} />
-                          : <Square size={18} color="#d1d5db" />}
+                          : <Square size={18} color="var(--line, #d1d5db)" />}
                     </button>
                   </th>
                 )}
@@ -92,7 +92,7 @@ export default function DataTable({
                         <button onClick={() => onSelectRow(row.id)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer' }}>
                           {isSelected
                             ? <CheckSquare size={18} color="var(--color-primary-500)" />
-                            : <Square size={18} color="#d1d5db" />}
+                            : <Square size={18} color="var(--line, #d1d5db)" />}
                         </button>
                       </td>
                     )}
@@ -116,7 +116,7 @@ export default function DataTable({
       {/* Pagination */}
       {pagination && pagination.last_page > 1 && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderRadius: 12, border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)', boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)' }}>
-          <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
             Showing {((pagination.current_page - 1) * pagination.per_page) + 1}–{Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total}
           </span>
 
@@ -134,11 +134,11 @@ export default function DataTable({
                 const near = page === 1 || page === pagination.last_page || (page >= pagination.current_page - 2 && page <= pagination.current_page + 2);
                 const ellipsis = page === pagination.current_page - 3 || page === pagination.current_page + 3;
                 if (!near && !ellipsis) return null;
-                if (ellipsis) return <span key={page} style={{ color: '#9ca3af', padding: '0 4px', lineHeight: '32px' }}>…</span>;
+                if (ellipsis) return <span key={page} style={{ color: 'var(--text-tertiary)', padding: '0 4px', lineHeight: '32px' }}>…</span>;
                 const isActive = page === pagination.current_page;
                 return (
                   <button key={page} onClick={() => onPageChange(page)}
-                    style={{ width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${isActive ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: isActive ? 'var(--color-primary-500)' : 'transparent', color: isActive ? 'white' : '#374151', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none', transition: 'all 150ms' }}>
+                    style={{ width: 32, height: 32, borderRadius: 8, border: `1.5px solid ${isActive ? 'var(--color-primary-500)' : 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'}`, background: isActive ? 'var(--color-primary-500)' : 'transparent', color: isActive ? 'white' : 'var(--text-primary)', fontWeight: 800, fontSize: '0.78rem', cursor: 'pointer', boxShadow: isActive ? '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' : 'none', transition: 'all 150ms' }}>
                     {page}
                   </button>
                 );
