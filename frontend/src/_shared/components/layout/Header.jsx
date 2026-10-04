@@ -382,7 +382,6 @@ export default function Header() {
   const adminGroups = isDriver
     ? [{
         label: 'Driver', items: [
-          { label: 'My Profile', icon: User, to: '/admin/profile' },
           ...visibleNav(user).flatMap((g) => g.items).map((i) => ({ label: i.title, icon: i.icon, to: i.path })),
         ],
       }]
@@ -403,7 +402,7 @@ export default function Header() {
       },
     ];
 
-  const profilePath = isAdmin ? '/admin/profile' : '/profile';
+  const profilePath = user?.role === 'driver' ? '/driver/profile' : isAdmin ? '/admin/profile' : '/profile';
 
   // ── Customer account menu (built from active modules) ───────────────────────
   const customerLinks = [

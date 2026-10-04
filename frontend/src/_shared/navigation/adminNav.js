@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Boxes, Briefcase, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  Database, GitBranch, BookOpen, Banknote, ListTree, TrendingUp,
+  Database, GitBranch, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { FINANCE_READ, FINANCE_WRITE } from '../lib/roles';
@@ -285,6 +285,7 @@ export const ADMIN_NAV = [
     module: MODULES.EXTRAS,
     roles: [DRIVER_ROLE],
     items: [
+      { id: 'driver-profile', title: 'My profile', icon: UserCircle, color: '#8b5cf6', path: '/driver/profile', roles: [DRIVER_ROLE] },
       { id: 'driver-manifests', title: 'My manifests', icon: FileText, color: '#3b82f6', path: '/driver/manifests', roles: [DRIVER_ROLE] },
       { id: 'driver-ratings', title: 'My ratings', icon: Star, color: '#ec4899', path: '/driver/ratings', roles: [DRIVER_ROLE] },
       { id: 'driver-incidents', title: 'My incidents', icon: AlertTriangle, color: '#f59e0b', path: '/driver/incidents', roles: [DRIVER_ROLE] },

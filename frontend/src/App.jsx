@@ -217,6 +217,7 @@ const DeliveryReportsPage     = lazy(() => import('./extras/pages/admin/delivery
 // ── Driver Pages ──────────────────────────────────────────────────────────────
 const DriverManifestsPage      = lazy(() => import('./extras/pages/admin/driver/DriverManifestsPage'));
 const DriverManifestDetailPage = lazy(() => import('./extras/pages/admin/driver/DriverManifestDetailPage'));
+const DriverProfilePage        = lazy(() => import('./extras/pages/admin/driver/DriverProfilePage'));
 const DriverRatingsPage        = lazy(() => import('./extras/pages/admin/driver/DriverRatingsPage'));
 const DriverIncidentsPage      = lazy(() => import('./extras/pages/admin/driver/DriverIncidentsPage'));
 const DeliveryInsightsPage     = lazy(() => import('./extras/pages/admin/delivery/DeliveryInsightsPage'));
@@ -952,6 +953,14 @@ function App() {
 
               {/* ── Driver Routes ─────────────────────────────────────────────────── */}
 
+              <Route
+                path="/driver/profile"
+                element={
+                  <ProtectedRoute>
+                    <DriverProfilePage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/driver/manifests"
                 element={
