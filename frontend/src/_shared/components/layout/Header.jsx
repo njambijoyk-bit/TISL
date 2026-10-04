@@ -110,12 +110,12 @@ function CategoryNode({ cat, onNavigate, depth = 0 }) {
             borderRadius: 8, transition: 'all 120ms ease',
             display: 'flex', alignItems: 'center', gap: 6,
           }}
-          className="hover:bg-primary-50 dark:hover:bg-gray-700"
+          className="fly-item"
         >
           {depth > 0 && <span style={{ width: 12, height: 1, background: 'var(--border-primary)', flexShrink: 0 }} />}
           {cat.name}
           {cat.products_count != null && (
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>
+            <span className="fly-count" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600, marginLeft: 'auto' }}>
               {cat.products_count}
             </span>
           )}
@@ -159,6 +159,15 @@ function FloatingShapes() {
         .hs-dark { background: color-mix(in srgb, var(--color-primary-600) 4%, transparent); border: 1.5px solid color-mix(in srgb, var(--color-primary-600) 8%, transparent); transform-origin: center; }
         .hs-dot  { background: color-mix(in srgb, var(--color-primary-500) 8%, transparent); transform-origin: center; }
         .hs-dot2 { background: rgba(192,132,252,0.06); transform-origin: center; }
+
+
+        /* dropdown (mega panel) rows: accent edge, a nudge and a tint on hover */
+        .fly-item { position: relative; transition: background 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease !important; }
+        .fly-item:hover { background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary-500) 16%, transparent), color-mix(in srgb, var(--color-primary-500) 4%, transparent)) !important; color: var(--color-primary-500) !important; transform: translateX(4px); box-shadow: inset 3px 0 0 var(--color-primary-500); }
+        .fly-item:hover .fly-count { background: var(--color-primary-500); color: var(--text-inverse, #fff) !important; border-radius: 999px; padding: 1px 7px; }
+        .fly-count { transition: all 160ms ease; }
+        .fly-pill { transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease !important; }
+        .fly-pill:hover { background: var(--color-primary-500) !important; color: var(--text-inverse, #fff) !important; transform: translateY(-2px); box-shadow: 0 6px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent); }
 
         /* account menu rows: plain on the white panel, theme card colour + accent ink on hover */
         .hdr-menu-link { transition: background 150ms, color 150ms; }
@@ -544,7 +553,7 @@ export default function Header() {
                         type="button"
                         onClick={() => { navigate(`/products?brand=${brand.id}`); products.setOpen(false); }}
                         style={{ width: '100%', textAlign: 'left', padding: '5px 8px', borderRadius: 6, fontSize: '0.8rem', fontWeight: 500, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-body)' }}
-                        className="hover:bg-primary-50 dark:hover:bg-gray-700"
+                        className="fly-item"
                       >
                         {brand.logo ? (
                           <img src={brand.logo} alt={brand.name} style={{ width: 18, height: 18, objectFit: 'contain', borderRadius: 3, flexShrink: 0 }} onError={e => { e.target.style.display = 'none'; }} />
@@ -560,7 +569,7 @@ export default function Header() {
                 <div style={{ padding: '10px 12px', borderTop: '1px solid var(--border-primary)', display: 'flex', gap: 6 }}>
                   {[{ label: '🔥 Specials', to: '/specials' }, { label: '⭐ Featured', to: '/products?featured=true' }].map(l => (
                     <Link key={l.to} to={l.to} onClick={() => products.setOpen(false)} style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', padding: '5px 10px', borderRadius: 20, textDecoration: 'none', transition: 'all 120ms', fontFamily: 'var(--font-body)' }}
-                      className="hover:bg-primary-100 hover:text-primary-700">
+                      className="fly-pill">
                       {l.label}
                     </Link>
                   ))}
