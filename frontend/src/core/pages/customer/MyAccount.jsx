@@ -21,6 +21,14 @@ export default function MyAccount() {
   const [custom, setCustom] = useState({ from: '', to: '' });
   const [fmt, setFmt] = useState('pdf');
   const [busy, setBusy] = useState(false);
+  const [outFmt, setOutFmt] = useState('pdf');
+  const [outBusy, setOutBusy] = useState(false);
+  const downloadOutstandings = async () => {
+    setOutBusy(true);
+    try { await checkoutAPI.downloadOutstandings({ format: outFmt }); }
+    catch (e) { toast.error(errMsg(e, 'Could not export your outstandings')); }
+    finally { setOutBusy(false); }
+  };
   // what to ask the server for: a preset, or a custom pair once both dates are chosen
   const period = range === 'custom' ? (custom.from ? { from: custom.from, to: custom.to || undefined } : null) : { range };
   useEffect(() => {
@@ -62,7 +70,13 @@ export default function MyAccount() {
             )}
 
             <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
-              <p style={{ margin: 0, padding: '14px 16px 6px', fontWeight: 800 }}>What is still to pay</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, padding: '14px 16px 6px' }}>
+                <p style={{ margin: 0, fontWeight: 800, marginRight: 'auto' }}>What is still to pay</p>
+                <select aria-label="Outstandings format" value={outFmt} onChange={(e) => setOutFmt(e.target.value)} style={ctl}>
+                  <option value="pdf">PDF</option><option value="html">Printable page</option><option value="csv">CSV (Excel)</option>
+                </select>
+                <button type="button" className="acct-export" disabled={outBusy || a.bills.length === 0} onClick={downloadOutstandings} title="A letter listing what is outstanding on your ledger, aged by bill date">{outBusy ? 'Preparing…' : 'Ledger outstandings'}</button>
+              </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
                 <thead><tr><th style={th}>Bill</th><th style={th}>Date</th><th style={th}>Due</th><th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Still to pay</th></tr></thead>
                 <tbody>

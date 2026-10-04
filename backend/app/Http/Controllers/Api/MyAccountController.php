@@ -150,4 +150,28 @@ class MyAccountController extends Controller
 
         return $export->statement($table, $party, $format, "statement-{$from}-to-{$to}");
     }
+
+    /**
+     * "Ledger outstandings": the open bills on my ledger as a formal letter (pdf, html, or csv/xml/json rows). Amounts are in the base
+     * currency, taken from the ageing report that already restates foreign-currency bills.
+     */
+    public function outstandingsExport(Request $request, OpenBillsService $open, BooksReportService $reports, ExportService $export, CurrencyConversionService $money)
+    {
+        $c = $request->user()?->customer;
+        abort_unless($c, 404);
+        $ledger = Ledger::where('customer_id', $c->id)->first();
+        abort_unless($ledger, 404);
+
+        $ageing = $reports->ageing('receivables', null, $ledger->id);
+        $bills = array_map(fn ($b) => ['date' => $b['date'], 'voucher_number' => $b['voucher_number'], 'due_date' => $b['due_date'], 'days_late' => $b['days_late'], 'outstanding' => $b['open']],
+            $ageing['rows'][0]['bills'] ?? []);
+        usort($bills, fn ($a, $b) => [$a['date'], $a['voucher_number']] <=> [$b['date'], $b['voucher_number']]);   // oldest bill first, as on a ledger
+
+        $format = in_array(strtolower((string) $request->query('format', 'pdf')), ExportService::FORMATS, true) ? strtolower((string) $request->query('format', 'pdf')) : 'pdf';
+        $party = ['company_name' => $c->company_name, 'ledger_name' => $ledger->name ?: ($request->user()->name ?? null),
+            'address' => $ledger->address ?: ($c->default_billing_address ?: $c->default_shipping_address), 'tax_pin' => $c->tax_id,
+            'phone' => $c->phone ?: $request->user()->phone, 'email' => $c->email ?: $request->user()->email, 'currency' => (string) $money->getBaseCurrency()->code];
+
+        return $export->outstandings($bills, $party, $format, 'ledger-outstandings-' . today()->toDateString());
+    }
 }
