@@ -134,7 +134,7 @@ class MyAccountController extends Controller
                 'credit' => $r['credit'] ? round((float) $r['credit'], 2) : '', 'balance' => round((float) $r['balance'], 2)];
         }
         $table = [
-            'title' => 'Statement: ' . ($ledger->name ?: ($request->user()->name ?? 'My account')),
+            'title' => 'Statement: ' . implode(' · ', array_filter([$ledger->name ?: ($request->user()->name ?? 'My account'), $c->company_name && $c->company_name !== $ledger->name ? $c->company_name : null])),
             'subtitle' => "{$from} to {$to} · amounts in {$code} · a negative balance means we hold money for you",
             'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Document', 'debit' => "Charged ({$code})", 'credit' => "Paid / credited ({$code})", 'balance' => "Balance ({$code})"],
             'rows' => $rows,
