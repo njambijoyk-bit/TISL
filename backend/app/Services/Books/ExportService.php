@@ -552,7 +552,7 @@ class ExportService
             . "<div class='im'><b>Dated:</b> {$e($day($v->date))}</div>"
             . ($kind === 'receipt'
                 ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
-                : "<div class='im'><b>Mode/Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>"
+                : "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>"
                     . ($v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : ''));
         $refs = $kind === 'receipt' ? '' : $kv("Buyer's Order No.", $v->reference_no ?: $so?->reference_no) . ($so ? $kv('Order Dated', $day($so->date)) : '')
             . ($so && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
@@ -622,14 +622,14 @@ class ExportService
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
         $html = str_replace('</style>', $this->customerDocCss() . '</style>', $this->html($body, $v->voucher_number));
-        $name = preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);
+        $name = $kind . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);   // e.g. invoice-WNKJ-INV-00019
 
         return $format === 'pdf' ? $this->pdf($html, "$name.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$name.html", false);
     }
 
     private function customerDocCss(): string
     {
-        return 'body{margin:18px}.ittl{text-align:center;font-weight:700;font-size:15px;margin:0 0 4px}.ib{background:#c9e8f3;text-align:center;padding:8px 6px 6px}.ibn{font-size:21px;font-weight:700}.ibd{font-size:10.5px;line-height:1.4}.ibt{font-size:13px;font-weight:700;margin-top:6px}'
+        return '@page{margin:8mm}body{margin:0}.ittl{text-align:center;font-weight:700;font-size:15px;margin:0 0 4px}.ib{background:#c9e8f3;text-align:center;padding:8px 6px 6px}.ibn{font-size:21px;font-weight:700}.ibd{font-size:10.5px;line-height:1.4}.ibt{font-size:13px;font-weight:700;margin-top:6px}'
             . '.ic{margin:0 0 8px;background:#e3f3f9;border-top:1px solid #8cbfd1;border-bottom:1px solid #8cbfd1}.ic td{border:0;padding:3px 10px;font-size:11px}.rt{text-align:right}'
             . '.it0{margin:8px 0}.it0 td{border:0;vertical-align:top;padding:2px 0;font-size:11px;line-height:1.45}.itl{width:58%}.itr{width:42%}.im{margin-bottom:2px}'
             . '.gd{border:1px solid #444;margin:8px 0 0}.gd th{background:#e3f3f9;border:1px solid #444;text-align:center;font-weight:400;font-size:11px}.gd td{border-top:0;border-bottom:0;border-left:1px solid #444;border-right:1px solid #444;padding:4px 6px;font-size:11px}'
