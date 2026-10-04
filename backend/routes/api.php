@@ -627,6 +627,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/account', [\App\Http\Controllers\Api\MyAccountController::class, 'show']);
         Route::get('/account/statement/export', [\App\Http\Controllers\Api\MyAccountController::class, 'statementExport']);
         Route::get('/account/outstandings/export', [\App\Http\Controllers\Api\MyAccountController::class, 'outstandingsExport']);
+        Route::get('/account/documents', [\App\Http\Controllers\Api\MyAccountController::class, 'documents']);
+        Route::get('/account/documents/{id}/download', [\App\Http\Controllers\Api\MyAccountController::class, 'documentDownload'])->whereNumber('id');
 
         // Email & Phone Verification
         Route::post('/email/resend', [VerificationController::class, 'resendEmailVerification']);

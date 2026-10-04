@@ -13,6 +13,81 @@ const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', color:
 const ctl = { padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.8rem' };
 const td = { padding: '9px 10px', fontSize: '0.84rem', borderTop: '1px solid var(--line)' };
 
+/** My invoices and receipts, each downloadable as a PDF, and my ledger as a statement or an outstandings letter. */
+function DocumentsTab() {
+  const [kind, setKind] = useState('invoices');        // invoices | receipts | ledgers
+  const [q, setQ] = useState('');
+  const [rows, setRows] = useState(null);
+  const [busy, setBusy] = useState(null);
+  const [range, setRange] = useState('90d');
+  const [fmt, setFmt] = useState('pdf');
+  useEffect(() => {
+    if (kind === 'ledgers') return undefined;
+    setRows(null);
+    const t = setTimeout(() => checkoutAPI.documents({ kind, q: q || undefined }).then((r) => setRows(r.data)).catch((e) => { setRows([]); toast.error(errMsg(e, 'Could not load your documents')); }), q ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [kind, q]);
+  const run = async (key, fn, fail) => { setBusy(key); try { await fn(); } catch (e) { toast.error(errMsg(e, fail)); } finally { setBusy(null); } };
+  const money = (r) => `${r.symbol || r.currency || ''} ${Number(r.total).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {[['invoices', 'Invoices'], ['receipts', 'Receipts'], ['ledgers', 'Ledgers']].map(([id, label]) => (
+          <button key={id} type="button" onClick={() => setKind(id)} aria-pressed={kind === id}
+            style={{ ...ctl, cursor: 'pointer', fontWeight: 700, borderColor: kind === id ? 'var(--color-primary-500)' : 'var(--line)', background: kind === id ? 'var(--color-primary-500)' : 'var(--surface-input)', color: kind === id ? '#fff' : 'var(--text-primary)' }}>{label}</button>
+        ))}
+      </div>
+      {kind !== 'ledgers' && (
+        <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
+          <div style={{ padding: '12px 16px' }}>
+            <input type="search" aria-label="Search by number" placeholder="Search by number…" value={q} onChange={(e) => setQ(e.target.value)} style={{ ...ctl, minWidth: 200 }} />
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
+            <thead><tr><th style={th}>Number</th><th style={th}>Date</th><th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Download</th></tr></thead>
+            <tbody>
+              {!rows && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={4}>Loading…</td></tr>}
+              {rows && rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={4}>No {kind} yet.</td></tr>}
+              {rows && rows.map((r) => (
+                <tr key={r.id}>
+                  <td style={td}><strong style={{ fontFamily: 'monospace' }}>{r.voucher_number}</strong><div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{r.type_name}</div></td>
+                  <td style={td}>{r.date}</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{money(r)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>
+                    <button type="button" className="acct-export" disabled={busy === r.id} onClick={() => run(r.id, () => checkoutAPI.downloadDocument(r.id, { kind, format: 'pdf' }), 'Could not download this document')}>{busy === r.id ? 'Preparing…' : 'PDF'}</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {kind === 'ledgers' && (
+        <div style={{ display: 'grid', gap: 12 }}>
+          <div style={card}>
+            <p style={{ margin: '0 0 4px', fontWeight: 800 }}>Statement of account</p>
+            <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Everything charged to and paid into your ledger over a period.</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <select aria-label="Statement period" value={range} onChange={(e) => setRange(e.target.value)} style={ctl}>
+                <option value="30d">Last 30 days</option><option value="60d">Last 60 days</option><option value="90d">Last 90 days</option>
+                <option value="6m">Last 6 months</option><option value="12m">Last 12 months</option><option value="ytd">This year</option>
+              </select>
+              <select aria-label="Statement format" value={fmt} onChange={(e) => setFmt(e.target.value)} style={ctl}>
+                <option value="pdf">PDF</option><option value="csv">CSV (Excel)</option><option value="html">Printable page</option>
+              </select>
+              <button type="button" className="acct-export" disabled={busy === 'st'} onClick={() => run('st', () => checkoutAPI.downloadStatement({ range, format: fmt }), 'Could not export your statement')}>{busy === 'st' ? 'Preparing…' : 'Download'}</button>
+            </div>
+          </div>
+          <div style={card}>
+            <p style={{ margin: '0 0 4px', fontWeight: 800 }}>Outstanding bills</p>
+            <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>A letter listing what is still unpaid on your ledger, aged by bill date.</p>
+            <button type="button" className="acct-export" disabled={busy === 'out'} onClick={() => run('out', () => checkoutAPI.downloadOutstandings({ format: 'pdf' }), 'Could not export your outstandings')}>{busy === 'out' ? 'Preparing…' : 'Download'}</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** What I owe, bill by bill; what I have paid over or in advance; my credit limit; my statement; how to pay. */
 export default function MyAccount() {
   const [a, setA] = useState(null);
@@ -23,6 +98,7 @@ export default function MyAccount() {
   const [busy, setBusy] = useState(false);
   const [outFmt, setOutFmt] = useState('pdf');
   const [outBusy, setOutBusy] = useState(false);
+  const [tab, setTab] = useState('account');           // account | documents
   const downloadOutstandings = async () => {
     setOutBusy(true);
     try { await checkoutAPI.downloadOutstandings({ format: outFmt }); }
@@ -51,9 +127,16 @@ export default function MyAccount() {
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px 64px' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 6px' }}>My account</h1>
         <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>What you owe us, what you have paid us over, and how to pay. <Link to="/orders">My orders</Link> · <Link to="/gift-vouchers">My wallet</Link></p>
-        {error && <p role="alert" style={{ color: '#991b1b' }}>{error}</p>}
-        {!a && !error && <p>Loading…</p>}
-        {a && (
+        <div role="tablist" style={{ display: 'flex', gap: 6, margin: '0 0 18px', borderBottom: '1px solid var(--line)' }}>
+          {[['account', 'Account'], ['documents', 'Documents']].map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+              style={{ padding: '8px 16px', border: 'none', borderBottom: `3px solid ${tab === id ? 'var(--color-primary-500)' : 'transparent'}`, background: 'transparent', color: tab === id ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: 700, fontFamily: 'inherit', fontSize: '0.9rem', cursor: 'pointer' }}>{label}</button>
+          ))}
+        </div>
+        {tab === 'documents' && <DocumentsTab />}
+        {tab === 'account' && error && <p role="alert" style={{ color: '#991b1b' }}>{error}</p>}
+        {tab === 'account' && !a && !error && <p>Loading…</p>}
+        {tab === 'account' && a && (
           <div style={{ display: 'grid', gap: 18 }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 12 }}>
               <div style={card}><div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 700 }}>YOU OWE</div><div style={{ fontSize: '1.3rem', fontWeight: 800, color: a.owed > 0 ? '#b45309' : '#059669' }}>{m(a.owed)}</div></div>

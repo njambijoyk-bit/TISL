@@ -26,6 +26,10 @@ const checkoutAPI = {
   downloadStatement: async (params) => saveBlob('/customer/account/statement/export', params, `statement.${params.format || 'pdf'}`),
   /** Download the ledger outstandings letter (format: pdf, html, csv ...). */
   downloadOutstandings: async (params) => saveBlob('/customer/account/outstandings/export', params, `ledger-outstandings.${params.format || 'pdf'}`),
+  /** My invoices (kind 'invoices') or receipts (kind 'receipts'): params { kind, q, from, to }. */
+  documents: async (params) => (await api.get('/customer/account/documents', { params })).data,
+  /** Download one invoice or receipt as pdf or html. */
+  downloadDocument: async (id, params) => saveBlob(`/customer/account/documents/${id}/download`, params, `document.${params.format || 'pdf'}`),
   cancelOrder: async (id) => (await api.post(`/customer/sales-orders/${id}/cancel`)).data,
 };
 

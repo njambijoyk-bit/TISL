@@ -496,6 +496,15 @@ function CompanySection({ isSuper }) {
       <FormGrid min={240}>
         {rows.map(([k, l]) => <Field key={k} label={l} error={errs[k]}><TextInput disabled={!isSuper} value={f[k] ?? ''} onChange={set(k)} /></Field>)}
       </FormGrid>
+      <div style={{ marginTop: 16 }}>
+        <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 6 }}>Printed on customer invoices and receipts</div>
+        <FormGrid min={320}>
+          <Field label="Description (the line under the company name)" error={errs.description}><TextInput disabled={!isSuper} value={f.description ?? ''} onChange={set('description')} /></Field>
+          <Field label="Terms of payment (top right of an invoice)" error={errs.payment_terms}><TextInput disabled={!isSuper} value={f.payment_terms ?? ''} onChange={set('payment_terms')} /></Field>
+          <Field label="Mode of payment (M-Pesa till, bank details…)" error={errs.payment_mode}><textarea rows={3} disabled={!isSuper} value={f.payment_mode ?? ''} onChange={(e) => set('payment_mode')(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
+          <Field label="Declaration" error={errs.declaration}><textarea rows={3} disabled={!isSuper} value={f.declaration ?? ''} onChange={(e) => set('declaration')(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
+        </FormGrid>
+      </div>
       <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
         <ContactList title="Phone numbers" type="tel" placeholder="+254 7…" disabled={!isSuper} rows={f.phones} onChange={(phones) => setF((x) => ({ ...x, phones }))}
           hint="Printed on invoices (default first) and quoted in the WhatsApp message to customers. The default is the main number." errors={errs.phones} />

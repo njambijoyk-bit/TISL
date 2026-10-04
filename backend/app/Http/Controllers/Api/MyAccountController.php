@@ -174,4 +174,43 @@ class MyAccountController extends Controller
 
         return $export->outstandings($bills, $party, $format, 'ledger-outstandings-' . today()->toDateString());
     }
+
+    /** The vouchers of mine that are mine to download: posted, on my ledger or against my customer record. */
+    private function myDocuments(Request $request, string $kind)
+    {
+        $c = $request->user()?->customer;
+        abort_unless($c, 404);
+        $ledgerId = Ledger::where('customer_id', $c->id)->value('id');
+        $bases = $kind === 'receipts' ? [VoucherType::RECEIPT] : [VoucherType::SALES, VoucherType::CASH_SALE];
+
+        return Voucher::with(['type', 'currency'])->where('status', Voucher::POSTED)
+            ->whereHas('type', fn ($t) => $t->whereIn('base_type', $bases))
+            ->where(fn ($w) => $w->where('customer_id', $c->id)->when($ledgerId, fn ($q) => $q->orWhere('party_ledger_id', $ledgerId)));
+    }
+
+    /** My invoices (`kind=invoices`, the default) or receipts (`kind=receipts`), newest first, optionally within a date range or matching a number. */
+    public function documents(Request $request): JsonResponse
+    {
+        $kind = $request->query('kind') === 'receipts' ? 'receipts' : 'invoices';
+        $q = $this->myDocuments($request, $kind)
+            ->when($request->filled('from'), fn ($w) => $w->whereDate('date', '>=', (string) $request->query('from')))
+            ->when($request->filled('to'), fn ($w) => $w->whereDate('date', '<=', (string) $request->query('to')))
+            ->when($request->filled('q'), fn ($w) => $w->where('voucher_number', 'like', '%' . trim((string) $request->query('q')) . '%'));
+
+        return response()->json(['kind' => $kind, 'data' => $q->orderByDesc('date')->orderByDesc('id')->limit(200)->get()->map(fn ($v) => [
+            'id' => $v->id, 'voucher_number' => $v->voucher_number, 'type_name' => $v->type?->name, 'date' => $v->date?->toDateString(), 'due_date' => $v->due_date?->toDateString(),
+            'total' => (float) $v->total_amount, 'currency' => $v->currency?->code, 'symbol' => $v->currency?->symbol,
+        ])->values()]);
+    }
+
+    /** One of my invoices or receipts as a printable document (pdf or html). Anyone else's is a 404. */
+    public function documentDownload(Request $request, ExportService $export, $id)
+    {
+        $kind = $request->query('kind') === 'receipts' ? 'receipts' : 'invoices';
+        $found = $this->myDocuments($request, $kind)->whereKey((int) $id)->first();
+        abort_unless($found, 404);
+        $format = strtolower((string) $request->query('format', 'pdf')) === 'html' ? 'html' : 'pdf';
+
+        return $kind === 'receipts' ? $export->receipt($found, $format) : $export->invoice($found, $format);
+    }
 }

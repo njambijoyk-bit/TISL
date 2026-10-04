@@ -3,6 +3,7 @@
 namespace App\Services\Books;
 
 use App\Models\Books\Voucher;
+use App\Models\Books\VoucherType;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -137,6 +138,7 @@ class ExportService
         return array_filter([
             'name' => $c->name, 'legal_name' => $c->legal_name, 'tax_pin' => $c->tax_pin, 'address' => $c->address, 'city' => $c->city, 'country' => $c->country,
             'website' => $c->website, 'phones' => $first($c->phoneList()), 'emails' => $first($c->emailList()), 'tagline' => $c->tagline,
+            'description' => $c->description, 'declaration' => $c->declaration, 'payment_terms' => $c->payment_terms, 'payment_mode' => $c->payment_mode,
         ], fn ($x) => $x !== null && $x !== '' && $x !== []);
     }
 
@@ -472,6 +474,214 @@ class ExportService
             . '.ol td{border:0;padding:5px 4px;font-size:11px;text-align:right}.ol .od{font-style:italic;color:#444;font-size:10px}.ol tr.sum td{border-top:1px solid #111;border-bottom:1.5px solid #111;font-weight:700}'
             . '.gtot{font-weight:700;margin:14px 0 26px}.bars{width:100%;border-collapse:collapse;margin:18px 0 10px}.bars td{border:0;text-align:center;vertical-align:bottom;font-size:10px;padding:0 10px}'
             . '.bar{background:#444;margin:0 auto;width:60%}.sign{text-align:right;margin-top:44px;line-height:1.7}.lbody{margin:0 0 24px;line-height:1.8}';
+    }
+
+    // ── customer invoice and receipt ─────────────────────────────────────
+
+    /** A customer's tax invoice as pdf or html (see customerDocument). */
+    public function invoice(Voucher $v, string $format): Response
+    {
+        return $this->customerDocument($v, $format, 'invoice');
+    }
+
+    /** A customer's receipt as pdf or html. */
+    public function receipt(Voucher $v, string $format): Response
+    {
+        return $this->customerDocument($v, $format, 'receipt');
+    }
+
+    /**
+     * The document a customer downloads. Our legal name and details sit in a tinted band, then the buyer on the left and the document
+     * details on the right. On an invoice the goods come first and the charges and taxes follow below them in bolder ink, then the tax
+     * breakdown, how to pay, the declaration and the sign-off. Nothing from the books' own accounting (ledger postings) is shown.
+     */
+    private function customerDocument(Voucher $v, string $format, string $kind): Response
+    {
+        $format = strtolower($format);
+        if (! in_array($format, ['pdf', 'html'], true)) {
+            throw new BooksException('Choose pdf or html.');
+        }
+        $v->loadMissing(['type', 'partyLedger', 'currency', 'paymentMethod', 'customer', 'items.taxes', 'source.type', 'source.source.type']);
+        $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        $n = fn ($x) => number_format((float) $x, 2);
+        $day = fn ($x) => $x ? \Carbon\Carbon::parse($x)->format('j-M-y') : '';
+        $cp = \App\Models\CompanyProfile::current();
+        $co = $this->company();
+        $legal = $co['legal_name'] ?? ($co['name'] ?? '');
+        $sym = $v->currency?->symbol ?: ($v->currency?->code ?: '');
+        $unit = $v->currency?->name ?: ($v->currency?->code ?: '');
+        $title = $kind === 'receipt' ? 'RECEIPT' : 'INVOICE';
+
+        // the band: logo, legal name, address, PIN, website, what we sell, then contacts
+        $logo = $this->logoData($cp->logo_url ?? null);
+        $addr = array_filter([$co['address'] ?? null, implode(', ', array_filter([$co['city'] ?? null, $co['country'] ?? null])) ?: null]);
+        $band = "<div class='ib'>" . ($logo ? "<img src='{$logo}' style='max-height:50px;max-width:180px;margin-bottom:4px'><br>" : '')
+            . "<div class='ibn'>{$e($legal)}</div>"
+            . implode('', array_map(fn ($l) => "<div class='ibd'>{$e($l)}</div>", $addr))
+            . (! empty($co['tax_pin']) ? "<div class='ibd'><b>Company's PIN:</b> {$e($co['tax_pin'])}</div>" : '')
+            . (! empty($co['website']) ? "<div class='ibd'>{$e($co['website'])}</div>" : '')
+            . (! empty($co['description']) ? "<div class='ibt'>{$e($co['description'])}</div>" : '') . '</div>'
+            . "<table class='ic'><tr><td>" . (! empty($co['phones']) ? 'Contact: ' . $e(implode(', ', $co['phones'])) : '') . "</td><td class='rt'>"
+            . (! empty($co['emails']) ? 'E-Mail: ' . $e(implode(', ', $co['emails'])) : '') . '</td></tr></table>';
+
+        // the buyer
+        $customer = $v->customer;
+        $buyerName = $v->partyLedger?->name ?? $v->party_name ?? $customer?->company_name;
+        $buyer = ['<b>' . ($kind === 'receipt' ? 'Received from' : 'Buyer (Bill to)') . '</b>', $buyerName ? '<b>' . $e($buyerName) . '</b>' : null];
+        if ($customer?->company_name && $customer->company_name !== $buyerName) {
+            $buyer[] = $e($customer->company_name);
+        }
+        $buyerAddr = $v->party_address ?: ($v->partyLedger?->address ?: $customer?->default_billing_address);
+        $buyer[] = $buyerAddr ? nl2br($e($buyerAddr)) : null;
+        $buyer[] = ($email = $customer?->email) ? $e($email) : null;
+        $buyer[] = ($ph = $v->party_phone ?: $customer?->phone) ? 'Tel: ' . $e($ph) : null;
+        $buyer[] = ($pin = $v->party_tax_id ?: $customer?->tax_id) ? '<b>PIN:</b> ' . $e($pin) : null;
+        $buyerHtml = implode('', array_map(fn ($l) => "<div>{$l}</div>", array_filter($buyer)));
+
+        // what this came from (an order, a delivery note) and where it went
+        $so = $dn = null;
+        for ($s = $v->source, $i = 0; $s && $i < 3; $s = $s->source, $i++) {
+            $so ??= $s->type?->base_type === VoucherType::SALES_ORDER ? $s : null;
+            $dn ??= $s->type?->base_type === VoucherType::DELIVERY_NOTE ? $s : null;
+        }
+        $ship = $v->meta['contact']['shipping_address'] ?? ($so?->meta['contact']['shipping_address'] ?? null);
+        $paidWith = $v->paymentMethod?->name;
+        $kv = fn (string $k, ?string $val) => $val !== null && $val !== '' ? "<div><b>{$e($k)}:</b> {$e($val)}</div>" : '';
+
+        $meta = "<div class='im'><b>" . ($kind === 'receipt' ? 'Receipt No.' : 'Invoice No.') . ":</b> {$e($v->voucher_number)}</div>"
+            . "<div class='im'><b>Dated:</b> {$e($day($v->date))}</div>"
+            . ($kind === 'receipt'
+                ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
+                : "<div class='im'><b>Mode/Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>"
+                    . ($v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : ''));
+        $refs = $kind === 'receipt' ? '' : $kv("Buyer's Order No.", $v->reference_no ?: $so?->reference_no) . ($so ? $kv('Order Dated', $day($so->date)) : '')
+            . ($so && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
+            . $kv('Delivery Address', $ship);
+        $top = "<table class='it0'><tr><td class='itl'>{$buyerHtml}</td><td class='itr'>{$meta}</td></tr>" . ($refs ? "<tr><td colspan='2' class='itl'>{$refs}</td></tr>" : '') . '</table>';
+
+        if ($kind === 'receipt') {
+            $what = $v->narration ?: 'Payment received with thanks';
+            $body = $top . "<table class='gd'><thead><tr><th>Particulars</th><th class='r' style='width:22%'>Amount</th></tr></thead><tbody><tr><td>{$e($what)}</td><td class='r'><b>{$e($sym)} {$n($v->total_amount)}</b></td></tr></tbody></table>"
+                . "<div class='iw'>Amount received (in words): <b>{$e($this->words((float) $v->total_amount, $unit))}</b></div>";
+        } else {
+            $rows = '';
+            $no = 0;
+            foreach ($v->items->where('item_type', '!=', 'charge')->sortBy('line_no') as $i) {
+                $comp = $i->parent_item_id !== null;
+                $desc = $i->description . ($i->variant_label ? ' (' . $i->variant_label . ')' : '');
+                $no += $comp ? 0 : 1;
+                $rows .= '<tr><td class="sl">' . ($comp ? '' : $no) . '</td><td class="ds' . ($comp ? ' cm' : '') . '">' . ($comp ? '&#8627; ' : '') . $e($desc) . '</td>'
+                    . ($i->is_header ? '<td></td><td></td><td></td><td></td>'
+                        : '<td class="r">' . $e(($i->quantity + 0) . ' ' . $i->unit_code) . '</td><td class="r">' . $n($i->rate) . '</td><td class="c">' . $e($i->unit_code) . '</td><td class="r"><b>' . $n($i->amount) . '</b></td>') . '</tr>';
+            }
+            $foot = $this->footer($v);
+            // charges and taxes under the goods, in bolder ink
+            foreach ($foot['charges'] as $c) {
+                $rows .= '<tr class="chg"><td></td><td class="r">' . $e($c['description']) . '</td><td></td><td></td><td></td><td class="r">' . $n($c['amount']) . '</td></tr>';
+            }
+            if ($foot['discount_total'] > 0) {
+                $rows .= '<tr class="chg"><td></td><td class="r">Discounts allowed</td><td></td><td></td><td></td><td class="r">-' . $n($foot['discount_total']) . '</td></tr>';
+            }
+            $vat = [];
+            foreach ($foot['taxes'] as $t) {
+                $rate = (float) $t['base'] > 0 ? round($t['amount'] / $t['base'] * 100, 2) : 0.0;
+                $rows .= '<tr class="chg"><td></td><td class="r">' . $e($t['ledger'] ?: $t['label']) . '</td><td></td><td class="r">' . $e($rate + 0) . '</td><td class="c">%</td><td class="r">' . $n($t['amount']) . '</td></tr>';
+                $k = (string) $rate;
+                $vat[$k] ??= ['rate' => $rate, 'base' => 0.0, 'amount' => 0.0];
+                $vat[$k]['base'] += (float) $t['base'];
+                $vat[$k]['amount'] += (float) $t['amount'];
+            }
+            $units = array_unique(array_filter($v->items->where('item_type', '!=', 'charge')->where('is_header', false)->pluck('unit_code')->all()));
+            $qty = $v->items->where('item_type', '!=', 'charge')->where('is_header', false)->whereNull('parent_item_id')->sum('quantity');
+            $totQty = count($units) === 1 ? $e(($qty + 0) . ' ' . reset($units)) : '';
+
+            $body = $top . "<table class='gd'><thead><tr><th style='width:6%'>Sl No.</th><th>Description of Goods</th><th style='width:13%'>Quantity</th><th style='width:12%'>Rate</th><th style='width:7%'>per</th><th style='width:16%'>Amount</th></tr></thead><tbody>{$rows}"
+                . "<tr class='tt'><td></td><td class='r'>Total</td><td class='r'>{$totQty}</td><td></td><td></td><td class='r'>{$e($sym)} {$n($v->total_amount)}</td></tr></tbody></table>"
+                . "<table class='iw2'><tr><td>Amount Chargeable (in words): <b>{$e($this->words((float) $v->total_amount, $unit))}</b></td><td class='rt'>E. &amp; O.E</td></tr></table>";
+            if ($vat) {
+                $vt = '<table class="vt"><thead><tr><th></th><th style="width:12%">VAT %</th><th style="width:20%">Assessable Value</th><th style="width:18%">VAT Amount</th></tr></thead><tbody>';
+                foreach ($vat as $r) {
+                    $vt .= "<tr><td></td><td class='r'>{$e($r['rate'] + 0)} %</td><td class='r'>{$n($r['base'])}</td><td class='r'>{$n($r['amount'])}</td></tr>";
+                }
+                $sumBase = array_sum(array_column($vat, 'base'));
+                $sumVat = array_sum(array_column($vat, 'amount'));
+                $body .= $vt . "<tr class='tt'><td></td><td class='r'>Total</td><td class='r'>{$n($sumBase)}</td><td class='r'>{$n($sumVat)}</td></tr></tbody></table>"
+                    . "<div class='iw'>VAT Amount (in words): <b>{$e($this->words((float) $sumVat, $unit))} ({$e($sym)} {$n($sumVat)})</b></div>";
+            }
+            if (! empty($co['payment_mode'])) {
+                $body .= "<div class='ipm'><b>Mode of payment</b><br>" . nl2br($e($co['payment_mode'])) . '</div>';
+            }
+            if (! empty($co['declaration'])) {
+                $body .= "<div class='ipm'><b>Declaration</b><br>" . nl2br($e($co['declaration'])) . '</div>';
+            }
+        }
+
+        $note = $kind === 'receipt' ? 'This is a computer generated receipt' : 'This is a computer generated invoice';
+        $body = "<div class='ittl'>{$title}</div>" . $band . $body
+            . "<div class='ifaith'>Yours faithfully,<br><b>for {$e($legal)}</b></div>"
+            . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
+
+        $html = str_replace('</style>', $this->customerDocCss() . '</style>', $this->html($body, $v->voucher_number));
+        $name = preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);
+
+        return $format === 'pdf' ? $this->pdf($html, "$name.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$name.html", false);
+    }
+
+    private function customerDocCss(): string
+    {
+        return 'body{margin:18px}.ittl{text-align:center;font-weight:700;font-size:15px;margin:0 0 4px}.ib{background:#c9e8f3;text-align:center;padding:8px 6px 6px}.ibn{font-size:21px;font-weight:700}.ibd{font-size:10.5px;line-height:1.4}.ibt{font-size:13px;font-weight:700;margin-top:6px}'
+            . '.ic{margin:0 0 8px;background:#e3f3f9;border-top:1px solid #8cbfd1;border-bottom:1px solid #8cbfd1}.ic td{border:0;padding:3px 10px;font-size:11px}.rt{text-align:right}'
+            . '.it0{margin:8px 0}.it0 td{border:0;vertical-align:top;padding:2px 0;font-size:11px;line-height:1.45}.itl{width:58%}.itr{width:42%}.im{margin-bottom:2px}'
+            . '.gd{border:1px solid #444;margin:8px 0 0}.gd th{background:#e3f3f9;border:1px solid #444;text-align:center;font-weight:400;font-size:11px}.gd td{border-top:0;border-bottom:0;border-left:1px solid #444;border-right:1px solid #444;padding:4px 6px;font-size:11px}'
+            . '.gd .sl{text-align:right}.gd .ds{font-weight:700}.gd .cm{font-weight:400;padding-left:18px}.gd .c{text-align:center}.gd .chg td{font-weight:700}.gd .tt td{border-top:1px solid #444;border-bottom:1px solid #444;font-weight:700}'
+            . '.iw{margin:6px 0;font-size:11px}.iw2{background:#c9e8f3;margin:0;border:1px solid #444}.iw2 td{border:0;font-size:11px;padding:3px 6px}'
+            . '.vt{margin:0;border:1px solid #444}.vt th{background:#e3f3f9;border:1px solid #444;font-weight:400;font-size:11px;text-align:center}.vt td{border:1px solid #444;font-size:11px}.vt .tt td{font-weight:400}'
+            . '.ipm{margin-top:14px;font-size:11px;line-height:1.5}.ifaith{text-align:right;margin-top:26px;font-size:11px;line-height:1.6}.itag{text-align:center;margin-top:18px;font-style:italic;font-size:11px}'
+            . '.inote{text-align:center;margin-top:6px;padding:3px;background:#c9e8f3;font-size:10px}';
+    }
+
+    /** An amount in words, as printed on a tax invoice: "Kenyan Shilling Two Thousand Nine Hundred and Fifty Cents Only". */
+    private function words(float $amount, string $unit, string $minor = 'Cents'): string
+    {
+        $amount = round(abs($amount), 2);
+        $whole = (int) floor($amount);
+        $cents = (int) round(($amount - $whole) * 100);
+        $out = trim($unit . ' ' . $this->intWords($whole));
+
+        return $out . ($cents ? ' and ' . $this->intWords($cents) . ' ' . $minor : '') . ' Only';
+    }
+
+    private function intWords(int $n): string
+    {
+        if ($n === 0) {
+            return 'Zero';
+        }
+        $ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
+        $tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+        $under1000 = function (int $x) use ($ones, $tens): string {
+            $s = '';
+            if ($x >= 100) {
+                $s .= $ones[intdiv($x, 100)] . ' Hundred';
+                $x %= 100;
+                $s .= $x ? ' ' : '';
+            }
+            if ($x >= 20) {
+                $s .= $tens[intdiv($x, 10)] . ($x % 10 ? ' ' . $ones[$x % 10] : '');
+            } elseif ($x > 0) {
+                $s .= $ones[$x];
+            }
+
+            return $s;
+        };
+        $parts = [];
+        foreach (['', 'Thousand', 'Million', 'Billion'] as $i => $scale) {
+            $chunk = intdiv($n, 1000 ** $i) % 1000;
+            if ($chunk) {
+                array_unshift($parts, trim($under1000($chunk) . ' ' . $scale));
+            }
+        }
+
+        return implode(' ', $parts);
     }
 
     private function html(string $body, string $title): string
