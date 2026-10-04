@@ -60,6 +60,12 @@ export default function GatewayTab({ canWrite }) {
     }).catch(() => {});
   }, []);
   const byBase = Object.fromEntries(types.filter((t) => t.is_active).map((t) => [t.base_type, t]));
+  // a register for every active voucher type, in the order of the groups above; types outside them follow
+  const grouped = GROUPS.flatMap(([, bases]) => bases);
+  const registerTypes = types.filter((t) => t.is_active).sort((a, b) => {
+    const ia = grouped.indexOf(a.base_type); const ib = grouped.indexOf(b.base_type);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib) || a.id - b.id;
+  });
 
   return (
     <div>
@@ -90,6 +96,7 @@ export default function GatewayTab({ canWrite }) {
           ))}
           <Sub>Registers</Sub>
           <Item onClick={() => nav('/admin/books?tab=vouchers')}>All vouchers</Item>
+          {registerTypes.map((t) => <Item key={t.id} onClick={() => nav(`/admin/books?tab=vouchers&voucher_type_id=${t.id}`)}>{t.name} Register</Item>)}
           <Item onClick={() => nav('/admin/orders')}>Orders register</Item>
           <Item onClick={() => nav('/admin/books?tab=gifts')}>Gift vouchers</Item>
           <Item onClick={() => nav('/admin/books/cheques')}>Cheque register</Item>

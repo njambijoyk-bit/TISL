@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
@@ -14,11 +14,12 @@ import AddToManifest from './AddToManifest';
 /** `newPath` swaps the "choose a type" button for a plain button to a dedicated screen (e.g. the Purchases page). */
 export default function VouchersTab({ canWrite, baseType = '', newPath = null, newLabel = 'New voucher', viewPath = null }) {
   const nav = useNavigate();
+  const [params] = useSearchParams();
   const [types, setTypes] = useState([]);
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [loading, setLoading] = useState(true);
-  const [f, setF] = useState({ voucher_type_id: '', status: '', search: '', from: '', to: '' });
+  const [f, setF] = useState({ voucher_type_id: params.get('voucher_type_id') || '', status: '', search: '', from: '', to: '' });
   const [page, setPage] = useState(1);
 
   useEffect(() => { booksAPI.types().then(setTypes).catch((e) => toast.error(errMsg(e, 'Could not load voucher types'))); }, []);
