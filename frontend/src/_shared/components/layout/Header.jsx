@@ -758,7 +758,7 @@ export default function Header() {
                     </div>
 
                     {/* Preferences — currency + branch */}
-                    {((hasCurrencyChoice && !isAdmin) || hasBranchChoice) && (
+                    {((hasCurrencyChoice && !isAdmin) || (hasBranchChoice && !isDriver)) && (
                       <div style={{ padding: '10px 14px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }} className="dark:border-gray-700">
                         {hasCurrencyChoice && !isAdmin && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -775,8 +775,8 @@ export default function Header() {
                       </div>
                     )}
 
-                    {/* Customer links */}
-                    <div style={{ padding: '8px 6px' }}>
+                    {/* Customer links (staff and drivers use the section below instead) */}
+                    {!isAdmin && <div style={{ padding: '8px 6px' }}>
                       {customerLinks
                         .filter(link => !isAdmin)
                         .map(link => (
@@ -787,12 +787,12 @@ export default function Header() {
                           {link.label}
                         </Link>
                       ))}
-                    </div>
+                    </div>}
 
                     {/* Admin section */}
                     {isAdmin && (
                       <div style={{ borderTop: '1px solid #f3f4f6', padding: '8px 6px' }}>
-                        <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 6px' }}>Admin</p>
+                        {!isDriver && <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 6px' }}>Admin</p>}
 
                         {adminGroups.map((group, gi) => (
                           <div key={group.label ?? gi}>
@@ -820,7 +820,7 @@ export default function Header() {
                     </div>
 
                     {/* Developer sign-in: only in a dev build or for admins, kept small at the very bottom */}
-                    {(import.meta.env.DEV || isAdmin) && (
+                    {(import.meta.env.DEV || (isAdmin && !isDriver)) && (
                       <div style={{ borderTop: '1px solid #f3f4f6', padding: '6px 6px 8px' }}>
                         <Link to="/dev/auth" onClick={() => setUserMenuOpen(false)} className="hdr-menu-link"
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 500, color: '#9ca3af', textDecoration: 'none' }}>
@@ -916,7 +916,7 @@ export default function Header() {
               {isAdmin && (
                 <>
                   <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
-                  <p style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>
+                  {!isDriver && <p style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>}
                   {adminGroups.flatMap(g => g.items).map(item => (
                     <Link key={item.to} to={item.to}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.83rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
