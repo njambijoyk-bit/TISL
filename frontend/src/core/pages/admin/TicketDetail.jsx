@@ -187,8 +187,8 @@ export default function AdminTicketDetail() {
             return (
               <div key={reply.id} style={{
                 padding: '14px 18px', borderRadius: 14,
-                background: internal ? '#fffbeb' : isStaff ? '#f8f5ff' : 'var(--surface-card, #fff)',
-                border: `1px solid ${internal ? '#fde68a' : isStaff ? purpleBd : 'var(--line)'}`,
+                background: internal ? 'color-mix(in srgb, #f59e0b 12%, var(--surface-card, #fff))' : isStaff ? `color-mix(in srgb, var(--color-primary-500) 10%, var(--surface-card, #fff))` : 'var(--surface-card, #fff)',
+                border: `1px solid ${internal ? 'color-mix(in srgb, #f59e0b 40%, transparent)' : isStaff ? purpleBd : 'var(--line)'}`,
                 marginLeft: isStaff ? 32 : 0,
                 marginRight: isStaff ? 0 : 32,
               }}>
@@ -197,12 +197,12 @@ export default function AdminTicketDetail() {
                   <span style={{ fontWeight: 700, fontSize: '0.82rem', color: isStaff ? purple : 'var(--text-primary)' }}>
                     {reply.sender?.name ?? (isStaff ? 'Staff' : 'Customer')}
                   </span>
-                  {internal && <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700, background: '#fef3c7', padding: '1px 7px', borderRadius: 6 }}>INTERNAL NOTE</span>}
+                  {internal && <span style={{ fontSize: '0.7rem', color: '#f59e0b', fontWeight: 700, background: 'color-mix(in srgb, #f59e0b 18%, transparent)', padding: '1px 7px', borderRadius: 6 }}>INTERNAL NOTE</span>}
                   <span style={{ marginLeft: 'auto', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
                     {format(new Date(reply.created_at), 'dd MMM yyyy, HH:mm')}
                   </span>
                 </div>
-                <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{reply.message}</p>
+                <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: 'var(--text-primary)' }}>{reply.message}</p>
               </div>
             );
           })}
@@ -245,9 +245,9 @@ export default function AdminTicketDetail() {
                 rows={5}
                 style={{
                   width: '100%', boxSizing: 'border-box', borderRadius: 10, padding: '12px 14px',
-                  border: `1.5px solid ${isInternal ? '#fde68a' : 'var(--line)'}`,
+                  border: `1.5px solid ${isInternal ? 'color-mix(in srgb, #f59e0b 45%, transparent)' : 'var(--line)'}`,
                   fontSize: '0.88rem', resize: 'vertical', outline: 'none', lineHeight: 1.6,
-                  background: isInternal ? '#fffbeb' : 'var(--surface-card, #fff)',
+                  background: isInternal ? 'color-mix(in srgb, #f59e0b 12%, var(--surface-card, #fff))' : 'var(--surface-input, var(--surface-card, #fff))', color: 'var(--text-primary)',
                 }}
               />
               <div style={{ marginTop: 10, display: 'flex', justifyContent: 'flex-end' }}>
