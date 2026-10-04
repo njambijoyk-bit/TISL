@@ -225,6 +225,6 @@ class MyAccountController extends Controller
         abort_unless($found, 404);
         $format = strtolower((string) $request->query('format', 'pdf')) === 'html' ? 'html' : 'pdf';
 
-        return $export->document($found, $format);
+        return $export->document($found, $format, "Buyer's Copy");
     }
 }

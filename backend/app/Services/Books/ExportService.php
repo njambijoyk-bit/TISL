@@ -478,10 +478,10 @@ class ExportService
 
     // ── customer invoice and receipt ─────────────────────────────────────
 
-    /** A customer's document (invoice, cash sale, receipt, sales order, delivery note or quotation) as pdf or html; what it is follows from its type. */
-    public function document(Voucher $v, string $format): Response
+    /** A customer's document (invoice, cash sale, receipt, order, delivery note, credit note or quotation) as pdf or html; what it is follows from its type. `$copy` is the label top right: staff issue the Original, a customer downloading their own gets the Buyer's Copy. */
+    public function document(Voucher $v, string $format, string $copy = 'Original'): Response
     {
-        return $this->customerDocument($v, $format, $this->kindOf($v));
+        return $this->customerDocument($v, $format, $this->kindOf($v), $copy);
     }
 
     /** The voucher types that have a customer copy. */
@@ -549,7 +549,7 @@ class ExportService
      * details on the right. On an invoice the goods come first and the charges and taxes follow below them in bolder ink, then the tax
      * breakdown, how to pay, the declaration and the sign-off. Nothing from the books' own accounting (ledger postings) is shown.
      */
-    private function customerDocument(Voucher $v, string $format, string $kind): Response
+    private function customerDocument(Voucher $v, string $format, string $kind, string $copy = 'Original'): Response
     {
         $format = strtolower($format);
         if (! in_array($format, ['pdf', 'html'], true)) {
@@ -699,7 +699,7 @@ class ExportService
         }
 
         $note = 'This is a computer generated ' . strtolower($label);
-        $body = "<div class='icopy'>(Original)</div><div class='ittl'>{$title}</div>" . $band . $body
+        $body = "<div class='icopy'>({$e($copy)})</div><div class='ittl'>{$title}</div>" . $band . $body
             . "<table class='isig'><tr><td class='isl'><b>Customer's Seal and Signature</b></td><td class='isr'><b>for {$e($legal)}</b><br><br><b>Authorised Signatory</b></td></tr></table>"
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
