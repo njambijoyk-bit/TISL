@@ -10,7 +10,17 @@ const checkoutAPI = {
   order: async (id) => (await api.get(`/customer/sales-orders/${id}`)).data,
   updateOrder: async (id, data) => (await api.put(`/customer/sales-orders/${id}`, data)).data,
   reviewDocument: async (id, note) => (await api.post(`/customer/sales-orders/documents/${id}/review`, { note })).data,
-  account: async () => (await api.get('/customer/account')).data,
+  account: async (params) => (await api.get('/customer/account', { params })).data,
+  /** Download my statement for a period: params are { range } or { from, to }, plus format (pdf, csv, ...). */
+  downloadStatement: async (params) => {
+    const res = await api.get('/customer/account/statement/export', { params, responseType: 'blob' });
+    const name = /filename="?([^";]+)"?/.exec(res.headers?.['content-disposition'] ?? '')?.[1] ?? `statement.${params.format || 'pdf'}`;
+    const href = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = href; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(href), 1000);
+  },
   cancelOrder: async (id) => (await api.post(`/customer/sales-orders/${id}/cancel`)).data,
 };
 

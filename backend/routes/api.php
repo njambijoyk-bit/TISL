@@ -623,6 +623,7 @@ Route::middleware('auth:sanctum')->group(function () {
         
         // My account: what I owe, what I have paid over, how to pay
         Route::get('/account', [\App\Http\Controllers\Api\MyAccountController::class, 'show']);
+        Route::get('/account/statement/export', [\App\Http\Controllers\Api\MyAccountController::class, 'statementExport']);
 
         // Email & Phone Verification
         Route::post('/email/resend', [VerificationController::class, 'resendEmailVerification']);

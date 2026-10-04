@@ -4,23 +4,42 @@ import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { formatMoney } from '../../../_shared/lib/money';
+import toast from 'react-hot-toast';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { creditSentence } from '../../components/admin/books/creditText';
 
 const card = { padding: 16, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)' };
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 700 };
+const ctl = { padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.8rem' };
 const td = { padding: '9px 10px', fontSize: '0.84rem', borderTop: '1px solid var(--line)' };
 
 /** What I owe, bill by bill; what I have paid over or in advance; my credit limit; my statement; how to pay. */
 export default function MyAccount() {
   const [a, setA] = useState(null);
   const [error, setError] = useState(null);
-  useEffect(() => { checkoutAPI.account().then(setA).catch((e) => setError(errMsg(e, 'Could not load your account'))); }, []);
+  const [range, setRange] = useState('90d');          // a preset, or 'custom'
+  const [custom, setCustom] = useState({ from: '', to: '' });
+  const [fmt, setFmt] = useState('pdf');
+  const [busy, setBusy] = useState(false);
+  // what to ask the server for: a preset, or a custom pair once both dates are chosen
+  const period = range === 'custom' ? (custom.from ? { from: custom.from, to: custom.to || undefined } : null) : { range };
+  useEffect(() => {
+    if (!period) return;
+    checkoutAPI.account(period).then(setA).catch((e) => setError(errMsg(e, 'Could not load your account')));
+  }, [range, custom.from, custom.to]); // eslint-disable-line react-hooks/exhaustive-deps
+  const download = async () => {
+    if (!period) return;
+    setBusy(true);
+    try { await checkoutAPI.downloadStatement({ ...period, format: fmt }); }
+    catch (e) { toast.error(errMsg(e, 'Could not export your statement')); }
+    finally { setBusy(false); }
+  };
   const m = (n) => formatMoney(n, a?.base_currency);
 
   return (
     <>
       <Header />
+      <style>{`.acct-export { padding: 6px 14px; border-radius: 8px; border: 1.5px solid var(--color-primary-500); background: var(--color-primary-500); color: #fff; font-weight: 700; font-family: inherit; font-size: 0.8rem; cursor: pointer; transition: transform 150ms, filter 150ms; } .acct-export:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); } .acct-export:disabled { opacity: 0.55; cursor: not-allowed; }`}</style>
       <main style={{ maxWidth: 900, margin: '0 auto', padding: '32px 16px 64px' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '0 0 6px' }}>My account</h1>
         <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>What you owe us, what you have paid us over, and how to pay. <Link to="/orders">My orders</Link> · <Link to="/gift-vouchers">My wallet</Link></p>
@@ -70,7 +89,24 @@ export default function MyAccount() {
             )}
 
             <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
-              <p style={{ margin: 0, padding: '14px 16px 6px', fontWeight: 800 }}>Statement — last 90 days</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, padding: '14px 16px 8px' }}>
+                <p style={{ margin: 0, fontWeight: 800, marginRight: 'auto' }}>Statement <span style={{ fontWeight: 400, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{a.statement.from} to {a.statement.to}</span></p>
+                <select aria-label="Statement period" value={range} onChange={(e) => setRange(e.target.value)} style={ctl}>
+                  <option value="30d">Last 30 days</option><option value="60d">Last 60 days</option><option value="90d">Last 90 days</option>
+                  <option value="6m">Last 6 months</option><option value="12m">Last 12 months</option><option value="ytd">This year</option><option value="custom">Custom dates…</option>
+                </select>
+                {range === 'custom' && (
+                  <>
+                    <input type="date" aria-label="From" value={custom.from} max={custom.to || undefined} onChange={(e) => setCustom((c) => ({ ...c, from: e.target.value }))} style={ctl} />
+                    <input type="date" aria-label="To" value={custom.to} min={custom.from || undefined} onChange={(e) => setCustom((c) => ({ ...c, to: e.target.value }))} style={ctl} />
+                  </>
+                )}
+                <select aria-label="Export format" value={fmt} onChange={(e) => setFmt(e.target.value)} style={ctl}>
+                  <option value="pdf">PDF</option><option value="csv">CSV (Excel)</option><option value="html">Printable page</option>
+                </select>
+                <button type="button" className="acct-export" disabled={busy || !period} onClick={download}>{busy ? 'Preparing…' : 'Export'}</button>
+              </div>
+              {range === 'custom' && !custom.from && <p style={{ margin: 0, padding: '0 16px 8px', fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>Choose a start date. Statements can cover up to a year.</p>}
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
                 <thead><tr><th style={th}>Date</th><th style={th}>Document</th><th style={{ ...th, textAlign: 'right' }}>Charged</th><th style={{ ...th, textAlign: 'right' }}>Paid / credited</th><th style={{ ...th, textAlign: 'right' }}>Balance</th></tr></thead>
                 <tbody>
@@ -79,7 +115,7 @@ export default function MyAccount() {
                     <tr key={i}><td style={td}>{r.date}</td><td style={td}>{r.type} <span style={{ fontFamily: 'monospace', color: 'var(--text-secondary)' }}>{r.voucher_number}</span></td>
                       <td style={{ ...td, textAlign: 'right' }}>{r.debit ? m(r.debit) : ''}</td><td style={{ ...td, textAlign: 'right', color: '#059669' }}>{r.credit ? m(r.credit) : ''}</td><td style={{ ...td, textAlign: 'right' }}>{m(r.balance)}</td></tr>
                   ))}
-                  {a.statement.rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={5}>No movements in the last 90 days.</td></tr>}
+                  {a.statement.rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={5}>No movements in this period.</td></tr>}
                 </tbody>
               </table>
               <p style={{ margin: 0, padding: '8px 16px 14px', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>A negative balance means we hold money for you.</p>

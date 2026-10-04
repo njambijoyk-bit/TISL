@@ -7,6 +7,8 @@ use App\Models\Books\Ledger;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Services\Books\BooksReportService;
+use App\Services\Books\ExportService;
+use Carbon\Carbon;
 use App\Services\Books\LedgerService;
 use App\Services\Books\OpenBillsService;
 use App\Services\Books\PaymentModeService;
@@ -57,7 +59,8 @@ class MyAccountController extends Controller
             $limit = $money->convert((float) $c->credit_limit, $money->currencyFrom($c->credit_currency_id ?? $c->currency_id), $money->getBaseCurrency());
         }
         $balance = $ledgers->balance($ledger->id);   // net: debit = they owe us, credit = we hold money for them
-        $statement = $reports->ledgerStatement($ledger->id, today()->subDays(90)->toDateString(), today()->toDateString());
+        [$from, $to] = $this->period($request);
+        $statement = $reports->ledgerStatement($ledger->id, $from, $to);
 
         return response()->json([
             'base_currency' => $base,
@@ -68,10 +71,77 @@ class MyAccountController extends Controller
             'bills' => $bills,
             'terms' => $c->has_credit_account ? ['limit' => round($limit, 2), 'available' => round(max(0, $limit - max(0, $balance)), 2), 'days' => (int) ($c->credit_terms_days ?: 30)] : null,
             // dates, documents and amounts only — the books' own notes (write-off reasons, bounce reasons) stay inside
-            'statement' => ['opening' => $statement['opening'], 'closing' => $statement['closing'], 'rows' => array_map(fn ($r) => [
+            'statement' => ['from' => $from, 'to' => $to, 'opening' => $statement['opening'], 'closing' => $statement['closing'], 'rows' => array_map(fn ($r) => [
                 'date' => $r['date'], 'voucher_number' => $r['voucher_number'], 'type' => $r['type'], 'debit' => $r['debit'], 'credit' => $r['credit'], 'balance' => $r['balance'],
             ], $statement['rows'])],
             'how_to_pay' => $howToPay,
         ]);
+    }
+
+    /**
+     * The statement period: a preset (`range` = 30d, 60d, 90d, 6m, 12m, ytd) or a custom `from`/`to`. Never in the future, never longer
+     * than a year, and 90 days when nothing sensible is asked for.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function period(Request $request): array
+    {
+        $today = today();
+        $to = $today->copy();
+        $from = match ((string) $request->query('range')) {
+            '30d' => $today->copy()->subDays(30),
+            '60d' => $today->copy()->subDays(60),
+            '6m' => $today->copy()->subMonths(6),
+            '12m' => $today->copy()->subYear(),
+            'ytd' => $today->copy()->startOfYear(),
+            default => null,
+        };
+        if (! $from && $request->filled('from')) {
+            try {
+                $from = Carbon::parse((string) $request->query('from'))->startOfDay();
+                if ($request->filled('to')) {
+                    $to = Carbon::parse((string) $request->query('to'))->startOfDay();
+                }
+            } catch (\Throwable) {
+                $from = null;
+            }
+        }
+        $from ??= $today->copy()->subDays(90);
+        $to = $to->greaterThan($today) ? $today->copy() : $to;
+        if ($from->greaterThan($to)) {
+            $from = $to->copy();
+        }
+        if ($from->lessThan($to->copy()->subYear())) {
+            $from = $to->copy()->subYear();
+        }
+
+        return [$from->toDateString(), $to->toDateString()];
+    }
+
+    /** The customer's statement for the chosen period as a download (pdf, csv, xml, html or json). Always their own ledger. */
+    public function statementExport(Request $request, BooksReportService $reports, ExportService $export, CurrencyConversionService $money)
+    {
+        $c = $request->user()?->customer;
+        abort_unless($c, 404);
+        $ledger = Ledger::where('customer_id', $c->id)->first();
+        abort_unless($ledger, 404);
+        [$from, $to] = $this->period($request);
+        $st = $reports->ledgerStatement($ledger->id, $from, $to);
+        $code = (string) $money->getBaseCurrency()->code;
+        $rows = [['date' => $from, 'voucher_number' => '', 'type' => 'Brought forward', 'debit' => '', 'credit' => '', 'balance' => round((float) $st['opening'], 2)]];
+        foreach ($st['rows'] as $r) {
+            $rows[] = ['date' => $r['date'], 'voucher_number' => $r['voucher_number'], 'type' => $r['type'], 'debit' => $r['debit'] ? round((float) $r['debit'], 2) : '',
+                'credit' => $r['credit'] ? round((float) $r['credit'], 2) : '', 'balance' => round((float) $r['balance'], 2)];
+        }
+        $table = [
+            'title' => 'Statement: ' . ($c->company_name ?: ($request->user()->name ?? 'My account')),
+            'subtitle' => "{$from} to {$to} · amounts in {$code} · a negative balance means we hold money for you",
+            'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Document', 'debit' => "Charged ({$code})", 'credit' => "Paid / credited ({$code})", 'balance' => "Balance ({$code})"],
+            'rows' => $rows,
+            'totals' => ['type' => 'Totals', 'debit' => round((float) array_sum(array_column($st['rows'], 'debit')), 2), 'credit' => round((float) array_sum(array_column($st['rows'], 'credit')), 2), 'balance' => round((float) $st['closing'], 2)],
+        ];
+        $format = in_array(strtolower((string) $request->query('format', 'pdf')), ExportService::FORMATS, true) ? strtolower((string) $request->query('format', 'pdf')) : 'pdf';
+
+        return $export->table($table, $format, "statement-{$from}-to-{$to}");
     }
 }
