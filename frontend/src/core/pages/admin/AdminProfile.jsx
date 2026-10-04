@@ -388,14 +388,14 @@ export default function AdminProfile() {
                   <p style={sectionTitle}><TrendingUp size={14} style={{ color: 'var(--color-primary-600)' }} /> Quick stats</p>
                   <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                     {[
-                      { label: 'Customers', value: assignments.counts?.customers || 0, color: '#3b82f6', bg: '#eff6ff' },
-                      { label: 'Projects',  value: assignments.counts?.projects  || 0, color: '#10b981', bg: '#f0fdf4' },
-                      { label: 'Orders',    value: assignments.counts?.orders    || 0, color: '#f59e0b', bg: '#fffbeb' },
-                      { label: 'Tickets',   value: assignments.counts?.tickets   || 0, color: '#06b6d4', bg: '#ecfeff' },
-                    ].map(({ label, value, color, bg }) => (
+                      { label: 'Customers', value: assignments.counts?.customers || 0, color: '#3b82f6', bg: '#eff6ff', ink: '#1d4ed8' },
+                      { label: 'Projects',  value: assignments.counts?.projects  || 0, color: '#10b981', bg: '#f0fdf4', ink: '#047857' },
+                      { label: 'Orders',    value: assignments.counts?.orders    || 0, color: '#f59e0b', bg: '#fffbeb', ink: '#b45309' },
+                      { label: 'Tickets',   value: assignments.counts?.tickets   || 0, color: '#06b6d4', bg: '#ecfeff', ink: '#0e7490' },
+                    ].map(({ label, value, color, bg, ink }) => (
                       <div key={label} style={{ padding: 16, borderRadius: 10, background: bg, textAlign: 'center' }}>
                         <p style={{ fontSize: '1.6rem', fontWeight: 800, color, margin: '0 0 2px' }}>{value}</p>
-                        <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 600 }}>{label}</p>
+                        <p style={{ fontSize: '0.72rem', color: ink, margin: 0, fontWeight: 700 }}>{label}</p>
                       </div>
                     ))}
                   </div>
