@@ -19,7 +19,7 @@ function DisagreeModal({ policy, onClose, onConfirm, loading }) {
       padding: 16, background: 'rgba(15,10,30,0.80)', backdropFilter: 'blur(8px)',
     }}>
       <div style={{
-        background: 'white', borderRadius: 16, width: '100%', maxWidth: 480,
+        background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', borderRadius: 16, width: '100%', maxWidth: 480,
         padding: 28, boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
         border: `2px solid ${isCritical ? 'rgba(239,68,68,0.3)' : 'rgba(245,158,11,0.3)'}`,
       }}>
@@ -73,7 +73,7 @@ function DisagreeModal({ policy, onClose, onConfirm, loading }) {
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={onClose} style={{
             flex: 1, padding: '10px', borderRadius: 10, fontSize: '0.85rem', fontWeight: 700,
-            border: '1.5px solid #e5e7eb', background: 'white', color: '#374151',
+            border: '1.5px solid var(--line)', background: 'var(--surface-input, #fff)', color: 'var(--text-primary)',
             cursor: 'pointer', fontFamily: 'inherit',
           }}>
             Go back
@@ -156,7 +156,7 @@ function PolicyModal({ policy, actionContext, onClose, onDisagree }) {
         padding: 16, background: 'rgba(15,10,30,0.75)', backdropFilter: 'blur(8px)',
       }}>
         <div style={{
-          background: 'white', borderRadius: 20, width: '100%', maxWidth: 640,
+          background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', borderRadius: 20, width: '100%', maxWidth: 640,
           maxHeight: '85vh', display: 'flex', flexDirection: 'column',
           boxShadow: '0 32px 80px rgba(0,0,0,0.22)',
           border: '1px solid #e5e7eb', overflow: 'hidden',

@@ -16,19 +16,19 @@ import useCheckoutPrefs from '../../../_shared/store/checkoutPrefsStore';
 import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 
-const input = { width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: '0.875rem', border: '1.5px solid #e5e7eb', fontFamily: 'inherit', boxSizing: 'border-box', background: 'white' };
-const label = { fontSize: '0.75rem', fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 };
-const card = { background: 'white', borderRadius: 12, border: '1px solid #e5e7eb', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', padding: 20, minWidth: 0 };
-const title = { fontSize: '0.875rem', fontWeight: 700, color: '#111827', display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px', paddingBottom: 12, borderBottom: '1px solid #f3f4f6' };
+const input = { width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: '0.875rem', border: '1.5px solid var(--line)', fontFamily: 'inherit', boxSizing: 'border-box', background: 'var(--surface-input, #fff)', color: 'var(--text-primary)' };
+const label = { fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: 4 };
+const card = { background: 'var(--surface-card, #fff)', borderRadius: 12, border: '1px solid var(--line)', boxShadow: '0 1px 6px rgba(0,0,0,0.06)', padding: 20, minWidth: 0 };
+const title = { fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 16px', paddingBottom: 12, borderBottom: '1px solid var(--line)' };
 
 function Choice({ active, onClick, label: text, sub, disabled }) {
   return (
     <button type="button" onClick={() => !disabled && onClick()} disabled={disabled} style={{
       display: 'block', width: '100%', textAlign: 'left', padding: '11px 14px', borderRadius: 10, fontFamily: 'inherit', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.55 : 1,
-      border: `1.5px solid ${active ? 'var(--color-primary-500)' : '#e5e7eb'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'white',
+      border: `1.5px solid ${active ? 'var(--color-primary-500)' : 'var(--line)'}`, background: active ? 'color-mix(in srgb, var(--color-primary-500) 5%, transparent)' : 'var(--surface-card, #fff)',
     }}>
-      <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{text}</span>
-      {sub && <span style={{ display: 'block', fontSize: '0.72rem', color: '#9ca3af', marginTop: 1 }}>{sub}</span>}
+      <span style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{text}</span>
+      {sub && <span style={{ display: 'block', fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 1 }}>{sub}</span>}
     </button>
   );
 }
@@ -167,14 +167,14 @@ export default function Checkout() {
       <Header />
       <div style={{ flex: 1, maxWidth: 1000, margin: '0 auto', padding: '32px 16px', width: '100%', boxSizing: 'border-box' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px' }}>Confirm your order</h1>
-        <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: '#6b7280' }}>Check everything below, choose how you will pay, and place the order. <Link to="/cart" style={{ color: 'var(--color-primary-500)' }}>Back to cart</Link></p>
+        <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Check everything below, choose how you will pay, and place the order. <Link to="/cart" style={{ color: 'var(--color-primary-500)' }}>Back to cart</Link></p>
 
         {pending && (
           <div role="status" style={{ ...card, marginBottom: 20, display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(16,185,129,0.06)' }}>
             <Loader2 size={20} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
             <div>
               <strong>Waiting for your M-Pesa payment…</strong>
-              <div style={{ fontSize: '0.8rem', color: '#4b5563' }}>Enter your PIN on the prompt sent to your phone. This page updates by itself.</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Enter your PIN on the prompt sent to your phone. This page updates by itself.</div>
             </div>
           </div>
         )}
@@ -183,15 +183,15 @@ export default function Checkout() {
           {/* The order, columnar like the voucher */}
           <div style={card}>
             <p style={title}><Package size={14} /> Your order</p>
-            {quoteError && <p role="alert" style={{ color: '#991b1b', fontSize: '0.82rem' }}>{quoteError}</p>}
-            {!quote && !quoteError && <p style={{ color: '#9ca3af', fontSize: '0.82rem' }}>Pricing your cart…</p>}
+            {quoteError && <p role="alert" style={{ color: 'var(--status-error, #991b1b)', fontSize: '0.82rem' }}>{quoteError}</p>}
+            {!quote && !quoteError && <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>Pricing your cart…</p>}
             {quote && (
               <div style={{ opacity: quoting ? 0.6 : 1, display: 'grid', gap: 14 }}>
                 <OrderBreakdown quote={quote} linesOnly />
                 <div style={{ maxWidth: 460, marginLeft: 'auto', width: '100%' }}><SummaryLedger quote={quote} /></div>
               </div>
             )}
-            <p style={{ margin: '12px 0 0', fontSize: '0.78rem', color: '#6b7280' }}>
+            <p style={{ margin: '12px 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
               <Truck size={12} style={{ verticalAlign: -2 }} /> Delivery: <strong>{ship?.name ?? 'not chosen'}</strong>
               {prefs.promo_code && <> · <Tag size={12} style={{ verticalAlign: -2 }} /> Promo: <strong>{prefs.promo_code}</strong></>}
               {' '}· <Link to="/cart" style={{ color: 'var(--color-primary-500)' }}>change in cart</Link>
@@ -239,7 +239,7 @@ export default function Checkout() {
                   <div role="note" style={{ marginTop: 14, padding: 12, borderRadius: 10, background: 'rgba(99,102,241,0.06)', fontSize: '0.82rem' }}>
                     <strong>{m.label}</strong>
                     <div style={{ marginTop: 4 }}>{m.instructions}</div>
-                    <div style={{ marginTop: 4, color: '#6b7280', fontSize: '0.74rem' }}>Nothing is charged now. Your order is saved with how you chose to pay, and we'll bill you when we confirm it.</div>
+                    <div style={{ marginTop: 4, color: 'var(--text-secondary)', fontSize: '0.74rem' }}>Nothing is charged now. Your order is saved with how you chose to pay, and we'll bill you when we confirm it.</div>
                   </div>
                 ) : null;
               })()}
@@ -251,16 +251,16 @@ export default function Checkout() {
               )}
               {gifts.length > 0 && (
                 <div style={{ marginTop: 14 }}>
-                  <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Your gift vouchers{mode === 'pay_later' && <span style={{ fontWeight: 400, color: '#6b7280' }}> — nothing is spent now; applied when your order is paid</span>}</label>
+                  <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Your gift vouchers{mode === 'pay_later' && <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}> — nothing is spent now; applied when your order is paid</span>}</label>
                   <div style={{ display: 'grid', gap: 6 }}>
                     {gifts.map((g) => {
                       const on = (giftPicked ?? []).includes(g.code);
                       const used = quote.gift?.vouchers?.find((v) => v.code === g.code)?.applied;
                       return (
-                        <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', background: on ? 'rgba(16,185,129,0.06)' : 'white', cursor: 'pointer', fontSize: '0.82rem' }}>
+                        <label key={g.code} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--line)', background: on ? 'rgba(16,185,129,0.06)' : 'var(--surface-card, #fff)', cursor: 'pointer', fontSize: '0.82rem' }}>
                           <input type="checkbox" checked={on} onChange={() => setGiftPicked((cur) => ((cur ?? []).includes(g.code) ? cur.filter((c) => c !== g.code) : [...(cur ?? []), g.code]))} />
-                          <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: '#6b7280' }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
-                          <span style={{ fontWeight: 700, color: on ? '#059669' : '#9ca3af' }}>{on ? `${mode === 'pay_later' ? 'will apply' : 'applies'} ${money(used ?? g.applicable)}` : `could cover ${money(g.applicable)}`}</span>
+                          <span style={{ flex: 1 }}><strong>{g.code}</strong> <span style={{ color: 'var(--text-secondary)' }}>· balance {money(g.balance)}{g.expires_at ? ` · expires ${g.expires_at}` : ''}</span></span>
+                          <span style={{ fontWeight: 700, color: on ? 'var(--status-success, #059669)' : 'var(--text-tertiary)' }}>{on ? `${mode === 'pay_later' ? 'will apply' : 'applies'} ${money(used ?? g.applicable)}` : `could cover ${money(g.applicable)}`}</span>
                         </label>
                       );
                     })}
@@ -272,14 +272,14 @@ export default function Checkout() {
                   <label style={label}>Money you have paid us</label>
                   <div style={{ display: 'grid', gap: 6 }}>
                     {credits.map((c) => (
-                      <label key={c.voucher_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: '0.82rem' }}>
+                      <label key={c.voucher_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--line)', cursor: 'pointer', fontSize: '0.82rem' }}>
                         <input type="checkbox" checked={(creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)}
                           onChange={() => setCreditPick((cur) => { const all = cur ?? credits.map((x) => x.voucher_id); return all.includes(c.voucher_id) ? all.filter((x) => x !== c.voucher_id) : [...all, c.voucher_id]; })} />
                         <span>{creditSentence(c)} — use it on this order?</span>
                       </label>
                     ))}
                   </div>
-                  <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#6b7280' }}>Nothing is used now; it is taken off when your order becomes an invoice.</p>
+                  <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Nothing is used now; it is taken off when your order becomes an invoice.</p>
                 </div>
               )}
               {opts?.gift_vouchers_enabled && (
@@ -299,15 +299,15 @@ export default function Checkout() {
               ))}
             </div>
             <button type="submit" disabled={busy || !quote || !!pending || !termsOk}
-              style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: termsOk ? 'white' : '#9ca3af', cursor: busy || !quote || !termsOk ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: termsOk ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#e5e7eb', fontFamily: 'inherit' }}>
+              style={{ width: '100%', marginTop: 14, padding: 14, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: '0.9rem', color: termsOk ? 'white' : 'var(--text-tertiary)', cursor: busy || !quote || !termsOk ? 'not-allowed' : 'pointer', opacity: busy || !quote ? 0.6 : 1, background: termsOk ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'var(--line)', fontFamily: 'inherit' }}>
               <Lock size={14} style={{ verticalAlign: -2 }} /> {busy ? 'Placing…' : mode === 'online' ? 'Pay and place order' : mode === 'credit' ? 'Pay from my credit' : 'Place order'}
             </button>
             {!termsOk && (
-              <p role="status" style={{ margin: '8px 0 0', fontSize: '0.78rem', color: '#6b7280', textAlign: 'center' }}>
+              <p role="status" style={{ margin: '8px 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)', textAlign: 'center' }}>
                 {loadingTerms ? 'Loading the terms…' : missingTerms.length > 1 ? 'Tick the boxes above to agree to the terms — then you can place your order.' : 'Tick the box above to agree to the terms — then you can place your order.'}
               </p>
             )}
-            <p style={{ margin: '10px 0 0', fontSize: '0.74rem', color: '#9ca3af', textAlign: 'center' }}>Your order is saved under <Link to="/orders" style={{ color: 'var(--color-primary-500)' }}>My orders</Link> as soon as it is placed.</p>
+            <p style={{ margin: '10px 0 0', fontSize: '0.74rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>Your order is saved under <Link to="/orders" style={{ color: 'var(--color-primary-500)' }}>My orders</Link> as soon as it is placed.</p>
           </div>
         </form>
       </div>

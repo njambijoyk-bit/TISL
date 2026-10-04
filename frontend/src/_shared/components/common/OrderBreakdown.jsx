@@ -18,7 +18,7 @@ export default function OrderBreakdown({ quote, children, linesOnly = false, qty
   const foot = { ...td, fontWeight: 800, background: '#faf9ff' };
   const taxCell = (l) => (Number(l.tax_amount) ? `${n2(l.tax_amount)}${l.tax_rate_percent != null ? ` (${Number(l.tax_rate_percent)}%)` : ''}` : '');
   return (
-    <div style={{ overflowX: 'auto', borderRadius: 14, background: 'white', border: '1px solid #e5e7eb' }}>
+    <div style={{ overflowX: 'auto', borderRadius: 14, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
         <thead>
           <tr><th style={th}>Item</th><th style={th}>Variant</th><th style={{ ...th, ...r }}>Qty</th><th style={{ ...th, ...r }}>Rate</th>{hasDisc && <th style={{ ...th, ...r }}>Discount</th>}<th style={{ ...th, ...r }}>Amount</th><th style={{ ...th, ...r }}>Tax</th></tr>
