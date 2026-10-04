@@ -53,9 +53,9 @@ export default function ResetPassword() {
   // Broken link guard
   if (!token || !email) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
         <div style={{
-          background: 'white', borderRadius: 20, padding: '40px 36px',
+          background: 'var(--surface-card, #fff)', borderRadius: 20, padding: '40px 36px',
           boxShadow: '0 16px 48px rgba(0,0,0,0.10)', textAlign: 'center', maxWidth: 400,
         }} className="dark:bg-gray-800">
           <div style={{
@@ -64,10 +64,10 @@ export default function ResetPassword() {
           }}>
             <Lock size={22} color="#ef4444" />
           </div>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 800, margin: '0 0 8px' }} className="text-gray-900 dark:text-white">
+          <h2 style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 800, margin: '0 0 8px' }}>
             Invalid reset link
           </h2>
-          <p style={{ fontSize: '0.85rem', margin: '0 0 24px' }} className="text-gray-500 dark:text-gray-400">
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: '0 0 24px' }}>
             This link is missing required information or has expired.
           </p>
           <Link to="/forgot-password" style={{
@@ -84,7 +84,7 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-primary)' }}>
       <div className="tisl-outer" style={{ width: '100%', maxWidth: 860, display: 'flex', flexDirection: 'column' }}>
 
         {/* Mobile top bar */}
@@ -172,10 +172,10 @@ export default function ResetPassword() {
             padding: '44px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center',
           }}>
             <div style={{ marginBottom: 28 }}>
-              <h1 style={{ fontSize: '1.6rem', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }} className="text-gray-900 dark:text-white">
+              <h1 style={{ color: 'var(--text-primary)', fontSize: '1.6rem', fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }}>
                 Set new password
               </h1>
-              <p style={{ fontSize: '0.85rem', margin: 0 }} className="text-gray-500 dark:text-gray-400">
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
                 Must be at least 8 characters.
               </p>
             </div>
@@ -194,10 +194,10 @@ export default function ResetPassword() {
 
               {/* New password */}
               <div>
-                <label style={{
+                <label style={{ color: 'var(--text-secondary)',
                   display: 'block', fontSize: '0.75rem', fontWeight: 700,
                   marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em',
-                }} className="text-gray-500 dark:text-gray-400">
+                }}>
                   New password
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -213,12 +213,11 @@ export default function ResetPassword() {
                     style={{
                       width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10,
                       border: `1.5px solid ${errors.password ? '#ef4444' : focused === 'password' ? 'var(--color-primary-500)' : '#e5e7eb'}`,
-                      fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box',
+                      fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box', background: 'var(--surface-input)', color: 'var(--text-primary)',
                     }}
-                    className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   />
                   <button type="button" onClick={() => setShow(s => ({ ...s, password: !s.password }))}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2 }}>
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 2 }}>
                     {show.password ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
@@ -227,10 +226,10 @@ export default function ResetPassword() {
 
               {/* Confirm password */}
               <div>
-                <label style={{
+                <label style={{ color: 'var(--text-secondary)',
                   display: 'block', fontSize: '0.75rem', fontWeight: 700,
                   marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em',
-                }} className="text-gray-500 dark:text-gray-400">
+                }}>
                   Confirm password
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -246,12 +245,11 @@ export default function ResetPassword() {
                     style={{
                       width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10,
                       border: `1.5px solid ${errors.password_confirmation ? '#ef4444' : focused === 'confirm' ? 'var(--color-primary-500)' : '#e5e7eb'}`,
-                      fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box',
+                      fontSize: '0.88rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box', background: 'var(--surface-input)', color: 'var(--text-primary)',
                     }}
-                    className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
                   />
                   <button type="button" onClick={() => setShow(s => ({ ...s, confirm: !s.confirm }))}
-                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2 }}>
+                    style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 2 }}>
                     {show.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
