@@ -91,7 +91,9 @@ export default function MyCalendar({ embedded = false }) {
                 <div key={i} style={{ background: d ? 'var(--surface-card, #fff)' : 'var(--surface-input)', minHeight: 84, padding: 4, overflow: 'hidden' }}>
                   {d && <div style={{ fontSize: '0.72rem', fontWeight: ymd(d) === ymd(new Date()) ? 800 : 500, color: ymd(d) === ymd(new Date()) ? colors.primaryDeep : colors.textMuted }}>{d.getDate()}</div>}
                   {list.slice(0, 3).map((e) => {
-                    const chip = <span title={e.title} style={{ display: 'block', margin: '2px 0', padding: '1px 5px', borderRadius: 4, background: `${kindOf(e.kind)[1]}22`, color: 'var(--text-primary)', fontSize: '0.68rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `3px solid ${kindOf(e.kind)[1]}` }}>{!e.all_day && `${new Date(e.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} `}{e.title}</span>;
+                    const finished = e.kind === 'ticket' && ['resolved', 'closed'].includes(e.status);
+                    const overdue = e.kind === 'ticket' && !finished && ymd(new Date(e.starts_at)) < ymd(new Date());
+                    const chip = <span title={`${e.title}${finished ? ' (resolved)' : overdue ? ' (overdue)' : ''}`} style={{ display: 'block', margin: '2px 0', padding: '1px 5px', borderRadius: 4, background: `${kindOf(e.kind)[1]}22`, color: finished ? 'var(--text-tertiary)' : 'var(--text-primary)', opacity: finished ? 0.65 : 1, textDecoration: finished ? 'line-through' : 'none', fontSize: '0.68rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', borderLeft: `3px solid ${kindOf(e.kind)[1]}` }}>{!e.all_day && `${new Date(e.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} `}{finished ? '✓ ' : overdue ? '⚠ ' : ''}{e.title}</span>;
                     return e.url ? <Link key={e.id} to={e.url} style={{ textDecoration: 'none' }}>{chip}</Link> : <div key={e.id}>{chip}</div>;
                   })}
                   {list.length > 3 && <span style={{ fontSize: '0.66rem', color: colors.textFaint }}>+{list.length - 3} more</span>}

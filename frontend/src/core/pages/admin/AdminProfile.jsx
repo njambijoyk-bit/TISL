@@ -372,9 +372,10 @@ export default function AdminProfile() {
                 {/* Quick stats */}
                 <div style={card}>
                   <p style={sectionTitle}><TrendingUp size={14} style={{ color: 'var(--color-primary-600)' }} /> Quick stats <span style={{ fontWeight: 400, fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>· from your calendar, next 30 days</span></p>
-                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+                  <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: 12 }}>
                     {[
                       { label: 'Tasks',      value: kindCount('task'),      color: '#3b82f6', bg: '#eff6ff', ink: '#1d4ed8' },
+                      { label: 'Tickets',    value: kindCount('ticket'),    color: '#ef4444', bg: '#fef2f2', ink: '#b91c1c' },
                       { label: 'Milestones', value: kindCount('milestone'), color: '#10b981', bg: '#f0fdf4', ink: '#047857' },
                       { label: 'Bookings',   value: kindCount('booking'),   color: '#f59e0b', bg: '#fffbeb', ink: '#b45309' },
                       { label: 'Project ends', value: kindCount('project'), color: '#06b6d4', bg: '#ecfeff', ink: '#0e7490' },

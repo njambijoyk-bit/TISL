@@ -38,26 +38,36 @@ class CalendarService
         return CalendarEntry::updateOrCreate($key, array_diff_key($e, $key) + ['visibility' => 'team']);
     }
 
+    /** Days after a ticket is assigned that it falls due, by priority. */
+    public const TICKET_DUE_DAYS = ['urgent' => 0, 'high' => 2, 'medium' => 4, 'low' => 7];
+
     /**
-     * Keep a support ticket on its assignee's calendar: an all-day entry on the day it was assigned, for as long as it is assigned to them and
-     * not resolved or closed. Reassigning moves it to the new person; unassigning, resolving, closing or deleting takes it off.
+     * Keep a support ticket on its assignee's calendar as an all-day entry on its due day: the day it was assigned plus the days its priority
+     * allows (urgent the same day, high two days, medium four, low seven). It stays while the ticket is open, in progress or waiting on the
+     * customer. Resolved or closed, it stays on its day marked as such, so the calendar also records what was handled. Reassigning moves it to the
+     * new person (due from the day they got it), a change of priority moves the due day, and unassigning or deleting takes it off.
      */
-    public function syncTicket(Ticket $t, ?Carbon $day = null): void
+    public function syncTicket(Ticket $t, ?Carbon $assignedOn = null): void
     {
-        $live = $t->assigned_to && ! $t->trashed() && ! in_array($t->status, ['resolved', 'closed'], true);
-        if (! $live) {
+        if (! $t->assigned_to || $t->trashed()) {
             $this->remove('ticket', $t->id);
 
             return;
         }
         CalendarEntry::where('source_type', 'ticket')->where('source_id', $t->id)->where('user_id', '!=', $t->assigned_to)->delete();   // it moved to someone else
         $existing = CalendarEntry::where('source_type', 'ticket')->where('source_id', $t->id)->where('user_id', $t->assigned_to)->first();
+        $done = in_array($t->status, ['resolved', 'closed'], true);
+        if ($done && ! $existing) {
+            return;   // finished before it ever reached a calendar
+        }
+        $assigned = ($existing?->meta['assigned_on'] ?? null) ?: ($assignedOn ?? now())->toDateString();
+        $due = Carbon::parse($assigned)->addDays(self::TICKET_DUE_DAYS[$t->priority] ?? 4)->startOfDay();
         $fields = ['kind' => 'ticket', 'title' => "{$t->ticket_number} · {$t->subject}", 'status' => $t->status, 'visibility' => 'team', 'url' => "/admin/tickets/{$t->id}",
-            'meta' => ['priority' => $t->priority, 'category' => $t->category]];
+            'starts_at' => $due, 'ends_at' => null, 'all_day' => true, 'meta' => ['priority' => $t->priority, 'category' => $t->category, 'assigned_on' => $assigned, 'due' => $due->toDateString()]];
         if ($existing) {
-            $existing->update($fields);   // the day it was assigned stays
+            $existing->update($fields);
         } else {
-            $this->put($fields + ['user_id' => $t->assigned_to, 'source_type' => 'ticket', 'source_id' => $t->id, 'starts_at' => ($day ?? now())->copy()->startOfDay(), 'ends_at' => null, 'all_day' => true]);
+            $this->put($fields + ['user_id' => $t->assigned_to, 'source_type' => 'ticket', 'source_id' => $t->id]);
         }
     }
 
@@ -96,12 +106,13 @@ class CalendarService
             $this->put(['user_id' => $uid, 'source_type' => 'project', 'source_id' => $p->id, 'kind' => 'project', 'title' => "Project ends: {$p->title}",
                 'starts_at' => Carbon::parse($p->target_end_date)->startOfDay(), 'all_day' => true, 'status' => $p->status, 'visibility' => 'team', 'url' => "/admin/projects/{$p->id}"]);
         }
-        // tickets assigned to them that are still open: any assigned before the calendar existed get an entry too (dated when they were last touched)
+        // tickets assigned to them that are still open: any assigned before the calendar existed get an entry too (due from when they were last touched)
         $openTickets = Ticket::where('assigned_to', $uid)->whereNotIn('status', ['resolved', 'closed'])->get();
         foreach ($openTickets as $t) {
             $this->syncTicket($t, $t->updated_at);
         }
-        CalendarEntry::where('user_id', $uid)->where('source_type', 'ticket')->whereNotIn('source_id', $openTickets->pluck('id'))->delete();
+        // entries of tickets that are no longer theirs (unassigned, moved, deleted); finished ones stay as the record
+        CalendarEntry::where('user_id', $uid)->where('source_type', 'ticket')->whereNotIn('source_id', Ticket::where('assigned_to', $uid)->pluck('id'))->delete();
 
         // entries in the window whose source is done, moved or gone
         foreach (['task', 'milestone', 'project'] as $type) {
