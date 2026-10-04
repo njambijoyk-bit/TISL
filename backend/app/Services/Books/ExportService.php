@@ -546,6 +546,9 @@ class ExportService
             $so ??= $s->type?->base_type === VoucherType::SALES_ORDER ? $s : null;
             $dn ??= $s->type?->base_type === VoucherType::DELIVERY_NOTE ? $s : null;
         }
+        // "Order No." only when it really is an order: a reference that is the number of a quotation, booking or any other document is just a reference
+        $refDoc = $v->reference_no ? Voucher::with('type')->where('voucher_number', $v->reference_no)->first() : null;
+        $isOrder = $so && (! $refDoc || $refDoc->type?->base_type === VoucherType::SALES_ORDER);
         $ship = $v->meta['contact']['shipping_address'] ?? ($so?->meta['contact']['shipping_address'] ?? null);
         $paidWith = $v->paymentMethod?->name;
         $kv = fn (string $k, ?string $val) => $val !== null && $val !== '' ? "<div><b>{$e($k)}:</b> {$e($val)}</div>" : '';
@@ -554,10 +557,10 @@ class ExportService
             . "<div class='im'><b>Dated:</b> {$e($day($v->date))}</div>"
             . ($kind === 'receipt'
                 ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
-                : "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>"
+                : (! $cash ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
                     . (! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : ''));
-        $refs = $kind === 'receipt' ? '' : ($so ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($so ? $kv('Order Dated', $day($so->date)) : '')
-            . ($so && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
+        $refs = $kind === 'receipt' ? '' : ($isOrder ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($isOrder ? $kv('Order Dated', $day($so->date)) : '')
+            . ($isOrder && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
             . $kv('Delivery Address', $ship) . ($dn ? $kv('Terms of Delivery', $co['delivery_terms'] ?? null) : '');
         $top = "<table class='it0'><tr><td class='itl'>{$buyerHtml}</td><td class='itr'>{$meta}</td></tr>" . ($refs ? "<tr><td colspan='2' class='itl'>{$refs}</td></tr>" : '') . '</table>';
 
