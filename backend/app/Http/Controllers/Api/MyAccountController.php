@@ -143,7 +143,7 @@ class MyAccountController extends Controller
         $format = in_array(strtolower((string) $request->query('format', 'pdf')), ExportService::FORMATS, true) ? strtolower((string) $request->query('format', 'pdf')) : 'pdf';
 
         $party = ['company_name' => $c->company_name, 'ledger_name' => $ledger->name ?: ($request->user()->name ?? null),
-            'address' => $ledger->address ?: ($c->default_billing_address ?: $c->default_shipping_address), 'tax_pin' => $c->tax_id];
+            'address' => $ledger->address ?: ($c->default_billing_address ?: $c->default_shipping_address), 'tax_pin' => $c->tax_id, 'phone' => $c->phone ?: $request->user()->phone, 'email' => $c->email ?: $request->user()->email];
 
         return $export->statement($table, $party, $format, "statement-{$from}-to-{$to}");
     }

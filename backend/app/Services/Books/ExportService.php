@@ -307,11 +307,23 @@ class ExportService
         $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
         $co = $this->company();
         $lines = static fn (array $l) => implode('', array_map(fn ($x) => $x === null ? '<div>&nbsp;</div>' : '<div>' . $x . '</div>', $l));
+        $note = 'This is a computer-generated document and does not require a signature.';
 
-        $ours = [];
-        $ours[] = ! empty($co['name']) ? '<b>' . $e($co['name']) . '</b>' : null;
+        // our contacts: the default phone and email, the number marked WhatsApp, and the website — each on its own line
+        $profile = \App\Models\CompanyProfile::current();
+        $phones = $profile->phoneList();
+        $default = $phones[0]['value'] ?? null;
+        $whatsapp = null;
+        foreach ($phones as $ph) {
+            if (preg_match('/whats/i', (string) ($ph['label'] ?? ''))) {
+                $whatsapp = $ph['value'];
+                break;
+            }
+        }
+        $ours = [! empty($co['name']) ? '<b>' . $e($co['name']) . '</b>' : false];
         foreach ([$co['address'] ?? null, implode(', ', array_filter([$co['city'] ?? null, $co['country'] ?? null])) ?: null,
-            implode(' · ', array_filter([$co['emails'][0] ?? null, $co['phones'][0] ?? null])) ?: null] as $x) {
+            ! empty($co['emails'][0]) ? 'Email: ' . $co['emails'][0] : null, $default ? 'Tel: ' . $default : null,
+            $whatsapp ? 'WhatsApp: ' . $whatsapp : null, $co['website'] ?? null] as $x) {
             $ours[] = $x ? $e($x) : false;
         }
         if (! empty($co['tax_pin'])) {
@@ -319,7 +331,8 @@ class ExportService
             $ours[] = 'PIN: ' . $e($co['tax_pin']);
         }
         $theirs = [];
-        foreach ([$party['company_name'] ?? null, $party['ledger_name'] ?? null, $party['address'] ?? null] as $i => $x) {
+        foreach ([$party['company_name'] ?? null, $party['ledger_name'] ?? null, $party['address'] ?? null,
+            ! empty($party['phone']) ? 'Tel: ' . $party['phone'] : null, ! empty($party['email']) ? 'Email: ' . $party['email'] : null] as $i => $x) {
             $theirs[] = $x ? ($i === 0 ? '<b>' . $e($x) . '</b>' : nl2br($e($x))) : false;
         }
         if (! empty($party['tax_pin'])) {
@@ -327,18 +340,19 @@ class ExportService
         }
         $clean = fn (array $l) => array_values(array_filter($l, fn ($x) => $x !== false));
 
-        // we are the sender, so our details sit top right (text left-aligned); the customer's start below them, on the left
-        $body = "<table class='sthead'><tr><td class='stl'></td><td class='str'>" . $lines($clean($ours)) . '</td></tr>'
+        // the computer-generated note opens and closes the page in small, light ink; our details sit top right, the customer's start below on the left
+        $body = "<div class='stnote' style='margin-bottom:14px'>{$e($note)}</div>"
+            . "<table class='sthead'><tr><td class='stl'></td><td class='str'>" . $lines($clean($ours)) . '</td></tr>'
             . "<tr><td class='stl stcust' colspan='2'>" . $lines($clean($theirs)) . '</td></tr></table>'
             . "<div class='sttitle'>STATEMENT</div>"
             . (! empty($table['subtitle']) ? "<p class='stsub'>{$e($table['subtitle'])}</p>" : '')
             . preg_replace('~^<h1>.*?</h1>~s', '', $this->tableBody(['rows' => $table['rows'] ?? [], 'columns' => $table['columns'] ?? [], 'totals' => $table['totals'] ?? null]))   // the layout supplies its own title
-            . (! empty($co['tagline']) ? "<div class='sttag'>{$e($co['tagline'])}</div>" : '');
+            . "<div class='sttag'>" . (! empty($co['tagline']) ? "<div class='sttl'>{$e($co['tagline'])}</div>" : '') . "<div class='stnote'>{$e($note)}</div></div>";
 
         $html = $this->html($body, $table['title'] ?? 'Statement');
         $html = str_replace('</style>', '.sthead{margin:0 0 6px}.sthead td{border:0;vertical-align:top;padding:0;font-size:12px;line-height:1.5}.stl{width:55%}.str{width:45%;text-align:left}.stcust{padding-top:16px}'
             . '.sttitle{text-align:center;font-size:22px;font-weight:700;letter-spacing:0.25em;margin:18px 0 2px}.stsub{text-align:center;color:#555;margin:0 0 10px}'
-            . '.sttag{position:fixed;left:24px;right:24px;bottom:12px;text-align:center;color:#555;font-style:italic;padding-top:8px;border-top:1px solid #ddd}</style>', $html);
+            . '.sttag{position:fixed;left:24px;right:24px;bottom:10px;text-align:center;padding-top:6px;border-top:1px solid #ddd}.sttl{color:#555;font-style:italic;margin-bottom:3px}.stnote{text-align:center;font-size:9px;color:#999}</style>', $html);
 
         return $format === 'pdf' ? $this->pdf($html, "$filename.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$filename.html", false);
     }
