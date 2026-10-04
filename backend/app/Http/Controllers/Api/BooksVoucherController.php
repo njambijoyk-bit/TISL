@@ -144,7 +144,7 @@ class BooksVoucherController extends Controller
 
         return $this->guard(function () use ($request, $id) {
             try {
-                $to = app(\App\Services\Books\VoucherShareService::class)->email(Voucher::with('type')->findOrFail($id), $request->input('to'), $request->input('note'));
+                $to = app(\App\Services\Books\VoucherShareService::class)->email(Voucher::with('type')->findOrFail($id), $request->input('to'), $request->input('note'), $request->user()?->id);
             } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
                 throw new BooksException('The mail server refused it: ' . $e->getMessage());
             }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle, Download, Printer } from 'lucide-react';
+import { whatsappDocument, printCustomerCopy } from '../../../components/admin/books/shareDocument';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import Modal from '../../../components/admin/ui/Modal';
@@ -24,7 +25,9 @@ const r = { textAlign: 'right', fontVariantNumeric: 'tabular-nums' };
 
 const TARGETS = { quotation: [['sales_order', 'Sales order'], ['sales', 'Sales invoice']], purchase_order: [['receipt_note', 'Receipt note (goods in)'], ['purchase', 'Purchase invoice']], receipt_note: [['purchase', 'Purchase invoice']], sales_order: [['delivery_note', 'Delivery note'], ['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']], delivery_note: [['sales', 'Sales invoice'], ['cash_sale', 'Cash sale']] };
 
-const SENDABLE = ['sales', 'cash_sale', 'credit_note', 'sales_order', 'delivery_note', 'debit_note', 'purchase_order'];
+const SENDABLE = ['sales', 'cash_sale', 'receipt', 'quotation', 'credit_note', 'sales_order', 'delivery_note', 'debit_note', 'purchase_order'];
+/** Types that have the customer copy (the layout customers see), as against the internal export. */
+const CUSTOMER_COPY = ['sales', 'cash_sale', 'receipt', 'quotation', 'sales_order', 'delivery_note'];
 
 /** Send a document to the customer: e-mail from the company's default address, or a WhatsApp message quoting the default phone. */
 function SendModal({ v, onClose }) {
@@ -40,6 +43,15 @@ function SendModal({ v, onClose }) {
     catch (e) { setErr(errMsg(e, 'Could not send')); }
     finally { setBusy(false); }
   };
+  const whatsapp = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const how = await whatsappDocument({ id: v.id, digits: info.whatsapp_digits, text: info.message, to: info.to_phone });
+      if (how === 'downloaded') toast.success('The PDF was saved to this computer — attach it in the WhatsApp chat that opened.');
+      if (how !== 'cancelled') onClose();
+    } catch (e) { setErr(errMsg(e, 'Could not prepare the document')); }
+    finally { setBusy(false); }
+  };
   return (
     <Modal title={`Send ${v.type.name} ${v.voucher_number}`} onClose={onClose}>
       {!info ? <p style={{ color: colors.textMuted }}>{err ?? 'Loading…'}</p> : (
@@ -53,7 +65,9 @@ function SendModal({ v, onClose }) {
           {err && <FormError>{err}</FormError>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" style={btnPrimary} disabled={busy || !info.from_email} onClick={send}><Send size={14} /> {busy ? 'Sending…' : 'Send e-mail'}</button>
-            <a href={info.whatsapp_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: 'none' }}><MessageCircle size={14} /> WhatsApp{info.to_phone ? ` ${info.to_phone}` : ''}</a>
+            {CUSTOMER_COPY.includes(v.type?.base_type)
+              ? <button type="button" style={btnGhost} disabled={busy} onClick={whatsapp}><MessageCircle size={14} /> WhatsApp{info.to_phone ? ` ${info.to_phone}` : ''}</button>
+              : <a href={info.whatsapp_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: 'none' }}><MessageCircle size={14} /> WhatsApp{info.to_phone ? ` ${info.to_phone}` : ''}</a>}
           </div>
           {!info.whatsapp_to_number && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>This customer has no phone number on file — WhatsApp will open so you can choose the contact.</p>}
         </FormStack>
@@ -230,6 +244,12 @@ export default function VoucherView() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <Link to={`/admin/books/edit-log?voucher=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }}><History size={14} /> Edit log</Link>
             <ExportMenu onExport={(f) => booksAPI.exportVoucher(v.id, f)} />
+            {live && CUSTOMER_COPY.includes(base) && (
+              <>
+                <button type="button" style={btnGhost} title="The copy the customer receives" onClick={() => booksAPI.customerCopy(v.id).catch((e) => toast.error(errMsg(e, 'Could not make the customer copy')))}><Download size={14} /> Customer copy</button>
+                <button type="button" style={btnGhost} title="Open the customer copy to print" onClick={() => printCustomerCopy(v.id).catch((e) => toast.error(errMsg(e, 'Could not make the customer copy')))}><Printer size={14} /> Print</button>
+              </>
+            )}
             {canWrite && convertible && !lockedBy && <button type="button" style={btnPrimary} onClick={() => setModal('convert')}><ArrowRightLeft size={14} /> Convert</button>}
             <AddToManifest voucher={v} onDone={load} />
             {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}

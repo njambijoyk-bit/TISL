@@ -481,12 +481,33 @@ class ExportService
     /** A customer's document (invoice, cash sale, receipt, sales order, delivery note or quotation) as pdf or html; what it is follows from its type. */
     public function document(Voucher $v, string $format): Response
     {
+        return $this->customerDocument($v, $format, $this->kindOf($v));
+    }
+
+    /** The voucher types that have a customer copy. */
+    public const CUSTOMER_DOCS = [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::RECEIPT, VoucherType::SALES_ORDER, VoucherType::DELIVERY_NOTE, VoucherType::QUOTATION];
+
+    private function kindOf(Voucher $v): string
+    {
         $v->loadMissing('type');
-        $kind = match ($v->type?->base_type) {
+
+        return match ($v->type?->base_type) {
             VoucherType::RECEIPT => 'receipt', VoucherType::DELIVERY_NOTE => 'delivery', VoucherType::SALES_ORDER => 'order', VoucherType::QUOTATION => 'quotation', default => 'invoice',
         };
+    }
 
-        return $this->customerDocument($v, $format, $kind);
+    /** The name a customer document is saved or attached under, without the extension: invoice-WNKJ-INV-00019, cashsale-WNKJ-CSH-00004. */
+    public function documentFileName(Voucher $v): string
+    {
+        $kind = $this->kindOf($v);
+
+        return (($kind === 'invoice' && $v->type?->base_type === VoucherType::CASH_SALE) ? 'cashsale' : $kind) . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);
+    }
+
+    /** The customer copy as PDF bytes (what is e-mailed). */
+    public function documentPdfBytes(Voucher $v): string
+    {
+        return $this->document($v, 'pdf')->getContent();
     }
 
     /**
@@ -681,7 +702,7 @@ class ExportService
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
         $html = str_replace('</style>', $this->customerDocCss($this->docTint($kind)) . '</style>', $this->html($body, $v->voucher_number));
-        $name = ($cash ? 'cashsale' : $kind) . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);   // e.g. invoice-WNKJ-INV-00019
+        $name = $this->documentFileName($v);   // e.g. invoice-WNKJ-INV-00019
 
         return $format === 'pdf' ? $this->pdf($html, "$name.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$name.html", false);
     }

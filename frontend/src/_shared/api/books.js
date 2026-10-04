@@ -59,6 +59,16 @@ const booksAPI = {
   lookup: (kind, q, purpose, extra = {}) => get('/admin/books/lookup', { kind, q, purpose, ...extra }),
   productVariants: (productId) => get(`/admin/books/products/${productId}/variants`),
   stockBatches: (variantId, locationId) => get('/admin/books/stock-batches', { variant_id: variantId, location_id: locationId }),
+  /** The customer's copy of a document (invoice, receipt, order, delivery note, quotation): saved to this computer, or fetched to open / attach. */
+  customerCopy: (id, format = 'pdf') => saveBlob(`/admin/books/vouchers/${id}/customer-copy`, { format }, `document.${format}`),
+  customerCopyFile: async (id) => {
+    const res = await api.get(`/admin/books/vouchers/${id}/customer-copy`, { params: { format: 'pdf' }, responseType: 'blob' });
+    return { blob: res.data, name: /filename="?([^";]+)"?/.exec(res.headers?.['content-disposition'] ?? '')?.[1] ?? 'document.pdf' };
+  },
+  logWhatsapp: (id, to) => send('post', `/admin/books/vouchers/${id}/whatsapp`, { to }),
+  mailDocuments: (params) => get('/admin/books/mail/documents', params),
+  mailSent: (params) => get('/admin/books/mail/sent', params),
+  mailSend: (voucherIds, note) => send('post', '/admin/books/mail/send', { voucher_ids: voucherIds, note: note || undefined }),
   exportVoucher: (id, format) => saveBlob(`/admin/books/vouchers/${id}/export`, { format }, `voucher.${format}`),
   exportVouchers: (params) => saveBlob('/admin/books/vouchers/export', params, `vouchers.${params.format}`),
 

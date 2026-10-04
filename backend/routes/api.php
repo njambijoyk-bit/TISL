@@ -487,6 +487,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // BOOKS (vouchers, ledgers, reports) — finance roles; period control is super_admin
     Route::middleware('role:admin,super_admin,finance,manager')->prefix('admin/books')->group(function () {
         Route::get('/vouchers',                 [BooksVoucherController::class, 'index']);
+        Route::get('/vouchers/{id}/customer-copy', [\App\Http\Controllers\Api\DocumentMailController::class, 'copy'])->whereNumber('id');
+        Route::get('/mail/documents',           [\App\Http\Controllers\Api\DocumentMailController::class, 'documents']);
+        Route::get('/mail/sent',                [\App\Http\Controllers\Api\DocumentMailController::class, 'sent']);
         Route::get('/vouchers/export',          [BooksVoucherController::class, 'exportList']);
         Route::get('/lookup',                   [BooksVoucherController::class, 'lookup']);
         Route::get('/products/{id}/variants',   [BooksVoucherController::class, 'productVariants']);
@@ -537,6 +540,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
             Route::post('/vouchers/{id}/return',    [BooksVoucherController::class, 'createReturn'])->whereNumber('id');
             Route::post('/vouchers/{id}/email',     [BooksVoucherController::class, 'emailDocument'])->whereNumber('id');
+            Route::post('/vouchers/{id}/whatsapp',  [\App\Http\Controllers\Api\DocumentMailController::class, 'whatsapp'])->whereNumber('id');
+            Route::post('/mail/send',               [\App\Http\Controllers\Api\DocumentMailController::class, 'send']);
             Route::post('/vouchers/{id}/receive',   [BooksVoucherController::class, 'receive']);
             Route::post('/cash/count', [BooksVoucherController::class, 'cashCount']);
             Route::post('/cash/hand-in', [BooksVoucherController::class, 'cashHandIn']);

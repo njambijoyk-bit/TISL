@@ -139,11 +139,12 @@ export const ADMIN_NAV = [
     items: [
       {
         id: 'books', title: 'Books', icon: BookOpen, color: '#6366f1', path: '/admin/books', also: ['/admin/books/vouchers'], roles: FINANCE_READ,
-        keywords: 'vouchers ledgers accounts invoice sales purchase journal receipt payment day book trial balance profit loss',
+        keywords: 'vouchers ledgers accounts invoice sales purchase journal receipt payment day book trial balance profit loss mail email whatsapp send documents',
         tabs: [
           { title: 'Overview', path: '/admin/books', exact: true },
           { title: 'Vouchers', path: '/admin/books?tab=vouchers', also: ['/admin/books/vouchers'] },
           { title: 'Gift vouchers', path: '/admin/books?tab=gifts' },
+          { title: 'Mail', path: '/admin/books?tab=mail' },
           { title: 'Edit log', path: '/admin/books/edit-log' },
           { title: 'Settings', path: '/admin/books?tab=settings' },
         ],
