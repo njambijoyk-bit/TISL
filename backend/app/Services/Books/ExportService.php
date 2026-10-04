@@ -399,7 +399,7 @@ class ExportService
         $body = $this->letterhead($party, $co)
             . '<table class="ltr"><tr><td>Dear Sir/Madam,</td><td style="text-align:right">' . $e($d($asOfDate)) . '</td></tr></table>'
             . '<div class="subj">Subject: Outstandings on your ledger</div>'
-            . '<p class="stbody">Given below is the detail of amounts outstanding against your ledger in our books as of ' . $e($d($asOfDate)) . '.<br>'
+            . '<p class="stbody lbody">Given below is the detail of amounts outstanding against your ledger in our books as of ' . $e($d($asOfDate)) . '.<br>'
             . 'We request you take immediate steps for settling the overdue bills and oblige.</p>'
             . $t . '<div class="subj">Ageing of outstandings (' . $e($cur) . ')</div>' . $bar
             . '<div class="sign">Yours faithfully,<br><b>' . $e($who) . '</b></div>'
@@ -467,11 +467,11 @@ class ExportService
         return '.sthead{margin:0 0 6px}.sthead td{border:0;vertical-align:top;padding:0;font-size:12px;line-height:1.5}.stl{width:55%}.str{width:45%;text-align:left}.stcust{padding-top:16px}'
             . '.sttitle{text-align:center;font-size:20px;font-weight:700;letter-spacing:0.18em;margin:18px 0 8px}.stbody{margin:4px 0 12px;line-height:1.5}'
             . '.sttag{position:fixed;left:24px;right:24px;bottom:10px;text-align:center;padding-top:6px;border-top:1px solid #ddd}.sttl{color:#555;font-style:italic;margin-bottom:3px}.stnote{text-align:center;font-size:9px;color:#999}'
-            . '.ltr{width:100%;margin:14px 0 4px}.ltr td{border:0;padding:0;font-size:12px}.subj{font-weight:700;margin:6px 0}.ol{width:100%;border-collapse:collapse;margin:10px 0}'
+            . '.ltr{width:100%;margin:30px 0 18px}.ltr td{border:0;padding:0;font-size:12px}.subj{font-weight:700;margin:16px 0 12px}.ol{width:100%;border-collapse:collapse;margin:18px 0 10px}'
             . '.ol th{background:none;border-top:1.5px solid #111;border-bottom:1.5px solid #111;padding:5px 4px;font-size:11px;text-align:right}.ol th.l,.ol td.l{text-align:left}'
-            . '.ol td{border:0;padding:3px 4px;font-size:11px;text-align:right}.ol .od{font-style:italic;color:#444;font-size:10px}.ol tr.sum td{border-top:1px solid #111;border-bottom:1.5px solid #111;font-weight:700}'
-            . '.gtot{font-weight:700;margin:8px 0}.bars{width:100%;border-collapse:collapse;margin:12px 0}.bars td{border:0;text-align:center;vertical-align:bottom;font-size:10px;padding:0 10px}'
-            . '.bar{background:#444;margin:0 auto;width:60%}.sign{text-align:right;margin-top:26px;line-height:1.6}';
+            . '.ol td{border:0;padding:5px 4px;font-size:11px;text-align:right}.ol .od{font-style:italic;color:#444;font-size:10px}.ol tr.sum td{border-top:1px solid #111;border-bottom:1.5px solid #111;font-weight:700}'
+            . '.gtot{font-weight:700;margin:14px 0 26px}.bars{width:100%;border-collapse:collapse;margin:18px 0 10px}.bars td{border:0;text-align:center;vertical-align:bottom;font-size:10px;padding:0 10px}'
+            . '.bar{background:#444;margin:0 auto;width:60%}.sign{text-align:right;margin-top:44px;line-height:1.7}.lbody{margin:0 0 24px;line-height:1.8}';
     }
 
     private function html(string $body, string $title): string
