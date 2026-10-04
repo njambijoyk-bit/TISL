@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { appearanceAPI } from '../../../_shared/api/appearance';
 import { useTheme } from '../../../_shared/theme';
+import SettingsLayout from '../../../_shared/components/layout/SettingsLayout';
 
 // ── Tiny reusable components ────────────────────────────────────────────────
 
@@ -582,6 +583,7 @@ export default function AppearancePage() {
   const [activeTab, setActiveTab] = useState('colours');
 
   return (
+    <SettingsLayout>
     <div style={{ padding: '24px 28px', maxWidth: '900px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ marginBottom: '28px' }}>
@@ -621,5 +623,6 @@ export default function AppearancePage() {
       {activeTab === 'fonts'   && <FontsTab />}
       {activeTab === 'icons'   && <IconsTab />}
     </div>
+    </SettingsLayout>
   );
 }
