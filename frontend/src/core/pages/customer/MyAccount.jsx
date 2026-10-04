@@ -54,7 +54,7 @@ export default function MyAccount() {
                       <td style={td}>{b.date}</td>
                       <td style={{ ...td, color: b.days_late > 0 ? '#b91c1c' : 'inherit' }}>{b.due_date}{b.days_late > 0 && <div style={{ fontSize: '0.7rem' }}>{b.days_late} days late</div>}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{m(b.original)}</td>
-                      <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{m(b.outstanding)}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{m(b.outstanding)}{b.foreign && <div style={{ fontSize: '0.7rem', fontWeight: 400, color: 'var(--text-tertiary)' }}>{b.currency} {Number(b.outstanding_fc).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>}</td>
                     </tr>
                   ))}
                 </tbody>

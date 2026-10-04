@@ -37,8 +37,20 @@ class MyAccountController extends Controller
         // the order an invoice came from, so the customer can open it
         $orderOf = Voucher::with('source.type')->whereIn('id', array_column($bills, 'voucher_id'))->get()
             ->mapWithKeys(fn ($v) => [$v->id => ($v->source && $v->source->type?->base_type === VoucherType::SALES_ORDER) ? $v->source->id : null]);
-        $bills = array_map(fn ($b) => ['voucher_number' => $b['voucher_number'], 'type_name' => $b['type'] === 'journal' ? 'Bounced cheque fee' : 'Invoice', 'date' => $b['date'], 'due_date' => $b['due_date'],
-            'days_late' => $b['days_late'], 'original' => $b['original'], 'outstanding' => $b['outstanding'], 'order_id' => $orderOf[$b['voucher_id']] ?? null], $bills);
+        // The bills are held in each invoice's own currency (a USD invoice is USD 3,600, not KES 3,600). The customer's totals are in
+        // the base currency, so take each bill's base figure from the ageing report, which already restates them, and keep the bill's own
+        // currency alongside so they can still see what they were invoiced.
+        $ageing = $reports->ageing('receivables', null, $ledger->id);
+        $inBase = collect($ageing['rows'][0]['bills'] ?? [])->keyBy('voucher_id');
+        $bills = array_map(function ($b) use ($orderOf, $inBase) {
+            $a = $inBase[$b['voucher_id']] ?? null;
+            $ratio = $a && (float) $a['open_fc'] > 0 ? (float) $a['open'] / (float) $a['open_fc'] : 1.0;
+
+            return ['voucher_number' => $b['voucher_number'], 'type_name' => $b['type'] === 'journal' ? 'Bounced cheque fee' : 'Invoice', 'date' => $b['date'], 'due_date' => $b['due_date'],
+                'days_late' => $b['days_late'], 'original' => round($b['original'] * $ratio, 2), 'outstanding' => $a ? round((float) $a['open'], 2) : $b['outstanding'],
+                'currency' => $a['currency'] ?? null, 'foreign' => (bool) ($a['foreign'] ?? false), 'outstanding_fc' => $b['outstanding'],
+                'order_id' => $orderOf[$b['voucher_id']] ?? null];
+        }, $bills);
 
         $limit = 0.0;
         if ($c->has_credit_account && (float) $c->credit_limit > 0) {
@@ -50,7 +62,7 @@ class MyAccountController extends Controller
         return response()->json([
             'base_currency' => $base,
             'owed' => round(array_sum(array_column($bills, 'outstanding')), 2),
-            'overdue' => $ob['totals']['overdue'],
+            'overdue' => round(array_sum(array_map(fn ($b) => $b['days_late'] > 0 ? $b['outstanding'] : 0, $bills)), 2),
             'balance' => round($balance, 2),   // what the ledger nets to after anything held for them
             'credits' => array_values(array_filter($ob['credits'], fn ($x) => $x['kind'] === 'credit')),
             'bills' => $bills,
