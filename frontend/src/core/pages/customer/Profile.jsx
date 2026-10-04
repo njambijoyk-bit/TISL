@@ -22,45 +22,45 @@ import { formatMoney } from '../../../_shared/lib/money';
 
 const inputStyle = {
   width: '100%', padding: '9px 12px', borderRadius: 8, fontSize: '0.875rem',
-  border: '1.5px solid #e5e7eb', color: '#111827', outline: 'none',
+  border: '1.5px solid var(--line)', color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
-  fontFamily: 'inherit', boxSizing: 'border-box', background: 'white',
+  fontFamily: 'inherit', boxSizing: 'border-box', background: 'var(--surface-card, #fff)',
 };
 const inputFocus = (e) => {
-  e.currentTarget.style.borderColor = '#6366f1';
+  e.currentTarget.style.borderColor = 'var(--color-primary-500)';
   e.currentTarget.style.boxShadow = '0 0 0 3px rgba(99,102,241,0.1)';
 };
 const inputBlur = (e) => {
-  e.currentTarget.style.borderColor = '#e5e7eb';
+  e.currentTarget.style.borderColor = 'var(--line)';
   e.currentTarget.style.boxShadow = 'none';
 };
 const inputDisabled = {
   ...inputStyle,
-  background: '#f9fafb', color: '#6b7280', cursor: 'not-allowed', borderColor: '#f3f4f6',
+  background: 'var(--surface-input)', color: 'var(--text-secondary)', cursor: 'not-allowed', borderColor: 'var(--line)',
 };
 
 const labelStyle = {
-  fontSize: '0.75rem', fontWeight: 600, color: '#374151',
+  fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-primary)',
   display: 'block', marginBottom: 4,
 };
 
 const card = {
-  background: 'white', borderRadius: 12,
-  border: '1px solid #e5e7eb',
+  background: 'var(--surface-card, #fff)', borderRadius: 12,
+  border: '1px solid var(--line)',
   boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
   padding: 24,
 };
 
 const sectionTitle = {
-  fontSize: '0.875rem', fontWeight: 700, color: '#111827',
+  fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)',
   display: 'flex', alignItems: 'center', gap: 8,
   margin: '0 0 18px', paddingBottom: 12,
-  borderBottom: '1px solid #f3f4f6',
+  borderBottom: '1px solid var(--line)',
 };
 
 const TIER_STYLES_FALLBACK = {
   bronze:   { bg: 'rgba(249,115,22,0.1)',  color: '#c2410c', ring: 'rgba(249,115,22,0.25)'  },
-  silver:   { bg: 'rgba(107,114,128,0.1)', color: '#4b5563', ring: 'rgba(107,114,128,0.2)'  },
+  silver:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', ring: 'rgba(107,114,128,0.2)'  },
   gold:     { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', ring: 'rgba(234,179,8,0.25)'   },
   platinum: { bg: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)',  color: 'var(--color-primary-600)', ring: 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'  },
 };
@@ -90,7 +90,7 @@ function Input({ value, onChange, type = 'text', disabled, placeholder, icon }) 
       {icon && (
         <span style={{
           position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)',
-          color: '#9ca3af', pointerEvents: 'none', display: 'flex',
+          color: 'var(--text-tertiary)', pointerEvents: 'none', display: 'flex',
         }}>
           {icon}
         </span>
@@ -453,7 +453,7 @@ export default function Profile() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #e0e7ff', borderTopColor: '#6366f1', animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #e0e7ff', borderTopColor: 'var(--color-primary-500)', animation: 'spin 0.8s linear infinite' }} />
     </div>
   );
 
@@ -504,7 +504,7 @@ export default function Profile() {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px', letterSpacing: '-0.02em' }}>
               My Profile
             </h1>
-            <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0 }}>
               Manage your personal information and account settings
             </p>
           </div>
@@ -517,7 +517,7 @@ export default function Profile() {
                 padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer',
                 border: '1.5px solid color-mix(in srgb, var(--color-primary-600) 22%, transparent)',
-                background: 'white', color: 'var(--color-primary-600)',
+                background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                 transition: 'background 150ms',
                 boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-600) 8%, transparent)',
               }}
@@ -535,7 +535,7 @@ export default function Profile() {
                 padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
                 fontFamily: 'inherit', cursor: 'pointer',
                 border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
-                background: 'white', color: 'var(--color-primary-600)',
+                background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                 transition: 'background 150ms',
                 boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
                 position: 'relative',
@@ -581,14 +581,14 @@ export default function Profile() {
             <div style={{ ...card, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 20 }}>
               <div style={{ position: 'relative', flexShrink: 0 }}>
                 {imgLoading ? (
-                  <div style={{ width: 80, height: 80, borderRadius: 16, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Loader2 size={20} style={{ color: '#6366f1', animation: 'spin 1s linear infinite' }} />
+                  <div style={{ width: 80, height: 80, borderRadius: 16, background: 'var(--surface-input)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Loader2 size={20} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
                   </div>
                 ) : (
                   <img
                     src={customer.profile_image_url}
                     alt={customer.full_name}
-                    style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'cover', background: '#f3f4f6', display: 'block' }}
+                    style={{ width: 80, height: 80, borderRadius: 16, objectFit: 'cover', background: 'var(--surface-input)', display: 'block' }}
                   />
                 )}
                 <button
@@ -596,24 +596,24 @@ export default function Profile() {
                   disabled={imgLoading}
                   style={{
                     position: 'absolute', bottom: -4, right: -4, width: 26, height: 26,
-                    borderRadius: '50%', background: 'white', border: '1.5px solid #e5e7eb',
+                    borderRadius: '50%', background: 'var(--surface-card, #fff)', border: '1.5px solid var(--line)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     cursor: 'pointer', boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
                     transition: 'border-color 150ms',
                   }}
-                  onMouseEnter={e => e.currentTarget.style.borderColor = '#6366f1'}
-                  onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                  onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                  onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--line)'}
                 >
-                  <Camera size={11} style={{ color: '#6366f1' }} />
+                  <Camera size={11} style={{ color: 'var(--color-primary-500)' }} />
                 </button>
                 <input ref={imgInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleImageChange} />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#111827', margin: '0 0 2px' }}>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 2px' }}>
                   {customer.full_name}
                 </h2>
-                <p style={{ fontSize: '0.75rem', color: '#6b7280', fontFamily: 'monospace', margin: '0 0 6px' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontFamily: 'monospace', margin: '0 0 6px' }}>
                   {customer.customer_number}
                 </p>
                 <span style={{
@@ -640,8 +640,8 @@ export default function Profile() {
                     <button onClick={cancelEdit} style={{
                       display: 'flex', alignItems: 'center', gap: 5,
                       padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-                      background: 'transparent', color: '#6b7280',
-                      border: '1px solid #e5e7eb', cursor: 'pointer', fontFamily: 'inherit',
+                      background: 'transparent', color: 'var(--text-secondary)',
+                      border: '1px solid var(--line)', cursor: 'pointer', fontFamily: 'inherit',
                     }}>
                       <X size={14} /> Discard
                     </button>
@@ -649,7 +649,7 @@ export default function Profile() {
                       display: 'flex', alignItems: 'center', gap: 5,
                       padding: '7px 16px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 700,
                       border: 'none', cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                      background: '#6366f1', color: 'white',
+                      background: 'var(--color-primary-500)', color: 'white',
                       boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
                       opacity: saving ? 0.7 : 1,
                     }}>
@@ -661,12 +661,12 @@ export default function Profile() {
                   <button onClick={() => setEditing(true)} style={{
                     display: 'flex', alignItems: 'center', gap: 5,
                     padding: '7px 14px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 600,
-                    background: 'transparent', color: '#374151',
-                    border: '1px solid #e5e7eb', cursor: 'pointer', fontFamily: 'inherit',
+                    background: 'transparent', color: 'var(--text-primary)',
+                    border: '1px solid var(--line)', cursor: 'pointer', fontFamily: 'inherit',
                     transition: 'border-color 150ms',
                   }}
-                    onMouseEnter={e => e.currentTarget.style.borderColor = '#6366f1'}
-                    onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
+                    onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--color-primary-500)'}
+                    onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--line)'}
                   >
                     <Edit2 size={13} /> Edit profile
                   </button>
@@ -681,13 +681,13 @@ export default function Profile() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {hasCurrencyChoice && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Currency</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Currency</span>
                     <CurrencyToggle />
                   </div>
                 )}
                 {hasBranchChoice && (
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#374151' }}>Branch</span>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>Branch</span>
                     <LocationPicker />
                   </div>
                 )}
@@ -696,13 +696,13 @@ export default function Profile() {
             )}
 
             {/* Tab bar */}
-            <div style={{ display: 'flex', gap: 2, marginBottom: 16, borderBottom: '2px solid #f3f4f6', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 2, marginBottom: 16, borderBottom: '2px solid var(--line)', flexWrap: 'wrap' }}>
               {TABS.map(t => (
                 <button key={t.key} onClick={() => setActiveTab(t.key)} style={{
                   padding: '9px 16px', fontSize: '0.82rem', fontWeight: activeTab === t.key ? 700 : 500,
-                  color: activeTab === t.key ? '#6366f1' : '#6b7280',
+                  color: activeTab === t.key ? 'var(--color-primary-500)' : '#6b7280',
                   background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  borderBottom: `2px solid ${activeTab === t.key ? '#6366f1' : 'transparent'}`,
+                  borderBottom: `2px solid ${activeTab === t.key ? 'var(--color-primary-500)' : 'transparent'}`,
                   marginBottom: -2, transition: 'color 150ms',
                 }}>
                   {t.label}
@@ -717,7 +717,7 @@ export default function Profile() {
 
                 {/* ── Personal info fields ── */}
                 <div style={card}>
-                  <p style={sectionTitle}><User size={14} style={{ color: '#6366f1' }} /> Personal information</p>
+                  <p style={sectionTitle}><User size={14} style={{ color: 'var(--color-primary-500)' }} /> Personal information</p>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <Field label="First name *">
                       <Input value={form.first_name} onChange={set('first_name')} disabled={!editing} icon={<User size={14} />} />
@@ -729,7 +729,7 @@ export default function Profile() {
                     </Field>
                     <Field label="Email">
                       <Input value={customer.email} disabled icon={<Mail size={14} />} />
-                      <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 3 }}>Email cannot be changed</p>
+                      <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 3 }}>Email cannot be changed</p>
                     </Field>
                     <Field label="Phone">
                       <Input value={form.phone} onChange={set('phone')} disabled={!editing} icon={<Phone size={14} />} placeholder="+254…" />
@@ -772,17 +772,17 @@ export default function Profile() {
 
                   return (
                     <div style={card}>
-                      <p style={sectionTitle}><Percent size={14} style={{ color: '#6366f1' }} /> Your discount</p>
+                      <p style={sectionTitle}><Percent size={14} style={{ color: 'var(--color-primary-500)' }} /> Your discount</p>
 
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
 
                         {rows.map(({ label, value, sub }) => (
-                          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
+                          <div key={label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 12px', borderRadius: 8, background: 'var(--surface-input)', border: '1px solid var(--line)' }}>
                             <div>
-                              <p style={{ fontSize: '0.8rem', color: '#374151', margin: 0, fontWeight: 500 }}>{label}</p>
-                              <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>{sub}</p>
+                              <p style={{ fontSize: '0.8rem', color: 'var(--text-primary)', margin: 0, fontWeight: 500 }}>{label}</p>
+                              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{sub}</p>
                             </div>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#6366f1' }}>
+                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>
                               {Number(value).toFixed(1)}%
                             </span>
                           </div>
@@ -791,15 +791,15 @@ export default function Profile() {
                         {/* only show the stacked total row if there are 2+ active discount sources */}
                         {rows.length > 1 && (
                           <>
-                            <div style={{ height: 1, background: '#f3f4f6', margin: '2px 0' }} />
+                            <div style={{ height: 1, background: 'var(--surface-input)', margin: '2px 0' }} />
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 8, background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)' }}>
                               <div>
-                                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', margin: 0 }}>Total discount</p>
-                                <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '2px 0 0' }}>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Total discount</p>
+                                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
                                   {rows.map(r => `${r.value.toFixed(1)}%`).join(' + ')} stacked
                                 </p>
                               </div>
-                              <span style={{ fontSize: '1rem', fontWeight: 800, color: '#6366f1', letterSpacing: '-0.02em' }}>
+                              <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.02em' }}>
                                 {effective.toFixed(1)}%
                               </span>
                             </div>
@@ -826,7 +826,7 @@ export default function Profile() {
             {/* ── TAB: Business ── */}
             {activeTab === 'business' && (
               <div style={card}>
-                <p style={sectionTitle}><Building2 size={14} style={{ color: '#6366f1' }} /> Business information</p>
+                <p style={sectionTitle}><Building2 size={14} style={{ color: 'var(--color-primary-500)' }} /> Business information</p>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <Field label="Company name">
                     <Input value={form.company_name} onChange={set('company_name')} disabled={!editing} icon={<Building2 size={14} />} />
@@ -839,7 +839,7 @@ export default function Profile() {
                   </Field>
                 </div>
                 {!editing && (
-                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 16 }}>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 16 }}>
                     Click "Edit profile" above to update your business information.
                   </p>
                 )}
@@ -850,8 +850,8 @@ export default function Profile() {
             {activeTab === 'addresses' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={card}>
-                  <p style={sectionTitle}><Package size={14} style={{ color: '#6366f1' }} /> Default shipping address</p>
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: 12, marginTop: -8 }}>
+                  <p style={sectionTitle}><Package size={14} style={{ color: 'var(--color-primary-500)' }} /> Default shipping address</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 12, marginTop: -8 }}>
                     Used as the default delivery address when placing orders.
                   </p>
                   {editing ? (
@@ -865,18 +865,18 @@ export default function Profile() {
                     />
                   ) : (
                     <div style={{
-                      padding: '10px 12px', borderRadius: 8, background: '#f9fafb',
-                      border: '1px solid #f3f4f6', fontSize: '0.875rem', color: '#374151',
+                      padding: '10px 12px', borderRadius: 8, background: 'var(--surface-input)',
+                      border: '1px solid var(--line)', fontSize: '0.875rem', color: 'var(--text-primary)',
                       minHeight: 80, whiteSpace: 'pre-wrap',
                     }}>
-                      {form.default_shipping_address || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No shipping address saved</span>}
+                      {form.default_shipping_address || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No shipping address saved</span>}
                     </div>
                   )}
                 </div>
 
                 <div style={card}>
-                  <p style={sectionTitle}><CreditCard size={14} style={{ color: '#6366f1' }} /> Default billing address</p>
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: 12, marginTop: -8 }}>
+                  <p style={sectionTitle}><CreditCard size={14} style={{ color: 'var(--color-primary-500)' }} /> Default billing address</p>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 12, marginTop: -8 }}>
                     Used for invoicing and payment records.
                   </p>
                   {editing ? (
@@ -890,11 +890,11 @@ export default function Profile() {
                     />
                   ) : (
                     <div style={{
-                      padding: '10px 12px', borderRadius: 8, background: '#f9fafb',
-                      border: '1px solid #f3f4f6', fontSize: '0.875rem', color: '#374151',
+                      padding: '10px 12px', borderRadius: 8, background: 'var(--surface-input)',
+                      border: '1px solid var(--line)', fontSize: '0.875rem', color: 'var(--text-primary)',
                       minHeight: 80, whiteSpace: 'pre-wrap',
                     }}>
-                      {form.default_billing_address || <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>No billing address saved</span>}
+                      {form.default_billing_address || <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>No billing address saved</span>}
                     </div>
                   )}
                 </div>
@@ -914,18 +914,18 @@ export default function Profile() {
                 {/* Balance cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div style={{ ...card, padding: '16px 20px' }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Loyalty Points</p>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Loyalty Points</p>
                     <p style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--color-primary-600)', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                       {walletLoading ? '…' : Number(wallet?.loyalty_points ?? customer.loyalty_points ?? 0).toLocaleString()}
                     </p>
-                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>{wallet?.tier ?? customer.tier} tier · ×{wallet?.tier_benefits?.loyalty_points_multiplier ?? 1} multiplier</p>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>{wallet?.tier ?? customer.tier} tier · ×{wallet?.tier_benefits?.loyalty_points_multiplier ?? 1} multiplier</p>
                   </div>
                   <div style={{ ...card, padding: '16px 20px' }}>
-                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Gift Voucher</p>
+                    <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px' }}>Gift Voucher</p>
                     <p style={{ fontSize: '1.8rem', fontWeight: 900, color: '#059669', margin: '0 0 2px', letterSpacing: '-0.02em', fontVariantNumeric: 'tabular-nums' }}>
                       {walletLoading ? '…' : acctMoney(wallet?.store_credit ?? customer.store_credit ?? 0)}
                     </p>
-                    <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0 }}>Available to spend at checkout</p>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0 }}>Available to spend at checkout</p>
                   </div>
                 </div>
 
@@ -941,12 +941,12 @@ export default function Profile() {
                   return (
                     <div style={card}>
                       {/* Header */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid #f3f4f6', gap: 10, flexWrap: 'wrap' }}>
-                        <p style={{ fontSize: '0.875rem', fontWeight: 700, color: '#111827', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--line)', gap: 10, flexWrap: 'wrap' }}>
+                        <p style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: 7 }}>
                           🎁 Redeem Points
                         </p>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '0.68rem', color: '#9ca3af', background: '#f9fafb', padding: '3px 9px', borderRadius: 99, border: '1px solid #f3f4f6' }}>
+                          <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', background: 'var(--surface-input)', padding: '3px 9px', borderRadius: 99, border: '1px solid var(--line)' }}>
                             Min. {minPts.toLocaleString()} pts to redeem
                           </span>
                           <button
@@ -980,7 +980,7 @@ export default function Profile() {
                             <div key={rule.id} style={{
                               borderRadius: 12, overflow: 'hidden',
                               border: `1.5px solid ${canRedeem ? 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)' : '#f0f0f0'}`,
-                              background: canRedeem ? 'white' : '#fafafa',
+                              background: canRedeem ? 'var(--surface-card, #fff)' : 'var(--surface-input)',
                               transition: 'box-shadow 150ms',
                               boxShadow: canRedeem ? '0 2px 10px color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'none',
                             }}>
@@ -1005,7 +1005,7 @@ export default function Profile() {
                                       {meta.label}
                                     </span>
                                   </div>
-                                  <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 7px' }}>
+                                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '0 0 7px' }}>
                                     <span style={{ fontWeight: 700, color: canRedeem ? 'var(--color-primary-600)' : '#9ca3af' }}>{Number(rule.points_required).toLocaleString()} pts</span>
                                     {Number(rule.value ?? rule.value_kes) > 0 && (
                                       <> → <span style={{ fontWeight: 700, color: canRedeem ? '#059669' : '#9ca3af' }}>{rule.currency_code ?? wallet?.base_currency ?? ''} {Number(rule.value ?? rule.value_kes).toLocaleString()}</span></>
@@ -1013,7 +1013,7 @@ export default function Profile() {
                                   </p>
 
                                   {/* Progress bar */}
-                                  <div style={{ height: 4, borderRadius: 99, background: '#f3f4f6', overflow: 'hidden' }}>
+                                  <div style={{ height: 4, borderRadius: 99, background: 'var(--surface-input)', overflow: 'hidden' }}>
                                     <div style={{
                                       height: '100%', borderRadius: 99,
                                       width: `${pctFilled * 100}%`,
@@ -1035,7 +1035,7 @@ export default function Profile() {
                                   style={{
                                     padding: '7px 16px', borderRadius: 9, fontSize: '0.75rem', fontWeight: 700,
                                     border: 'none', fontFamily: 'inherit', flexShrink: 0,
-                                    background: canRedeem ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : '#e5e7eb',
+                                    background: canRedeem ? 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))' : 'var(--line)',
                                     color: canRedeem ? 'white' : '#9ca3af',
                                     cursor: canRedeem ? 'pointer' : 'not-allowed',
                                     boxShadow: canRedeem ? '0 2px 8px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
@@ -1058,13 +1058,13 @@ export default function Profile() {
                 {/* Transaction history */}
                 <div style={card}>
                   {/* Ledger tabs */}
-                  <div style={{ display: 'flex', gap: 0, marginBottom: 14, borderBottom: '2px solid #f3f4f6' }}>
+                  <div style={{ display: 'flex', gap: 0, marginBottom: 14, borderBottom: '2px solid var(--line)' }}>
                     {[{ key: 'points', label: 'Points History' }, { key: 'credit', label: 'Credit History' }].map(t => (
                       <button key={t.key} onClick={() => { setWalletLedger(t.key); setWalletPage(1); }} style={{
                         padding: '7px 14px', fontSize: '0.78rem', fontWeight: walletLedger === t.key ? 700 : 500,
-                        color: walletLedger === t.key ? '#6366f1' : '#9ca3af',
+                        color: walletLedger === t.key ? 'var(--color-primary-500)' : '#9ca3af',
                         background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        borderBottom: `2px solid ${walletLedger === t.key ? '#6366f1' : 'transparent'}`,
+                        borderBottom: `2px solid ${walletLedger === t.key ? 'var(--color-primary-500)' : 'transparent'}`,
                         marginBottom: -2,
                       }}>{t.label}</button>
                     ))}
@@ -1072,9 +1072,9 @@ export default function Profile() {
 
                   {/* Rows */}
                   {!walletTxs ? (
-                    <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem', padding: '20px 0' }}>Loading…</p>
+                    <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.8rem', padding: '20px 0' }}>Loading…</p>
                   ) : walletTxs.data?.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.8rem', padding: '20px 0' }}>No transactions yet.</p>
+                    <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.8rem', padding: '20px 0' }}>No transactions yet.</p>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                       {walletTxs.data.map(tx => {
@@ -1083,13 +1083,13 @@ export default function Profile() {
                         return (
                           <div key={tx.id} style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                            padding: '9px 4px', borderBottom: '1px solid #f9fafb', gap: 10,
+                            padding: '9px 4px', borderBottom: '1px solid var(--line)', gap: 10,
                           }}>
                             <div style={{ flex: 1, minWidth: 0 }}>
-                              <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#374151', margin: '0 0 1px' }}>
+                              <p style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 1px' }}>
                                 {(tx.type_label ?? tx.type ?? '').replace(/_/g, ' ')}
                               </p>
-                              {tx.note && <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.note}</p>}
+                              {tx.note && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tx.note}</p>}
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
                               <p style={{ fontSize: '0.85rem', fontWeight: 800, color: positive ? '#059669' : '#dc2626', margin: '0 0 1px', fontVariantNumeric: 'tabular-nums' }}>
@@ -1097,7 +1097,7 @@ export default function Profile() {
                                   ? acctMoney(val)
                                   : `${val.toLocaleString()} pts`}
                               </p>
-                              <p style={{ fontSize: '0.65rem', color: '#9ca3af', margin: 0 }}>
+                              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', margin: 0 }}>
                                 {new Date(tx.created_at).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </p>
                             </div>
@@ -1109,15 +1109,15 @@ export default function Profile() {
 
                   {/* Pagination */}
                   {walletTxs?.meta?.last_page > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid #f3f4f6' }}>
-                      <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: 0 }}>Page {walletTxs.meta.current_page} of {walletTxs.meta.last_page}</p>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--line)' }}>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>Page {walletTxs.meta.current_page} of {walletTxs.meta.last_page}</p>
                       <div style={{ display: 'flex', gap: 4 }}>
                         {[{ label: '←', action: () => setWalletPage(p => Math.max(1, p - 1)), disabled: walletTxs.meta.current_page <= 1 },
                           { label: '→', action: () => setWalletPage(p => p + 1), disabled: walletTxs.meta.current_page >= walletTxs.meta.last_page }
                         ].map(({ label, action, disabled }) => (
                           <button key={label} onClick={action} disabled={disabled} style={{
                             width: 28, height: 28, borderRadius: 6, fontSize: '0.8rem', fontWeight: 700,
-                            border: '1px solid #e5e7eb', background: 'none', color: '#6366f1',
+                            border: '1px solid var(--line)', background: 'none', color: 'var(--color-primary-500)',
                             cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.3 : 1,
                           }}>{label}</button>
                         ))}
@@ -1158,7 +1158,7 @@ export default function Profile() {
                   {myCodes.active_codes.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '28px 0' }}>
                       <p style={{ fontSize: '2rem', margin: '0 0 8px' }}>🎁</p>
-                      <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>
+                      <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: 0 }}>
                         No active promo codes right now. Keep ordering to earn rewards!
                       </p>
                     </div>
@@ -1404,7 +1404,7 @@ export default function Profile() {
                         <button type="submit" disabled={otpLoading || otp.length !== 6} style={{
                           padding: '9px 16px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700,
                           border: 'none', cursor: (otpLoading || otp.length !== 6) ? 'not-allowed' : 'pointer',
-                          background: '#6366f1', color: 'white', fontFamily: 'inherit',
+                          background: 'var(--color-primary-500)', color: 'white', fontFamily: 'inherit',
                           display: 'flex', alignItems: 'center', gap: 5,
                           opacity: (otpLoading || otp.length !== 6) ? 0.6 : 1,
                         }}>
@@ -1413,13 +1413,13 @@ export default function Profile() {
                         </button>
                         <button type="button" onClick={() => { setOtpSent(false); setOtp(''); }} style={{
                           padding: '9px 12px', borderRadius: 8, fontSize: '0.75rem', fontWeight: 600,
-                          border: '1px solid #e5e7eb', background: 'none', cursor: 'pointer',
-                          color: '#6b7280', fontFamily: 'inherit',
+                          border: '1px solid var(--line)', background: 'none', cursor: 'pointer',
+                          color: 'var(--text-secondary)', fontFamily: 'inherit',
                         }}>
                           Cancel
                         </button>
                         <button type="button" onClick={handleSendOtp} disabled={otpLoading} style={{
-                          fontSize: '0.72rem', color: '#6366f1', background: 'none', border: 'none',
+                          fontSize: '0.72rem', color: 'var(--color-primary-500)', background: 'none', border: 'none',
                           cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline',
                         }}>
                           Resend
@@ -1430,7 +1430,7 @@ export default function Profile() {
                 )}
 
               <div style={card}>
-                <p style={sectionTitle}><FileText size={14} style={{ color: '#6366f1' }} /> Change password</p>
+                <p style={sectionTitle}><FileText size={14} style={{ color: 'var(--color-primary-500)' }} /> Change password</p>
                 <form onSubmit={handlePasswordSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {[
                     { key: 'current_password',         label: 'Current password',      show: 'current' },
@@ -1458,20 +1458,20 @@ export default function Profile() {
                           onClick={() => setShowPwd(s => ({ ...s, [show]: !s[show] }))}
                           style={{
                             position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                            background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex',
+                            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex',
                           }}
                         >
                           {showPwd[show] ? <EyeOff size={15} /> : <Eye size={15} />}
                         </button>
                       </div>
-                      {hint && !pwdErrors[key] && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 3 }}>{hint}</p>}
+                      {hint && !pwdErrors[key] && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 3 }}>{hint}</p>}
                       {pwdErrors[key] && <p style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: 3 }}>{pwdErrors[key][0]}</p>}
                     </Field>
                   ))}
                   <button type="submit" disabled={savingPwd} style={{
                     padding: '9px 20px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
                     border: 'none', cursor: savingPwd ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
-                    background: '#6366f1', color: 'white',
+                    background: 'var(--color-primary-500)', color: 'white',
                     boxShadow: '0 2px 8px rgba(99,102,241,0.35)',
                     opacity: savingPwd ? 0.7 : 1,
                     display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -1491,7 +1491,7 @@ export default function Profile() {
 
             {/* Tier + stats */}
             <div style={card}>
-              <p style={{ ...sectionTitle, marginBottom: 14 }}><Star size={14} style={{ color: '#6366f1' }} /> Account overview</p>
+              <p style={{ ...sectionTitle, marginBottom: 14 }}><Star size={14} style={{ color: 'var(--color-primary-500)' }} /> Account overview</p>
 
               {/* Tier badge */}
               <div style={{
@@ -1518,8 +1518,8 @@ export default function Profile() {
                 { label: 'Loyalty pts',   value: `${(customer.loyalty_points ?? 0).toLocaleString()} pts` },
               ].map(({ label, value, mono }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8, fontSize: '0.78rem' }}>
-                  <span style={{ color: '#6b7280' }}>{label}</span>
-                  <span style={{ fontWeight: 700, color: '#111827', fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: mono ? 'monospace' : 'inherit' }}>{value}</span>
                 </div>
               ))}
 
@@ -1557,7 +1557,7 @@ export default function Profile() {
                       title="Copy code"
                       style={{
                         padding: '3px 8px', borderRadius: 6, fontSize: '0.68rem', fontWeight: 700,
-                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, var(--bg-primary))', background: 'white', color: 'var(--color-primary-600)',
+                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, var(--bg-primary))', background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
                         cursor: 'pointer', fontFamily: 'inherit', transition: 'background 120ms',
                       }}
                       onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
@@ -1610,15 +1610,15 @@ export default function Profile() {
             {/* Tier benefits */}
             {customer.tier_benefits && (
               <div style={card}>
-                <p style={{ ...sectionTitle, marginBottom: 12 }}><Star size={14} style={{ color: '#6366f1' }} /> Tier benefits</p>
+                <p style={{ ...sectionTitle, marginBottom: 12 }}><Star size={14} style={{ color: 'var(--color-primary-500)' }} /> Tier benefits</p>
                 {[
                   { label: 'Loyalty multiplier', value: `×${customer.tier_benefits.loyalty_points_multiplier}` },
                   { label: 'Tier discount',      value: `${customer.tier_benefits.discount}%` },
                   { label: 'Priority support',   value: customer.tier_benefits.priority_support ? '✓ Yes' : '—' },
                 ].map(({ label, value }) => (
                   <div key={label} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.78rem' }}>
-                    <span style={{ color: '#6b7280' }}>{label}</span>
-                    <span style={{ fontWeight: 700, color: '#111827' }}>{value}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{value}</span>
                   </div>
                 ))}
               </div>
@@ -1636,7 +1636,7 @@ export default function Profile() {
                 <button key={href} onClick={() => navigate(href)} style={{
                   display: 'block', width: '100%', textAlign: 'left',
                   padding: '8px 10px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500,
-                  background: 'none', border: 'none', cursor: 'pointer', color: '#374151',
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
                   fontFamily: 'inherit', marginBottom: 2, transition: 'background 120ms',
                 }}
                   onMouseEnter={e => e.currentTarget.style.background = '#f5f3ff'}
@@ -1724,7 +1724,7 @@ export default function Profile() {
               {code.code}
             </span>
             {used    && <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#059669', background: '#d1fae5', padding: '1px 6px', borderRadius: 99 }}>USED</span>}
-            {expired && <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#9ca3af', background: '#f3f4f6', padding: '1px 6px', borderRadius: 99 }}>EXPIRED</span>}
+            {expired && <span style={{ fontSize: '0.62rem', fontWeight: 700, color: 'var(--text-tertiary)', background: 'var(--surface-input)', padding: '1px 6px', borderRadius: 99 }}>EXPIRED</span>}
           </div>
           <p style={{ fontSize: '0.78rem', color: expired ? '#9ca3af' : '#374151', margin: '0 0 2px', fontWeight: 600 }}>
             {code.name}
@@ -1734,13 +1734,13 @@ export default function Profile() {
               {rewardStr}
             </span>
             {code.valid_until && (
-              <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                 {expired ? 'Expired' : 'Expires'}{' '}
                 {new Date(code.valid_until).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
             )}
             {code.min_order_value > 0 && (
-              <span style={{ fontSize: '0.68rem', color: '#9ca3af' }}>
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                 Min. KES {Number(code.min_order_value).toLocaleString()}
               </span>
             )}
@@ -1753,7 +1753,7 @@ export default function Profile() {
             onClick={handleCopy}
             style={{
               padding: '6px 12px', borderRadius: 7, fontSize: '0.72rem', fontWeight: 700,
-              border: '1.5px solid #c4b5fd', background: 'white', color: 'var(--color-primary-600)',
+              border: '1.5px solid #c4b5fd', background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
               cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
               display: 'flex', alignItems: 'center', gap: 4,
             }}>

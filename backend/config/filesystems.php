@@ -33,7 +33,7 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            'serve' => false,   // the framework's signed-URL route for this disk also claims /storage/{path} and answers 403 for public uploads; routes/web.php serves the public disk instead
             'throw' => false,
             'report' => false,
         ],
