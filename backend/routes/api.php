@@ -2227,6 +2227,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/company', [CompanyProfileController::class, 'show']);
+Route::get('/company/logo', [CompanyProfileController::class, 'logo']);
 
 // ── Appearance / Theme ─────────────────────────────────────────────────────
 Route::get('/appearance/options', [AppearanceController::class, 'options']);

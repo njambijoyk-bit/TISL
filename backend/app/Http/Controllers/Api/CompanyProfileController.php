@@ -16,7 +16,19 @@ class CompanyProfileController extends Controller
         $c = CompanyProfile::current();
 
         return response()->json($c->only(['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url'])
-            + ['emails' => $c->emailList(), 'phones' => $c->phoneList()]);
+            + ['emails' => $c->emailList(), 'phones' => $c->phoneList(),
+                // where to load the logo from: served through the API, so it does not depend on /storage being reachable from the browser
+                'logo_view' => $c->logo_url ? url('/api/company/logo') . '?v=' . substr(md5((string) $c->logo_url), 0, 8) : null]);
+    }
+
+    /** The logo file itself, public like the rest of the company profile. */
+    public function logo()
+    {
+        $url = CompanyProfile::current()->logo_url;
+        $path = $url ? ltrim((string) preg_replace('#^/?storage/#', '', $url), '/') : null;
+        abort_unless($path && str_starts_with($path, 'company/') && Storage::disk('public')->exists($path), 404);
+
+        return Storage::disk('public')->response($path, null, ['Cache-Control' => 'public, max-age=3600']);
     }
 
     public function update(Request $request): JsonResponse
@@ -58,7 +70,7 @@ class CompanyProfileController extends Controller
         $this->forget($c->logo_url);
         $c->fill(['logo_url' => Storage::url($request->file('logo')->store('company', 'public')), 'updated_by' => $request->user()->id])->save();
 
-        return response()->json(['message' => 'Logo saved', 'logo_url' => $c->logo_url]);
+        return response()->json(['message' => 'Logo saved', 'logo_url' => $c->logo_url, 'logo_view' => url('/api/company/logo') . '?v=' . substr(md5((string) $c->logo_url), 0, 8)]);
     }
 
     public function removeLogo(Request $request): JsonResponse
