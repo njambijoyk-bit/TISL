@@ -208,13 +208,16 @@ class MyAccountController extends Controller
             ->when($request->filled('to'), fn ($w) => $w->whereDate('date', '<=', (string) $request->query('to')))
             ->when($request->filled('q'), fn ($w) => $w->where('voucher_number', 'like', '%' . trim((string) $request->query('q')) . '%'));
 
-        return response()->json(['kind' => $kind, 'data' => $q->orderByDesc('date')->orderByDesc('id')->limit(200)->get()->map(fn ($v) => [
+        $found = $q->orderByDesc('date')->orderByDesc('id')->limit(200)->get();
+        $delivery = $kind === 'deliveries' ? app(ExportService::class)->deliveryInfo($found->pluck('id')->all()) : [];
+
+        return response()->json(['kind' => $kind, 'data' => $found->map(fn ($v) => [
             'id' => $v->id, 'voucher_number' => $v->voucher_number, 'type_name' => $v->type?->name, 'date' => $v->date?->toDateString(), 'due_date' => $v->due_date?->toDateString(),
             'total' => (float) $v->total_amount, 'currency' => $v->currency?->code, 'symbol' => $v->currency?->symbol,
-        ])->values()]);
+        ] + ($kind === 'deliveries' ? ['delivery' => $delivery[$v->id] ?? null] : []))->values()]);
     }
 
-    /** One of my invoices or receipts as a printable document (pdf or html). Anyone else's is a 404. */
+    /** One of my documents as a printable document (pdf or html). Anyone else's is a 404. */
     public function documentDownload(Request $request, ExportService $export, $id)
     {
         $kind = $this->docKind($request);

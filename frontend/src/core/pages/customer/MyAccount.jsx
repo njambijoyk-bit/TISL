@@ -46,14 +46,21 @@ function DocumentsTab({ choices = DOC_TABS }) {
             <input type="search" aria-label="Search by number" placeholder="Search by number…" value={q} onChange={(e) => setQ(e.target.value)} style={{ ...ctl, minWidth: 200 }} />
           </div>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
-            <thead><tr><th style={th}>Number</th><th style={th}>Date</th><th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Download</th></tr></thead>
+            <thead><tr><th style={th}>Number</th><th style={th}>Date</th>{kind === 'deliveries' && <th style={th}>Status</th>}<th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Download</th></tr></thead>
             <tbody>
-              {!rows && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={4}>Loading…</td></tr>}
-              {rows && rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={4}>No {kind === 'deliveries' ? 'delivery notes' : kind} yet.</td></tr>}
+              {!rows && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={5}>Loading…</td></tr>}
+              {rows && rows.length === 0 && <tr><td style={{ ...td, color: 'var(--text-secondary)' }} colSpan={5}>No {kind === 'deliveries' ? 'delivery notes' : kind} yet.</td></tr>}
               {rows && rows.map((r) => (
                 <tr key={r.id}>
                   <td style={td}><strong style={{ fontFamily: 'monospace' }}>{r.voucher_number}</strong><div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{r.type_name}</div></td>
                   <td style={td}>{r.date}</td>
+                  {kind === 'deliveries' && (
+                    <td style={td}>
+                      <span style={{ fontWeight: 700, color: r.delivery?.status === 'delivered' ? '#059669' : r.delivery?.status === 'failed' ? '#b91c1c' : 'var(--text-secondary)' }}>{r.delivery ? r.delivery.status_label : 'Awaiting dispatch'}</span>
+                      {r.delivery?.status === 'delivered' && r.delivery.delivered_at && <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{r.delivery.delivered_at}</div>}
+                      {r.delivery?.manifest && <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Manifest <span style={{ fontFamily: 'monospace' }}>{r.delivery.manifest}</span></div>}
+                    </td>
+                  )}
                   <td style={{ ...td, textAlign: 'right', fontWeight: 700 }}>{money(r)}</td>
                   <td style={{ ...td, textAlign: 'right' }}>
                     <button type="button" className="acct-export" disabled={busy === r.id} onClick={() => run(r.id, () => checkoutAPI.downloadDocument(r.id, { kind, format: 'pdf' }), 'Could not download this document')}>{busy === r.id ? 'Preparing…' : 'PDF'}</button>

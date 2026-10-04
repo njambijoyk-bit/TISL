@@ -489,6 +489,28 @@ class ExportService
         return $this->customerDocument($v, $format, $kind);
     }
 
+    /**
+     * Where delivery notes are on their manifests: voucher id => ['status' => 'delivered'|'failed'|'pending'..., 'status_label', 'manifest' => number, 'delivered_at' => date|null].
+     * A note that is on no manifest yet is simply absent. If it was put on more than one (a retry), the latest counts.
+     */
+    public function deliveryInfo(array $voucherIds): array
+    {
+        if (! $voucherIds) {
+            return [];
+        }
+        $out = [];
+        foreach (\App\Models\DeliveryItemVoucher::with('stop.manifest')->whereIn('voucher_id', $voucherIds)->orderBy('id')->get() as $link) {
+            $stop = $link->stop;
+            if (! $stop) {
+                continue;
+            }
+            $out[$link->voucher_id] = ['status' => $stop->status, 'status_label' => $stop->status_label, 'manifest' => $stop->manifest?->manifest_number,
+                'delivered_at' => $stop->delivered_at ? \Carbon\Carbon::parse($stop->delivered_at)->toDateString() : null];
+        }
+
+        return $out;
+    }
+
     /** The tint of each kind of customer document: the page, the heading band and the table headings. Invoices tint only the band. */
     private function docTint(string $kind): array
     {
@@ -563,6 +585,7 @@ class ExportService
         $isOrder = $so && (! $refDoc || $refDoc->type?->base_type === VoucherType::SALES_ORDER);
         $ship = $v->meta['contact']['shipping_address'] ?? ($so?->meta['contact']['shipping_address'] ?? null);
         $paidWith = $v->paymentMethod?->name;
+        $dlv = $kind === 'delivery' ? ($this->deliveryInfo([$v->id])[$v->id] ?? null) : null;
         $kv = fn (string $k, ?string $val) => $val !== null && $val !== '' ? "<div><b>{$e($k)}:</b> {$e($val)}</div>" : '';
 
         $meta = "<div class='im'><b>" . $label . " No.:</b> {$e($v->voucher_number)}</div>"
@@ -571,6 +594,8 @@ class ExportService
                 ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
                 : (! $cash && ! in_array($kind, ['delivery', 'quotation'], true) ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
                     . ($fin && ! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : '')
+                    . ($dlv ? "<div class='im'><b>Status:</b> {$e($dlv['status_label'])}" . ($dlv['status'] === 'delivered' && $dlv['delivered_at'] ? ' on ' . $e($day($dlv['delivered_at'])) : '') . '</div>'
+                        . ($dlv['manifest'] ? "<div class='im'><b>Manifest:</b> {$e($dlv['manifest'])}</div>" : '') : '')
                     . ($kind === 'quotation' && $v->valid_until ? "<div class='im'><b>Valid until:</b> {$e($day($v->valid_until))}</div>" : ''));
         $refs = $kind === 'receipt' ? '' : ($isOrder ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($isOrder ? $kv('Order Dated', $day($so->date)) : '')
             . ($isOrder && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
