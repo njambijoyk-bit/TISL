@@ -14,7 +14,8 @@ import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import NotificationsModal from '../../../_shared/components/common/NotificationsModal';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../../_shared/store/index';
-import { authAPI, workAPI, notificationsAPI } from '../../../_shared/api/index';
+import { authAPI, notificationsAPI } from '../../../_shared/api/index';
+import calendarAPI from '../../../_shared/api/calendar';
 import employeesAPI from '../../../_shared/api/employees';
 
 // ─── Style constants (matching customer Profile) ──────────────────────────────
@@ -77,12 +78,8 @@ export default function AdminProfile() {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading,   setLoading]   = useState(true);
 
-  const [assignments, setAssignments] = useState({
-    customers: [], orders: [],
-    projects: [], tasks: [], milestones: [], tickets: [], bookings: [], counts: {},
-  });
-  const [deadlines, setDeadlines] = useState({ projects: [], milestones: [], tasks: [], tickets: [] });
-  const [activity,  setActivity]  = useState([]);
+  // what is on my calendar over the next 30 days: the quick stats, the work summary and the upcoming list all read from it
+  const [calEntries, setCalEntries] = useState([]);
 
   // Password
   const [pwd,      setPwd]      = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
@@ -92,8 +89,6 @@ export default function AdminProfile() {
 
   const [empRecord, setEmpRecord] = useState(null);
   const [empLoading, setEmpLoading] = useState(false);
-
-  const [incompleteManifests, setIncompleteManifests] = useState([]);
 
   // Profile picture
   const imgInputRef = useRef(null);
@@ -133,24 +128,12 @@ export default function AdminProfile() {
   const fetchDashboard = async () => {
     setLoading(true);
     try {
-      if (user?.role === 'driver') {
-        const res = await workAPI.driverManifests(user.id);
-        setIncompleteManifests(res.data ?? []);
-      } else {
-        const dashData = await workAPI.myDashboard();
-        setAssignments(
-          dashData?.assignments ?? { customers: [], orders: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} }
-        );
-        setDeadlines(dashData?.deadlines ?? { projects: [], milestones: [], tasks: [], tickets: [] });
-        setActivity(dashData?.activity ?? []);
-        // Fire and forget — banner is non-blocking
-        workAPI.incompleteManifests()
-          .then(res => setIncompleteManifests(res.data ?? []))
-          .catch(() => {});
-      }
+      const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const from = new Date(); const to = new Date(); to.setDate(to.getDate() + 30);
+      const res = await calendarAPI.mine({ from: ymd(from), to: ymd(to) });
+      setCalEntries(res?.entries ?? []);
     } catch (err) {
-      console.error('Dashboard error:', err.response?.data || err.message);
-      toast.error('Failed to load dashboard data');
+      console.error('Calendar error:', err.response?.data || err.message);   // the page still works without the numbers
     } finally {
       setLoading(false);
     }
@@ -195,6 +178,9 @@ export default function AdminProfile() {
 
   const fmtDate = (d) =>
     d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+  const kindCount = (k) => calEntries.filter((e) => e.kind === k).length;
+  const upcoming = [...calEntries].filter((e) => new Date(e.starts_at) >= new Date(new Date().setHours(0, 0, 0, 0))).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)).slice(0, 5);
 
   const daysUntil = (dateStr) => {
     if (!dateStr) return null;
@@ -385,13 +371,13 @@ export default function AdminProfile() {
 
                 {/* Quick stats */}
                 <div style={card}>
-                  <p style={sectionTitle}><TrendingUp size={14} style={{ color: 'var(--color-primary-600)' }} /> Quick stats</p>
+                  <p style={sectionTitle}><TrendingUp size={14} style={{ color: 'var(--color-primary-600)' }} /> Quick stats <span style={{ fontWeight: 400, fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>· from your calendar, next 30 days</span></p>
                   <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                     {[
-                      { label: 'Customers', value: assignments.counts?.customers || 0, color: '#3b82f6', bg: '#eff6ff', ink: '#1d4ed8' },
-                      { label: 'Projects',  value: assignments.counts?.projects  || 0, color: '#10b981', bg: '#f0fdf4', ink: '#047857' },
-                      { label: 'Orders',    value: assignments.counts?.orders    || 0, color: '#f59e0b', bg: '#fffbeb', ink: '#b45309' },
-                      { label: 'Tickets',   value: assignments.counts?.tickets   || 0, color: '#06b6d4', bg: '#ecfeff', ink: '#0e7490' },
+                      { label: 'Tasks',      value: kindCount('task'),      color: '#3b82f6', bg: '#eff6ff', ink: '#1d4ed8' },
+                      { label: 'Milestones', value: kindCount('milestone'), color: '#10b981', bg: '#f0fdf4', ink: '#047857' },
+                      { label: 'Bookings',   value: kindCount('booking'),   color: '#f59e0b', bg: '#fffbeb', ink: '#b45309' },
+                      { label: 'Project ends', value: kindCount('project'), color: '#06b6d4', bg: '#ecfeff', ink: '#0e7490' },
                     ].map(({ label, value, color, bg, ink }) => (
                       <div key={label} style={{ padding: 16, borderRadius: 10, background: bg, textAlign: 'center' }}>
                         <p style={{ fontSize: '1.6rem', fontWeight: 800, color, margin: '0 0 2px' }}>{value}</p>
@@ -674,14 +660,14 @@ export default function AdminProfile() {
             {/* Assignment counts */}
             <div style={card}>
               <p style={{ ...sectionTitle, marginBottom: 14 }}>
-                <ClipboardList size={14} style={{ color: 'var(--color-primary-600)' }} /> Work summary
+                <ClipboardList size={14} style={{ color: 'var(--color-primary-600)' }} /> Work summary <span style={{ fontWeight: 400, fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>· next 30 days</span>
               </p>
               {[
-                { label: 'Customers',      value: assignments.counts?.customers     || 0 },
-                { label: 'Projects',       value: assignments.counts?.projects      || 0 },
-                { label: 'Orders',         value: assignments.counts?.orders        || 0 },
-                { label: 'Bookings',       value: assignments.counts?.bookings      || 0 },
-                { label: 'Tickets',        value: assignments.counts?.tickets       || 0 },
+                { label: 'Tasks',          value: kindCount('task') },
+                { label: 'Milestones',     value: kindCount('milestone') },
+                { label: 'Project ends',   value: kindCount('project') },
+                { label: 'Bookings',       value: kindCount('booking') },
+                { label: 'Verifications',  value: kindCount('verification') },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: '0.78rem' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
@@ -690,47 +676,28 @@ export default function AdminProfile() {
               ))}
             </div>
 
-            {/* Upcoming deadlines */}
-            {([...(deadlines.projects || []), ...(deadlines.tickets || [])].length > 0) && (
+            {/* Coming up, from the calendar */}
+            {upcoming.length > 0 && (
               <div style={card}>
                 <p style={{ ...sectionTitle, marginBottom: 14 }}>
-                  <CalendarClock size={14} style={{ color: 'var(--color-primary-600)' }} /> Upcoming deadlines
+                  <CalendarClock size={14} style={{ color: 'var(--color-primary-600)' }} /> Coming up
                 </p>
-                {[...(deadlines.projects || []), ...(deadlines.tickets || [])]
-                  .sort((a, b) => new Date(a.deadline || a.created_at) - new Date(b.deadline || b.created_at))
-                  .slice(0, 5)
-                  .map((item, idx) => {
-                    const days = item.deadline ? daysUntil(item.deadline) : null;
-                    return (
-                      <Link key={idx} to={item.url} style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '8px 10px', borderRadius: 8, marginBottom: 4,
-                        textDecoration: 'none',
-                        background: 'var(--surface-input)', border: '1px solid var(--line)',
-                      }}>
-                        <div style={{
-                          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-                          background: days !== null
-                            ? (days <= 3 ? '#ef4444' : days <= 7 ? '#f59e0b' : '#fbbf24')
-                            : (item.priority === 'urgent' ? '#ef4444' : item.priority === 'high' ? '#f59e0b' : '#fbbf24'),
-                        }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.label}
-                          </p>
-                          <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{item.type}</p>
-                        </div>
-                        {days !== null && (
-                          <span style={{
-                            fontSize: '0.72rem', fontWeight: 700, flexShrink: 0,
-                            color: days <= 3 ? '#ef4444' : days <= 7 ? '#f59e0b' : '#d97706',
-                          }}>
-                            {days}d
-                          </span>
-                        )}
-                      </Link>
-                    );
-                  })}
+                {upcoming.map((e, idx) => {
+                  const days = daysUntil(e.starts_at);
+                  const inner = (
+                    <>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: days <= 3 ? '#ef4444' : days <= 7 ? '#f59e0b' : '#fbbf24' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
+                        <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>{e.kind}</p>
+                      </div>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, flexShrink: 0, color: days <= 3 ? '#ef4444' : days <= 7 ? '#f59e0b' : '#d97706' }}>{days <= 0 ? 'today' : `${days}d`}</span>
+                    </>
+                  );
+                  const row = { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, marginBottom: 4, textDecoration: 'none', background: 'var(--surface-input)', border: '1px solid var(--line)' };
+                  return e.url ? <Link key={idx} to={e.url} style={row}>{inner}</Link> : <div key={idx} style={row}>{inner}</div>;
+                })}
+                <button type="button" onClick={() => setActiveTab('calendar')} style={{ marginTop: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-500)', fontSize: '0.74rem', fontWeight: 600, padding: 0 }}>Open my calendar →</button>
               </div>
             )}
           </div>
@@ -748,18 +715,6 @@ export default function AdminProfile() {
     </div>
   );
 }
-
-// ─── Shared row styles ────────────────────────────────────────────────────────
-
-const rowStyle = {
-  display: 'flex', alignItems: 'center', gap: 10,
-  padding: '10px 12px', borderRadius: 8,
-  background: 'var(--surface-input)', border: '1px solid var(--line)',
-  textDecoration: 'none', transition: 'background 120ms',
-};
-
-const rowTitle = { margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
-const rowSub   = { margin: 0, fontSize: '0.72rem', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 

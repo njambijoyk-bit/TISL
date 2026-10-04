@@ -19,6 +19,7 @@ import { useAuthStore, useCartStore } from '../../store/index';
 import useRequestListStore from '../../store/requestListStore';
 import useWishlistStore from '../../store/wishlistStore';
 import { MODULES, isModuleActive } from '../../navigation/modules';
+import { visibleNav } from '../../navigation/adminNav';
 import useNavStore from '../../store/navStore';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api/index';
 import { useTheme } from '../../theme';
@@ -375,44 +376,32 @@ export default function Header() {
   };
 
   // ── Admin mega menu groups ─────────────────────────────────────────────────
-  const adminGroups = [
-    {
-      label: 'Catalog', items: [
-        { label: 'Dashboard',   icon: LayoutDashboard, to: '/admin' },
-        { label: 'Products',    icon: Package,         to: '/admin/products' },
-        { label: 'Categories',  icon: Layers,          to: '/admin/categories' },
-        { label: 'Brands',      icon: Award,           to: '/admin/brands' },
-      ],
-    },
-    {
-      label: 'Services', items: [
-        { label: 'Services',            icon: Wrench,       to: '/admin/services' },
-        { label: 'Service Categories',  icon: Tag,          to: '/admin/service-categories' },
-      ],
-    },
-    {
-      label: 'Commerce', items: [
-        { label: 'Orders',         icon: ShoppingBag,    to: '/admin/orders' },
-        { label: 'Quotes',         icon: FileText,       to: '/admin/quotes' },
-        { label: 'Projects',       icon: FolderOpen,     to: '/admin/projects' },
-      ],
-    },
-    {
-      label: 'People & Content', items: [
-        { label: 'Customers', icon: Users,        to: '/admin/customers' },
-        { label: 'Employees',   icon: Star, to: '/admin/employees' },
-        { label: 'Users',   icon: UserCog, to: '/admin/users' },
-      ],
-    },
-    {
-      label: 'Support', items: [
-        { label: 'Reviews',            icon: Star,            to: '/admin/reviews' },
-        { label: 'Tickets',            icon: LifeBuoy,        to: '/admin/tickets' },
-        { label: 'Reports',            icon: BarChart2,       to: '/admin/books?tab=reports' },
-        { label: 'Settings',           icon: Settings,        to: '/admin/settings' },
-      ],
-    },
-  ];
+  const isDriver = user?.role === 'driver';
+  // What the account menu offers staff. Admins: their profile, dashboard, settings and the support links. Drivers: the
+  // manifests, ratings and incidents they can open (taken from the same list the sidebar uses, so it follows their role).
+  const adminGroups = isDriver
+    ? [{
+        label: 'Driver', items: [
+          { label: 'My Profile', icon: User, to: '/admin/profile' },
+          ...visibleNav(user).flatMap((g) => g.items).map((i) => ({ label: i.title, icon: i.icon, to: i.path })),
+        ],
+      }]
+    : [
+      {
+        label: null, items: [
+          { label: 'My Admin Profile', icon: User,            to: '/admin/profile' },
+          { label: 'Dashboard',        icon: LayoutDashboard, to: '/admin' },
+          { label: 'Settings',         icon: Settings,        to: '/admin/settings' },
+        ],
+      },
+      {
+        label: 'Support', items: [
+          { label: 'Reviews', icon: Star,      to: '/admin/reviews' },
+          { label: 'Tickets', icon: LifeBuoy,  to: '/admin/tickets' },
+          { label: 'Reports', icon: BarChart2, to: '/admin/books?tab=reports' },
+        ],
+      },
+    ];
 
   const profilePath = isAdmin ? '/admin/profile' : '/profile';
 
@@ -770,15 +759,15 @@ export default function Header() {
                     </div>
 
                     {/* Preferences — currency + branch */}
-                    {(hasCurrencyChoice || hasBranchChoice) && (
+                    {((hasCurrencyChoice && !isAdmin) || hasBranchChoice) && (
                       <div style={{ padding: '10px 14px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }} className="dark:border-gray-700">
-                        {hasCurrencyChoice && (
+                        {hasCurrencyChoice && !isAdmin && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-300">Currency</span>
                             <CurrencyToggle />
                           </div>
                         )}
-                        {hasBranchChoice && (
+                        {hasBranchChoice && !isDriver && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-300">Branch</span>
                             <LocationPicker />
@@ -790,7 +779,7 @@ export default function Header() {
                     {/* Customer links */}
                     <div style={{ padding: '8px 6px' }}>
                       {customerLinks
-                        .filter(link => !isAdmin || ['My Profile'].includes(link.label))
+                        .filter(link => !isAdmin)
                         .map(link => (
                         <Link key={link.to} to={link.to} onClick={() => setUserMenuOpen(false)}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
@@ -805,16 +794,10 @@ export default function Header() {
                     {isAdmin && (
                       <div style={{ borderTop: '1px solid #f3f4f6', padding: '8px 6px' }}>
                         <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 6px' }}>Admin</p>
-                        <Link to="/admin/profile" onClick={() => setUserMenuOpen(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
-      className="hdr-menu-link">
-      <User size={14} style={{ color: 'var(--color-primary-500)' }} />
-      My Admin Profile
-    </Link>
-    
-                        {adminGroups.map(group => (
-                          <div key={group.label}>
-                            <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 2px' }}>{group.label}</p>
+
+                        {adminGroups.map((group, gi) => (
+                          <div key={group.label ?? gi}>
+                            {group.label && <p style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 2px' }}>{group.label}</p>}
                             {group.items.map(item => (
                               <Link key={item.to} to={item.to} onClick={() => setUserMenuOpen(false)}
                                 style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 12px', borderRadius: 8, fontSize: '0.8rem', fontWeight: 500, color: '#374151', textDecoration: 'none', transition: 'all 120ms' }}
@@ -920,7 +903,7 @@ export default function Header() {
                   <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
                   <p style={{ fontSize: '0.68rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>My Account</p>
                   {customerLinks
-                  .filter(link => !isAdmin || ['My Profile'].includes(link.label))
+                  .filter(link => !isAdmin)
                   .map(l => (
                     <Link key={l.to} to={l.to}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, fontSize: '0.85rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}
