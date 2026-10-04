@@ -56,6 +56,27 @@ class PeriodGuard
         }
     }
 
+    /**
+     * Is a voucher of this date sealed for every role (a closed financial year, or before the hard lock date)? The voucher screen uses this
+     * to show why Edit and Cancel are off. Null when it is not sealed.
+     *
+     * @return array{kind: string, year?: string, until?: string}|null
+     */
+    public function sealFor($date): ?array
+    {
+        $date = Carbon::parse($date)->startOfDay();
+        $year = FinancialYear::containing($date->toDateString());
+        if ($year && $year->is_closed) {
+            return ['kind' => 'year', 'year' => $year->name];
+        }
+        $settings = AccountingSetting::current();
+        if ($settings->locked_before && $date->lte(Carbon::parse($settings->locked_before)->startOfDay())) {
+            return ['kind' => 'locked_before', 'until' => Carbon::parse($settings->locked_before)->format('d M Y')];
+        }
+
+        return null;
+    }
+
     public function assertVoucher(string $action, Voucher $voucher, ?User $user): void
     {
         $this->assert($action, $voucher->date, $user, $voucher->voucher_type_id);

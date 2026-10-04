@@ -257,10 +257,19 @@ export default function VoucherView() {
             {canWrite && live && SENDABLE.includes(base) && <button type="button" style={btnGhost} onClick={() => setModal('send')}><Send size={14} /> Send</button>}
             {canWrite && live && ['sales', 'purchase'].includes(base) && v.party_ledger_id && <Link to={`/admin/books/vouchers/${v.id}/return`} style={{ ...btnGhost, textDecoration: 'none' }}><Undo2 size={14} /> {base === 'sales' ? 'Credit note' : 'Debit note'}</Link>}
             {canWriteOff && <button type="button" style={btnGhost} onClick={() => setModal('writeoff')}><Eraser size={14} /> Write off</button>}
-            {canWrite && live && !lockedBy && !v.meta?.writeoff && !v.meta?.returned_from && <button type="button" style={btnGhost} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
-            {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={cancel}><Ban size={14} /> Cancel</button>}
+            {canWrite && live && !lockedBy && !v.meta?.writeoff && !v.meta?.returned_from && <button type="button" style={btnGhost} disabled={!!v.period_lock} title={v.period_lock ? 'This voucher is in a closed period and cannot be edited' : undefined} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
+            {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} disabled={!!v.period_lock} title={v.period_lock ? 'This voucher is in a closed period and cannot be cancelled' : undefined} onClick={cancel}><Ban size={14} /> Cancel</button>}
           </div>
         </div>
+
+        {v.period_lock && (
+          <div role="status" style={{ padding: '12px 14px', borderRadius: 8, margin: '0 0 12px', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.45)', fontSize: '0.82rem', lineHeight: 1.55 }}>
+            <strong>{v.period_lock.kind === 'year' ? `This voucher belongs to ${v.period_lock.year}, which is closed.` : `The books are locked up to ${v.period_lock.until}.`}</strong>{' '}
+            It cannot be edited or cancelled by any role, not even a super admin. {v.period_lock.kind === 'year'
+              ? <>To change it, a super admin must first reopen the year in <Link to="/admin/books?tab=settings&sub=period">Books → Settings → Period control</Link>, make the change, then close the year again.</>
+              : <>To change it, a super admin must first move the lock date back in <Link to="/admin/books?tab=settings&sub=period">Books → Settings → Period control</Link>, make the change, then set the lock date again.</>}
+          </div>
+        )}
 
         {v.status === 'cancelled' && <p role="status" style={{ padding: '10px 14px', borderRadius: 8, background: colors.dangerBg, color: colors.dangerText, fontSize: '0.82rem' }}>Cancelled{v.cancel_reason ? ` — ${v.cancel_reason}` : ''}. Its entries and stock movements are reversed.</p>}
 

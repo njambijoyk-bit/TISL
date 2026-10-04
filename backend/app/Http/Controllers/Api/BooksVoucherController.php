@@ -61,6 +61,7 @@ class BooksVoucherController extends Controller
         $v = Voucher::with($this->vouchers->relations())->findOrFail($id);
         $out = $v->toArray();
         $out['footer'] = $this->export->footer($v);
+        $out['period_lock'] = app(\App\Services\Books\PeriodGuard::class)->sealFor($v->date);
         // how it was paid, so editing a split payment shows the split again
         $out['tenders'] = \Illuminate\Support\Facades\DB::table('voucher_tenders as t')->leftJoin('gift_vouchers as g', 'g.id', '=', 't.gift_voucher_id')
             ->where('t.voucher_id', $v->id)->orderBy('t.id')->get(['t.payment_method_id', 't.amount', 't.reference', 'g.code as gift_code'])
