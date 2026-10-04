@@ -81,20 +81,23 @@ export default function GatewayTab({ canWrite }) {
       </div>
 
       <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(270px, 1fr))', alignItems: 'start' }}>
-        <Column title="Masters">
-          {MASTERS.map(([label, to]) => <Item key={label} onClick={() => nav(to)}>{label}</Item>)}
-        </Column>
+        <div style={{ display: 'grid', gap: 14 }}>
+          <Column title="Transactions">
+            {GROUPS.map(([title, bases]) => (
+              <div key={title}>
+                <Sub>{title}</Sub>
+                {bases.filter((b) => byBase[b]).map((b) => (
+                  <Item key={b} onClick={() => (canWrite ? nav(`/admin/books/vouchers/new?type=${byBase[b].id}`) : nav('/admin/books?tab=vouchers'))}>{byBase[b].name}</Item>
+                ))}
+              </div>
+            ))}
+          </Column>
+          <Column title="Masters">
+            {MASTERS.map(([label, to]) => <Item key={label} onClick={() => nav(to)}>{label}</Item>)}
+          </Column>
+        </div>
 
-        <Column title="Transactions">
-          {GROUPS.map(([title, bases]) => (
-            <div key={title}>
-              <Sub>{title}</Sub>
-              {bases.filter((b) => byBase[b]).map((b) => (
-                <Item key={b} onClick={() => (canWrite ? nav(`/admin/books/vouchers/new?type=${byBase[b].id}`) : nav('/admin/books?tab=vouchers'))}>{byBase[b].name}</Item>
-              ))}
-            </div>
-          ))}
-          <Sub>Registers</Sub>
+        <Column title="Registers">
           <Item onClick={() => nav('/admin/books?tab=vouchers')}>All vouchers</Item>
           {registerTypes.map((t) => <Item key={t.id} onClick={() => nav(`/admin/books?tab=vouchers&voucher_type_id=${t.id}`)}>{t.name} Register</Item>)}
           <Item onClick={() => nav('/admin/orders')}>Orders register</Item>
