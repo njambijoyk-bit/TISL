@@ -6,7 +6,7 @@ import {
   Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, LogInIcon,
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
-  Bug, Volume2, VolumeX, Gift, CalendarCheck, Truck,
+  Bug, Volume2, VolumeX, Gift, CalendarCheck, Truck, KeyRound,
 } from 'lucide-react';
 import logo from '../../../assets/images/logo.png';
 import { ThemePicker } from '../common/ThemePicker';
@@ -836,6 +836,16 @@ export default function Header() {
                         <LogOut size={15} /> Sign Out
                       </button>
                     </div>
+
+                    {/* Developer sign-in: only in a dev build or for admins, kept small at the very bottom */}
+                    {(import.meta.env.DEV || isAdmin) && (
+                      <div style={{ borderTop: '1px solid #f3f4f6', padding: '6px 6px 8px' }}>
+                        <Link to="/dev/auth" onClick={() => setUserMenuOpen(false)} className="hdr-menu-link"
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 500, color: '#9ca3af', textDecoration: 'none' }}>
+                          <KeyRound size={13} /> Dev Auth
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
