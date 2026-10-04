@@ -194,7 +194,7 @@ class ShippingOptionController extends Controller
      */
     public function activity(Request $request): JsonResponse
     {
-        $activity = ShippingActivity::with(['actor:id,name,email', 'shippingOption:id,name,slug'])
+        $activity = ShippingActivity::with(['actor:id,name,email', 'shippingOption:id,name,code'])
             ->when($request->filled('action'),             fn($q) => $q->where('action', $request->action))
             ->when($request->filled('shipping_option_id'), fn($q) => $q->where('shipping_option_id', $request->shipping_option_id))
             ->orderBy('created_at', 'desc')
