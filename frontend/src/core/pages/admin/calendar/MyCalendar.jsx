@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
@@ -16,7 +16,8 @@ const KINDS = { task: ['Task', '#3b82f6'], milestone: ['Milestone', '#8b5cf6'], 
 const kindOf = (k) => KINDS[k] ?? [k, '#6b7280'];
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-export default function MyCalendar() {
+/** `embedded` drops the admin page chrome so the calendar can sit inside another page (the admin profile). */
+export default function MyCalendar({ embedded = false }) {
   const [params] = useSearchParams();
   const userId = params.get('user_id');
   const [month, setMonth] = useState(() => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), 1); });
@@ -59,10 +60,12 @@ export default function MyCalendar() {
   const kindsPresent = [...new Set((data?.entries ?? []).map((e) => e.kind))];
   const shift = (n) => setMonth((m) => new Date(m.getFullYear(), m.getMonth() + n, 1));
 
+  const Shell = embedded ? Fragment : AdminLayout;
+
   return (
-    <AdminLayout>
-      <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <HubHeader title={data && userId ? `${data.owner.name}'s calendar` : 'My calendar'} description="Your tasks, milestones and bookings in one place. Customers never see this." />
+    <Shell>
+      <div style={embedded ? { padding: 0 } : { padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
+        {!embedded && <HubHeader title={data && userId ? `${data.owner.name}'s calendar` : 'My calendar'} description="Your tasks, milestones and bookings in one place. Customers never see this." />}
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '8px 0 12px', flexWrap: 'wrap' }}>
           <button type="button" style={{ ...input, width: 'auto', cursor: 'pointer' }} onClick={() => shift(-1)}>‹</button>
@@ -112,6 +115,6 @@ export default function MyCalendar() {
           </section>
         )}
       </div>
-    </AdminLayout>
+    </Shell>
   );
 }

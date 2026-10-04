@@ -6,9 +6,10 @@ import {
   Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
   UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
   ArrowRight, CalendarClock, Bell, Truck,
-  ChevronDown, ChevronUp, Users, Star, Ticket, Camera, Calendar,
+  ChevronDown, ChevronUp, Users, Star, Ticket, Camera, Calendar, CalendarCheck,
 } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
+import MyCalendar from './calendar/MyCalendar';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import NotificationsModal from '../../../_shared/components/common/NotificationsModal';
 import toast from 'react-hot-toast';
@@ -19,7 +20,7 @@ import employeesAPI from '../../../_shared/api/employees';
 // ─── Style constants (matching customer Profile) ──────────────────────────────
 
 const card = {
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
   borderRadius: 12,
   border: '1px solid var(--line)',
   boxShadow: '0 1px 6px rgba(0,0,0,0.06)',
@@ -29,7 +30,7 @@ const card = {
 const sectionTitle = {
   fontSize: '0.875rem',
   fontWeight: 700,
-  color: '#111827',
+  color: 'var(--text-primary)',
   display: 'flex',
   alignItems: 'center',
   gap: 8,
@@ -41,7 +42,7 @@ const sectionTitle = {
 const labelStyle = {
   fontSize: '0.75rem',
   fontWeight: 600,
-  color: '#374151',
+  color: 'var(--text-primary)',
   display: 'block',
   marginBottom: 4,
 };
@@ -52,17 +53,17 @@ const inputStyle = {
   borderRadius: 8,
   fontSize: '0.875rem',
   border: '1.5px solid var(--line)',
-  color: '#111827',
+  color: 'var(--text-primary)',
   outline: 'none',
   fontFamily: 'inherit',
   boxSizing: 'border-box',
-  background: 'white',
+  background: 'var(--surface-card, #fff)',
 };
 
 const STATUS_COLORS = {
   active:     { bg: '#dcfce7', text: '#166534', dot: '#22c55e' },
   on_leave:   { bg: '#fef3c7', text: '#92400e', dot: '#f59e0b' },
-  probation:  { bg: '#e0e7ff', text: '#3730a3', dot: '#6366f1' },
+  probation:  { bg: '#e0e7ff', text: '#3730a3', dot: 'var(--color-primary-500)' },
   suspended:  { bg: '#fee2e2', text: '#991b1b', dot: '#ef4444' },
   terminated: { bg: '#f3f4f6', text: '#6b7280', dot: '#9ca3af' },
 };
@@ -82,15 +83,6 @@ export default function AdminProfile() {
   });
   const [deadlines, setDeadlines] = useState({ projects: [], milestones: [], tasks: [], tickets: [] });
   const [activity,  setActivity]  = useState([]);
-
-  // Collapsible sections state for My Work tab
-  const [openSections, setOpenSections] = useState({
-    customers: true,
-    projects:  true,
-    orders:    false,
-    tickets:   false,
-    bookings:  false,
-  });
 
   // Password
   const [pwd,      setPwd]      = useState({ current_password: '', new_password: '', new_password_confirmation: '' });
@@ -173,22 +165,6 @@ export default function AdminProfile() {
     finally { setEmpLoading(false); }
   };
 
-  const refreshAssignments = async () => {
-    setLoading(true);
-    try {
-      const data = await workAPI.myAssignments();
-      setAssignments(data);
-      toast.success('Assignments refreshed');
-    } catch (err) {
-      toast.error('Failed to refresh assignments');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleSection = (key) =>
-    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
-
   // ── Password ───────────────────────────────────────────────────────────────
   const handlePasswordSave = async (e) => {
     e.preventDefault();
@@ -229,7 +205,7 @@ export default function AdminProfile() {
 
   const TABS = [
     { key: 'overview',    label: 'Overview',  icon: User },
-    { key: 'assignments', label: 'My Work',   icon: ClipboardList },
+    { key: 'calendar',    label: 'My Calendar', icon: CalendarCheck },
     { key: 'employee',    label: 'Employee Record', icon: UserCheck },
     { key: 'security',    label: 'Security',  icon: Key },
   ];
@@ -397,7 +373,7 @@ export default function AdminProfile() {
                       <div key={label}>
                         <label style={labelStyle}>{label}</label>
                         <p style={{
-                          margin: 0, fontSize: '0.875rem', fontWeight: 600, color: '#111827',
+                          margin: 0, fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)',
                           padding: '9px 12px', background: 'var(--surface-input)', borderRadius: 8, border: '1px solid var(--line)',
                         }}>
                           {value || '—'}
@@ -419,7 +395,7 @@ export default function AdminProfile() {
                     ].map(({ label, value, color, bg }) => (
                       <div key={label} style={{ padding: 16, borderRadius: 10, background: bg, textAlign: 'center' }}>
                         <p style={{ fontSize: '1.6rem', fontWeight: 800, color, margin: '0 0 2px' }}>{value}</p>
-                        <p style={{ fontSize: '0.72rem', color: '#6b7280', margin: 0, fontWeight: 600 }}>{label}</p>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 600 }}>{label}</p>
                       </div>
                     ))}
                   </div>
@@ -427,252 +403,9 @@ export default function AdminProfile() {
               </div>
             )}
 
-            {/* ── MY WORK TAB ───────────────────────────────────────────── */}
-            {activeTab === 'assignments' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <p style={{ margin: 0, fontSize: '0.82rem', color: '#6b7280' }}>
-                    Your active work across the platform
-                  </p>
-                  <button onClick={refreshAssignments} style={{
-                    display: 'flex', alignItems: 'center', gap: 4,
-                    fontSize: '0.75rem', color: 'var(--color-primary-600)', background: 'none', border: 'none',
-                    cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
-                    <Loader2 size={12} /> Refresh
-                  </button>
-                </div>
+            {/* ── MY CALENDAR TAB ── */}
+            {activeTab === 'calendar' && <MyCalendar embedded />}
 
-                {/* ── Incomplete Manifests Banner ──────────────────────── */}
-              {incompleteManifests.length > 0 && (
-                <div style={{
-                  background: '#fff7ed',
-                  border: '1px solid #fed7aa',
-                  borderRadius: 10,
-                  padding: '12px 16px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  marginBottom: 4,
-                }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8, flexShrink: 0,
-                    background: '#ffedd5', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <Truck size={15} style={{ color: '#ea580c' }} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: '0 0 2px', fontSize: '0.82rem', fontWeight: 700, color: '#9a3412' }}>
-                      {incompleteManifests.length} incomplete manifest{incompleteManifests.length > 1 ? 's' : ''}
-                    </p>
-                    <p style={{ margin: 0, fontSize: '0.72rem', color: '#c2410c' }}>
-                      {incompleteManifests.filter(m => m.status === 'in_progress').length > 0
-                        ? `${incompleteManifests.filter(m => m.status === 'in_progress').length} in progress · `
-                        : ''}
-                      Across all delivery methods
-                    </p>
-                  </div>
-                  <Link
-                  to={user?.role === 'driver' ? '/driver/manifests' : '/admin/delivery/manifests'}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5,
-                      padding: '6px 12px', borderRadius: 7, fontSize: '0.75rem', fontWeight: 700,
-                      background: '#ea580c', color: 'white', textDecoration: 'none', flexShrink: 0,
-                    }}
-                  >
-                    View <ArrowRight size={12} />
-                  </Link>
-                </div>
-              )}
-
-                {/* Each section is a collapsible card */}
-                {[
-                  {
-                    key: 'customers',
-                    label: 'Assigned Customers',
-                    count: assignments.counts?.customers || 0,
-                    icon: Users,
-                    color: '#3b82f6',
-                    colorBg: '#eff6ff',
-                    items: assignments.customers,
-                    emptyMsg: 'No customers assigned to you yet',
-                    renderItem: (c, idx) => (
-                      <Link key={idx} to={`/admin/customers/${c.id}`} style={rowStyle}>
-                        <Avatar initials={`${c.first_name?.[0] || ''}${c.last_name?.[0] || ''}`} color="#eff6ff" textColor="#3b82f6" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={rowTitle}>{c.full_name}</p>
-                          <p style={rowSub}>{c.email}</p>
-                        </div>
-                        <StatusBadge status={c.status} />
-                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      </Link>
-                    ),
-                  },
-                  {
-                    key: 'projects',
-                    label: 'My Projects',
-                    count: assignments.counts?.projects || 0,
-                    icon: FolderOpen,
-                    color: '#10b981',
-                    colorBg: '#f0fdf4',
-                    items: assignments.projects,
-                    emptyMsg: 'No projects assigned to you yet',
-                    renderItem: (p, idx) => (
-                      <Link key={idx} to={`/admin/projects/${p.id}`} style={rowStyle}>
-                        <Avatar icon={FolderOpen} color="#f0fdf4" textColor="#10b981" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={rowTitle}>{p.title}</p>
-                          <p style={rowSub}>{p.customer?.full_name || 'No customer'}</p>
-                        </div>
-                        <StatusBadge status={p.status} />
-                        {p.deadline && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: daysUntil(p.deadline) <= 7 ? '#ef4444' : 'var(--text-tertiary)', flexShrink: 0 }}>
-                            {daysUntil(p.deadline)}d
-                          </span>
-                        )}
-                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      </Link>
-                    ),
-                  },
-                  {
-                    key: 'orders',
-                    label: 'Assigned Orders',
-                    count: assignments.counts?.orders || 0,
-                    icon: ShoppingBag,
-                    color: '#f59e0b',
-                    colorBg: '#fffbeb',
-                    items: assignments.orders,
-                    emptyMsg: 'No orders assigned to you yet',
-                    renderItem: (o, idx) => (
-                      <Link key={idx} to={`/admin/orders/${o.id}`} style={rowStyle}>
-                        <Avatar icon={ShoppingBag} color="#fffbeb" textColor="#f59e0b" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={rowTitle}>{o.order_number}</p>
-                          <p style={rowSub}>{o.customer?.full_name || 'Unknown'}</p>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#111827', margin: '0 0 3px' }}>
-                            {o.currency || 'KES'} {Number(o.total || 0).toLocaleString()}
-                          </p>
-                          <StatusBadge status={o.status} />
-                        </div>
-                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      </Link>
-                    ),
-                  },
-                  {
-                    key: 'bookings',
-                    label: 'My Bookings',
-                    count: assignments.counts?.bookings || 0,
-                    icon: Calendar,
-                    color: '#db2777',
-                    colorBg: '#fdf2f8',
-                    items: assignments.bookings,
-                    emptyMsg: 'No bookings assigned to you yet',
-                    renderItem: (b, idx) => (
-                      <Link key={idx} to={b.url} style={rowStyle}>
-                        <Avatar icon={Calendar} color="#fdf2f8" textColor="#db2777" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={rowTitle}>{b.booking_number}</p>
-                          <p style={rowSub}>{b.customer || 'Unknown customer'}</p>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <StatusBadge status={b.status} />
-                          {b.scheduled_at && (
-                            <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>
-                              {fmtDate(b.scheduled_at)}
-                            </p>
-                          )}
-                        </div>
-                        <span style={{
-                          fontSize: '0.68rem', fontWeight: 600, flexShrink: 0,
-                          padding: '2px 7px', borderRadius: 99,
-                          background: b.role === 'lead' ? '#fdf2f8' : 'var(--surface-input)',
-                          color: b.role === 'lead' ? '#db2777' : 'var(--text-tertiary)',
-                        }}>
-                          {b.role}
-                        </span>
-                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      </Link>
-                    ),
-                  },
-                  {
-                    key: 'tickets',
-                    label: 'Assigned Tickets',
-                    count: assignments.counts?.tickets || 0,
-                    icon: Ticket,
-                    color: '#06b6d4',
-                    colorBg: '#ecfeff',
-                    items: assignments.tickets,
-                    emptyMsg: 'No tickets assigned to you yet',
-                    renderItem: (t, idx) => (
-                      <Link key={idx} to={`/admin/tickets/${t.id}`} style={rowStyle}>
-                        <Avatar icon={Ticket} color="#ecfeff" textColor="#06b6d4" />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={rowTitle}>{t.ticket_number}</p>
-                          <p style={rowSub}>{t.subject}</p>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <PriorityBadge priority={t.priority} />
-                          <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '3px 0 0' }}>{t.status?.replace('_', ' ')}</p>
-                        </div>
-                        <ArrowRight size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      </Link>
-                    ),
-                  },
-                ].map(({ key, label, count, icon: Icon, color, colorBg, items, emptyMsg, renderItem }) => (
-                  <div key={key} style={{ ...card, padding: 0, overflow: 'hidden' }}>
-                    {/* Section header — always visible, clickable to toggle */}
-                    <button
-                      onClick={() => toggleSection(key)}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '14px 18px', background: 'none', border: 'none',
-                        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                        borderBottom: openSections[key] ? '1px solid #f3f4f6' : 'none',
-                      }}
-                    >
-                      <div style={{
-                        width: 30, height: 30, borderRadius: 8,
-                        background: colorBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                      }}>
-                        <Icon size={14} style={{ color }} />
-                      </div>
-                      <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 700, color: '#111827' }}>
-                        {label}
-                      </span>
-                      <span style={{
-                        padding: '2px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
-                        background: colorBg, color,
-                      }}>
-                        {count}
-                      </span>
-                      {openSections[key]
-                        ? <ChevronUp size={16} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                        : <ChevronDown size={16} style={{ color: '#9ca3af', flexShrink: 0 }} />
-                      }
-                    </button>
-
-                    {/* Collapsible body */}
-                    {openSections[key] && (
-                      <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {items?.length > 0
-                          ? items.map((item, idx) => renderItem(item, idx))
-                          : (
-                            <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                              <Icon size={28} style={{ color: '#d1d5db', display: 'block', margin: '0 auto 8px' }} />
-                              <p style={{ fontSize: '0.82rem', color: '#9ca3af', margin: 0 }}>{emptyMsg}</p>
-                            </div>
-                          )
-                        }
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* ── EMPLOYEE RECORD TAB ───────────────────────────────────── */}
             {activeTab === 'employee' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {empLoading ? (
@@ -682,7 +415,7 @@ export default function AdminProfile() {
                 ) : !empRecord ? (
                   <div style={{ ...card, textAlign: 'center', padding: 40 }}>
                     <UserCheck size={36} style={{ color: '#d1d5db', display: 'block', margin: '0 auto 10px' }} />
-                    <p style={{ fontSize: '0.85rem', color: '#9ca3af', margin: 0 }}>No employee record linked to your account.</p>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', margin: 0 }}>No employee record linked to your account.</p>
                   </div>
                 ) : (
                   <>
@@ -706,8 +439,8 @@ export default function AdminProfile() {
                           { label: 'Leave Balance',   value: empRecord.leave_balance ? `${empRecord.leave_balance} days` : null },
                         ].map(({ label, value }) => value ? (
                           <div key={label}>
-                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
+                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
                           </div>
                         ) : null)}
                       </div>
@@ -724,8 +457,8 @@ export default function AdminProfile() {
                           { label: 'Education',      value: empRecord.education_level },
                         ].map(({ label, value }) => value ? (
                           <div key={label}>
-                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
+                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
                           </div>
                         ) : null)}
                       </div>
@@ -742,8 +475,8 @@ export default function AdminProfile() {
                           { label: 'NHIF Number', value: empRecord.nhif_number },
                         ].map(({ label, value }) => value ? (
                           <div key={label}>
-                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)', fontFamily: 'monospace' }}>{value}</p>
+                            <label style={{ ...labelStyle, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{label}</label>
+                            <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)', fontFamily: 'monospace' }}>{value}</p>
                           </div>
                         ) : null)}
                       </div>
@@ -760,8 +493,8 @@ export default function AdminProfile() {
                             { label: 'Relationship', value: empRecord.emergency_contact_relationship },
                           ].map(({ label, value }) => value ? (
                             <div key={label}>
-                              <label style={{ ...labelStyle, fontSize: '0.68rem', color: '#9ca3af' }}>{label}</label>
-                              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
+                              <label style={{ ...labelStyle, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{label}</label>
+                              <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', padding: '7px 10px', background: 'var(--surface-input)', borderRadius: 7, border: '1px solid var(--line)' }}>{value}</p>
                             </div>
                           ) : null)}
                         </div>
@@ -774,7 +507,7 @@ export default function AdminProfile() {
                         <p style={sectionTitle}><Star size={14} style={{ color: 'var(--color-primary-600)' }} /> Skills</p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                           {empRecord.skills.map((skill, i) => (
-                            <span key={i} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600, background: '#f5f3ff', color: 'var(--color-primary-600)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))' }}>
+                            <span key={i} style={{ padding: '4px 12px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 600, background: 'var(--surface-input)', color: 'var(--color-primary-600)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))' }}>
                               {skill}
                             </span>
                           ))}
@@ -791,9 +524,9 @@ export default function AdminProfile() {
                             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px', borderRadius: 8, background: 'var(--surface-input)', border: '1px solid var(--line)' }}>
                               <Award size={15} style={{ color: 'var(--color-primary-600)', flexShrink: 0, marginTop: 1 }} />
                               <div>
-                                <p style={{ margin: '0 0 1px', fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{cert.name || cert}</p>
-                                {cert.issuer && <p style={{ margin: '0 0 1px', fontSize: '0.72rem', color: '#6b7280' }}>{cert.issuer}</p>}
-                                {cert.date && <p style={{ margin: 0, fontSize: '0.68rem', color: '#9ca3af' }}>{fmtDate(cert.date)}</p>}
+                                <p style={{ margin: '0 0 1px', fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{cert.name || cert}</p>
+                                {cert.issuer && <p style={{ margin: '0 0 1px', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>{cert.issuer}</p>}
+                                {cert.date && <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{fmtDate(cert.date)}</p>}
                               </div>
                             </div>
                           ))}
@@ -805,7 +538,7 @@ export default function AdminProfile() {
                     {empRecord.notes && (
                       <div style={card}>
                         <p style={sectionTitle}><FileText size={14} style={{ color: 'var(--color-primary-600)' }} /> Notes</p>
-                        <p style={{ margin: 0, fontSize: '0.82rem', color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{empRecord.notes}</p>
+                        <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-primary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{empRecord.notes}</p>
                       </div>
                     )}
                   </>
@@ -862,12 +595,12 @@ export default function AdminProfile() {
                           />
                           <button type="button" onClick={() => setShowPwd(s => ({ ...s, [show]: !s[show] }))} style={{
                             position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
-                            background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex',
+                            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex',
                           }}>
                             {showPwd[show] ? <EyeOff size={15} /> : <Eye size={15} />}
                           </button>
                         </div>
-                        {hint && !pwdErrors[key] && <p style={{ fontSize: '0.68rem', color: '#9ca3af', marginTop: 3 }}>{hint}</p>}
+                        {hint && !pwdErrors[key] && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 3 }}>{hint}</p>}
                         {pwdErrors[key] && <p style={{ fontSize: '0.72rem', color: '#ef4444', marginTop: 3 }}>{pwdErrors[key][0]}</p>}
                       </div>
                     ))}
@@ -926,13 +659,13 @@ export default function AdminProfile() {
                 <div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
                   <div style={{
                     width: 30, height: 30, borderRadius: 8,
-                    background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    background: 'var(--surface-input)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
                     <Icon size={13} style={{ color: 'var(--color-primary-600)' }} />
                   </div>
                   <div>
-                    <p style={{ margin: '0 0 1px', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
-                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827' }}>{value}</p>
+                    <p style={{ margin: '0 0 1px', fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
+                    <p style={{ margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{value}</p>
                   </div>
                 </div>
               ))}
@@ -951,8 +684,8 @@ export default function AdminProfile() {
                 { label: 'Tickets',        value: assignments.counts?.tickets       || 0 },
               ].map(({ label, value }) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: '0.78rem' }}>
-                  <span style={{ color: '#6b7280' }}>{label}</span>
-                  <span style={{ fontWeight: 700, color: '#111827' }}>{value}</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{label}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{value}</span>
                 </div>
               ))}
             </div>
@@ -982,10 +715,10 @@ export default function AdminProfile() {
                             : (item.priority === 'urgent' ? '#ef4444' : item.priority === 'high' ? '#f59e0b' : '#fbbf24'),
                         }} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <p style={{ margin: 0, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {item.label}
                           </p>
-                          <p style={{ margin: 0, fontSize: '0.68rem', color: '#9ca3af' }}>{item.type}</p>
+                          <p style={{ margin: 0, fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{item.type}</p>
                         </div>
                         {days !== null && (
                           <span style={{
@@ -1025,8 +758,8 @@ const rowStyle = {
   textDecoration: 'none', transition: 'background 120ms',
 };
 
-const rowTitle = { margin: 0, fontSize: '0.82rem', fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
-const rowSub   = { margin: 0, fontSize: '0.72rem', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const rowTitle = { margin: 0, fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
+const rowSub   = { margin: 0, fontSize: '0.72rem', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' };
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
@@ -1050,16 +783,16 @@ function StatusBadge({ status }) {
     pending:          { bg: '#fef3c7', color: '#92400e' },
     planning:         { bg: '#dbeafe', color: '#1e40af' },
     converted:        { bg: '#dbeafe', color: '#1e40af' },
-    draft:            { bg: '#f3f4f6', color: '#6b7280' },
+    draft:            { bg: '#f3f4f6', color: 'var(--text-secondary)' },
     open:             { bg: '#fef3c7', color: '#92400e' },
     in_progress:      { bg: '#dbeafe', color: '#1e40af' },
     waiting_customer: { bg: '#ffedd5', color: '#9a3412' },
     resolved:         { bg: '#dcfce7', color: '#166534' },
-    closed:           { bg: '#f3f4f6', color: '#6b7280' },
+    closed:           { bg: '#f3f4f6', color: 'var(--text-secondary)' },
     confirmed:        { bg: '#dcfce7', color: '#166534' },
     no_show:          { bg: '#fee2e2', color: '#991b1b' },
   };
-  const style = map[status] ?? { bg: '#f3f4f6', color: '#6b7280' };
+  const style = map[status] ?? { bg: '#f3f4f6', color: 'var(--text-secondary)' };
   return (
     <span style={{
       padding: '2px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
@@ -1075,9 +808,9 @@ function PriorityBadge({ priority }) {
     urgent: { bg: '#fee2e2', color: '#991b1b' },
     high:   { bg: '#ffedd5', color: '#9a3412' },
     medium: { bg: '#dbeafe', color: '#1e40af' },
-    low:    { bg: '#f3f4f6', color: '#6b7280' },
+    low:    { bg: '#f3f4f6', color: 'var(--text-secondary)' },
   };
-  const style = map[priority] ?? { bg: '#f3f4f6', color: '#6b7280' };
+  const style = map[priority] ?? { bg: '#f3f4f6', color: 'var(--text-secondary)' };
   return (
     <span style={{
       padding: '2px 8px', borderRadius: 99, fontSize: '0.68rem', fontWeight: 700,
