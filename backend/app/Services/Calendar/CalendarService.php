@@ -2,6 +2,8 @@
 
 namespace App\Services\Calendar;
 
+use App\Models\BookableResource;
+use App\Models\Booking;
 use App\Models\CalendarEntry;
 use App\Models\CalendarToken;
 use App\Models\Project;
@@ -106,6 +108,18 @@ class CalendarService
             $this->put(['user_id' => $uid, 'source_type' => 'project', 'source_id' => $p->id, 'kind' => 'project', 'title' => "Project ends: {$p->title}",
                 'starts_at' => Carbon::parse($p->target_end_date)->startOfDay(), 'all_day' => true, 'status' => $p->status, 'visibility' => 'team', 'url' => "/admin/projects/{$p->id}"]);
         }
+        // bookings on the resources they run, in any state: pending, done, cancelled and no-show ones stay on the calendar, marked as such.
+        // This also brings back ones that were taken off before the calendar kept them.
+        $resourceIds = BookableResource::where('user_id', $uid)->pluck('id');
+        if ($resourceIds->isNotEmpty()) {
+            foreach (Booking::with(['service', 'customer'])->whereIn('resource_id', $resourceIds)->whereBetween('starts_at', [$from, $to])->get() as $b) {
+                $name = trim(($b->customer?->first_name ?? '') . ' ' . ($b->customer?->last_name ?? ''));
+                $this->put(['user_id' => $uid, 'source_type' => 'booking', 'source_id' => $b->id, 'resource_id' => $b->resource_id, 'kind' => 'booking',
+                    'title' => trim(($b->service?->name ?? 'Booking') . ($name !== '' ? " — {$name}" : '')), 'starts_at' => $b->starts_at, 'ends_at' => $b->ends_at, 'all_day' => false,
+                    'location_id' => $b->location_id, 'customer_id' => $b->customer_id, 'status' => $b->status, 'visibility' => 'team', 'url' => '/admin/bookings?id=' . $b->id]);
+            }
+        }
+
         // tickets assigned to them that are still open: any assigned before the calendar existed get an entry too (due from when they were last touched)
         $openTickets = Ticket::where('assigned_to', $uid)->whereNotIn('status', ['resolved', 'closed'])->get();
         foreach ($openTickets as $t) {
