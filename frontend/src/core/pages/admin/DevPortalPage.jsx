@@ -520,7 +520,7 @@ export default function DevPortalPage() {
         )}
       </main>
 
-      <MimiFooter />
+      <MimiFooter version="2.1.9" />
     </div>
   );
 }

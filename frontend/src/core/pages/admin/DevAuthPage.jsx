@@ -131,7 +131,7 @@ export default function DevAuthPage() {
         </div>
       </main>
 
-      <MimiFooter />
+      <MimiFooter version="2.1.9" />
     </div>
   );
 }
