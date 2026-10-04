@@ -116,6 +116,7 @@ class BooksMasterController extends Controller
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
             'settings.charge_kind' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::KINDS, \App\Services\Books\ServiceFeeService::KINDS)), 'settings.timing' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::TIMINGS, \App\Services\Books\ServiceFeeService::TIMINGS)), 'settings.applies_to' => 'nullable|in:service',
             'settings.refundable' => 'nullable|boolean', 'settings.tax_follows' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TAX_FOLLOWS), 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
+            'settings.tax_rate_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')], 'settings.description' => 'nullable|string|max:500', 'settings.icon' => 'nullable|string|max:40', 'settings.sort_order' => 'nullable|integer',
         ]);
         $this->assertBehaviourFields($d, $d['group_id']);
         $mode = $d['checkout_mode'] ?? null;
@@ -145,6 +146,7 @@ class BooksMasterController extends Controller
             'side' => 'nullable|in:income,expense', 'settings' => 'nullable|array',
             'settings.charge_kind' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::KINDS, \App\Services\Books\ServiceFeeService::KINDS)), 'settings.timing' => 'nullable|in:' . implode(',', array_merge(\App\Services\Books\AuctionChargeService::TIMINGS, \App\Services\Books\ServiceFeeService::TIMINGS)), 'settings.applies_to' => 'nullable|in:service',
             'settings.refundable' => 'nullable|boolean', 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
+            'settings.tax_rate_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')], 'settings.description' => 'nullable|string|max:500', 'settings.icon' => 'nullable|string|max:40', 'settings.sort_order' => 'nullable|integer',
         ]);
         // the opening balance and its side can never be empty in the books: a blank means "leave it as it is"
         foreach (['opening_balance', 'opening_side'] as $k) {
@@ -158,6 +160,9 @@ class BooksMasterController extends Controller
         }
         $mode = $d['checkout_mode'] ?? null;
         unset($d['checkout_mode']);
+        if (isset($d['settings']) && is_array($d['settings'])) {
+            $d['settings'] = array_merge($l->settings ?? [], $d['settings']);   // keep what the form did not send (a shipping option's description, icon, order)
+        }
         $l->update($d);
         if ($mode && $l->offer_at_checkout) {
             app(\App\Services\Books\PaymentModeService::class)->setMode($l->id, $mode);
