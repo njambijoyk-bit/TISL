@@ -652,7 +652,7 @@ class ExportService
             if (trim((string) $v->narration) !== '') {
                 $body .= "<div class='ipm'><b>Narration</b><br>" . nl2br($e($v->narration)) . '</div>';
             }
-            if ($fin && ! $cash && ! empty($co['payment_mode'])) {
+            if ($fin && ! empty($co['payment_mode'])) {
                 $body .= "<div class='ipm'><b>Mode of payment</b><br>" . nl2br($e($co['payment_mode'])) . '</div>';
             }
             if ($fin && ! empty($co['declaration'])) {
@@ -666,7 +666,7 @@ class ExportService
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
         $html = str_replace('</style>', $this->customerDocCss($this->docTint($kind)) . '</style>', $this->html($body, $v->voucher_number));
-        $name = ($cash ? 'cash-sale' : $kind) . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);   // e.g. invoice-WNKJ-INV-00019
+        $name = ($cash ? 'cashsale' : $kind) . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);   // e.g. invoice-WNKJ-INV-00019
 
         return $format === 'pdf' ? $this->pdf($html, "$name.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$name.html", false);
     }

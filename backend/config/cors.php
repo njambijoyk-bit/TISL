@@ -26,7 +26,7 @@ return [
     'allowed_headers' => ['*'],
 
     // Optional: expose response headers
-    'exposed_headers' => ['X-Mimi-Session-Token'],
+    'exposed_headers' => ['X-Mimi-Session-Token', 'Content-Disposition'],   // the browser needs this to name downloads
 
     // How long browsers should cache preflight responses (in seconds)
     'max_age' => 0,
