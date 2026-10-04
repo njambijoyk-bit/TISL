@@ -71,11 +71,11 @@ export default function MyAccount() {
 
             <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, padding: '14px 16px 6px' }}>
-                <p style={{ margin: 0, fontWeight: 800, marginRight: 'auto' }}>What is still to pay</p>
+                <p style={{ margin: 0, fontWeight: 800, marginRight: 'auto' }}>Outstanding bills</p>
                 <select aria-label="Outstandings format" value={outFmt} onChange={(e) => setOutFmt(e.target.value)} style={ctl}>
                   <option value="pdf">PDF</option><option value="html">Printable page</option><option value="csv">CSV (Excel)</option>
                 </select>
-                <button type="button" className="acct-export" disabled={outBusy || a.bills.length === 0} onClick={downloadOutstandings} title="A letter listing what is outstanding on your ledger, aged by bill date">{outBusy ? 'Preparing…' : 'Ledger outstandings'}</button>
+                <button type="button" className="acct-export" disabled={outBusy || a.bills.length === 0} onClick={downloadOutstandings} title="A letter listing what is outstanding on your ledger, aged by bill date">{outBusy ? 'Preparing…' : 'Export'}</button>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
                 <thead><tr><th style={th}>Bill</th><th style={th}>Date</th><th style={th}>Due</th><th style={{ ...th, textAlign: 'right' }}>Amount</th><th style={{ ...th, textAlign: 'right' }}>Still to pay</th></tr></thead>
