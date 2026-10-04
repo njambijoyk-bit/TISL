@@ -91,6 +91,7 @@ export default function AdminTicketDetail() {
     setAssigning(true);
     try {
       await assignTicket(id, adminId);
+      await fetchAdminTicket(id);   // reload: who it is assigned to, and the status that assigning moves on
       toast.success('Ticket assigned');
       setAssignModal(false);
     } catch { toast.error('Failed to assign'); }
@@ -100,6 +101,7 @@ export default function AdminTicketDetail() {
   const handleUnassign = async () => {
     try {
       await unassignTicket(id);
+      await fetchAdminTicket(id);
       toast.success('Ticket unassigned');
     } catch { toast.error('Failed to unassign'); }
   };
