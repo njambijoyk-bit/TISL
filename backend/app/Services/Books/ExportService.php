@@ -583,7 +583,6 @@ class ExportService
         // "Order No." only when it really is an order: a reference that is the number of a quotation, booking or any other document is just a reference
         $refDoc = $v->reference_no ? Voucher::with('type')->where('voucher_number', $v->reference_no)->first() : null;
         $isOrder = $so && (! $refDoc || $refDoc->type?->base_type === VoucherType::SALES_ORDER);
-        $ship = $v->meta['contact']['shipping_address'] ?? ($so?->meta['contact']['shipping_address'] ?? null);
         $paidWith = $v->paymentMethod?->name;
         $dlv = $kind === 'delivery' ? ($this->deliveryInfo([$v->id])[$v->id] ?? null) : null;
         $kv = fn (string $k, ?string $val) => $val !== null && $val !== '' ? "<div><b>{$e($k)}:</b> {$e($val)}</div>" : '';
@@ -599,7 +598,7 @@ class ExportService
                     . ($kind === 'quotation' && $v->valid_until ? "<div class='im'><b>Valid until:</b> {$e($day($v->valid_until))}</div>" : ''));
         $refs = $kind === 'receipt' ? '' : ($isOrder ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($isOrder ? $kv('Order Dated', $day($so->date)) : '')
             . ($isOrder && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
-            . $kv('Delivery Address', $ship) . ($dn || $kind === 'delivery' ? $kv('Terms of Delivery', $co['delivery_terms'] ?? null) : '');
+            . ($dn || $kind === 'delivery' ? $kv('Terms of Delivery', $co['delivery_terms'] ?? null) : '');
         $top = "<table class='it0'><tr><td class='itl'>{$buyerHtml}</td><td class='itr'>{$meta}</td></tr>" . ($refs ? "<tr><td colspan='2' class='itl'>{$refs}</td></tr>" : '') . '</table>';
 
         if ($kind === 'receipt') {
