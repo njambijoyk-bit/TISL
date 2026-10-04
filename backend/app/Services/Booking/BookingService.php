@@ -437,7 +437,7 @@ class BookingService
                 }
             }
             $b->fill(['status' => $asNoShow ? 'no_show' : 'cancelled', 'cancelled_at' => now(), 'cancel_reason' => $reason, 'cancelled_late' => $late])->save();
-            $this->calendar->remove('booking', $b->id);
+            $this->putOnCalendar($b);   // stays on the calendar, marked cancelled / no-show (it no longer holds the time: availability ignores those)
 
             return ['booking' => $b->fresh(), 'late' => $late, 'message' => trim(($asNoShow ? 'Marked as a no-show. ' : 'Booking cancelled. ') . implode(' ', $note))];
         });

@@ -88,19 +88,19 @@ class CalendarService
         $myProjects = ProjectParticipant::where('admin_user_id', $uid)->where('participant_type', 'admin')->pluck('project_id')
             ->merge(Project::where('owner_admin_id', $uid)->pluck('id'))->unique()->values();
 
-        $tasks = ProjectTask::with('project:id,title')->where('assigned_to', $uid)->whereNotNull('due_date')->whereBetween('due_date', [$from, $to])->whereNotIn('status', ['done'])->get();
+        $tasks = ProjectTask::with('project:id,title')->where('assigned_to', $uid)->whereNotNull('due_date')->whereBetween('due_date', [$from, $to])->get();   // done ones stay, marked done
         foreach ($tasks as $t) {
             $keep['task'][] = $t->id;
             $this->put(['user_id' => $uid, 'source_type' => 'task', 'source_id' => $t->id, 'kind' => 'task', 'title' => $t->title . ($t->project ? " — {$t->project->title}" : ''),
                 'starts_at' => $t->due_date->copy()->startOfDay(), 'ends_at' => null, 'all_day' => true, 'status' => $t->status, 'visibility' => 'team', 'url' => "/admin/projects/{$t->project_id}"]);
         }
-        $miles = ProjectMilestone::with('project:id,title')->whereIn('project_id', $myProjects)->whereNotNull('due_date')->whereBetween('due_date', [$from, $to])->whereNotIn('status', ['completed', 'approved'])->get();
+        $miles = ProjectMilestone::with('project:id,title')->whereIn('project_id', $myProjects)->whereNotNull('due_date')->whereBetween('due_date', [$from, $to])->get();
         foreach ($miles as $m) {
             $keep['milestone'][] = $m->id;
             $this->put(['user_id' => $uid, 'source_type' => 'milestone', 'source_id' => $m->id, 'kind' => 'milestone', 'title' => $m->title . ($m->project ? " — {$m->project->title}" : ''),
                 'starts_at' => Carbon::parse($m->due_date)->startOfDay(), 'all_day' => true, 'status' => $m->status, 'visibility' => 'team', 'url' => "/admin/projects/{$m->project_id}"]);
         }
-        $projects = Project::whereIn('id', $myProjects)->whereNotNull('target_end_date')->whereBetween('target_end_date', [$from, $to])->whereNotIn('status', ['completed', 'cancelled'])->get();
+        $projects = Project::whereIn('id', $myProjects)->whereNotNull('target_end_date')->whereBetween('target_end_date', [$from, $to])->get();
         foreach ($projects as $p) {
             $keep['project'][] = $p->id;
             $this->put(['user_id' => $uid, 'source_type' => 'project', 'source_id' => $p->id, 'kind' => 'project', 'title' => "Project ends: {$p->title}",

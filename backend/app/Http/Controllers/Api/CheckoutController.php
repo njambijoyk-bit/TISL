@@ -187,7 +187,7 @@ class CheckoutController extends Controller
             'contact' => $v->meta['contact'] ?? null, 'branch' => $v->location?->name, 'narration' => $v->narration,
             'gift_vouchers' => \App\Models\Books\GiftVoucher::with('currency:id,code,symbol')->whereIn('issued_voucher_id', $v->children->where('status', Voucher::POSTED)->pluck('id'))
                 ->get(['id', 'code', 'currency_id', 'initial_amount', 'balance', 'expires_at', 'status', 'note']),
-            'documents' => $v->children->where('status', Voucher::POSTED)->map(fn ($c) => ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'base_type' => $c->type?->base_type, 'total' => (float) $c->total_amount, 'review_requested' => ! empty($c->meta['review_requests'])])->values(),
+            'documents' => $this->documentRows($v),
             'payment_intent' => $v->meta['payment_intent'] ?? null,
             'credits' => app(\App\Services\Books\OpenBillsService::class)->forCustomer((int) $v->customer_id), 'use_credit' => array_values((array) ($v->meta['use_credit'] ?? [])),
             'gift_codes_meant' => array_values((array) ($v->meta['gift_codes'] ?? [])),
@@ -254,6 +254,26 @@ class CheckoutController extends Controller
 
             return response()->json(['message' => "We have your request ({$ticket->ticket_number}) and will get back to you."], 201);
         });
+    }
+
+    /**
+     * The documents made from an order, with where any review request on each stands. The latest request's ticket decides: still open → "review
+     * requested"; resolved or closed → "resolved", with the ticket to open and the chance to ask again; deleted (or never made) → as if never asked.
+     */
+    private function documentRows(Voucher $v): \Illuminate\Support\Collection
+    {
+        $docs = $v->children->where('status', Voucher::POSTED);
+        $numbers = $docs->flatMap(fn ($c) => collect($c->meta['review_requests'] ?? [])->pluck('ticket'))->filter()->unique()->all();
+        $tickets = $numbers ? \App\Models\Ticket::whereIn('ticket_number', $numbers)->where('customer_id', $v->customer_id)->get()->keyBy('ticket_number') : collect();   // a deleted ticket is simply not found
+
+        return $docs->map(function ($c) use ($tickets) {
+            $latest = collect($c->meta['review_requests'] ?? [])->last();
+            $t = $latest ? $tickets->get($latest['ticket'] ?? null) : null;
+            $state = ! $t ? null : (in_array($t->status, ['resolved', 'closed'], true) ? 'resolved' : 'requested');
+
+            return ['id' => $c->id, 'number' => $c->voucher_number, 'type' => $c->type?->name, 'base_type' => $c->type?->base_type, 'total' => (float) $c->total_amount,
+                'review_requested' => $state === 'requested', 'review_state' => $state, 'review_ticket' => $t ? ['id' => $t->id, 'number' => $t->ticket_number] : null];
+        })->values();
     }
 
     private function orderRow(Voucher $v): array

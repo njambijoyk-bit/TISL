@@ -165,9 +165,14 @@ export default function CustomerOrderPage() {
             <p style={{ margin: '0 0 4px' }}>Documents</p>
             {o.documents.map((d) => (
               <p key={d.id} style={{ margin: '3px 0' }}>{d.type} {d.number}
-                {['sales', 'cash_sale'].includes(d.base_type) && (d.review_requested
-                  ? <span style={{ marginLeft: 8 }}>· review requested</span>
-                  : <button type="button" onClick={() => setReview({ id: d.id, note: '' })} style={{ marginLeft: 8, border: 'none', background: 'none', color: '#6d28d9', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>Ask for a review</button>)}
+                {['sales', 'cash_sale'].includes(d.base_type) && (d.review_state === 'requested'
+                  ? <span style={{ marginLeft: 8 }}>· review requested{d.review_ticket && <> (<Link to={`/my-tickets/${d.review_ticket.id}`}>{d.review_ticket.number}</Link>)</>}</span>
+                  : d.review_state === 'resolved'
+                    ? <>
+                        <span style={{ marginLeft: 8 }}>· Issue resolved — ticket <Link to={`/my-tickets/${d.review_ticket.id}`}>{d.review_ticket.number}</Link></span>
+                        <button type="button" onClick={() => setReview({ id: d.id, note: '' })} style={{ marginLeft: 8, border: 'none', background: 'none', color: '#6d28d9', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>Request another review</button>
+                      </>
+                    : <button type="button" onClick={() => setReview({ id: d.id, note: '' })} style={{ marginLeft: 8, border: 'none', background: 'none', color: '#6d28d9', cursor: 'pointer', textDecoration: 'underline', fontSize: '0.8rem' }}>Ask for a review</button>)}
               </p>
             ))}
             <p style={{ margin: '6px 0 0' }}>An invoice or sale can't be changed by you — if something looks wrong, ask for a review and we'll check it.</p>

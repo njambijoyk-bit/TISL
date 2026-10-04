@@ -179,8 +179,11 @@ export default function AdminProfile() {
   const fmtDate = (d) =>
     d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
-  const kindCount = (k) => calEntries.filter((e) => e.kind === k).length;
-  const upcoming = [...calEntries].filter((e) => new Date(e.starts_at) >= new Date(new Date().setHours(0, 0, 0, 0))).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)).slice(0, 5);
+  // finished or cancelled entries stay on the calendar (struck through) but are not counted as work to do, nor listed as coming up
+  const FINISHED = ['cancelled', 'no_show', 'completed', 'done', 'approved', 'resolved', 'closed', 'declined'];
+  const openEntries = calEntries.filter((e) => !FINISHED.includes(e.status));
+  const kindCount = (k) => openEntries.filter((e) => e.kind === k).length;
+  const upcoming = [...openEntries].filter((e) => new Date(e.starts_at) >= new Date(new Date().setHours(0, 0, 0, 0))).sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at)).slice(0, 5);
 
   const daysUntil = (dateStr) => {
     if (!dateStr) return null;
