@@ -584,13 +584,28 @@ class ExportService
         $refDoc = $v->reference_no ? Voucher::with('type')->where('voucher_number', $v->reference_no)->first() : null;
         $isOrder = $so && (! $refDoc || $refDoc->type?->base_type === VoucherType::SALES_ORDER);
         $paidWith = $v->paymentMethod?->name;
+        // how a receipt was paid: a cheque's number and bank, a transfer's reference, and where a cheque stands (bounced and so on)
+        $ins = null;
+        if ($kind === 'receipt') {
+            try {
+                $ins = app(InstrumentService::class)->forVoucher($v->id);
+            } catch (\Throwable) {
+                $ins = null;
+            }
+        }
         $dlv = $kind === 'delivery' ? ($this->deliveryInfo([$v->id])[$v->id] ?? null) : null;
         $kv = fn (string $k, ?string $val) => $val !== null && $val !== '' ? "<div><b>{$e($k)}:</b> {$e($val)}</div>" : '';
 
         $meta = "<div class='im'><b>" . $label . " No.:</b> {$e($v->voucher_number)}</div>"
             . "<div class='im'><b>Dated:</b> {$e($day($v->date))}</div>"
             . ($kind === 'receipt'
-                ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
+                ? ($paidWith || $ins ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith ?: ($ins['label'] ?? ''))}</div>" : '')
+                    . ($ins ? ($ins['number'] ? "<div class='im'><b>" . $e($ins['type'] === 'cheque' ? 'Cheque No.' : 'Instrument No.') . ":</b> {$e($ins['number'])}</div>" : '')
+                        . ($ins['bank_name'] ? "<div class='im'><b>Bank:</b> {$e($ins['bank_name'])}</div>" : '') . ($ins['date'] && $ins['type'] === 'cheque' ? "<div class='im'><b>Cheque Date:</b> {$e($day($ins['date']))}</div>" : '')
+                        . ($ins['reference'] ? "<div class='im'><b>Reference:</b> {$e($ins['reference'])}</div>" : '')
+                        . ($ins['type'] === 'cheque' && in_array($ins['status'], ['received', 'deposited', 'cleared', 'bounced'], true)
+                            ? "<div class='im'><b>Cheque Status:</b> " . ($ins['status'] === 'bounced' ? "<b style='color:#b91c1c'>Bounced</b>" : $e(ucfirst($ins['status']))) . '</div>' : '') : '')
+                    . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
                 : (! $cash && ! in_array($kind, ['delivery', 'quotation'], true) ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
                     . ($fin && ! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : '')
                     . ($dlv ? "<div class='im'><b>Status:</b> {$e($dlv['status_label'])}" . ($dlv['status'] === 'delivered' && $dlv['delivered_at'] ? ' on ' . $e($day($dlv['delivered_at'])) : '') . '</div>'
