@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectParticipant;
 use App\Models\ProjectTask;
+use App\Models\Ticket;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -35,6 +36,29 @@ class CalendarService
         $key = ['source_type' => $e['source_type'], 'source_id' => (int) ($e['source_id'] ?? 0), 'user_id' => $e['user_id'] ?? null, 'resource_id' => $e['resource_id'] ?? null];
 
         return CalendarEntry::updateOrCreate($key, array_diff_key($e, $key) + ['visibility' => 'team']);
+    }
+
+    /**
+     * Keep a support ticket on its assignee's calendar: an all-day entry on the day it was assigned, for as long as it is assigned to them and
+     * not resolved or closed. Reassigning moves it to the new person; unassigning, resolving, closing or deleting takes it off.
+     */
+    public function syncTicket(Ticket $t, ?Carbon $day = null): void
+    {
+        $live = $t->assigned_to && ! $t->trashed() && ! in_array($t->status, ['resolved', 'closed'], true);
+        if (! $live) {
+            $this->remove('ticket', $t->id);
+
+            return;
+        }
+        CalendarEntry::where('source_type', 'ticket')->where('source_id', $t->id)->where('user_id', '!=', $t->assigned_to)->delete();   // it moved to someone else
+        $existing = CalendarEntry::where('source_type', 'ticket')->where('source_id', $t->id)->where('user_id', $t->assigned_to)->first();
+        $fields = ['kind' => 'ticket', 'title' => "{$t->ticket_number} · {$t->subject}", 'status' => $t->status, 'visibility' => 'team', 'url' => "/admin/tickets/{$t->id}",
+            'meta' => ['priority' => $t->priority, 'category' => $t->category]];
+        if ($existing) {
+            $existing->update($fields);   // the day it was assigned stays
+        } else {
+            $this->put($fields + ['user_id' => $t->assigned_to, 'source_type' => 'ticket', 'source_id' => $t->id, 'starts_at' => ($day ?? now())->copy()->startOfDay(), 'ends_at' => null, 'all_day' => true]);
+        }
     }
 
     /** Take a source's entries off every calendar (it was cancelled or deleted). */
@@ -72,6 +96,13 @@ class CalendarService
             $this->put(['user_id' => $uid, 'source_type' => 'project', 'source_id' => $p->id, 'kind' => 'project', 'title' => "Project ends: {$p->title}",
                 'starts_at' => Carbon::parse($p->target_end_date)->startOfDay(), 'all_day' => true, 'status' => $p->status, 'visibility' => 'team', 'url' => "/admin/projects/{$p->id}"]);
         }
+        // tickets assigned to them that are still open: any assigned before the calendar existed get an entry too (dated when they were last touched)
+        $openTickets = Ticket::where('assigned_to', $uid)->whereNotIn('status', ['resolved', 'closed'])->get();
+        foreach ($openTickets as $t) {
+            $this->syncTicket($t, $t->updated_at);
+        }
+        CalendarEntry::where('user_id', $uid)->where('source_type', 'ticket')->whereNotIn('source_id', $openTickets->pluck('id'))->delete();
+
         // entries in the window whose source is done, moved or gone
         foreach (['task', 'milestone', 'project'] as $type) {
             CalendarEntry::where('user_id', $uid)->where('source_type', $type)->whereBetween('starts_at', [$from, $to])

@@ -12,7 +12,7 @@ import { btnPrimary, card, colors, input } from '../../../../_shared/theme/token
  * see their own bookings in their portal. A manager can open anyone's calendar; the private link puts it in Google/Apple/Outlook.
  */
 
-const KINDS = { task: ['Task', '#3b82f6'], milestone: ['Milestone', '#8b5cf6'], project: ['Project end', '#14b8a6'], booking: ['Booking', '#10b981'], verification: ['Verification', '#f59e0b'], time_off: ['Time off', '#9ca3af'] };
+const KINDS = { task: ['Task', '#3b82f6'], ticket: ['Ticket', '#ef4444'], milestone: ['Milestone', '#8b5cf6'], project: ['Project end', '#14b8a6'], booking: ['Booking', '#10b981'], verification: ['Verification', '#f59e0b'], time_off: ['Time off', '#9ca3af'] };
 const kindOf = (k) => KINDS[k] ?? [k, '#6b7280'];
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
@@ -65,7 +65,7 @@ export default function MyCalendar({ embedded = false }) {
   return (
     <Shell>
       <div style={embedded ? { padding: 0 } : { padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        {!embedded && <HubHeader title={data && userId ? `${data.owner.name}'s calendar` : 'My calendar'} description="Your tasks, milestones and bookings in one place. Customers never see this." />}
+        {!embedded && <HubHeader title={data && userId ? `${data.owner.name}'s calendar` : 'My calendar'} description="Your tasks, tickets, milestones and bookings in one place. Customers never see this." />}
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '8px 0 12px', flexWrap: 'wrap' }}>
           <button type="button" style={{ ...input, width: 'auto', cursor: 'pointer' }} onClick={() => shift(-1)}>‹</button>

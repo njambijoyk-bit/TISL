@@ -11,6 +11,28 @@ class Ticket extends Model
 {
     use SoftDeletes;
 
+    /** What is assigned to someone is on their calendar; the entry follows assignment, status and deletion. */
+    protected static function booted(): void
+    {
+        $sync = function (Ticket $t) {
+            try {
+                app(\App\Services\Calendar\CalendarService::class)->syncTicket($t);
+            } catch (\Throwable) {
+                // the calendar must never stop a ticket being saved
+            }
+        };
+        static::saved($sync);
+        static::deleted($sync);
+        static::restored($sync);
+        static::forceDeleted(function (Ticket $t) {
+            try {
+                app(\App\Services\Calendar\CalendarService::class)->remove('ticket', $t->id);
+            } catch (\Throwable) {
+                //
+            }
+        });
+    }
+
     protected $fillable = [
         'ticket_number',
         'customer_id',
