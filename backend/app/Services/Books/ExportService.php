@@ -569,7 +569,7 @@ class ExportService
             . "<div class='im'><b>Dated:</b> {$e($day($v->date))}</div>"
             . ($kind === 'receipt'
                 ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
-                : (! $cash && $kind !== 'delivery' ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
+                : (! $cash && ! in_array($kind, ['delivery', 'quotation'], true) ? "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>" : '')
                     . ($fin && ! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : '')
                     . ($kind === 'quotation' && $v->valid_until ? "<div class='im'><b>Valid until:</b> {$e($day($v->valid_until))}</div>" : ''));
         $refs = $kind === 'receipt' ? '' : ($isOrder ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($isOrder ? $kv('Order Dated', $day($so->date)) : '')
@@ -638,7 +638,7 @@ class ExportService
 
         $note = 'This is a computer generated ' . strtolower($label);
         $body = "<div class='icopy'>(Buyer's Copy)</div><div class='ittl'>{$title}</div>" . $band . $body
-            . "<div class='ifaith'>Yours faithfully,<br><b>for {$e($legal)}</b></div>"
+            . "<table class='isig'><tr><td class='isl'><b>Customer's Seal and Signature</b></td><td class='isr'><b>for {$e($legal)}</b><br><br><b>Authorised Signatory</b></td></tr></table>"
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
         $html = str_replace('</style>', $this->customerDocCss($this->docTint($kind)) . '</style>', $this->html($body, $v->voucher_number));
@@ -657,7 +657,7 @@ class ExportService
             . '.gd .sl{text-align:right}.gd .ds{font-weight:700}.gd .cm{font-weight:400;padding-left:18px}.gd .c{text-align:center}.gd .chg td{font-weight:700}.gd .tt td{border-top:1px solid #444;border-bottom:1px solid #444;font-weight:700}'
             . '.iw{margin:6px 0;font-size:11px}.iw2{background:#c9e8f3;margin:0;border:1px solid #444}.iw2 td{border:0;font-size:11px;padding:3px 6px}'
             . '.vt{margin:0;border:1px solid #444}.vt th{background:#e3f3f9;border:1px solid #444;font-weight:400;font-size:11px;text-align:center}.vt td{border:1px solid #444;font-size:11px}.vt .tt td{font-weight:400}'
-            . '.ipm{margin-top:14px;font-size:11px;line-height:1.5}.ifaith{text-align:right;margin-top:26px;font-size:11px;line-height:1.6}.itag{text-align:center;margin-top:18px;font-style:italic;font-size:11px}'
+            . '.ipm{margin-top:14px;font-size:11px;line-height:1.5}.isig{margin-top:34px}.isig td{border:0;font-size:11px;line-height:1.6;padding:0;vertical-align:bottom}.isl{width:50%}.isr{width:50%;text-align:right}.itag{text-align:center;margin-top:18px;font-style:italic;font-size:11px}'
             . '.inote{text-align:center;margin-top:6px;padding:3px;background:#c9e8f3;font-size:10px}';
 
         return strtr($css, ['#c9e8f3' => $t['band'], '#e3f3f9' => $t['light'], '#8cbfd1' => $t['band']]);
