@@ -24,7 +24,7 @@ export default function CustomerOrderPage() {
   const load = useCallback(() => checkoutAPI.order(id).then(setO).catch((e) => setError(errMsg(e, 'Could not load this order'))), [id]);
   useEffect(() => { load(); checkoutAPI.options().then(setOpts).catch(() => {}); }, [load]);
 
-  if (error) return <><Header /><main style={{ padding: 32 }}><p role="alert" style={{ color: '#991b1b' }}>{error}</p><Link to="/orders">Back</Link></main><Footer /></>;
+  if (error) return <><Header /><main style={{ padding: 32 }}>        <p role="alert" style={{ color: '#991b1b' }}>{error}</p><Link to="/orders">Back</Link></main><Footer /></>;
   if (!o) return <><Header /><main style={{ padding: 32 }}>Loading…</main><Footer /></>;
 
   const cur = o.currency;
@@ -89,6 +89,15 @@ export default function CustomerOrderPage() {
     <>
       <Header />
       <main style={{ maxWidth: 820, margin: '0 auto', padding: '32px 16px 64px' }}>
+        <style>{`
+          .ord-btn { padding: 10px 18px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface-card, #fff); color: var(--text-primary); font-weight: 700; font-family: inherit; cursor: pointer; transition: background 150ms, border-color 150ms, transform 150ms; }
+          .ord-btn:hover:not(:disabled) { background: var(--surface-hover); border-color: var(--color-primary-500); transform: translateY(-1px); }
+          .ord-btn:active:not(:disabled) { transform: none; }
+          .ord-btn-danger { padding: 10px 18px; border-radius: 10px; border: 1.5px solid var(--status-error, #ef4444); background: color-mix(in srgb, var(--status-error, #ef4444) 10%, var(--surface-card, #fff)); color: var(--status-error, #ef4444); font-weight: 700; font-family: inherit; cursor: pointer; transition: background 150ms, color 150ms, transform 150ms; }
+          .ord-btn-danger:hover:not(:disabled) { background: var(--status-error, #ef4444); color: #fff; transform: translateY(-1px); }
+          .ord-btn-sm { padding: 9px 16px; border-radius: 8px; }
+        `}</style>
+
         <Link to="/orders" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--color-primary-500)', textDecoration: 'none' }}>← My orders</Link>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>Order <span style={{ fontFamily: 'monospace', color: 'var(--color-primary-500)' }}>{o.number}</span></h1>
         <p style={{ color: '#6b7280', fontSize: '0.85rem' }}><span style={{ color, fontWeight: 700 }}>{label}</span></p>
@@ -166,15 +175,15 @@ export default function CustomerOrderPage() {
         )}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-          {o.editable && !edit && <button type="button" onClick={startEdit} style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'white', fontWeight: 700, cursor: 'pointer' }}>Change order</button>}
-          {canCancel && <button type="button" onClick={cancel} style={{ padding: '10px 18px', borderRadius: 10, border: '1.5px solid #fca5a5', background: 'white', color: '#b91c1c', fontWeight: 700, cursor: 'pointer' }}>Cancel order</button>}
+          {o.editable && !edit && <button type="button" onClick={startEdit} className="ord-btn">Change order</button>}
+          {canCancel && <button type="button" onClick={cancel} className="ord-btn-danger">Cancel order</button>}
         </div>
 
         {edit && (
           <form onSubmit={saveEdit} style={{ display: 'grid', gap: 10, maxWidth: 420, marginTop: 16 }}>
             <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Change the quantities above (0 removes an item). The order is priced again at today's prices and discounts.</p>
-            <textarea aria-label="Delivery address" placeholder="Delivery address" value={edit.address} onChange={(e) => setEdit((x) => ({ ...x, address: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
-            <input aria-label="Promo code" placeholder="Promo code (leave blank to keep the current one)" onChange={(e) => setEdit((x) => ({ ...x, promo: e.target.value.trim() === '' ? undefined : e.target.value.trim() }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
+            <textarea aria-label="Delivery address" placeholder="Delivery address" value={edit.address} onChange={(e) => setEdit((x) => ({ ...x, address: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />
+            <input aria-label="Promo code" placeholder="Promo code (leave blank to keep the current one)" onChange={(e) => setEdit((x) => ({ ...x, promo: e.target.value.trim() === '' ? undefined : e.target.value.trim() }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />
             {(o.credits ?? []).map((c) => (
               <label key={c.voucher_id} style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.8rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={edit.credit.includes(c.voucher_id)} onChange={() => setEdit((x) => ({ ...x, credit: x.credit.includes(c.voucher_id) ? x.credit.filter((i) => i !== c.voucher_id) : [...x.credit, c.voucher_id] }))} />
@@ -182,7 +191,7 @@ export default function CustomerOrderPage() {
               </label>
             ))}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={() => setEdit(null)}>Keep as it was</button>
+              <button type="button" onClick={() => setEdit(null)} className="ord-btn ord-btn-sm">Keep as it was</button>
               <button type="submit" disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#6d28d9', color: 'white', fontWeight: 700 }}>{busy ? 'Saving…' : 'Save changes'}</button>
             </div>
           </form>
@@ -190,9 +199,9 @@ export default function CustomerOrderPage() {
 
         {review && (
           <form onSubmit={sendReview} style={{ display: 'grid', gap: 10, maxWidth: 420, marginTop: 16 }}>
-            <textarea required aria-label="What should we look at?" placeholder="What should we look at?" value={review.note} onChange={(e) => setReview((x) => ({ ...x, note: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
+            <textarea required aria-label="What should we look at?" placeholder="What should we look at?" value={review.note} onChange={(e) => setReview((x) => ({ ...x, note: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" onClick={() => setReview(null)}>Cancel</button>
+              <button type="button" onClick={() => setReview(null)} className="ord-btn ord-btn-sm">Cancel</button>
               <button type="submit" disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#6d28d9', color: 'white', fontWeight: 700 }}>{busy ? 'Sending…' : 'Send request'}</button>
             </div>
           </form>
@@ -212,8 +221,8 @@ export default function CustomerOrderPage() {
                 );
               })}
             </div>
-            <input required placeholder="M-Pesa number" value={pay.phone} onChange={(e) => setPay((p) => ({ ...p, phone: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />
-            {opts.gift_vouchers_enabled && <input placeholder="Gift voucher code (optional)" value={pay.gift} onChange={(e) => setPay((p) => ({ ...p, gift: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid #e5e7eb' }} />}
+            <input required placeholder="M-Pesa number" value={pay.phone} onChange={(e) => setPay((p) => ({ ...p, phone: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />
+            {opts.gift_vouchers_enabled && <input placeholder="Gift voucher code (optional)" value={pay.gift} onChange={(e) => setPay((p) => ({ ...p, gift: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />}
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#6d28d9', color: 'white', fontWeight: 700 }}>{busy ? 'Sending…' : 'Send payment prompt'}</button>
             </div>
