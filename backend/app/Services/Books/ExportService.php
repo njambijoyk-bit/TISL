@@ -556,9 +556,9 @@ class ExportService
                 ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
                 : "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>"
                     . (! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : ''));
-        $refs = $kind === 'receipt' ? '' : $kv("Buyer's Order No.", $v->reference_no ?: $so?->reference_no) . ($so ? $kv('Order Dated', $day($so->date)) : '')
+        $refs = $kind === 'receipt' ? '' : ($so ? $kv("Buyer's Order No.", $v->reference_no ?: $so->reference_no) : $kv("Buyer's Reference", $v->reference_no)) . ($so ? $kv('Order Dated', $day($so->date)) : '')
             . ($so && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
-            . $kv('Delivery Address', $ship) . $kv('Terms of Delivery', $co['delivery_terms'] ?? null);
+            . $kv('Delivery Address', $ship) . ($dn ? $kv('Terms of Delivery', $co['delivery_terms'] ?? null) : '');
         $top = "<table class='it0'><tr><td class='itl'>{$buyerHtml}</td><td class='itr'>{$meta}</td></tr>" . ($refs ? "<tr><td colspan='2' class='itl'>{$refs}</td></tr>" : '') . '</table>';
 
         if ($kind === 'receipt') {
@@ -609,7 +609,10 @@ class ExportService
                 $body .= $vt . "<tr class='tt'><td></td><td class='r'>Total</td><td class='r'>{$n($sumBase)}</td><td class='r'>{$n($sumVat)}</td></tr></tbody></table>"
                     . "<div class='iw'>VAT Amount (in words): <b>{$e($this->words((float) $sumVat, $unit))} ({$e($sym)} {$n($sumVat)})</b></div>";
             }
-            if (! empty($co['payment_mode'])) {
+            if (trim((string) $v->narration) !== '') {
+                $body .= "<div class='ipm'><b>Narration</b><br>" . nl2br($e($v->narration)) . '</div>';
+            }
+            if (! $cash && ! empty($co['payment_mode'])) {
                 $body .= "<div class='ipm'><b>Mode of payment</b><br>" . nl2br($e($co['payment_mode'])) . '</div>';
             }
             if (! empty($co['declaration'])) {
