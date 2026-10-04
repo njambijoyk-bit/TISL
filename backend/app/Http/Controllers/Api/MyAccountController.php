@@ -135,13 +135,16 @@ class MyAccountController extends Controller
         }
         $table = [
             'title' => 'Statement: ' . implode(' · ', array_filter([$ledger->name ?: ($request->user()->name ?? 'My account'), $c->company_name && $c->company_name !== $ledger->name ? $c->company_name : null])),
-            'subtitle' => "{$from} to {$to} · amounts in {$code} · a negative balance means we hold money for you",
+            'subtitle' => "For the period {$from} to {$to} · amounts in {$code} · a negative balance means we hold money for you",
             'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Document', 'debit' => "Charged ({$code})", 'credit' => "Paid / credited ({$code})", 'balance' => "Balance ({$code})"],
             'rows' => $rows,
             'totals' => ['type' => 'Totals', 'debit' => round((float) array_sum(array_column($st['rows'], 'debit')), 2), 'credit' => round((float) array_sum(array_column($st['rows'], 'credit')), 2), 'balance' => round((float) $st['closing'], 2)],
         ];
         $format = in_array(strtolower((string) $request->query('format', 'pdf')), ExportService::FORMATS, true) ? strtolower((string) $request->query('format', 'pdf')) : 'pdf';
 
-        return $export->table($table, $format, "statement-{$from}-to-{$to}");
+        $party = ['company_name' => $c->company_name, 'ledger_name' => $ledger->name ?: ($request->user()->name ?? null),
+            'address' => $ledger->address ?: ($c->default_billing_address ?: $c->default_shipping_address), 'tax_pin' => $c->tax_id];
+
+        return $export->statement($table, $party, $format, "statement-{$from}-to-{$to}");
     }
 }

@@ -292,6 +292,55 @@ class ExportService
         return $h . '</tbody></table>';
     }
 
+    /**
+     * A customer statement laid out like a real one: our details on the left, the customer's on the right, STATEMENT across the middle,
+     * the movements, and our tagline at the foot. pdf and html get this layout; csv, xml and json carry the same rows as plain data.
+     *
+     * @param  array  $party  company_name, ledger_name, address, tax_pin
+     */
+    public function statement(array $table, array $party, string $format, string $filename): Response
+    {
+        $format = strtolower($format);
+        if (! in_array($format, ['pdf', 'html'], true)) {
+            return $this->table($table, $format, $filename);
+        }
+        $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        $co = $this->company();
+        $lines = static fn (array $l) => implode('', array_map(fn ($x) => $x === null ? '<div>&nbsp;</div>' : '<div>' . $x . '</div>', $l));
+
+        $ours = [];
+        $ours[] = ! empty($co['name']) ? '<b>' . $e($co['name']) . '</b>' : null;
+        foreach ([$co['address'] ?? null, implode(', ', array_filter([$co['city'] ?? null, $co['country'] ?? null])) ?: null,
+            implode(' · ', array_filter([$co['emails'][0] ?? null, $co['phones'][0] ?? null])) ?: null] as $x) {
+            $ours[] = $x ? $e($x) : false;
+        }
+        if (! empty($co['tax_pin'])) {
+            $ours[] = null;                                   // a blank line before the PIN
+            $ours[] = 'PIN: ' . $e($co['tax_pin']);
+        }
+        $theirs = [];
+        foreach ([$party['company_name'] ?? null, $party['ledger_name'] ?? null, $party['address'] ?? null] as $i => $x) {
+            $theirs[] = $x ? ($i === 0 ? '<b>' . $e($x) . '</b>' : nl2br($e($x))) : false;
+        }
+        if (! empty($party['tax_pin'])) {
+            $theirs[] = 'PIN: ' . $e($party['tax_pin']);
+        }
+        $clean = fn (array $l) => array_values(array_filter($l, fn ($x) => $x !== false));
+
+        $body = "<table class='sthead'><tr><td class='stl'>" . $lines($clean($ours)) . "</td><td class='str'>" . $lines($clean($theirs)) . '</td></tr></table>'
+            . "<div class='sttitle'>STATEMENT</div>"
+            . (! empty($table['subtitle']) ? "<p class='stsub'>{$e($table['subtitle'])}</p>" : '')
+            . preg_replace('~^<h1>.*?</h1>~s', '', $this->tableBody(['rows' => $table['rows'] ?? [], 'columns' => $table['columns'] ?? [], 'totals' => $table['totals'] ?? null]))   // the layout supplies its own title
+            . (! empty($co['tagline']) ? "<div class='sttag'>{$e($co['tagline'])}</div>" : '');
+
+        $html = $this->html($body, $table['title'] ?? 'Statement');
+        $html = str_replace('</style>', '.sthead{margin:0 0 6px}.sthead td{border:0;vertical-align:top;padding:0;font-size:12px;line-height:1.5}.stl{width:55%}.str{width:45%;text-align:right}'
+            . '.sttitle{text-align:center;font-size:22px;font-weight:700;letter-spacing:0.25em;margin:18px 0 2px}.stsub{text-align:center;color:#555;margin:0 0 10px}'
+            . '.sttag{position:fixed;left:24px;right:24px;bottom:12px;text-align:center;color:#555;font-style:italic;padding-top:8px;border-top:1px solid #ddd}</style>', $html);
+
+        return $format === 'pdf' ? $this->pdf($html, "$filename.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$filename.html", false);
+    }
+
     private function html(string $body, string $title): string
     {
         $css = 'body{font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#111;margin:24px}h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:18px 0 6px}'
