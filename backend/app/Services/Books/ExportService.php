@@ -138,7 +138,7 @@ class ExportService
         return array_filter([
             'name' => $c->name, 'legal_name' => $c->legal_name, 'tax_pin' => $c->tax_pin, 'address' => $c->address, 'city' => $c->city, 'country' => $c->country,
             'website' => $c->website, 'phones' => $first($c->phoneList()), 'emails' => $first($c->emailList()), 'tagline' => $c->tagline,
-            'description' => $c->description, 'declaration' => $c->declaration, 'payment_terms' => $c->payment_terms, 'payment_mode' => $c->payment_mode,
+            'description' => $c->description, 'declaration' => $c->declaration, 'payment_terms' => $c->payment_terms, 'payment_mode' => $c->payment_mode, 'delivery_terms' => $c->delivery_terms,
         ], fn ($x) => $x !== null && $x !== '' && $x !== []);
     }
 
@@ -510,7 +510,9 @@ class ExportService
         $legal = $co['legal_name'] ?? ($co['name'] ?? '');
         $sym = $v->currency?->symbol ?: ($v->currency?->code ?: '');
         $unit = $v->currency?->name ?: ($v->currency?->code ?: '');
-        $title = $kind === 'receipt' ? 'RECEIPT' : 'INVOICE';
+        $cash = $kind === 'invoice' && $v->type?->base_type === VoucherType::CASH_SALE;   // a cash sale is not an invoice: it is paid at once
+        $label = $kind === 'receipt' ? 'Receipt' : ($cash ? 'Cash Sale' : 'Invoice');
+        $title = strtoupper($label);
 
         // the band: logo, legal name, address, PIN, website, what we sell, then contacts
         $logo = $this->logoData($cp->logo_url ?? null);
@@ -548,15 +550,15 @@ class ExportService
         $paidWith = $v->paymentMethod?->name;
         $kv = fn (string $k, ?string $val) => $val !== null && $val !== '' ? "<div><b>{$e($k)}:</b> {$e($val)}</div>" : '';
 
-        $meta = "<div class='im'><b>" . ($kind === 'receipt' ? 'Receipt No.' : 'Invoice No.') . ":</b> {$e($v->voucher_number)}</div>"
+        $meta = "<div class='im'><b>" . $label . " No.:</b> {$e($v->voucher_number)}</div>"
             . "<div class='im'><b>Dated:</b> {$e($day($v->date))}</div>"
             . ($kind === 'receipt'
                 ? ($paidWith ? "<div class='im'><b>Mode of Payment:</b> {$e($paidWith)}</div>" : '') . ($v->reference_no ? "<div class='im'><b>Reference:</b> {$e($v->reference_no)}</div>" : '')
                 : "<div class='im'><b>Terms of Payment:</b> {$e(implode(' · ', array_filter([$paidWith, $co['payment_terms'] ?? null])))}</div>"
-                    . ($v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : ''));
+                    . (! $cash && $v->due_date ? "<div class='im'><b>Due on:</b> {$e($day($v->due_date))}</div>" : ''));
         $refs = $kind === 'receipt' ? '' : $kv("Buyer's Order No.", $v->reference_no ?: $so?->reference_no) . ($so ? $kv('Order Dated', $day($so->date)) : '')
             . ($so && ! ($v->reference_no ?: $so->reference_no) ? $kv('Order No.', $so->voucher_number) : '') . ($dn ? $kv('Delivery Note', $dn->voucher_number) . $kv('Delivery Note Date', $day($dn->date)) : '')
-            . $kv('Delivery Address', $ship);
+            . $kv('Delivery Address', $ship) . $kv('Terms of Delivery', $co['delivery_terms'] ?? null);
         $top = "<table class='it0'><tr><td class='itl'>{$buyerHtml}</td><td class='itr'>{$meta}</td></tr>" . ($refs ? "<tr><td colspan='2' class='itl'>{$refs}</td></tr>" : '') . '</table>';
 
         if ($kind === 'receipt') {
@@ -571,21 +573,18 @@ class ExportService
                 $desc = $i->description . ($i->variant_label ? ' (' . $i->variant_label . ')' : '');
                 $no += $comp ? 0 : 1;
                 $rows .= '<tr><td class="sl">' . ($comp ? '' : $no) . '</td><td class="ds' . ($comp ? ' cm' : '') . '">' . ($comp ? '&#8627; ' : '') . $e($desc) . '</td>'
-                    . ($i->is_header ? '<td></td><td></td><td></td><td></td>'
-                        : '<td class="r">' . $e(($i->quantity + 0) . ' ' . $i->unit_code) . '</td><td class="r">' . $n($i->rate) . '</td><td class="c">' . $e($i->unit_code) . '</td><td class="r"><b>' . $n($i->amount) . '</b></td>') . '</tr>';
+                    . ($i->is_header ? '<td></td><td></td><td></td><td></td><td></td>'
+                        : '<td class="r">' . $e(($i->quantity + 0) . ' ' . $i->unit_code) . '</td><td class="r">' . $n($i->rate) . '</td><td class="c">' . $e($i->unit_code) . '</td><td class="r">' . ((float) $i->discount_amount > 0 ? $n($i->discount_amount) : '') . '</td><td class="r"><b>' . $n($i->amount) . '</b></td>') . '</tr>';
             }
             $foot = $this->footer($v);
             // charges and taxes under the goods, in bolder ink
             foreach ($foot['charges'] as $c) {
-                $rows .= '<tr class="chg"><td></td><td class="r">' . $e($c['description']) . '</td><td></td><td></td><td></td><td class="r">' . $n($c['amount']) . '</td></tr>';
-            }
-            if ($foot['discount_total'] > 0) {
-                $rows .= '<tr class="chg"><td></td><td class="r">Discounts allowed</td><td></td><td></td><td></td><td class="r">-' . $n($foot['discount_total']) . '</td></tr>';
+                $rows .= '<tr class="chg"><td></td><td class="r">' . $e($c['description']) . '</td><td></td><td></td><td></td><td></td><td class="r">' . $n($c['amount']) . '</td></tr>';
             }
             $vat = [];
             foreach ($foot['taxes'] as $t) {
                 $rate = (float) $t['base'] > 0 ? round($t['amount'] / $t['base'] * 100, 2) : 0.0;
-                $rows .= '<tr class="chg"><td></td><td class="r">' . $e($t['ledger'] ?: $t['label']) . '</td><td></td><td class="r">' . $e($rate + 0) . '</td><td class="c">%</td><td class="r">' . $n($t['amount']) . '</td></tr>';
+                $rows .= '<tr class="chg"><td></td><td class="r">' . $e($t['ledger'] ?: $t['label']) . '</td><td></td><td class="r">' . $e($rate + 0) . '</td><td class="c">%</td><td></td><td class="r">' . $n($t['amount']) . '</td></tr>';
                 $k = (string) $rate;
                 $vat[$k] ??= ['rate' => $rate, 'base' => 0.0, 'amount' => 0.0];
                 $vat[$k]['base'] += (float) $t['base'];
@@ -593,10 +592,12 @@ class ExportService
             }
             $units = array_unique(array_filter($v->items->where('item_type', '!=', 'charge')->where('is_header', false)->pluck('unit_code')->all()));
             $qty = $v->items->where('item_type', '!=', 'charge')->where('is_header', false)->whereNull('parent_item_id')->sum('quantity');
+            $disc = (float) $v->items->where('item_type', '!=', 'charge')->whereNull('parent_item_id')->sum('discount_amount');
+            $totDisc = $disc > 0 ? $n($disc) : '';
             $totQty = count($units) === 1 ? $e(($qty + 0) . ' ' . reset($units)) : '';
 
-            $body = $top . "<table class='gd'><thead><tr><th style='width:6%'>Sl No.</th><th>Description of Goods</th><th style='width:13%'>Quantity</th><th style='width:12%'>Rate</th><th style='width:7%'>per</th><th style='width:16%'>Amount</th></tr></thead><tbody>{$rows}"
-                . "<tr class='tt'><td></td><td class='r'>Total</td><td class='r'>{$totQty}</td><td></td><td></td><td class='r'>{$e($sym)} {$n($v->total_amount)}</td></tr></tbody></table>"
+            $body = $top . "<table class='gd'><thead><tr><th style='width:6%'>Sl No.</th><th>Description of Goods</th><th style='width:13%'>Quantity</th><th style='width:12%'>Rate</th><th style='width:6%'>per</th><th style='width:11%'>Disc.</th><th style='width:15%'>Amount</th></tr></thead><tbody>{$rows}"
+                . "<tr class='tt'><td></td><td class='r'>Total</td><td class='r'>{$totQty}</td><td></td><td></td><td class='r'>{$totDisc}</td><td class='r'>{$e($sym)} {$n($v->total_amount)}</td></tr></tbody></table>"
                 . "<table class='iw2'><tr><td>Amount Chargeable (in words): <b>{$e($this->words((float) $v->total_amount, $unit))}</b></td><td class='rt'>E. &amp; O.E</td></tr></table>";
             if ($vat) {
                 $vt = '<table class="vt"><thead><tr><th></th><th style="width:12%">VAT %</th><th style="width:20%">Assessable Value</th><th style="width:18%">VAT Amount</th></tr></thead><tbody>';
@@ -616,13 +617,13 @@ class ExportService
             }
         }
 
-        $note = $kind === 'receipt' ? 'This is a computer generated receipt' : 'This is a computer generated invoice';
+        $note = 'This is a computer generated ' . strtolower($label);
         $body = "<div class='ittl'>{$title}</div>" . $band . $body
             . "<div class='ifaith'>Yours faithfully,<br><b>for {$e($legal)}</b></div>"
             . (! empty($co['tagline']) ? "<div class='itag'>{$e($co['tagline'])}</div>" : '') . "<div class='inote'>{$note}</div>";
 
         $html = str_replace('</style>', $this->customerDocCss() . '</style>', $this->html($body, $v->voucher_number));
-        $name = $kind . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);   // e.g. invoice-WNKJ-INV-00019
+        $name = ($cash ? 'cash-sale' : $kind) . '-' . preg_replace('/[^A-Za-z0-9_-]+/', '_', $v->voucher_number);   // e.g. invoice-WNKJ-INV-00019
 
         return $format === 'pdf' ? $this->pdf($html, "$name.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$name.html", false);
     }

@@ -13,7 +13,7 @@ class CompanyProfile extends Model
 {
     protected $table = 'company_profile';
 
-    protected $fillable = ['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url', 'updated_by', 'phones', 'emails', 'description', 'declaration', 'payment_terms', 'payment_mode'];
+    protected $fillable = ['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url', 'updated_by', 'phones', 'emails', 'description', 'declaration', 'payment_terms', 'payment_mode', 'delivery_terms'];
 
     protected $casts = ['phones' => 'array', 'emails' => 'array'];
 

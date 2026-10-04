@@ -15,7 +15,7 @@ class CompanyProfileController extends Controller
     {
         $c = CompanyProfile::current();
 
-        return response()->json($c->only(['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url', 'description', 'declaration', 'payment_terms', 'payment_mode'])
+        return response()->json($c->only(['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url', 'description', 'declaration', 'payment_terms', 'payment_mode', 'delivery_terms'])
             + ['emails' => $c->emailList(), 'phones' => $c->phoneList(),
                 // where to load the logo from: served through the API, so it does not depend on /storage being reachable from the browser
                 'logo_view' => $c->logo_url ? url('/api/company/logo') . '?v=' . substr(md5((string) $c->logo_url), 0, 8) : null]);
@@ -38,7 +38,7 @@ class CompanyProfileController extends Controller
             'legal_name' => 'nullable|string|max:200', 'tax_pin' => 'nullable|string|max:40', 'email' => 'nullable|email|max:160',
             'phone' => 'nullable|string|max:40', 'address' => 'nullable|string|max:255', 'city' => 'nullable|string|max:80',
             'country' => 'nullable|string|max:80', 'website' => 'nullable|string|max:160', 'tagline' => 'nullable|string|max:200', 'logo_url' => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:255', 'declaration' => 'nullable|string|max:2000', 'payment_terms' => 'nullable|string|max:255', 'payment_mode' => 'nullable|string|max:2000',
+            'description' => 'nullable|string|max:255', 'declaration' => 'nullable|string|max:2000', 'payment_terms' => 'nullable|string|max:255', 'payment_mode' => 'nullable|string|max:2000', 'delivery_terms' => 'nullable|string|max:255',
             'emails' => 'nullable|array|max:10', 'emails.*.value' => 'nullable|email|max:160', 'emails.*.label' => 'nullable|string|max:40', 'emails.*.is_default' => 'nullable|boolean',
             'phones' => 'nullable|array|max:10', 'phones.*.value' => 'nullable|string|max:40', 'phones.*.label' => 'nullable|string|max:40', 'phones.*.is_default' => 'nullable|boolean',
         ]);
@@ -58,6 +58,9 @@ class CompanyProfileController extends Controller
         // script 73 has not been run yet: leave the document text out rather than fail the save
         if (! \Illuminate\Support\Facades\Schema::hasColumn('company_profile', 'payment_mode')) {
             unset($d['description'], $d['declaration'], $d['payment_terms'], $d['payment_mode']);
+        }
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('company_profile', 'delivery_terms')) {
+            unset($d['delivery_terms']);
         }
         $c = CompanyProfile::first() ?? new CompanyProfile(['id' => 1]);
         $c->id = 1;
