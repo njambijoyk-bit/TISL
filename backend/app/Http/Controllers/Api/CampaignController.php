@@ -5,7 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Rules\NoSlash;
+use App\Models\CampaignSection;
 use App\Services\Campaigns\CampaignAccess;
+use App\Services\Campaigns\CampaignPage;
+use App\Services\Campaigns\CatalogueAdapter;
 use App\Services\Campaigns\CampaignStatus;
 use App\Services\Campaigns\CampaignTypes;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +20,10 @@ use Illuminate\Validation\Rule;
 /** Campaigns, admin side: list, create, edit, publish, pause, archive, delete. Sections, items, approval and the numbers come in later steps. See CampaignAccess for who may do what. */
 class CampaignController extends Controller
 {
+    public const MAX_VIDEO_KB = 102400;   // 100 MB
+
+    public function __construct(private CampaignPage $page, private CatalogueAdapter $catalogue) {}
+
     private function builder(Request $r): void
     {
         abort_unless(CampaignAccess::canBuild($r->user()), 403, 'You cannot work on campaigns.');
@@ -62,7 +69,9 @@ class CampaignController extends Controller
         $c = Campaign::with(['sections', 'items'])->findOrFail($id);
         abort_unless(CampaignAccess::canPublish($request->user()) || (int) $c->created_by === (int) $request->user()->id, 403);
 
-        return response()->json(['data' => $c, 'can_edit' => CampaignAccess::canEdit($request->user(), $c), 'can_publish' => CampaignAccess::canPublish($request->user())]);
+        return response()->json(['data' => $c, 'can_edit' => CampaignAccess::canEdit($request->user(), $c), 'can_publish' => CampaignAccess::canPublish($request->user()),
+            'resolved' => $this->catalogue->describe($c->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all()),
+            'ecommerce' => $this->catalogue->active(), 'item_types' => $this->catalogue->types(), 'section_types' => CampaignSection::TYPES, 'max_video_mb' => self::MAX_VIDEO_KB / 1024]);
     }
 
     private function rules(?Campaign $c = null): array
@@ -100,6 +109,7 @@ class CampaignController extends Controller
         abort_unless(in_array($d['goal'], $type['goals'], true), 422, 'That goal does not suit this type of campaign.');
         $d['slug'] = $d['slug'] ?? $this->slugFor($d['title']);
         $c = Campaign::create($d + ['created_by' => $request->user()->id, 'updated_by' => $request->user()->id, 'approval_status' => 'draft']);
+        $this->page->seed($c);   // the sections a campaign of this type starts with
 
         return response()->json(['message' => 'Campaign saved as a draft.', 'data' => $c->fresh()], 201);
     }
@@ -188,6 +198,61 @@ class CampaignController extends Controller
         if ($path && str_starts_with($path, '/storage/campaigns/')) {
             Storage::disk('public')->delete(substr($path, strlen('/storage/')));
         }
+    }
+
+    /** PUT /admin/campaigns/{id}/page: save the whole page (sections in order, and the items inside products sections) in one go. */
+    public function savePage(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $c = Campaign::findOrFail($id);
+        $this->editable($request, $c);
+        $d = $request->validate([
+            'sections' => ['present', 'array', 'max:40'],
+            'sections.*.id' => ['nullable', 'integer'],
+            'sections.*.type' => ['required', Rule::in(CampaignSection::TYPES)],
+            'sections.*.settings' => ['nullable', 'array'],
+            'sections.*.show_from' => ['nullable', 'date'],
+            'sections.*.show_until' => ['nullable', 'date'],
+            'sections.*.audience_rule' => ['nullable', 'array'],
+            'sections.*.items' => ['nullable', 'array', 'max:200'],
+            'sections.*.items.*.item_type' => ['required', Rule::in(\App\Models\CampaignItem::TYPES)],
+            'sections.*.items.*.item_id' => ['required', 'integer'],
+            'sections.*.items.*.available_from' => ['nullable', 'date'],
+            'sections.*.items.*.label_override' => ['nullable', 'string', 'max:160'],
+        ]);
+        $this->page->save($c, $d['sections']);
+        $c->update(['updated_by' => $request->user()->id]);
+        $fresh = Campaign::with(['sections', 'items'])->find($c->id);
+
+        return response()->json(['message' => 'Page saved.', 'data' => $fresh,
+            'resolved' => $this->catalogue->describe($fresh->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all())]);
+    }
+
+    /** GET /admin/campaigns/catalogue?type=&q=: find products, services, hampers or auctions to feature (needs E-commerce). */
+    public function catalogue(Request $request): JsonResponse
+    {
+        $this->builder($request);
+        $request->validate(['type' => ['required', Rule::in(\App\Models\CampaignItem::TYPES)], 'q' => ['nullable', 'string', 'max:80']]);
+
+        return response()->json(['data' => $this->catalogue->search($request->query('type'), (string) $request->query('q', '')), 'ecommerce' => $this->catalogue->active()]);
+    }
+
+    /** POST /admin/campaigns/{id}/media: a picture (up to 5 MB) or a video file (MP4 or WebM, up to 100 MB) for a section. Returns the stored path. */
+    public function uploadMedia(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $c = Campaign::findOrFail($id);
+        $this->editable($request, $c);
+        $request->validate(['kind' => ['required', Rule::in(['image', 'video'])]]);
+        if ($request->input('kind') === 'video') {
+            $request->validate(['file' => ['required', 'file', 'mimetypes:video/mp4,video/webm', 'max:' . self::MAX_VIDEO_KB]]);
+            $path = $request->file('file')->store('campaigns/video', 'public');
+        } else {
+            $request->validate(['file' => ['required', 'file', 'mimes:png,jpg,jpeg,webp', 'max:5120']]);
+            $path = $request->file('file')->store('campaigns', 'public');
+        }
+
+        return response()->json(['path' => Storage::url($path), 'kind' => $request->input('kind')]);
     }
 
     public function destroy(Request $request, int $id): JsonResponse

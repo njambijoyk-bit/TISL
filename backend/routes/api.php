@@ -850,10 +850,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
             $c = \App\Http\Controllers\Api\CampaignController::class;
             Route::get('/types',            [$c, 'types']);
+            Route::get('/catalogue',        [$c, 'catalogue']);
             Route::get('/',                 [$c, 'index']);
             Route::post('/',                [$c, 'store']);
             Route::get('/{id}',             [$c, 'show'])->whereNumber('id');
             Route::put('/{id}',             [$c, 'update'])->whereNumber('id');
+            Route::put('/{id}/page',        [$c, 'savePage'])->whereNumber('id');
+            Route::post('/{id}/media',      [$c, 'uploadMedia'])->whereNumber('id');
             Route::post('/{id}/cover',      [$c, 'uploadCover'])->whereNumber('id');
             Route::delete('/{id}/cover',    [$c, 'removeCover'])->whereNumber('id');
             Route::post('/{id}/publish',    [$c, 'publish'])->whereNumber('id');
