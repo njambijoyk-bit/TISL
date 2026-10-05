@@ -247,7 +247,7 @@ export default function CurrencySettings() {
     toggleStatus, deleteCurrency,
   } = useCurrencyStore();
 
-  const canSetBase = ['super_admin', 'finance'].includes(useAuthStore((s) => s.user?.role));   // changing the base restates every figure
+  const canSetBase = ['super_admin', 'finance'].includes(useAuthStore((s) => s.user?.role));   // changing the base restates every figure; deleting a currency is held to the same two roles
   const [editingAnchor, setEditingAnchor] = useState(null); // { id, value }
   const [showAdd,       setShowAdd]       = useState(false);
   const loading = adminLoading && !currencies.length;
@@ -466,7 +466,7 @@ export default function CurrencySettings() {
                               Set base
                             </button>
                           )}
-                          <button
+                          {canSetBase && <button
                             onClick={() => handleDelete(c)}
                             aria-label={`Delete ${c.code}`}
                             disabled={isBase}
@@ -480,7 +480,7 @@ export default function CurrencySettings() {
                             onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#d1d5db'; }}
                           >
                             <Trash2 size={13} />
-                          </button>
+                          </button>}
                         </div>
                       </td>
                     </tr>

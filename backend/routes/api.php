@@ -1649,7 +1649,7 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::put('/{id}',              [CurrencyController::class, 'update']);
                     Route::patch('/{id}/anchor-rate', [CurrencyController::class, 'updateAnchorRate']);
                     Route::patch('/{id}/status',     [CurrencyController::class, 'toggleStatus']);
-                    Route::delete('/{id}',           [CurrencyController::class, 'destroy']);
+                    Route::delete('/{id}',           [CurrencyController::class, 'destroy'])->middleware('role:super_admin,finance');
                 });
             });
         });
