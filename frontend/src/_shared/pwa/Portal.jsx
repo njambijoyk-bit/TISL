@@ -392,7 +392,7 @@ function ShortcutGrid({ allRoutes: everyRoute, storageKey, defaultShortcuts }) {
         <div onClick={e => { if (e.target === e.currentTarget) setEditing(false); }}
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-end' }}>
           <div style={{
-            width: '100%', background: 'var(--color-background, #ffffff)', borderRadius: '20px 20px 0 0',
+            width: '100%', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', borderRadius: '20px 20px 0 0',
             border: `1px solid ${BORDER_P}`,
             padding: '18px 14px',
             paddingBottom: 'calc(18px + env(safe-area-inset-bottom, 0px))',
@@ -1043,14 +1043,15 @@ function UnauthPWAHome() {
   const navigate    = useNavigate();
   const [activeTab, setActiveTab] = useState('browse');
 
+  useModuleStore((st) => st.active);   // follow modules being switched on or off
   const browseLinks = [
-    { key: 'products',  label: 'Products',  path: '/products',  color: '#3b82f6', icon: Package   },
-    { key: 'services',  label: 'Services',  path: '/services',  color: '#10b981', icon: Wrench    },
-    { key: 'specials',  label: 'Specials',  path: '/specials',  color: '#f59e0b', icon: Tag       },
-    { key: 'auctions',  label: 'Auctions',  path: '/auctions',  color: '#dc2626', icon: Gavel     },
+    { key: 'products',  label: 'Products',  path: '/products',  color: '#3b82f6', icon: Package,   module: MODULES.ECOMMERCE },
+    { key: 'services',  label: 'Services',  path: '/services',  color: '#10b981', icon: Wrench,    module: MODULES.ECOMMERCE },
+    { key: 'specials',  label: 'Specials',  path: '/specials',  color: '#f59e0b', icon: Tag,       module: MODULES.ECOMMERCE },
+    { key: 'auctions',  label: 'Auctions',  path: '/auctions',  color: '#dc2626', icon: Gavel,     module: MODULES.AUCTIONS },
     { key: 'brochures', label: 'Brochures', path: '/brochures', color: '#64748b', icon: BookOpen  },
-    { key: 'careers',   label: 'Careers',   path: '/careers',   color: 'var(--color-primary-600)', icon: Briefcase },
-  ];
+    { key: 'careers',   label: 'Careers',   path: '/careers',   color: 'var(--color-primary-600)', icon: Briefcase, module: MODULES.CAREERS },
+  ].filter((l) => isModuleActive(l.module));   // a switched-off or unlicensed module is not offered to visitors either
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
@@ -1100,9 +1101,9 @@ function UnauthPWAHome() {
             <button onClick={() => navigate('/register')} className="portal-press" style={{ width: '100%', padding: '12px', borderRadius: 11, border: `1.5px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.87rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               Create Account
             </button>
-            <button onClick={() => navigate('/products')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER}`, background: SURFACE, color: MUTED, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+            {browseLinks.length > 0 && <button onClick={() => navigate((browseLinks.find((l) => l.module === MODULES.ECOMMERCE) ?? browseLinks[0]).path)} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER}`, background: SURFACE, color: MUTED, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               Browse as Guest →
-            </button>
+            </button>}
           </div>
         )}
       </div>
