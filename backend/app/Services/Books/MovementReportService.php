@@ -193,6 +193,8 @@ class MovementReportService
             })
             ->orderBy('e.voucher_id')->get(['e.voucher_id', 'e.ledger_id', 'e.side', 'e.base_amount', 'v.date', 'l.name as ledger_name', 'g.name as group_name']);
 
+        $vouchers = DB::table('vouchers as v')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')->whereIn('v.id', $entries->pluck('voucher_id')->unique()->all() ?: [0])
+            ->get(['v.id', 'v.voucher_number', 'v.narration', 't.name as type_name'])->keyBy('id');
         $sides = ['in' => [], 'out' => []];
         $flows = [];
         $series = [];
@@ -217,6 +219,14 @@ class MovementReportService
                 if ($sum <= 0) {
                     continue;
                 }
+                // A voucher whose other lines do not add up to the money (a journal that also carries a fee, say) cannot be pinned on one party: it is shown as an
+                // adjustment under its own number rather than guessed at. A clean one (receipt, payment, sale) is split exactly.
+                $ambiguous = $against->pluck('ledger_id')->unique()->count() > 1 && abs($sum - $amount) > 0.01;
+                if ($ambiguous) {
+                    $vm = $vouchers[$m->voucher_id] ?? null;
+                    $against = collect([(object) ['ledger_id' => 0, 'base_amount' => $amount, 'ledger_name' => ($vm->voucher_number ?? 'Voucher') . ' · ' . ($vm->type_name ?? ''), 'group_name' => 'Adjustments']]);
+                    $sum = $amount;
+                }
                 $accounts[$m->ledger_id] ??= ['ledger_id' => (int) $m->ledger_id, 'name' => $m->ledger_name, 'in' => 0.0, 'out' => 0.0];
                 $accounts[$m->ledger_id][$isIn ? 'in' : 'out'] += $amount;
                 $series[$key($m->date)][$isIn ? 'in' : 'out'] = ($series[$key($m->date)][$isIn ? 'in' : 'out'] ?? 0.0) + $amount;
@@ -230,13 +240,26 @@ class MovementReportService
                     unset($bucketArr);
                     $side = $isIn ? 'in' : 'out';
                     $row = &$sides[$side][$label . '|' . $a->ledger_name];
-                    $row ??= ['group' => $label, 'name' => $a->ledger_name, 'amount' => 0.0];
+                    $row ??= ['group' => $label, 'name' => $a->ledger_name, 'amount' => 0.0, 'vouchers' => []];
                     $row['amount'] += $share;
+                    $row['vouchers'][$m->voucher_id] ??= ['amount' => 0.0, 'date' => $m->date];
+                    $row['vouchers'][$m->voucher_id]['amount'] += $share;
                     unset($row);
                 }
             }
         }
-        $round = fn (array $rows) => array_values(array_map(fn ($r) => ['amount' => round($r['amount'], 2)] + $r, $rows));
+        $round = fn (array $rows) => array_values(array_map(function ($r) use ($vouchers) {
+            $list = [];
+            foreach ($r['vouchers'] as $vid => $x) {
+                $list[] = ['id' => (int) $vid, 'number' => $vouchers[$vid]->voucher_number ?? '', 'type' => $vouchers[$vid]->type_name ?? '', 'date' => Carbon::parse($x['date'])->toDateString(),
+                    'narration' => $vouchers[$vid]->narration ?? null, 'amount' => round($x['amount'], 2)];
+            }
+            usort($list, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+            $r['vouchers'] = array_slice($list, 0, 25);
+            $r['voucher_count'] = count($list);
+
+            return ['amount' => round($r['amount'], 2)] + $r;
+        }, $rows));
         $sortDesc = function (array $rows) { usort($rows, fn ($a, $b) => $b['amount'] <=> $a['amount']); return $rows; };
         ksort($series);
         $seriesOut = [];

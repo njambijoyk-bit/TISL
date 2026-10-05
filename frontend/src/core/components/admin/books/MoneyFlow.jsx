@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ResponsiveContainer, Sankey } from 'recharts';
 import toast from 'react-hot-toast';
 import booksAPI from '../../../../_shared/api/books';
@@ -64,22 +65,45 @@ export default function MoneyFlow({ accounts = [] }) {
   }, [data]);
 
   const bucketWord = { day: 'day', week: 'week', month: 'month' }[data?.bucket] ?? 'day';
-  const Side = ({ title, rows, colour }) => (
-    <div style={{ ...card, overflow: 'hidden' }}>
-      <div style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.8rem', color: colour }}>{title}</div>
-      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <tbody>
-          {rows.length === 0 && <tr><td style={{ padding: 14, fontSize: '0.78rem', color: colors.textMuted }}>Nothing in this period.</td></tr>}
-          {rows.slice(0, 8).map((r) => (
-            <tr key={`${r.group}|${r.name}`}>
-              <td style={{ padding: '7px 12px', fontSize: '0.78rem', borderTop: `1px solid ${colors.tint(0.05)}` }}>{r.name}<span style={{ color: colors.textFaint, fontSize: '0.68rem' }}> · {r.group}</span></td>
-              <td style={{ padding: '7px 12px', fontSize: '0.78rem', textAlign: 'right', fontVariantNumeric: 'tabular-nums', borderTop: `1px solid ${colors.tint(0.05)}` }}>{money(r.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+  const Side = ({ title, rows, colour }) => {
+    const [open, setOpen] = useState(null);
+    return (
+      <div style={{ ...card, overflow: 'hidden' }}>
+        <div style={{ padding: '10px 12px', fontWeight: 800, fontSize: '0.8rem', color: colour }}>{title}</div>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <tbody>
+            {rows.length === 0 && <tr><td style={{ padding: 14, fontSize: '0.78rem', color: colors.textMuted }}>Nothing in this period.</td></tr>}
+            {rows.slice(0, 8).map((r) => {
+              const key = `${r.group}|${r.name}`;
+              const on = open === key;
+              const cell = { padding: '7px 12px', fontSize: '0.78rem', borderTop: `1px solid ${colors.tint(0.05)}` };
+              return [
+                <tr key={key} onClick={() => setOpen(on ? null : key)} style={{ cursor: 'pointer' }} title="Click for the vouchers behind this">
+                  <td style={cell}>{r.name}<span style={{ color: colors.textFaint, fontSize: '0.68rem' }}> · {r.group}{r.voucher_count > 1 ? ` · ${r.voucher_count} vouchers` : ''}</span></td>
+                  <td style={{ ...cell, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{money(r.amount)}</td>
+                </tr>,
+                on && (
+                  <tr key={`${key}-v`}>
+                    <td colSpan={2} style={{ padding: '2px 12px 10px 24px', background: colors.tint(0.03) }}>
+                      {r.vouchers.map((v) => (
+                        <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '3px 0', fontSize: '0.74rem' }}>
+                          <span><Link to={`/admin/books/vouchers/${v.id}`} style={{ fontFamily: 'monospace', color: colors.text }}>{v.number}</Link> <span style={{ color: colors.textFaint }}>· {v.type} · {v.date}</span>
+                            {v.narration && <span style={{ color: colors.textFaint }}> — {v.narration}</span>}</span>
+                          <span style={{ fontVariantNumeric: 'tabular-nums' }}>{money(v.amount)}</span>
+                        </div>
+                      ))}
+                      {r.voucher_count > r.vouchers.length && <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>and {r.voucher_count - r.vouchers.length} more</div>}
+                    </td>
+                  </tr>
+                ),
+              ];
+            })}
+          </tbody>
+        </table>
+        {rows.some((r) => r.group === 'Adjustments') && <p style={{ margin: 0, padding: '6px 12px 10px', fontSize: '0.68rem', color: colors.textFaint }}>Adjustments are journals with several lines (a bounced cheque with a fee, say). The money is shown under the voucher instead of being guessed onto one ledger.</p>}
+      </div>
+    );
+  };
 
   return (
     <div style={{ marginTop: 28 }}>
