@@ -1,0 +1,102 @@
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus } from 'lucide-react';
+import toast from 'react-hot-toast';
+import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import HubHeader, { Toolbar } from '../../../core/components/admin/ui/HubHeader';
+import Modal from '../../../core/components/admin/ui/Modal';
+import { Field, TextInput } from '../../../core/components/admin/ui/Form';
+import moodboardsAPI from '../../../_shared/api/moodboards';
+import { errMsg } from '../../../_shared/store/helpers/apiState';
+import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
+import { filterStyle } from '../../../core/components/admin/books/booksFmt';
+import BoardChip from '../../components/BoardChip';
+import Moodboard from '../../components/Moodboard';
+
+const FILTERS = [['', 'All'], ['pending', 'Waiting for approval'], ['approved', 'Approved'], ['draft', 'Drafts'], ['rejected', 'Not approved']];
+
+function NewMoodboard({ onClose }) {
+  const nav = useNavigate();
+  const [src, setSrc] = useState(null);
+  const [from, setFrom] = useState('preset:collage');
+  const [title, setTitle] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { moodboardsAPI.presets().then(setSrc).catch((e) => toast.error(errMsg(e, 'Could not load the layouts'))); }, []);
+  const go = async () => {
+    setBusy(true);
+    try { const r = await moodboardsAPI.create(title, from); nav(`/admin/moodboards/${r.data.id}/edit`); } catch (e) { toast.error(errMsg(e, 'Could not start it')); setBusy(false); }
+  };
+  const pick = (key, label, layout, sub) => (
+    <button key={key} type="button" onClick={() => setFrom(key)} style={{ padding: 8, textAlign: 'left', cursor: 'pointer', borderRadius: 12, background: 'var(--surface-card)', border: `2px solid ${from === key ? 'var(--color-primary-500)' : 'var(--line)'}`, fontFamily: 'inherit' }}>
+      <Moodboard board={{ layout, contents: {} }} editing radius={6} />
+      <div style={{ fontWeight: 700, fontSize: '0.8rem', color: colors.text, marginTop: 6 }}>{label}</div>
+      {sub && <div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{sub}</div>}
+    </button>
+  );
+
+  return (
+    <Modal title="New moodboard" subtitle="Name it and choose a layout to start from" onClose={onClose} width={820}
+      footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={btnGhost} onClick={onClose}>Cancel</button><button type="button" style={{ ...btnPrimary, opacity: title.trim() ? 1 : 0.5 }} disabled={!title.trim() || busy} onClick={go}>{busy ? 'Starting…' : 'Start'}</button></div>}>
+      <Field label="Name"><TextInput value={title} onChange={(e) => setTitle(e.target.value)} maxLength={160} autoFocus /></Field>
+      <p style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 8px' }}>Layouts</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10 }}>{src?.presets.map((p) => pick(`preset:${p.key}`, p.label, p.layout, p.description))}</div>
+      {src?.templates.length > 0 && (
+        <>
+          <p style={{ fontSize: '0.7rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 8px' }}>Your saved templates</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 10 }}>{src.templates.map((t) => pick(`template:${t.id}`, t.title, t.layout))}</div>
+        </>
+      )}
+    </Modal>
+  );
+}
+
+/** The moodboards: collages made from a layout. Sales and finance moodboards wait here for approval. Saved templates have their own tab. */
+export default function MoodboardList() {
+  const nav = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [templates, setTemplates] = useState(false);
+  const [approval, setApproval] = useState('');
+  const [q, setQ] = useState('');
+  const [making, setMaking] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setRows((await moodboardsAPI.list({ templates: templates ? 1 : 0, approval: !templates && approval ? approval : undefined, q: q || undefined })).data); }
+    catch (e) { toast.error(errMsg(e, 'Could not load the moodboards')); } finally { setLoading(false); }
+  }, [templates, approval, q]);
+  useEffect(() => { const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const chip = (on) => ({ ...filterStyle, cursor: 'pointer', fontWeight: on ? 700 : 500, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' });
+
+  return (
+    <AdminLayout>
+      <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
+        <HubHeader title="Moodboards" description="Collages of pictures, colours, words and stickers, made from a layout. Approved ones show on the website." />
+        <Toolbar right={<button type="button" style={btnPrimary} onClick={() => setMaking(true)}><Plus size={14} /> New moodboard</button>}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <button type="button" style={chip(!templates && !approval)} onClick={() => { setTemplates(false); setApproval(''); }}>All</button>
+            {FILTERS.slice(1).map(([k, l]) => <button key={k} type="button" style={chip(!templates && approval === k)} onClick={() => { setTemplates(false); setApproval(k); }}>{l}</button>)}
+            <button type="button" style={chip(templates)} onClick={() => setTemplates(true)}>Templates</button>
+          </div>
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name…" style={{ ...filterStyle, minWidth: 220 }} />
+        </Toolbar>
+        {loading && rows.length === 0 && <p style={{ color: colors.textFaint }}>Loading…</p>}
+        {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{templates ? 'No templates yet. Open a moodboard and choose Save as template.' : 'No moodboards yet. Start one with New moodboard.'}</p>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
+          {rows.map((m) => (
+            <button key={m.id} type="button" onClick={() => nav(`/admin/moodboards/${m.id}/edit`)} style={{ ...card, padding: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', opacity: m.status === 'hidden' ? 0.6 : 1 }}>
+              <Moodboard board={m} radius={8} />
+              <div style={{ marginTop: 8, fontWeight: 700, color: colors.text, fontSize: '0.88rem' }}>{m.title}</div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
+                {!m.is_template && <BoardChip board={{ approval_status: m.approval_status, status: m.status, visibility: 'public' }} />}
+                <span style={{ fontSize: '0.7rem', color: colors.textFaint }}>{m.owner_name ?? ''} · {m.filled}/{m.slots} filled</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      {making && <NewMoodboard onClose={() => setMaking(false)} />}
+    </AdminLayout>
+  );
+}

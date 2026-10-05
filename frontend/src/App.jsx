@@ -36,6 +36,10 @@ const PinPage              = lazy(() => import('./campaigns/pages/public/PinPage
 const BoardPage            = lazy(() => import('./campaigns/pages/public/BoardPage'));
 const MyBoardsPage         = lazy(() => import('./campaigns/pages/public/MyBoardsPage'));
 const MyBoardPage          = lazy(() => import('./campaigns/pages/public/MyBoardPage'));
+const MoodboardsPage       = lazy(() => import('./campaigns/pages/public/MoodboardsPage'));
+const MoodboardPage        = lazy(() => import('./campaigns/pages/public/MoodboardPage'));
+const MoodboardList        = lazy(() => import('./campaigns/pages/admin/MoodboardList'));
+const MoodboardEditor      = lazy(() => import('./campaigns/pages/admin/MoodboardEditor'));
 const CampaignList         = lazy(() => import('./campaigns/pages/admin/CampaignList'));
 const PinLibrary           = lazy(() => import('./campaigns/pages/admin/PinLibrary'));
 const BoardList            = lazy(() => import('./campaigns/pages/admin/BoardList'));
@@ -437,6 +441,8 @@ function App() {
             <Route path="/world" element={<ModuleRoute module="campaigns"><WorldPage /></ModuleRoute>} />
             <Route path="/pins/:id" element={<ModuleRoute module="campaigns"><PinPage /></ModuleRoute>} />
             <Route path="/boards/:slug" element={<ModuleRoute module="campaigns"><BoardPage /></ModuleRoute>} />
+            <Route path="/moodboards" element={<ModuleRoute module="campaigns"><MoodboardsPage /></ModuleRoute>} />
+            <Route path="/moodboards/:slug" element={<ModuleRoute module="campaigns"><MoodboardPage /></ModuleRoute>} />
             <Route path="/my/boards" element={<ProtectedRoute><ModuleRoute module="campaigns"><MyBoardsPage /></ModuleRoute></ProtectedRoute>} />
             <Route path="/my/boards/:id" element={<ProtectedRoute><ModuleRoute module="campaigns"><MyBoardPage /></ModuleRoute></ProtectedRoute>} />
             <Route path="/auctions" element={<ModuleRoute module="ecommerce.auctions"><AuctionListPage /></ModuleRoute>} />
@@ -1441,6 +1447,8 @@ function App() {
               <Route path="/admin/boards" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><BoardList /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/boards/new" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><BoardEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/boards/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><BoardEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/moodboards" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><MoodboardList /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/moodboards/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><MoodboardEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/campaigns/new" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/campaigns/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/financial-notes" element={<Navigate to="/admin/books/memoranda" replace />} />

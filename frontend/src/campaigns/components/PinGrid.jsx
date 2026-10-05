@@ -26,9 +26,9 @@ function Card({ p, onOpen }) {
 
 /**
  * Endless masonry of pins. `load(after)` returns { data, next }; the grid asks for the next page as the bottom nears and starts over when
- * `resetKey` changes. Columns fill top to bottom, so new pins arrive below without moving the ones already on screen.
+`resetKey` changes. `render(item)` draws something other than a pin (moodboards use it). Columns fill top to bottom, so new pins arrive below without moving the ones already on screen.
  */
-export default function PinGrid({ load, resetKey, onOpen, empty = 'Nothing here yet.' }) {
+export default function PinGrid({ load, resetKey, onOpen, render, empty = 'Nothing here yet.' }) {
   const [rows, setRows] = useState([]);
   const [next, setNext] = useState(undefined);   // undefined: not loaded yet, null: that was the end
   const [busy, setBusy] = useState(false);
@@ -60,7 +60,7 @@ export default function PinGrid({ load, resetKey, onOpen, empty = 'Nothing here 
 
   return (
     <div>
-      <div style={{ columnWidth: 230, columnGap: 16 }}>{rows.map((p) => <Card key={p.id} p={p} onOpen={onOpen} />)}</div>
+      <div style={{ columnWidth: 230, columnGap: 16 }}>{rows.map((p) => (render ? render(p) : <Card key={p.id} p={p} onOpen={onOpen} />))}</div>
       {next === null && rows.length === 0 && <p style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '40px 0' }}>{empty}</p>}
       {error && <p style={{ textAlign: 'center' }}><button type="button" onClick={() => more(next ?? undefined, gen.current)} style={{ padding: '8px 16px', borderRadius: 999, cursor: 'pointer', border: '1.5px solid var(--line)', background: 'transparent', color: 'var(--text-secondary)', fontFamily: 'inherit', fontWeight: 600 }}>Could not load. Try again</button></p>}
       {(busy || next) && !error && <div ref={sentinel} style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: 24, fontSize: '0.8rem' }}>{busy ? 'Loading…' : ''}</div>}

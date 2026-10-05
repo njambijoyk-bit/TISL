@@ -8,7 +8,7 @@ import { filterStyle } from '../../core/components/admin/books/booksFmt';
 import PinThumb from './PinThumb';
 
 /** Choose pins from the library to put on a board. Pins already on the board are left out. */
-export default function PinPicker({ exclude = [], onClose, onPick }) {
+export default function PinPicker({ exclude = [], single = false, title = 'Add pins', onClose, onPick }) {
   const [rows, setRows] = useState([]);
   const [q, setQ] = useState('');
   const [picked, setPicked] = useState([]);
@@ -25,11 +25,11 @@ export default function PinPicker({ exclude = [], onClose, onPick }) {
   }, [q]);
 
   const shown = rows.filter((p) => !exclude.includes(p.id));
-  const toggle = (id) => setPicked((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
+  const toggle = (id) => setPicked((x) => (x.includes(id) ? x.filter((i) => i !== id) : single ? [id] : [...x, id]));
 
   return (
-    <Modal title="Add pins" subtitle="Tap the pins to put on this board" onClose={onClose} width={760}
-      footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={btnGhost} onClick={onClose}>Cancel</button><button type="button" style={{ ...btnPrimary, opacity: picked.length ? 1 : 0.5 }} disabled={!picked.length} onClick={() => onPick(picked)}>Add {picked.length || ''} {picked.length === 1 ? 'pin' : 'pins'}</button></div>}>
+    <Modal title={title} subtitle={single ? 'Tap the pin to use' : 'Tap the pins to put on this board'} onClose={onClose} width={760}
+      footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={btnGhost} onClick={onClose}>Cancel</button><button type="button" style={{ ...btnPrimary, opacity: picked.length ? 1 : 0.5 }} disabled={!picked.length} onClick={() => onPick(picked, rows.filter((p) => picked.includes(p.id)))}>{single ? 'Use this pin' : `Add ${picked.length || ''} ${picked.length === 1 ? 'pin' : 'pins'}`}</button></div>}>
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search title, caption or credit…" style={{ ...filterStyle, width: '100%', marginBottom: 12, boxSizing: 'border-box' }} />
       {loading && <p style={{ color: colors.textFaint }}>Loading…</p>}
       {!loading && shown.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.84rem' }}>No pins to add. Make some in the Pins page first.</p>}
