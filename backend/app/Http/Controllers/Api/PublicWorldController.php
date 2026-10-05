@@ -43,7 +43,7 @@ class PublicWorldController extends Controller
     /** Product pins need E-commerce: without a live item there is nothing to show. */
     private function present($pins): array
     {
-        return collect($this->pins->presentMany($pins))->reject(fn ($p) => $p['kind'] === 'item' && empty($p['item']))->map(fn ($p) => $this->shape($p))->values()->all();
+        return collect($this->pins->presentMany($pins))->reject(fn ($p) => $p['kind'] === 'item' && empty($p['item']['available']))->map(fn ($p) => $this->shape($p))->values()->all();
     }
 
     /** GET /world/pins?tab=discover|following&after=&q=&tag= */

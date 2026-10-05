@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
@@ -23,7 +24,7 @@ export default function CampaignsPage() {
       <Header />
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 24px 64px' }}>
         <h1 style={{ margin: '0 0 6px', fontSize: 'clamp(1.7rem, 4vw, 2.4rem)', fontWeight: 900, color: 'var(--color-primary-500)', letterSpacing: '-0.02em' }}>Campaigns</h1>
-        <p style={{ margin: '0 0 22px', color: 'var(--text-secondary)' }}>What is happening now, what is coming, and what we have done before.</p>
+        <p style={{ margin: '0 0 22px', color: 'var(--text-secondary)' }}>What is happening now, what is coming, and what we have done before. <Link to="/world" style={{ color: 'var(--color-primary-500)', fontWeight: 700 }}>Explore the world ›</Link></p>
         <div style={{ display: 'flex', gap: 8, marginBottom: 22, flexWrap: 'wrap' }}>
           {TABS.map(([k, l]) => (
             <button key={k} type="button" onClick={() => setTab(k)} style={{ padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: tab === k ? 800 : 600, fontSize: '0.84rem', color: tab === k ? 'var(--color-primary-500)' : 'var(--text-secondary)', border: `1.5px solid ${tab === k ? 'var(--color-primary-500)' : 'var(--line)'}`, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent' }}>

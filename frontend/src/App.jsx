@@ -31,6 +31,9 @@ const Products             = lazy(() => import('./ecommerce/pages/customer/Produ
 const ProductDetail        = lazy(() => import('./ecommerce/pages/customer/ProductDetail'));
 const CampaignsPage        = lazy(() => import('./campaigns/pages/public/CampaignsPage'));
 const CampaignPage         = lazy(() => import('./campaigns/pages/public/CampaignPage'));
+const WorldPage            = lazy(() => import('./campaigns/pages/public/WorldPage'));
+const PinPage              = lazy(() => import('./campaigns/pages/public/PinPage'));
+const BoardPage            = lazy(() => import('./campaigns/pages/public/BoardPage'));
 const CampaignList         = lazy(() => import('./campaigns/pages/admin/CampaignList'));
 const PinLibrary           = lazy(() => import('./campaigns/pages/admin/PinLibrary'));
 const BoardList            = lazy(() => import('./campaigns/pages/admin/BoardList'));
@@ -429,6 +432,9 @@ function App() {
             <Route path="/portal" element={<Portal />} />
             <Route path="/campaigns" element={<ModuleRoute module="campaigns"><CampaignsPage /></ModuleRoute>} />
             <Route path="/campaigns/:slug" element={<ModuleRoute module="campaigns"><CampaignPage /></ModuleRoute>} />
+            <Route path="/world" element={<ModuleRoute module="campaigns"><WorldPage /></ModuleRoute>} />
+            <Route path="/pins/:id" element={<ModuleRoute module="campaigns"><PinPage /></ModuleRoute>} />
+            <Route path="/boards/:slug" element={<ModuleRoute module="campaigns"><BoardPage /></ModuleRoute>} />
             <Route path="/auctions" element={<ModuleRoute module="ecommerce.auctions"><AuctionListPage /></ModuleRoute>} />
             <Route path="/auctions/:id" element={<ModuleRoute module="ecommerce.auctions"><AuctionDetailPage /></ModuleRoute>} />
             <Route path="/products" element={<ModuleRoute module="ecommerce"><Products /></ModuleRoute>} />
