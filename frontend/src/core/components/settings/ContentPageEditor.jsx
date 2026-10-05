@@ -55,9 +55,9 @@ function PillBtn({ onClick, disabled, children, primary, danger, ghost }) {
   const variant = primary
     ? { background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white', boxShadow: '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }
     : danger
-      ? { background: 'rgba(239,68,68,0.08)', color: '#b91c1c', border: '1px solid rgba(239,68,68,0.2)' }
+      ? { background: 'rgba(239,68,68,0.08)', color: 'var(--status-error, #b91c1c)', border: '1px solid rgba(239,68,68,0.2)' }
       : ghost
-        ? { background: 'transparent', color: '#9ca3af', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }
+        ? { background: 'transparent', color: 'var(--text-tertiary)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)' }
         : { background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', color: 'var(--color-primary-600)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' };
 
   return (
@@ -74,7 +74,7 @@ function PillBtn({ onClick, disabled, children, primary, danger, ghost }) {
       onMouseLeave={e => {
         if (primary) e.currentTarget.style.boxShadow = '0 2px 10px color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
         else if (danger) e.currentTarget.style.background = 'rgba(239,68,68,0.08)';
-        else if (ghost) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }
+        else if (ghost) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)'; e.currentTarget.style.color = 'var(--text-tertiary)'; }
         else e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)';
       }}
     >
@@ -130,7 +130,7 @@ const SectionCard = ({ section, pageType, onSave, onDelete, onToggle, onUploadIm
       border: editing
         ? '1.5px solid color-mix(in srgb, var(--color-primary-500) 40%, transparent)'
         : '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
-      background: 'white',
+      background: 'var(--surface-card, #fff)',
       boxShadow: editing
         ? '0 8px 32px color-mix(in srgb, var(--color-primary-500) 12%, transparent)'
         : '0 2px 8px color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
@@ -144,7 +144,7 @@ const SectionCard = ({ section, pageType, onSave, onDelete, onToggle, onUploadIm
         borderBottom: editing ? '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' : 'none',
       }}>
 
-        <GripVertical size={15} style={{ color: '#e5e7eb', flexShrink: 0, cursor: 'grab' }} />
+        <GripVertical size={15} style={{ color: 'var(--line)', flexShrink: 0, cursor: 'grab' }} />
 
         <div style={{
           width: 42, height: 42, borderRadius: 11, flexShrink: 0,
@@ -160,13 +160,13 @@ const SectionCard = ({ section, pageType, onSave, onDelete, onToggle, onUploadIm
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {section.title ?? section.section_key}
             </span>
             <TypeTag type={section.section_type} />
           </div>
           {section.subtitle && !editing && (
-            <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {section.subtitle}
             </p>
           )}
@@ -183,8 +183,8 @@ const SectionCard = ({ section, pageType, onSave, onDelete, onToggle, onUploadIm
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
               transition: 'all 150ms',
               ...(section.is_active
-                ? { background: 'rgba(16,185,129,0.1)', color: '#065f46', border: '1px solid rgba(16,185,129,0.25)' }
-                : { background: 'rgba(107,114,128,0.1)', color: '#4b5563', border: '1px solid rgba(107,114,128,0.2)' }
+                ? { background: 'rgba(16,185,129,0.1)', color: 'var(--status-success, #065f46)', border: '1px solid rgba(16,185,129,0.25)' }
+                : { background: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', border: '1px solid rgba(107,114,128,0.2)' }
               ),
             }}
           >
@@ -216,7 +216,7 @@ const SectionCard = ({ section, pageType, onSave, onDelete, onToggle, onUploadIm
 
       {/* Inline edit form */}
       {editing && (
-        <div style={{ padding: '20px 24px', background: 'white' }}>
+        <div style={{ padding: '20px 24px', background: 'var(--surface-card, #fff)' }}>
           <SectionFieldset
             sectionType={section.section_type}
             pageType={pageType}
@@ -237,7 +237,7 @@ const SectionCard = ({ section, pageType, onSave, onDelete, onToggle, onUploadIm
           background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
         }}>
           <p style={{
-            fontSize: '0.72rem', color: '#9ca3af', margin: 0, lineHeight: 1.5,
+            fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0, lineHeight: 1.5,
             overflow: 'hidden', display: '-webkit-box',
             WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           }}>
@@ -382,7 +382,7 @@ export default function ContentPageEditor({ pageType, title, subtitle, icon: Ico
             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.025em', margin: '0 0 3px', lineHeight: 1 }}>
               {title}
             </h1>
-            <p style={{ fontSize: '0.78rem', color: '#9ca3af', margin: 0 }}>{subtitle}</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>{subtitle}</p>
           </div>
         </div>
 
@@ -396,8 +396,8 @@ export default function ContentPageEditor({ pageType, title, subtitle, icon: Ico
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7,
               transition: 'all 150ms',
               ...(page.is_active
-                ? { background: 'rgba(16,185,129,0.1)', color: '#065f46', border: '1.5px solid rgba(16,185,129,0.3)', boxShadow: '0 2px 8px rgba(16,185,129,0.15)' }
-                : { background: 'white', color: '#6b7280', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }
+                ? { background: 'rgba(16,185,129,0.1)', color: 'var(--status-success, #065f46)', border: '1.5px solid rgba(16,185,129,0.3)', boxShadow: '0 2px 8px rgba(16,185,129,0.15)' }
+                : { background: 'var(--surface-card, #fff)', color: 'var(--text-secondary)', border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)' }
               ),
             }}
           >
@@ -420,13 +420,13 @@ export default function ContentPageEditor({ pageType, title, subtitle, icon: Ico
       {!loading.page && !pageMeta && (
         <div style={{
           borderRadius: 14, padding: '48px 24px', textAlign: 'center',
-          border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'white',
+          border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', background: 'var(--surface-card, #fff)',
           boxShadow: '0 2px 8px color-mix(in srgb, var(--color-primary-500) 5%, transparent)',
         }}>
-          <p style={{ fontSize: '0.875rem', color: '#9ca3af', margin: '0 0 6px' }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)', margin: '0 0 6px' }}>
             No <strong>{pageType}</strong> page exists yet.
           </p>
-          <p style={{ fontSize: '0.75rem', color: '#d1d5db', margin: 0 }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: 0 }}>
             Seed your database with a <code>{pageType}</code> content page.
           </p>
         </div>
@@ -444,8 +444,8 @@ export default function ContentPageEditor({ pageType, title, subtitle, icon: Ico
             {sections.length === 0 && !showAddForm && (
               <div style={{
                 borderRadius: 14, padding: '48px 24px', textAlign: 'center',
-                border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'white',
-                fontSize: '0.82rem', color: '#9ca3af',
+                border: '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)', background: 'var(--surface-card, #fff)',
+                fontSize: '0.82rem', color: 'var(--text-tertiary)',
               }}>
                 No sections yet. Add your first one below.
               </div>
@@ -479,7 +479,7 @@ export default function ContentPageEditor({ pageType, title, subtitle, icon: Ico
               style={{
                 width: '100%', padding: '16px', borderRadius: 14, fontSize: '0.875rem', fontWeight: 600,
                 border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent',
-                color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+                color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 transition: 'border-color 150ms, color 150ms, background 150ms',
               }}
@@ -490,7 +490,7 @@ export default function ContentPageEditor({ pageType, title, subtitle, icon: Ico
               }}
               onMouseLeave={e => {
                 e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
-                e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.color = 'var(--text-tertiary)';
                 e.currentTarget.style.background = 'transparent';
               }}
             >
