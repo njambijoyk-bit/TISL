@@ -570,7 +570,7 @@ class ReferralController extends Controller
 
     public function activityLog(Request $request)
     {
-        $query = \App\Models\ReferralActivityLog::with(['actor:id,name,email', 'order:id,order_number'])
+        $query = \App\Models\ReferralActivityLog::with(['actor:id,name,email'])   // the old orders table is gone; the row's metadata carries the reference
             ->orderBy('created_at', 'desc');
 
         // Optional filters

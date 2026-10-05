@@ -845,6 +845,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // The merged activity timeline: every log on the site, each only to the roles allowed to see it
         Route::get('/activity-feed', [\App\Http\Controllers\Api\ActivityFeedController::class, 'index']);
+
+        // All auction activity across auctions (the Activity logs > Auctions tab)
+        Route::get('/auction-orders/activity', [AuctionController::class, 'globalActivityLog'])->middleware('module:ecommerce');
         // Dashboard
         // Route::get('/dashboard', [AdminController::class, 'dashboard']);
 
