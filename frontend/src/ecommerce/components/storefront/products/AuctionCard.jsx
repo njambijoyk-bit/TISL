@@ -42,7 +42,7 @@ export default function AuctionCard({ auction }) {
         {!imageError && imageUrl ? (
           <img src={imageUrl} alt={product?.name ?? 'Auction'} className="collapsed-thumb-img" onError={() => setImageError(true)} />
         ) : (
-          <div className="collapsed-thumb-placeholder"><Package size={22} className="text-gray-400" /></div>
+          <div className="collapsed-thumb-placeholder"><Package size={22} style={{ color: "var(--text-tertiary)" }} /></div>
         )}
       </div>
 
@@ -77,7 +77,7 @@ export default function AuctionCard({ auction }) {
       <style>{`
         .auction-collapsed-card {
           display: flex; align-items: center; gap: 12px;
-          padding: 10px 12px; background: white; border-radius: 12px;
+          padding: 10px 12px; background: var(--surface-card); border-radius: 12px;
           box-shadow: 0 1px 3px rgba(0,0,0,0.07); cursor: pointer;
           transition: box-shadow 150ms ease, transform 150ms ease; width: 100%;
           border-left: 3px solid #dc2626; position: relative;
@@ -99,27 +99,24 @@ export default function AuctionCard({ auction }) {
         }
         .auction-collapsed-card:hover .collapsed-hover-name { opacity: 1; transform: translateY(0); }
         .auction-collapsed-card:hover { box-shadow: 0 4px 12px rgba(220,38,38,0.12); transform: translateY(-1px); }
-        .dark .auction-collapsed-card { background: #1f2937; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
-        .collapsed-thumb { flex-shrink:0; width:52px; height:52px; border-radius:10px; overflow:hidden; background:#f3f4f6; }
-        .dark .collapsed-thumb { background:#374151; }
+                .collapsed-thumb { flex-shrink:0; width:52px; height:52px; border-radius:10px; overflow:hidden; background:var(--surface-input, var(--surface-hover)); }
         .collapsed-thumb-img { width:100%; height:100%; object-fit:cover; }
         .collapsed-thumb-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
         .collapsed-info { flex:1; min-width:0; }
         .collapsed-name { font-size:0.825rem; font-weight:600; color:var(--color-primary-500); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0 0 2px; line-height:1.3; }
-        .collapsed-desc { font-size:0.72rem; color:#6b7280; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.4; }
-        .dark .collapsed-desc { color:#9ca3af; }
+        .collapsed-desc { font-size:0.72rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin:0; line-height:1.4; }
         .collapsed-right { flex-shrink:0; display:flex; flex-direction:column; align-items:flex-end; gap:5px; }
         .auction-price-group { display:flex; flex-direction:column; align-items:flex-end; gap:1px; }
-        .auction-label { font-size:0.62rem; color:#9ca3af; text-transform:uppercase; letter-spacing:0.05em; }
+        .auction-label { font-size:0.62rem; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.05em; }
         .auction-price { font-size:0.82rem; font-weight:700; color:#dc2626; white-space:nowrap; }
-        .auction-timer { display:flex; align-items:center; gap:3px; font-size:0.68rem; font-weight:700; color:#6b7280; font-variant-numeric:tabular-nums; }
+        .auction-timer { display:flex; align-items:center; gap:3px; font-size:0.68rem; font-weight:700; color:var(--text-secondary); font-variant-numeric:tabular-nums; }
         .auction-timer.urgent { color:#dc2626; animation: pulse 1s infinite; }
-        .auction-timer.ended { color:#9ca3af; }
+        .auction-timer.ended { color:var(--text-tertiary); }
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
         .collapsed-action-btn { display:flex; align-items:center; gap:4px; padding:5px 11px; border-radius:20px; font-size:0.72rem; font-weight:600; cursor:pointer; transition:all 150ms ease; white-space:nowrap; border:none; }
         .collapsed-action-btn.auction { background-color:rgba(220,38,38,0.1); color:#dc2626; border:1px solid rgba(220,38,38,0.4); }
         .collapsed-action-btn.auction:hover { background-color:#dc2626; color:white; }
-        .collapsed-action-btn.auction-ended { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; border:none; }
+        .collapsed-action-btn.auction-ended { background:var(--surface-input, var(--surface-hover)); color:var(--text-tertiary); cursor:not-allowed; border:none; }
       `}</style>
     </div>
   );

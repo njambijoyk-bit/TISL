@@ -10,16 +10,16 @@ import Breadcrumb from '../../../_shared/components/layout/Breadcrumb';
 
 // ── Skeleton ──────────────────────────────────────────────────────────────────
 const AuctionSkeleton = () => (
-  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'white', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderLeft: '3px solid #e5e7eb' }}>
-    <div style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 10, background: '#e5e7eb' }} />
+  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--surface-card)', borderRadius: 12, boxShadow: '0 1px 3px rgba(0,0,0,0.07)', borderLeft: '3px solid var(--line)' }}>
+    <div style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 10, background: 'var(--line)' }} />
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ height: 12, width: '65%', background: '#e5e7eb', borderRadius: 6 }} />
-      <div style={{ height: 10, width: '85%', background: '#e5e7eb', borderRadius: 6 }} />
+      <div style={{ height: 12, width: '65%', background: 'var(--line)', borderRadius: 6 }} />
+      <div style={{ height: 10, width: '85%', background: 'var(--line)', borderRadius: 6 }} />
     </div>
     <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-      <div style={{ height: 12, width: 56, background: '#e5e7eb', borderRadius: 6 }} />
-      <div style={{ height: 10, width: 40, background: '#e5e7eb', borderRadius: 6 }} />
-      <div style={{ height: 24, width: 52, background: '#e5e7eb', borderRadius: 20 }} />
+      <div style={{ height: 12, width: 56, background: 'var(--line)', borderRadius: 6 }} />
+      <div style={{ height: 10, width: 40, background: 'var(--line)', borderRadius: 6 }} />
+      <div style={{ height: 24, width: 52, background: 'var(--line)', borderRadius: 20 }} />
     </div>
   </div>
 );
@@ -57,7 +57,7 @@ export default function AuctionListPage() {
               <h1 className="text-3xl font-bold text-primary flex items-center gap-3">
                 <Gavel className="text-red-600" /> Live Auctions
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-0.5" style={{ fontSize: '0.85rem' }}>
+              <p className="mt-0.5" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 {loading ? 'Loading…' : `${auctions.length} active auction${auctions.length !== 1 ? 's' : ''}`}
               </p>
             </div>
@@ -78,10 +78,10 @@ export default function AuctionListPage() {
               {Array.from({ length: 12 }).map((_, i) => <AuctionSkeleton key={i} />)}
             </div>
           ) : auctions.length === 0 ? (
-            <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
-              <Package className="mx-auto text-gray-400 mb-4" size={48} />
-              <h3 className="text-lg font-medium text-gray-700 dark:text-gray-300">No active auctions right now</h3>
-              <p className="text-sm text-gray-400 mt-1 mb-4">Check back soon or browse our products</p>
+            <div className="text-center py-16 rounded-xl shadow-sm" style={{ background: 'var(--surface-card)' }}>
+              <Package className="mx-auto mb-4" size={48} style={{ color: 'var(--text-tertiary)' }} />
+              <h3 className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>No active auctions right now</h3>
+              <p className="text-sm mt-1 mb-4" style={{ color: 'var(--text-tertiary)' }}>Check back soon or browse our products</p>
               <button onClick={() => navigate('/products')} className="text-primary-600 hover:underline text-sm font-medium">
                 Browse regular products →
               </button>
