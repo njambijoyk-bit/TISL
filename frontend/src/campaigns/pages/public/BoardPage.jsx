@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { X } from 'lucide-react';
+import { UserPlus, UserCheck, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import worldAPI from '../../../_shared/api/world';
+import myBoardsAPI from '../../../_shared/api/myBoards';
+import useAuthStore from '../../../_shared/store/authStore';
+import { errMsg } from '../../../_shared/store/helpers/apiState';
 import PinGrid from '../../components/PinGrid';
 import PinDetail from '../../components/PinDetail';
 
@@ -16,15 +20,20 @@ export default function BoardPage() {
   const open = params.get('pin');
   const [head, setHead] = useState(null);
   const [gone, setGone] = useState(false);
+  const user = useAuthStore((s) => s.user);
 
   useEffect(() => { setHead(null); setGone(false); }, [id]);
   const load = useCallback(async (after) => {
     try {
       const b = await worldAPI.board(id, after);
-      setHead((h) => h ?? { title: b.title, description: b.description, by: b.by, followers: b.followers });
+      setHead((h) => h ?? { title: b.title, description: b.description, by: b.by, followers: b.followers, following: b.following, mine: b.mine });
       return { data: b.pins, next: b.next };
     } catch (e) { if (e?.response?.status === 404) setGone(true); throw e; }
   }, [id]);
+  const toggle = async () => {
+    try { const r = await (head.following ? myBoardsAPI.unfollow(id) : myBoardsAPI.follow(id)); setHead((h) => ({ ...h, following: r.following, followers: r.followers })); }
+    catch (e) { toast.error(errMsg(e, 'That did not work')); }
+  };
   const setPin = (v) => setParams(v ? { pin: v } : {}, { replace: !v });
 
   useEffect(() => {
@@ -48,6 +57,9 @@ export default function BoardPage() {
               <h1 style={{ margin: 0, fontSize: 'clamp(1.6rem, 4vw, 2.3rem)', fontWeight: 900, color: 'var(--text-primary)' }}>{head?.title ?? ' '}</h1>
               {head?.description && <p style={{ margin: '8px auto 0', maxWidth: 560, color: 'var(--text-secondary)' }}>{head.description}</p>}
               {head && <p style={{ margin: '8px 0 0', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{head.by ? `By ${head.by} · ` : ''}{head.followers} {head.followers === 1 ? 'follower' : 'followers'}</p>}
+              {head && !head.mine && (user
+                ? <button type="button" onClick={toggle} style={{ marginTop: 12, padding: '9px 20px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.86rem', display: 'inline-flex', alignItems: 'center', gap: 7, border: head.following ? '1.5px solid var(--line)' : 0, color: head.following ? 'var(--text-primary)' : '#fff', background: head.following ? 'transparent' : 'var(--color-primary-500)' }}>{head.following ? <><UserCheck size={14} /> Following</> : <><UserPlus size={14} /> Follow</>}</button>
+                : <Link to="/login" style={{ display: 'inline-block', marginTop: 12, fontSize: '0.84rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>Sign in to follow</Link>)}
             </div>
             <PinGrid load={load} resetKey={id} onOpen={(p) => setPin(String(p.id))} empty="No pins on this board yet." />
           </>

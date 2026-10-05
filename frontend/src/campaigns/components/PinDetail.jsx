@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Download, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import worldAPI from '../../_shared/api/world';
+import SaveMenu from './SaveMenu';
 import { storageUrl } from '../../_shared/lib/storageUrl';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 
@@ -23,20 +24,22 @@ function Media({ p }) {
 }
 
 /** One pin in full: its picture or video, words, tags, the boards it is on, and a download button when the pin allows it. */
-export default function PinDetail({ id, pin: given, onTag }) {
+export default function PinDetail({ id, pin: given, onTag, own = false }) {
   const [p, setP] = useState(given ?? null);
   const [gone, setGone] = useState(false);
   useEffect(() => {
+    if (own && given) return undefined;   // my own board's pins come with the page; a private one is not in the public feed
     let live = true;
     setGone(false);
     worldAPI.pin(id).then((r) => { if (live) setP(r); }).catch(() => { if (live) setGone(true); });
     return () => { live = false; };
-  }, [id]);
+  }, [id, own]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (gone) return <p style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>This pin is not available any more.</p>;
   if (!p) return <p style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading…</p>;
   const download = async () => { try { await worldAPI.download(p.id); } catch (e) { toast.error(errMsg(e, 'Could not download it')); } };
   const title = p.title || p.item?.name;
+  const canDownload = p.can_download ?? (p.allow_download && ((p.kind === 'image' && p.media_path) || (p.kind === 'video' && p.video?.file)));
   const internal = (u) => typeof u === 'string' && u.startsWith('/');
 
   return (
@@ -52,7 +55,8 @@ export default function PinDetail({ id, pin: given, onTag }) {
             ? <Link to={p.item.link} style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff', border: 0 }}>View it</Link>
             : <a href={p.item.link} style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff', border: 0 }}>View it</a>)}
           {p.kind === 'link' && p.link_url && <a href={p.link_url} target="_blank" rel="noopener noreferrer nofollow" style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff', border: 0 }}><ExternalLink size={14} /> Open link</a>}
-          {p.can_download && <button type="button" onClick={download} style={{ ...pill, background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--line)' }}><Download size={14} /> Download</button>}
+          {!own && <SaveMenu pinId={p.id} />}
+          {canDownload && <button type="button" onClick={download} style={{ ...pill, background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--line)' }}><Download size={14} /> Download</button>}
         </div>
         {p.tags?.length > 0 && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{p.tags.map((t) => (onTag
           ? <button key={t} type="button" onClick={() => onTag(t)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', color: 'var(--color-primary-500)', fontWeight: 600, padding: 0 }}>#{t}</button>

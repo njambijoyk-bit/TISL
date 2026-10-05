@@ -42,6 +42,7 @@ export default function WorldPage() {
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 22 }}>
           <button type="button" style={chip(tab === 'discover')} onClick={() => set({ tab: '' })}>Discover</button>
           <button type="button" style={chip(tab === 'following')} onClick={() => set({ tab: 'following' })}>Following</button>
+          {user && <Link to="/my/boards" style={{ ...chip(false), textDecoration: 'none' }}>My boards</Link>}
           <form onSubmit={(e) => { e.preventDefault(); set({ q: text.trim() }); }} style={{ marginLeft: 'auto', position: 'relative', flex: '1 1 240px', maxWidth: 380 }}>
             <Search size={15} style={{ position: 'absolute', left: 14, top: 12, color: 'var(--text-tertiary)' }} />
             <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search pins" aria-label="Search pins" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px 10px 38px', borderRadius: 999, border: '1.5px solid var(--line)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.88rem' }} />
