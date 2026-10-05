@@ -906,12 +906,14 @@ function AdminPWAHome({ user, onLogout }) {
   }, []);
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
+  const isDriver  = user?.role === 'driver';   // a driver has their own routes under Overview: no calendar tab, no quick access
+  const tabs      = isDriver ? ADMIN_TABS.filter((t) => t.key !== 'calendar') : ADMIN_TABS;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' }}>
       <style>{GLOBAL_CSS}</style>
       <PWAHeader name={firstName} onLogout={onLogout} />
-      <TabBar tabs={ADMIN_TABS} active={activeTab} onChange={setActiveTab} />
+      <TabBar tabs={tabs} active={activeTab} onChange={setActiveTab} />
 
       <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 16 }}>
         {loading ? (
@@ -926,7 +928,7 @@ function AdminPWAHome({ user, onLogout }) {
             {activeTab === 'security'  && <PasswordTab onLogout={onLogout} />}
           </div>
         )}
-        <ShortcutGrid allRoutes={ADMIN_ROUTES} storageKey={`pwa_admin_shortcuts_${user?.id}`} defaultShortcuts={DEFAULT_ADMIN_SHORTCUTS} />
+        {!isDriver && <ShortcutGrid allRoutes={ADMIN_ROUTES} storageKey={`pwa_admin_shortcuts_${user?.id}`} defaultShortcuts={DEFAULT_ADMIN_SHORTCUTS} />}
         <div style={{ height: 14 }} />
       </div>
     </div>
@@ -937,12 +939,20 @@ function AdminOverviewTab({ user, navigate }) {
   const role      = user?.role ?? 'staff';
   const roleColor = ROLE_COLORS[role] ?? '#6b7280';
   const roleLabel = ROLE_LABELS[role] ?? role;
-  const links = [
+  const isDriver = role === 'driver';
+  const driverLinks = [
+    { label: 'My profile',   desc: 'Your details and password',    path: '/driver/profile',   icon: User,          color: '#8b5cf6' },
+    { label: 'My manifests', desc: 'Today\'s deliveries and stops', path: '/driver/manifests', icon: Truck,         color: '#3b82f6' },
+    { label: 'My ratings',   desc: 'What customers said',          path: '/driver/ratings',   icon: Star,          color: '#ec4899' },
+    { label: 'My incidents', desc: 'Report and review incidents',  path: '/driver/incidents', icon: ShieldAlert,   color: '#f59e0b' },
+  ].filter(() => isModuleActive(MODULES.EXTRAS));   // delivery is an Extras feature
+  const adminLinks = [
     { label: 'Dashboard', desc: 'Revenue & order KPIs',    path: '/admin',           icon: LayoutDashboard, color: '#6366f1' },
     { label: 'Orders',    desc: 'Manage fulfillment queue', path: '/admin/orders',    icon: ShoppingBag,     color: '#f97316' },
     { label: 'Reports',   desc: 'Day book, trial balance, profit & loss, ageing', path: '/admin/books?tab=reports',  icon: BarChart2,       color: '#22c55e' },
     { label: 'Settings',  desc: 'System configuration',    path: '/admin/settings',   icon: Settings,        color: '#64748b' },
   ];
+  const links = isDriver ? driverLinks : adminLinks;
   return (
     <div style={{ padding: '14px 14px 8px' }}>
       {/* Role badge */}
@@ -1024,7 +1034,7 @@ function AdminEmployeeTab({ user, empRecord, navigate }) {
         </GlassCard>
       )}
 
-      <button onClick={() => navigate('/admin/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      <button onClick={() => navigate(user?.role === 'driver' ? '/driver/profile' : '/admin/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
         Full Employee Record <ChevronRight size={13} />
       </button>
     </div>
