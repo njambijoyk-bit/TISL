@@ -7,6 +7,7 @@ use App\Models\CampaignEvent;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * A campaign's numbers. Visits come from a small events log (a visit is stored as a hashed key, one view per visitor per day, and staff are not counted).
@@ -83,5 +84,40 @@ class CampaignStats
         $out['orders'] = count($orders);
 
         return $out;
+    }
+
+    /**
+     * The pin sections' numbers: the pins a campaign shows (a board's pins, or the pins with a tag), how often customers saved them to their own boards,
+     * how often they were downloaded (since script 84; all time), and how many customers' pins are in the gallery. Null when it has no such sections.
+     */
+    public function community(Campaign $c): ?array
+    {
+        $feed = app(Feed::class);
+        $pinIds = [];
+        $gallery = [];
+        $sections = 0;
+        foreach ($c->sections as $s) {
+            $st = $s->settings ?? [];
+            if ($s->type === 'pins' && ($st['source'] ?? '') === 'board' && ! empty($st['board_id'])) {
+                $sections++;
+                $pinIds = array_merge($pinIds, DB::table('campaign_board_pins')->where('board_id', $st['board_id'])->pluck('pin_id')->all());
+            } elseif (in_array($s->type, ['pins', 'gallery'], true) && ! empty($st['tag'])) {
+                $sections++;
+                $q = $feed->publicPins()->where('tags', 'like', '%' . json_encode((string) $st['tag'], JSON_UNESCAPED_UNICODE) . '%')->when($s->type === 'gallery', fn ($w) => $w->where('campaign_pins.source', 'customer'));
+                $ids = $q->limit(2000)->pluck('campaign_pins.id')->all();
+                $pinIds = array_merge($pinIds, $ids);
+                if ($s->type === 'gallery') {
+                    $gallery = array_merge($gallery, $ids);
+                }
+            }
+        }
+        if (! $sections) {
+            return null;
+        }
+        $pinIds = array_values(array_unique($pinIds));
+        $saves = $pinIds ? DB::table('campaign_board_pins as bp')->join('campaign_boards as b', 'b.id', '=', 'bp.board_id')->whereNull('b.deleted_at')->where('b.is_official', false)->whereIn('bp.pin_id', $pinIds)->count() : 0;
+        $downloads = $pinIds && Schema::hasColumn('campaign_pins', 'download_count') ? (int) DB::table('campaign_pins')->whereIn('id', $pinIds)->sum('download_count') : null;
+
+        return ['pins' => count($pinIds), 'saves' => $saves, 'downloads' => $downloads, 'gallery_pins' => count(array_unique($gallery))];
     }
 }

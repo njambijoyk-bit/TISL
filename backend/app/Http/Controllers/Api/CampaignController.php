@@ -274,7 +274,7 @@ class CampaignController extends Controller
     public function numbers(Request $request, int $id): JsonResponse
     {
         $this->builder($request);
-        $c = Campaign::with('items')->findOrFail($id);
+        $c = Campaign::with(['items', 'sections'])->findOrFail($id);
         abort_unless(CampaignAccess::canPublish($request->user()) || (int) $c->created_by === (int) $request->user()->id, 403);
         $resolved = $this->catalogue->describe($c->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all());
         $sales = $this->stats->sales($c);
@@ -282,7 +282,17 @@ class CampaignController extends Controller
             $sales['items'] = array_map(fn ($r) => $r + ['name' => $resolved["{$r['type']}:{$r['id']}"]['name'] ?? null], $sales['items']);
         }
 
-        return response()->json(['visits' => $this->stats->visits($c), 'sales' => $sales, 'goal' => $c->goal]);
+        return response()->json(['visits' => $this->stats->visits($c), 'sales' => $sales, 'community' => $this->stats->community($c), 'goal' => $c->goal]);
+    }
+
+    /** GET /admin/campaigns/world-options: the approved public boards and moodboards a page section can show. */
+    public function worldOptions(Request $request): JsonResponse
+    {
+        $this->builder($request);
+        $boards = app(\App\Services\Campaigns\Feed::class)->publicBoards()->orderByDesc('id')->limit(200)->get(['id', 'title'])->all();
+        $moods = \App\Models\CampaignMoodboard::where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved')->orderByDesc('id')->limit(200)->get(['id', 'title'])->all();
+
+        return response()->json(['boards' => $boards, 'moodboards' => $moods]);
     }
 
     /** POST /admin/campaigns/{id}/submit: the author sends a draft for approval (their manager, or the admins, get a calendar task). */

@@ -931,6 +931,7 @@ Route::middleware('auth:sanctum')->group(function () {
             $c = \App\Http\Controllers\Api\CampaignController::class;
             Route::get('/types',            [$c, 'types']);
             Route::get('/catalogue',        [$c, 'catalogue']);
+            Route::get('/world-options',    [$c, 'worldOptions']);
             Route::get('/',                 [$c, 'index']);
             Route::post('/',                [$c, 'store']);
             Route::get('/{id}',             [$c, 'show'])->whereNumber('id');

@@ -57,6 +57,9 @@ class PublicWorldController extends Controller
             return response()->json(['message' => 'Sign in to see pins from boards you follow.'], 401);
         }
         $q = $following ? $this->feed->followingPins($user->id) : $this->feed->publicPins();
+        if ($request->query('source') === 'customer') {
+            $q->where('campaign_pins.source', 'customer');   // the community gallery
+        }
         [$rows, $next] = $this->feed->page($q, $request->integer('after') ?: null, $request->query('q'), $request->query('tag'));
 
         return response()->json(['data' => $this->present($rows), 'next' => $next]);
@@ -103,6 +106,10 @@ class PublicWorldController extends Controller
         $url = $pin->kind === 'video' ? $pin->video['file'] : $pin->media_path;
         $rel = Str::after((string) parse_url($url, PHP_URL_PATH), '/storage/');
         abort_unless($rel !== '' && Storage::disk('public')->exists($rel), 404);
+        try {
+            $pin->increment('download_count');   // counted for the campaign numbers; skipped quietly until script 84 has been run
+        } catch (\Throwable) {
+        }
         $name = (Str::slug($pin->title ?: "pin-{$pin->id}") ?: "pin-{$pin->id}") . '.' . (pathinfo($rel, PATHINFO_EXTENSION) ?: 'jpg');
 
         return Storage::disk('public')->download($rel, $name);

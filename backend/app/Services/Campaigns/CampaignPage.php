@@ -22,9 +22,12 @@ class CampaignPage
         'video' => ['heading' => 160, 'source' => 10, 'url' => 500, 'file' => 500, 'poster' => 500],
         'products' => ['heading' => 160, 'layout' => 10],
         'cta' => ['heading' => 160, 'text' => 600, 'button_label' => 60, 'button_link' => 300],
+        'pins' => ['heading' => 160, 'source' => 6, 'tag' => 30],
+        'moodboard' => ['heading' => 160],
+        'gallery' => ['heading' => 160, 'tag' => 30],
     ];
 
-    public function __construct(private CatalogueAdapter $catalogue) {}
+    public function __construct(private CatalogueAdapter $catalogue, private Feed $feed) {}
 
     /** Starter sections for a type: what a new campaign begins with. */
     public function defaults(string $type, string $title, ?string $subtitle): array
@@ -88,8 +91,42 @@ class CampaignPage
         if ($type === 'products') {
             $out['layout'] = ($out['layout'] ?? 'grid') === 'list' ? 'list' : 'grid';
         }
+        if (in_array($type, ['pins', 'gallery'], true)) {
+            $this->world($type, $settings ?? [], $out);
+        }
+        if ($type === 'moodboard') {
+            $id = (int) ($settings['moodboard_id'] ?? 0);
+            if (! $id || ! \App\Models\CampaignMoodboard::where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved')->where('id', $id)->exists()) {
+                throw ValidationException::withMessages(['sections' => ['Choose an approved moodboard for the moodboard section.']]);
+            }
+            $out['moodboard_id'] = $id;
+        }
 
         return $out;
+    }
+
+    /** The settings of a pin grid (a board, or a tag) and of the community gallery (a tag): what to show and how many. */
+    private function world(string $type, array $in, array &$out): void
+    {
+        $tag = mb_strtolower(trim(ltrim(trim((string) ($in['tag'] ?? '')), '#')));
+        $out['count'] = max(1, min(24, (int) ($in['count'] ?? 12)));
+        unset($out['tag']);
+        if ($type === 'gallery' || ($in['source'] ?? '') === 'tag') {
+            if ($tag === '' || mb_strlen($tag) > 30) {
+                throw ValidationException::withMessages(['sections' => ['Give the tag to show pins for (a single word, no spaces).']]);
+            }
+            $out['tag'] = $tag;
+        }
+        if ($type === 'pins') {
+            $out['source'] = ($in['source'] ?? '') === 'tag' ? 'tag' : 'board';
+            if ($out['source'] === 'board') {
+                $id = (int) ($in['board_id'] ?? 0);
+                if (! $id || ! $this->feed->publicBoards()->where('id', $id)->exists()) {
+                    throw ValidationException::withMessages(['sections' => ['Choose a public, approved board for the pin grid.']]);
+                }
+                $out['board_id'] = $id;
+            }
+        }
     }
 
     /** @param array<int,array> $sections in page order */

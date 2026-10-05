@@ -86,7 +86,7 @@ class PublicCampaignController extends Controller
                 continue;
             }
             if (in_array($status, ['scheduled', 'teaser'], true)) {
-                $ok = $s->show_from || in_array($s->type, ['hero', 'countdown'], true) || ($status === 'teaser' && $s->type !== 'products');
+                $ok = $s->show_from || in_array($s->type, ['hero', 'countdown'], true) || ($status === 'teaser' && ! in_array($s->type, ['products', 'pins', 'moodboard', 'gallery'], true));
                 if (! $ok) {
                     continue;
                 }
