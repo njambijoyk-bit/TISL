@@ -11,6 +11,8 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import PinGrid from '../../components/PinGrid';
 import PinDetail from '../../components/PinDetail';
+import Discussion from '../../../extras/components/engagement/Discussion';
+import { ReactionButton, ReportButton } from '../../../extras/components/engagement/Reactions';
 
 /** A public board by its address (id-name): its name, who made it (not shown for the brand's own boards), and its pins in order. */
 export default function BoardPage() {
@@ -61,7 +63,9 @@ export default function BoardPage() {
                 ? <button type="button" onClick={toggle} style={{ marginTop: 12, padding: '9px 20px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.86rem', display: 'inline-flex', alignItems: 'center', gap: 7, border: head.following ? '1.5px solid var(--line)' : 0, color: head.following ? 'var(--text-primary)' : '#fff', background: head.following ? 'transparent' : 'var(--color-primary-500)' }}>{head.following ? <><UserCheck size={14} /> Following</> : <><UserPlus size={14} /> Follow</>}</button>
                 : <Link to="/login" style={{ display: 'inline-block', marginTop: 12, fontSize: '0.84rem', fontWeight: 700, color: 'var(--color-primary-500)' }}>Sign in to follow</Link>)}
             </div>
+            {head && !head.mine && <div style={{ display: 'flex', gap: 18, justifyContent: 'center', margin: '-12px 0 22px' }}><ReactionButton type="board" id={id} /><ReportButton type="board" id={id} /></div>}
             <PinGrid load={load} resetKey={id} onOpen={(p) => setPin(String(p.id))} empty="No pins on this board yet." />
+            {head && <div style={{ maxWidth: 720, margin: '40px auto 0' }}><Discussion type="board" id={id} kind="comment" /></div>}
           </>
         )}
       </main>

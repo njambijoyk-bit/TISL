@@ -37,7 +37,7 @@ class PublicCampaignController extends Controller
 
     private function card(Campaign $c, string $status): array
     {
-        return ['slug' => $c->slug, 'title' => $c->title, 'subtitle' => $c->subtitle, 'cover_media' => $c->cover_media, 'accent_color' => $c->accent_color, 'starts_at' => $this->iso($c->starts_at), 'ends_at' => $this->iso($c->ends_at), 'status' => $status];
+        return ['id' => $c->id, 'slug' => $c->slug, 'title' => $c->title, 'subtitle' => $c->subtitle, 'cover_media' => $c->cover_media, 'accent_color' => $c->accent_color, 'starts_at' => $this->iso($c->starts_at), 'ends_at' => $this->iso($c->ends_at), 'status' => $status];
     }
 
     private function visible($user)

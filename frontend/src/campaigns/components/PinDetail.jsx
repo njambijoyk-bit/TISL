@@ -4,6 +4,8 @@ import { Download, ExternalLink } from 'lucide-react';
 import toast from 'react-hot-toast';
 import worldAPI from '../../_shared/api/world';
 import SaveMenu from './SaveMenu';
+import Discussion from '../../extras/components/engagement/Discussion';
+import { ReactionButton, ReportButton } from '../../extras/components/engagement/Reactions';
 import { storageUrl } from '../../_shared/lib/storageUrl';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 
@@ -61,6 +63,8 @@ export default function PinDetail({ id, pin: given, onTag, own = false }) {
         {p.tags?.length > 0 && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{p.tags.map((t) => (onTag
           ? <button key={t} type="button" onClick={() => onTag(t)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', color: 'var(--color-primary-500)', fontWeight: 600, padding: 0 }}>#{t}</button>
           : <Link key={t} to={`/world?tag=${encodeURIComponent(t)}`} style={{ fontSize: '0.8rem', color: 'var(--color-primary-500)', fontWeight: 600 }}>#{t}</Link>))}</div>}
+        {!own && <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}><ReactionButton type="pin" id={p.id} /><ReportButton type="pin" id={p.id} /></div>}
+        {!own && <Discussion type="pin" id={p.id} kind="comment" />}
         {p.boards?.length > 0 && (
           <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>On {p.boards.map((b, i) => <span key={b.id}>{i > 0 && ', '}<Link to={`/boards/${b.slug_path}`} style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>{b.title}</Link></span>)}</div>
         )}
