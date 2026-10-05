@@ -1036,6 +1036,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('services')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [ServiceController::class, 'adminIndex']);
             Route::post('/', [ServiceController::class, 'store']);
+            Route::get('/next-sku', [ServiceController::class, 'nextSku']);
             Route::get('/trash', [ServiceController::class, 'trash']);
             Route::post('/restore-multiple', [ServiceController::class, 'restoreMultiple']);
             Route::post('/force-delete-multiple', [ServiceController::class, 'forceDeleteMultiple'])->middleware('role:admin,super_admin,manager');

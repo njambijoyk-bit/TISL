@@ -296,7 +296,7 @@ class ServiceController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:services,slug',
-            'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU')], // We'll handle uniqueness manually
+            'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) { if ($value !== null && $value !== '' && app(\App\Services\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // left blank, a fresh one is generated
             'category_id' => 'nullable|exists:service_categories,id',
             'service_category' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:100',
@@ -382,28 +382,11 @@ class ServiceController extends Controller
                 }
             }
             
-            // Generate unique SKU if provided but already exists
-            if (!empty($data['sku'])) {
-                $originalSku = $data['sku'];
-                $count = 1;
-                while (Service::where('sku', $data['sku'])->exists()) {
-                    $data['sku'] = $originalSku . '-' . $count;
-                    $count++;
-                }
-            } else {
-                // Auto-generate SKU if not provided
-                $prefix = 'SRV';
-                $latestService = Service::orderBy('id', 'desc')->first();
-                $nextId = $latestService ? $latestService->id + 1 : 1;
-                $data['sku'] = $prefix . '-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
-                
-                // Ensure uniqueness
-                while (Service::where('sku', $data['sku'])->exists()) {
-                    $nextId++;
-                    $data['sku'] = $prefix . '-' . str_pad($nextId, 5, '0', STR_PAD_LEFT);
-                }
+            // A service always has a SKU: the one typed (checked above to be unused), or a fresh generated one
+            if (empty($data['sku'])) {
+                $data['sku'] = app(\App\Services\SkuGenerator::class)->generate();
             }
-            
+
             // Set service_category name from category_id
             if (!empty($data['category_id'])) {
                 $category = ServiceCategory::find($data['category_id']);
@@ -491,6 +474,12 @@ class ServiceController extends Controller
     /**
      * Update service (admin)
      */
+    /** A fresh SKU (like SMMK9T1206) that no product, variant or service has. */
+    public function nextSku(): \Illuminate\Http\JsonResponse
+    {
+        return response()->json(['sku' => app(\App\Services\SkuGenerator::class)->generate()]);
+    }
+
     public function update(Request $request, $id)
     {
         $service = Service::findOrFail($id);
@@ -517,7 +506,7 @@ class ServiceController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:services,slug,' . $id,
-            'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU')], // Handle uniqueness manually
+            'sku' => ['sometimes', 'required', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) use ($service) { if ($value !== $service->sku && app(\App\Services\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // a service always keeps a SKU
             'category_id' => 'nullable|exists:service_categories,id',
             'service_category' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:100',
@@ -592,16 +581,8 @@ class ServiceController extends Controller
         try {
             $data = $request->except(['main_image', 'images', 'image_urls', 'main_image_url']);
             
-            // Handle SKU uniqueness if changed
-            if (!empty($data['sku']) && $data['sku'] !== $service->sku) {
-                $originalSku = $data['sku'];
-                $count = 1;
-                while (Service::where('sku', $data['sku'])->where('id', '!=', $id)->exists()) {
-                    $data['sku'] = $originalSku . '-' . $count;
-                    $count++;
-                }
-            }
-            
+            // (a changed SKU was checked above to be unused)
+
             // Update service_category if category_id changed
             if (!empty($data['category_id']) && $data['category_id'] != $service->category_id) {
                 $category = ServiceCategory::find($data['category_id']);

@@ -13,7 +13,7 @@ import ServiceCatalogEditor from '../../components/admin/services/ServiceCatalog
 import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPanel';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
-import { getAvailableServices, getAvailableProducts } from '../../../_shared/api/services';
+import { getAvailableServices, getAvailableProducts, nextServiceSku } from '../../../_shared/api/services';
 import noSlash from '../../../_shared/lib/noSlash';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -343,6 +343,14 @@ const ServiceForm = () => {
     return () => { clearCurrentService(); clearError(); };
   }, [id]);
 
+  // A new service (or an old one that never had a SKU) gets a unique SKU from the server as soon as the form is ready; still editable.
+  useEffect(() => {
+    if (formData.sku || (isEditMode && (!currentService || currentService.sku))) return undefined;
+    let live = true;
+    nextServiceSku().then((sku) => { if (live) setFormData((p) => (p.sku ? p : { ...p, sku })); }).catch(() => {});
+    return () => { live = false; };
+  }, [isEditMode, currentService, formData.sku]);
+
   useEffect(() => {
     if (!isEditMode || !currentService) return;
     const cs = currentService;
@@ -536,8 +544,8 @@ const ServiceForm = () => {
                     <SI name="name" value={formData.name} onChange={handleChange} placeholder="e.g. Network Installation & Configuration" required />
                   </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    <Field label="SKU" hint="Leave blank to auto-generate">
-                      <SI name="sku" value={formData.sku} onChange={handleChange} placeholder="SRV-001" style={{ fontFamily: 'monospace' }} />
+                    <Field label="SKU *" hint="Auto-generated, editable">
+                      <SI name="sku" value={formData.sku} onChange={handleChange} placeholder="Generated for you" required style={{ fontFamily: 'monospace' }} />
                     </Field>
                     <Field label="Category *">
                       <SS name="category_id" value={formData.category_id} onChange={handleChange} required>

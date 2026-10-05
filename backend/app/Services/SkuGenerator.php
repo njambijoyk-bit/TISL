@@ -3,10 +3,11 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
- * Product SKUs like SMMK9T1206: ten characters — six letters/digits, then four digits — never repeated.
- * A variant's SKU is its product's SKU plus a dash and a short code. A SKU is unique across products AND variants (trashed ones included), so a generated one can never clash.
+ * SKUs like SMMK9T1206: ten characters — six letters/digits, then four digits — never repeated. Products and services get them the same way.
+ * A variant's SKU is its product's SKU plus a dash and a short code. A SKU is unique across products, variants AND services (trashed ones included), so a generated one can never clash.
  */
 class SkuGenerator
 {
@@ -41,7 +42,8 @@ class SkuGenerator
 
     public function taken(string $sku): bool
     {
-        return DB::table('products')->where('sku', $sku)->exists() || DB::table('product_variants')->where('sku', $sku)->exists();
+        return DB::table('products')->where('sku', $sku)->exists() || DB::table('product_variants')->where('sku', $sku)->exists()
+            || (Schema::hasTable('services') && DB::table('services')->where('sku', $sku)->exists());
     }
 
     private function code(int $length): string

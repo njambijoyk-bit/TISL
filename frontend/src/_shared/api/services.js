@@ -53,6 +53,9 @@ export const getAvailableProducts = async () => {
   return response.data;
 };
 
+/** A fresh SKU (like SMMK9T1206) that no product, variant or service has. */
+export const nextServiceSku = async () => (await api.get('/admin/services/next-sku')).data.sku;
+
 export const createService = async (data) => {
   const formData = new FormData();
   const skipKeys = ['mainImageFile', 'galleryFiles', 'galleryUrls', 'mainImageUrl', 'pricing_tiers', 'related_services', 'optional_products'];
