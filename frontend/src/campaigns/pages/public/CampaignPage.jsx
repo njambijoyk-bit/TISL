@@ -13,7 +13,7 @@ export default function CampaignPage() {
   const [missing, setMissing] = useState(false);
   useEffect(() => {
     setData(null); setMissing(false);
-    campaignsPublicAPI.get(slug).then(setData).catch(() => setMissing(true));
+    campaignsPublicAPI.get(slug).then((d) => { setData(d); campaignsPublicAPI.event(slug, 'view'); }).catch(() => setMissing(true));
   }, [slug]);
   const c = data?.campaign;
 
@@ -28,7 +28,7 @@ export default function CampaignPage() {
           <div style={{ marginTop: 14 }}>
             {c.early_access && <p style={{ margin: '0 0 14px', padding: '10px 14px', borderRadius: 10, fontSize: '0.84rem', fontWeight: 600, color: 'var(--color-primary-500)', background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>You have early access. This opens to everyone later.</p>}
             {c.status === 'ended' && <p style={{ margin: '0 0 14px', padding: '10px 14px', borderRadius: 10, fontSize: '0.84rem', color: 'var(--text-secondary)', border: '1px solid var(--line)' }}>This campaign has ended. It stays here as part of our archive.</p>}
-            <CampaignView campaign={c} sections={data.sections} resolved={data.resolved} />
+            <CampaignView campaign={c} sections={data.sections} resolved={data.resolved} track={(event, sectionId) => campaignsPublicAPI.event(slug, event, sectionId)} />
           </div>
         )}
       </main>

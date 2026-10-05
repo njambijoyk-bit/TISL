@@ -10,6 +10,7 @@ const campaignsAPI = {
   publish: async (id) => (await api.post(`/admin/campaigns/${id}/publish`)).data,
   unpublish: async (id) => (await api.post(`/admin/campaigns/${id}/unpublish`)).data,
   pause: async (id) => (await api.post(`/admin/campaigns/${id}/pause`)).data,
+  numbers: async (id) => (await api.get(`/admin/campaigns/${id}/numbers`)).data,
   submit: async (id) => (await api.post(`/admin/campaigns/${id}/submit`)).data,
   withdraw: async (id) => (await api.post(`/admin/campaigns/${id}/withdraw`)).data,
   approve: async (id) => (await api.post(`/admin/campaigns/${id}/approve`)).data,

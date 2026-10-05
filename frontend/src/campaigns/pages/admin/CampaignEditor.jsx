@@ -12,6 +12,7 @@ import noSlash from '../../../_shared/lib/noSlash';
 import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import StatusChip from '../../components/StatusChip';
 import PageBuilder from '../../components/PageBuilder';
+import CampaignNumbers from '../../components/CampaignNumbers';
 
 const GOAL_LABEL = { reach: 'Reach (people seeing it)', sales: 'Sales' };
 const label = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
@@ -203,6 +204,14 @@ export default function CampaignEditor() {
             {!readOnly && <button type="submit" style={btnPrimary} disabled={busy}>{busy ? 'Saving…' : id ? 'Save details' : 'Save as draft'}</button>}
           </div>
         </form>
+
+        {c && (
+          <div style={{ marginTop: 30 }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>The numbers</h2>
+            <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>How it is doing so far.</p>
+            <CampaignNumbers id={c.id} />
+          </div>
+        )}
 
         {c && pg && (
           <div style={{ marginTop: 30 }}>

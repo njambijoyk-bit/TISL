@@ -106,7 +106,7 @@ function Products({ s, items, resolved }) {
             const Tag = live ? A : 'div';
 
             return (
-              <Tag key={`${it.item_type}:${it.item_id}`} {...(live ? { href: r.link } : {})} style={{ display: 'flex', flexDirection: list ? 'row' : 'column', gap: 12, textDecoration: 'none', color: 'inherit', background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', opacity: r?.available === false ? 0.5 : 1 }}>
+              <Tag key={`${it.item_type}:${it.item_id}`} {...(live ? { href: r.link, 'data-item': '1' } : {})} style={{ display: 'flex', flexDirection: list ? 'row' : 'column', gap: 12, textDecoration: 'none', color: 'inherit', background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', opacity: r?.available === false ? 0.5 : 1 }}>
                 <div style={{ position: 'relative', width: list ? 120 : '100%', aspectRatio: list ? '1 / 1' : '4 / 5', background: 'var(--surface-input, rgba(148,163,184,0.15))', flexShrink: 0 }}>
                   {r?.image && <img src={storageUrl(r.image)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                   {soon && <span style={{ position: 'absolute', top: 8, left: 8, padding: '3px 9px', borderRadius: 999, background: 'var(--campaign-accent)', color: '#fff', fontSize: '0.66rem', fontWeight: 800 }}>COMING {when(it.available_from).toUpperCase()}</span>}
@@ -138,13 +138,14 @@ function Cta({ s }) {
 /**
  * A campaign page: its sections in order. Used for the live preview in the editor and (next) for the public page.
  * `sections` carry their own `items` (for products sections); `resolved` holds the live name, price and picture of each featured item, keyed "type:id".
+ * `track(event, sectionId)`, when given (the public page), is told about clicks on buttons and on featured items.
  * In the preview, every section shows with a small note when it is scheduled; the public page leaves out sections that are not due.
  */
-export default function CampaignView({ campaign, sections, resolved = {}, preview = false }) {
+export default function CampaignView({ campaign, sections, resolved = {}, preview = false, track }) {
   return (
     <div style={{ '--campaign-accent': campaign.accent_color || 'var(--color-primary-500)', display: 'grid', gap: 34, color: 'var(--text-primary)' }}>
       {sections.map((s) => (
-        <section key={s.key ?? s.id}>
+        <section key={s.key ?? s.id} onClick={track ? (e) => { const a = e.target.closest('a'); if (a) track(a.dataset.item ? 'item_click' : 'click', s.id); } : undefined}>
           {preview && (s.show_from || s.show_until) && <div style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-tertiary)', margin: '0 0 6px' }}>Scheduled: {s.show_from ? `from ${when(s.show_from)}` : ''} {s.show_until ? `until ${when(s.show_until)}` : ''}</div>}
           {s.type === 'hero' && <Hero s={s} campaign={campaign} />}
           {s.type === 'story' && <Story s={s} />}
