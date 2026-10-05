@@ -25,7 +25,7 @@ function GroupNode({ g, depth, selected, onSelect, open, toggle }) {
     <div>
       <div onClick={() => onSelect(g)} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && onSelect(g)}
         style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 8px', paddingLeft: 8 + depth * 14, borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem',
-          background: selected === g.id ? colors.tint(0.1) : 'transparent', color: colors.text, fontWeight: g.is_primary ? 700 : 500 }}>
+          background: selected === g.id ? colors.tint(0.1) : 'transparent', color: g.is_primary ? colors.primary : colors.text, fontWeight: g.is_primary ? 700 : 500 }}>
         <span onClick={(e) => { e.stopPropagation(); toggle(g.id, isOpen); }} style={{ width: 16, display: 'inline-flex', color: colors.textFaint }}>
           {has ? (isOpen ? <ChevronDown size={14} /> : <ChevronRight size={14} />) : null}
         </span>
@@ -378,7 +378,7 @@ export default function AccountsTab({ canWrite }) {
   };
 
   const columns = [
-    { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.text, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
+    { key: 'name', label: 'Ledger', render: (l) => <strong style={{ color: colors.primary, fontWeight: 600 }}>{l.name}{!l.is_active && <span style={{ color: colors.textFaint, fontWeight: 400 }}> · off</span>}</strong> },
     { key: 'group', label: 'Group', render: (l) => l.group?.name },
     { key: 'nature', label: 'Nature', render: (l) => NATURE[l.group?.nature] },
     { key: 'tax', label: 'Tax', render: (l) => ({ taxable: 'VAT-able', zero_rated: 'Zero-rated', exempt: 'Exempt', out_of_scope: 'Out of scope' }[l.tax_nature] ?? (['sales', 'purchase', 'charge'].includes(l.group?.behaviour) ? 'Not set' : '')) },
@@ -412,7 +412,7 @@ export default function AccountsTab({ canWrite }) {
       <div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
           <div>
-            <p style={{ margin: 0, fontWeight: 700, color: colors.text }}>{sel ? sel.name : 'All ledgers'}</p>
+            <p style={{ margin: 0, fontWeight: 700, color: colors.primary }}>{sel ? sel.name : 'All ledgers'}</p>
             {sel && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>{NATURE[sel.nature]} · includes subgroups</p>}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
