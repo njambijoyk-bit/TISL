@@ -17,6 +17,14 @@ const campaignsAPI = {
     form.append('cover', file);
     return (await api.post(`/admin/campaigns/${id}/cover`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
   },
+  savePage: async (id, sections) => (await api.put(`/admin/campaigns/${id}/page`, { sections })).data,
+  catalogue: async (type, q) => (await api.get('/admin/campaigns/catalogue', { params: { type, q } })).data,
+  uploadMedia: async (id, file, kind) => {
+    const form = new FormData();
+    form.append('kind', kind);
+    form.append('file', file);
+    return (await api.post(`/admin/campaigns/${id}/media`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
+  },
   removeCover: async (id) => (await api.delete(`/admin/campaigns/${id}/cover`)).data,
 };
 

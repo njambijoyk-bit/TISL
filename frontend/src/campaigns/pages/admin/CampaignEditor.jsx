@@ -11,6 +11,7 @@ import { storageUrl } from '../../../_shared/lib/storageUrl';
 import noSlash from '../../../_shared/lib/noSlash';
 import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import StatusChip from '../../components/StatusChip';
+import PageBuilder from '../../components/PageBuilder';
 
 const GOAL_LABEL = { reach: 'Reach (people seeing it)', sales: 'Sales' };
 const label = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
@@ -26,6 +27,7 @@ export default function CampaignEditor() {
   const [types, setTypes] = useState([]);
   const [f, setF] = useState(EMPTY);
   const [c, setC] = useState(null);                 // the saved campaign, once there is one
+  const [pg, setPg] = useState(null);               // its page: sections, items, live item details, and what the server says is allowed
   const [perm, setPerm] = useState({ can_edit: true, can_publish: false });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -37,6 +39,7 @@ export default function CampaignEditor() {
     campaignsAPI.get(id).then((r) => {
       const d = r.data;
       setC(d); setPerm({ can_edit: r.can_edit, can_publish: r.can_publish });
+      setPg({ sections: d.sections, items: d.items, resolved: r.resolved, ecommerce: r.ecommerce, itemTypes: r.item_types, maxVideoMb: r.max_video_mb });
       setF({ title: d.title, subtitle: d.subtitle ?? '', slug: d.slug, type: d.type, goal: d.goal, accent_color: d.accent_color ?? '', teaser_at: toLocal(d.teaser_at), starts_at: toLocal(d.starts_at), ends_at: toLocal(d.ends_at), early_access_at: toLocal(d.early_access_at), feature_on_home: d.feature_on_home });
     }).catch((e) => setErr(errMsg(e, 'Could not load the campaign')));
   }, [id]);
@@ -74,8 +77,8 @@ export default function CampaignEditor() {
 
   return (
     <AdminLayout>
-      <div style={{ padding: '32px 24px', maxWidth: 940, margin: '0 auto' }}>
-        <HubHeader title={id ? 'Campaign' : 'New campaign'} description="Choose what kind of campaign it is, name it, and set when it runs. Sections and featured items come after you save." />
+      <div style={{ padding: '32px 24px', maxWidth: 1240, margin: '0 auto' }}>
+        <HubHeader title={id ? 'Campaign' : 'New campaign'} description="Choose what kind of campaign it is, name it and set when it runs. After you save, build its page below." />
         {c && (
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
             <StatusChip status={c.status} approval={c.approval_status} />
@@ -93,7 +96,7 @@ export default function CampaignEditor() {
           </div>
         )}
         {readOnly && <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted }}>You can look at this campaign, but not change it. A draft you made yourself can be changed until it is sent for approval.</p>}
-        <form onSubmit={save} style={{ display: 'grid', gap: 18 }}>
+        <form onSubmit={save} style={{ display: 'grid', gap: 18, maxWidth: 940 }}>
           {err && <p role="alert" style={{ color: colors.dangerText, margin: 0, fontSize: '0.84rem' }}>{err}</p>}
 
           <section style={{ ...card, padding: 18 }}>
@@ -171,9 +174,18 @@ export default function CampaignEditor() {
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <Link to="/admin/campaigns" style={{ ...btnGhost, textDecoration: 'none' }}>Back to campaigns</Link>
-            {!readOnly && <button type="submit" style={btnPrimary} disabled={busy}>{busy ? 'Saving…' : id ? 'Save changes' : 'Save as draft'}</button>}
+            {!readOnly && <button type="submit" style={btnPrimary} disabled={busy}>{busy ? 'Saving…' : id ? 'Save details' : 'Save as draft'}</button>}
           </div>
         </form>
+
+        {c && pg && (
+          <div style={{ marginTop: 30 }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>The page</h2>
+            <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Build what people see: add sections, drag them into order, and give any of them its own dates. Details above and the page below are saved separately.</p>
+            <PageBuilder campaign={c} sections={pg.sections} items={pg.items} resolved={pg.resolved} ecommerce={pg.ecommerce} itemTypes={pg.itemTypes} maxVideoMb={pg.maxVideoMb} canEdit={perm.can_edit}
+              onSaved={(r) => setPg((p) => ({ ...p, sections: r.data.sections, items: r.data.items, resolved: r.resolved }))} />
+          </div>
+        )}
       </div>
     </AdminLayout>
   );
