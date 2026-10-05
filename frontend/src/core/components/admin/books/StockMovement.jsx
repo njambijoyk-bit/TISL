@@ -30,7 +30,19 @@ export default function StockMovement() {
   const [detail, setDetail] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { booksAPI.ledgers({ all: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {}); }, []);
+  // only customers and suppliers: the ledgers under Sundry Debtors and Sundry Creditors (subgroups included)
+  useEffect(() => {
+    const find = (tree, name) => { for (const g of tree) { if (g.name === name) return g; const hit = find(g.children ?? [], name); if (hit) return hit; } return null; };
+    (async () => {
+      try {
+        const tree = await booksAPI.groups();
+        const ids = ['Sundry Debtors', 'Sundry Creditors'].map((n) => find(tree, n)?.id).filter(Boolean);
+        const lists = await Promise.all(ids.map((id) => booksAPI.ledgers({ all: 1, group_id: id })));
+        const all = lists.flatMap((r) => (Array.isArray(r) ? r : r.data ?? []));
+        setLedgers([...new Map(all.map((l) => [l.id, l])).values()].sort((a, b) => a.name.localeCompare(b.name)));
+      } catch { /* the dropdown stays empty; the error shows when a report is run */ }
+    })();
+  }, []);
   useEffect(() => {
     if (mode !== 'item' || product) return undefined;
     const t = setTimeout(() => booksAPI.movementProducts(q).then(setFound).catch(() => {}), q ? 250 : 0);
@@ -111,7 +123,7 @@ export default function StockMovement() {
       {controls}
       {empty && <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>{mode === 'ledger' ? 'Choose a ledger to see every item it has bought from us or sold to us.' : 'Find an item to see which ledgers bought it or sold it to us.'}</p>}
       {!empty && busy && !data && <p style={{ color: colors.textMuted }}>Running…</p>}
-      {data && (
+      {data && (mode === 'ledger' ? data.ledger : data.item && !data.ledger) && (
         <>
           <p style={{ margin: '0 0 8px', fontSize: '0.78rem', color: colors.textMuted }}>
             {mode === 'ledger' ? <>Stock movement for <strong>{data.ledger.name}</strong></> : <>Ledgers that moved <strong>{data.item.name}</strong></>} · {data.from} to {data.to} · amounts in the base currency · click {mode === 'ledger' ? 'an item' : 'a ledger'} for its vouchers
