@@ -494,7 +494,7 @@ function AuctionLogsTab() {
           <Filter size={14} color="#9ca3af" style={{ flexShrink: 0 }} />
           <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
             <Search size={13} color="#9ca3af" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search order #, action, description…"
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search action or description…"
               style={{ ...iStyle, width: '100%', paddingLeft: 30, boxSizing: 'border-box' }} onFocus={fIn} onBlur={fOut} />
           </div>
           <SeverityFilters severity={severity} setSeverity={setSeverity} />
@@ -503,23 +503,23 @@ function AuctionLogsTab() {
       </Panel>
 
       <Panel>
-        <TableHead cols={['', 'Severity', 'Auction Order', 'Action / Description', 'Performed by', 'Timestamp']} gridCols={GRID} />
+        <TableHead cols={['', 'Severity', 'Auction', 'Action / Description', 'Performed by', 'Timestamp']} gridCols={GRID} />
         <StateDisplay loading={loading} error={error} empty={!loading && !error && logs.length === 0} onRetry={fetchLogs} />
         {!loading && !error && logs.map((log, i) => (
           <div key={log.id} className="al-row" style={{ borderBottom: i < logs.length - 1 ? '1px solid var(--border, #f3f4f6)' : 'none' }}>
             <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '12px 18px', alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => log.auction_order_id && navigate(`/admin/auction-orders/${log.auction_order_id}`)}>
+              onClick={() => log.auction_id && navigate(`/admin/auctions/${log.auction_id}`)}>
               <SeverityCell sev={log.severity} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                   <Hash size={11} color="#9ca3af" />
                   <span style={{ fontSize: '0.8rem', fontWeight: 700, color: purple }}>
-                    {log.auction_order?.order_number || `Order #${log.auction_order_id}`}
+                    {`Auction #${log.auction_id}`}
                   </span>
                 </div>
-                {log.auction_order?.auction?.product?.name && (
+                {log.auction?.product?.name && (
                   <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '2px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {log.auction_order.auction.product.name}
+                    {log.auction.product.name}
                   </p>
                 )}
               </div>
