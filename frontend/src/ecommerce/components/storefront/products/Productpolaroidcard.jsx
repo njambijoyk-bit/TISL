@@ -6,6 +6,7 @@ import useCartAdder from '../useCartAdder';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
+import { productPath } from '../../../../_shared/lib/itemPath';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProductPolaroidCard
@@ -285,7 +286,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
 
       <div
         className="ppc-wrap"
-        onClick={() => navigate(`/products/${product?.id}`)}
+        onClick={() => navigate(productPath(product))}
       >
         {/* ── Polaroid ── */}
         <div

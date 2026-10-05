@@ -2,6 +2,7 @@ import { Trash2, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import useMoney from '../../../../_shared/hooks/useMoney';
+import { servicePath } from '../../../../_shared/lib/itemPath';
 
 /** A saved service. Services are quoted rather than carted, so the action is "View & request a quote". */
 export default function ServiceWishlistItem({ item }) {
@@ -16,7 +17,7 @@ export default function ServiceWishlistItem({ item }) {
     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 0', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)' }}>
       {src && <img src={src} alt={item.name} style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', background: '#f3f4f6', flexShrink: 0 }} />}
       <div style={{ flex: 1, minWidth: 0 }}>
-        <button onClick={() => navigate(`/services/${item.id}`)}
+        <button onClick={() => navigate(servicePath(item))}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left', fontFamily: 'inherit', width: '100%' }}>
           <p style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--color-primary-500)', margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {item.name} <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: 99, padding: '1px 7px', marginLeft: 6 }}>Service</span>
@@ -28,7 +29,7 @@ export default function ServiceWishlistItem({ item }) {
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-        <button onClick={() => navigate(`/services/${item.id}`)}
+        <button onClick={() => navigate(servicePath(item))}
           style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, fontSize: '0.78rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'var(--color-primary-500)', color: 'white' }}>
           <FileText size={13} /> Request a quote
         </button>

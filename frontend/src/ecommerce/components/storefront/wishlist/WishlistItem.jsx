@@ -4,6 +4,7 @@ import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import useCartAdder from '../useCartAdder';
 
 import useMoney from '../../../../_shared/hooks/useMoney';
+import { productPath } from '../../../../_shared/lib/itemPath';
 
 export default function WishlistItem({ item }) {
   const navigate    = useNavigate();
@@ -41,7 +42,7 @@ export default function WishlistItem({ item }) {
 
         {/* Name — clickable */}
         <button
-          onClick={() => navigate(`/products/${item.id}`)}
+          onClick={() => navigate(productPath(item))}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
             textAlign: 'left', fontFamily: 'inherit', width: '100%',

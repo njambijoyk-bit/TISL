@@ -6,6 +6,7 @@ import useCartAdder from '../useCartAdder';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
+import { productPath } from '../../../../_shared/lib/itemPath';
 
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
@@ -54,7 +55,7 @@ export default function CollapsedProductCard({ product }) {
     addToCart(product, 1);
   };
 
-  const handleViewProduct = () => navigate(`/products/${product?.id}`);
+  const handleViewProduct = () => navigate(productPath(product));
 
   const handleToggleWishlist = (e) => {
     e.stopPropagation();

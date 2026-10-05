@@ -41,6 +41,7 @@ import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import VariantPicker from '../../components/storefront/products/VariantPicker';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
+import { productPath, idFromParam, itemSlug } from '../../../_shared/lib/itemPath';
 
 function Lightbox({ url, onClose }) {
   useEffect(() => {
@@ -93,10 +94,13 @@ function Lightbox({ url, onClose }) {
 
 export default function ProductDetail() {
   const money = useMoney();   // before any early return (hooks rule)
-  const { id } = useParams();
+  const { id: idParam } = useParams();
+  const id = idFromParam(idParam);   // the address is id-SKU (12-ANG-001); the id is what is looked up
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
+  // tidy the address to the current id-SKU once the product is known (an old link, a bare id or an edited SKU)
+  useEffect(() => { if (product?.id && String(product.id) === String(id) && idParam !== itemSlug(product)) navigate(productPath(product), { replace: true }); }, [product]); // eslint-disable-line react-hooks/exhaustive-deps
   const [reviews, setReviews] = useState([]);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);

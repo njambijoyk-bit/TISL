@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Badge from '../../../../_shared/components/common/Badge';
 import useMoney from '../../../../_shared/hooks/useMoney';
+import { servicePath } from '../../../../_shared/lib/itemPath';
 
 /**
  * ServiceCard Component
@@ -274,7 +275,7 @@ const ServiceCard = ({ service, onClick }) => {
             </button>
           ) : (
             <Link
-              to={`/services/${service.id}`}
+              to={servicePath(service)}
               className="flex-1 font-regular py-1.5 px-3 rounded-lg text-lg transition-all duration-200 text-center"
               style={{ backgroundColor: 'var(--color-primary-500)', color: '#ffffff', border: '1.5px solid var(--color-primary-500)' }}
               onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}

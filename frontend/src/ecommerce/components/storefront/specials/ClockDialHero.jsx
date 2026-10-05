@@ -5,6 +5,7 @@ import {
   ArrowRight, Zap, Award, Sparkles, Package,
   TrendingUp, BadgePercent, Truck,
 } from 'lucide-react';
+import { productPath } from '../../../../_shared/lib/itemPath';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ClockDialHero v2 — single-radial ambient glow (matches v1 look), v2 layout
@@ -581,7 +582,7 @@ export default function ClockDialHero({ slides = [], countdown, loading }) {
             {/* CTAs */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 28 }}>
               <Link
-                to={`/products/${active.id}`}
+                to={productPath(active)}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 7,
                   padding: '11px 22px', borderRadius: 12,

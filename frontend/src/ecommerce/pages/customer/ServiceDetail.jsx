@@ -36,9 +36,11 @@ import Button from '../../../_shared/components/common/Button';
 import Badge from '../../../_shared/components/common/Badge';
 import PriceBreakdown from '../../../_shared/components/common/PriceBreakdown';
 import useMoney from '../../../_shared/hooks/useMoney';
+import { servicePath, idFromParam, itemSlug } from '../../../_shared/lib/itemPath';
 
 const ServiceDetail = () => {
-  const { id } = useParams();
+  const { id: idParam } = useParams();
+  const id = idFromParam(idParam);   // the address is id-SKU (12-ANG-001); the id is what is looked up
   const navigate = useNavigate();
 
   const {
@@ -56,6 +58,8 @@ const ServiceDetail = () => {
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
   const [imageErrors, setImageErrors] = useState({});
   const [initializing, setInitializing] = useState(true);
+  // tidy the address to the current id-SKU once the service is known (an old link, a bare id or an edited SKU)
+  useEffect(() => { if (currentService?.id && String(currentService.id) === String(id) && idParam !== itemSlug(currentService)) navigate(servicePath(currentService), { replace: true }); }, [currentService]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (id) {

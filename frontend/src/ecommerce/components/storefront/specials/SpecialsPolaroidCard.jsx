@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { Pin, Package, Zap, Award, Sparkles } from 'lucide-react';
 import useMoney from '../../../../_shared/hooks/useMoney';
+import { productPath } from '../../../../_shared/lib/itemPath';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SpecialsPolaroidCard
@@ -187,7 +188,7 @@ export default function SpecialsPolaroidCard({ product, type = 'featured', index
       `}</style>
 
       <Link
-        to={`/products/${product.id}`}
+        to={productPath(product)}
         className="spc-wrap"
         style={{ textDecoration: 'none' }}
       >

@@ -20,6 +20,7 @@ import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
 import Badge from '../../../../_shared/components/common/Badge';
+import { productPath } from '../../../../_shared/lib/itemPath';
 
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
@@ -91,7 +92,7 @@ export default function ProductCard({ product }) {
     addToCart(product, 1).then((ok) => { if (ok) navigate('/cart'); });
   };
 
-  const handleViewProduct = () => navigate(`/products/${product?.id}`);
+  const handleViewProduct = () => navigate(productPath(product));
 
   const handleToggleWishlist = (e) => {
     e.stopPropagation();

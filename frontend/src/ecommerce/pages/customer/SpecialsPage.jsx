@@ -23,6 +23,7 @@ import { formatMoney } from '../../../_shared/lib/money';
 import CollapsedProductCard from '../../components/storefront/products/CollapsedProductCard';
 import AuctionCard from '../../components/storefront/products/AuctionCard';
 import CollapsedServiceCard from '../../components/storefront/services/CollapsedServiceCard';
+import { productPath } from '../../../_shared/lib/itemPath';
 
 function useCountdown() {
   const [time, setTime] = useState({ h: 0, m: 0, s: 0 });
@@ -292,7 +293,7 @@ function CartProductRow({ product, quantity, onRemove }) {
   const imageUrl = product?.main_image_url ?? product?.main_image ?? null;
   const description = product?.short_description ?? product?.description ?? '';
   return (
-    <div onClick={() => navigate(`/products/${product?.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.18)', borderRadius: 12, cursor: 'pointer', transition: 'box-shadow 150ms ease, transform 150ms ease', width: '100%', position: 'relative' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(251,146,60,0.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
+    <div onClick={() => navigate(productPath(product))} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.18)', borderRadius: 12, cursor: 'pointer', transition: 'box-shadow 150ms ease, transform 150ms ease', width: '100%', position: 'relative' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(251,146,60,0.15)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
       <div style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 10, overflow: 'hidden', background: '#27272a', position: 'relative' }}>
         {!imageError && imageUrl ? <img src={imageUrl} alt={product?.name ?? 'Product'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setImageError(true)} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Package size={22} style={{ color: '#52525b' }} /></div>}
         {quantity > 1 && <div style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: '#fb923c', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 900, color: '#fff', border: '1.5px solid #18181b' }}>{quantity}</div>}

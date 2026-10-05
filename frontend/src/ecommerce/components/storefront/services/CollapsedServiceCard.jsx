@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Monitor, Clock, FileText } from 'lucide-react';
 import useMoney from '../../../../_shared/hooks/useMoney';
+import { servicePath } from '../../../../_shared/lib/itemPath';
 
 /**
  * CollapsedServiceCard
@@ -24,7 +25,7 @@ export default function CollapsedServiceCard({ service }) {
 
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const handleCardClick = () => navigate(`/services/${service?.id}`);
+  const handleCardClick = () => navigate(servicePath(service));
 
   // ── Normalise fields ──────────────────────────────────────────────────────
   const imageUrl = service?.main_image_url ?? service?.main_image ?? service?.image_url ?? null;

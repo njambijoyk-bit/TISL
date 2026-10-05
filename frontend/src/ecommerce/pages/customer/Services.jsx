@@ -14,6 +14,7 @@ import Button from '../../../_shared/components/common/Button';
 import useLayoutStore from '../../../_shared/store/layoutStore';
 import SmartSearchBox from '../../../_shared/components/common/SmartSearchBox';
 import { searchEvents } from '../../../_shared/services/searchEventService';
+import { servicePath } from '../../../_shared/lib/itemPath';
 
 // ── Collapsed skeleton ────────────────────────────────────────────────────────
 const CollapsedServiceSkeleton = () => (
@@ -359,7 +360,7 @@ const Services = () => {
             emptyDescription="Try adjusting your search or filters"
             onServiceClick={(s, idx) => {
               searchEvents.serviceView(s, idx);
-              navigate(`/services/${s.id}`);
+              navigate(servicePath(s));
             }}
             columns={4}
           />
