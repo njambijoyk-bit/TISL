@@ -132,7 +132,7 @@ final class ModuleTables
             'project_participants', 'project_links', 'project_items', 'project_activities',
         ],
         'listings'       => [/* built later */],
-        'campaigns'      => [/* built later */],
+        'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events'],
         'courses'        => [/* built later */],
         'accommodations' => [/* built later */],
         'menus'          => ['recipes', 'recipe_items', 'productions', 'production_lines'],
