@@ -980,9 +980,9 @@ export default function ProductDetail() {
 
           {/* ── TABS SECTION ─────────────────────────────────────────────────── */}
           {tabs.length > 0 && (
-            <div style={{ background: 'white', borderRadius: 16, border: '1px solid #f3f4f6', overflow: 'hidden', marginBottom: 48 }}>
+            <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', overflow: 'hidden', marginBottom: 48 }}>
               {/* Tab headers */}
-              <div style={{ display: 'flex', borderBottom: '1px solid #f3f4f6', padding: '0 24px' }}>
+              <div style={{ display: 'flex', borderBottom: '1px solid var(--line)', padding: '0 24px' }}>
                 {tabs.map(tab => (
                   <button
                     key={tab.id}
@@ -990,7 +990,7 @@ export default function ProductDetail() {
                     type="button"
                     style={{
                       padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700,
-                      color: activeTab === tab.id ? 'var(--color-primary-500)' : '#6b7280',
+                      color: activeTab === tab.id ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                       background: 'none', border: 'none', cursor: 'pointer',
                       borderBottom: activeTab === tab.id ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                       marginBottom: -1, transition: 'all 150ms ease', letterSpacing: '0.02em',
@@ -1005,7 +1005,7 @@ export default function ProductDetail() {
               <div style={{ padding: '32px' }}>
                 {activeTab === 'description' && hasDescription && (
                   <div style={{ maxWidth: 720 }}>
-                    <div style={{ fontSize: '0.95rem', color: '#374151', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
+                    <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
                       {product?.description}
                     </div>
                   </div>
@@ -1013,13 +1013,13 @@ export default function ProductDetail() {
 
                 {activeTab === 'specs' && hasSpecs && (
                   <div style={{ maxWidth: 720 }}>
-                    <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid #f3f4f6' }}>
+                    <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)' }}>
                       {Object.entries(product.specifications).map(([key, value], idx) => (
-                        <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', background: idx % 2 === 0 ? '#f9fafb' : 'white' }}>
-                          <div style={{ padding: '12px 16px', fontSize: '0.83rem', fontWeight: 700, color: '#374151', borderRight: '1px solid #f3f4f6', textTransform: 'capitalize' }}>
+                        <div key={key} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', background: idx % 2 === 0 ? 'var(--surface-hover, rgba(148,163,184,0.10))' : 'transparent' }}>
+                          <div style={{ padding: '12px 16px', fontSize: '0.83rem', fontWeight: 700, color: 'var(--text-primary)', borderRight: '1px solid var(--line)', textTransform: 'capitalize' }}>
                             {String(key).replace(/_/g, ' ')}
                           </div>
-                          <div style={{ padding: '12px 16px', fontSize: '0.83rem', color: '#6b7280' }}>
+                          <div style={{ padding: '12px 16px', fontSize: '0.83rem', color: 'var(--text-secondary)' }}>
                             {String(value)}
                           </div>
                         </div>
