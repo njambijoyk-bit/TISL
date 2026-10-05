@@ -656,7 +656,9 @@ export default function ProductForm() {
         }
       }
       else        { savedId = (await productsAPI.createProduct(fd))?.product?.id;     toast.success('Product created!'); draftStore.clear(); }
-      navigate(returnTo ? `${returnTo}${returnTo.includes('?') ? '&' : '?'}product=${savedId ?? id}` : '/admin/products');
+      if (returnTo) navigate(`${returnTo}${returnTo.includes('?') ? '&' : '?'}product=${savedId ?? id}`);
+      else if (savedId) { toast('Now add its variants and per-branch stock below.', { icon: '➕' }); navigate(`/admin/products/${savedId}/edit`); }   // a new product opens on its edit page, where variants, units and branch stock can be added
+      else navigate('/admin/products');
     } catch (err) {
       const data = err.response?.data;
       const lines = data?.errors
