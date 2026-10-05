@@ -855,6 +855,25 @@ Route::middleware('auth:sanctum')->group(function () {
     // Staff area. Drivers are not here: their app uses /driver/* only.
     Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
 
+        // Boards, staff side (the Campaigns module): builders see their own; publishers see all and decide approvals
+        Route::prefix('boards')->middleware('module:campaigns')->group(function () {
+            $c = \App\Http\Controllers\Api\CampaignBoardController::class;
+            Route::get('/',                      [$c, 'index']);
+            Route::post('/',                     [$c, 'store']);
+            Route::get('/{id}',                  [$c, 'show'])->whereNumber('id');
+            Route::put('/{id}',                  [$c, 'update'])->whereNumber('id');
+            Route::post('/{id}/pins',            [$c, 'addPins'])->whereNumber('id');
+            Route::put('/{id}/pins/order',       [$c, 'reorder'])->whereNumber('id');
+            Route::delete('/{id}/pins/{pinId}',  [$c, 'removePin'])->whereNumber('id')->whereNumber('pinId');
+            Route::post('/{id}/submit',          [$c, 'submit'])->whereNumber('id');
+            Route::post('/{id}/withdraw',        [$c, 'withdraw'])->whereNumber('id');
+            Route::post('/{id}/approve',         [$c, 'approve'])->whereNumber('id');
+            Route::post('/{id}/reject',          [$c, 'reject'])->whereNumber('id');
+            Route::post('/{id}/hide',            [$c, 'hide'])->whereNumber('id');
+            Route::post('/{id}/unhide',          [$c, 'unhide'])->whereNumber('id');
+            Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id');
+        });
+
         // The pin library (the Campaigns module): builders make pins and change their own; hiding is for admin, super admin and manager
         Route::prefix('pins')->middleware('module:campaigns')->group(function () {
             $c = \App\Http\Controllers\Api\CampaignPinController::class;

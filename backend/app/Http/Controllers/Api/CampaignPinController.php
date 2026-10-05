@@ -46,13 +46,12 @@ class CampaignPinController extends Controller
             'link_url' => ['nullable', 'string', 'max:500'], 'video_url' => ['nullable', 'string', 'max:500'], 'item_type' => ['nullable', Rule::in(\App\Models\CampaignItem::TYPES)], 'item_id' => ['nullable', 'integer']];
     }
 
-    /** Pins with the live details of any featured items. @param iterable<CampaignPin> $pins */
+    /** Pins with the live details of any featured items, and who made each. @param iterable<CampaignPin> $pins */
     private function present(iterable $pins): array
     {
         $pins = collect($pins);
-        $items = $this->catalogue->describe($pins->where('kind', 'item')->map(fn ($p) => ['item_type' => $p->item_type, 'item_id' => $p->item_id])->values()->all());
 
-        return $pins->map(fn ($p) => $this->pins->present($p, $p->kind === 'item' ? ($items["{$p->item_type}:{$p->item_id}"] ?? null) : null) + ['owner_name' => $p->owner?->name])->values()->all();
+        return collect($this->pins->presentMany($pins))->map(fn ($row, $i) => $row + ['owner_name' => $pins->values()[$i]->owner?->name])->all();
     }
 
     public function index(Request $request): JsonResponse

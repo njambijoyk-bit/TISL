@@ -246,6 +246,15 @@ class PinService
         }
     }
 
+    /** Pins with the live details (name, price, picture) of any featured items. @param iterable<CampaignPin> $pins */
+    public function presentMany(iterable $pins): array
+    {
+        $pins = collect($pins);
+        $items = $this->catalogue->describe($pins->where('kind', 'item')->map(fn ($p) => ['item_type' => $p->item_type, 'item_id' => $p->item_id])->values()->all());
+
+        return $pins->map(fn ($p) => $this->present($p, $p->kind === 'item' ? ($items["{$p->item_type}:{$p->item_id}"] ?? null) : null))->values()->all();
+    }
+
     /** What the pin looks like to the library and the pages: the row plus a ready-to-use thumb and live item details. */
     public function present(CampaignPin $p, ?array $item = null): array
     {

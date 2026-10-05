@@ -23,12 +23,18 @@ class CampaignApproval
     /** Who is asked: the author's manager if they have one who can approve, otherwise every admin and super admin. @return User[] */
     public function approvers(Campaign $c): array
     {
-        $manager = Employee::where('user_id', $c->created_by)->first()?->manager?->user;
-        if ($manager && CampaignAccess::canPublish($manager) && (int) $manager->id !== (int) $c->created_by) {
+        return $this->approversFor((int) $c->created_by);
+    }
+
+    /** The same rule for anything an author makes (a campaign, a board). @return User[] */
+    public function approversFor(int $authorId): array
+    {
+        $manager = Employee::where('user_id', $authorId)->first()?->manager?->user;
+        if ($manager && CampaignAccess::canPublish($manager) && (int) $manager->id !== $authorId) {
             return [$manager];
         }
 
-        return User::whereIn('role', ['admin', 'super_admin'])->where('id', '!=', $c->created_by)->get()->all();
+        return User::whereIn('role', ['admin', 'super_admin'])->where('id', '!=', $authorId)->get()->all();
     }
 
     /** The author sends a draft (or a rejected campaign) for approval. */
