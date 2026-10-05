@@ -235,6 +235,11 @@ class PinService
         if (($p->video['source'] ?? '') === 'upload') {
             $this->forget($p->video['file'] ?? null);
         }
+        $boards = \Illuminate\Support\Facades\DB::table('campaign_board_pins')->where('pin_id', $p->id)->pluck('board_id');
+        \Illuminate\Support\Facades\DB::table('campaign_board_pins')->where('pin_id', $p->id)->delete();
+        foreach (\App\Models\CampaignBoard::whereIn('id', $boards)->where('cover_pin_id', $p->id)->get() as $b) {   // a board whose cover went takes its first pin instead
+            $b->update(['cover_pin_id' => \Illuminate\Support\Facades\DB::table('campaign_board_pins')->where('board_id', $b->id)->orderBy('position')->value('pin_id')]);
+        }
         $p->delete();
     }
 

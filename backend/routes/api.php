@@ -168,6 +168,26 @@ Route::prefix('world')->middleware('module:campaigns')->group(function () {
     Route::get('/boards/{id}',        [$c, 'board'])->whereNumber('id');
 });
 
+// A signed-in person's own boards and pins, and following (the Campaigns module)
+Route::middleware(['auth:sanctum', 'module:campaigns'])->group(function () {
+    $c = \App\Http\Controllers\Api\MyBoardController::class;
+    Route::prefix('my')->group(function () use ($c) {
+        Route::get('/boards',  [$c, 'index']);
+        Route::post('/boards', [$c, 'store'])->middleware('throttle:30,1');
+        Route::get('/boards/{id}',    [$c, 'show'])->whereNumber('id');
+        Route::put('/boards/{id}',    [$c, 'update'])->whereNumber('id');
+        Route::delete('/boards/{id}', [$c, 'destroy'])->whereNumber('id');
+        Route::post('/boards/{id}/pins', [$c, 'addPins'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::delete('/boards/{id}/pins/{pinId}', [$c, 'removePin'])->whereNumber('id')->whereNumber('pinId');
+        Route::post('/pins', [$c, 'storePin'])->middleware('throttle:20,1');
+        Route::put('/pins/{id}',    [$c, 'updatePin'])->whereNumber('id');
+        Route::delete('/pins/{id}', [$c, 'destroyPin'])->whereNumber('id');
+        Route::get('/following', [$c, 'following']);
+    });
+    Route::post('/world/boards/{id}/follow',   [$c, 'follow'])->whereNumber('id')->middleware('throttle:60,1');
+    Route::delete('/world/boards/{id}/follow', [$c, 'unfollow'])->whereNumber('id');
+});
+
 // Auth required — must be registered BEFORE /{key} to avoid route conflict
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/policies/check-reacceptance', [PolicyController::class, 'checkReacceptance']);
