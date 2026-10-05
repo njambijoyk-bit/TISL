@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\NoSlash;
 use App\Http\Controllers\Controller;
 use App\Models\Books\AccountingSetting;
 use App\Models\Books\FinancialYear;
@@ -284,7 +285,7 @@ class BooksMasterController extends Controller
     private function seriesRules(): array
     {
         return [
-            'name' => 'required|string|max:80', 'prefix' => 'nullable|string|max:40', 'suffix' => 'nullable|string|max:40',
+            'name' => 'required|string|max:80', 'prefix' => ['nullable', 'string', 'max:40', new NoSlash('The prefix')], 'suffix' => ['nullable', 'string', 'max:40', new NoSlash('The suffix')],
             'number_width' => 'required|integer|min:0|max:12', 'start_number' => 'required|integer|min:0',
             'reset_period' => 'required|in:' . implode(',', VoucherSeries::RESETS), 'location_id' => 'nullable|integer|exists:locations,id',
             'allow_manual' => 'boolean', 'is_default' => 'boolean', 'is_active' => 'boolean',
@@ -339,7 +340,7 @@ class BooksMasterController extends Controller
     /** Live "what will the numbers look like" for the form. */
     public function previewSeries(Request $request): JsonResponse
     {
-        $d = $request->validate(['prefix' => 'nullable|string', 'suffix' => 'nullable|string', 'number_width' => 'required|integer|min:0|max:12', 'start_number' => 'required|integer|min:0', 'location_id' => 'nullable|integer']);
+        $d = $request->validate(['prefix' => ['nullable', 'string', new NoSlash('The prefix')], 'suffix' => ['nullable', 'string', new NoSlash('The suffix')], 'number_width' => 'required|integer|min:0|max:12', 'start_number' => 'required|integer|min:0', 'location_id' => 'nullable|integer']);
         $s = new VoucherSeries($d);
         $svc = app(NumberingService::class);
 

@@ -7,6 +7,7 @@ import { Field, TextInput, NumberInput, SelectInput, CheckboxRow, FormGrid, Form
 import useUomStore from '../../../../_shared/store/uomStore';
 import UnitSelect from '../../../../_shared/components/common/UnitSelect';
 import { colors, input as inputStyle } from '../../../../_shared/theme/tokens';
+import noSlash from '../../../../_shared/lib/noSlash';
 
 /** Current option → value selection of a variant, as { [option_id]: value_id }. */
 const selectionOf = (variant) => Object.fromEntries(
@@ -135,7 +136,7 @@ export default function VariantForm({ variant, currencyCode, defaultUnitId = nul
               <TextInput id="v-name" maxLength={255} value={form.name} onChange={(e) => set('name')(e.target.value)} placeholder={autoName || 'Standard'} />
             </Field>
             <Field label="SKU" htmlFor="v-sku" error={errors.sku}>
-              <TextInput id="v-sku" value={form.sku} onChange={(e) => set('sku')(e.target.value)} placeholder="Filled in for you: product SKU + a code" />
+              <TextInput id="v-sku" value={form.sku} onChange={(e) => set('sku')(noSlash(e.target.value, 'A SKU'))} placeholder="Filled in for you: product SKU + a code" />
             </Field>
           </FormGrid>
 

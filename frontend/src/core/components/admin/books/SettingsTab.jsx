@@ -11,6 +11,7 @@ import { errMsg, fieldErrors } from '../../../../_shared/store/helpers/apiState'
 import Modal from '../ui/Modal';
 import { Field, TextInput, NumberInput, SelectInput, FormGrid, FormStack, ModalActions, FormError, CheckboxRow } from '../ui/Form';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
+import noSlash from '../../../../_shared/lib/noSlash';
 
 const SUBS = [
   { id: 'numbering', label: 'Voucher numbering' },
@@ -71,8 +72,8 @@ function SeriesForm({ type, series, branches, onClose, onSaved }) {
           <FormError message={err} />
           <Field label="Series name" error={errs.name}><TextInput required value={f.name} onChange={(e) => set('name')(e.target.value)} /></Field>
           <FormGrid>
-            <Field label="Prefix" error={errs.prefix}><TextInput value={f.prefix} onChange={(e) => set('prefix')(e.target.value)} placeholder="WNKJ-INV-{YY}-" /></Field>
-            <Field label="Suffix" error={errs.suffix}><TextInput value={f.suffix} onChange={(e) => set('suffix')(e.target.value)} placeholder="/{BR}" /></Field>
+            <Field label="Prefix" error={errs.prefix}><TextInput value={f.prefix} onChange={(e) => set('prefix')(noSlash(e.target.value, 'The prefix'))} placeholder="WNKJ-INV-{YY}-" /></Field>
+            <Field label="Suffix" error={errs.suffix}><TextInput value={f.suffix} onChange={(e) => set('suffix')(noSlash(e.target.value, 'The suffix'))} placeholder="-{BR}" /></Field>
           </FormGrid>
           <FormGrid min={140}>
             <Field label="Digits" error={errs.number_width} hint="Zero-padded width; 0 = none"><NumberInput min="0" max="12" value={f.number_width} onChange={(e) => set('number_width')(e.target.value)} /></Field>

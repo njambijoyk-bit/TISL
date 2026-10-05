@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\NoSlash;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Brand;
@@ -222,7 +223,7 @@ class ProductController extends Controller
         }
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|unique:products,sku',
+            'sku' => ['nullable', 'string', 'unique:products,sku', new NoSlash('A SKU')],
             'category_id' => 'required|exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'required|numeric|min:0',
@@ -654,7 +655,7 @@ class ProductController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'string|max:255',
-            'sku' => 'string|unique:products,sku,' . $id,
+            'sku' => ['string', 'unique:products,sku,' . $id, new NoSlash('A SKU')],
             'category_id' => 'exists:categories,id',
             'brand_id' => 'nullable|exists:brands,id',
             'price' => 'numeric|min:0',

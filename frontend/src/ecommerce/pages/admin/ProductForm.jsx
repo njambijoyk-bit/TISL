@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canDeleteCatalogue } from '../../../_shared/lib/roles';
+import noSlash from '../../../_shared/lib/noSlash';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -505,7 +506,7 @@ export default function ProductForm() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    setFormData(p => ({ ...p, [name]: type === 'checkbox' ? checked : (name === 'sku' ? noSlash(value, 'A SKU') : value) }));
   };
 
   const handleMainImageChange = (e) => {

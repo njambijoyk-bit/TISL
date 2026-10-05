@@ -25,6 +25,9 @@ class NumberingService
 
         $manual = $manual !== null ? trim($manual) : null;
         if ($manual !== null && $manual !== '') {
+            if (str_contains($manual, '/')) {
+                throw new BooksException('A voucher number cannot contain the symbol /.');
+            }
             if (! $series->allow_manual) {
                 throw new BooksException("The \"{$series->name}\" series does not allow typing a number by hand.");
             }

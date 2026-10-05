@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\NoSlash;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductOption;
@@ -323,7 +324,7 @@ class ProductVariantController extends Controller
         $product = Product::findOrFail($productId);
 
         $validator = Validator::make($request->all(), [
-            'sku'                   => 'nullable|string|unique:product_variants,sku',
+            'sku'                   => ['nullable', 'string', 'unique:product_variants,sku', new NoSlash('A SKU')],
             'barcode'               => 'nullable|string|max:64',
             'name'                  => 'nullable|string|max:255',
             'option_value_ids'      => 'sometimes|array',
@@ -448,7 +449,7 @@ class ProductVariantController extends Controller
         $variant = ProductVariant::where('product_id', $productId)->findOrFail($variantId);
 
         $validator = Validator::make($request->all(), [
-            'sku'                 => 'nullable|string|unique:product_variants,sku,' . $variant->id,
+            'sku'                 => ['nullable', 'string', 'unique:product_variants,sku,' . $variant->id, new NoSlash('A SKU')],
             'barcode'             => 'nullable|string|max:64',
             'name'                => 'nullable|string|max:255',
             'option_value_ids'    => 'sometimes|array',

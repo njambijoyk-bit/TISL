@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Rules\NoSlash;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -295,7 +296,7 @@ class ServiceController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:services,slug',
-            'sku' => 'nullable|string|max:255', // We'll handle uniqueness manually
+            'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU')], // We'll handle uniqueness manually
             'category_id' => 'nullable|exists:service_categories,id',
             'service_category' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:100',
@@ -516,7 +517,7 @@ class ServiceController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:services,slug,' . $id,
-            'sku' => 'nullable|string|max:255', // Handle uniqueness manually
+            'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU')], // Handle uniqueness manually
             'category_id' => 'nullable|exists:service_categories,id',
             'service_category' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:100',

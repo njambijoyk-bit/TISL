@@ -19,6 +19,7 @@ import shippingAPI from '../../../../_shared/api/shipping';
 import taxAPI from '../../../../_shared/api/tax';
 import currencyAPI from '../../../../_shared/api/currency';
 import { money, today } from '../../../components/admin/books/booksFmt';
+import noSlash from '../../../../_shared/lib/noSlash';
 
 // Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
 const SALES_SIDE = ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'];
@@ -563,7 +564,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                 <div>
                   <label style={label}>Numbering</label>
                   {manual
-                    ? <input value={h.voucher_number} onChange={(e) => setH((x) => ({ ...x, voucher_number: e.target.value }))} placeholder="Type the number" style={small} />
+                    ? <input value={h.voucher_number} onChange={(e) => setH((x) => ({ ...x, voucher_number: noSlash(e.target.value, 'A voucher number') }))} placeholder="Type the number" style={small} />
                     : <select value={h.series_id} onChange={(e) => setH((x) => ({ ...x, series_id: e.target.value }))} style={small}>{series.map((s) => <option key={s.id} value={s.id}>{s.next} · {s.name}</option>)}</select>}
                   {series.some((s) => s.allow_manual) && (
                     <label style={{ fontSize: '0.7rem', color: colors.textMuted, display: 'flex', gap: 4, marginTop: 4 }}><input type="checkbox" checked={manual} onChange={(e) => setManual(e.target.checked)} /> Type it myself</label>

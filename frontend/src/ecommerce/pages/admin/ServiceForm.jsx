@@ -14,6 +14,7 @@ import TaxOverridesPanel from '../../../core/components/admin/tax/TaxOverridesPa
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
 import { getAvailableServices, getAvailableProducts } from '../../../_shared/api/services';
+import noSlash from '../../../_shared/lib/noSlash';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -383,7 +384,7 @@ const ServiceForm = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(p => ({ ...p, [name]: type === 'checkbox' ? checked : value }));
+    setFormData(p => ({ ...p, [name]: type === 'checkbox' ? checked : (name === 'sku' ? noSlash(value, 'A SKU') : value) }));
   };
 
   const setF = (k) => (v) => setFormData(p => ({ ...p, [k]: v }));
