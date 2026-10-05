@@ -50,7 +50,13 @@ export function applyFonts(headingSlug, bodySlug) {
     const link = document.createElement('link');
     link.id   = id;
     link.rel  = 'stylesheet';
-    link.href = `https://fonts.googleapis.com/css2?family=${slug}:wght@300;400;500;600;700&display=swap`;
+    // Google answers 400 when a family lacks one of the weights asked for (Pacifico, Bebas Neue, DM Serif Display have only the regular one,
+    // Atkinson Hyperlegible only regular and bold). So try all five weights, then regular + bold, then the family as it comes.
+    const attempts = [':wght@300;400;500;600;700', ':wght@400;700', ''];
+    let tried = 0;
+    const load = () => { link.href = `https://fonts.googleapis.com/css2?family=${slug}${attempts[tried]}&display=swap`; };
+    link.onerror = () => { if (tried < attempts.length - 1) { tried += 1; load(); } };
+    load();
     document.head.appendChild(link);
   });
 
