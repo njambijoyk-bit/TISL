@@ -7,9 +7,9 @@ import { getFieldConfig } from './sectionConfig';
 
 const inputStyle = {
   width: '100%', padding: '7px 11px', borderRadius: 8, fontSize: '0.8rem',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  background: 'var(--surface-input, color-mix(in srgb, var(--color-primary-500) 4%, transparent))',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -22,7 +22,7 @@ const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in sr
 
 const labelStyle = {
   fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#9ca3af', display: 'block', marginBottom: 5,
+  letterSpacing: '0.08em', color: 'var(--text-tertiary)', display: 'block', marginBottom: 5,
 };
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
@@ -147,8 +147,8 @@ function ImageField({ value, onChange, onUpload, error }) {
               <Loader2 size={28} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
             ) : (
               <>
-                <ImageIcon size={30} style={{ color: '#d1d5db' }} strokeWidth={1.5} />
-                <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 500 }}>
+                <ImageIcon size={30} style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.5} />
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 500 }}>
                   {dragOver ? 'Drop to upload' : 'No image yet'}
                 </span>
               </>
@@ -197,7 +197,7 @@ function ImageField({ value, onChange, onUpload, error }) {
           </div>
         )}
 
-        <div style={{ padding: 12, background: 'white' }}>
+        <div style={{ padding: 12, background: 'var(--surface-card, #fff)' }}>
           {/* URL tab */}
           {(!onUpload || tab === 'url') && (
             <div style={{ display: 'flex', gap: 8 }}>
@@ -229,19 +229,19 @@ function ImageField({ value, onChange, onUpload, error }) {
               <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{
                 width: '100%', height: 36, borderRadius: 8, fontSize: '0.72rem', fontWeight: 700,
                 border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent',
-                color: '#9ca3af', cursor: uploading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                color: 'var(--text-tertiary)', cursor: uploading ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                 opacity: uploading ? 0.6 : 1, transition: 'border-color 150ms, color 150ms',
               }}
                 onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 50%, transparent)'; e.currentTarget.style.color = 'var(--color-primary-500)'; } }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}
               >
                 {uploading
                   ? <><Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> Uploading…</>
                   : <><Upload size={13} /> Choose image file</>
                 }
               </button>
-              <p style={{ fontSize: '0.65rem', color: '#9ca3af', marginTop: 6, textAlign: 'center' }}>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginTop: 6, textAlign: 'center' }}>
                 PNG, JPG, GIF, WebP · or drag & drop onto the preview above
               </p>
             </>
@@ -286,12 +286,12 @@ function SettingsField({ value, onChange, error }) {
         onMouseLeave={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)'}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af' }}>
+          <span style={{ fontSize: '0.62rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-tertiary)' }}>
             Settings
           </span>
           <span style={{
             fontSize: '0.6rem', padding: '1px 7px', borderRadius: 99, fontWeight: 600,
-            background: 'rgba(107,114,128,0.12)', color: '#9ca3af',
+            background: 'rgba(107,114,128,0.12)', color: 'var(--text-tertiary)',
           }}>
             JSON · optional
           </span>
@@ -305,22 +305,22 @@ function SettingsField({ value, onChange, error }) {
           )}
         </div>
         {open
-          ? <ChevronUp size={13} style={{ color: '#9ca3af' }} />
-          : <ChevronDown size={13} style={{ color: '#9ca3af' }} />
+          ? <ChevronUp size={13} style={{ color: 'var(--text-tertiary)' }} />
+          : <ChevronDown size={13} style={{ color: 'var(--text-tertiary)' }} />
         }
       </button>
 
       {open && (
-        <div style={{ padding: 14, background: 'white', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ fontSize: '0.68rem', color: '#9ca3af', lineHeight: 1.6, margin: 0 }}>
+        <div style={{ padding: 14, background: 'var(--surface-card, #fff)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', lineHeight: 1.6, margin: 0 }}>
             Extra per-section options as a JSON object — e.g. layout, colors, or display flags your frontend reads when rendering this section. Leave blank if unused.
           </p>
           <div style={{
-            fontSize: '0.68rem', color: '#9ca3af', fontFamily: 'monospace', lineHeight: 1.8,
+            fontSize: '0.68rem', color: 'var(--text-tertiary)', fontFamily: 'monospace', lineHeight: 1.8,
             background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderRadius: 8, padding: '8px 12px',
             border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
           }}>
-            <p style={{ color: '#d1d5db', margin: '0 0 2px' }}>// examples</p>
+            <p style={{ color: 'var(--text-tertiary)', margin: '0 0 2px' }}>// examples</p>
             <p style={{ margin: '0 0 2px' }}>{`{ "bg": "dark", "text_align": "center" }`}</p>
             <p style={{ margin: '0 0 2px' }}>{`{ "columns": 3, "lightbox": true }`}</p>
             <p style={{ margin: 0 }}>{`{ "overlay_opacity": 0.4 }`}</p>
@@ -437,7 +437,7 @@ export default function SectionFieldset({
           </Field>
           <Field label="Button link" required={cfg.button_link.required} error={err('button_link')}>
             <div style={{ position: 'relative' }}>
-              <LinkIcon size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+              <LinkIcon size={13} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
               <SI
                 type="text" hasError={!!err('button_link')}
                 value={draft.button_link ?? ''} placeholder="/path or https://…"

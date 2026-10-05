@@ -8,7 +8,7 @@ const inputStyle = {
   width: '100%', padding: '6px 10px', borderRadius: 8, fontSize: '0.8rem',
   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none',
+  color: 'var(--text-primary)', outline: 'none',
   transition: 'border-color 150ms, box-shadow 150ms',
   fontFamily: 'inherit', boxSizing: 'border-box',
 };
@@ -21,7 +21,7 @@ const inputBlur  = (e) => { e.currentTarget.style.borderColor = 'color-mix(in sr
 
 const labelStyle = {
   fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase',
-  letterSpacing: '0.08em', color: '#9ca3af', display: 'block', marginBottom: 4,
+  letterSpacing: '0.08em', color: 'var(--text-tertiary)', display: 'block', marginBottom: 4,
 };
 
 function SI({ hasError, style: extra = {}, ...props }) {
@@ -126,8 +126,8 @@ function ItemImageField({ value, onChange, onUpload }) {
             {uploading
               ? <Loader2 size={20} style={{ color: 'var(--color-primary-500)', animation: 'spin 1s linear infinite' }} />
               : <>
-                  <ImageIcon size={22} style={{ color: '#d1d5db' }} strokeWidth={1.5} />
-                  <span style={{ fontSize: '0.62rem', color: '#9ca3af' }}>
+                  <ImageIcon size={22} style={{ color: 'var(--text-tertiary)' }} strokeWidth={1.5} />
+                  <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>
                     {dragOver ? 'Drop here' : 'No image'}
                   </span>
                 </>
@@ -170,12 +170,12 @@ function ItemImageField({ value, onChange, onUpload }) {
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading} style={{
               padding: '0 10px', borderRadius: 7, fontSize: '0.68rem', fontWeight: 600,
               border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'transparent',
-              color: '#9ca3af', cursor: uploading ? 'not-allowed' : 'pointer',
+              color: 'var(--text-tertiary)', cursor: uploading ? 'not-allowed' : 'pointer',
               fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
               opacity: uploading ? 0.6 : 1, transition: 'border-color 150ms, color 150ms',
             }}
               onMouseEnter={e => { if (!uploading) { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-600)'; } }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = 'var(--text-tertiary)'; }}
             >
               <Upload size={11} /> Upload
             </button>
@@ -196,7 +196,7 @@ function ItemCard({ item, idx, columns, errors, onUpdate, onRemove, onUploadImag
     <div style={{
       borderRadius: 11, overflow: 'hidden',
       border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
-      background: 'white',
+      background: 'var(--surface-card, #fff)',
       boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
     }}>
       {/* Item header */}
@@ -205,17 +205,17 @@ function ItemCard({ item, idx, columns, errors, onUpdate, onRemove, onUploadImag
         padding: '9px 14px', background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)',
         borderBottom: collapsed ? 'none' : '1px solid color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
       }}>
-        <GripVertical size={13} style={{ color: '#e5e7eb', flexShrink: 0, cursor: 'grab' }} />
+        <GripVertical size={13} style={{ color: 'var(--line)', flexShrink: 0, cursor: 'grab' }} />
 
         <button type="button" onClick={onToggleCollapse} style={{
           flex: 1, display: 'flex', alignItems: 'center', gap: 8,
           background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', minWidth: 0,
         }}>
-          <span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', flexShrink: 0 }}>
+          <span style={{ fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', flexShrink: 0 }}>
             Item {idx + 1}
           </span>
           {previewText && collapsed && (
-            <span style={{ fontSize: '0.75rem', color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
               — {previewText}
             </span>
           )}
@@ -224,7 +224,7 @@ function ItemCard({ item, idx, columns, errors, onUpdate, onRemove, onUploadImag
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
           <button type="button" onClick={onToggleCollapse} style={{
             width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, border: 'none', cursor: 'pointer', background: 'none', color: '#9ca3af',
+            borderRadius: 7, border: 'none', cursor: 'pointer', background: 'none', color: 'var(--text-tertiary)',
             transition: 'background 120ms',
           }}
             onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)'}
@@ -360,8 +360,8 @@ export default function ItemsEditor({ sectionType, pageType, value = [], onChang
           padding: '32px 24px', borderRadius: 11, textAlign: 'center',
           border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'color-mix(in srgb, var(--color-primary-500) 2%, transparent)',
         }}>
-          <p style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500, margin: '0 0 3px' }}>No items yet</p>
-          <p style={{ fontSize: '0.68rem', color: '#d1d5db', margin: 0 }}>Click "Add item" below to get started</p>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontWeight: 500, margin: '0 0 3px' }}>No items yet</p>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>Click "Add item" below to get started</p>
         </div>
       )}
 
@@ -385,7 +385,7 @@ export default function ItemsEditor({ sectionType, pageType, value = [], onChang
         style={{
           width: '100%', padding: '11px', borderRadius: 11, fontSize: '0.78rem', fontWeight: 700,
           border: '1.5px dashed color-mix(in srgb, var(--color-primary-500) 25%, transparent)', background: 'transparent',
-          color: '#9ca3af', cursor: 'pointer', fontFamily: 'inherit',
+          color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
           transition: 'border-color 150ms, color 150ms, background 150ms',
         }}
@@ -396,7 +396,7 @@ export default function ItemsEditor({ sectionType, pageType, value = [], onChang
         }}
         onMouseLeave={e => {
           e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
-          e.currentTarget.style.color = '#9ca3af';
+          e.currentTarget.style.color = 'var(--text-tertiary)';
           e.currentTarget.style.background = 'transparent';
         }}
       >
