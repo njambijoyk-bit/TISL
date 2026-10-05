@@ -3,7 +3,7 @@ import {
   Package, PackagePlus, Wrench, Award, Gift, Gavel, CalendarCheck,
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
-  Truck, Boxes, Briefcase, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
+  Truck, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
   Database, GitBranch, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
@@ -275,7 +275,6 @@ export const ADMIN_NAV = [
           { title: 'Reports', path: '/admin/delivery/reports' },
         ],
       },
-      { id: 'work', title: 'Work board', icon: Briefcase, color: '#ec4899', path: '/admin/work', keywords: 'assignments team load deadlines' },
     ],
   },
 

@@ -31,7 +31,6 @@ export { default as loyaltyAPI } from './loyalty';
 export { default as deliveryAPI } from './delivery';
 export { default as vaultAPI } from './vault';
 export { default as paymentsAPI} from './payments';
-export { default as workAPI } from './work';
 export { default as mimiAPI } from './mimiAPI';
 export { default as dataEngineAPI } from './dataEngine';
 export { default as logExportAPI } from './logExport';

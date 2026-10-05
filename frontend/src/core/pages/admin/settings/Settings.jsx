@@ -1126,7 +1126,6 @@ function RouteMapAppendix() {
         { path: '/admin/reports',               comp: 'ReportsController' },
         { path: '/admin/algorithm',             comp: 'AlgorithmController@getConfig' },
         { path: '/admin/algorithm/catalogue-boosts', comp: 'AlgorithmController@getCatalogueBoosts' },
-        { path: '/admin/work',                  comp: 'WorkController@myDashboard' },
       ]} />
 
       <RouteGroup title="5. Admin — Orders & Payments" routes={[
@@ -1297,9 +1296,8 @@ function RouteMapAppendix() {
         ]}
       />
 
-      <RoleGroup role="STAFF" description="Work dashboard, bookings, projects, and service worksheets."
+      <RoleGroup role="STAFF" description="Bookings, projects, and service worksheets."
         pages={[
-          { path: '/admin/work',                          label: 'Work Overview — personal assignment dashboard' },
           { path: '/admin/projects',                      label: 'Projects — assigned workspaces' },
           { path: '/admin/projects/:id',                  label: 'Project Detail — tasks & milestones' },
         ]}

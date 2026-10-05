@@ -56,7 +56,6 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VerificationController;
 use App\Http\Controllers\Api\PromoCodeController;
 use App\Http\Controllers\Api\EmployeeController;
-use App\Http\Controllers\Api\WorkController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\ReviewEligibilityController;
@@ -1408,15 +1407,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{customerId}/redeem',       [LoyaltyController::class, 'redeem']);
         });
 
-        Route::prefix('work')->group(function () {
-            Route::get('/dashboard',   [WorkController::class, 'myDashboard']);
-            Route::get('/assignments', [WorkController::class, 'myAssignmentsEndpoint']);
-            Route::get('/deadlines',   [WorkController::class, 'myDeadlinesEndpoint']);
-
-            Route::get('/incomplete-manifests',            [WorkController::class, 'incompleteManifests']);
-            Route::get('/driver/{userId}/manifests',       [WorkController::class, 'driverManifests']);
-        });
-
 
         Route::prefix('tickets')->group(function () {
             Route::get('/',                  [TicketController::class, 'adminIndex']);
@@ -1724,13 +1714,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
-        // Work dashboard
-        Route::prefix('work')->group(function () {
-            Route::get('/dashboard',    [WorkController::class, 'myDashboard']);
-            Route::get('/assignments',  [WorkController::class, 'myAssignmentsEndpoint']);
-            Route::get('/deadlines',    [WorkController::class, 'myDeadlinesEndpoint']);
-        });
-
         // Own employee record
         Route::prefix('employees')->middleware('module:extras')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
@@ -1866,13 +1849,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{project}/messages',       [ProjectMessageController::class, 'storeAdminMessage']);
             Route::put('/{project}/messages/{message}',    [ProjectMessageController::class, 'update']);
             Route::delete('/{project}/messages/{message}', [ProjectMessageController::class, 'destroy']);
-        });
-
-        // Work dashboard
-        Route::prefix('work')->group(function () {
-            Route::get('/dashboard',    [WorkController::class, 'myDashboard']);
-            Route::get('/assignments',  [WorkController::class, 'myAssignmentsEndpoint']);
-            Route::get('/deadlines',    [WorkController::class, 'myDeadlinesEndpoint']);
         });
 
         // Own employee record
@@ -2128,9 +2104,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('users')->group(function () {
             Route::get('/staff-without-employee', [UserController::class, 'staffWithoutEmployee']);
-        });
-        Route::prefix('work')->group(function () {
-            Route::get('/overview', [WorkController::class, 'teamOverview']);
         });
     });
 

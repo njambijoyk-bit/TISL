@@ -11,7 +11,6 @@ import useAiPanelStore from '../store/useAiPanelStore';
  *   /admin/projects/:id        → projects  / project
  *   /admin/orders/:id          → orders    / order
  *   /admin/customers/:id       → customers / customer
- *   /admin/work                → work      / null
  *   /admin/inventory           → inventory / null
  *   /admin/reports             → reports   / null
  */
@@ -46,16 +45,6 @@ const MATCHERS = [
       entityType: 'customer',
       entityId:    Number(m[1]),
       label:      `Customer #${m[1]}`,
-    }),
-  },
-  // Work dashboard
-  {
-    pattern: /^\/admin\/work/,
-    resolve: () => ({
-      moduleKey:  'work',
-      entityType: null,
-      entityId:   null,
-      label:      'Work Dashboard',
     }),
   },
   // Inventory

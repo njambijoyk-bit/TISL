@@ -141,7 +141,6 @@ const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCale
 const TeamCalendar       = lazy(() => import('./core/pages/admin/calendar/TeamCalendar'));
 const StaffResources     = lazy(() => import('./core/pages/admin/calendar/StaffResources'));
 const ServiceSettings    = lazy(() => import('./ecommerce/pages/admin/ServiceSettings'));
-const Work               = lazy(() => import('./projects/pages/admin/Work'));
 const Quotes             = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
 const QuoteDetail        = lazy(() => import('./core/pages/admin/quotations/QuotationDetailPage'));
 const QuoteEdit          = lazy(() => import('./core/pages/admin/quotations/QuotationEditPage'));
@@ -1193,14 +1192,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/work"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Work />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/admin/work" element={<Navigate to="/admin/calendar" replace />} />
               <Route
                 path="/admin/settings/publications"
                 element={
