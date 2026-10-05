@@ -855,6 +855,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // Staff area. Drivers are not here: their app uses /driver/* only.
     Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
 
+        // The pin library (the Campaigns module): builders make pins and change their own; hiding is for admin, super admin and manager
+        Route::prefix('pins')->middleware('module:campaigns')->group(function () {
+            $c = \App\Http\Controllers\Api\CampaignPinController::class;
+            Route::get('/',                [$c, 'index']);
+            Route::post('/',               [$c, 'store']);
+            Route::put('/{id}',            [$c, 'update'])->whereNumber('id');
+            Route::post('/{id}/media',     [$c, 'media'])->whereNumber('id');
+            Route::post('/{id}/hide',      [$c, 'hide'])->whereNumber('id');
+            Route::post('/{id}/unhide',    [$c, 'unhide'])->whereNumber('id');
+            Route::delete('/{id}',         [$c, 'destroy'])->whereNumber('id');
+        });
+
         // Campaigns (the Campaigns module): builders see their own; publishing is for admin, super admin and manager (checked in the controller)
         Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
             $c = \App\Http\Controllers\Api\CampaignController::class;
