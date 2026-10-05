@@ -166,6 +166,8 @@ Route::prefix('world')->middleware('module:campaigns')->group(function () {
     Route::get('/pins/{id}',          [$c, 'pin'])->whereNumber('id');
     Route::get('/pins/{id}/download', [$c, 'download'])->whereNumber('id')->middleware('throttle:30,1');
     Route::get('/boards/{id}',        [$c, 'board'])->whereNumber('id');
+    Route::get('/moodboards',         [$c, 'moodboards']);
+    Route::get('/moodboards/{id}',    [$c, 'moodboard'])->whereNumber('id');
 });
 
 // A signed-in person's own boards and pins, and following (the Campaigns module)
@@ -901,6 +903,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/hide',            [$c, 'hide'])->whereNumber('id');
             Route::post('/{id}/unhide',          [$c, 'unhide'])->whereNumber('id');
             Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id');
+        });
+
+        Route::prefix('moodboards')->middleware('module:campaigns')->group(function () {
+            $c = \App\Http\Controllers\Api\CampaignMoodboardController::class;
+            Route::get('/presets', [$c,'presets']);
+            Route::get('/', [$c,'index']); Route::post('/', [$c,'store']);
+            Route::get('/{id}', [$c,'show'])->whereNumber('id'); Route::put('/{id}', [$c,'update'])->whereNumber('id'); Route::delete('/{id}', [$c,'destroy'])->whereNumber('id');
+            Route::post('/{id}/template', [$c,'saveTemplate'])->whereNumber('id');
+            foreach (['submit','withdraw','approve','reject','hide','unhide'] as $a) { Route::post("/{id}/$a", [$c,$a])->whereNumber('id'); }
         });
 
         // The pin library (the Campaigns module): builders make pins and change their own; hiding is for admin, super admin and manager

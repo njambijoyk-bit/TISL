@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CampaignPin;
 use App\Services\Campaigns\Feed;
+use App\Models\CampaignMoodboard;
+use App\Services\Campaigns\MoodboardService;
 use App\Services\Campaigns\PinService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,7 +17,7 @@ use Illuminate\Support\Str;
 /** The Pinterest side of the website: the endless feed, one pin, one board, and the picture download. Only what Feed says is public. */
 class PublicWorldController extends Controller
 {
-    public function __construct(private Feed $feed, private PinService $pins) {}
+    public function __construct(private Feed $feed, private PinService $pins, private MoodboardService $moods) {}
 
     /** The fields a visitor needs, nothing about who made it or why it was hidden. */
     private function shape(array $p): array
@@ -104,5 +106,27 @@ class PublicWorldController extends Controller
         $name = (Str::slug($pin->title ?: "pin-{$pin->id}") ?: "pin-{$pin->id}") . '.' . (pathinfo($rel, PATHINFO_EXTENSION) ?: 'jpg');
 
         return Storage::disk('public')->download($rel, $name);
+    }
+
+    private function publicMoodboards()
+    {
+        return CampaignMoodboard::where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved');
+    }
+
+    /** GET /world/moodboards: the newest approved moodboards, 30 at a time (`after` is the last id seen). */
+    public function moodboards(Request $request): JsonResponse
+    {
+        $rows = $this->publicMoodboards()->when($request->integer('after'), fn ($w) => $w->where('id', '<', $request->integer('after')))->orderByDesc('id')->limit(Feed::PAGE + 1)->get();
+        $more = $rows->count() > Feed::PAGE;
+        $rows = $rows->take(Feed::PAGE);
+        $images = $this->moods->images($rows->flatMap(fn ($m) => array_filter(array_map(fn ($c) => $c['pin_id'] ?? null, $m->contents ?? [])))->all());
+
+        return response()->json(['data' => $rows->map(fn ($m) => $this->moods->present($m, $images))->all(), 'next' => $more ? $rows->last()->id : null]);
+    }
+
+    /** GET /world/moodboards/{id} */
+    public function moodboard(int $id): JsonResponse
+    {
+        return response()->json(['data' => $this->moods->present($this->publicMoodboards()->findOrFail($id))]);
     }
 }
