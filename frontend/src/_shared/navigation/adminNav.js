@@ -3,7 +3,7 @@ import {
   Package, PackagePlus, Wrench, Award, Gift, Gavel, CalendarCheck,
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
-  Truck, Megaphone, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
+  Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
   GitBranch, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
@@ -256,6 +256,7 @@ export const ADMIN_NAV = [
     roles: CAMPAIGN_ROLES,
     items: [
       { id: 'campaigns', title: 'Campaigns', icon: Megaphone, color: '#d946ef', path: '/admin/campaigns', roles: CAMPAIGN_ROLES, keywords: 'launch drop collection teaser brand story promotion' },
+      { id: 'pins', title: 'Pins', icon: Pin, color: '#f43f5e', path: '/admin/pins', roles: CAMPAIGN_ROLES, keywords: 'pinterest images videos moodboard boards library' },
     ],
   },
 

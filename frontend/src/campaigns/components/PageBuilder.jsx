@@ -7,6 +7,8 @@ import { storageUrl } from '../../_shared/lib/storageUrl';
 import { btnPrimary, btnGhost, card, colors } from '../../_shared/theme/tokens';
 import { Field, TextInput, TextArea, SelectInput } from '../../core/components/admin/ui/Form';
 import CampaignView from './CampaignView';
+import ItemPicker from './ItemPicker';
+import posterFrom from '../lib/videoPoster';
 
 const TYPE_LABEL = { hero: 'Hero', story: 'Story', countdown: 'Countdown', video: 'Video', products: 'Products', cta: 'Call to action' };
 const TYPE_ABOUT = { hero: 'Big cover with a headline and a button', story: 'A heading and some text', countdown: 'Counts down to the start, the end or a date', video: 'A YouTube, Vimeo, TikTok or Facebook link, or an uploaded video', products: 'Products, services, hampers or auctions', cta: 'A message and a button' };
@@ -20,58 +22,6 @@ const rows = (sections, items) => sections.map((s) => ({
   key: `s${s.id}`, id: s.id, type: s.type, settings: s.settings ?? {}, show_from: toLocal(s.show_from), show_until: toLocal(s.show_until), open: false,
   items: items.filter((i) => i.section_id === s.id).map((i) => ({ item_type: i.item_type, item_id: i.item_id, available_from: toLocal(i.available_from), label_override: i.label_override ?? '' })),
 }));
-
-/** Take a still from a video file in the browser (so no video software is needed on the server) and return it as a JPEG file, or null. */
-const posterFrom = (file) => new Promise((resolve) => {
-  const url = URL.createObjectURL(file);
-  const v = document.createElement('video');
-  const done = (out) => { URL.revokeObjectURL(url); resolve(out); };
-  v.muted = true; v.preload = 'auto'; v.playsInline = true; v.src = url;
-  v.onerror = () => done(null);
-  v.onloadeddata = () => { try { v.currentTime = Math.min(1, (v.duration || 2) / 4); } catch { done(null); } };
-  v.onseeked = () => {
-    const w = Math.min(960, v.videoWidth || 960); const h = Math.round(w * ((v.videoHeight || 540) / (v.videoWidth || 960)));
-    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
-    cv.getContext('2d').drawImage(v, 0, 0, w, h);
-    cv.toBlob((b) => done(b ? new File([b], 'poster.jpg', { type: 'image/jpeg' }) : null), 'image/jpeg', 0.82);
-  };
-  setTimeout(() => done(null), 8000);
-});
-
-function ItemPicker({ allowed, onAdd, taken }) {
-  const [type, setType] = useState(allowed[0] ?? 'product');
-  const [q, setQ] = useState('');
-  const [res, setRes] = useState([]);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => {
-    let live = true;
-    const t = setTimeout(() => { setBusy(true); campaignsAPI.catalogue(type, q).then((r) => live && setRes(r.data)).catch(() => live && setRes([])).finally(() => live && setBusy(false)); }, q ? 250 : 0);
-    return () => { live = false; clearTimeout(t); };
-  }, [type, q]);
-
-  return (
-    <div style={{ border: '1px dashed var(--line)', borderRadius: 10, padding: 10, display: 'grid', gap: 8 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <SelectInput value={type} onChange={(e) => setType(e.target.value)} style={{ maxWidth: 140 }}>{allowed.map((t) => <option key={t} value={t}>{t[0].toUpperCase() + t.slice(1)}s</option>)}</SelectInput>
-        <div style={{ position: 'relative', flex: 1 }}><Search size={13} style={{ position: 'absolute', left: 10, top: 12, color: colors.textFaint }} /><TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name or SKU…" style={{ paddingLeft: 30 }} /></div>
-      </div>
-      <div style={{ maxHeight: 190, overflowY: 'auto', display: 'grid', gap: 4 }}>
-        {busy && <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>Searching…</span>}
-        {!busy && res.length === 0 && <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>Nothing found.</span>}
-        {res.map((r) => {
-          const has = taken.has(r.key);
-          return (
-            <button key={r.key} type="button" disabled={has} onClick={() => onAdd(r)} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', padding: '6px 8px', borderRadius: 8, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: has ? 'default' : 'pointer', opacity: has ? 0.5 : 1, fontFamily: 'inherit' }}>
-              <span style={{ width: 34, height: 34, borderRadius: 6, background: 'var(--surface-input, rgba(148,163,184,0.2))', overflow: 'hidden', flexShrink: 0 }}>{r.image && <img src={storageUrl(r.image)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}</span>
-              <span style={{ flex: 1, fontSize: '0.8rem', fontWeight: 600 }}>{r.name}{r.sku && <span style={{ fontFamily: 'monospace', fontWeight: 400, color: colors.textFaint, marginLeft: 6 }}>{r.sku}</span>}</span>
-              <span style={{ fontSize: '0.72rem', color: colors.textFaint }}>{has ? 'Added' : 'Add'}</span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, resolved, setResolved }) {
   const st = s.settings;

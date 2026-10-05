@@ -32,6 +32,7 @@ const ProductDetail        = lazy(() => import('./ecommerce/pages/customer/Produ
 const CampaignsPage        = lazy(() => import('./campaigns/pages/public/CampaignsPage'));
 const CampaignPage         = lazy(() => import('./campaigns/pages/public/CampaignPage'));
 const CampaignList         = lazy(() => import('./campaigns/pages/admin/CampaignList'));
+const PinLibrary           = lazy(() => import('./campaigns/pages/admin/PinLibrary'));
 const CampaignEditor       = lazy(() => import('./campaigns/pages/admin/CampaignEditor'));
 const AuctionListPage      = lazy(() => import('./ecommerce/pages/customer/AuctionListPage'));
 const AuctionDetailPage    = lazy(() => import('./ecommerce/pages/customer/AuctionDetailPage'));
@@ -1424,6 +1425,7 @@ function App() {
               <Route path="/admin/books/memoranda/new" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
               <Route path="/admin/books/memoranda/:id/edit" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
               <Route path="/admin/campaigns" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignList /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/pins" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><PinLibrary /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/campaigns/new" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/campaigns/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/financial-notes" element={<Navigate to="/admin/books/memoranda" replace />} />
