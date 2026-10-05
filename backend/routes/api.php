@@ -854,6 +854,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/',                [$c, 'store']);
             Route::get('/{id}',             [$c, 'show'])->whereNumber('id');
             Route::put('/{id}',             [$c, 'update'])->whereNumber('id');
+            Route::post('/{id}/cover',      [$c, 'uploadCover'])->whereNumber('id');
+            Route::delete('/{id}/cover',    [$c, 'removeCover'])->whereNumber('id');
             Route::post('/{id}/publish',    [$c, 'publish'])->whereNumber('id');
             Route::post('/{id}/unpublish',  [$c, 'unpublish'])->whereNumber('id');
             Route::post('/{id}/pause',      [$c, 'pause'])->whereNumber('id');

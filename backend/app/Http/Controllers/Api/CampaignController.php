@@ -10,6 +10,7 @@ use App\Services\Campaigns\CampaignStatus;
 use App\Services\Campaigns\CampaignTypes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -155,6 +156,38 @@ class CampaignController extends Controller
         $c->update(['archived_at' => $c->archived_at ? null : now(), 'updated_by' => $request->user()->id]);
 
         return response()->json(['message' => $c->archived_at ? 'Archived.' : 'Restored from the archive.', 'data' => $c->fresh()]);
+    }
+
+    /** POST /admin/campaigns/{id}/cover: the campaign's cover image (jpg, png or webp, up to 5 MB). */
+    public function uploadCover(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $c = Campaign::findOrFail($id);
+        $this->editable($request, $c);
+        $request->validate(['cover' => 'required|file|mimes:png,jpg,jpeg,webp|max:5120']);
+        $this->forgetCover($c->cover_media);
+        $c->update(['cover_media' => Storage::url($request->file('cover')->store('campaigns', 'public')), 'updated_by' => $request->user()->id]);
+
+        return response()->json(['message' => 'Cover saved.', 'data' => $c->fresh()]);
+    }
+
+    public function removeCover(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $c = Campaign::findOrFail($id);
+        $this->editable($request, $c);
+        $this->forgetCover($c->cover_media);
+        $c->update(['cover_media' => null, 'updated_by' => $request->user()->id]);
+
+        return response()->json(['message' => 'Cover removed.', 'data' => $c->fresh()]);
+    }
+
+    /** Delete the file behind an earlier cover, if it is one of ours. */
+    private function forgetCover(?string $path): void
+    {
+        if ($path && str_starts_with($path, '/storage/campaigns/')) {
+            Storage::disk('public')->delete(substr($path, strlen('/storage/')));
+        }
     }
 
     public function destroy(Request $request, int $id): JsonResponse

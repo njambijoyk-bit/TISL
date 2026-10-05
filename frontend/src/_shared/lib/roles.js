@@ -9,6 +9,9 @@ export const FINANCE_WRITE = ['finance', 'admin', 'super_admin'];
 export const PAYROLL_ROLES = ['finance', 'super_admin'];
 export const canUsePayroll = (user) => PAYROLL_ROLES.includes(user?.role);
 
+// Campaigns: these build them (admin, super admin and manager also publish; sales rep and finance make drafts for approval)
+export const CAMPAIGN_ROLES = ['admin', 'super_admin', 'manager', 'sales_rep', 'finance'];
+
 export const canReadFinance  = (user) => FINANCE_READ.includes(user?.role);
 export const canWriteFinance = (user) => FINANCE_WRITE.includes(user?.role);
 

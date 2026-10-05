@@ -15,7 +15,7 @@ import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
-import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES } from './_shared/lib/roles';
+import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES, CAMPAIGN_ROLES } from './_shared/lib/roles';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./core/pages/auth/Login'));
@@ -29,6 +29,8 @@ const ResetPassword       = lazy(() => import('./core/pages/auth/ResetPassword')
 const Home                 = lazy(() => import('./core/pages/customer/Home'));
 const Products             = lazy(() => import('./ecommerce/pages/customer/Products'));
 const ProductDetail        = lazy(() => import('./ecommerce/pages/customer/ProductDetail'));
+const CampaignList         = lazy(() => import('./campaigns/pages/admin/CampaignList'));
+const CampaignEditor       = lazy(() => import('./campaigns/pages/admin/CampaignEditor'));
 const AuctionListPage      = lazy(() => import('./ecommerce/pages/customer/AuctionListPage'));
 const AuctionDetailPage    = lazy(() => import('./ecommerce/pages/customer/AuctionDetailPage'));
 const Cart                 = lazy(() => import('./core/pages/customer/Cart'));
@@ -1417,6 +1419,9 @@ function App() {
               <Route path="/admin/books/memoranda" element={<ProtectedRoute requireAdmin><MemorandaRegister /></ProtectedRoute>} />
               <Route path="/admin/books/memoranda/new" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
               <Route path="/admin/books/memoranda/:id/edit" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
+              <Route path="/admin/campaigns" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignList /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/campaigns/new" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/campaigns/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/financial-notes" element={<Navigate to="/admin/books/memoranda" replace />} />
 
               <Route path="/admin/reconciliation/*" element={<Navigate to="/admin/books" replace />} />
