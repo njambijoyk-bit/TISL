@@ -1644,7 +1644,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
                 Route::prefix('currencies')->group(function () {
                     Route::post('/',                 [CurrencyController::class, 'store']);
-                    Route::post('/base',             [CurrencyController::class, 'setBaseCurrency']);
+                    // Changing the base currency restates every figure: super admin and finance only
+                    Route::post('/base',             [CurrencyController::class, 'setBaseCurrency'])->middleware('role:super_admin,finance');
                     Route::put('/{id}',              [CurrencyController::class, 'update']);
                     Route::patch('/{id}/anchor-rate', [CurrencyController::class, 'updateAnchorRate']);
                     Route::patch('/{id}/status',     [CurrencyController::class, 'toggleStatus']);

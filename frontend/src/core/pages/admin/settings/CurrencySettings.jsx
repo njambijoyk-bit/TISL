@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import useCurrencyStore from '../../../../_shared/store/currencyStore';
+import useAuthStore from '../../../../_shared/store/authStore';
 import {
   Plus, Edit2, Save, X, Check, Info, Star,
   ChevronDown, ChevronUp, AlertTriangle, Trash2,
@@ -246,6 +247,7 @@ export default function CurrencySettings() {
     toggleStatus, deleteCurrency,
   } = useCurrencyStore();
 
+  const canSetBase = ['super_admin', 'finance'].includes(useAuthStore((s) => s.user?.role));   // changing the base restates every figure
   const [editingAnchor, setEditingAnchor] = useState(null); // { id, value }
   const [showAdd,       setShowAdd]       = useState(false);
   const loading = adminLoading && !currencies.length;
@@ -451,7 +453,7 @@ export default function CurrencySettings() {
                       {/* Actions */}
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {!isBase && (
+                          {!isBase && canSetBase && (
                             <button onClick={() => handleSetBase(c)} disabled={!c.is_active} title={!c.is_active ? 'Activate it first' : undefined} style={{
                               padding: '4px 10px', borderRadius: 7, fontSize: '0.7rem', fontWeight: 700,
                               background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
