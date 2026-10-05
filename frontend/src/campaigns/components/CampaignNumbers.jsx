@@ -24,7 +24,7 @@ export default function CampaignNumbers({ id }) {
   useEffect(() => { campaignsAPI.numbers(id).then(setD).catch((e) => setErr(errMsg(e, 'Could not load the numbers'))); }, [id]);
   if (err) return <p role="alert" style={{ color: colors.dangerText, fontSize: '0.84rem' }}>{err}</p>;
   if (!d) return <p style={{ color: colors.textFaint, fontSize: '0.84rem' }}>Loading…</p>;
-  const { visits: v, sales: s } = d;
+  const { visits: v, sales: s, community: cm } = d;
   const max = Math.max(1, ...v.daily.map((x) => x.views));
   const rate = v.visitors > 0 && s ? `${((s.orders / v.visitors) * 100).toFixed(1)}% of visitors` : null;
 
@@ -36,6 +36,15 @@ export default function CampaignNumbers({ id }) {
         <Tile label="Item clicks" value={n(v.item_clicks)} note="featured items opened" />
         {s ? <Tile label="Sales" value={money(s.total, s.currency)} note={`${n(s.orders)} orders · ${n(s.units)} units${rate ? ` · ${rate}` : ''}`} strong={d.goal === 'sales'} /> : <Tile label="Sales" value="—" note="Counted once it has started" />}
       </div>
+
+      {cm && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+          <Tile label="Pins shown" value={n(cm.pins)} note="in its pin sections" />
+          <Tile label="Saves" value={n(cm.saves)} note="added to customers' boards" />
+          <Tile label="Downloads" value={cm.downloads === null ? '—' : n(cm.downloads)} note={cm.downloads === null ? 'Run script 84 to count them' : 'all time, of those pins'} />
+          {cm.gallery_pins > 0 && <Tile label="Shared by customers" value={n(cm.gallery_pins)} note="pins in the gallery" />}
+        </div>
+      )}
 
       <div style={{ ...card, padding: 14 }}>
         <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.textFaint, marginBottom: 8 }}>Views, last 30 days</div>

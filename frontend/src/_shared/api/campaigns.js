@@ -23,6 +23,7 @@ const campaignsAPI = {
     return (await api.post(`/admin/campaigns/${id}/cover`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
   },
   savePage: async (id, sections) => (await api.put(`/admin/campaigns/${id}/page`, { sections })).data,
+  worldOptions: async () => (await api.get('/admin/campaigns/world-options')).data,
   catalogue: async (type, q) => (await api.get('/admin/campaigns/catalogue', { params: { type, q } })).data,
   uploadMedia: async (id, file, kind) => {
     const form = new FormData();

@@ -1,4 +1,4 @@
-# Campaigns M1 - pins, boards and moodboards (to plan, then build; nothing built yet)
+# Campaigns M1 - pins, boards and moodboards (built: steps 1 to 7; see the build order below)
 
 Goal: the Pinterest-style layer inside the Campaigns module. People browse an endless masonry feed of pins, open a pin, download its image when allowed, save pins to boards, and make their own boards (public or private). Staff curate official boards and composed moodboards, and campaigns can show a board, a pin grid or a moodboard as a section. Switched off, or with E-commerce off, nothing else changes: a product pin simply needs E-commerce.
 

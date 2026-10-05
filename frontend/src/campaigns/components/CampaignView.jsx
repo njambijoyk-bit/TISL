@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Play } from 'lucide-react';
 import { storageUrl } from '../../_shared/lib/storageUrl';
+import { PinsSection, MoodboardSection, GallerySection } from './WorldSections';
 
 const money = (n, code) => (n == null ? '' : `${code ?? ''} ${Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 })}`.trim());
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
@@ -153,6 +154,9 @@ export default function CampaignView({ campaign, sections, resolved = {}, previe
           {s.type === 'video' && <Video s={s} />}
           {s.type === 'products' && <Products s={s} items={s.items ?? []} resolved={resolved} />}
           {s.type === 'cta' && <Cta s={s} />}
+          {s.type === 'pins' && <PinsSection s={s} preview={preview} />}
+          {s.type === 'moodboard' && <MoodboardSection s={s} preview={preview} />}
+          {s.type === 'gallery' && <GallerySection s={s} preview={preview} />}
         </section>
       ))}
       {sections.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-tertiary)' }}>No sections yet.</p>}

@@ -10,8 +10,8 @@ import CampaignView from './CampaignView';
 import ItemPicker from './ItemPicker';
 import posterFrom from '../lib/videoPoster';
 
-const TYPE_LABEL = { hero: 'Hero', story: 'Story', countdown: 'Countdown', video: 'Video', products: 'Products', cta: 'Call to action' };
-const TYPE_ABOUT = { hero: 'Big cover with a headline and a button', story: 'A heading and some text', countdown: 'Counts down to the start, the end or a date', video: 'A YouTube, Vimeo, TikTok or Facebook link, or an uploaded video', products: 'Products, services, hampers or auctions', cta: 'A message and a button' };
+const TYPE_LABEL = { hero: 'Hero', story: 'Story', countdown: 'Countdown', video: 'Video', products: 'Products', cta: 'Call to action', pins: 'Pin grid', moodboard: 'Moodboard', gallery: 'Community gallery' };
+const TYPE_ABOUT = { hero: 'Big cover with a headline and a button', story: 'A heading and some text', countdown: 'Counts down to the start, the end or a date', video: 'A YouTube, Vimeo, TikTok or Facebook link, or an uploaded video', products: 'Products, services, hampers or auctions', cta: 'A message and a button', pins: 'The pins of a board, or pins with a tag', moodboard: 'One of your approved moodboards', gallery: 'Pins customers shared with a tag' };
 const lbl = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
 const toLocal = (iso) => (iso ? String(iso).slice(0, 16) : '');
 let counter = 0;
@@ -23,7 +23,7 @@ const rows = (sections, items) => sections.map((s) => ({
   items: items.filter((i) => i.section_id === s.id).map((i) => ({ item_type: i.item_type, item_id: i.item_id, available_from: toLocal(i.available_from), label_override: i.label_override ?? '' })),
 }));
 
-function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, resolved, setResolved }) {
+function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, resolved, setResolved, world }) {
   const st = s.settings;
   const put = (k) => (e) => set({ settings: { ...st, [k]: e?.target ? e.target.value : e } });
   const [uploading, setUploading] = useState(false);
@@ -96,6 +96,29 @@ function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, res
       </div>
     </div>
   );
+  if (s.type === 'pins') return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
+      <Field label="Heading"><TextInput value={st.heading ?? ''} onChange={put('heading')} /></Field>
+      <Field label="Show"><SelectInput value={st.source ?? 'board'} onChange={put('source')}><option value="board">The pins of a board</option><option value="tag">Pins with a tag</option></SelectInput></Field>
+      {(st.source ?? 'board') === 'board'
+        ? <Field label="Board" hint="Only public, approved boards."><SelectInput value={st.board_id ?? ''} onChange={(e) => set({ settings: { ...st, board_id: e.target.value ? Number(e.target.value) : undefined } })}><option value="">Choose a board…</option>{world.boards.map((b) => <option key={b.id} value={b.id}>{b.title}</option>)}</SelectInput></Field>
+        : <Field label="Tag" hint="One word, without the #."><TextInput value={st.tag ?? ''} onChange={put('tag')} placeholder="summerdrop" /></Field>}
+      <Field label="How many"><TextInput type="number" min={1} max={24} value={st.count ?? 12} onChange={(e) => set({ settings: { ...st, count: Number(e.target.value) } })} /></Field>
+    </div>
+  );
+  if (s.type === 'moodboard') return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
+      <Field label="Heading"><TextInput value={st.heading ?? ''} onChange={put('heading')} /></Field>
+      <Field label="Moodboard" hint="Only approved moodboards."><SelectInput value={st.moodboard_id ?? ''} onChange={(e) => set({ settings: { ...st, moodboard_id: e.target.value ? Number(e.target.value) : undefined } })}><option value="">Choose a moodboard…</option>{world.moodboards.map((m) => <option key={m.id} value={m.id}>{m.title}</option>)}</SelectInput></Field>
+    </div>
+  );
+  if (s.type === 'gallery') return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
+      <Field label="Heading"><TextInput value={st.heading ?? ''} onChange={put('heading')} placeholder="Shared by you" /></Field>
+      <Field label="Tag" hint="Customers add this tag to a pin on a public board and it shows here."><TextInput value={st.tag ?? ''} onChange={put('tag')} placeholder="mylook" /></Field>
+      <Field label="How many"><TextInput type="number" min={1} max={24} value={st.count ?? 12} onChange={(e) => set({ settings: { ...st, count: Number(e.target.value) } })} /></Field>
+    </div>
+  );
   // products
   const taken = new Set(s.items.map((i) => `${i.item_type}:${i.item_id}`));
   const setItems = (items) => set({ items });
@@ -129,13 +152,15 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [world, setWorld] = useState({ boards: [], moodboards: [] });
+  useEffect(() => { campaignsAPI.worldOptions().then(setWorld).catch(() => {}); }, []);
   const dragFrom = useRef(null);
   const first = useRef(true);
   useEffect(() => { if (first.current) { first.current = false; return; } setList(rows(initial, initialItems)); setResolved(initialResolved); setDirty(false); }, [initial, initialItems, initialResolved]);
 
   const patch = useCallback((key, p) => { setList((l) => l.map((s) => (s.key === key ? { ...s, ...p } : s))); setDirty(true); }, []);
   const move = (from, to) => { if (to < 0 || to >= list.length || from === to) return; const l = [...list]; const [x] = l.splice(from, 1); l.splice(to, 0, x); setList(l); setDirty(true); };
-  const add = (type) => { setList((l) => [...l, { key: keyOf(), id: null, type, settings: type === 'products' ? { heading: 'Shop', layout: 'grid' } : type === 'countdown' ? { target: 'start' } : {}, show_from: '', show_until: '', open: true, items: [] }]); setDirty(true); setAdding(false); };
+  const add = (type) => { setList((l) => [...l, { key: keyOf(), id: null, type, settings: type === 'products' ? { heading: 'Shop', layout: 'grid' } : type === 'countdown' ? { target: 'start' } : type === 'pins' ? { heading: 'Inspiration', source: 'board', count: 12 } : type === 'gallery' ? { heading: 'Shared by you', count: 12 } : {}, show_from: '', show_until: '', open: true, items: [] }]); setDirty(true); setAdding(false); };
 
   const save = async () => {
     setBusy(true);
@@ -174,7 +199,7 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
             {s.open && (
               <div style={{ padding: '4px 14px 14px', display: 'grid', gap: 14, borderTop: '1px solid var(--line)' }}>
                 <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: '12px 0 0', minWidth: 0 }}>
-                  <SectionForm s={s} set={(p) => patch(s.key, p)} campaignId={campaign.id} maxVideoMb={maxVideoMb} ecommerce={ecommerce} itemTypes={itemTypes} resolved={resolved} setResolved={setResolved} />
+                  <SectionForm s={s} set={(p) => patch(s.key, p)} campaignId={campaign.id} maxVideoMb={maxVideoMb} ecommerce={ecommerce} itemTypes={itemTypes} resolved={resolved} setResolved={setResolved} world={world} />
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--line)' }}>
                     <Field label="Show from" hint="Empty = from the start. A teaser can reveal a section a day."><TextInput type="datetime-local" value={s.show_from} onChange={(e) => patch(s.key, { show_from: e.target.value })} /></Field>
                     <Field label="Show until" hint="Empty = for as long as the campaign shows."><TextInput type="datetime-local" value={s.show_until} onChange={(e) => patch(s.key, { show_until: e.target.value })} /></Field>
