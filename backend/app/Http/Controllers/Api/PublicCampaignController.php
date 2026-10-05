@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Services\Campaigns\CampaignAudience;
+use App\Services\Campaigns\CampaignStats;
 use App\Services\Campaigns\CampaignStatus;
 use App\Services\Campaigns\CatalogueAdapter;
 use Illuminate\Http\JsonResponse;
@@ -13,7 +14,7 @@ use Illuminate\Http\Request;
 /** Campaigns as the public sees them: the list (live, coming, archive), one campaign's page by its address, and the one featured on the homepage. */
 class PublicCampaignController extends Controller
 {
-    public function __construct(private CatalogueAdapter $catalogue) {}
+    public function __construct(private CatalogueAdapter $catalogue, private CampaignStats $stats) {}
 
     /** Status for this visitor: before the start, early access lets chosen people in as if it were live. */
     private function effective(Campaign $c, $user): array
@@ -94,6 +95,19 @@ class PublicCampaignController extends Controller
         }
 
         return $out;
+    }
+
+    /** POST /campaigns/{slug}/event: a visitor viewed the page or clicked something (counted quietly; staff are not counted). */
+    public function event(Request $request, string $slug): JsonResponse
+    {
+        $d = $request->validate(['event' => ['required', 'string', 'max:20'], 'section_id' => ['nullable', 'integer']]);
+        $user = $request->user('sanctum');
+        $c = Campaign::where('slug', $slug)->where('is_published', true)->whereNull('archived_at')->where('is_paused', false)->first();
+        if ($c && CampaignAudience::allows($user, $c->audience_rule)) {
+            $this->stats->record($c, $d['event'], $d['section_id'] ?? null, $user, $request);
+        }
+
+        return response()->json(['ok' => true]);
     }
 
     /** GET /campaigns/{slug} */

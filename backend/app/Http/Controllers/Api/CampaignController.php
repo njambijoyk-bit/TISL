@@ -10,6 +10,7 @@ use App\Services\Books\BooksException;
 use App\Services\Campaigns\CampaignAccess;
 use App\Services\Campaigns\CampaignApproval;
 use App\Services\Campaigns\CampaignPage;
+use App\Services\Campaigns\CampaignStats;
 use App\Services\Campaigns\CatalogueAdapter;
 use App\Services\Campaigns\CampaignStatus;
 use App\Services\Campaigns\CampaignTypes;
@@ -24,7 +25,7 @@ class CampaignController extends Controller
 {
     public const MAX_VIDEO_KB = 102400;   // 100 MB
 
-    public function __construct(private CampaignPage $page, private CatalogueAdapter $catalogue, private CampaignApproval $approval) {}
+    public function __construct(private CampaignPage $page, private CatalogueAdapter $catalogue, private CampaignApproval $approval, private CampaignStats $stats) {}
 
     private function guard(callable $fn): JsonResponse
     {
@@ -267,6 +268,21 @@ class CampaignController extends Controller
         }
 
         return response()->json(['path' => Storage::url($path), 'kind' => $request->input('kind')]);
+    }
+
+    /** GET /admin/campaigns/{id}/numbers: views, visitors, clicks, and sales of the featured items inside the campaign's dates. */
+    public function numbers(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $c = Campaign::with('items')->findOrFail($id);
+        abort_unless(CampaignAccess::canPublish($request->user()) || (int) $c->created_by === (int) $request->user()->id, 403);
+        $resolved = $this->catalogue->describe($c->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all());
+        $sales = $this->stats->sales($c);
+        if ($sales) {
+            $sales['items'] = array_map(fn ($r) => $r + ['name' => $resolved["{$r['type']}:{$r['id']}"]['name'] ?? null], $sales['items']);
+        }
+
+        return response()->json(['visits' => $this->stats->visits($c), 'sales' => $sales, 'goal' => $c->goal]);
     }
 
     /** POST /admin/campaigns/{id}/submit: the author sends a draft for approval (their manager, or the admins, get a calendar task). */

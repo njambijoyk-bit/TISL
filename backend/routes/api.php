@@ -156,6 +156,7 @@ Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
     Route::get('/',         [$c, 'index']);
     Route::get('/featured', [$c, 'featured']);
     Route::get('/{slug}',   [$c, 'show'])->where('slug', '[a-z0-9-]+');
+    Route::post('/{slug}/event', [$c, 'event'])->where('slug', '[a-z0-9-]+')->middleware('throttle:90,1');
 });
 
 // Auth required — must be registered BEFORE /{key} to avoid route conflict
@@ -862,6 +863,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                 [$c, 'index']);
             Route::post('/',                [$c, 'store']);
             Route::get('/{id}',             [$c, 'show'])->whereNumber('id');
+            Route::get('/{id}/numbers',     [$c, 'numbers'])->whereNumber('id');
             Route::put('/{id}',             [$c, 'update'])->whereNumber('id');
             Route::put('/{id}/page',        [$c, 'savePage'])->whereNumber('id');
             Route::post('/{id}/media',      [$c, 'uploadMedia'])->whereNumber('id');
