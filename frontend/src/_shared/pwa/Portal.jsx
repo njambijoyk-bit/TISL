@@ -12,12 +12,14 @@ import {
   Heart, Gavel, Tag, BarChart2, LifeBuoy, FolderOpen, Award, ScrollText,
   MessageSquare, BookOpen, Info, Settings, Gift, ChevronRight, Truck,
   Eye, EyeOff, Loader2, Sparkles, Globe, ShieldCheck,
-  RouteIcon,
+  RouteIcon, CalendarCheck,
 } from 'lucide-react';
-import { useAuthStore, useCartStore, usePromoCodeStore } from '../store/index';
+import { useAuthStore, useCartStore, usePromoCodeStore, useModuleStore } from '../store/index';
+import { MODULES, isModuleActive } from '../navigation/modules';
+import MyCalendar from '../../core/pages/admin/calendar/MyCalendar';
 import {
   customersAPI, authAPI, customerLoyaltyAPI,
-  referralsAPI, customerTiersAPI, workAPI, notificationsAPI,
+  referralsAPI, customerTiersAPI, notificationsAPI,
 } from '../api/index';
 import employeesAPI from '../api/employees';
 import ThemeSwitcher from '../components/common/ThemeSwitcher';
@@ -61,35 +63,35 @@ const CUSTOMER_ROUTES = [
   { key: 'orders',         label: 'My Orders',      icon: ShoppingBag,   path: '/orders',            color: '#f97316' },
   { key: 'quotes',         label: 'My Quotes',      icon: FileText,      path: '/my-quotes',         color: 'var(--color-primary-400)' },
   { key: 'tickets',        label: 'Support',        icon: LifeBuoy,      path: '/my-tickets',        color: '#ef4444' },
-  { key: 'projects',       label: 'Projects',       icon: FolderOpen,    path: '/my-projects',       color: '#14b8a6' },
-  { key: 'wishlist',       label: 'Wishlist',       icon: Heart,         path: '/wishlist',          color: '#f43f5e' },
-  { key: 'hampers',        label: 'Hampers',        icon: Gift,          path: '/hampers',           color: 'var(--color-primary-500)' },
-  { key: 'products',       label: 'Products',       icon: Package,       path: '/products',          color: '#3b82f6' },
-  { key: 'services',       label: 'Services',       icon: Wrench,        path: '/services',          color: '#06b6d4' },
-  { key: 'auctions',       label: 'Auctions',       icon: Gavel,         path: '/auctions',          color: '#dc2626' },
-  { key: 'specials',       label: 'Specials',       icon: Tag,           path: '/specials',          color: '#f59e0b' },
+  { key: 'projects',       label: 'Projects',       icon: FolderOpen,    path: '/my-projects',       color: '#14b8a6', module: MODULES.PROJECTS },
+  { key: 'wishlist',       label: 'Wishlist',       icon: Heart,         path: '/wishlist',          color: '#f43f5e', module: MODULES.ECOMMERCE },
+  { key: 'hampers',        label: 'Hampers',        icon: Gift,          path: '/hampers',           color: 'var(--color-primary-500)', module: MODULES.HAMPERS },
+  { key: 'products',       label: 'Products',       icon: Package,       path: '/products',          color: '#3b82f6', module: MODULES.ECOMMERCE },
+  { key: 'services',       label: 'Services',       icon: Wrench,        path: '/services',          color: '#06b6d4', module: MODULES.ECOMMERCE },
+  { key: 'auctions',       label: 'Auctions',       icon: Gavel,         path: '/auctions',          color: '#dc2626', module: MODULES.AUCTIONS },
+  { key: 'specials',       label: 'Specials',       icon: Tag,           path: '/specials',          color: '#f59e0b', module: MODULES.ECOMMERCE },
   { key: 'brochures',      label: 'Brochures',      icon: BookOpen,      path: '/brochures',         color: '#64748b' },
-  { key: 'careers',        label: 'Careers',        icon: Briefcase,     path: '/careers',           color: 'var(--color-primary-600)' },
+  { key: 'careers',        label: 'Careers',        icon: Briefcase,     path: '/careers',           color: 'var(--color-primary-600)', module: MODULES.CAREERS },
   { key: 'profile',        label: 'My Profile',     icon: Info,          path: '/profile',           color: '#0ea5e9' },
-  { key: 'd-hist',         label: 'Delivery History',icon: ScrollText,   path: '/delivery-history',  color: '#14b8a6' },
+  { key: 'd-hist',         label: 'Delivery History',icon: ScrollText,   path: '/delivery-history',  color: '#14b8a6', module: MODULES.EXTRAS },
 ];
 
 const ADMIN_ROUTES = [
   { key: 'dashboard',  label: 'Dashboard',  icon: LayoutDashboard, path: '/admin',                color: '#6366f1' },
   { key: 'orders',     label: 'Orders',     icon: ShoppingBag,     path: '/admin/orders',         color: '#f97316' },
-  { key: 'products',   label: 'Products',   icon: Package,         path: '/admin/products',       color: 'var(--color-primary-500)' },
+  { key: 'products',   label: 'Products',   icon: Package,         path: '/admin/products',       color: 'var(--color-primary-500)', module: MODULES.ECOMMERCE },
   { key: 'customers',  label: 'Customers',  icon: Users,           path: '/admin/customers',      color: '#3b82f6' },
   { key: 'quotes',     label: 'Quotes',     icon: FileText,        path: '/admin/quotes',         color: 'var(--color-primary-400)' },
   { key: 'reports',    label: 'Reports',    icon: BarChart2,       path: '/admin/books?tab=reports',        color: '#22c55e' },
   { key: 'tickets',    label: 'Tickets',    icon: LifeBuoy,        path: '/admin/tickets',        color: '#ef4444' },
-  { key: 'work',       label: 'My Work',    icon: Briefcase,       path: '/admin/work',           color: '#ec4899' },
-  { key: 'projects',   label: 'Projects',   icon: FolderOpen,      path: '/admin/projects',       color: '#14b8a6' },
+  { key: 'calendar',   label: 'My Calendar', icon: CalendarCheck,  path: '/admin/calendar',       color: '#ec4899' },
+  { key: 'projects',   label: 'Projects',   icon: FolderOpen,      path: '/admin/projects',       color: '#14b8a6', module: MODULES.PROJECTS },
   { key: 'loyalty',    label: 'Loyalty',    icon: Award,           path: '/admin/loyalty',        color: '#f59e0b' },
   { key: 'settings',   label: 'Settings',   icon: Settings,        path: '/admin/settings',       color: '#64748b' },
   { key: 'employees',  label: 'Employees',  icon: Users,           path: '/admin/employees',      color: '#0ea5e9' },
-  { key: 'algorithm',  label: 'Algorithm',  icon: Sparkles,        path: '/admin/algorithm',      color: 'var(--color-primary-600)' },
-  { key: 'manifests',  label: 'Manifests',  icon: ScrollText,      path: '/admin/delivery',       color: '#f97316' },
-  { key: 'd-mnfst',    label: 'Driver Mnfst', icon: Truck,         path: '/driver/manifests',     color: '#0ea5e9' },
+  { key: 'algorithm',  label: 'Algorithm',  icon: Sparkles,        path: '/admin/algorithm',      color: 'var(--color-primary-600)', module: MODULES.EXTRAS },
+  { key: 'manifests',  label: 'Manifests',  icon: ScrollText,      path: '/admin/delivery',       color: '#f97316', module: MODULES.EXTRAS },
+  { key: 'd-mnfst',    label: 'Driver Mnfst', icon: Truck,         path: '/driver/manifests',     color: '#0ea5e9', module: MODULES.EXTRAS },
 ];
 
 const DEFAULT_CUSTOMER_SHORTCUTS = ['orders', 'quotes', 'profile', 'products', 'services'];
@@ -324,10 +326,12 @@ function TabBar({ tabs, active, onChange }) {
 }
 
 // ── Shortcut grid ─────────────────────────────────────────────────────────────
-function ShortcutGrid({ allRoutes, storageKey, defaultShortcuts }) {
+function ShortcutGrid({ allRoutes: everyRoute, storageKey, defaultShortcuts }) {
   const navigate = useNavigate();
+  useModuleStore((st) => st.active);   // re-render when a module is switched on or off
+  const allRoutes = everyRoute.filter((r) => isModuleActive(r.module));   // a switched-off or unlicensed module has no shortcut
   const [selected, setSelected] = useState(() => {
-    try { const s = localStorage.getItem(storageKey); return s ? JSON.parse(s) : defaultShortcuts; }
+    try { const s = localStorage.getItem(storageKey); return (s ? JSON.parse(s) : defaultShortcuts).map((k) => (k === 'work' ? 'calendar' : k)); }   // My Work became My Calendar
     catch { return defaultShortcuts; }
   });
   const [editing, setEditing] = useState(false);
@@ -886,7 +890,7 @@ function CustomerWalletTab({ wallet, navigate }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 const ADMIN_TABS = [
   { key: 'overview',  label: 'Overview',  icon: LayoutDashboard },
-  { key: 'work',      label: 'My Work',   icon: Briefcase       },
+  { key: 'calendar',  label: 'My Calendar', icon: CalendarCheck  },
   { key: 'employee',  label: 'Employee',  icon: Users           },
   { key: 'security',  label: 'Security',  icon: Shield          },
 ];
@@ -895,19 +899,10 @@ function AdminPWAHome({ user, onLogout }) {
   const navigate = useNavigate();
   const [activeTab,    setActiveTab]    = useState('overview');
   const [loading,      setLoading]      = useState(true);
-  const [assignments,  setAssignments]  = useState({ customers: [], orders: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} });
   const [empRecord,    setEmpRecord]    = useState(null);
-  const [openSections, setOpenSections] = useState({ customers: true, projects: true, orders: false, tickets: false });
-
-  const toggleSection = key => setOpenSections(p => ({ ...p, [key]: !p[key] }));
-  const daysUntil     = (d) => d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null;
 
   useEffect(() => {
-    workAPI.myDashboard().then(data => {
-      setAssignments(data?.assignments ?? { customers: [], orders: [], projects: [], tasks: [], milestones: [], tickets: [], counts: {} });
-      setLoading(false);
-    }).catch(() => setLoading(false));
-    employeesAPI.getMyRecord().then(data => setEmpRecord(data.employee)).catch(() => {});
+    employeesAPI.getMyRecord().then(data => setEmpRecord(data.employee)).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
@@ -926,7 +921,7 @@ function AdminPWAHome({ user, onLogout }) {
         ) : (
           <div style={{ animation: 'portalFadeUp 250ms ease' }}>
             {activeTab === 'overview'  && <AdminOverviewTab  user={user} navigate={navigate} />}
-            {activeTab === 'work'      && <AdminWorkTab assignments={assignments} openSections={openSections} toggleSection={toggleSection} daysUntil={daysUntil} navigate={navigate} />}
+            {activeTab === 'calendar'  && <div style={{ padding: '10px 10px 0' }}><MyCalendar embedded /></div>}
             {activeTab === 'employee'  && <AdminEmployeeTab  user={user} empRecord={empRecord} navigate={navigate} />}
             {activeTab === 'security'  && <PasswordTab onLogout={onLogout} />}
           </div>
@@ -978,137 +973,6 @@ function AdminOverviewTab({ user, navigate }) {
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function AdminWorkTab({ assignments, openSections, toggleSection, daysUntil, navigate }) {
-  // ── Status & Priority badges ──────────────────────────────────────────────────
-  function StatusBadge({ status }) {
-    const map = {
-      active:           { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
-      delivered:        { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
-      approved:         { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
-      resolved:         { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
-      confirmed:        { bg: 'rgba(22,163,74,0.18)',   color: '#4ade80' },
-      pending:          { bg: 'rgba(245,158,11,0.18)',  color: '#fbbf24' },
-      open:             { bg: 'rgba(245,158,11,0.18)',  color: '#fbbf24' },
-      planning:         { bg: 'rgba(59,130,246,0.18)',  color: '#60a5fa' },
-      converted:        { bg: 'rgba(59,130,246,0.18)',  color: '#60a5fa' },
-      in_progress:      { bg: 'rgba(59,130,246,0.18)',  color: '#60a5fa' },
-      waiting_customer: { bg: 'rgba(249,115,22,0.18)',  color: '#fb923c' },
-      draft:            { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' },
-      closed:           { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' },
-      no_show:          { bg: 'rgba(239,68,68,0.18)',   color: '#f87171' },
-    };
-    const style = map[status] ?? { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' };
-    return (
-      <span style={{
-        padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700,
-        background: style.bg, color: style.color, flexShrink: 0,
-      }}>
-        {status?.replace(/_/g, ' ')}
-      </span>
-    );
-  }
-
-  function PriorityBadge({ priority }) {
-    const map = {
-      urgent: { bg: 'rgba(239,68,68,0.18)',  color: '#f87171' },
-      high:   { bg: 'rgba(249,115,22,0.18)', color: '#fb923c' },
-      medium: { bg: 'rgba(59,130,246,0.18)', color: '#60a5fa' },
-      low:    { bg: 'rgba(128,128,128,0.15)',color: '#9ca3af' },
-    };
-    const style = map[priority] ?? { bg: 'rgba(128,128,128,0.15)', color: '#9ca3af' };
-    return (
-      <span style={{
-        padding: '2px 8px', borderRadius: 99, fontSize: '0.62rem', fontWeight: 700,
-        background: style.bg, color: style.color,
-      }}>
-        {priority}
-      </span>
-    );
-  }
-
-  const fmtDate = d => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
-  const sections = [
-    {
-      key: 'customers', label: 'Assigned Customers', count: assignments.counts?.customers || 0, color: '#3b82f6', items: assignments.customers, emptyMsg: 'No customers assigned',
-      renderItem: (c, i) => (
-        <button key={i} onClick={() => navigate(`/admin/customers/${c.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(59,130,246,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.68rem', fontWeight: 800, color: '#3b82f6', flexShrink: 0 }}>
-            {`${c.first_name?.[0]||''}${c.last_name?.[0]||''}`}
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.full_name}</p>
-            <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{c.email}</p>
-          </div>
-          <ChevronRight size={13} color={MUTED} />
-        </button>
-      ),
-    },
-    {
-      key: 'projects', label: 'My Projects', count: assignments.counts?.projects || 0, color: '#10b981', items: assignments.projects, emptyMsg: 'No projects assigned',
-      renderItem: (p, i) => (
-        <button key={i} onClick={() => navigate(`/admin/projects/${p.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{p.title}</p>
-            <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{p.customer?.full_name || 'No customer'}</p>
-          </div>
-          {p.deadline && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: daysUntil(p.deadline) <= 7 ? '#ef4444' : MUTED, flexShrink: 0 }}>{daysUntil(p.deadline)}d</span>}
-          <ChevronRight size={13} color={MUTED} />
-        </button>
-      ),
-    },
-    {
-      key: 'orders', label: 'Assigned Orders', count: assignments.counts?.orders || 0, color: '#f59e0b', items: assignments.orders, emptyMsg: 'No orders assigned',
-      renderItem: (o, i) => (
-        <button key={i} onClick={() => navigate(`/admin/orders/${o.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{o.order_number}</p>
-            <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{o.customer?.full_name}</p>
-          </div>
-          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f59e0b', flexShrink: 0 }}>{o.currency || 'KES'} {Number(o.total||0).toLocaleString()}</span>
-          <ChevronRight size={13} color={MUTED} />
-        </button>
-      ),
-    },
-    {
-      key: 'tickets', label: 'Assigned Tickets', count: assignments.counts?.tickets || 0, color: '#ef4444', items: assignments.tickets, emptyMsg: 'No tickets assigned',
-      renderItem: (t, i) => (
-        <button key={i} onClick={() => navigate(`/admin/tickets/${t.id}`)} className="portal-press portal-row-hover" style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 4, textAlign: 'left', color: 'inherit' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: TEXT }}>{t.subject || t.ticket_number}</p>
-            <p style={{ margin: 0, fontSize: '0.67rem', color: MUTED }}>{t.customer?.full_name}</p>
-          </div>
-          <ChevronRight size={13} color={MUTED} />
-        </button>
-      ),
-    },
-  ];
-
-  return (
-    <div style={{ padding: '14px 14px 8px' }}>
-      {sections.map(section => (
-        <div key={section.key} style={{ marginBottom: 8, borderRadius: 12, overflow: 'hidden', border: `1px solid ${BORDER}`, background: SURFACE }}>
-          <button onClick={() => toggleSection(section.key)} className="portal-press" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 13px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'inherit' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: section.color, flexShrink: 0, boxShadow: `0 0 6px ${section.color}` }} />
-              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: section.color }}>{section.label}</span>
-              <span style={{ fontSize: '0.62rem', fontWeight: 700, color: section.color, background: `${section.color}18`, padding: '1px 7px', borderRadius: 99 }}>{section.count}</span>
-            </div>
-            {openSections[section.key] ? <ChevronUp size={13} color={MUTED} /> : <ChevronDown size={13} color={MUTED} />}
-          </button>
-          {openSections[section.key] && (
-            <div style={{ padding: '2px 8px 8px', borderTop: `1px solid ${BORDER}` }}>
-              {section.items?.length > 0
-                ? section.items.slice(0, 5).map((item, i) => section.renderItem(item, i))
-                : <p style={{ margin: 0, fontSize: '0.72rem', color: MUTED, padding: '10px 4px' }}>{section.emptyMsg}</p>
-              }
-            </div>
-          )}
-        </div>
-      ))}
     </div>
   );
 }
