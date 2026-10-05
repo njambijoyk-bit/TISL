@@ -12,7 +12,7 @@ import { btnPrimary, card, colors, input } from '../../../../_shared/theme/token
  * see their own bookings in their portal. A manager can open anyone's calendar; the private link puts it in Google/Apple/Outlook.
  */
 
-const KINDS = { task: ['Task', '#3b82f6'], ticket: ['Ticket', '#ef4444'], milestone: ['Milestone', '#8b5cf6'], project: ['Project end', '#14b8a6'], booking: ['Booking', '#10b981'], verification: ['Verification', '#f59e0b'], time_off: ['Time off', '#9ca3af'] };
+const KINDS = { approval: ['Approval', '#d946ef'], task: ['Task', '#3b82f6'], ticket: ['Ticket', '#ef4444'], milestone: ['Milestone', '#8b5cf6'], project: ['Project end', '#14b8a6'], booking: ['Booking', '#10b981'], verification: ['Verification', '#f59e0b'], time_off: ['Time off', '#9ca3af'] };
 const kindOf = (k) => KINDS[k] ?? [k, '#6b7280'];
 const ymd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 

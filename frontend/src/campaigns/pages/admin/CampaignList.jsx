@@ -11,7 +11,7 @@ import { btnPrimary, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import StatusChip from '../../components/StatusChip';
 
-const STATUSES = [['', 'All'], ['live', 'Live'], ['scheduled', 'Scheduled'], ['teaser', 'Teaser'], ['draft', 'Drafts'], ['paused', 'Paused'], ['ended', 'Ended'], ['archived', 'Archived']];
+const STATUSES = [['', 'All'], ['waiting', 'Waiting for approval'], ['live', 'Live'], ['scheduled', 'Scheduled'], ['teaser', 'Teaser'], ['draft', 'Drafts'], ['paused', 'Paused'], ['ended', 'Ended'], ['archived', 'Archived']];
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
 /** The campaigns: what is live, what is coming, and what has ended. Click one to change it. */
@@ -26,7 +26,7 @@ export default function CampaignList() {
   useEffect(() => { campaignsAPI.types().then((r) => setTypes(Object.fromEntries(r.types.map((t) => [t.key, t])))).catch(() => {}); }, []);
   const load = useCallback(async () => {
     setLoading(true);
-    try { setRows((await campaignsAPI.list({ status: status || undefined, q: q || undefined })).data); }
+    try { setRows((await campaignsAPI.list({ status: status && status !== 'waiting' ? status : undefined, approval: status === 'waiting' ? 'pending' : undefined, q: q || undefined })).data); }
     catch (e) { toast.error(errMsg(e, 'Could not load the campaigns')); }
     finally { setLoading(false); }
   }, [status, q]);

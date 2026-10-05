@@ -28,7 +28,8 @@ export default function CampaignEditor() {
   const [f, setF] = useState(EMPTY);
   const [c, setC] = useState(null);                 // the saved campaign, once there is one
   const [pg, setPg] = useState(null);               // its page: sections, items, live item details, and what the server says is allowed
-  const [perm, setPerm] = useState({ can_edit: true, can_publish: false });
+  const [perm, setPerm] = useState({ can_edit: true, can_publish: false, can_decide: false, can_submit: false, can_withdraw: false });
+  const [rejecting, setRejecting] = useState(null);   // the note being written when an approver says no
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v }));
@@ -38,7 +39,7 @@ export default function CampaignEditor() {
     if (!id) return;
     campaignsAPI.get(id).then((r) => {
       const d = r.data;
-      setC(d); setPerm({ can_edit: r.can_edit, can_publish: r.can_publish });
+      setC(d); setPerm({ can_edit: r.can_edit, can_publish: r.can_publish, can_decide: r.can_decide, can_submit: r.can_submit, can_withdraw: r.can_withdraw });
       setPg({ sections: d.sections, items: d.items, resolved: r.resolved, ecommerce: r.ecommerce, itemTypes: r.item_types, maxVideoMb: r.max_video_mb });
       setF({ title: d.title, subtitle: d.subtitle ?? '', slug: d.slug, type: d.type, goal: d.goal, accent_color: d.accent_color ?? '', teaser_at: toLocal(d.teaser_at), starts_at: toLocal(d.starts_at), ends_at: toLocal(d.ends_at), early_access_at: toLocal(d.early_access_at), feature_on_home: d.feature_on_home });
     }).catch((e) => setErr(errMsg(e, 'Could not load the campaign')));
@@ -62,7 +63,12 @@ export default function CampaignEditor() {
   };
 
   const act = async (fn, ok) => {
-    try { const r = await fn(c.id); setC(r.data ?? c); toast.success(r.message ?? ok); } catch (er) { toast.error(errMsg(er, 'That did not work')); }
+    try {
+      const r = await fn(c.id);
+      toast.success(r.message ?? ok);
+      const g = await campaignsAPI.get(c.id);   // the buttons depend on the new state, so read it again
+      setC(g.data); setPerm({ can_edit: g.can_edit, can_publish: g.can_publish, can_decide: g.can_decide, can_submit: g.can_submit, can_withdraw: g.can_withdraw }); setRejecting(null);
+    } catch (er) { toast.error(errMsg(er, 'That did not work'), { duration: 6000 }); }
   };
   const remove = async () => {
     if (!window.confirm(`Delete "${c.title}"?`)) return;
@@ -83,6 +89,7 @@ export default function CampaignEditor() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
             <StatusChip status={c.status} approval={c.approval_status} />
             <span style={{ fontFamily: 'monospace', fontSize: '0.74rem', color: colors.textFaint }}>/campaigns/{c.slug}</span>
+            {perm.can_submit && ['draft', 'rejected'].includes(c.approval_status) && !c.is_published && <button type="button" style={{ ...btnPrimary, marginLeft: 'auto' }} onClick={() => act(campaignsAPI.submit)}>Send for approval</button>}
             {perm.can_publish && (
               <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
                 {c.is_published
@@ -93,6 +100,25 @@ export default function CampaignEditor() {
                 <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={remove}>Delete</button>
               </span>
             )}
+          </div>
+        )}
+        {c?.approval_status === 'pending' && (
+          <div style={{ ...card, padding: 12, margin: '0 0 14px', display: 'grid', gap: 8, borderColor: 'var(--status-warning, #b45309)' }}>
+            <div style={{ fontSize: '0.84rem', fontWeight: 600 }}>{perm.can_decide ? 'This campaign is waiting for your decision.' : perm.can_withdraw ? 'Sent for approval. You will see the answer on your calendar.' : 'Waiting for approval.'}</div>
+            {perm.can_decide && (rejecting === null
+              ? <div style={{ display: 'flex', gap: 8 }}><button type="button" style={btnPrimary} onClick={() => act(campaignsAPI.approve)}>Approve and publish</button><button type="button" style={btnGhost} onClick={() => setRejecting('')}>Not approved…</button></div>
+              : <div style={{ display: 'grid', gap: 8 }}>
+                <TextInput value={rejecting} onChange={(e) => setRejecting(e.target.value)} placeholder="Say what needs to change (the author will see this)" />
+                <div style={{ display: 'flex', gap: 8 }}><button type="button" style={{ ...btnPrimary, opacity: rejecting.trim() ? 1 : 0.5 }} disabled={!rejecting.trim()} onClick={() => act((i) => campaignsAPI.reject(i, rejecting))}>Send back to the author</button><button type="button" style={btnGhost} onClick={() => setRejecting(null)}>Cancel</button></div>
+              </div>)}
+            {perm.can_withdraw && <div><button type="button" style={btnGhost} onClick={() => act(campaignsAPI.withdraw)}>Take it back</button></div>}
+          </div>
+        )}
+        {c?.approval_status === 'rejected' && !c.is_published && (
+          <div style={{ ...card, padding: 12, margin: '0 0 14px', borderColor: 'var(--status-error, #b91c1c)' }}>
+            <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--status-error, #b91c1c)' }}>Not approved</div>
+            {c.rejected_note && <div style={{ fontSize: '0.82rem', marginTop: 4 }}>{c.rejected_note}</div>}
+            {perm.can_submit && <div style={{ fontSize: '0.74rem', color: colors.textFaint, marginTop: 6 }}>Change what was asked, then send it for approval again.</div>}
           </div>
         )}
         {readOnly && <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted }}>You can look at this campaign, but not change it. A draft you made yourself can be changed until it is sent for approval.</p>}
