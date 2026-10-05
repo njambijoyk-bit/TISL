@@ -156,6 +156,7 @@ const MyBookings         = lazy(() => import('./core/pages/customer/MyBookings')
 const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCalendar'));
 const TeamCalendar       = lazy(() => import('./core/pages/admin/calendar/TeamCalendar'));
 const StaffResources     = lazy(() => import('./core/pages/admin/calendar/StaffResources'));
+const EngagementSettings = lazy(() => import('./extras/pages/admin/EngagementSettings'));
 const ServiceSettings    = lazy(() => import('./ecommerce/pages/admin/ServiceSettings'));
 const Quotes             = lazy(() => import('./core/pages/admin/quotations/QuotationsPage'));
 const QuoteDetail        = lazy(() => import('./core/pages/admin/quotations/QuotationDetailPage'));
@@ -1081,6 +1082,7 @@ function App() {
               <Route path="/admin/calendar/team" element={<ProtectedRoute requireAdmin><TeamCalendar /></ProtectedRoute>} />
               <Route path="/admin/resources" element={<ProtectedRoute requireAdmin><StaffResources /></ProtectedRoute>} />
               <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin><ServiceSettings /></ProtectedRoute>} />
+              <Route path="/admin/settings/engagement" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin']}><ModuleRoute module="extras" redirectTo="/admin"><EngagementSettings /></ModuleRoute></ProtectedRoute>} />
 
               {/* Categories Routes */}
               <Route

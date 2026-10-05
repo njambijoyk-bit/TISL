@@ -327,6 +327,7 @@ export const ADMIN_NAV = [
           { group: 'Content', title: 'Policies', path: '/admin/settings/policy', description: 'Terms, privacy, returns' },
           { group: 'Access', title: 'Users & roles', path: '/admin/users', description: 'Staff accounts and their roles' },
           { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, description: 'Ranking, pins and catalogue boosts' },
+          { group: 'Platform', title: 'Engagement', path: '/admin/settings/engagement', module: MODULES.EXTRAS, roles: ['admin', 'super_admin'], description: 'Who can review, comment, like, mark helpful and report' },
           { group: 'Platform', title: 'Vault', path: '/admin/vault', description: 'Stored documents and secrets' },
           { group: 'Platform', title: 'Activity logs', path: '/admin/logs', description: 'Who changed what, and exports' },
           { group: 'Platform', title: 'Appearance', path: '/admin/appearance', description: 'Colours, fonts, icons and layouts' },
