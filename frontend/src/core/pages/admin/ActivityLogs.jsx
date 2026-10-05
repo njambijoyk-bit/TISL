@@ -13,7 +13,7 @@ import ordersAPI from '../../../_shared/api/orders';
 import shippingAPI from '../../../_shared/api/shipping';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { format } from 'date-fns';
-import ActivityFeed from '../../components/admin/logs/ActivityFeed';
+import ActivityFeed from '../../components/admin/activity/ActivityFeed';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const purple   = 'var(--color-primary-500)';
