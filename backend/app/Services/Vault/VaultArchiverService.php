@@ -505,7 +505,6 @@ class VaultArchiverService
             ['bug_report_status_history',        'Bug Report Status History',       180,       'json'],
             ['application_status_history',       'Application Status History',      180,       'json'],
             ['policy_change_logs',               'Policy Change Logs',              365,       'json'],
-            ['reconciliation_lines',             'Reconciliation Lines',            365,       'json'],
 
             // ── Additional tables ─────────────────────────────────────────────────────
             ['dev_access_key_logs',              'Dev Access Key Logs',             30,        'json'],

@@ -66,7 +66,6 @@ use App\Http\Controllers\Api\AlgorithmController;
 use App\Http\Controllers\Api\CustomerPinController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\PublicationCommentController;
-use App\Http\Controllers\Api\ReconciliationController;
 use App\Http\Controllers\Api\SearchAnalyticsController;
 use App\Http\Controllers\Api\AdminSavedNoteController;
 use App\Http\Controllers\Api\ProductVariantController;
@@ -1736,18 +1735,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
         });
 
-        // Reconciliation
-        Route::prefix('reconciliation')->group(function () {
-            Route::get('/sessions',                             [ReconciliationController::class, 'indexSessions']);
-            Route::post('/sessions',                            [ReconciliationController::class, 'createSession']);
-            Route::get('/sessions/{session}',                   [ReconciliationController::class, 'showSession']);
-            Route::post('/sessions/{session}/populate',         [ReconciliationController::class, 'populate']);
-            Route::post('/sessions/{session}/close',            [ReconciliationController::class, 'closeSession']);
-            Route::post('/sessions/{session}/reopen',           [ReconciliationController::class, 'reopenSession']);
-            Route::patch('/sessions/{session}/notes',           [ReconciliationController::class, 'updateNotes']);
-            Route::get('/sessions/{session}/lines',             [ReconciliationController::class, 'indexLines']);
-            Route::put('/lines/{line}',                         [ReconciliationController::class, 'updateLine']);
-        });
 
         Route::prefix('data-engine')->group(function () {
             Route::get('/export/columns',        [DataEngineController::class, 'exportColumns']);

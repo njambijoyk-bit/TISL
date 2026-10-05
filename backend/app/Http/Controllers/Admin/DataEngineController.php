@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ReconciliationSession;
 use App\Services\DataEngineService;
 use App\Services\AiAnalyticsService;
 use Illuminate\Http\Request;
@@ -153,8 +152,6 @@ class DataEngineController extends Controller
      *   identifier_col   string   required  — column to match on
      *   period_start     date     required
      *   period_end       date     required
-     *   persist          boolean  optional  — if true, creates a ReconciliationSession and saves lines
-     *   session_notes    string   optional  — notes for the session if persist=true
      */
     public function diff(Request $request): JsonResponse
     {
@@ -164,8 +161,6 @@ class DataEngineController extends Controller
             'identifier_col' => 'required|string',
             'period_start'   => 'required|date',
             'period_end'     => 'required|date|after_or_equal:period_start',
-            'persist'        => 'nullable|boolean',
-            'session_notes'  => 'nullable|string|max:1000',
         ]);
 
         $rows = $this->parseFileRows($request->file('file'));
@@ -183,30 +178,7 @@ class DataEngineController extends Controller
             periodEnd:     $data['period_end'],
         );
 
-        $response = ['diff' => $diffResult, 'session' => null];
-
-        // ── Optionally persist to reconciliation session ───────────
-        if (!empty($data['persist'])) {
-            $session = $this->createExternalImportSession(
-                source:      $data['source'],
-                periodStart: $data['period_start'],
-                periodEnd:   $data['period_end'],
-                notes:       $data['session_notes'] ?? null,
-                diffSummary: $diffResult['summary'],
-            );
-
-            $lineCount = $this->engine->persistDiffToSession($diffResult, $session);
-
-            $session->recalculateSummary();
-
-            $response['session'] = [
-                'id'             => $session->id,
-                'session_number' => $session->session_number,
-                'lines_created'  => $lineCount,
-            ];
-        }
-
-        return response()->json($response);
+        return response()->json(['diff' => $diffResult]);
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -217,36 +189,28 @@ class DataEngineController extends Controller
      * POST /admin/data-engine/analyse
      *
      * Body:
-     *   session_id    integer  optional  — analyse a persisted session's lines
-     *   diff_result   array    optional  — analyse a raw diff result (not yet persisted)
+     *   diff_result   array    required — the diff result to analyse
      *   output_type   string   optional  — summary|insight|risk|recommendation
      *   custom_prompt string   optional
      *
-     * One of session_id or diff_result is required.
      */
     public function analyse(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'session_id'    => 'nullable|integer|exists:reconciliation_sessions,id',
-            'diff_result'   => 'nullable|array',
+            'diff_result'   => 'required|array',
             'output_type'   => 'nullable|in:summary,insight,risk,recommendation',
             'custom_prompt' => 'nullable|string|max:1000',
         ]);
-
-        if (empty($data['session_id']) && empty($data['diff_result'])) {
-            return response()->json(['message' => 'Provide either session_id or diff_result.'], 422);
-        }
 
         try {
             $output = $this->ai->analyse(
                 moduleKey:    'reconciliation',
                 adminId:      Auth::id(),
-                entityId:     $data['session_id'] ?? null,
-                entityType:   $data['session_id'] ? 'reconciliation_session' : null,
+                entityId:     null,
+                entityType:   null,
                 outputType:   $data['output_type'] ?? 'summary',
                 customPrompt: $data['custom_prompt'] ?? null,
-                // Pass raw diff result for non-persisted analysis
-                extraData:    !empty($data['diff_result']) ? ['diff_result' => $data['diff_result']] : [],
+                extraData:    ['diff_result' => $data['diff_result']],
             );
 
             return response()->json(['success' => true, 'output' => $output]);
@@ -460,38 +424,5 @@ class DataEngineController extends Controller
         }
 
         return $rows;
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // ── PRIVATE: Session creation ──────────────────────────────────
-    // ════════════════════════════════════════════════════════════════
-
-    private function createExternalImportSession(
-        string  $source,
-        string  $periodStart,
-        string  $periodEnd,
-        ?string $notes,
-        array   $diffSummary,
-    ): ReconciliationSession {
-        return ReconciliationSession::create([
-            'period_start' => $periodStart,
-            'period_end'   => $periodEnd,
-            'ledger'       => 'external_import',
-            'opened_by'    => Auth::id(),
-            'status'       => 'open',
-            'notes'        => $notes,
-            'opened_at'    => now(),
-            'meta'         => [
-                'source'       => $source,
-                'diff_summary' => $diffSummary,
-                'engine'       => 'data_engine',
-                'events'       => [[
-                    'type'   => 'session_created',
-                    'by'     => Auth::id(),
-                    'at'     => now()->toISOString(),
-                    'source' => $source,
-                ]],
-            ],
-        ]);
     }
 }

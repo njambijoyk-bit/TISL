@@ -66,18 +66,14 @@ const dataEngineAPI = {
      * @param {string} payload.identifier_col
      * @param {string} payload.period_start
      * @param {string} payload.period_end
-     * @param {boolean} [payload.persist]        create a ReconciliationSession
-     * @param {string}  [payload.session_notes]
      */
-    runDiff({ file, source, identifier_col, period_start, period_end, persist = false, session_notes = null }) {
+    runDiff({ file, source, identifier_col, period_start, period_end }) {
         const form = new FormData();
         form.append('file',           file);
         form.append('source',         source);
         form.append('identifier_col', identifier_col);
         form.append('period_start',   period_start);
         form.append('period_end',     period_end);
-        form.append('persist',        persist ? '1' : '0');
-        if (session_notes) form.append('session_notes', session_notes);
         return api.post(`${BASE}/diff`, form, {
             headers: { 'Content-Type': 'multipart/form-data' },
         });
@@ -88,18 +84,16 @@ const dataEngineAPI = {
     // ════════════════════════════════════════════════════════════════
 
     /**
-     * Run AI analysis on a persisted session or a raw diff result.
+     * Run AI analysis on a diff result.
      * POST /admin/data-engine/analyse
      *
      * @param {object} payload
-     * @param {number}  [payload.session_id]   analyse a persisted session
-     * @param {object}  [payload.diff_result]  analyse a raw diff (not yet persisted)
+     * @param {object}  [payload.diff_result]  analyse a raw diff 
      * @param {string}  [payload.output_type]  'summary' | 'insight' | 'risk' | 'recommendation'
      * @param {string}  [payload.custom_prompt]
      */
-    analyse({ session_id = null, diff_result = null, output_type = 'summary', custom_prompt = null }) {
+    analyse({ diff_result = null, output_type = 'summary', custom_prompt = null }) {
         return api.post(`${BASE}/analyse`, {
-            ...(session_id   && { session_id }),
             ...(diff_result  && { diff_result }),
             output_type,
             ...(custom_prompt && { custom_prompt }),

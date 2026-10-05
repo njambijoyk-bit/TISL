@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, ShoppingCart, DollarSign, FileText, CreditCard, Scale, NotebookPen,
+  LayoutDashboard, ShoppingCart, DollarSign, FileText, CreditCard, NotebookPen,
   Package, PackagePlus, Wrench, Award, Gift, Gavel, CalendarCheck,
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
@@ -161,7 +161,6 @@ export const ADMIN_NAV = [
       { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
       { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
       { id: 'verification', title: 'Verification', icon: ClipboardList, color: '#0ea5e9', path: '/admin/verification', keywords: 'verify vouchers check audit register observation query' },
-      { id: 'reconciliation', title: 'Reconciliation', icon: Scale, color: '#065f46', path: '/admin/reconciliation', keywords: 'stock count' },
       { id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/books?tab=reports', roles: FINANCE_READ, keywords: 'day book trial balance profit loss balance sheet ageing receivables payables tax' },
     ],
   },

@@ -63,7 +63,6 @@ final class ModuleTables
             'customer_credit_invoices', 'customer_credit_invoice_items',
             'customer_credit_schedules', 'customer_credit_schedule_items', 'customer_credit_transactions',
             'shipping_activities',
-            'reconciliation_sessions', 'reconciliation_lines',
             // Bookings (polymorphic; a service is the first thing booked), the staff calendar and what can be booked.
             'bookings', 'bookable_resources', 'resource_hours', 'resource_time_off', 'resource_services', 'calendar_entries', 'calendar_tokens',
             // Staff: employee records (payroll and attendance stand on them), attendance, payroll, petty cash, voucher verification.

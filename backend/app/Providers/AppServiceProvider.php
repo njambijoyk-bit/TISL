@@ -16,7 +16,6 @@ use App\Services\AlgorithmService;
 use App\Services\CatalogueRankingService;
 use App\Services\CustomerCreditService;
 use App\Services\AuctionActivityService;
-use App\Services\ReconciliationPopulateService;
 use App\Services\SearchAnalyticsService;
 use App\Services\AiAnalyticsService;
 use App\Services\BugReportService;
@@ -54,7 +53,6 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CatalogueRankingService::class);
         $this->app->singleton(CustomerCreditService::class);
         $this->app->singleton(AuctionActivityService::class);
-        $this->app->singleton(ReconciliationPopulateService::class);
         $this->app->singleton(SearchAnalyticsService::class);
         $this->app->singleton(AiAnalyticsService::class);
         $this->app->singleton(BugReportService::class);

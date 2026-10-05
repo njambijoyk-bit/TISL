@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\ReconciliationSession;
-use App\Models\ReconciliationLine;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Collection;
 
@@ -175,117 +173,6 @@ class DataEngineService
             'only_in_file'      => $onlyInFile,
             'clean_matches'     => array_values(array_filter($matched, fn($r) => $r['status'] === 'clean')),
         ];
-    }
-
-    // ════════════════════════════════════════════════════════════════
-    // ── PUBLIC: Persist diff result into reconciliation lines ─────
-    // ════════════════════════════════════════════════════════════════
-
-    /**
-     * Takes a completed diff result and pushes discrepancies into
-     * reconciliation_lines for the given session.
-     * Only mismatches and missing rows are persisted — clean matches are skipped.
-     *
-     * Returns count of lines inserted.
-     */
-    public function persistDiffToSession(array $diffResult, ReconciliationSession $session): int
-    {
-        $toInsert = [];
-        $now      = now();
-
-        // ── Mismatched rows ───────────────────────────────────────
-        foreach ($diffResult['mismatches'] as $row) {
-            $tisl = $row['tisl_row'];
-
-            // Best-effort expected/actual from first amount field found
-            [$expected, $actual] = $this->extractAmountPair($tisl, $row['file_row']);
-
-            $toInsert[] = [
-                'session_id'      => $session->id,
-                'subject_table'   => $diffResult['source_table'],
-                'subject_id'      => $tisl['id'] ?? null,
-                'meta'            => json_encode([
-                    'identifier'    => $row['identifier'],
-                    'identifier_col'=> $diffResult['identifier_col'],
-                    'field_diffs'   => $row['field_diffs'],
-                    'amount_variance' => $row['amount_variance'],
-                    'tisl_row'      => $tisl,
-                    'file_row'      => $row['file_row'],
-                    'diff_type'     => 'mismatch',
-                ]),
-                'expected_amount' => $expected,
-                'actual_amount'   => $actual,
-                'status'          => 'pending',
-                'reviewed_by'     => null,
-                'reviewed_at'     => null,
-                'dispute_note'    => null,
-                'resolution_note' => null,
-                'created_at'      => $now,
-                'updated_at'      => $now,
-            ];
-        }
-
-        // ── Only in TISL (missing from external file) ─────────────
-        foreach ($diffResult['only_in_tisl'] as $row) {
-            $tisl      = $row['tisl_row'];
-            $amountCol = $this->findAmountColumn(array_keys($tisl));
-
-            $toInsert[] = [
-                'session_id'      => $session->id,
-                'subject_table'   => $diffResult['source_table'],
-                'subject_id'      => $tisl['id'] ?? null,
-                'meta'            => json_encode([
-                    'identifier'     => $row['identifier'],
-                    'identifier_col' => $diffResult['identifier_col'],
-                    'tisl_row'       => $tisl,
-                    'diff_type'      => 'only_in_tisl',
-                ]),
-                'expected_amount' => $amountCol ? (float)($tisl[$amountCol] ?? 0) : 0,
-                'actual_amount'   => null,
-                'status'          => 'pending',
-                'reviewed_by'     => null,
-                'reviewed_at'     => null,
-                'dispute_note'    => null,
-                'resolution_note' => null,
-                'created_at'      => $now,
-                'updated_at'      => $now,
-            ];
-        }
-
-        // ── Only in file (not in TISL) ────────────────────────────
-        foreach ($diffResult['only_in_file'] as $row) {
-            $fileRow   = $row['file_row'];
-            $amountCol = $this->findAmountColumn(array_keys($fileRow));
-
-            $toInsert[] = [
-                'session_id'      => $session->id,
-                'subject_table'   => $diffResult['source_table'],
-                'subject_id'      => null,  // no TISL record
-                'meta'            => json_encode([
-                    'identifier'     => $row['identifier'],
-                    'identifier_col' => $diffResult['identifier_col'],
-                    'file_row'       => $fileRow,
-                    'diff_type'      => 'only_in_file',
-                ]),
-                'expected_amount' => null,
-                'actual_amount'   => $amountCol ? (float)($fileRow[$amountCol] ?? 0) : 0,
-                'status'          => 'pending',
-                'reviewed_by'     => null,
-                'reviewed_at'     => null,
-                'dispute_note'    => null,
-                'resolution_note' => null,
-                'created_at'      => $now,
-                'updated_at'      => $now,
-            ];
-        }
-
-        if (empty($toInsert)) return 0;
-
-        foreach (array_chunk($toInsert, 500) as $chunk) {
-            ReconciliationLine::insert($chunk);
-        }
-
-        return count($toInsert);
     }
 
     // ════════════════════════════════════════════════════════════════

@@ -197,8 +197,6 @@ const InventoryPage          = lazy(() => import('./core/pages/admin/InventoryPa
 const CatalogueBoostPage     = lazy(() => import('./core/pages/admin/algorithm/CatalogueBoostPage'));
 const MemorandaRegister      = lazy(() => import('./core/pages/admin/books/MemorandaRegister'));
 const MemorandumForm         = lazy(() => import('./core/pages/admin/books/MemorandumForm'));
-const ReconciliationPage     = lazy(() => import('./core/pages/admin/finance/ReconciliationPage'));
-const ReconciliationDetail   = lazy(() => import('./core/pages/admin/finance/ReconciliationDetail'));
 const DataEnginePage         = lazy(() => import('./extras/pages/admin/ai-analytics/DataEnginePage'));
 const LogExportPage          = lazy(() => import('./core/pages/admin/LogExportPage'));
 
@@ -1429,23 +1427,7 @@ function App() {
               <Route path="/admin/books/memoranda/:id/edit" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
               <Route path="/admin/financial-notes" element={<Navigate to="/admin/books/memoranda" replace />} />
 
-              {/* ── Reconciliation ──────────────────────────────────────────── */}
-              <Route
-                path="/admin/reconciliation"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <ReconciliationPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/reconciliation/:id"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <ReconciliationDetail />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/admin/reconciliation/*" element={<Navigate to="/admin/books" replace />} />
               <Route
                 path="/admin/data-engine"
                 element={

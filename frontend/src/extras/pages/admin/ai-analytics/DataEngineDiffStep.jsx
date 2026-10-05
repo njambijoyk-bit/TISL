@@ -39,7 +39,6 @@ export default function DataEngineDiffStep({
         identifier_col: identifierCol,
         period_start: periodStart,
         period_end: periodEnd,
-        persist: true,
       });
 
       setDiffResult(res.data.diff || null);
