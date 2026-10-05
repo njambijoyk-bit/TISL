@@ -55,6 +55,11 @@ class EngagementModerationController extends Controller
                 'meta' => json_encode(['on' => $p->target_type . ':' . $p->target_id]), 'created_at' => now()]);
         });
         $this->posts->after($p);
+        $notices = app(\App\Services\Engagement\EngagementNotices::class);
+        $notices->postDecided($p->id);
+        if ($status === 'hidden') {
+            $notices->tellAuthor($p->user_id, $p->parent_id ? 'reply' : $p->kind, $this->targets->label($p->target_type, $p->target_id));
+        }
 
         return response()->json(['message' => ucfirst($log) . '.', 'data' => $this->row($p->fresh('user'))]);
     }
@@ -74,6 +79,7 @@ class EngagementModerationController extends Controller
         $this->decider($request);
         $p = EngagementPost::findOrFail($id);
         $this->posts->destroy($p);
+        app(\App\Services\Engagement\EngagementNotices::class)->tellAuthor($p->user_id, $p->parent_id ? 'reply' : $p->kind, $this->targets->label($p->target_type, $p->target_id));
         DB::table('engagement_log')->insert(['target_type' => 'post', 'target_id' => $p->id, 'action' => 'removed', 'actor_user_id' => $request->user()->id, 'note' => mb_substr((string) $request->input('note'), 0, 500) ?: null, 'created_at' => now()]);
 
         return response()->json(['message' => 'Removed.']);

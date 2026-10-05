@@ -282,7 +282,7 @@ class CampaignController extends Controller
             $sales['items'] = array_map(fn ($r) => $r + ['name' => $resolved["{$r['type']}:{$r['id']}"]['name'] ?? null], $sales['items']);
         }
 
-        return response()->json(['visits' => $this->stats->visits($c), 'sales' => $sales, 'community' => $this->stats->community($c), 'goal' => $c->goal]);
+        return response()->json(['visits' => $this->stats->visits($c), 'sales' => $sales, 'community' => $this->stats->community($c), 'engagement' => $this->stats->engagement($c), 'goal' => $c->goal]);
     }
 
     /** GET /admin/campaigns/world-options: the approved public boards and moodboards a page section can show. */

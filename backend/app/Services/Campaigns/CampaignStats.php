@@ -90,7 +90,8 @@ class CampaignStats
      * The pin sections' numbers: the pins a campaign shows (a board's pins, or the pins with a tag), how often customers saved them to their own boards,
      * how often they were downloaded (since script 84; all time), and how many customers' pins are in the gallery. Null when it has no such sections.
      */
-    public function community(Campaign $c): ?array
+    /** The pins a campaign's pin sections show: all of them, the gallery's, and how many sections there are. @return array{pins:int[],gallery:int[],sections:int} */
+    private function pinSet(Campaign $c): array
     {
         $feed = app(Feed::class);
         $pinIds = [];
@@ -111,13 +112,37 @@ class CampaignStats
                 }
             }
         }
+
+        return ['pins' => array_values(array_unique($pinIds)), 'gallery' => array_values(array_unique($gallery)), 'sections' => $sections];
+    }
+
+    public function community(Campaign $c): ?array
+    {
+        ['pins' => $pinIds, 'gallery' => $gallery, 'sections' => $sections] = $this->pinSet($c);
         if (! $sections) {
             return null;
         }
-        $pinIds = array_values(array_unique($pinIds));
         $saves = $pinIds ? DB::table('campaign_board_pins as bp')->join('campaign_boards as b', 'b.id', '=', 'bp.board_id')->whereNull('b.deleted_at')->where('b.is_official', false)->whereIn('bp.pin_id', $pinIds)->count() : 0;
         $downloads = $pinIds && Schema::hasColumn('campaign_pins', 'download_count') ? (int) DB::table('campaign_pins')->whereIn('id', $pinIds)->sum('download_count') : null;
 
-        return ['pins' => count($pinIds), 'saves' => $saves, 'downloads' => $downloads, 'gallery_pins' => count(array_unique($gallery))];
+        return ['pins' => count($pinIds), 'saves' => $saves, 'downloads' => $downloads, 'gallery_pins' => count($gallery)];
+    }
+
+    /**
+     * What people did on the campaign itself and on the pins it shows: likes, published comments, and reports (open and all). Null when the Engagement Engine is off
+     * or not set up, so the numbers page shows nothing rather than zeros.
+     */
+    public function engagement(Campaign $c): ?array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('engagement_reactions') || ! app(\App\Services\Licensing\LicenseManager::class)->isActive('extras') || ! \App\Models\EngagementSetting::current()->enabled) {
+            return null;
+        }
+        $pins = $this->pinSet($c)['pins'];
+        $likes = fn ($type, $ids) => $ids ? (int) DB::table('engagement_reactions')->where('target_type', $type)->whereIn('target_id', $ids)->where('kind', 'like')->count() : 0;
+        $comments = fn ($type, $ids) => $ids ? (int) DB::table('engagement_posts')->where('target_type', $type)->whereIn('target_id', $ids)->where('kind', 'comment')->where('status', 'published')->whereNull('deleted_at')->count() : 0;
+        $reports = fn ($type, $ids, $open) => $ids ? (int) DB::table('engagement_reports')->where('target_type', $type)->whereIn('target_id', $ids)->when($open, fn ($w) => $w->where('status', 'open'))->count() : 0;
+
+        return ['likes' => $likes('campaign', [$c->id]), 'pin_likes' => $likes('pin', $pins), 'comments' => $comments('campaign', [$c->id]), 'pin_comments' => $comments('pin', $pins),
+            'reports' => $reports('campaign', [$c->id], false) + $reports('pin', $pins, false), 'open_reports' => $reports('campaign', [$c->id], true) + $reports('pin', $pins, true)];
     }
 }

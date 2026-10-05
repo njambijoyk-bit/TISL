@@ -178,6 +178,7 @@ class EngagementRules
             $s->forceFill($c + ['preset' => $this->matching(), 'updated_by' => $by->id, 'updated_at' => now()])->save();
             $this->log('settings', $by, 'Engagement settings changed');
         });
+        app(EngagementNotices::class)->sync();   // a changed task setting takes effect now
     }
 
     public function applyPreset(string $key, User $by): void

@@ -51,6 +51,8 @@ class ReportService
         DB::table('engagement_reports')->insert(['target_type' => $type, 'target_id' => $id, 'reporter_user_id' => $u?->id, 'guest_key' => $u ? null : $guestKey, 'reason' => $reason,
             'note' => $note !== null && trim($note) !== '' ? mb_substr(trim($note), 0, 500) : null, 'status' => 'open', 'created_at' => now()]);
 
+        app(EngagementNotices::class)->reported($type, $id);
+
         $limitOpen = $this->rules->settings()->auto_hide_reports;
         if ($limitOpen > 0 && $this->hideable($type) && DB::table('engagement_reports')->where('target_type', $type)->where('target_id', $id)->where('status', 'open')->count() >= $limitOpen && $this->hide($type, $id, true)) {
             $this->log($type, $id, 'auto_hidden', null, "Hidden after {$limitOpen} reports, until staff decide");
@@ -115,6 +117,7 @@ class ReportService
                 throw new BooksException('Add a note about what breached the policy.');
             }
         }
+        $reportIds = DB::table('engagement_reports')->where('target_type', $type)->where('target_id', $id)->where('status', 'open')->pluck('id')->all();
         DB::transaction(function () use ($by, $type, $id, $decision, $note, $policy) {
             DB::table('engagement_reports')->where('target_type', $type)->where('target_id', $id)->where('status', 'open')
                 ->update(['status' => self::DECISIONS[$decision], 'decided_by' => $by->id, 'decided_at' => now(), 'decision_note' => $note ? mb_substr(trim($note), 0, 500) : null, 'policy_key' => $policy?->key]);
@@ -125,12 +128,30 @@ class ReportService
             }
             $this->log($type, $id, $decision === 'keep' ? 'kept' : ($decision === 'remove' ? 'pulled_down' : 'flagged'), $by, $note, $policy ? ['policy' => $policy->key] : []);
         });
+        $notices = app(EngagementNotices::class);
+        $notices->caseDecided($reportIds);
         if ($type === 'post') {
             $p = EngagementPost::withTrashed()->find($id);
             if ($p) {
                 app(PostService::class)->after($p);
             }
         }
+        if ($decision !== 'keep') {
+            [$owner, $what] = $this->authorOf($type, $id);
+            $where = $type === 'post' && ($p = EngagementPost::withTrashed()->find($id)) ? $this->targets->label($p->target_type, $p->target_id) : $this->targets->label($type, $id);
+            $notices->tellAuthor($owner, $what, $where, $policy?->title);
+        }
+    }
+
+    /** @return array{0:?int,1:string} who made the thing, and what to call it */
+    private function authorOf(string $type, int $id): array
+    {
+        return match ($type) {
+            'post' => ($p = EngagementPost::withTrashed()->find($id)) ? [$p->user_id, $p->parent_id ? 'reply' : $p->kind] : [null, 'post'],
+            'pin' => [CampaignPin::withTrashed()->where('source', 'customer')->find($id)?->owner_user_id, 'pin'],
+            'board' => [CampaignBoard::where('is_official', false)->find($id)?->owner_user_id, 'board'],
+            default => [null, $type],
+        };
     }
 
     /** @return array<int,array> one row per thing with open (or decided) reports, newest first */

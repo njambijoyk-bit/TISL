@@ -144,6 +144,9 @@ class PostService
             'rating' => $rating, 'title' => $title, 'body' => $body, 'images' => $photos ? array_map(fn (UploadedFile $f) => Storage::url($f->store('engagement/photos', 'public')), $photos) : null,
             'verified_purchase' => $dec['verified'], 'proof_voucher_id' => $dec['voucher_id'], 'status' => $status, 'held_reason' => $why]);
         $this->after($post);
+        if ($post->status === 'held') {
+            app(EngagementNotices::class)->held($post);
+        }
 
         return $post;
     }
@@ -179,6 +182,9 @@ class PostService
         }
         $p->update($c);
         $this->after($p);
+        if (($c['status'] ?? null) === 'held') {
+            app(EngagementNotices::class)->held($p);
+        }
 
         return $p->fresh();
     }
@@ -189,6 +195,7 @@ class PostService
         EngagementPost::where('parent_id', $p->id)->update(['status' => 'removed']);
         $p->delete();
         $this->after($p);
+        app(EngagementNotices::class)->postDecided($p->id);
     }
 
     /** Anything that could change a product's or service's average. */
