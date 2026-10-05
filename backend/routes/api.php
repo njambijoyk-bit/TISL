@@ -66,7 +66,6 @@ use App\Http\Controllers\Api\AlgorithmController;
 use App\Http\Controllers\Api\CustomerPinController;
 use App\Http\Controllers\Api\PublicationController;
 use App\Http\Controllers\Api\PublicationCommentController;
-use App\Http\Controllers\Api\FinancialNoteController;
 use App\Http\Controllers\Api\ReconciliationController;
 use App\Http\Controllers\Api\SearchAnalyticsController;
 use App\Http\Controllers\Api\AdminSavedNoteController;
@@ -162,6 +161,16 @@ Route::get('/policies/{key}', [PolicyController::class, 'show']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/policies/check-reacceptance', [PolicyController::class, 'checkReacceptance']);
     Route::post('/policies/accept', [PolicyController::class, 'recordAcceptance']);
+});
+
+// Memoranda — notes with debit / credit lines that post nothing. Staff write them (a driver too); finance edits, converts and dismisses (checked in the controller).
+Route::middleware('auth:sanctum')->prefix('memoranda')->group(function () {
+    Route::get('/',                    [\App\Http\Controllers\Api\MemorandumController::class, 'index']);
+    Route::post('/',                   [\App\Http\Controllers\Api\MemorandumController::class, 'store']);
+    Route::get('/{id}',                [\App\Http\Controllers\Api\MemorandumController::class, 'show'])->whereNumber('id');
+    Route::put('/{id}',                [\App\Http\Controllers\Api\MemorandumController::class, 'update'])->whereNumber('id');
+    Route::delete('/{id}',             [\App\Http\Controllers\Api\MemorandumController::class, 'destroy'])->whereNumber('id');
+    Route::post('/{id}/convert',       [\App\Http\Controllers\Api\MemorandumController::class, 'convert'])->whereNumber('id');
 });
 
 // Checkout — open to guests too; a signed-in customer's token (if sent) makes it their prices, tier and vouchers
@@ -1420,16 +1429,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/restore',     [TicketController::class, 'restore']);
         });
 
-        Route::prefix('financial-notes')->group(function () {
-            Route::get('/',                     [FinancialNoteController::class, 'index']);
-            Route::post('/',                    [FinancialNoteController::class, 'store']);
-            Route::get('/for-subject',          [FinancialNoteController::class, 'forSubject']);
-            Route::get('/resolve-subject',      [FinancialNoteController::class, 'resolveSubject']);
-            Route::get('/{financialNote}',      [FinancialNoteController::class, 'show']);
-            Route::put('/{financialNote}',      [FinancialNoteController::class, 'update']);
-            Route::delete('/{financialNote}',   [FinancialNoteController::class, 'destroy']);
-        });
-
         Route::prefix('credit')->group(function () {
             Route::get('/global-summary', [CustomerCreditController::class, 'globalSummary']);
             Route::get('/global-customers', [CustomerCreditController::class, 'globalCustomers']);
@@ -1746,7 +1745,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/sessions/{session}/notes',           [ReconciliationController::class, 'updateNotes']);
             Route::get('/sessions/{session}/lines',             [ReconciliationController::class, 'indexLines']);
             Route::put('/lines/{line}',                         [ReconciliationController::class, 'updateLine']);
-            Route::put('/lines/{line}/attach-note',             [ReconciliationController::class, 'attachNote']);
         });
 
         Route::prefix('data-engine')->group(function () {

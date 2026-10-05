@@ -57,6 +57,7 @@ class BooksReportService
             ->when($to, fn ($q) => $q->where('date', '<=', $to))
             ->when($typeId, fn ($q) => $q->where('voucher_type_id', $typeId))
             ->when($locationId, fn ($q) => $q->where('location_id', $locationId))
+            ->whereHas('type', fn ($t) => $t->where('base_type', '!=', \App\Models\Books\VoucherType::MEMORANDUM))   // a memorandum is a note, not a transaction
             ->orderBy('date')->orderBy('id')->get();
 
         $cur = \App\Models\Currency::all()->keyBy('id')->all();

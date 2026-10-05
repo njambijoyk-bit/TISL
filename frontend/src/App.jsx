@@ -11,7 +11,7 @@ import AlgorithmBanner from './_shared/components/layout/AlgorithmBanner';
 import BookmarkNote from './_shared/components/BookmarkNote';
 import AiPanelRoot from './core/components/ai/AiPanelRoot';
 import Mimi from './core/components/chat/Mimi';
-import FloatingJournalModal from './core/components/finance/FloatingJournalModal';
+import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
@@ -195,7 +195,8 @@ const AdminHamperCreate    = lazy(() => import('./ecommerce/pages/admin/hampers/
 const CustomerAlgorithmPanel = lazy(() => import('./core/pages/admin/CustomerAlgorithmPanel'));
 const InventoryPage          = lazy(() => import('./core/pages/admin/InventoryPage'));
 const CatalogueBoostPage     = lazy(() => import('./core/pages/admin/algorithm/CatalogueBoostPage'));
-const FinancialNotes         = lazy(() => import('./core/pages/admin/finance/FinancialNotes'));
+const MemorandaRegister      = lazy(() => import('./core/pages/admin/books/MemorandaRegister'));
+const MemorandumForm         = lazy(() => import('./core/pages/admin/books/MemorandumForm'));
 const ReconciliationPage     = lazy(() => import('./core/pages/admin/finance/ReconciliationPage'));
 const ReconciliationDetail   = lazy(() => import('./core/pages/admin/finance/ReconciliationDetail'));
 const DataEnginePage         = lazy(() => import('./extras/pages/admin/ai-analytics/DataEnginePage'));
@@ -407,7 +408,7 @@ function App() {
         <BookmarkNote />
         <Mimi />
         <AiPanelRoot />
-        <FloatingJournalModal />
+        <MemoDock />
         <CookieConsentBanner /> 
         <PWANavBar /> 
 
@@ -1422,15 +1423,11 @@ function App() {
                   </ProtectedRoute>}
               />
 
-              {/* ── Financial Notes ─────────────────────────────────────────── */}
-              <Route
-                path="/admin/financial-notes"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <FinancialNotes />
-                  </ProtectedRoute>
-                }
-              />
+              {/* ── Memoranda: notes with debit / credit lines that post nothing ─────────── */}
+              <Route path="/admin/books/memoranda" element={<ProtectedRoute requireAdmin><MemorandaRegister /></ProtectedRoute>} />
+              <Route path="/admin/books/memoranda/new" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
+              <Route path="/admin/books/memoranda/:id/edit" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
+              <Route path="/admin/financial-notes" element={<Navigate to="/admin/books/memoranda" replace />} />
 
               {/* ── Reconciliation ──────────────────────────────────────────── */}
               <Route

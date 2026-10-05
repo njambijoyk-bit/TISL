@@ -37,6 +37,7 @@ class VoucherType extends Model
     public const JOURNAL       = 'journal';
     public const CONTRA        = 'contra';
     public const OPENING_STOCK = 'opening_stock';
+    public const MEMORANDUM    = 'memorandum';   // posts nothing; a finance user converts it into a Journal
 
     public function series(): HasMany
     {

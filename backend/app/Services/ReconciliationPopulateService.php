@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\ReconciliationSession;
 use App\Models\ReconciliationLine;
-use App\Models\FinancialNote;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -362,7 +361,7 @@ class ReconciliationPopulateService
     // ── Shared Insert Logic ───────────────────────────────────────
 
     /**
-     * Loops rows, resolves any linked financial note, inserts lines.
+     * Loops rows and inserts lines.
      * Skips rows already in this session (safe to re-populate).
      * Returns count of newly inserted lines.
      *
@@ -380,15 +379,6 @@ class ReconciliationPopulateService
             ->pluck('subject_id')
             ->flip();
 
-        // Pull all financial notes for this table in the period once
-        $noteMap = FinancialNote::where('subject_table', $table)
-            ->whereBetween('created_at', [
-                $session->period_start->startOfDay(),
-                $session->period_end->endOfDay(),
-            ])
-            ->get()
-            ->keyBy('subject_id');
-
         $toInsert = [];
         $now      = now();
 
@@ -401,7 +391,6 @@ class ReconciliationPopulateService
                 'session_id'        => $session->id,
                 'subject_table'     => $table,
                 'subject_id'        => $row->id,
-                'financial_note_id' => $noteMap->get($row->id)?->id,
                 'meta'              => isset($resolved['meta']) && $resolved['meta'] !== null
                                             ? json_encode($resolved['meta'])
                                             : null,

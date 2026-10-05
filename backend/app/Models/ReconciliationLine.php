@@ -10,7 +10,6 @@ class ReconciliationLine extends Model
         'session_id',
         'subject_table',
         'subject_id',
-        'financial_note_id',
         'meta',                // JSON — ledger-specific context (payment_number, etc.)
         'expected_amount',
         'actual_amount',
@@ -36,11 +35,6 @@ class ReconciliationLine extends Model
     public function session()
     {
         return $this->belongsTo(ReconciliationSession::class, 'session_id');
-    }
-
-    public function note()
-    {
-        return $this->belongsTo(FinancialNote::class, 'financial_note_id');
     }
 
     public function reviewedBy()

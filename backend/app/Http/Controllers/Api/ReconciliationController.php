@@ -194,7 +194,7 @@ class ReconciliationController extends Controller
     public function indexLines(Request $request, ReconciliationSession $session)
     {
         $query = $session->lines()
-            ->with('note', 'reviewedBy')
+            ->with('reviewedBy')
             ->latest();
 
         if ($request->filled('status')) {
@@ -272,25 +272,7 @@ class ReconciliationController extends Controller
             ]),
         ]);
 
-        $line->load('note', 'reviewedBy');
-
-        return response()->json($line);
-    }
-
-    // PUT /admin/reconciliation/lines/{line}/attach-note
-    // Linking a financial note is only meaningful while the session is active.
-    public function attachNote(Request $request, ReconciliationLine $line)
-    {
-        if (!$line->session->isOpen()) {
-            return response()->json(['message' => 'Session is closed.'], 422);
-        }
-
-        $request->validate([
-            'financial_note_id' => 'required|exists:financial_notes,id',
-        ]);
-
-        $line->update(['financial_note_id' => $request->financial_note_id]);
-        $line->load('note');
+        $line->load('reviewedBy');
 
         return response()->json($line);
     }

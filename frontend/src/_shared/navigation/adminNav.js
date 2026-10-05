@@ -51,7 +51,7 @@ export const ADMIN_NAV = [
       },
       { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', keywords: 'gift voucher invoices' },
       { id: 'reconciliation', title: 'Reconciliation', icon: Scale, color: '#065f46', path: '/admin/reconciliation', keywords: 'stock count' },
-      { id: 'financial-notes', title: 'Financial notes', icon: NotebookPen, color: '#0ea5e9', path: '/admin/financial-notes', keywords: 'credit note debit note' },
+      { id: 'memoranda', title: 'Memoranda', icon: NotebookPen, color: '#0ea5e9', path: '/admin/books/memoranda', keywords: 'memorandum memo notes expected agreed journal' },
     ],
   },
 

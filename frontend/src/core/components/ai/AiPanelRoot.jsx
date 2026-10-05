@@ -5,7 +5,7 @@
  *
  * Usage in App.jsx:
  *   import AiPanelRoot from './components/ai/AiPanelRoot';
- *   // inside <Router>, alongside <Mimi />, <FloatingJournalModal /> etc:
+ *   // inside <Router>, alongside <Mimi />, <MemoDock /> etc:
  *   <AiPanelRoot />
  */
 import useAiContextDetector from '../../../_shared/hooks/useAiContextDetector';

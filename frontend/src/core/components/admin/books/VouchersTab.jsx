@@ -8,7 +8,7 @@ import SimpleTable from '../ui/SimpleTable';
 import { Toolbar } from '../ui/HubHeader';
 import { btnPrimary, colors } from '../../../../_shared/theme/tokens';
 import { Chip, DeliveryChip, ExportMenu } from './booksUi';
-import { money, filterStyle } from './booksFmt';
+import { money, filterStyle, newVoucherPath } from './booksFmt';
 import AddToManifest from './AddToManifest';
 
 /** `newPath` swaps the "choose a type" button for a plain button to a dedicated screen (e.g. the Purchases page). */
@@ -58,7 +58,7 @@ export default function VouchersTab({ canWrite, baseType = '', newPath = null, n
         {canWrite && !newPath && (
           <label style={{ ...btnPrimary, position: 'relative' }}>
             <Plus size={14} /> New voucher
-            <select value="" onChange={(e) => e.target.value && nav(`/admin/books/vouchers/new?type=${e.target.value}`)} aria-label="New voucher"
+            <select value="" onChange={(e) => { const t = types.find((x) => String(x.id) === e.target.value); if (t) nav(newVoucherPath(t)); }} aria-label="New voucher"
               style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%' }}>
               <option value="">Choose a type…</option>
               {types.filter((t) => t.is_active && (!baseType || t.base_type === baseType)).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}

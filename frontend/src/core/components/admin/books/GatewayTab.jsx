@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import booksAPI from '../../../../_shared/api/books';
 import { useCompany } from '../../../../_shared/lib/useCompany';
 import { card, colors } from '../../../../_shared/theme/tokens';
+import { newVoucherPath } from './booksFmt';
 
 const MASTERS = [
   ['Chart of accounts — groups & ledgers', '/admin/books?tab=accounts'],
@@ -26,7 +27,7 @@ const REPORTS = [
 const GROUPS = [
   ['Sales', ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note']],
   ['Purchases', ['purchase_order', 'receipt_note', 'purchase', 'debit_note']],
-  ['Accounts', ['receipt', 'payment', 'journal', 'contra']],
+  ['Accounts', ['receipt', 'payment', 'journal', 'contra', 'memorandum']],
 ];
 
 const Item = ({ children, onClick, hint }) => (
@@ -87,7 +88,7 @@ export default function GatewayTab({ canWrite }) {
               <div key={title}>
                 <Sub>{title}</Sub>
                 {bases.filter((b) => byBase[b]).map((b) => (
-                  <Item key={b} onClick={() => (canWrite ? nav(`/admin/books/vouchers/new?type=${byBase[b].id}`) : nav('/admin/books?tab=vouchers'))}>{byBase[b].name}</Item>
+                  <Item key={b} onClick={() => (canWrite ? nav(newVoucherPath(byBase[b])) : nav('/admin/books?tab=vouchers'))}>{byBase[b].name}</Item>
                 ))}
               </div>
             ))}

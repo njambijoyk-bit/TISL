@@ -1,7 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle, Download, Printer } from 'lucide-react';
+import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle, Download, Printer, NotebookPen } from 'lucide-react';
 import { whatsappDocument, printCustomerCopy } from '../../../components/admin/books/shareDocument';
+import MemorandumDetail from '../../../components/admin/books/MemorandumDetail';
+import memorandaAPI from '../../../../_shared/api/memoranda';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import Modal from '../../../components/admin/ui/Modal';
@@ -201,11 +203,16 @@ export default function VoucherView() {
   const [error, setError] = useState(null);
   const [methods, setMethods] = useState([]);
   const [modal, setModal] = useState(null);
+  const [memos, setMemos] = useState([]);   // memoranda written about this voucher
 
   const load = useCallback(() => {
     setError(null);
     return booksAPI.voucher(id).then(setV).catch((e) => setError(errMsg(e, 'Could not load the voucher')));
   }, [id]);
+  useEffect(() => {
+    if (!canWrite || !v || v.type?.base_type === 'memorandum') return;
+    memorandaAPI.list({ about_voucher_id: v.id, per_page: 20 }).then((r) => setMemos((r.data ?? []).filter((m) => m.state !== 'dismissed'))).catch(() => {});
+  }, [v?.id, canWrite]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); booksAPI.paymentMethods().then((m) => setMethods(m.filter((x) => x.is_active))).catch(() => {}); }, [load]);
 
   const cancel = async () => {
@@ -219,6 +226,7 @@ export default function VoucherView() {
   if (!v) return <AdminLayout><div style={{ padding: 32, color: colors.textMuted }}>Loading…</div></AdminLayout>;
 
   const base = v.type.base_type;
+  if (base === 'memorandum') return <AdminLayout><MemorandumDetail voucherId={v.id} onChanged={load} /></AdminLayout>;   // a note that posts nothing has its own page
   if (base === 'quotation') return <Navigate to={`/admin/quotes/${v.id}`} replace />;   // quotations have their own page: price it, send it
   const live = v.status === 'posted';
   const convertible = live && ['quotation', 'sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && v.fulfilment_status !== 'closed' && !(base === 'quotation' && v.doc_status !== 'quoted');
@@ -243,6 +251,7 @@ export default function VoucherView() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <Link to={`/admin/books/edit-log?voucher=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }}><History size={14} /> Edit log</Link>
+            {canWrite && <Link to={`/admin/books/memoranda/new?about=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }} title="Write a memorandum about this voucher"><NotebookPen size={14} /> Memorandum</Link>}
             <ExportMenu onExport={(f) => booksAPI.exportVoucher(v.id, f)} />
             {live && CUSTOMER_COPY.includes(base) && (
               <>
@@ -261,6 +270,13 @@ export default function VoucherView() {
             {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} disabled={!!v.period_lock} title={v.period_lock ? 'This voucher is in a closed period and cannot be cancelled' : undefined} onClick={cancel}><Ban size={14} /> Cancel</button>}
           </div>
         </div>
+
+        {memos.length > 0 && (
+          <div role="status" style={{ padding: '10px 14px', borderRadius: 8, margin: '0 0 12px', background: colors.tint(0.05), border: `1px solid ${colors.tint(0.1)}`, fontSize: '0.8rem' }}>
+            <strong>Memoranda about this voucher</strong>
+            {memos.map((m) => <div key={m.id} style={{ marginTop: 4 }}><Link to={`/admin/books/vouchers/${m.id}`} style={{ fontFamily: 'monospace' }}>{m.number}</Link> · {m.purpose_label} · {m.state}{m.narration ? ` — ${m.narration.slice(0, 90)}${m.narration.length > 90 ? '…' : ''}` : ''}</div>)}
+          </div>
+        )}
 
         {v.period_lock && (
           <div role="status" style={{ padding: '12px 14px', borderRadius: 8, margin: '0 0 12px', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.45)', fontSize: '0.82rem', lineHeight: 1.55 }}>

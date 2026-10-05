@@ -181,12 +181,6 @@ export default function ReconciliationPage() {
             {isFinance && (
             <button style={S.newBtn} onClick={() => setShowCreate(true)}>+ NEW SESSION</button>
             )}
-            <button
-                style={{ ...S.newBtn, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: 'var(--color-primary-500)' }}
-                onClick={() => navigate('/admin/financial-notes')}
-            >
-                📓 NOTES
-            </button>
             <button 
                 style={{ ...S.newBtn, background: 'color-mix(in srgb, var(--color-primary-500) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', color: 'var(--color-primary-500)' }}
                 onClick={() => navigate('/admin/data-engine')}
