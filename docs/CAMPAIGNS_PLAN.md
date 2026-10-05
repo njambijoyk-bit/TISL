@@ -64,3 +64,18 @@ A campaign is a temporary or permanent "world" with a schedule, an audience, con
 - **No new policy.** Boards link to the existing Privacy Policy and Website Policy, whose wording gets one added line saying that our staff can see private boards. (Whether that edit is a major version, which asks everyone to agree again, is a choice for when it is edited.)
 - **Who sees customers' boards:** every staff role except drivers can see a customer's private board (viewing is logged). Sales rep and finance are restricted only in making **official** boards, which stay drafts until a manager, admin or super admin approves.
 - **Video upload limit:** 100 MB.
+
+## Campaign types (fifth round)
+A type is a **preset, not a separate system**: a key, a label, a family, the capabilities it switches on, the modules it needs, its goal measure(s), and its default sections. Types live in a registry in code (no table). Each is `available` or `planned`; planned ones show in the picker as locked "coming soon" cards so the list is visible without half-built features. A campaign stores its type key, its goal, and type-specific settings.
+
+**Families and what each needs**
+- **Brand and marketing (build first):** Brand Campaign (builds identity, no sale; content, pins, boards, moodboards), Awareness-to-Sale (launch, drop, collection, teaser, flash: a conversion goal with products/services attached, countdown, early access). Next: Collaboration, Influencer, Ambassador (partners with their own page, code and tracking), Auction Campaign (promotes an auction through the catalogue adapter).
+- **Other modules (placeholders; they promote something owned by another module):** Event Promotion and Ticket (Events), Course Enrollment (Courses), Real Estate (Listings).
+- **Participation and research (placeholders):** Research, Survey, Product Testing, Beta Launch, Idea, Innovation Challenge. These need a form-and-submissions capability.
+- **Cause (placeholders):** Fundraiser, Crowdfunding, Donation Drive, Charity, Relief, Environmental, Health and Wellness, Awareness, Community Drive, Petition, Advocacy, Political/Institutional. These need donations or signatures through Books (Core), not E-commerce.
+
+**Every campaign has:** a status (draft, scheduled, live, ended, archived), a schedule, an audience, a goal that drives its numbers (sales, sign-ups, reach, donations), its sections (the mini-site: hero, moodboard, story, video, products, poll, countdown, community), and its engagement from the Engagement Engine.
+
+## Where we are
+Decided: the architecture and one-way dependencies, pins and boards, moodboards and templates as one thing, video (embed and upload), endless scrolling, the Engagement Engine and report flow, privacy and who sees what, the official-board approval with calendar tasks, and the type registry above.
+Still to decide: the campaign lifecycle and scheduling rules in detail, the section/mini-site model, goals and analytics, admin screens and roles, and the exact tables for the first slice.
