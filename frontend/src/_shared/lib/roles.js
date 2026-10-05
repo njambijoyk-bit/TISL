@@ -5,6 +5,10 @@
 export const FINANCE_READ  = ['finance', 'manager', 'admin', 'super_admin'];
 export const FINANCE_WRITE = ['finance', 'admin', 'super_admin'];
 
+// Payroll is seen and run by the super admin and finance only (not admin, not manager)
+export const PAYROLL_ROLES = ['finance', 'super_admin'];
+export const canUsePayroll = (user) => PAYROLL_ROLES.includes(user?.role);
+
 export const canReadFinance  = (user) => FINANCE_READ.includes(user?.role);
 export const canWriteFinance = (user) => FINANCE_WRITE.includes(user?.role);
 

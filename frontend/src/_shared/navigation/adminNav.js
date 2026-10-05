@@ -7,7 +7,7 @@ import {
   GitBranch, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
-import { FINANCE_READ, FINANCE_WRITE } from '../lib/roles';
+import { FINANCE_READ, PAYROLL_ROLES } from '../lib/roles';
 
 /**
  * The admin navigation — the single source for the sidebar, the section tabs
@@ -191,7 +191,7 @@ export const ADMIN_NAV = [
       { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
       { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
       {
-        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: FINANCE_WRITE, keywords: 'salary payslip paye nssf deductions wages',
+        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: PAYROLL_ROLES, keywords: 'salary payslip paye nssf deductions wages',
         tabs: [
           { title: 'Runs', path: '/admin/payroll', exact: true },
           { title: 'Gratuity', path: '/admin/payroll/gratuity' },

@@ -16,7 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
-/** Payroll (admin, super admin, finance): runs and their payslips, and the editable components, ledgers and per-person items. See PayrollService. */
+/** Payroll (super admin and finance only): runs and their payslips, and the editable components, ledgers and per-person items. See PayrollService. */
 class PayrollController extends Controller
 {
     public function __construct(private PayrollService $svc) {}

@@ -1086,8 +1086,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-payslips',                [\App\Http\Controllers\Api\MyPayslipController::class, 'index']);
         Route::get('/my-payslips/{runId}',        [\App\Http\Controllers\Api\MyPayslipController::class, 'show'])->whereNumber('runId');
 
-        // Payroll: runs, payslips, and the editable components (admin, super admin, finance)
-        Route::prefix('payroll')->middleware('role:admin,super_admin,finance')->group(function () {
+        // Payroll: runs, payslips, and the editable components (super admin and finance only)
+        Route::prefix('payroll')->middleware('role:super_admin,finance')->group(function () {
             $c = \App\Http\Controllers\Api\PayrollController::class;
             Route::get('/',                          [$c, 'index']);
             Route::post('/runs',                     [$c, 'create']);

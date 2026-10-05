@@ -15,7 +15,7 @@ import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
-import { FINANCE_READ, FINANCE_WRITE } from './_shared/lib/roles';
+import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES } from './_shared/lib/roles';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./core/pages/auth/Login'));
@@ -1484,9 +1484,9 @@ function App() {
               <Route path="/admin/books/vouchers/:id/edit" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
               <Route path="/admin/verification" element={<ProtectedRoute requireAdmin><Verification /></ProtectedRoute>} />
               <Route path="/admin/my-payslips" element={<ProtectedRoute requireAdmin><MyPayslips /></ProtectedRoute>} />
-              <Route path="/admin/payroll" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><Payroll /></ProtectedRoute>} />
-              <Route path="/admin/payroll/gratuity" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><Gratuity /></ProtectedRoute>} />
-              <Route path="/admin/payroll/settings" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PayrollSettings /></ProtectedRoute>} />
+              <Route path="/admin/payroll" element={<ProtectedRoute requireAdmin roles={PAYROLL_ROLES}><Payroll /></ProtectedRoute>} />
+              <Route path="/admin/payroll/gratuity" element={<ProtectedRoute requireAdmin roles={PAYROLL_ROLES}><Gratuity /></ProtectedRoute>} />
+              <Route path="/admin/payroll/settings" element={<ProtectedRoute requireAdmin roles={PAYROLL_ROLES}><PayrollSettings /></ProtectedRoute>} />
               <Route path="/admin/attendance" element={<ProtectedRoute requireAdmin><Attendance /></ProtectedRoute>} />
               <Route path="/admin/petty-cash" element={<ProtectedRoute requireAdmin><PettyCash /></ProtectedRoute>} />
               <Route path="/admin/books/cash" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><CashPage /></ProtectedRoute>} />
