@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams, Link, Navigate } from 'react-router-dom';
-import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle, Download, Printer, NotebookPen } from 'lucide-react';
+import { ArrowLeft, Eraser, History, Pencil, Ban, ArrowRightLeft, Banknote, Gift, Undo2, Send, MessageCircle, Download, Printer } from 'lucide-react';
 import { whatsappDocument, printCustomerCopy } from '../../../components/admin/books/shareDocument';
 import MemorandumDetail from '../../../components/admin/books/MemorandumDetail';
 import memorandaAPI from '../../../../_shared/api/memoranda';
@@ -251,7 +251,6 @@ export default function VoucherView() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             <Link to={`/admin/books/edit-log?voucher=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }}><History size={14} /> Edit log</Link>
-            {canWrite && <Link to={`/admin/books/memoranda/new?about=${v.id}`} style={{ ...btnGhost, textDecoration: 'none' }} title="Write a memorandum about this voucher"><NotebookPen size={14} /> Memorandum</Link>}
             <ExportMenu onExport={(f) => booksAPI.exportVoucher(v.id, f)} />
             {live && CUSTOMER_COPY.includes(base) && (
               <>
