@@ -22,7 +22,7 @@ import {
   referralsAPI, customerTiersAPI, notificationsAPI,
 } from '../api/index';
 import employeesAPI from '../api/employees';
-import ThemeSwitcher from '../components/common/ThemeSwitcher';
+import ThemeMenu from '../components/common/ThemeMenu';
 import toast from 'react-hot-toast';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -202,7 +202,7 @@ function PWAHeader({ name, onLogout }) {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <ThemeSwitcher />
+          <ThemeMenu buttonStyle={{ height: 36, minWidth: 36, borderRadius: 9 }} />
           <button onClick={openPanel} className="portal-press" style={{ ...iconBtn, position: 'relative' }}>
             <Bell size={16} strokeWidth={2.2} />
             {unreadCount > 0 && (
@@ -1072,7 +1072,7 @@ function UnauthPWAHome() {
           <p style={{ margin: '1px 0 0', fontSize: '1.4rem', fontWeight: 900, color: TEXT, letterSpacing: '-0.03em' }}>TISL</p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <ThemeSwitcher />
+        <ThemeMenu buttonStyle={{ height: 36, minWidth: 36, borderRadius: 9 }} />
         <Bell size={20} color={MUTED} />
         </div>
       </div>
