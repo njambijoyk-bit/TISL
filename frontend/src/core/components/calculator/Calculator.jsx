@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { X, Delete, Copy, Sparkles, Loader2, RefreshCw } from 'lucide-react';
 import insightAPI from '../../../_shared/api/insight';
+import useDragPosition from '../../../_shared/hooks/useDragPosition';
 import useCalculatorStore from '../../../_shared/store/calculatorStore';
 import { colors, input, card } from '../../../_shared/theme/tokens';
 import {
@@ -205,6 +206,7 @@ function Insight({ data }) {
 
 /** The finance calculator: Alt+C from anywhere in the admin. A plain keypad, finance helpers, conversions from your own tables, and what the page you are on means. */
 export default function Calculator() {
+  const drag = useDragPosition('calc-pos');
   const open = useCalculatorStore((s) => s.open);
   const setOpen = useCalculatorStore((s) => s.setOpen);
   const context = useCalculatorStore((s) => s.context);
@@ -222,8 +224,8 @@ export default function Calculator() {
   if (!open) return null;
 
   return (
-    <div role="dialog" aria-label="Calculator" style={{ position: 'fixed', right: 16, bottom: 16, width: 'min(380px, calc(100vw - 32px))', maxHeight: 'min(640px, calc(100vh - 32px))', display: 'flex', flexDirection: 'column', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: '0 18px 50px rgba(0,0,0,0.22)', zIndex: 1200 }}>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '10px 14px 0' }}>
+    <div ref={drag.ref} role="dialog" aria-label="Calculator" style={{ position: 'fixed', right: 16, bottom: 16, ...drag.style, width: 'min(380px, calc(100vw - 32px))', maxHeight: 'min(640px, calc(100vh - 32px))', display: 'flex', flexDirection: 'column', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', border: '1px solid var(--line)', borderRadius: 14, boxShadow: '0 18px 50px rgba(0,0,0,0.22)', zIndex: 1200 }}>
+      <div {...drag.handleProps} title="Drag to move, double-click to put back" style={{ ...drag.handleProps.style, display: 'flex', alignItems: 'center', padding: '10px 14px 0' }}>
         <strong style={{ flex: 1, fontSize: '0.9rem' }}>Calculator <span style={{ fontWeight: 400, color: colors.textFaint, fontSize: '0.68rem' }}>Alt+C</span></strong>
         <button type="button" onClick={() => setOpen(false)} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted }}><X size={16} /></button>
       </div>

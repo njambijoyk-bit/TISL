@@ -171,7 +171,7 @@ export default function Mimi({ embedded = false }) {
 
   const onBubbleMouseDown = useCallback((e) => {
     const point = e.touches ? e.touches[0] : e;
-    e.preventDefault();
+    if (!e.touches) e.preventDefault();   // a touch is kept from scrolling by touch-action: none instead, so the tap still counts as a click
     didDrag.current = false;
     dragging.current = true;
     dragStart.current = { mx: point.clientX, my: point.clientY, x: pos.x, y: pos.y };
@@ -183,8 +183,8 @@ export default function Mimi({ embedded = false }) {
       const dy = dragStart.current.my - p.clientY;
       if (Math.abs(dx) > 3 || Math.abs(dy) > 3) didDrag.current = true;
       setPos({
-        x: Math.max(8, dragStart.current.x + dx),
-        y: Math.max(8, dragStart.current.y + dy),
+        x: Math.min(window.innerWidth - 56, Math.max(8, dragStart.current.x + dx)),
+        y: Math.min(window.innerHeight - 56, Math.max(8, dragStart.current.y + dy)),
       });
     };
     const onUp = () => {
@@ -202,7 +202,7 @@ export default function Mimi({ embedded = false }) {
 
   const onDragMouseDown = useCallback((e) => {
     const point = e.touches ? e.touches[0] : e;
-    e.preventDefault();
+    if (!e.touches) e.preventDefault();
     dragging.current = true;
     dragStart.current = { mx: point.clientX, my: point.clientY, x: pos.x, y: pos.y };
 
@@ -212,8 +212,8 @@ export default function Mimi({ embedded = false }) {
       const dx = dragStart.current.mx - p.clientX;
       const dy = dragStart.current.my - p.clientY;
       setPos({
-        x: Math.max(8, dragStart.current.x + dx),
-        y: Math.max(8, dragStart.current.y + dy),
+        x: Math.min(window.innerWidth - 56, Math.max(8, dragStart.current.x + dx)),
+        y: Math.min(window.innerHeight - 56, Math.max(8, dragStart.current.y + dy)),
       });
     };
     const onUp = () => {
@@ -228,24 +228,6 @@ export default function Mimi({ embedded = false }) {
     window.addEventListener('touchmove', onMove, { passive: false });
     window.addEventListener('touchend', onUp);
   }, [pos]);
-
-  const bubbleRef = useRef(null);
-  const dragHeaderRef = useRef(null);
-
-  // Attach touch listeners directly to DOM
-  useEffect(() => {
-    const bubble = bubbleRef.current;
-    const header = dragHeaderRef.current;
-    if (!bubble || !header) return;
-
-    bubble.addEventListener('touchstart', onBubbleMouseDown, { passive: false });
-    header.addEventListener('touchstart', onDragMouseDown, { passive: false });
-
-    return () => {
-      bubble.removeEventListener('touchstart', onBubbleMouseDown);
-      header.removeEventListener('touchstart', onDragMouseDown);
-    };
-  }, [onBubbleMouseDown, onDragMouseDown]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -347,12 +329,12 @@ export default function Mimi({ embedded = false }) {
         }}>
           {/* Draggable header */}
           <div
-            ref={dragHeaderRef}
             onMouseDown={onDragMouseDown}
+            onTouchStart={onDragMouseDown}
             style={{
               background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
               padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 10,
-              cursor: 'grab', userSelect: 'none',
+              cursor: 'grab', userSelect: 'none', touchAction: 'none',
             }}
           >
             <div style={{
@@ -375,6 +357,7 @@ export default function Mimi({ embedded = false }) {
             <button
               type="button"
               onMouseDown={e => e.stopPropagation()} // don't trigger drag
+              onTouchStart={e => e.stopPropagation()}
               onClick={() => setOpen(false)}
               style={{
                 background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
@@ -401,13 +384,13 @@ export default function Mimi({ embedded = false }) {
       {/* Floating bubble */}
       <button
         type="button"
-        ref={bubbleRef}
         onMouseDown={onBubbleMouseDown}
+        onTouchStart={onBubbleMouseDown}
         onClick={() => { if (!didDrag.current) setOpen(o => !o); }}
         style={{
           position: 'fixed', bottom: pos.y, right: pos.x, zIndex: 10000,
           width: 48, height: 48, borderRadius: '50%', border: 'none',
-          cursor: dragging.current ? 'grabbing' : 'grab',
+          cursor: dragging.current ? 'grabbing' : 'grab', touchAction: 'none',
           background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
           color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
           animation: 'mimiBubblePulse 2.5s ease-in-out infinite',

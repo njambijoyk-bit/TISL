@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { NotebookPen, X, Link2, ChevronDown, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useAuthStore from '../../../_shared/store/authStore';
+import useDragPosition from '../../../_shared/hooks/useDragPosition';
 import useMemoStore from '../../../_shared/store/memoStore';
 import memorandaAPI from '../../../_shared/api/memoranda';
 import booksAPI from '../../../_shared/api/books';
@@ -38,6 +39,8 @@ function Dock({ user }) {
   const [ledgers, setLedgers] = useState([]);
   const [showLines, setShowLines] = useState(false);
   const [busy, setBusy] = useState(false);
+  const tabDrag = useDragPosition('memo-tab-pos');
+  const panelDrag = useDragPosition('memo-panel-pos');
 
   const refresh = useCallback(() => memorandaAPI.list({ state: 'open', per_page: 50 }).then((r) => setList(r.data ?? [])).catch(() => {}), []);
   useEffect(() => { refresh(); }, [refresh]);
@@ -66,8 +69,8 @@ function Dock({ user }) {
   return (
     <>
       {!isOpen && (
-        <button type="button" onClick={() => open()} title="Write a memorandum (Alt+M)" aria-label="Open the memo panel"
-          style={{ position: 'fixed', right: 0, top: 120, zIndex: 9000, width: 34, padding: '12px 0', border: '1px solid var(--line)', borderRight: 'none', borderRadius: '10px 0 0 10px',
+        <button type="button" ref={tabDrag.ref} {...tabDrag.handleProps} onClick={() => { if (!tabDrag.wasDragged()) open(); }} title="Write a memorandum (Alt+M). Drag to move, double-click to put back." aria-label="Open the memo panel"
+          style={{ ...tabDrag.handleProps.style, position: 'fixed', right: 0, top: 120, ...tabDrag.style, zIndex: 9000, width: 34, padding: '12px 0', border: '1px solid var(--line)', borderRight: tabDrag.pos ? '1px solid var(--line)' : 'none', borderRadius: tabDrag.pos ? 10 : '10px 0 0 10px',
             background: 'var(--surface-card, #fff)', color: 'var(--color-primary-500)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, boxShadow: '-2px 2px 12px rgba(0,0,0,0.18)' }}>
           <NotebookPen size={15} />
           <span style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', fontSize: 10, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase' }}>Memo</span>
@@ -77,10 +80,10 @@ function Dock({ user }) {
 
       {isOpen && (
         <>
-          <div onClick={close} aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 9989, background: 'rgba(0,0,0,0.28)' }} />
-          <aside role="dialog" aria-label="Memorandum" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 9990, width: 'min(400px, 100vw)', display: 'flex', flexDirection: 'column',
-            background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', borderLeft: '1px solid var(--line)', boxShadow: '-12px 0 40px rgba(0,0,0,0.35)', fontFamily: 'var(--font-body, inherit)' }}>
-            <header style={{ padding: '16px 18px 10px', borderBottom: '1px solid var(--line)' }}>
+          <aside ref={panelDrag.ref} role="dialog" aria-label="Memorandum" style={{ position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 9990, width: 'min(400px, 100vw)', display: 'flex', flexDirection: 'column',
+            background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', borderLeft: '1px solid var(--line)', boxShadow: '-12px 0 40px rgba(0,0,0,0.35)', fontFamily: 'var(--font-body, inherit)',
+            ...(panelDrag.pos ? { height: 'min(640px, calc(100vh - 32px))', bottom: 'auto', border: '1px solid var(--line)', borderRadius: 14 } : {}), ...panelDrag.style }}>
+            <header {...panelDrag.handleProps} title="Drag to move, double-click to put back" style={{ ...panelDrag.handleProps.style, padding: '16px 18px 10px', borderBottom: '1px solid var(--line)', borderRadius: panelDrag.pos ? '14px 14px 0 0' : 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <NotebookPen size={17} color="var(--color-primary-500)" />
                 <strong style={{ fontSize: '1rem', flex: 1 }}>Memorandum</strong>
