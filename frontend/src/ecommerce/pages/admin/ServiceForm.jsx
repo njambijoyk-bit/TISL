@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import useCalculatorContext from '../../../_shared/hooks/useCalculatorContext';
 import {
   ChevronLeft, Save, Eye, Upload, X, Plus, Trash2, Info,
@@ -451,9 +452,13 @@ const ServiceForm = () => {
       if (data.minimum_charge) data.minimum_charge = parseFloat(data.minimum_charge);
       if (data.max_concurrent_bookings) data.max_concurrent_bookings = parseInt(data.max_concurrent_bookings);
 
-      if (isEditMode) await updateService(id, data);
-      else await createService(data);
-      navigate('/admin/services');
+      if (isEditMode) { await updateService(id, data); navigate('/admin/services'); }
+      else {
+        // a new service goes straight to its edit page, where its options, packages and tax exemptions can now be added
+        const created = await createService(data);
+        if (created?.id) { toast.success('Service saved. Add its options and packages below.'); navigate(`/admin/services/${created.id}/edit`); }
+        else navigate('/admin/services');
+      }
     } catch (err) {
       alert(err.response?.data?.message || err.message || 'Failed to save service');
     } finally { setSubmitting(false); }
