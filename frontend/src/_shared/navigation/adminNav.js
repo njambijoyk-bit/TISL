@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  Database, GitBranch, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
+  GitBranch, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { FINANCE_READ, FINANCE_WRITE } from '../lib/roles';
@@ -333,7 +333,6 @@ export const ADMIN_NAV = [
       { id: 'bug-reports', title: 'Bug reports', icon: Bug, color: '#c2410c', path: '/admin/bug-reports', ownerOnly: true },
       { id: 'dev-notes', title: 'Dev notes', icon: FolderCode, color: '#3b82f6', path: '/admin/dev-notes', ownerOnly: true },
       { id: 'dev-keys', title: 'Dev keys', icon: FolderCog, color: 'var(--color-primary-600)', path: '/admin/dev-keys', ownerOnly: true },
-      { id: 'data-engine', title: 'Data Exchange', icon: Database, color: '#10b981', path: '/admin/data-engine', keywords: 'import export ai analysis', ownerOnly: true },
       {
         id: 'flowcharts', title: 'Flowcharts', icon: GitBranch, color: '#ec4899', path: '/admin/flowchart/orders', also: ['/admin/flowchart'], ownerOnly: true,
         tabs: [

@@ -196,7 +196,6 @@ const InventoryPage          = lazy(() => import('./core/pages/admin/InventoryPa
 const CatalogueBoostPage     = lazy(() => import('./core/pages/admin/algorithm/CatalogueBoostPage'));
 const MemorandaRegister      = lazy(() => import('./core/pages/admin/books/MemorandaRegister'));
 const MemorandumForm         = lazy(() => import('./core/pages/admin/books/MemorandumForm'));
-const DataEnginePage         = lazy(() => import('./extras/pages/admin/ai-analytics/DataEnginePage'));
 const LogExportPage          = lazy(() => import('./core/pages/admin/LogExportPage'));
 
 // ── Admin Delivery ────────────────────────────────────────────────────────────
@@ -1420,14 +1419,7 @@ function App() {
               <Route path="/admin/financial-notes" element={<Navigate to="/admin/books/memoranda" replace />} />
 
               <Route path="/admin/reconciliation/*" element={<Navigate to="/admin/books" replace />} />
-              <Route
-                path="/admin/data-engine"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <DataEnginePage />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/admin/data-engine" element={<Navigate to="/admin/books" replace />} />
               <Route 
                 path="/admin/logs/export" 
                 element={

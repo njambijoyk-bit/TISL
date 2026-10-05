@@ -6,7 +6,6 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\VaultController;
 use App\Http\Controllers\Admin\AiAnalyticsController;
 use App\Http\Controllers\Admin\MimiAnalyticsController;
-use App\Http\Controllers\Admin\DataEngineController;
 use App\Http\Controllers\Admin\LogExportController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\BackupController;
@@ -1719,14 +1718,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
         });
 
-
-        Route::prefix('data-engine')->group(function () {
-            Route::get('/export/columns',        [DataEngineController::class, 'exportColumns']);
-            Route::post('/export',               [DataEngineController::class, 'export']);
-            Route::post('/detect-identifier',    [DataEngineController::class, 'detectIdentifier']);
-            Route::post('/diff',                 [DataEngineController::class, 'diff']);
-            Route::post('/analyse',              [DataEngineController::class, 'analyse']);
-        });
 
         Route::prefix('analytics')->middleware('module:extras')->group(function () {
             Route::get('dashboard',                [SearchAnalyticsController::class, 'dashboard']);

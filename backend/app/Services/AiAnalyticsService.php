@@ -117,12 +117,10 @@ class AiAnalyticsService
             'orders'    => $this->fetchOrdersData($entityId),
             'projects'  => $this->fetchProjectsData($entityId),
             'bookings'  => $this->fetchBookingsData($entityId),
-            'work'      => $this->fetchWorkData($entityId),
             'inventory' => $this->fetchInventoryData($entityId),
             'customers' => $this->fetchCustomersData($entityId),
             'finance'   => $this->fetchFinanceData($entityId),
             'auctions'  => $this->fetchAuctionsData($entityId),
-            'reconciliation' => $this->fetchReconciliationData($entityId, $extraData),
 
             // ── Delivery module ──────────────────────────────────────────────
             'delivery_manifest_generator' => $this->fetchManifestGeneratorData($entityId, $extraData),
@@ -312,62 +310,6 @@ class AiAnalyticsService
     }
 
     // ─────────────────────────────────────────────────────────────────
-
-    private function fetchWorkData(?int $entityId): array
-    {
-        if ($entityId) {
-            $task = DB::selectOne("
-                SELECT t.id, t.title, t.status, t.priority, t.due_date,
-                    u.name as assignee_name, p.title as project_name
-                FROM project_tasks t
-                LEFT JOIN users u    ON u.id = t.assigned_to
-                LEFT JOIN projects p ON p.id = t.project_id
-                WHERE t.id = ?
-            ", [$entityId]);
-
-            return ['task' => $task];
-        }
-
-        $stats = DB::selectOne("
-            SELECT
-                COUNT(*)                                                               AS total_tasks,
-                COUNT(CASE WHEN status = 'done'    THEN 1 END)                        AS completed,
-                COUNT(CASE WHEN status = 'doing'   THEN 1 END)                        AS in_progress,
-                COUNT(CASE WHEN status = 'blocked' THEN 1 END)                        AS blocked,
-                COUNT(CASE WHEN due_date < NOW() AND status != 'done' THEN 1 END)     AS past_due
-            FROM project_tasks
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-        ");
-
-        $byAssignee = DB::select("
-            SELECT u.name,
-                COUNT(*) as total,
-                COUNT(CASE WHEN t.status = 'done'    THEN 1 END) as completed,
-                COUNT(CASE WHEN t.status = 'blocked' THEN 1 END) as blocked
-            FROM project_tasks t
-            JOIN users u ON u.id = t.assigned_to
-            WHERE t.created_at >= NOW() - INTERVAL 30 DAY
-            GROUP BY u.id, u.name
-            ORDER BY total DESC
-            LIMIT 8
-        ");
-
-        $milestonesAtRisk = DB::select("
-            SELECT m.title, m.due_date, m.status, m.amount, m.currency,
-                p.title as project_name,
-                COUNT(t.id) as remaining_tasks
-            FROM project_milestones m
-            JOIN projects p ON p.id = m.project_id
-            LEFT JOIN project_tasks t ON t.project_id = m.project_id AND t.status != 'done'
-            WHERE m.due_date <= NOW() + INTERVAL 7 DAY
-            AND m.status NOT IN ('completed', 'approved')
-            GROUP BY m.id
-            ORDER BY m.due_date ASC
-            LIMIT 5
-        ");
-
-        return compact('stats', 'byAssignee', 'milestonesAtRisk');
-    }
 
     // ─────────────────────────────────────────────────────────────────
 
@@ -596,29 +538,6 @@ class AiAnalyticsService
         ");
 
         return compact('stats', 'topAuctions', 'endingSoon');
-    }
-
-    private function fetchReconciliationData(?int $sessionId, array $extraData = []): array
-    {
-        // ── Raw diff result passed directly (not yet persisted) ───
-        if (!empty($extraData['diff_result'])) {
-            $diff = $extraData['diff_result'];
- 
-            return [
-                'mode'         => 'raw_diff',
-                'source_table' => $diff['source_table']   ?? 'unknown',
-                'period'       => [
-                    'start' => $diff['period_start'] ?? null,
-                    'end'   => $diff['period_end']   ?? null,
-                ],
-                'summary'      => $diff['summary']        ?? [],
-                'mismatches'   => array_slice($diff['mismatches']    ?? [], 0, 50),   // cap for token budget
-                'only_in_tisl' => array_slice($diff['only_in_tisl'] ?? [], 0, 25),
-                'only_in_file' => array_slice($diff['only_in_file'] ?? [], 0, 25),
-            ];
-        }
- 
-        throw new \Exception('Reconciliation analysis needs a diff_result.');
     }
 
     // ════════════════════════════════════════════════════════════════
