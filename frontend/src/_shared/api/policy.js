@@ -22,6 +22,9 @@ const policyAPI = {
     return response.data;
   },
 
+  // Does this signed-in person still need to agree to the Mimi AI policy? (first use, or a new major version)
+  mimiStatus: async () => (await api.get('/ai-assistant/policy-status')).data,
+
   logAcceptance: async (data) => {
     const response = await api.post('/policies/accept', data);
     return response.data;

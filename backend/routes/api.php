@@ -152,15 +152,16 @@ Route::post('/bug-reports/screenshot', [BugReportController::class, 'uploadScree
 
 Route::post('/search-events', [SearchEventController::class, 'store']);
 
-// Public
-Route::get('/policies', [PolicyController::class, 'index']);
-Route::get('/policies/{key}', [PolicyController::class, 'show']);
-
 // Auth required — must be registered BEFORE /{key} to avoid route conflict
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/policies/check-reacceptance', [PolicyController::class, 'checkReacceptance']);
     Route::post('/policies/accept', [PolicyController::class, 'recordAcceptance']);
+    Route::get('/ai-assistant/policy-status', [PolicyController::class, 'mimiStatus']);
 });
+
+// Public
+Route::get('/policies', [PolicyController::class, 'index']);
+Route::get('/policies/{key}', [PolicyController::class, 'show']);
 
 // Memoranda — notes with debit / credit lines that post nothing. Staff write them (a driver too); finance edits, converts and dismisses (checked in the controller).
 Route::middleware('auth:sanctum')->prefix('memoranda')->group(function () {

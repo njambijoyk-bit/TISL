@@ -23,6 +23,7 @@ class PolicyController extends Controller
     public function index(): JsonResponse
     {
         app(\App\Services\AuctionTermsService::class)->ensure();   // the auction terms exist from the first time policies are listed
+        app(\App\Services\MimiPolicyService::class)->ensure();
         $policies = Policy::where('is_active', true)
             ->get(['id', 'key', 'title', 'content', 'disagree_consequence_text',
                    'sensitivity', 'major_version', 'minor_version', 'requires_acceptance']);
@@ -41,6 +42,9 @@ class PolicyController extends Controller
         if ($key === \App\Services\AuctionTermsService::KEY) {
             app(\App\Services\AuctionTermsService::class)->ensure();
         }
+        if ($key === \App\Services\MimiPolicyService::KEY) {
+            app(\App\Services\MimiPolicyService::class)->ensure();
+        }
         $policy = Policy::where('key', $key)->where('is_active', true)->firstOrFail();
 
         return response()->json($this->renderPolicy($policy));
@@ -54,7 +58,7 @@ class PolicyController extends Controller
     {
         $data = $request->validate([
             'policy_key'      => 'required|string|exists:policies,key',
-            'action_context'  => 'required|in:login,register,hamper_checkout,standard_checkout,booking_checkout,cookie_consent,website_policy,auction_bidding',
+            'action_context'  => 'required|in:login,register,hamper_checkout,standard_checkout,booking_checkout,cookie_consent,website_policy,auction_bidding,ai_assistant',
             'response'        => 'required|in:accepted,disagreed',
             'disagree_reason' => 'nullable|string|max:1000',
         ]);
@@ -128,6 +132,15 @@ class PolicyController extends Controller
     }
 
     /**
+     * GET /ai-assistant/policy-status
+     * Auth required: does this person still need to agree to the Mimi AI policy (first use, or a new major version)?
+     */
+    public function mimiStatus(Request $request): JsonResponse
+    {
+        return response()->json(app(\App\Services\MimiPolicyService::class)->status($request->user()));
+    }
+
+    /**
      * GET /policies/check-reacceptance
      * Auth required — returns which of the two core policies the customer needs to re-accept.
      * Intentionally limited to terms_of_use and privacy_policy (called on login).
@@ -176,6 +189,7 @@ class PolicyController extends Controller
     public function adminIndex(): JsonResponse
     {
         app(\App\Services\AuctionTermsService::class)->ensure();
+        app(\App\Services\MimiPolicyService::class)->ensure();
         $policies = Policy::withCount([
                 'acceptances as total_acceptances',
                 'acceptances as total_disagreements' => fn($q) => $q->where('response', 'disagreed'),

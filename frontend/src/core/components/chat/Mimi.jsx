@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { MessageCircle, X, Send, Minimize2, Sparkles } from 'lucide-react';
 import api from '../../../_shared/api/axios';
 import useAuthStore from '../../../_shared/store/authStore';
+import MimiConsent from './MimiConsent';
+import { useMimiPolicy } from './useMimiPolicy';
 
 
 const PURPLE_TEXT = 'var(--color-primary-500)';
@@ -163,6 +165,7 @@ export default function Mimi({ embedded = false }) {
   const [showSuggested, setShowSuggested] = useState(true);
   const bottomRef = useRef(null);
   const inputRef  = useRef(null);
+  const policy = useMimiPolicy(isAuthenticated, open);   // asked once, and again only on a new major version of the policy
   const [pos, setPos] = useState({ x: 24, y: 24 }); // bottom-right offset
   const dragging = useRef(false);
   const dragStart = useRef({ mx: 0, my: 0, x: 0, y: 0 });
@@ -288,12 +291,14 @@ export default function Mimi({ embedded = false }) {
   // ── Embedded mode (for Contact page) ─────────────────────────────────────
   if (embedded) {
     return (
-      <ChatWindow
-        messages={messages} loading={loading} input={input} setInput={setInput}
-        sendMessage={sendMessage} handleKey={handleKey} inputRef={inputRef}
-        bottomRef={bottomRef} showSuggested={showSuggested} embedded
-        navigate={navigate}
-      />
+      policy.state === 'ok' ? (
+        <ChatWindow
+          messages={messages} loading={loading} input={input} setInput={setInput}
+          sendMessage={sendMessage} handleKey={handleKey} inputRef={inputRef}
+          bottomRef={bottomRef} showSuggested={showSuggested} embedded
+          navigate={navigate}
+        />
+      ) : <MimiConsent policy={policy} onDecline={() => navigate(-1)} />
     );
   }
 
@@ -372,12 +377,14 @@ export default function Mimi({ embedded = false }) {
             </button>
           </div>
 
-          <ChatWindow
-            messages={messages} loading={loading} input={input} setInput={setInput}
-            sendMessage={sendMessage} handleKey={handleKey} inputRef={inputRef}
-            bottomRef={bottomRef} showSuggested={showSuggested}
-            navigate={navigate}
-          />
+          {policy.state === 'ok' ? (
+            <ChatWindow
+              messages={messages} loading={loading} input={input} setInput={setInput}
+              sendMessage={sendMessage} handleKey={handleKey} inputRef={inputRef}
+              bottomRef={bottomRef} showSuggested={showSuggested}
+              navigate={navigate}
+            />
+          ) : <MimiConsent policy={policy} onDecline={() => setOpen(false)} />}
         </div>
       )}
 
