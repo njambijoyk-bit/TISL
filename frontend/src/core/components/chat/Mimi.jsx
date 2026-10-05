@@ -17,7 +17,7 @@ const SUGGESTED = [
 
 function TypingIndicator() {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'white', borderRadius: '18px 18px 18px 4px', border: '1px solid #f3f4f6', width: 'fit-content' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 14px', background: 'var(--surface-card)', borderRadius: '18px 18px 18px 4px', border: '1px solid var(--line)', width: 'fit-content' }}>
       {[0, 1, 2].map(i => (
         <div key={i} style={{
           width: 7, height: 7, borderRadius: '50%', background: 'var(--color-primary-500)',
@@ -137,9 +137,9 @@ function Message({ msg }) {
       <div style={{
         maxWidth: '75%', padding: '10px 14px',
         borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-        background: isUser ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : 'var(--bg-card)',
+        background: isUser ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : 'var(--surface-card)',
         color: isUser ? 'white' : 'var(--text-primary)',
-        border: isUser ? 'none' : '1px solid var(--border-primary)',
+        border: isUser ? 'none' : '1px solid var(--line)',
         boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
       }}>
         {isUser
@@ -422,7 +422,7 @@ export default function Mimi({ embedded = false }) {
 function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey, inputRef, bottomRef, showSuggested, embedded, navigate  }) {
   return (
     
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#fafafa', minHeight: 0 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--surface-card)', minHeight: 0 }}>
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', WebkitOverflowScrolling: 'touch' }}>
@@ -445,12 +445,12 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
               <button key={q} type="button" onClick={() => sendMessage(q)}
                 style={{
                   textAlign: 'left', padding: '8px 12px', borderRadius: 10,
-                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'white',
-                  fontSize: '0.78rem', fontWeight: 500, color: '#374151',
+                  border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', background: 'var(--surface-card)',
+                  fontSize: '0.78rem', fontWeight: 500, color: 'var(--text-primary)',
                   cursor: 'pointer', transition: 'all 120ms ease',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.color = 'var(--color-primary-500)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = '#374151'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
               >
                 {q}
               </button>
@@ -460,7 +460,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
         <div ref={bottomRef} />
       </div>
 
-      <div style={{ padding: '10px 12px', borderTop: '1px solid #f3f4f6', background: 'white', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+      <div style={{ padding: '10px 12px', borderTop: '1px solid var(--line)', background: 'var(--surface-card)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea
           ref={inputRef}
           value={input}
@@ -470,13 +470,13 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
           rows={1}
           style={{
             flex: 1, padding: '9px 12px', borderRadius: 12,
-            border: '1.5px solid #e5e7eb', fontSize: '0.83rem',
+            border: '1.5px solid var(--line)', background: 'var(--surface-input, var(--surface-card))', color: 'var(--text-primary)', fontSize: '0.83rem',
             outline: 'none', resize: 'none', fontFamily: 'inherit',
             lineHeight: 1.5, maxHeight: 80, overflowY: 'auto',
             transition: 'border-color 150ms',
           }}
           onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
-          onBlur={e =>  e.target.style.borderColor = '#e5e7eb'}
+          onBlur={e =>  e.target.style.borderColor = 'var(--line)'}
         />
         <button
           type="button"
@@ -484,7 +484,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
           disabled={!input.trim() || loading}
           style={{
             width: 38, height: 38, borderRadius: 10, border: 'none', cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-            background: input.trim() && !loading ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : '#e5e7eb',
+            background: input.trim() && !loading ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : 'var(--line)',
             color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0, transition: 'all 150ms ease',
           }}
@@ -496,8 +496,8 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
       {/* AI Policy footer */}
       <div style={{
         padding: '6px 14px',
-        borderTop: '1px solid #f3f4f6',
-        background: 'white',
+        borderTop: '1px solid var(--line)',
+        background: 'var(--surface-card)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -506,7 +506,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
           onClick={() => navigate('/ai-policy')}
           style={{
             fontSize: '0.63rem',
-            color: '#9ca3af',
+            color: 'var(--text-tertiary)',
             background: 'none',
             border: 'none',
             cursor: 'pointer',
@@ -518,7 +518,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
             padding: 0,
           }}
           onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
-          onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
         >
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
