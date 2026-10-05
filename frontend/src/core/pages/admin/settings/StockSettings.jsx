@@ -12,13 +12,13 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
  */
 
 const card = {
-  background: 'white', borderRadius: 12, padding: 20, marginBottom: 16,
+  background: 'var(--surface-card, #fff)', borderRadius: 12, padding: 20, marginBottom: 16,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
 const input = {
-  width: '100%', padding: '8px 11px', borderRadius: 8, fontSize: '0.82rem', color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-  background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
+  width: '100%', padding: '8px 11px', borderRadius: 8, fontSize: '0.82rem', color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  background: 'var(--surface-input, color-mix(in srgb, var(--color-primary-500) 4%, transparent))',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
 };
 const label = { fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--color-primary-600)', display: 'block', marginBottom: 5 };
@@ -28,7 +28,7 @@ const btn = (primary) => ({
   background: primary ? 'var(--color-primary-500)' : 'transparent', color: primary ? 'white' : 'var(--color-primary-600)',
 });
 const h2 = { margin: '0 0 4px', fontSize: '0.95rem', fontWeight: 800 };
-const sub = { margin: '0 0 14px', fontSize: '0.78rem', color: '#6b7280' };
+const sub = { margin: '0 0 14px', fontSize: '0.78rem', color: 'var(--text-secondary)' };
 
 const SELL = [
   ['never', 'Never', 'An expired batch can not be sold, ever.'],
@@ -44,7 +44,7 @@ function Radio({ value, current, onChange, title, hint }) {
   return (
     <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 0', cursor: 'pointer' }}>
       <input type="radio" checked={current === value} onChange={() => onChange(value)} style={{ marginTop: 3 }} />
-      <span><span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{title}</span><span style={{ display: 'block', fontSize: '0.75rem', color: '#6b7280' }}>{hint}</span></span>
+      <span><span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{title}</span><span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{hint}</span></span>
     </label>
   );
 }
@@ -126,8 +126,8 @@ function ExceptionEditor({ defaults, onSaved, onCancel, editing }) {
               <div style={{ position: 'relative', flex: 1, minWidth: 220 }}>
                 <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${scope === 'category' ? 'categories' : 'products'}…`} style={input} />
                 {found.length > 0 && (
-                  <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 220, overflowY: 'auto' }}>
-                    {found.map((f) => <button key={f.id} type="button" onClick={() => setTarget({ id: f.id, name: f.name })} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>{f.name}{f.sku ? <span style={{ color: '#9ca3af' }}> · {f.sku}</span> : null}</button>)}
+                  <div style={{ position: 'absolute', zIndex: 10, top: '100%', left: 0, right: 0, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)', borderRadius: 8, maxHeight: 220, overflowY: 'auto' }}>
+                    {found.map((f) => <button key={f.id} type="button" onClick={() => setTarget({ id: f.id, name: f.name })} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>{f.name}{f.sku ? <span style={{ color: 'var(--text-tertiary)' }}> · {f.sku}</span> : null}</button>)}
                   </div>
                 )}
               </div>
@@ -162,7 +162,7 @@ export default function StockSettings() {
   useEffect(() => { load(); }, []);
 
   if (!form || !data) {
-    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
+    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
   }
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -186,7 +186,7 @@ export default function StockSettings() {
           <PackageX size={22} color="var(--color-primary-600)" />
           <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>Stock &amp; expiry</h1>
         </div>
-        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>
+        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
           What happens to goods that expire. These rules apply to products that <strong>track expiry</strong> (switch it on in the product’s Stock section). A category or a single product can have its own exceptions below.
         </p>
 
@@ -206,7 +206,7 @@ export default function StockSettings() {
               <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center', fontSize: '0.85rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={form.show_expiry_badge} onChange={(e) => set('show_expiry_badge', e.target.checked)} /> Show the badge
               </label>
-              <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '4px 0 0' }}>Only ever shown on products that track expiry and whose batch has an expiry date.</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>Only ever shown on products that track expiry and whose batch has an expiry date.</p>
             </div>
           </div>
         </div>
@@ -220,9 +220,9 @@ export default function StockSettings() {
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 16, marginTop: 16 }}>
             <div><label style={label}>Days of shelf life needed — online orders</label><input type="number" min="0" value={form.min_days_online} onChange={(e) => set('min_days_online', Number(e.target.value))} style={input} />
-              <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '4px 0 0' }}>A batch with fewer days left is not offered online, so it does not expire in the post.</p></div>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>A batch with fewer days left is not offered online, so it does not expire in the post.</p></div>
             <div><label style={label}>Days of shelf life needed — at the till</label><input type="number" min="0" value={form.min_days_till} onChange={(e) => set('min_days_till', Number(e.target.value))} style={input} />
-              <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '4px 0 0' }}>0 means anything not yet expired can be sold.</p></div>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>0 means anything not yet expired can be sold.</p></div>
           </div>
         </div>
 
@@ -241,7 +241,7 @@ export default function StockSettings() {
           <div style={{ maxWidth: 320, marginBottom: 14 }}>
             <label style={label}>Warn this many days before expiry</label>
             <input value={warnText} onChange={(e) => setWarnText(e.target.value)} placeholder="90, 60, 30" style={input} />
-            <p style={{ fontSize: '0.7rem', color: '#9ca3af', margin: '4px 0 0' }}>Separate the days with commas.</p>
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>Separate the days with commas.</p>
           </div>
           <label style={label}>Who is told</label>
           <RoleBoxes roles={data.roles} value={form.notify_roles} onChange={(v) => set('notify_roles', v)} />
@@ -280,17 +280,17 @@ export default function StockSettings() {
             </div>
             {!editor && <button type="button" style={btn(false)} onClick={() => setEditor('new')}><Plus size={14} /> Add an exception</button>}
           </div>
-          {data.overrides.length === 0 && !editor && <p style={{ margin: '14px 0 0', fontSize: '0.8rem', color: '#9ca3af' }}>No exceptions. Every product follows the shop-wide rules.</p>}
+          {data.overrides.length === 0 && !editor && <p style={{ margin: '14px 0 0', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>No exceptions. Every product follows the shop-wide rules.</p>}
           {data.overrides.length > 0 && (
             <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
               {data.overrides.map((o) => (
                 <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{o.name} <span style={{ fontSize: '0.68rem', color: '#9ca3af', fontWeight: 600 }}>· {o.scope}</span></div>
-                    <div style={{ fontSize: '0.74rem', color: '#6b7280' }}>{describe(o)}</div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 700 }}>{o.name} <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>· {o.scope}</span></div>
+                    <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)' }}>{describe(o)}</div>
                   </div>
                   <button type="button" style={{ ...btn(false), padding: '6px 11px' }} onClick={() => setEditor(o)}>Edit</button>
-                  <button type="button" aria-label="Remove" onClick={() => remove(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><Trash2 size={15} /></button>
+                  <button type="button" aria-label="Remove" onClick={() => remove(o)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><Trash2 size={15} /></button>
                 </div>
               ))}
             </div>
