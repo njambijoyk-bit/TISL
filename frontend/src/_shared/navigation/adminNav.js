@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  GitBranch, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
+  GitBranch, LayoutGrid, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { FINANCE_READ, PAYROLL_ROLES, CAMPAIGN_ROLES } from '../lib/roles';
@@ -257,6 +257,7 @@ export const ADMIN_NAV = [
     items: [
       { id: 'campaigns', title: 'Campaigns', icon: Megaphone, color: '#d946ef', path: '/admin/campaigns', roles: CAMPAIGN_ROLES, keywords: 'launch drop collection teaser brand story promotion' },
       { id: 'pins', title: 'Pins', icon: Pin, color: '#f43f5e', path: '/admin/pins', roles: CAMPAIGN_ROLES, keywords: 'pinterest images videos moodboard boards library' },
+      { id: 'boards', title: 'Boards', icon: LayoutGrid, color: '#8b5cf6', path: '/admin/boards', roles: CAMPAIGN_ROLES, keywords: 'pinterest collections moodboard approve pins' },
     ],
   },
 
