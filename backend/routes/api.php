@@ -867,6 +867,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/media',      [$c, 'uploadMedia'])->whereNumber('id');
             Route::post('/{id}/cover',      [$c, 'uploadCover'])->whereNumber('id');
             Route::delete('/{id}/cover',    [$c, 'removeCover'])->whereNumber('id');
+            Route::post('/{id}/submit',     [$c, 'submit'])->whereNumber('id');
+            Route::post('/{id}/withdraw',   [$c, 'withdraw'])->whereNumber('id');
+            Route::post('/{id}/approve',    [$c, 'approve'])->whereNumber('id');
+            Route::post('/{id}/reject',     [$c, 'reject'])->whereNumber('id');
             Route::post('/{id}/publish',    [$c, 'publish'])->whereNumber('id');
             Route::post('/{id}/unpublish',  [$c, 'unpublish'])->whereNumber('id');
             Route::post('/{id}/pause',      [$c, 'pause'])->whereNumber('id');

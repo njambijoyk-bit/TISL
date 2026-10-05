@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Rules\NoSlash;
 use App\Models\CampaignSection;
+use App\Services\Books\BooksException;
 use App\Services\Campaigns\CampaignAccess;
+use App\Services\Campaigns\CampaignApproval;
 use App\Services\Campaigns\CampaignPage;
 use App\Services\Campaigns\CatalogueAdapter;
 use App\Services\Campaigns\CampaignStatus;
@@ -22,7 +24,16 @@ class CampaignController extends Controller
 {
     public const MAX_VIDEO_KB = 102400;   // 100 MB
 
-    public function __construct(private CampaignPage $page, private CatalogueAdapter $catalogue) {}
+    public function __construct(private CampaignPage $page, private CatalogueAdapter $catalogue, private CampaignApproval $approval) {}
+
+    private function guard(callable $fn): JsonResponse
+    {
+        try {
+            return $fn();
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
 
     private function builder(Request $r): void
     {
@@ -54,6 +65,7 @@ class CampaignController extends Controller
         $q = Campaign::query()->withCount(['sections', 'items'])->orderByDesc('id')
             ->when($request->filled('type'), fn ($w) => $w->where('type', $request->query('type')))
             ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('title', 'like', '%' . $request->query('q') . '%')->orWhere('slug', 'like', '%' . $request->query('q') . '%')))
+            ->when($request->filled('approval'), fn ($w) => $w->where('approval_status', $request->query('approval')))
             ->when(! CampaignAccess::canPublish($request->user()), fn ($w) => $w->where('created_by', $request->user()->id));   // a builder who cannot publish sees their own
         $rows = $q->get();
         if ($request->filled('status')) {
@@ -69,7 +81,8 @@ class CampaignController extends Controller
         $c = Campaign::with(['sections', 'items'])->findOrFail($id);
         abort_unless(CampaignAccess::canPublish($request->user()) || (int) $c->created_by === (int) $request->user()->id, 403);
 
-        return response()->json(['data' => $c, 'can_edit' => CampaignAccess::canEdit($request->user(), $c), 'can_publish' => CampaignAccess::canPublish($request->user()),
+        return response()->json(['data' => $c, 'can_edit' => CampaignAccess::canEdit($request->user(), $c), 'can_publish' => CampaignAccess::canPublish($request->user()), 'can_decide' => CampaignAccess::canPublish($request->user()) && $c->approval_status === 'pending' && (int) $c->created_by !== (int) $request->user()->id,
+            'can_submit' => ! CampaignAccess::canPublish($request->user()) && CampaignAccess::canEdit($request->user(), $c), 'can_withdraw' => $c->approval_status === 'pending' && (int) $c->created_by === (int) $request->user()->id,
             'resolved' => $this->catalogue->describe($c->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all()),
             'ecommerce' => $this->catalogue->active(), 'item_types' => $this->catalogue->types(), 'section_types' => CampaignSection::TYPES, 'max_video_mb' => self::MAX_VIDEO_KB / 1024]);
     }
@@ -135,6 +148,7 @@ class CampaignController extends Controller
     {
         $this->publisher($request);
         $c = Campaign::findOrFail($id);
+        $this->approval->clear($c);   // publishing it yourself also settles any approval waiting on it
         $c->update(['is_published' => true, 'published_at' => $c->published_at ?? now(), 'is_paused' => false, 'archived_at' => null, 'approval_status' => 'approved', 'approved_by' => $request->user()->id, 'approved_at' => now(), 'updated_by' => $request->user()->id]);
 
         return response()->json(['message' => 'Published. It is ' . strtolower(CampaignStatus::LABELS[$c->fresh()->status]) . '.', 'data' => $c->fresh()]);
@@ -253,6 +267,56 @@ class CampaignController extends Controller
         }
 
         return response()->json(['path' => Storage::url($path), 'kind' => $request->input('kind')]);
+    }
+
+    /** POST /admin/campaigns/{id}/submit: the author sends a draft for approval (their manager, or the admins, get a calendar task). */
+    public function submit(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $c = Campaign::findOrFail($id);
+
+        return $this->guard(function () use ($request, $c) {
+            $this->approval->submit($c, $request->user());
+
+            return response()->json(['message' => 'Sent for approval.', 'data' => $c->fresh()]);
+        });
+    }
+
+    public function withdraw(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $c = Campaign::findOrFail($id);
+
+        return $this->guard(function () use ($request, $c) {
+            $this->approval->withdraw($c, $request->user());
+
+            return response()->json(['message' => 'Taken back. It is a draft again.', 'data' => $c->fresh()]);
+        });
+    }
+
+    public function approve(Request $request, int $id): JsonResponse
+    {
+        $this->publisher($request);
+        $c = Campaign::findOrFail($id);
+
+        return $this->guard(function () use ($request, $c) {
+            $this->approval->approve($c, $request->user());
+
+            return response()->json(['message' => 'Approved and published.', 'data' => $c->fresh()]);
+        });
+    }
+
+    public function reject(Request $request, int $id): JsonResponse
+    {
+        $this->publisher($request);
+        $d = $request->validate(['note' => ['required', 'string', 'max:500']]);
+        $c = Campaign::findOrFail($id);
+
+        return $this->guard(function () use ($request, $c, $d) {
+            $this->approval->reject($c, $request->user(), $d['note']);
+
+            return response()->json(['message' => 'Not approved. The author has been told.', 'data' => $c->fresh()]);
+        });
     }
 
     public function destroy(Request $request, int $id): JsonResponse
