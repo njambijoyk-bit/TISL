@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 
 // ── Shared styles (match settings pages) ────────────────────────────────────
 const card = {
-  background: 'white', borderRadius: 12,
+  background: 'var(--surface-card)', borderRadius: 12,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
@@ -20,7 +20,7 @@ const input = {
   width: '100%', padding: '8px 11px', borderRadius: 8, fontSize: '0.82rem',
   background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)',
   border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)',
-  color: '#111827', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
+  color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
 };
 const label = {
   fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase',
@@ -39,7 +39,7 @@ function Field({ label: l, children, hint }) {
     <div>
       <label style={label}>{l}</label>
       {children}
-      {hint && <p style={{ fontSize: '0.68rem', color: '#9ca3af', margin: '4px 0 0' }}>{hint}</p>}
+      {hint && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>{hint}</p>}
     </div>
   );
 }
@@ -54,7 +54,7 @@ function DestinationFields({ driver, cfg, set }) {
   );
   if (driver === 'local') {
     return (
-      <p style={{ margin: 0, fontSize: '0.82rem', color: '#6b7280' }}>
+      <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
         The backup is built on demand and <strong>downloaded to your computer</strong> as a <code>.wnkjba</code> file when you click <em>Back up &amp; download</em>. Nothing is stored on the server. (Automatic scheduled backups need FTP, SFTP or S3.)
       </p>
     );
@@ -186,7 +186,7 @@ export default function BackupSettings() {
   };
 
   if (loading || !form) {
-    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
+    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
   }
 
   const DriverIcon = DRIVER_ICON[form.destination_driver] || HardDrive;
@@ -199,7 +199,7 @@ export default function BackupSettings() {
           <Database size={22} color="var(--color-primary-600)" />
           <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>Backups</h1>
         </div>
-        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>
+        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
           Exports your data (never the modules or licensing) to a secure location on a schedule, encrypted with a passphrase only you hold.
         </p>
 
@@ -291,7 +291,7 @@ export default function BackupSettings() {
         {/* WHAT GETS BACKED UP + BANNERS */}
         <div style={{ ...card, padding: 20, marginTop: 18 }}>
           <h2 style={{ margin: '0 0 4px', fontSize: '1rem', fontWeight: 700 }}>What gets backed up</h2>
-          <p style={{ margin: '0 0 14px', color: '#6b7280', fontSize: '0.82rem' }}>
+          <p style={{ margin: '0 0 14px', color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
             {plan ? <>{plan.included.length} active module group{plan.included.length === 1 ? '' : 's'} · {includedTables} table{includedTables === 1 ? '' : 's'}.</> : 'Plan unavailable.'}
           </p>
 
@@ -306,17 +306,17 @@ export default function BackupSettings() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10, marginTop: 6 }}>
             {(plan?.included || []).map((m) => (
-              <div key={m.module} style={{ border: '1px solid #eee', borderRadius: 9, padding: '10px 12px' }}>
+              <div key={m.module} style={{ border: '1px solid var(--line)', borderRadius: 9, padding: '10px 12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 600, fontSize: '0.86rem' }}>
                   <CheckCircle2 size={14} color="#059669" /> {m.name}
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 2 }}>{m.tables.length} table{m.tables.length === 1 ? '' : 's'}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 2 }}>{m.tables.length} table{m.tables.length === 1 ? '' : 's'}</div>
               </div>
             ))}
           </div>
 
           {plan?.unlicensed?.length > 0 && (
-            <p style={{ marginTop: 14, fontSize: '0.76rem', color: '#9ca3af' }}>
+            <p style={{ marginTop: 14, fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>
               Not licensed on this installation (not backed up): {plan.unlicensed.map((m) => m.name).join(', ')}.
             </p>
           )}
@@ -335,12 +335,12 @@ export default function BackupSettings() {
         <div style={{ ...card, padding: 20, marginTop: 18 }}>
           <h2 style={{ margin: '0 0 12px', fontSize: '1rem', fontWeight: 700 }}>Recent backups</h2>
           {runs.length === 0 ? (
-            <p style={{ margin: 0, color: '#9ca3af', fontSize: '0.82rem' }}>No backups yet — hit "Back up now" to create the first one.</p>
+            <p style={{ margin: 0, color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>No backups yet — hit "Back up now" to create the first one.</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.78rem' }}>
                 <thead>
-                  <tr style={{ textAlign: 'left', color: '#9ca3af' }}>
+                  <tr style={{ textAlign: 'left', color: 'var(--text-tertiary)' }}>
                     <th style={{ padding: '6px 8px' }}>When</th>
                     <th style={{ padding: '6px 8px' }}>Status</th>
                     <th style={{ padding: '6px 8px' }}>Trigger</th>
@@ -351,7 +351,7 @@ export default function BackupSettings() {
                 </thead>
                 <tbody>
                   {runs.map((r) => (
-                    <tr key={r.id} style={{ borderTop: '1px solid #f1f1f4' }}>
+                    <tr key={r.id} style={{ borderTop: '1px solid var(--line)' }}>
                       <td style={{ padding: '6px 8px', whiteSpace: 'nowrap' }}>{r.started_at ? new Date(r.started_at).toLocaleString() : '—'}</td>
                       <td style={{ padding: '6px 8px', fontWeight: 600, color: r.status === 'ok' ? '#059669' : r.status === 'running' ? '#d97706' : '#dc2626' }}>
                         {r.status}{r.error ? ` · ${r.error}` : ''}
@@ -378,7 +378,7 @@ export default function BackupSettings() {
           {isSuper ? (
             <RestorePanel destinationDriver={form.destination_driver} />
           ) : (
-            <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 7, color: '#9ca3af', fontSize: '0.82rem' }}>
+            <p style={{ margin: 0, display: 'flex', alignItems: 'center', gap: 7, color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>
               <Lock size={14} /> Only a super admin can restore backups.
             </p>
           )}

@@ -7,14 +7,14 @@ import {
 import toast from 'react-hot-toast';
 
 const card = {
-  background: 'white', borderRadius: 12,
+  background: 'var(--surface-card)', borderRadius: 12,
   border: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)',
   boxShadow: '0 2px 12px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
 };
-const label = { fontSize: '0.75rem', fontWeight: 600, color: '#6b7280', marginBottom: 4, display: 'block' };
+const label = { fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' };
 const input = {
   width: '100%', padding: '8px 10px', borderRadius: 8, fontSize: '0.85rem', fontFamily: 'inherit',
-  border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'white',
+  border: '1px solid color-mix(in srgb, var(--color-primary-500) 18%, transparent)', background: 'var(--surface-card)',
 };
 const btnPrimary = {
   display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 9,
@@ -134,20 +134,20 @@ function LocationModal({ open, onClose, editing, options, onSaved }) {
 
         <div style={{ marginTop: 18 }}>
           <label style={label}><Users size={13} style={{ verticalAlign: -2 }} /> Staff cleared for this branch</label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6, maxHeight: 160, overflowY: 'auto', padding: 8, borderRadius: 8, border: '1px solid #eee' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 6, maxHeight: 160, overflowY: 'auto', padding: 8, borderRadius: 8, border: '1px solid var(--line)' }}>
             {(options.staff || []).map((u) => (
               <label key={u.id} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.8rem', cursor: 'pointer' }}>
                 <input type="checkbox" checked={form.staff_ids.includes(u.id)} onChange={() => toggleStaff(u.id)} />
-                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name} <span style={{ color: '#9ca3af' }}>({u.role})</span></span>
+                <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{u.name} <span style={{ color: 'var(--text-tertiary)' }}>({u.role})</span></span>
               </label>
             ))}
-            {(!options.staff || options.staff.length === 0) && <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>No staff users.</span>}
+            {(!options.staff || options.staff.length === 0) && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>No staff users.</span>}
           </div>
-          <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '6px 0 0' }}>Admins and super-admins always see every branch. Staff with no branch assigned see all until you assign them.</p>
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '6px 0 0' }}>Admins and super-admins always see every branch. Staff with no branch assigned see all until you assign them.</p>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
-          <button onClick={onClose} style={{ ...btnPrimary, background: 'var(--surface-input)', color: '#374151' }}>Cancel</button>
+          <button onClick={onClose} style={{ ...btnPrimary, background: 'var(--surface-input)', color: 'var(--text-primary)' }}>Cancel</button>
           <button onClick={save} disabled={saving} style={{ ...btnPrimary, opacity: saving ? 0.6 : 1 }}>
             {saving ? <RefreshCw size={15} /> : <Check size={15} />} {editing ? 'Save changes' : 'Create branch'}
           </button>
@@ -195,7 +195,7 @@ export default function LocationsSettings() {
   };
 
   if (loading) {
-    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: '#9ca3af' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
+    return <SettingsLayout><div style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}><RefreshCw size={18} /> Loading…</div></SettingsLayout>;
   }
 
   return (
@@ -208,7 +208,7 @@ export default function LocationsSettings() {
           </div>
           <button style={btnPrimary} onClick={openNew}><Plus size={16} /> Add branch</button>
         </div>
-        <p style={{ margin: '0 0 20px', color: '#6b7280', fontSize: '0.85rem' }}>
+        <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
           Each branch carries its own currency and tax district — prices and tax resolve per branch. A single branch is all a one-location business needs; the storefront branch picker only appears once you add a second.
         </p>
 
@@ -218,11 +218,11 @@ export default function LocationsSettings() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                   <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{l.name}</span>
-                  <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: '#9ca3af' }}>{l.code}</span>
+                  <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{l.code}</span>
                   {l.is_default && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', fontWeight: 700, color: '#b45309', background: 'rgba(217,119,6,0.12)', padding: '2px 8px', borderRadius: 999 }}><Star size={11} /> Default</span>}
-                  {!l.is_active && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6b7280', background: 'var(--surface-input)', padding: '2px 8px', borderRadius: 999 }}>Inactive</span>}
+                  {!l.is_active && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--surface-input)', padding: '2px 8px', borderRadius: 999 }}>Inactive</span>}
                 </div>
-                <div style={{ fontSize: '0.76rem', color: '#6b7280', marginTop: 4 }}>
+                <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: 4 }}>
                   {[l.city, l.country].filter(Boolean).join(', ') || '—'}
                   {' · '}{l.currency || 'base'} {l.tax_district ? `· ${l.tax_district}` : ''}
                   {typeof l.staff_count === 'number' ? ` · ${l.staff_count} staff` : ''}
@@ -230,10 +230,10 @@ export default function LocationsSettings() {
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 {!l.is_default && (
-                  <button title="Set as default" onClick={() => makeDefault(l.id)} style={{ border: '1px solid #eee', background: 'white', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#b45309' }}><Star size={13} /> Default</button>
+                  <button title="Set as default" onClick={() => makeDefault(l.id)} style={{ border: '1px solid var(--line)', background: 'var(--surface-card)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.75rem', color: '#b45309' }}><Star size={13} /> Default</button>
                 )}
-                <button title="Edit" onClick={() => openEdit(l.id)} style={{ border: '1px solid #eee', background: 'white', borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}><Pencil size={14} /></button>
-                <button title="Delete" onClick={() => remove(l)} style={{ border: '1px solid #fee2e2', background: 'white', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#dc2626' }}><Trash2 size={14} /></button>
+                <button title="Edit" onClick={() => openEdit(l.id)} style={{ border: '1px solid var(--line)', background: 'var(--surface-card)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}><Pencil size={14} /></button>
+                <button title="Delete" onClick={() => remove(l)} style={{ border: '1px solid #fee2e2', background: 'var(--surface-card)', borderRadius: 8, padding: '6px 10px', cursor: 'pointer', color: '#dc2626' }}><Trash2 size={14} /></button>
               </div>
             </div>
           ))}
