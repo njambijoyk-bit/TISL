@@ -4,6 +4,7 @@ import { Helmet } from 'react-helmet-async';
 import { Package, ChevronRight } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
+import CampaignHomeBlock from '../../../campaigns/components/CampaignHomeBlock';
 import CollapsedProductCard from '../../../ecommerce/components/storefront/products/CollapsedProductCard';
 import { HeroCarousel } from '../../components/content/sections';
 import SectionRenderer from '../../components/content/SectionRenderer';
@@ -243,6 +244,9 @@ export default function Home() {
       {otherSections.map(section => (
         <SectionRenderer key={section.id} section={section} />
       ))}
+
+      {/* ── The current campaign (only when the Campaigns module is on and one is featured) ── */}
+      <CampaignHomeBlock />
 
       {/* ── Shop by Category ── */}
       {categories.length > 0 && (() => {

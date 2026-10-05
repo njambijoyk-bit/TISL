@@ -29,6 +29,8 @@ const ResetPassword       = lazy(() => import('./core/pages/auth/ResetPassword')
 const Home                 = lazy(() => import('./core/pages/customer/Home'));
 const Products             = lazy(() => import('./ecommerce/pages/customer/Products'));
 const ProductDetail        = lazy(() => import('./ecommerce/pages/customer/ProductDetail'));
+const CampaignsPage        = lazy(() => import('./campaigns/pages/public/CampaignsPage'));
+const CampaignPage         = lazy(() => import('./campaigns/pages/public/CampaignPage'));
 const CampaignList         = lazy(() => import('./campaigns/pages/admin/CampaignList'));
 const CampaignEditor       = lazy(() => import('./campaigns/pages/admin/CampaignEditor'));
 const AuctionListPage      = lazy(() => import('./ecommerce/pages/customer/AuctionListPage'));
@@ -422,6 +424,8 @@ function App() {
             } />
             <Route path="/home" element={<Home />} />
             <Route path="/portal" element={<Portal />} />
+            <Route path="/campaigns" element={<ModuleRoute module="campaigns"><CampaignsPage /></ModuleRoute>} />
+            <Route path="/campaigns/:slug" element={<ModuleRoute module="campaigns"><CampaignPage /></ModuleRoute>} />
             <Route path="/auctions" element={<ModuleRoute module="ecommerce.auctions"><AuctionListPage /></ModuleRoute>} />
             <Route path="/auctions/:id" element={<ModuleRoute module="ecommerce.auctions"><AuctionDetailPage /></ModuleRoute>} />
             <Route path="/products" element={<ModuleRoute module="ecommerce"><Products /></ModuleRoute>} />

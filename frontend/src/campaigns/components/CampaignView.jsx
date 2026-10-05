@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Play } from 'lucide-react';
 import { storageUrl } from '../../_shared/lib/storageUrl';
 
 const money = (n, code) => (n == null ? '' : `${code ?? ''} ${Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 })}`.trim());
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
-const link = (href) => ({ href, target: /^https?:/i.test(href) ? '_blank' : undefined, rel: 'noreferrer' });
+/** A link that stays inside the site (no page reload) when it is a path, and opens a new tab when it is an outside address. */
+function A({ href, children, ...rest }) {
+  return /^\//.test(href) ? <Link to={href} {...rest}>{children}</Link> : <a href={href} target="_blank" rel="noreferrer" {...rest}>{children}</a>;
+}
 
 function useNow(active) {
   const [now, setNow] = useState(() => Date.now());
@@ -14,7 +18,7 @@ function useNow(active) {
 }
 
 const heading = (text) => (text ? <h2 style={{ margin: '0 0 14px', fontSize: '1.35rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{text}</h2> : null);
-const button = (label, href) => (label && href ? <a {...link(href)} style={{ display: 'inline-block', padding: '11px 22px', borderRadius: 10, background: 'var(--campaign-accent)', color: '#fff', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem' }}>{label}</a> : null);
+const button = (label, href) => (label && href ? <A href={href} style={{ display: 'inline-block', padding: '11px 22px', borderRadius: 10, background: 'var(--campaign-accent)', color: '#fff', fontWeight: 800, textDecoration: 'none', fontSize: '0.9rem' }}>{label}</A> : null);
 
 function Hero({ s, campaign }) {
   const img = s.settings.image || campaign.cover_media;
@@ -98,10 +102,11 @@ function Products({ s, items, resolved }) {
           {items.map((it) => {
             const r = resolved[`${it.item_type}:${it.item_id}`];
             const soon = it.available_from && new Date(it.available_from).getTime() > now;
-            const Tag = r?.link && !soon ? 'a' : 'div';
+            const live = r?.link && !soon;
+            const Tag = live ? A : 'div';
 
             return (
-              <Tag key={`${it.item_type}:${it.item_id}`} {...(Tag === 'a' ? link(r.link) : {})} style={{ display: 'flex', flexDirection: list ? 'row' : 'column', gap: 12, textDecoration: 'none', color: 'inherit', background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', opacity: r?.available === false ? 0.5 : 1 }}>
+              <Tag key={`${it.item_type}:${it.item_id}`} {...(live ? { href: r.link } : {})} style={{ display: 'flex', flexDirection: list ? 'row' : 'column', gap: 12, textDecoration: 'none', color: 'inherit', background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', opacity: r?.available === false ? 0.5 : 1 }}>
                 <div style={{ position: 'relative', width: list ? 120 : '100%', aspectRatio: list ? '1 / 1' : '4 / 5', background: 'var(--surface-input, rgba(148,163,184,0.15))', flexShrink: 0 }}>
                   {r?.image && <img src={storageUrl(r.image)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                   {soon && <span style={{ position: 'absolute', top: 8, left: 8, padding: '3px 9px', borderRadius: 999, background: 'var(--campaign-accent)', color: '#fff', fontSize: '0.66rem', fontWeight: 800 }}>COMING {when(it.available_from).toUpperCase()}</span>}
