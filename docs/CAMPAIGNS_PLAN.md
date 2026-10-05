@@ -29,3 +29,18 @@ A campaign is a temporary or permanent "world" with a schedule, an audience, con
 - Customer-created content needs moderation, a report button, a takedown path and a copyright note; downloads need a per-pin allow flag.
 - Video storage and bandwidth cost; set size limits.
 - Whether the discovery feed lives on its own page (`/world`) or also on the homepage.
+
+## Decisions so far (second round)
+- **Campaigns do not need a brand.** A campaign owns its identity (title, cover, accent colour, logo). A brand is only an optional filter ("add everything from brand X"). A campaign can feature products, services, hampers or auctions through one generic catalogue reference (type + id) resolved by an adapter that only works when E-commerce is on.
+- **Moodboards are their own thing, not Publications.** A moodboard is a composed collage on an artboard, built from a template: ready-made layouts (slots with position, size, shape and what they accept: photo, colour swatch, text label, product cut-out, sticker). Templates ship as presets in code (no table); a moodboard stores the chosen template key and what fills each slot. A free-form drag editor can come after the templates. A **board** (Pinterest-style set of pins) is different from a **moodboard** (a composed collage); a moodboard can be started from a board.
+- **Video embeds are in the first version.** YouTube and Vimeo links only (allow-list), privacy-friendly embed, poster image shown first and the player loaded on click. Uploaded video comes later.
+- **Who can create boards:** admins, managers, sales reps and customers. Staff boards can be marked official and attached to campaigns; customer boards are personal (public or private) and can be hidden by staff.
+- **Report engine is separate and later:** one engine in Extras, module-regulated, for reports, product and service reviews, helpful votes. Pins and boards are built so that engine can attach to them later (each has a type, an id and a visible/hidden status). Campaigns show the report button only when that engine is active.
+- **Downloads:** a per-pin switch, on by default. Turning it off hides the button and blocks our download endpoint; the image can still be seen on screen (that cannot be prevented), so say so in the admin hint.
+
+## What lives where
+- **Campaigns module (`campaigns`):** its own frontend folder (`frontend/src/campaigns/`), backend services under `app/Services/Campaigns/`, and tables named `campaign_*` so ownership and the backup map are obvious. Holds campaigns, pins, boards, moodboards, participation, analytics.
+- **E-commerce:** keeps products, services, brands, hampers and auctions. It knows nothing about Campaigns. The adapter that reads it lives inside Campaigns.
+- **Core:** files and storage, customers and users, tiers, loyalty, promo codes, Books (for the fundraiser later), the Module Center.
+- **Extras:** the report engine (later), optional.
+- **Public pages:** a discovery feed (`/world`), campaign pages by slug, boards and moodboards by id and slug, and "my boards" for signed-in customers. **Admin:** a Campaigns group in the sidebar, shown only when the module is on.
