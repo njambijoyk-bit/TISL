@@ -159,6 +159,15 @@ Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
     Route::post('/{slug}/event', [$c, 'event'])->where('slug', '[a-z0-9-]+')->middleware('throttle:90,1');
 });
 
+// The world feed, public: pins, one pin, one board and the picture download (the Campaigns module; a signed-in visitor, if any, is read for the Following tab)
+Route::prefix('world')->middleware('module:campaigns')->group(function () {
+    $c = \App\Http\Controllers\Api\PublicWorldController::class;
+    Route::get('/pins',               [$c, 'pins'])->middleware('throttle:120,1');
+    Route::get('/pins/{id}',          [$c, 'pin'])->whereNumber('id');
+    Route::get('/pins/{id}/download', [$c, 'download'])->whereNumber('id')->middleware('throttle:30,1');
+    Route::get('/boards/{id}',        [$c, 'board'])->whereNumber('id');
+});
+
 // Auth required — must be registered BEFORE /{key} to avoid route conflict
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/policies/check-reacceptance', [PolicyController::class, 'checkReacceptance']);
