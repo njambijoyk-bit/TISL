@@ -152,6 +152,57 @@ function Setup({ month, onChanged }) {
   );
 }
 
+/** The verification report: every voucher type for one calendar month (1st to last day, never a spread across months), with its vouchers, how many were picked for checking and how many are verified. */
+function Report({ month, shift, onOpen }) {
+  const [rep, setRep] = useState(null);
+  const [type, setType] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [err, setErr] = useState(null);
+  useEffect(() => { setRep(null); setErr(null); verificationAPI.report(month).then(setRep).catch((e) => setErr(errMsg(e, 'Could not load the report'))); }, [month]);
+  useEffect(() => { setRows([]); if (type) verificationAPI.reportVouchers(month, type.type_key).then((r) => setRows(r.items)).catch(() => setRows([])); }, [type, month]);
+  const day = (d) => new Date(`${d}T00:00:00`).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
+  const sum = (k) => (rep?.types ?? []).reduce((n, t) => n + t[k], 0);
+  const r = { textAlign: 'right' };
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button type="button" style={small} onClick={() => { setType(null); shift(-1); }}>‹</button>
+        <strong style={{ minWidth: 190, textAlign: 'center' }}>{rep ? `${day(rep.from)} – ${day(rep.to)}` : mname(month)}</strong>
+        <button type="button" style={small} onClick={() => { setType(null); shift(1); }}>›</button>
+      </div>
+      {err && <p role="alert" style={{ color: '#991b1b', fontSize: '0.82rem' }}>{err}</p>}
+      {rep && !type && (
+        <section style={{ ...card, padding: 8, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr><th style={th}>Voucher type</th><th style={th}>Sampling method</th><th style={{ ...th, ...r }}>Total vouchers</th><th style={{ ...th, ...r }}>Verified vouchers</th><th style={{ ...th, ...r }}>Sampled vouchers</th></tr></thead>
+            <tbody>
+              {rep.types.map((t) => (
+                <tr key={t.type_key} onClick={() => setType(t)} style={{ cursor: 'pointer' }}>
+                  <td style={td}><strong>{t.label}</strong></td><td style={td}>{t.method}</td><td style={{ ...td, ...r }}>{t.total}</td><td style={{ ...td, ...r }}>{t.sampled ? t.verified : ''}</td><td style={{ ...td, ...r }}>{t.sampled || ''}</td>
+                </tr>))}
+              {!rep.types.length && <tr><td style={td} colSpan={5}>No vouchers were posted in this month.</td></tr>}
+            </tbody>
+            <tfoot><tr><td style={{ ...td, fontWeight: 800 }}>Grand total</td><td style={td} /><td style={{ ...td, ...r, fontWeight: 800 }}>{sum('total')}</td><td style={{ ...td, ...r, fontWeight: 800 }}>{sum('verified')}</td><td style={{ ...td, ...r, fontWeight: 800 }}>{sum('sampled')}</td></tr></tfoot>
+          </table>
+        </section>
+      )}
+      {type && (
+        <section style={{ ...card, padding: 8, overflowX: 'auto' }}>
+          <div style={{ padding: '8px 10px', display: 'flex', gap: 10, alignItems: 'center' }}><button type="button" style={small} onClick={() => setType(null)}>‹ All types</button><strong>{type.label}</strong><span style={{ color: colors.textFaint, fontSize: '0.76rem' }}>{rep && `${day(rep.from)} – ${day(rep.to)}`}</span></div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr><th style={th}>Date</th><th style={th}>Particulars</th><th style={th}>Voucher no.</th><th style={{ ...th, ...r }}>Amount</th><th style={th}>Verification status</th><th style={th}>Verification note</th></tr></thead>
+            <tbody>{rows.map((v) => (
+              <tr key={v.voucher_id} onClick={() => v.item_id && onOpen(v.item_id)} style={{ cursor: v.item_id ? 'pointer' : 'default' }}>
+                <td style={td}>{v.date}</td><td style={td}>{v.particulars}{v.sampled && <em style={{ color: colors.textFaint, marginLeft: 6 }}>({v.sampled})</em>}</td><td style={td}><strong>{v.ref}</strong></td>
+                <td style={{ ...td, ...r }}>{money(v.amount)}</td><td style={td}>{v.status ? <Chip s={v.status} label={v.status_label} /> : ''}</td><td style={td}>{v.note}</td>
+              </tr>))}</tbody>
+          </table>
+        </section>
+      )}
+    </div>
+  );
+}
+
 export default function Verification() {
   const init = new URLSearchParams(window.location.search).get('month');
   const [month, setMonth] = useState(init ?? (() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; })());
@@ -175,8 +226,9 @@ export default function Verification() {
         <HubHeader title="Verification" description="A second pair of eyes on the month's records. It never changes the books — it records that someone looked, and what they found." />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         {data && !data.table_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>Run script 65_verification.sql to use verification.</p>}
-        {data?.is_manager && <div style={{ display: 'flex', gap: 6, margin: '4px 0 10px' }}>{[['work', 'Verification'], ['setup', 'Set-up']].map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} style={{ ...small, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)' }}>{l}</button>)}</div>}
+        {data?.is_manager && <div style={{ display: 'flex', gap: 6, margin: '4px 0 10px' }}>{[['work', 'Verification'], ['report', 'Verification report'], ['setup', 'Set-up']].map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} style={{ ...small, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)' }}>{l}</button>)}</div>}
         {data?.table_ready && tab === 'setup' && <Setup month={month} onChanged={load} />}
+        {data?.table_ready && tab === 'report' && <Report month={month} shift={shift} onOpen={setOpen} />}
         {data?.table_ready && tab === 'work' && (
           <div style={{ display: 'grid', gap: 14 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>

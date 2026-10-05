@@ -62,6 +62,21 @@ class VerificationController extends Controller
         return response()->json(['items' => $this->svc->pickList($this->month($request), $request->query('type'))]);
     }
 
+    public function report(Request $request): JsonResponse
+    {
+        abort_unless(VerificationService::isManager($request->user()), 403);
+
+        return $this->guard(fn () => response()->json($this->svc->report($this->month($request))));
+    }
+
+    public function reportType(Request $request): JsonResponse
+    {
+        abort_unless(VerificationService::isManager($request->user()), 403);
+        $request->validate(['type' => ['required', 'regex:/^vt:\d+$/']]);
+
+        return $this->guard(fn () => response()->json(['items' => $this->svc->reportType($this->month($request), $request->query('type'))]));
+    }
+
     public function show(Request $request, int $id): JsonResponse
     {
         return $this->guard(fn () => response()->json($this->svc->show($request->user(), $id)));

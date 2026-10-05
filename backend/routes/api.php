@@ -1072,6 +1072,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                          [$c, 'index']);
             Route::get('/items',                     [$c, 'items']);
             Route::get('/pick-list',                 [$c, 'pickList']);
+            Route::get('/report',                    [$c, 'report']);
+            Route::get('/report/vouchers',           [$c, 'reportType']);
             Route::get('/items/{id}',                [$c, 'show'])->whereNumber('id');
             Route::post('/items/{id}/mark',          [$c, 'mark'])->whereNumber('id');
             Route::post('/items/{id}/pick',          [$c, 'pick'])->whereNumber('id');

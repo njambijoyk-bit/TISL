@@ -206,6 +206,64 @@ class VerificationService
         return ['month' => $month, 'due' => Carbon::parse($month . '-01')->addMonth()->day(min($this->dueDay(), 28))->toDateString(), 'types' => $out];
     }
 
+    // ── the verification report (every voucher type, whoever verifies it) ───
+
+    /** How the vouchers of a type are being picked for checking, from the active assignments that cover that month. */
+    private function methodFor(int $typeId, string $month, $assignments): string
+    {
+        $labels = [];
+        foreach ($assignments as $a) {
+            if (! $this->inRange($a, $month) || ! (($a->scope_type === 'voucher_type' && (int) $a->scope_id === $typeId) || $a->scope_type === 'all_vouchers')) {
+                continue;
+            }
+            $labels[] = match ($a->sampling) { 'all' => 'Every one', 'percent' => "{$a->percent}% sampled", default => 'Manually sampled' };
+        }
+
+        return implode(', ', array_values(array_unique($labels)));
+    }
+
+    /** Tally-style: for the month, each voucher type with how many vouchers there are, how many were picked to check (sampled), and how many of those are verified. */
+    public function report(string $month): array
+    {
+        $this->need();
+        $this->sync($month);
+        $from = Carbon::parse($month . '-01')->startOfMonth();
+        $to = $from->copy()->endOfMonth();
+        $totals = Voucher::where('status', Voucher::POSTED)->whereBetween('date', [$from->toDateString(), $to->toDateString()])->selectRaw('voucher_type_id, COUNT(*) as n')->groupBy('voucher_type_id')->pluck('n', 'voucher_type_id');
+        $names = VoucherType::pluck('name', 'id');
+        $items = VerificationItem::where('month', $month)->where('subject_type', 'voucher')->where('selected', true)->get()->groupBy('type_key');
+        $assignments = VerificationAssignment::where('is_active', true)->get();
+        $rows = [];
+        foreach ($totals as $typeId => $n) {
+            $it = $items->get('vt:' . $typeId, collect());
+            $rows[] = ['type_key' => 'vt:' . $typeId, 'label' => $names[$typeId] ?? 'Voucher', 'total' => (int) $n, 'sampled' => $it->count(), 'verified' => $it->where('status', 'verified')->count(), 'method' => $this->methodFor((int) $typeId, $month, $assignments)];
+        }
+        usort($rows, fn ($a, $b) => strcmp($a['label'], $b['label']));
+
+        return ['month' => $month, 'from' => $from->toDateString(), 'to' => $to->toDateString(), 'types' => $rows];
+    }
+
+    /** Every voucher of one type for the month, with where it stands: picked for checking or not, and its status and note. */
+    public function reportType(string $month, string $typeKey): array
+    {
+        $this->need();
+        $this->sync($month);
+        $from = Carbon::parse($month . '-01')->startOfMonth();
+        $typeId = (int) substr($typeKey, 3);
+        $vouchers = Voucher::where('status', Voucher::POSTED)->where('voucher_type_id', $typeId)->whereBetween('date', [$from->toDateString(), $from->copy()->endOfMonth()->toDateString()])->with('partyLedger:id,name')->orderBy('date')->orderBy('id')->get();
+        $items = VerificationItem::where('month', $month)->where('subject_type', 'voucher')->whereIn('subject_key', $vouchers->pluck('id')->map(fn ($i) => (string) $i))->get()->keyBy('subject_key');
+        $sampling = VerificationAssignment::whereIn('id', $items->pluck('assignment_id')->filter()->unique())->pluck('sampling', 'id');
+
+        return $vouchers->map(function ($v) use ($items, $sampling) {
+            $it = $items->get((string) $v->id);
+            $picked = $it && $it->selected;
+            $how = $picked ? match ($sampling[$it->assignment_id] ?? null) { 'manual' => 'Manually sampled', 'percent' => 'Sampled', default => null } : null;
+
+            return ['voucher_id' => $v->id, 'item_id' => $picked ? $it->id : null, 'date' => $v->date?->toDateString(), 'ref' => $v->voucher_number, 'particulars' => (string) ($v->partyLedger?->name ?? $v->party_name ?? $v->narration ?? ''),
+                'amount' => (float) $v->total_amount, 'sampled' => $how, 'status' => $picked ? $it->status : null, 'status_label' => $picked ? (VerificationItem::STATUSES[$it->status] ?? $it->status) : null, 'note' => $picked ? $it->note : null];
+        })->all();
+    }
+
     /** Months with something still to do for this person (for the month picker). @return array<int,array{month:string,open:int,total:int}> */
     public function months(User $viewer, bool $all = false): array
     {
