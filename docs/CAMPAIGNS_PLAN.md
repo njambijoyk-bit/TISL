@@ -79,3 +79,16 @@ A type is a **preset, not a separate system**: a key, a label, a family, the cap
 ## Where we are
 Decided: the architecture and one-way dependencies, pins and boards, moodboards and templates as one thing, video (embed and upload), endless scrolling, the Engagement Engine and report flow, privacy and who sees what, the official-board approval with calendar tasks, and the type registry above.
 Still to decide: the campaign lifecycle and scheduling rules in detail, the section/mini-site model, goals and analytics, admin screens and roles, and the exact tables for the first slice.
+
+## Lifecycle and sections (sixth round, proposed)
+**Status follows the clock, no scheduler needed.** A campaign stores: draft or published, an optional teaser date, start, end, an optional early-access start, paused, archived. What it is now is worked out when it is read: draft -> scheduled (published, before start) -> teaser (before start, if a teaser date is set) -> live (start to end) -> ended (after end). An end date is optional (a brand campaign can run forever). Pause is a manual override. Ended campaigns stay public and read-only as the Archive: products show as sold out or ended and the countdown is replaced, unless staff unpublish them.
+**Early access** is an audience rule plus a date: a segment (tier, loyalty, previous customers, participants) can see and buy from the early-access start; everyone else from the start.
+**Who publishes:** admin, super admin and manager create and publish. Sales rep and finance can build a campaign but it stays a draft until approved, with the same calendar task as official boards.
+
+**Sections make the mini-site.** A campaign is an ordered list of sections. Each has a type, its settings, and optional show-from and show-until dates (so a teaser can reveal a piece a day) and an optional audience. Section types: hero (cover image or video, headline, button), story (text), countdown (to start, end or any date), video, products (catalogue references: products, services, hampers, auctions, each with its own coming-soon or live state), moodboard and board or pin grid (after the pins phase), community gallery, call-to-action, and later poll and waitlist. A type preset fills in default sections (Awareness-to-Sale: hero, countdown, moodboard, products, story; Brand: hero, story, moodboard, pin grid). Staff can add, reorder and schedule sections with a live preview.
+
+**Public pages:** `/campaigns` (live, upcoming, archive), `/campaigns/<slug>` (a unique slug), and an optional "feature on the homepage" switch per campaign for the current-world block.
+
+**Goals and numbers, without touching checkout.** Each campaign has a goal (sales, sign-ups, reach, donations later). Sales are worked out by Campaigns from vouchers of the attached items during the campaign window; checkout is not changed. Views and clicks go in a small events table. Likes, comments and reports come from the Engagement Engine. A tracked source (which visit led to which order) is optional later.
+
+**Tables for the first slice (M0):** campaigns, campaign_sections, campaign_items (the catalogue references), campaign_events. Pins, boards and moodboards arrive in the next slice.
