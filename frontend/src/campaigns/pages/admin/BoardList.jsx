@@ -19,14 +19,15 @@ export default function BoardList() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [approval, setApproval] = useState('');
+  const [customers, setCustomers] = useState(false);
   const [q, setQ] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setRows((await boardsAPI.list({ approval: approval || undefined, q: q || undefined })).data); }
+    try { setRows((await boardsAPI.list({ official: customers ? 0 : undefined, approval: !customers && approval ? approval : undefined, q: q || undefined })).data); }
     catch (e) { toast.error(errMsg(e, 'Could not load the boards')); }
     finally { setLoading(false); }
-  }, [approval, q]);
+  }, [approval, customers, q]);
   useEffect(() => { const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const columns = [
@@ -43,8 +44,9 @@ export default function BoardList() {
         <Toolbar right={<button type="button" style={btnPrimary} onClick={() => nav('/admin/boards/new')}><Plus size={14} /> New board</button>}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {FILTERS.map(([k, l]) => (
-              <button key={k} type="button" onClick={() => setApproval(k)} style={{ ...filterStyle, cursor: 'pointer', fontWeight: approval === k ? 700 : 500, background: approval === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' }}>{l}</button>
+              <button key={k} type="button" onClick={() => { setCustomers(false); setApproval(k); }} style={{ ...filterStyle, cursor: 'pointer', fontWeight: !customers && approval === k ? 700 : 500, background: !customers && approval === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' }}>{l}</button>
             ))}
+            <button type="button" onClick={() => setCustomers(true)} style={{ ...filterStyle, cursor: 'pointer', fontWeight: customers ? 700 : 500, background: customers ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' }}>Customer boards</button>
           </div>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name…" style={{ ...filterStyle, minWidth: 220 }} />
         </Toolbar>

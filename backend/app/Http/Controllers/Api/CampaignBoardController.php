@@ -11,6 +11,7 @@ use App\Services\Campaigns\CampaignAccess;
 use App\Services\Campaigns\PinService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Boards, staff side. Admin, super admin and manager see and change every board; sales rep and finance see and change their own, and their official
@@ -30,16 +31,35 @@ class CampaignBoardController extends Controller
         abort_unless(CampaignAccess::canPublish($r->user()), 403, 'Only an admin, super admin or manager can do that.');
     }
 
-    private function find(Request $r, int $id, bool $forEdit = false): CampaignBoard
+    private function find(Request $r, int $id, bool $forEdit = false, bool $look = false): CampaignBoard
     {
         $this->builder($r);
         $b = CampaignBoard::with('owner:id,name')->findOrFail($id);
+        if ($look && ! $b->is_official && (int) $b->owner_user_id !== (int) $r->user()->id) {
+            $this->record($r, $b);   // any staff builder may look at a customer's board; a private one is written to the access log first
+
+            return $b;
+        }
         abort_unless(CampaignAccess::canPublish($r->user()) || (int) $b->owner_user_id === (int) $r->user()->id, 403, 'That is not your board.');
         if ($forEdit) {
+            abort_if(! $b->is_official && (int) $b->owner_user_id !== (int) $r->user()->id, 403, 'A customer\'s board can only be changed by its owner. You can hide or delete it.');
             abort_unless($this->boards->canEdit($r->user(), $b), 403, 'You cannot change this board while it is waiting for a decision.');
         }
 
         return $b;
+    }
+
+    /** Write the look to the access log. Without a log entry the board does not open. */
+    private function record(Request $r, CampaignBoard $b): void
+    {
+        if ($b->visibility !== 'private') {
+            return;
+        }
+        try {
+            DB::table('campaign_access_log')->insert(['user_id' => $r->user()->id, 'board_id' => $b->id, 'owner_user_id' => $b->owner_user_id, 'action' => 'view', 'ip_address' => $r->ip(), 'created_at' => now()]);
+        } catch (\Throwable) {
+            abort(503, 'The access log is not set up yet, so a private board cannot be opened. Ask an admin to run script 85.');
+        }
     }
 
     private function guard(callable $fn): JsonResponse
@@ -75,8 +95,8 @@ class CampaignBoardController extends Controller
             ->when($request->filled('approval'), fn ($w) => $w->where('approval_status', $request->query('approval')))
             ->when($request->filled('status'), fn ($w) => $w->where('status', $request->query('status')))
             ->when($request->filled('q'), fn ($w) => $w->where('title', 'like', '%' . $request->query('q') . '%'))
-            ->when($request->boolean('official', true), fn ($w) => $w->where('is_official', true))   // customers' personal boards are not in the staff list
-            ->when(! CampaignAccess::canPublish($request->user()), fn ($w) => $w->where('owner_user_id', $request->user()->id));
+            ->where('is_official', $request->boolean('official', true))   // customers' personal boards only when asked for (official=0)
+            ->when($request->boolean('official', true) && ! CampaignAccess::canPublish($request->user()), fn ($w) => $w->where('owner_user_id', $request->user()->id));
         $page = $q->paginate(min(60, max(10, $request->integer('per_page', 30))));
         $rows = collect($page->items())->map(fn ($b) => $this->row($b))->all();
 
@@ -85,7 +105,22 @@ class CampaignBoardController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        return response()->json(['data' => $this->row($this->find($request, $id), true, $request)]);
+        return response()->json(['data' => $this->row($this->find($request, $id, false, true), true, $request)]);
+    }
+
+    /** GET /admin/boards/{id}/views: who on the staff opened this private board, newest first. For admin, super admin and manager. */
+    public function views(Request $request, int $id): JsonResponse
+    {
+        $this->publisher($request);
+        CampaignBoard::findOrFail($id);
+        try {
+            $rows = DB::table('campaign_access_log as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->where('l.board_id', $id)->orderByDesc('l.id')->limit(100)
+                ->get(['l.created_at', 'l.ip_address', 'u.name', 'u.role'])->map(fn ($r) => ['name' => $r->name, 'role' => $r->role, 'at' => $r->created_at ? \Carbon\Carbon::parse($r->created_at)->setTimezone(config('app.timezone'))->format('Y-m-d\TH:i:sP') : null])->all();
+        } catch (\Throwable) {
+            $rows = [];
+        }
+
+        return response()->json(['data' => $rows]);
     }
 
     public function store(Request $request): JsonResponse

@@ -892,6 +892,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                      [$c, 'index']);
             Route::post('/',                     [$c, 'store']);
             Route::get('/{id}',                  [$c, 'show'])->whereNumber('id');
+            Route::get('/{id}/views',            [$c, 'views'])->whereNumber('id');
             Route::put('/{id}',                  [$c, 'update'])->whereNumber('id');
             Route::post('/{id}/pins',            [$c, 'addPins'])->whereNumber('id');
             Route::put('/{id}/pins/order',       [$c, 'reorder'])->whereNumber('id');

@@ -133,7 +133,7 @@ final class ModuleTables
         ],
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',
-            'campaign_pins', 'campaign_boards', 'campaign_board_pins', 'campaign_moodboards', 'campaign_board_follows'],
+            'campaign_pins', 'campaign_boards', 'campaign_board_pins', 'campaign_moodboards', 'campaign_board_follows', 'campaign_access_log'],
         'courses'        => [/* built later */],
         'accommodations' => [/* built later */],
         'menus'          => ['recipes', 'recipe_items', 'productions', 'production_lines'],

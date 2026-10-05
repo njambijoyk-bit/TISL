@@ -19,6 +19,9 @@ class BoardService
     /** Staff may change a board if they publish, or it is theirs and not waiting for a decision. */
     public function canEdit(?User $u, CampaignBoard $b): bool
     {
+        if (! $b->is_official && (! $u || (int) $b->owner_user_id !== (int) $u->id)) {
+            return false;   // a customer's board is theirs: staff can look (logged), hide or delete it, but not change it
+        }
         if (CampaignAccess::canPublish($u)) {
             return true;
         }

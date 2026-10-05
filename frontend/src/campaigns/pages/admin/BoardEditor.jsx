@@ -28,6 +28,7 @@ export default function BoardEditor() {
   const [picking, setPicking] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
+  const [views, setViews] = useState([]);
 
   const take = (r) => { setB(r.data); setPerm(permOf(r.data)); setF({ title: r.data.title, description: r.data.description ?? '', visibility: r.data.visibility }); };
   useEffect(() => {
@@ -36,6 +37,9 @@ export default function BoardEditor() {
   }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const readOnly = b && !perm.can_edit;
+  const customer = b && !b.is_official;
+  const watched = customer && b.visibility === 'private';
+  useEffect(() => { if (b && watched && perm.can_publish) boardsAPI.views(b.id).then(setViews).catch(() => {}); }, [b?.id, watched, perm.can_publish]); // eslint-disable-line react-hooks/exhaustive-deps
   const pins = b?.pins ?? [];
 
   const save = async (e) => {
@@ -106,7 +110,8 @@ export default function BoardEditor() {
         {b?.is_official && b.approval_status === 'draft' && perm.can_submit && (
           <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted, margin: '0 0 14px' }}>This board is a draft and is not on the website yet. Add pins, then send it for approval. Later changes to an approved board go for approval again.</p>
         )}
-        {readOnly && <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted }}>You can look at this board, but not change it while it waits for a decision.</p>}
+        {customer && <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted, margin: '0 0 14px' }}>This is a customer's board. You can look at it, but only they can change it{perm.can_publish ? '; you can hide or delete it' : ''}.{watched ? ' It is private, so every time staff open it, it is recorded.' : ''}</p>}
+        {readOnly && !customer && <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted }}>You can look at this board, but not change it while it waits for a decision.</p>}
 
         <form onSubmit={save} style={{ display: 'grid', gap: 18, maxWidth: 760, marginBottom: 24 }}>
           {err && <p role="alert" style={{ color: colors.dangerText, margin: 0, fontSize: '0.84rem' }}>{err}</p>}
@@ -120,6 +125,12 @@ export default function BoardEditor() {
           {!readOnly && <div><button type="submit" style={btnPrimary} disabled={busy}>{busy ? 'Saving…' : 'Save board'}</button></div>}
         </form>
 
+        {watched && perm.can_publish && (
+          <section style={{ ...card, padding: 14, margin: '0 0 18px', maxWidth: 760 }}>
+            <p style={label}>Who on the staff has opened this board</p>
+            {views.length === 0 ? <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>No one yet.</p> : views.slice(0, 15).map((v, i) => <div key={i} style={{ fontSize: '0.8rem', padding: '3px 0', display: 'flex', gap: 10 }}><strong>{v.name ?? 'Unknown'}</strong><span style={{ color: colors.textFaint }}>{String(v.role ?? '').replace('_', ' ')}</span><span style={{ marginLeft: 'auto', color: colors.textMuted }}>{v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</span></div>)}
+          </section>
+        )}
         {b && (
           <section>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>

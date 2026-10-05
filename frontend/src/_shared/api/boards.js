@@ -4,6 +4,7 @@ import api from './axios';
 const boardsAPI = {
   list: async (params) => (await api.get('/admin/boards', { params })).data,
   get: async (id) => (await api.get(`/admin/boards/${id}`)).data,
+  views: async (id) => (await api.get(`/admin/boards/${id}/views`)).data.data,
   create: async (data) => (await api.post('/admin/boards', data)).data,
   update: async (id, data) => (await api.put(`/admin/boards/${id}`, data)).data,
   addPins: async (id, pinIds) => (await api.post(`/admin/boards/${id}/pins`, { pin_ids: pinIds })).data,
