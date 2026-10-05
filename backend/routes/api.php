@@ -159,6 +159,9 @@ Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
     Route::post('/{slug}/event', [$c, 'event'])->where('slug', '[a-z0-9-]+')->middleware('throttle:90,1');
 });
 
+// Engagement Engine, public: which controls the storefront shows (the Extras module)
+Route::get('/engagement/config', [\App\Http\Controllers\Api\EngagementSettingsController::class, 'config'])->middleware('module:extras');
+
 // The world feed, public: pins, one pin, one board and the picture download (the Campaigns module; a signed-in visitor, if any, is read for the Following tab)
 Route::prefix('world')->middleware('module:campaigns')->group(function () {
     $c = \App\Http\Controllers\Api\PublicWorldController::class;
@@ -913,6 +916,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [$c,'show'])->whereNumber('id'); Route::put('/{id}', [$c,'update'])->whereNumber('id'); Route::delete('/{id}', [$c,'destroy'])->whereNumber('id');
             Route::post('/{id}/template', [$c,'saveTemplate'])->whereNumber('id');
             foreach (['submit','withdraw','approve','reject','hide','unhide'] as $a) { Route::post("/{id}/$a", [$c,$a])->whereNumber('id'); }
+        });
+
+        // Engagement Engine settings (Extras): admin and super admin, checked in the controller
+        Route::prefix('engagement')->middleware('module:extras')->group(function () {
+            $c = \App\Http\Controllers\Api\EngagementSettingsController::class;
+            Route::get('/settings', [$c, 'show']);
+            Route::put('/settings', [$c, 'update']);
+            Route::post('/preset',  [$c, 'preset']);
         });
 
         // The pin library (the Campaigns module): builders make pins and change their own; hiding is for admin, super admin and manager

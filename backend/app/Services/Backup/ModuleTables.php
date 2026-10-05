@@ -124,6 +124,8 @@ final class ModuleTables
             'algorithm_config', 'algorithm_segment_rules', 'algorithm_bonus_content',
             'customer_algorithm_scores', 'customer_product_pins', 'search_events',
             'ai_analytics_modules', 'ai_analytics_sessions', 'ai_analytics_outputs',
+            // Engagement Engine: reviews, comments, reactions, reports and their settings
+            'engagement_settings', 'engagement_report_reasons', 'engagement_rules', 'engagement_posts', 'engagement_reactions', 'engagement_reports', 'engagement_log',
         ],
 
         'careers'        => ['job_postings', 'applicants', 'applications', 'application_documents', 'application_status_history'],
