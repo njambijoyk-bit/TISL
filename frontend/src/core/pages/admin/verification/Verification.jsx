@@ -54,22 +54,24 @@ function Detail({ d }) {
   );
 }
 
+const NEXT = { pending: ['verified', 'internal_observation', 'external_query'], altered: ['verified', 'internal_observation', 'external_query'], verified: ['internal_observation', 'external_query'],
+  internal_observation: ['internal_clarified', 'internal_observation'], internal_clarified: ['verified', 'internal_observation', 'external_query'], external_query: ['external_clarified', 'external_query'], external_clarified: ['verified', 'internal_observation'] };
+
 function ItemModal({ id, onClose, onChanged }) {
   const [d, setD] = useState(null);
   const [status, setStatus] = useState('verified');
   const [note, setNote] = useState('');
   const [by, setBy] = useState('');
   const [busy, setBusy] = useState(false);
-  const load = useCallback(() => verificationAPI.show(id).then(setD).catch((e) => { toast.error(errMsg(e, 'Could not open it')); onClose(); }), [id, onClose]);
+  const load = useCallback(() => verificationAPI.show(id).then((r) => { setD(r); setStatus((NEXT[r.item.status] ?? ['verified'])[0]); }).catch((e) => { toast.error(errMsg(e, 'Could not open it')); onClose(); }), [id, onClose]);
   useEffect(() => { load(); }, [load]);
   if (!d) return null;
   const it = d.item;
-  const next = { pending: ['verified', 'internal_observation', 'external_query'], altered: ['verified', 'internal_observation', 'external_query'], verified: ['internal_observation', 'external_query'],
-    internal_observation: ['internal_clarified', 'internal_observation'], internal_clarified: ['verified', 'internal_observation', 'external_query'], external_query: ['external_clarified', 'external_query'], external_clarified: ['verified', 'internal_observation'] }[it.status] ?? ['verified'];
+  const next = NEXT[it.status] ?? ['verified'];
   const LBL = { verified: 'Verified', internal_observation: 'Observation — clarify internally', internal_clarified: 'Clarified internally', external_query: 'Query — clarify from outside', external_clarified: 'Clarified from outside' };
   const go = async () => {
     setBusy(true);
-    try { await verificationAPI.mark(id, { status, note: note || null, clarified_by: by || null }); toast.success('Recorded'); setNote(''); setBy(''); onChanged(); load(); } catch (e) { toast.error(errMsg(e, 'Could not record it')); } finally { setBusy(false); }
+    try { await verificationAPI.mark(id, { status, note: note || null, clarified_by: by || null }); toast.success('Recorded'); onChanged(); onClose(); } catch (e) { toast.error(errMsg(e, 'Could not record it')); } finally { setBusy(false); }
   };
   return (
     <Modal title={`${it.type_label} — ${it.ref ?? ''}`} subtitle={`${it.particulars ?? ''}${it.amount != null ? ` · ${money(it.amount)}` : ''}${it.date ? ` · ${it.date}` : ''}`} onClose={onClose}>
