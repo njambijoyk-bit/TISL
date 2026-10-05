@@ -74,6 +74,13 @@ class CampaignPage
         }
         if ($type === 'countdown') {
             $out['target'] = in_array($out['target'] ?? 'start', ['start', 'end', 'custom'], true) ? ($out['target'] ?? 'start') : 'start';
+            if (isset($out['custom_at'])) {   // typed as site time: keep it with its offset so every visitor's browser counts to the same moment
+                try {
+                    $out['custom_at'] = \Carbon\Carbon::parse($out['custom_at'], config('app.timezone'))->format('Y-m-d\TH:i:sP');
+                } catch (\Throwable) {
+                    unset($out['custom_at']);
+                }
+            }
         }
         if (in_array($type, ['hero'], true)) {
             $out['align'] = ($out['align'] ?? 'center') === 'left' ? 'left' : 'center';

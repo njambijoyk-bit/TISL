@@ -150,6 +150,14 @@ Route::post('/bug-reports/screenshot', [BugReportController::class, 'uploadScree
 
 Route::post('/search-events', [SearchEventController::class, 'store']);
 
+// Campaigns, public: the list, the homepage one, and a campaign by its address (the Campaigns module; a signed-in visitor, if any, is read for audience rules)
+Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
+    $c = \App\Http\Controllers\Api\PublicCampaignController::class;
+    Route::get('/',         [$c, 'index']);
+    Route::get('/featured', [$c, 'featured']);
+    Route::get('/{slug}',   [$c, 'show'])->where('slug', '[a-z0-9-]+');
+});
+
 // Auth required — must be registered BEFORE /{key} to avoid route conflict
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/policies/check-reacceptance', [PolicyController::class, 'checkReacceptance']);

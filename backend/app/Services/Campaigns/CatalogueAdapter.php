@@ -59,7 +59,7 @@ class CatalogueAdapter
     {
         $out = [];
         $by = collect($items)->groupBy('item_type');
-        $codes = $this->currencies();
+        $codes = ($this->active() && $items) ? $this->currencies() : collect();
         $want = fn (string $t) => $by->get($t, collect())->pluck('item_id')->unique()->values()->all();
 
         if ($this->active()) {

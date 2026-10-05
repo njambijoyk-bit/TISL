@@ -44,4 +44,10 @@ class Campaign extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /** Dates go out in the site's own time with its offset (2026-10-18T09:00:00+03:00), so what staff typed is what they see again and a browser reads it correctly. */
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return \Carbon\Carbon::instance($date)->setTimezone(config('app.timezone'))->format('Y-m-d\TH:i:sP');
+    }
 }
