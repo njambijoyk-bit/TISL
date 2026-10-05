@@ -153,13 +153,13 @@ function Setup({ month, onChanged }) {
 }
 
 /** The verification report: every voucher type for one calendar month (1st to last day, never a spread across months), with its vouchers, how many were picked for checking and how many are verified. */
-function Report({ month, shift, onOpen }) {
+function Report({ month, shift, onOpen, stamp }) {
   const [rep, setRep] = useState(null);
   const [type, setType] = useState(null);
   const [rows, setRows] = useState([]);
   const [err, setErr] = useState(null);
-  useEffect(() => { setRep(null); setErr(null); verificationAPI.report(month).then(setRep).catch((e) => setErr(errMsg(e, 'Could not load the report'))); }, [month]);
-  useEffect(() => { setRows([]); if (type) verificationAPI.reportVouchers(month, type.type_key).then((r) => setRows(r.items)).catch(() => setRows([])); }, [type, month]);
+  useEffect(() => { setRep(null); setErr(null); verificationAPI.report(month).then(setRep).catch((e) => setErr(errMsg(e, 'Could not load the report'))); }, [month, stamp]);
+  useEffect(() => { if (type) verificationAPI.reportVouchers(month, type.type_key).then((r) => setRows(r.items)).catch(() => setRows([])); }, [type, month, stamp]);
   const day = (d) => new Date(`${d}T00:00:00`).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
   const sum = (k) => (rep?.types ?? []).reduce((n, t) => n + t[k], 0);
   const r = { textAlign: 'right' };
@@ -212,12 +212,14 @@ export default function Verification() {
   const [type, setType] = useState(null);
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(null);
+  const [stamp, setStamp] = useState(0);   // bumped after a save so the report re-reads its figures
   const [error, setError] = useState(null);
   const load = useCallback(() => verificationAPI.get(month, all).then(setData).catch((e) => setError(errMsg(e, 'Could not load verification'))), [month, all]);
   useEffect(() => { load(); }, [load]);
   const loadItems = useCallback(() => (type ? verificationAPI.items(month, type.type_key, all).then((r) => setItems(r.items)).catch(() => setItems([])) : setItems([])), [month, type, all]);
   useEffect(() => { loadItems(); }, [loadItems]);
-  const changed = () => { load(); loadItems(); };
+  const changed = () => { load(); loadItems(); setStamp((n) => n + 1); };
+  const thisMonth = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
   const shift = (n) => { const [y, m] = month.split('-').map(Number); const d = new Date(y, m - 1 + n, 1); setType(null); setMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); };
 
   return (
@@ -226,9 +228,9 @@ export default function Verification() {
         <HubHeader title="Verification" description="A second pair of eyes on the month's records. It never changes the books — it records that someone looked, and what they found." />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         {data && !data.table_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>Run script 65_verification.sql to use verification.</p>}
-        {data?.is_manager && <div style={{ display: 'flex', gap: 6, margin: '4px 0 10px' }}>{[['work', 'Verification'], ['report', 'Verification report'], ['setup', 'Set-up']].map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} style={{ ...small, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)' }}>{l}</button>)}</div>}
+        {data?.is_manager && <div style={{ display: 'flex', gap: 6, margin: '4px 0 10px' }}>{[['work', 'Verification'], ['report', 'Verification report'], ['setup', 'Set-up']].map(([k, l]) => <button key={k} type="button" onClick={() => { setTab(k); if (k === 'report') { setType(null); setMonth(thisMonth()); } }} style={{ ...small, fontWeight: tab === k ? 700 : 500, background: tab === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card, #fff))' : 'var(--surface-card, #fff)' }}>{l}</button>)}</div>}
         {data?.table_ready && tab === 'setup' && <Setup month={month} onChanged={load} />}
-        {data?.table_ready && tab === 'report' && <Report month={month} shift={shift} onOpen={setOpen} />}
+        {data?.table_ready && tab === 'report' && <Report month={month} shift={shift} onOpen={setOpen} stamp={stamp} />}
         {data?.table_ready && tab === 'work' && (
           <div style={{ display: 'grid', gap: 14 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
