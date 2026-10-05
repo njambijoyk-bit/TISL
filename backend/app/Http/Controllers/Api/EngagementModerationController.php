@@ -15,7 +15,7 @@ class EngagementModerationController extends Controller
 {
     public const DECIDERS = ['admin', 'super_admin', 'manager'];
 
-    public function __construct(private PostService $posts, private TargetResolver $targets) {}
+    public function __construct(private PostService $posts, private TargetResolver $targets, private \App\Services\Engagement\ReportService $reports) {}
 
     private function decider(Request $r): void
     {
@@ -77,5 +77,29 @@ class EngagementModerationController extends Controller
         DB::table('engagement_log')->insert(['target_type' => 'post', 'target_id' => $p->id, 'action' => 'removed', 'actor_user_id' => $request->user()->id, 'note' => mb_substr((string) $request->input('note'), 0, 500) ?: null, 'created_at' => now()]);
 
         return response()->json(['message' => 'Removed.']);
+    }
+
+    /** GET /admin/engagement/reports?status=open|kept|removed|flagged: one row per thing reported. */
+    public function reportCases(Request $request): JsonResponse
+    {
+        abort_unless(in_array($request->user()->role, array_merge(self::DECIDERS, ['sales_rep', 'finance']), true), 403);
+        $status = in_array($request->query('status'), ['open', 'kept', 'removed', 'flagged'], true) ? $request->query('status') : 'open';
+
+        return response()->json(['data' => $this->reports->cases($status), 'policies' => $this->reports->policies(), 'can_decide' => in_array($request->user()->role, self::DECIDERS, true),
+            'counts' => DB::table('engagement_reports')->selectRaw('status, COUNT(DISTINCT CONCAT(target_type, \':\', target_id)) n')->groupBy('status')->pluck('n', 'status')->all()]);
+    }
+
+    /** POST /admin/engagement/reports/decide {target_type, target_id, decision: keep|remove|flag, note?, policy_key?} */
+    public function decideReport(Request $request): JsonResponse
+    {
+        $this->decider($request);
+        $d = $request->validate(['target_type' => ['required', 'string', 'max:20'], 'target_id' => ['required', 'integer'], 'decision' => ['required', 'in:keep,remove,flag'], 'note' => ['nullable', 'string', 'max:500'], 'policy_key' => ['nullable', 'string', 'max:60']]);
+        try {
+            $this->reports->decide($request->user(), $d['target_type'], (int) $d['target_id'], $d['decision'], $d['note'] ?? null, $d['policy_key'] ?? null);
+        } catch (\App\Services\Books\BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => ['keep' => 'Kept.', 'remove' => 'Pulled down.', 'flag' => 'Flagged as a policy breach and pulled down.'][$d['decision']]]);
     }
 }

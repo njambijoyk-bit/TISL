@@ -17,7 +17,7 @@ class PostService
 {
     public const BODY_MAX = 2000;
 
-    public function __construct(private EngagementAccess $access, private EngagementRules $rules, private TargetResolver $targets, private ReviewSummary $summary) {}
+    public function __construct(private EngagementAccess $access, private EngagementRules $rules, private TargetResolver $targets, private ReviewSummary $summary, private ReactionService $reactions) {}
 
     private function words(string $text): int
     {
@@ -200,14 +200,15 @@ class PostService
     }
 
     /** How a post looks on the page. `$me` is the signed-in person, who also sees their own held posts. */
-    private function shape(EngagementPost $p, ?User $me, ?string $guestKey, array $replies = []): array
+    private function shape(EngagementPost $p, ?User $me, ?string $guestKey, array $replies = [], array $react = []): array
     {
         $name = $p->user ? $this->shortName($p->user->name) : ($p->guest_name ?: 'Guest');
 
         return ['id' => $p->id, 'kind' => $p->kind, 'rating' => $p->rating, 'title' => $p->title, 'body' => $p->body, 'images' => $p->images ?? [], 'author' => $name,
             'by_staff' => $p->user && in_array($p->user->role, EngagementAccess::STAFF, true), 'verified' => (bool) $p->verified_purchase,
             'mine' => ($me && (int) $p->user_id === (int) $me->id) || (! $me && $guestKey && $p->guest_key === $guestKey), 'status' => $p->status === 'published' ? 'published' : 'held',
-            'created_at' => $p->created_at?->setTimezone(config('app.timezone'))->format('Y-m-d\TH:i:sP'), 'edited' => (bool) $p->edited_at, 'replies' => $replies];
+            'created_at' => $p->created_at?->setTimezone(config('app.timezone'))->format('Y-m-d\TH:i:sP'), 'edited' => (bool) $p->edited_at, 'replies' => $replies,
+            'likes' => $react['like']['count'] ?? 0, 'liked' => $react['like']['mine'] ?? false, 'helpful' => $react['helpful']['count'] ?? 0, 'marked' => $react['helpful']['mine'] ?? false];
     }
 
     private function shortName(string $name): string
@@ -227,7 +228,9 @@ class PostService
         $rows = $rows->take(20);
         $replies = $visible(EngagementPost::with('user:id,name,role')->where('target_type', 'post')->whereIn('target_id', $rows->pluck('id')))->orderBy('id')->get()->groupBy('target_id');
 
-        return ['data' => $rows->map(fn ($p) => $this->shape($p, $me, $guestKey, ($replies[$p->id] ?? collect())->map(fn ($r) => $this->shape($r, $me, $guestKey))->values()->all()))->values()->all(),
+        $react = $this->reactions->batch('post', $rows->pluck('id')->merge($replies->flatten()->pluck('id'))->all(), $me, $guestKey);
+
+        return ['data' => $rows->map(fn ($p) => $this->shape($p, $me, $guestKey, ($replies[$p->id] ?? collect())->map(fn ($r) => $this->shape($r, $me, $guestKey, [], $react[$r->id] ?? []))->values()->all(), $react[$p->id] ?? []))->values()->all(),
             'next' => $more ? $rows->last()->id : null];
     }
 }

@@ -165,6 +165,9 @@ Route::prefix('engagement')->middleware('module:extras')->group(function () {
     Route::get('/{type}/{id}/can',   [$c, 'can'])->whereNumber('id')->where('type', '[a-z]+');
     Route::post('/{type}/{id}/posts', [$c, 'store'])->whereNumber('id')->where('type', '[a-z]+')->middleware('throttle:20,1');
     Route::post('/posts/{id}/replies', [$c, 'reply'])->whereNumber('id')->middleware('throttle:20,1');
+    Route::get('/{type}/{id}/reactions', [$c, 'reactionState'])->whereNumber('id')->where('type', '[a-z]+');
+    Route::post('/{type}/{id}/react',    [$c, 'react'])->whereNumber('id')->where('type', '[a-z]+')->middleware('throttle:60,1');
+    Route::post('/{type}/{id}/report',   [$c, 'report'])->whereNumber('id')->where('type', '[a-z]+')->middleware('throttle:10,1');
     Route::middleware('auth:sanctum')->group(function () use ($c) {
         Route::put('/posts/{id}',    [$c, 'update'])->whereNumber('id');
         Route::delete('/posts/{id}', [$c, 'destroy'])->whereNumber('id');
@@ -924,6 +927,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/posts/{id}/approve', [$m, 'approve'])->whereNumber('id');
             Route::post('/posts/{id}/hide',    [$m, 'hide'])->whereNumber('id');
             Route::post('/posts/{id}/remove',  [$m, 'remove'])->whereNumber('id');
+            Route::get('/reports', [$m, 'reportCases']);
+            Route::post('/reports/decide', [$m, 'decideReport']);
         });
 
         // The pin library (the Campaigns module): builders make pins and change their own; hiding is for admin, super admin and manager

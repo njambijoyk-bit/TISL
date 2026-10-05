@@ -16,7 +16,8 @@ use Illuminate\Http\Request;
 /** Reviews, comments and replies as visitors use them. A signed-in visitor, if any, is read from the token; guests post only where a rule lets them. */
 class EngagementPostController extends Controller
 {
-    public function __construct(private PostService $posts, private EngagementAccess $access, private ReviewSummary $summary, private TargetResolver $targets) {}
+    public function __construct(private PostService $posts, private EngagementAccess $access, private ReviewSummary $summary, private TargetResolver $targets,
+        private \App\Services\Engagement\ReactionService $reactions, private \App\Services\Engagement\ReportService $reports) {}
 
     private function guard(callable $fn): JsonResponse
     {
@@ -113,5 +114,39 @@ class EngagementPostController extends Controller
         $this->posts->destroy($p);
 
         return response()->json(['message' => 'Deleted.']);
+    }
+
+    /** GET /engagement/{type}/{id}/reactions: how many likes, and whether this visitor liked it. Also which buttons to show. */
+    public function reactionState(Request $request, string $type, int $id): JsonResponse
+    {
+        abort_unless(EngagementTargets::find($type), 404);
+        $user = $request->user('sanctum');
+        $r = $this->reactions->batch($type, [$id], $user, $this->posts->guestKey($request->ip(), $request->userAgent()))[$id];
+
+        return response()->json(['like' => $r['like'], 'helpful' => $r['helpful']]);
+    }
+
+    /** POST /engagement/{type}/{id}/react {kind: like|helpful}: press once to add, again to take it back. */
+    public function react(Request $request, string $type, int $id): JsonResponse
+    {
+        abort_unless(EngagementTargets::find($type), 404);
+        $d = $request->validate(['kind' => ['required', 'in:like,helpful']]);
+
+        return $this->guard(function () use ($request, $type, $id, $d) {
+            return response()->json($this->reactions->toggle($request->user('sanctum'), $type, $id, $d['kind'], $this->posts->guestKey($request->ip(), $request->userAgent())));
+        });
+    }
+
+    /** POST /engagement/{type}/{id}/report {reason, note?, guest?} */
+    public function report(Request $request, string $type, int $id): JsonResponse
+    {
+        abort_unless(EngagementTargets::find($type), 404);
+        $d = $request->validate(['reason' => ['required', 'string', 'max:60'], 'note' => ['nullable', 'string', 'max:500']]);
+
+        return $this->guard(function () use ($request, $type, $id, $d) {
+            $this->reports->report($request->user('sanctum'), $type, $id, $d['reason'], $d['note'] ?? null, $this->posts->guestKey($request->ip(), $request->userAgent()));
+
+            return response()->json(['message' => 'Thank you. Our team will look at this.'], 201);
+        });
     }
 }
