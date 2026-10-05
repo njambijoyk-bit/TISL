@@ -10,6 +10,8 @@ import { useAuthStore, useCartStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import { formatMoney } from '../../../_shared/lib/money';
+import Discussion from '../../../extras/components/engagement/Discussion';
+import useEngagement from '../../../_shared/lib/engagementConfig';
 
 // Amount in a given currency (object or ISO code); nothing → KSh, as before
 const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
@@ -23,6 +25,7 @@ export default function HamperDetail() {
   const [hamper, setHamper]   = useState(null);
   const [loading, setLoading] = useState(true);
   const [blocked, setBlocked] = useState(null);
+  const reviewsOn = useEngagement().on('hamper', 'review');
 
   useEffect(() => {
     if (!isAuthenticated) { navigate(`/login?redirect=/hampers/${slug}`); return; }
@@ -260,6 +263,14 @@ export default function HamperDetail() {
               </p>
             </div>
           </div>
+
+          {/* Reviews (the Engagement Engine; nothing shows when it is off) */}
+          {reviewsOn && hamper?.id && (
+            <div style={{ marginTop: 40, padding: '22px 24px', borderRadius: 16, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)' }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 14px' }}>Reviews</h2>
+              <Discussion type="hamper" id={hamper.id} />
+            </div>
+          )}
 
         </div>
       </div>
