@@ -134,30 +134,6 @@ class Product extends Model
             ->with('currency:id,code,symbol'); // bids are in the auction's own currency
     }
     /**
-     * Get all reviews for this product (alias for productReviews).
-     */
-    public function reviews()
-    {
-        return $this->hasMany(ProductReview::class);
-    }
-
-    /**
-     * Get all reviews for this product.
-     */
-    public function productReviews()
-    {
-        return $this->hasMany(ProductReview::class);
-    }
-
-    /**
-     * Get approved reviews only.
-     */
-    public function approvedReviews()
-    {
-        return $this->hasMany(ProductReview::class)->where('is_approved', true);
-    }
-
-    /**
      * Get the user who created this product.
      */
     public function creator()
@@ -565,20 +541,6 @@ class Product extends Model
         if (!$this->in_stock) {
             $this->update(['in_stock' => true]);
         }
-    }
-
-    /**
-     * Calculate average rating from reviews.
-     */
-    public function updateRating(): void
-    {
-        $avgRating = $this->approvedReviews()->avg('rating');
-        $reviewCount = $this->approvedReviews()->count();
-
-        $this->update([
-            'rating' => $avgRating ?? 0,
-            'reviews' => $reviewCount
-        ]);
     }
 
     /**

@@ -296,14 +296,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get reviews written by this user.
-     */
-    public function reviews()
-    {
-        return $this->hasMany(ProductReview::class);
-    }
-
-    /**
      * Get all notifications for this user.
      */
     public function notifications()

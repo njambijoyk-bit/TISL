@@ -146,14 +146,6 @@ class Customer extends Model
     }
 
     /**
-     * Get all reviews by this customer.
-     */
-    public function reviews()
-    {
-        return $this->hasMany(ProductReview::class);
-    }
-
-    /**
      * Get the referral code that was used (if referred).
      */
     public function referralCode()

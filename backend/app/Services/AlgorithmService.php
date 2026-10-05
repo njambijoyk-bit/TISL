@@ -195,10 +195,10 @@ class AlgorithmService
 
     protected function engagementScore(Customer $customer): int
     {
-        // product_reviews joins on user_id; auction_bids on bidder_id (= user_id)
-        $reviews = DB::table('product_reviews')
-            ->where('user_id', $customer->user_id)
-            ->count();
+        // reviews are in the Engagement Engine (engagement_posts, by user_id); auction_bids join on bidder_id (= user_id)
+        $reviews = \Illuminate\Support\Facades\Schema::hasTable('engagement_posts')
+            ? DB::table('engagement_posts')->where('user_id', $customer->user_id)->where('kind', 'review')->where('status', 'published')->whereNull('deleted_at')->count()
+            : 0;
 
         $bids = DB::table('auction_bids')
             ->where('bidder_id', $customer->user_id)

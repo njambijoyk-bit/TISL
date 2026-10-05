@@ -34,7 +34,6 @@ use App\Http\Controllers\Api\GiftVoucherController;
 use App\Http\Controllers\Api\CustomerAccountController;
 use App\Http\Controllers\Api\BooksVoucherController;
 use App\Http\Controllers\Api\PublicHamperController;
-use App\Http\Controllers\Api\ProductReviewController;
 use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReferralController;
@@ -57,7 +56,6 @@ use App\Http\Controllers\Api\PromoCodeController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\LoyaltyController;
-use App\Http\Controllers\Api\ReviewEligibilityController;
 use App\Http\Controllers\Api\ShippingOptionController;
 use App\Http\Controllers\Api\CustomerTierController;
 use App\Http\Controllers\Api\AlgorithmController;
@@ -161,6 +159,17 @@ Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
 
 // Engagement Engine, public: which controls the storefront shows (the Extras module)
 Route::get('/engagement/config', [\App\Http\Controllers\Api\EngagementSettingsController::class, 'config'])->middleware('module:extras');
+Route::prefix('engagement')->middleware('module:extras')->group(function () {
+    $c = \App\Http\Controllers\Api\EngagementPostController::class;
+    Route::get('/{type}/{id}/posts', [$c, 'index'])->whereNumber('id')->where('type', '[a-z]+');
+    Route::get('/{type}/{id}/can',   [$c, 'can'])->whereNumber('id')->where('type', '[a-z]+');
+    Route::post('/{type}/{id}/posts', [$c, 'store'])->whereNumber('id')->where('type', '[a-z]+')->middleware('throttle:20,1');
+    Route::post('/posts/{id}/replies', [$c, 'reply'])->whereNumber('id')->middleware('throttle:20,1');
+    Route::middleware('auth:sanctum')->group(function () use ($c) {
+        Route::put('/posts/{id}',    [$c, 'update'])->whereNumber('id');
+        Route::delete('/posts/{id}', [$c, 'destroy'])->whereNumber('id');
+    });
+});
 
 // The world feed, public: pins, one pin, one board and the picture download (the Campaigns module; a signed-in visitor, if any, is read for the Following tab)
 Route::prefix('world')->middleware('module:campaigns')->group(function () {
@@ -300,8 +309,6 @@ Route::get('/products/on-sale', [ProductController::class, 'onSale']);
 Route::get('/products/{id}', [ProductController::class, 'show']);
 Route::get('/products/{id}/related', [ProductController::class, 'related']);
 Route::get('/products/{id}/variants', [ProductVariantController::class, 'publicShow'])->whereNumber('id');
-Route::get('/products/{id}/reviews', [ProductReviewController::class, 'index']);
-Route::post('/reviews/{id}/helpful', [ProductReviewController::class, 'markHelpful']);
 
 // Auctions (Public)
 Route::get('/auctions', [AuctionController::class, 'index']);
@@ -790,18 +797,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/redeem',      [LoyaltyController::class, 'selfRedeem']);
         });
 
-        Route::middleware('module:ecommerce')->group(function () {
-            Route::post('/products/{productId}/reviews', [ProductReviewController::class, 'store']);
-            Route::get('/products/{productId}/can-review', [ReviewEligibilityController::class, 'canReview']);
-        });
-        
-        // Reviews
-        Route::prefix('reviews')->middleware('module:ecommerce')->group(function () {
-            Route::get('/', [ProductReviewController::class, 'myReviews']);
-            Route::post('/', [ProductReviewController::class, 'store']);
-            Route::put('/{id}', [ProductReviewController::class, 'update']);
-            Route::delete('/{id}', [ProductReviewController::class, 'destroy']);
-        });
 
         Route::prefix('tickets')->group(function () {
             Route::get('/',            [TicketController::class, 'myTickets']);
@@ -924,6 +919,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/settings', [$c, 'show']);
             Route::put('/settings', [$c, 'update']);
             Route::post('/preset',  [$c, 'preset']);
+            $m = \App\Http\Controllers\Api\EngagementModerationController::class;
+            Route::get('/posts', [$m, 'index']);
+            Route::post('/posts/{id}/approve', [$m, 'approve'])->whereNumber('id');
+            Route::post('/posts/{id}/hide',    [$m, 'hide'])->whereNumber('id');
+            Route::post('/posts/{id}/remove',  [$m, 'remove'])->whereNumber('id');
         });
 
         // The pin library (the Campaigns module): builders make pins and change their own; hiding is for admin, super admin and manager
@@ -1486,15 +1486,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/verify-phone', [UserController::class, 'verifyPhone']);
         });
 
-        // Reviews Management
-        Route::prefix('reviews')->middleware('module:ecommerce')->group(function () {
-            Route::get('/', [ProductReviewController::class, 'adminIndex']);
-            Route::get('/statistics', [ProductReviewController::class, 'statistics']);
-            Route::post('/{id}/approve', [ProductReviewController::class, 'approve']);
-            Route::post('/{id}/reject', [ProductReviewController::class, 'reject']);
-            Route::delete('/{id}', [ProductReviewController::class, 'adminDestroy']);
-        });
-        
         // Referral Codes Management
         Route::prefix('referrals')->group(function () {
             Route::get('/',                      [ReferralController::class, 'index']);

@@ -526,8 +526,7 @@ class VaultArchiverService
             ['customer_algorithm_scores',        'Customer Algorithm Scores',       90,        'csv' ],
             ['store_credit_transactions',        'Store Credit Transactions',       365,       'json'],
             ['customer_credit_transactions',     'Customer Credit Transactions',    365,       'json'],
-            ['product_reviews',                  'Product Reviews',                 365,       'json'],
-            ['review_helpful_votes',             'Review Helpful Votes',            180,       'json'],
+            ['engagement_posts',                 'Reviews and Comments',            365,       'json'],
         ];
 
         foreach ($defaults as [$table, $label, $retention, $format]) {

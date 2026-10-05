@@ -100,7 +100,6 @@ final class ModuleTables
             // column-drift-safe, so those columns travel with 'products' — no extra
             // entry needed. product_activity_logs records variant/unit changes.
             'product_activity_logs',
-            'product_reviews',
             'categories', 'brands',
             'services', 'service_categories',
             // fees a service carries (deposit, call-out…) and the cancellation windows
@@ -108,7 +107,7 @@ final class ModuleTables
             // service options, packages (variants) and structured requirements
             'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements', 'service_variant_materials',
             // saved products and services (wishlist)
-            'customer_wishlists', 'review_helpful_votes',
+            'customer_wishlists',
             'hampers', 'hamper_items', 'hamper_customer_eligibility', 'hamper_activity_logs',
             // (hamper/auction orders were retired — they sell through the normal checkout)
             'auctions', 'auction_bids', 'auction_charges', 'auction_registrations', 'auction_order_activity_logs',

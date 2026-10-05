@@ -406,11 +406,6 @@ class ProductController extends Controller
                 'category',
                 'currency:id,code,symbol',
                 'activeAuction',
-                'reviews' => function($query) {
-                    $query->where('is_approved', true)  // Changed from status
-                        ->with(['user:id,name,email', 'user.customer:id,user_id,first_name,last_name,profile_image'])
-                        ->orderBy('created_at', 'desc');
-                }
             ])
             ->where('is_visible', true)
             ->onShelf()
@@ -421,24 +416,12 @@ class ProductController extends Controller
                 $product->incrementViewCount();
             }
 
-            // Calculate average rating
-            $avgRating = $product->reviews()
-                ->where('is_approved', true)  // Changed from status
-                ->avg('rating');
-            
-            // Get rating breakdown (count per star)
-            $ratingBreakdown = $product->reviews()
-                ->where('is_approved', true)  // Changed from status
-                ->selectRaw('rating, COUNT(*) as count')
-                ->groupBy('rating')
-                ->orderBy('rating', 'desc')
-                ->pluck('count', 'rating')
-                ->toArray();
-
-            // Total reviews count
-            $totalReviews = $product->reviews()
-                ->where('is_approved', true)
-                ->count();
+            // Review numbers come from the Engagement Engine (empty when reviews are off)
+            $summary = app(\App\Services\Engagement\ReviewSummary::class);
+            $reviewInfo = $summary->of('product', $product->id);
+            $avgRating = $reviewInfo['average'];
+            $ratingBreakdown = $reviewInfo['breakdown'];
+            $totalReviews = $reviewInfo['count'];
 
             // Get related products (same category, excluding current)
             $relatedProducts = Product::with(['brand', 'category', 'currency:id,code,symbol'])
@@ -546,18 +529,8 @@ class ProductController extends Controller
                         '1' => $ratingBreakdown[1] ?? 0,
                     ],
                     
-                    // Reviews (first 5)
-                    'reviews' => $product->reviews()->where('is_approved', true)->get()->map(function($review) {
-                        return [
-                            'id' => $review->id,
-                            'rating' => $review->rating,
-                            'comment' => $review->comment,
-                            'user_name' => $review->user->name ?? 'Anonymous',
-                            'user_id' => $review->user_id,
-                            'created_at' => $review->created_at->format('M d, Y'),
-                            'helpful_count' => $review->helpful_count ?? 0,
-                        ];
-                    }),
+                    // Reviews are loaded by the page from /engagement/product/{id}/posts
+                    'reviews' => [],
                     
                     // Meta
                     'view_count' => $product->view_count ?? 0,
@@ -565,9 +538,10 @@ class ProductController extends Controller
                 ],
                 
                 // Related Products
-                'related_products' => $relatedProducts->map(function($item) {
-                    $itemAvgRating = $item->reviews()->where('is_approved', true)->avg('rating');
-                    $itemTotalReviews = $item->reviews()->where('is_approved', true)->count();
+                'related_products' => $relatedProducts->map(function($item) use ($summary) {
+                    $itemReviews = $summary->of('product', $item->id);
+                    $itemAvgRating = $itemReviews['average'];
+                    $itemTotalReviews = $itemReviews['count'];
                     
                     return [
                         'id' => $item->id,
@@ -1141,9 +1115,11 @@ public function related($id)
         }
         
         // Format the response
-        $formattedProducts = $relatedProducts->map(function($item) {
-            $avgRating = $item->reviews()->where('is_approved', true)->avg('rating');
-            $totalReviews = $item->reviews()->where('is_approved', true)->count();
+        $summary = app(\App\Services\Engagement\ReviewSummary::class);
+        $formattedProducts = $relatedProducts->map(function($item) use ($summary) {
+            $reviewInfo = $summary->of('product', $item->id);
+            $avgRating = $reviewInfo['average'];
+            $totalReviews = $reviewInfo['count'];
             
             return [
                 'id' => $item->id,
