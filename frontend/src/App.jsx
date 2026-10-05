@@ -958,6 +958,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/driver/payslips" element={<ProtectedRoute><MyPayslips driver /></ProtectedRoute>} />
               <Route
                 path="/driver/manifests"
                 element={

@@ -24,6 +24,7 @@ export default payrollAPI;
 
 /** A staff member's own payslips (their own only; approved or paid runs). */
 export const myPayslipsAPI = {
-  list: async () => (await api.get('/admin/my-payslips')).data,
-  show: async (runId) => (await api.get(`/admin/my-payslips/${runId}`)).data,
+  // a driver uses the driver API (the API keeps drivers out of /admin)
+  list: async (driver) => (await api.get(driver ? '/driver/my-payslips' : '/admin/my-payslips')).data,
+  show: async (runId, driver) => (await api.get(`${driver ? '/driver' : '/admin'}/my-payslips/${runId}`)).data,
 };

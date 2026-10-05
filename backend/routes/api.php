@@ -802,6 +802,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     Route::middleware('role:driver')->prefix('driver')->middleware('module:extras')->group(function () {
 
+        // The driver's own payslips (their own only, approved or paid runs)
+        Route::get('/my-payslips',          [\App\Http\Controllers\Api\MyPayslipController::class, 'index']);
+        Route::get('/my-payslips/{runId}',  [\App\Http\Controllers\Api\MyPayslipController::class, 'show'])->whereNumber('runId');
+
         // Manifests assigned to this driver
         Route::prefix('manifests')->group(function () {
             Route::get('/',           [DriverManifestController::class, 'index']);

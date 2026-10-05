@@ -188,16 +188,7 @@ export const ADMIN_NAV = [
       },
       { id: 'assets', title: 'Assets', icon: Boxes, color: '#c2410c', path: '/admin/assets', also: ['/admin/inventory'], keywords: 'furniture equipment laptops issued loaned repairs depreciation register' },
       { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', keywords: 'visitors traffic' },
-      { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
       { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
-      {
-        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: PAYROLL_ROLES, keywords: 'salary payslip paye nssf deductions wages',
-        tabs: [
-          { title: 'Runs', path: '/admin/payroll', exact: true },
-          { title: 'Gratuity', path: '/admin/payroll/gratuity' },
-          { title: 'Settings', path: '/admin/payroll/settings' },
-        ],
-      },
       { id: 'publications', title: 'Publications', icon: Newspaper, color: 'var(--color-primary-500)', path: '/admin/settings/publications', keywords: 'blog news brochures' },
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',
@@ -275,6 +266,15 @@ export const ADMIN_NAV = [
           { title: 'Reports', path: '/admin/delivery/reports' },
         ],
       },
+      { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
+      {
+        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: PAYROLL_ROLES, keywords: 'salary payslip paye nssf deductions wages',
+        tabs: [
+          { title: 'Runs', path: '/admin/payroll', exact: true },
+          { title: 'Gratuity', path: '/admin/payroll/gratuity' },
+          { title: 'Settings', path: '/admin/payroll/settings' },
+        ],
+      },
     ],
   },
 
@@ -287,6 +287,7 @@ export const ADMIN_NAV = [
       { id: 'driver-profile', title: 'My profile', icon: UserCircle, color: '#8b5cf6', path: '/driver/profile', roles: [DRIVER_ROLE] },
       { id: 'driver-manifests', title: 'My manifests', icon: FileText, color: '#3b82f6', path: '/driver/manifests', roles: [DRIVER_ROLE] },
       { id: 'driver-ratings', title: 'My ratings', icon: Star, color: '#ec4899', path: '/driver/ratings', roles: [DRIVER_ROLE] },
+      { id: 'driver-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/driver/payslips', roles: [DRIVER_ROLE], keywords: 'salary pay slip wages my pay' },
       { id: 'driver-incidents', title: 'My incidents', icon: AlertTriangle, color: '#f59e0b', path: '/driver/incidents', roles: [DRIVER_ROLE] },
     ],
   },

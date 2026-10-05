@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import GeneralLayout from '../../../../_shared/components/layout/GeneralLayout';
 import HubHeader from '../../../components/admin/ui/HubHeader';
 import { myPayslipsAPI } from '../../../../_shared/api/payroll';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
@@ -42,15 +43,16 @@ function Slip({ p }) {
   );
 }
 
-export default function MyPayslips() {
+export default function MyPayslips({ driver = false }) {
+  const Layout = driver ? GeneralLayout : AdminLayout;
   const [rows, setRows] = useState(null);
   const [open, setOpen] = useState(null);
   const [slip, setSlip] = useState(null);
   const [error, setError] = useState(null);
-  useEffect(() => { myPayslipsAPI.list().then((r) => { setRows(r.rows); if (r.rows[0]) setOpen(r.rows[0].run_id); }).catch((e) => setError(errMsg(e, 'Could not load your payslips'))); }, []);
-  useEffect(() => { setSlip(null); if (open) myPayslipsAPI.show(open).then(setSlip).catch((e) => setError(errMsg(e, 'Could not open that payslip'))); }, [open]);
+  useEffect(() => { myPayslipsAPI.list(driver).then((r) => { setRows(r.rows); if (r.rows[0]) setOpen(r.rows[0].run_id); }).catch((e) => setError(errMsg(e, 'Could not load your payslips'))); }, []);
+  useEffect(() => { setSlip(null); if (open) myPayslipsAPI.show(open, driver).then(setSlip).catch((e) => setError(errMsg(e, 'Could not open that payslip'))); }, [open]);
   return (
-    <AdminLayout>
+    <Layout>
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
         <HubHeader title="My payslips" description="Your pay for each month, once payroll has been approved. Only you can see these." />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
@@ -71,6 +73,6 @@ export default function MyPayslips() {
           </div>
         )}
       </div>
-    </AdminLayout>
+    </Layout>
   );
 }
