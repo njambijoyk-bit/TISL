@@ -846,6 +846,21 @@ Route::middleware('auth:sanctum')->group(function () {
     // Staff area. Drivers are not here: their app uses /driver/* only.
     Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
 
+        // Campaigns (the Campaigns module): builders see their own; publishing is for admin, super admin and manager (checked in the controller)
+        Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
+            $c = \App\Http\Controllers\Api\CampaignController::class;
+            Route::get('/types',            [$c, 'types']);
+            Route::get('/',                 [$c, 'index']);
+            Route::post('/',                [$c, 'store']);
+            Route::get('/{id}',             [$c, 'show'])->whereNumber('id');
+            Route::put('/{id}',             [$c, 'update'])->whereNumber('id');
+            Route::post('/{id}/publish',    [$c, 'publish'])->whereNumber('id');
+            Route::post('/{id}/unpublish',  [$c, 'unpublish'])->whereNumber('id');
+            Route::post('/{id}/pause',      [$c, 'pause'])->whereNumber('id');
+            Route::post('/{id}/archive',    [$c, 'archive'])->whereNumber('id');
+            Route::delete('/{id}',          [$c, 'destroy'])->whereNumber('id');
+        });
+
         // The merged activity timeline: every log on the site, each only to the roles allowed to see it
         Route::get('/activity-feed', [\App\Http\Controllers\Api\ActivityFeedController::class, 'index']);
 
