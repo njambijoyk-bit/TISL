@@ -30,7 +30,7 @@ export default function RequestQuote() {
       });
       toast.success(res.message);
       clear();
-      nav(`/my-quotes/${res.data.id}`);
+      nav(`/my-quotes/${encodeURIComponent(res.data.voucher_number ?? res.data.id)}`);
     } catch (e) { toast.error(errMsg(e, 'Could not send your request'), { duration: 7000 }); }
     finally { setBusy(false); }
   };

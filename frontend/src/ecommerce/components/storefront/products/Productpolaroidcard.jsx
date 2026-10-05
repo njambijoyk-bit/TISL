@@ -6,7 +6,7 @@ import useCartAdder from '../useCartAdder';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
-import { productPath } from '../../../../_shared/lib/itemPath';
+import { auctionPath, productPath } from '../../../../_shared/lib/itemPath';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProductPolaroidCard
@@ -431,7 +431,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
             {hasAuction ? (
               <button
                 className="ppc-btn"
-                onClick={e => { e.stopPropagation(); navigate(`/auctions/${auction.id}`); }}
+                onClick={e => { e.stopPropagation(); navigate(auctionPath(auction, product)); }}
                 style={{ background: 'rgba(220,38,38,0.1)', color: '#dc2626', border: '1px solid rgba(220,38,38,0.35)' }}
               >
                 <Gavel size={11} /> Bid

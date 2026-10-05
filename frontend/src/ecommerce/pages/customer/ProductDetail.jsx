@@ -41,7 +41,7 @@ import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import VariantPicker from '../../components/storefront/products/VariantPicker';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
-import { productPath, idFromParam, itemSlug } from '../../../_shared/lib/itemPath';
+import { auctionPath, idFromParam, itemSlug, productPath } from '../../../_shared/lib/itemPath';
 
 function Lightbox({ url, onClose }) {
   useEffect(() => {
@@ -933,7 +933,7 @@ export default function ProductDetail() {
                 {(() => {
                   if (hasAuction) {
                     return (
-                      <button type="button" onClick={() => navigate(`/auctions/${auction.id}`)}
+                      <button type="button" onClick={() => navigate(auctionPath(auction, product))}
                         style={{
                           width: '100%', height: 50, borderRadius: 12,
                           border: '1.5px solid rgba(220,38,38,0.4)',

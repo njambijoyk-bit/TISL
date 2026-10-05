@@ -12,6 +12,9 @@ export const itemSlug = (item) => {
 export const productPath = (p) => `/products/${itemSlug(p)}`;
 export const servicePath = (s) => `/services/${itemSlug(s)}`;
 
+/** An auction's address: its id then its product's SKU, e.g. /auctions/19-ANG-001. */
+export const auctionPath = (auction, product) => `/auctions/${itemSlug({ id: auction?.id, sku: (product ?? auction?.product)?.sku })}`;
+
 /** The id from an address parameter such as "12-ANG-001" (or plain "12"). */
 export const idFromParam = (param) => {
   const m = /^(\d+)(?:-|$)/.exec(String(param ?? ''));

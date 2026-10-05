@@ -686,6 +686,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{slug}',                       [PublicHamperController::class, 'show']);
         });
 
+        // A customer's order or quotation number -> its id (the pages show the number in the address, never the id)
+        Route::get('/document-ref', [\App\Http\Controllers\Api\CustomerDocumentRefController::class, 'resolve']);
+
         // Quotations (Customer) — priced quotes for a request, accept / decline / ask for changes
         Route::prefix('quotations')->group(function () {
             Route::get('/', [QuotationController::class, 'myIndex']);

@@ -28,7 +28,7 @@ export default function MyOrdersPage() {
           {rows?.map((o) => {
             const [label, color] = ORDER_STATUS[o.status] ?? [o.status, '#6b7280'];
             return (
-              <Link key={o.id} to={`/orders/${o.id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 16, borderRadius: 12, border: '1px solid rgba(168,85,247,0.2)', textDecoration: 'none', color: 'inherit' }}>
+              <Link key={o.id} to={`/orders/${encodeURIComponent(o.number ?? o.id)}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: 16, borderRadius: 12, border: '1px solid rgba(168,85,247,0.2)', textDecoration: 'none', color: 'inherit' }}>
                 <div><strong style={{ fontFamily: 'monospace' }}>{o.number}</strong><div style={{ fontSize: '0.75rem', color: '#9ca3af' }}>{o.date}{o.payment === 'unpaid' && ' · awaiting payment'}</div></div>
                 <div style={{ textAlign: 'right' }}><div style={{ fontWeight: 700 }}>{formatMoney(o.total, o.currency)}</div><span style={{ fontSize: '0.72rem', fontWeight: 700, color }}>{label}</span></div>
               </Link>

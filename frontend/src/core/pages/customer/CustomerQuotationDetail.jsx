@@ -6,19 +6,22 @@ import Footer from '../../../_shared/components/layout/Footer';
 import quotationsAPI from '../../../_shared/api/quotations';
 import { formatMoney } from '../../../_shared/lib/money';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
+import useDocId from '../../../_shared/hooks/useDocId';
 
 const btn = { padding: '10px 18px', borderRadius: 10, fontWeight: 700, fontSize: '0.85rem', cursor: 'pointer', border: '1.5px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontFamily: 'inherit' };
 
 export default function CustomerQuotationDetail() {
-  const { id } = useParams();
+  const { id: ref } = useParams();
   const nav = useNavigate();
+  const { id, failed } = useDocId(ref);   // the address carries the quotation number; the id is looked up
   const [q, setQ] = useState(null);
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [mode, setMode] = useState(null); // 'decline' | 'revision'
 
-  const load = useCallback(() => quotationsAPI.mineShow(id).then(setQ).catch((e) => setError(errMsg(e, 'Could not load this quotation'))), [id]);
+  const load = useCallback(() => (id ? quotationsAPI.mineShow(id).then(setQ).catch((e) => setError(errMsg(e, 'Could not load this quotation'))) : (failed ? setError('We could not find that quotation.') : undefined)), [id, failed]);
+  useEffect(() => { if (q?.number && ref !== q.number) nav(`/my-quotes/${encodeURIComponent(q.number)}`, { replace: true }); }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [load]);
 
   const run = async (fn) => {
@@ -30,7 +33,7 @@ export default function CustomerQuotationDetail() {
 
   const accept = async () => {
     const res = await run(() => quotationsAPI.accept(id));
-    if (res?.order) nav(`/orders/${res.order.id}`);
+    if (res?.order) nav(`/orders/${encodeURIComponent(res.order.number ?? res.order.id)}`);
   };
 
   if (error) return <><Header /><main style={{ padding: 32 }}><p role="alert" style={{ color: '#991b1b' }}>{error}</p><Link to="/my-quotes">Back</Link></main><Footer /></>;

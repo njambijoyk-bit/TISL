@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
@@ -10,9 +10,12 @@ import { ORDER_STATUS } from './orderStatus';
 import OrderBreakdown from '../../../_shared/components/common/OrderBreakdown';
 import SummaryLedger from '../../../_shared/components/common/SummaryLedger';
 import { creditSentence } from '../../components/admin/books/creditText';
+import useDocId from '../../../_shared/hooks/useDocId';
 
 export default function CustomerOrderPage() {
-  const { id } = useParams();
+  const { id: ref } = useParams();
+  const navigate = useNavigate();
+  const { id, failed } = useDocId(ref);   // the address carries the order number; the id is looked up
   const [o, setO] = useState(null);
   const [error, setError] = useState(null);
   const [opts, setOpts] = useState(null);
@@ -21,7 +24,8 @@ export default function CustomerOrderPage() {
   const [edit, setEdit] = useState(null);       // { qty: {lineId: n}, address, promo } while changing the order
   const [review, setReview] = useState(null);   // { id, note } while asking for a review
 
-  const load = useCallback(() => checkoutAPI.order(id).then(setO).catch((e) => setError(errMsg(e, 'Could not load this order'))), [id]);
+  const load = useCallback(() => (id ? checkoutAPI.order(id).then(setO).catch((e) => setError(errMsg(e, 'Could not load this order'))) : (failed ? setError('We could not find that order.') : undefined)), [id, failed]);
+  useEffect(() => { if (o?.number && ref !== o.number) navigate(`/orders/${encodeURIComponent(o.number)}`, { replace: true }); }, [o]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); checkoutAPI.options().then(setOpts).catch(() => {}); }, [load]);
 
   if (error) return <><Header /><main style={{ padding: 32 }}>        <p role="alert" style={{ color: '#991b1b' }}>{error}</p><Link to="/orders">Back</Link></main><Footer /></>;

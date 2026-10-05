@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Gavel, Clock, Package } from 'lucide-react';
 import { formatMoney } from '../../../../_shared/lib/money';
 import BranchBadge from '../BranchBadge';
+import { auctionPath } from '../../../../_shared/lib/itemPath';
 
 export default function AuctionCard({ auction }) {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function AuctionCard({ auction }) {
   const isUrgent = countdown > 0 && countdown < 600; // under 10 mins
 
   return (
-    <div className="auction-collapsed-card" onClick={() => navigate(`/auctions/${auction.id}`)}>
+    <div className="auction-collapsed-card" onClick={() => navigate(auctionPath(auction, product))}>
       {/* Full-width name banner on hover */}
       <div className="collapsed-hover-name">{product?.name}</div>      {/* Thumbnail */}
       <div className="collapsed-thumb">
@@ -65,7 +66,7 @@ export default function AuctionCard({ auction }) {
 
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); navigate(`/auctions/${auction.id}`); }}
+          onClick={(e) => { e.stopPropagation(); navigate(auctionPath(auction, product)); }}
           disabled={isEnded}
           className={`collapsed-action-btn ${isEnded ? 'auction-ended' : 'auction'}`}
         >

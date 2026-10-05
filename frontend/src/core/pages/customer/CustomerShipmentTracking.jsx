@@ -14,6 +14,7 @@ import DriverTrackingModal from './DriverTrackingModal';
 import deliveryAPI from '../../../_shared/api/delivery';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import useDocId from '../../../_shared/hooks/useDocId';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const safeFormat = (d, fmt) => {
@@ -150,7 +151,8 @@ function StatusHero({ shipment }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function CustomerShipmentTracking() {
-  const { id: orderId } = useParams();
+  const { id: orderRef } = useParams();
+  const { id: orderId } = useDocId(orderRef);   // the address carries the order number; the id is looked up
   const navigate    = useNavigate();
 
   const [shipment, setShipment]         = useState(null);
@@ -161,6 +163,7 @@ export default function CustomerShipmentTracking() {
   const [trackingModal, setTrackingModal] = useState(false); // ✅ Added tracking modal state
 
   const load = async (silent = false) => {
+    if (!orderId) return;   // still turning the order number into its id
     if (!silent) setLoading(true);
     else setRefreshing(true);
     try {
@@ -219,7 +222,7 @@ export default function CustomerShipmentTracking() {
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No Shipment Found</h2>
           <p className="text-sm text-gray-400 mb-6">We couldn't find shipment details for this order.</p>
-          <button onClick={() => navigate(`/orders/${orderId}`)} type="button"
+          <button onClick={() => navigate(`/orders/${orderRef}`)} type="button"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-white text-sm font-semibold"
             style={{ background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', boxShadow: '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' }}>
             <ArrowLeft size={14} /> Back to Order
@@ -255,7 +258,7 @@ export default function CustomerShipmentTracking() {
               Orders
             </button>
             <span style={{ color: '#d1d5db' }}>/</span>
-            <button onClick={() => navigate(`/orders/${orderId}`)} type="button"
+            <button onClick={() => navigate(`/orders/${orderRef}`)} type="button"
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: '#9ca3af', fontWeight: 600, fontSize: '0.75rem' }}
               onMouseEnter={e => e.currentTarget.style.color = 'var(--color-primary-500)'}
               onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}>
@@ -495,7 +498,7 @@ export default function CustomerShipmentTracking() {
             <Section title="Actions" icon={Info}>
               <div className="flex flex-col gap-2">
 
-                <button onClick={() => navigate(`/orders/${orderId}`)} type="button"
+                <button onClick={() => navigate(`/orders/${orderRef}`)} type="button"
                   className="w-full inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-sm font-semibold transition-colors hover:border-primary-300 hover:text-primary-500">
                   <Package size={14} /> View Order Details
                 </button>

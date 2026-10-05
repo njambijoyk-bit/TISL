@@ -11,6 +11,7 @@ import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import AuctionCostPanel from '../../components/storefront/auctions/AuctionCostPanel';
 import Breadcrumb from '../../../_shared/components/layout/Breadcrumb';
+import { auctionPath, idFromParam, itemSlug } from '../../../_shared/lib/itemPath';
 
 // ── responsive hook ──────────────────────────────────────────────────────────
 function useWindowWidth() {
@@ -26,7 +27,8 @@ function useWindowWidth() {
 // ── order status helpers ─────────────────────────────────────────────────────
 // ── Main page ────────────────────────────────────────────────────────────────
 export default function AuctionDetailPage() {
-  const { id } = useParams();
+  const { id: idParam } = useParams();
+  const id = idFromParam(idParam);   // the address is id-SKU (19-ANG-001); the id is what is looked up
   const navigate = useNavigate();
   const windowWidth = useWindowWidth();
   const isMobile = windowWidth < 768;
@@ -38,6 +40,9 @@ export default function AuctionDetailPage() {
   const [termsAgreed, setTermsAgreed] = useState({ checked: false, acceptances: [] });   // auction terms ticked on this page
   const [countdown, setCountdown] = useState(0);
   const [imageError, setImageError] = useState(false);
+
+  // tidy the address to the current id-SKU once the auction is known (an old link or a bare id)
+  useEffect(() => { if (auction?.id && String(auction.id) === String(id) && idParam !== itemSlug({ id: auction.id, sku: auction.product?.sku })) navigate(auctionPath(auction), { replace: true }); }, [auction]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchAuction = () =>
     auctionsAPI.getAuction(id).then(res => {

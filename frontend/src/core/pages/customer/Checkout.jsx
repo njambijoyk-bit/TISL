@@ -148,7 +148,7 @@ export default function Checkout() {
       });
       if (res.status === 'awaiting_payment') { toast.success(res.message); setPending({ attemptId: res.attempt.id, orderId: res.order.id }); return; }
       toast.success(res.message);
-      done.current = true; clearCart(); prefs.reset(); navigate(`/orders/${res.order.id}`);
+      done.current = true; clearCart(); prefs.reset(); navigate(`/orders/${encodeURIComponent(res.order.number ?? res.order.id)}`);
     } catch (err) {
       toast.error(errMsg(err, 'Could not place your order'), { duration: 8000 });
     } finally { setBusy(false); }

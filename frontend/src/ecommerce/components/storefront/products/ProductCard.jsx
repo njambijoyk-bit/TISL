@@ -20,7 +20,7 @@ import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
 import Badge from '../../../../_shared/components/common/Badge';
-import { productPath } from '../../../../_shared/lib/itemPath';
+import { auctionPath, productPath } from '../../../../_shared/lib/itemPath';
 
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
@@ -321,7 +321,7 @@ export default function ProductCard({ product }) {
         <div className="flex gap-2">
           {hasAuction ? (
             <button 
-              onClick={(e) => { e.stopPropagation(); navigate(`/auctions/${auction.id}`); }} 
+              onClick={(e) => { e.stopPropagation(); navigate(auctionPath(auction, product)); }} 
               className="auction-btn flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2"
               type="button"
             >

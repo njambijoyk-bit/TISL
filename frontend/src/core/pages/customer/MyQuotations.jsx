@@ -29,7 +29,7 @@ export default function MyQuotations() {
           {rows?.map((q) => {
             const [label, color] = STATUS[q.doc_status] ?? [q.doc_status, '#6b7280'];
             return (
-              <Link key={q.id} to={`/my-quotes/${q.id}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 16, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', textDecoration: 'none', color: 'var(--text-primary)' }}>
+              <Link key={q.id} to={`/my-quotes/${encodeURIComponent(q.number ?? q.id)}`} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: 16, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', textDecoration: 'none', color: 'var(--text-primary)' }}>
                 <div>
                   <strong style={{ fontFamily: 'monospace' }}>{q.number}</strong>
                   {q.title && <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{q.title}</div>}

@@ -16,7 +16,7 @@ const STATUS = { active: ['Ready to use', '#10b981'], used: ['Used', '#6b7280'],
 const PRESETS = [500, 1000, 2500, 5000];
 
 const sign = (n) => (n > 0 ? '+' : n < 0 ? '−' : '');
-const OrderLink = ({ order }) => (order ? <Link to={`/orders/${order.id}`} style={{ fontSize: '0.72rem' }}>{order.number}</Link> : null);
+const OrderLink = ({ order }) => (order ? <Link to={`/orders/${encodeURIComponent(order.number ?? order.id)}`} style={{ fontSize: '0.72rem' }}>{order.number}</Link> : null);
 
 function Points({ points, base, onDone }) {
   const [busy, setBusy] = useState(null);
@@ -113,7 +113,7 @@ export default function MyGiftVouchers() {
         payment_mode: 'pay_later', customer_email: user?.email, customer_phone: f.phone, phone: f.phone,
       });
       toast.success('Order created — pay to receive the gift voucher code');
-      nav(`/orders/${res.order.id}`);
+      nav(`/orders/${encodeURIComponent(res.order.number ?? res.order.id)}`);
     } catch (x) { toast.error(errMsg(x, 'Could not create the order'), { duration: 8000 }); }
     finally { setBusy(false); }
   };
