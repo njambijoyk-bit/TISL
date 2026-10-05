@@ -35,23 +35,6 @@ const customersAPI = {
     return response.data;
   },
 
-  // Get customer reviews
-  getMyReviews: async (params = {}) => {
-    const response = await api.get('/customer/reviews', { params });
-    return response.data;
-  },
-
-  // Update review
-  updateReview: async (id, data) => {
-    const response = await api.put(`/customer/reviews/${id}`, data);
-    return response.data;
-  },
-
-  // Delete review
-  deleteReview: async (id) => {
-    const response = await api.delete(`/customer/reviews/${id}`);
-    return response.data;
-  },
 
   // ADMIN: Get all customers
   getAllCustomers: async (params = {}) => {

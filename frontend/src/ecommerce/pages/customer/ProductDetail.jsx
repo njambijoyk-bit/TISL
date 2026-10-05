@@ -30,70 +30,23 @@ import Button from '../../../_shared/components/common/Button';
 import Badge from '../../../_shared/components/common/Badge';
 import PriceBreakdown from '../../../_shared/components/common/PriceBreakdown';
 import CollapsedProductCard from '../../components/storefront/products/CollapsedProductCard';
-import ReviewCard from '../../components/storefront/products/ReviewCard';
+import Discussion from '../../../extras/components/engagement/Discussion';
+import useEngagement from '../../../_shared/lib/engagementConfig';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
 import useRequestListStore from '../../../_shared/store/requestListStore';
 
 import { productsAPI } from '../../../_shared/api/index';
-import { useCartStore, useProductStore, useAuthStore } from '../../../_shared/store/index';
+import { useCartStore, useProductStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import VariantPicker from '../../components/storefront/products/VariantPicker';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
 import { auctionPath, idFromParam, itemSlug, productPath } from '../../../_shared/lib/itemPath';
 
-function Lightbox({ url, onClose }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
- 
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.85)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: 24,
-        backdropFilter: 'blur(6px)',
-      }}
-    >
-      {/* close button */}
-      <button
-        onClick={onClose}
-        style={{
-          position: 'fixed', top: 20, right: 20,
-          width: 36, height: 36, borderRadius: '50%',
-          background: 'rgba(255,255,255,0.12)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          color: 'white', fontSize: '1.1rem',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', zIndex: 10000,
-        }}
-      >
-        ✕
-      </button>
-      <img
-        src={url}
-        alt="Review image"
-        onClick={e => e.stopPropagation()}
-        style={{
-          maxWidth: '90vw', maxHeight: '88vh',
-          borderRadius: 16,
-          border: '2px solid color-mix(in srgb, var(--color-primary-500) 50%, transparent)',
-          boxShadow: '0 0 40px color-mix(in srgb, var(--color-primary-500) 35%, transparent), 0 0 80px color-mix(in srgb, var(--color-primary-600) 15%, transparent)',
-          objectFit: 'contain',
-        }}
-      />
-    </div>
-  );
-}
-
 export default function ProductDetail() {
   const money = useMoney();   // before any early return (hooks rule)
+  const reviewsOn = useEngagement().on('product', 'review');
   const { id: idParam } = useParams();
   const id = idFromParam(idParam);   // the address is id-SKU (12-ANG-001); the id is what is looked up
   const navigate = useNavigate();
@@ -101,7 +54,6 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   // tidy the address to the current id-SKU once the product is known (an old link, a bare id or an edited SKU)
   useEffect(() => { if (product?.id && String(product.id) === String(id) && idParam !== itemSlug(product)) navigate(productPath(product), { replace: true }); }, [product]); // eslint-disable-line react-hooks/exhaustive-deps
-  const [reviews, setReviews] = useState([]);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -116,19 +68,6 @@ export default function ProductDetail() {
   const [addedToCart, setAddedToCart] = useState(false);
   const [imageErrors, setImageErrors] = useState({});
 
-  const [canReview, setCanReview] = useState(false);  
-  const [eligibleOrders, setEligibleOrders] = useState([]);  
-  const [showReviewForm, setShowReviewForm] = useState(false);  
-  const [lightboxUrl, setLightboxUrl] = useState(null);
-  const [reviewData, setReviewData] = useState({  
-    order_id: '',  
-    rating: 0,  
-    title: '',  
-    comment: '',  
-    images: [],  
-  });  
-  const [submittingReview, setSubmittingReview] = useState(false);  
-  const [reviewError, setReviewError] = useState('');
   const [qtyDir, setQtyDir] = useState(1);
   const [qtyAnimKey, setQtyAnimKey] = useState(0);
   const [arcDeg, setArcDeg] = useState(0);
@@ -146,7 +85,6 @@ export default function ProductDetail() {
   const { toggle, has } = useWishlistStore();
   const wished = Boolean(product?.id) ? has(product.id) : false;
 
-  const { isAuthenticated } = useAuthStore();
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/placeholder-product.png';
@@ -201,9 +139,6 @@ export default function ProductDetail() {
 
   useEffect(() => {   
     setImageErrors({});   
-    setShowReviewForm(false);  
-    setCanReview(false);  
-    setReviewError('');  
     fetchProductData();   
   }, [id]);
 
@@ -217,31 +152,7 @@ export default function ProductDetail() {
       const productData = productRes?.product || productRes;
       setProduct(productData);
       setCurrentProduct(productData);
-      // productData.reviews is an integer count, not review objects  
-      // Fetch actual reviews from the dedicated endpoint  
-      try {  
-          const reviewsRes = await productsAPI.getProductReviews(id);  
-          setReviews(reviewsRes?.reviews?.data || []);  
-      } catch (err) {  
-          console.warn('Failed to fetch reviews:', err);  
-          setReviews([]);  
-      }
 
-      // Check if logged-in user can review this product  
-      if (isAuthenticated) {  
-        try {  
-          const eligibility = await productsAPI.canReview(id);  
-          setCanReview(eligibility.can_review);  
-          setEligibleOrders(eligibility.orders || []);  
-          if (eligibility.orders?.length === 1) {  
-            setReviewData(prev => ({ ...prev, order_id: eligibility.orders[0].order_id }));  
-          }  
-        } catch (err) {  
-          console.warn('Failed to check review eligibility:', err);  
-          setCanReview(false);  
-        }  
-      }
-      
       const normalizeRelatedProduct = (p) => {
         const rawMain = p?.main_image_url ?? p?.mainimageurl ?? p?.mainimage ?? p?.main_image ?? null;
         const rawAdditional = p?.additional_images ?? p?.additionalimages ?? p?.images ?? [];
@@ -316,50 +227,6 @@ export default function ProductDetail() {
     if (!product?.id) return;
     toggle(product.id);
     toast.success(wished ? 'Removed from wishlist' : 'Added to wishlist');
-  };
-
-  const handleMarkHelpful = async (reviewId) => {  
-    try {   
-      await productsAPI.markReviewHelpful(reviewId);   
-      toast.success('Thank you!');   
-      fetchProductData();   
-    } catch (err) {  
-      if (err.response?.status === 400) {  
-        toast.info('You have already marked this review as helpful');  
-      } else {  
-        toast.error('Failed to mark review as helpful');  
-      }  
-    }  
-  };
-
-  const handleSubmitReview = async () => {  
-    if (!reviewData.rating || !reviewData.order_id) {  
-      setReviewError('Please select a rating and an order');  
-      return;  
-    }  
-    setSubmittingReview(true);  
-    setReviewError('');  
-    try {  
-      const formData = new FormData();  
-      formData.append('order_id', reviewData.order_id);  
-      formData.append('rating', reviewData.rating);  
-      if (reviewData.title) formData.append('title', reviewData.title);  
-      if (reviewData.comment) formData.append('comment', reviewData.comment);  
-      if (reviewData.images?.length) {  
-        reviewData.images.forEach(img => formData.append('images[]', img));  
-      }  
-      await productsAPI.createReview(id, formData);  
-      toast.success('Review submitted! It will appear after approval.');  
-      setShowReviewForm(false);  
-      setReviewData({ order_id: '', rating: 0, title: '', comment: '', images: [] });  
-      fetchProductData(); // Refresh reviews and eligibility  
-    } catch (err) {  
-      const msg = err.response?.data?.message || err.response?.data?.errors?.rating?.[0] || 'Failed to submit review';  
-      setReviewError(msg);  
-      toast.error(msg);  
-    } finally {  
-      setSubmittingReview(false);  
-    }  
   };
 
   if (loading) {
@@ -440,7 +307,7 @@ export default function ProductDetail() {
   const tabs = [
     ...(hasDescription ? [{ id: 'description', label: 'Description' }] : []),
     ...(hasSpecs ? [{ id: 'specs', label: 'Specifications' }] : []),
-    ...(reviews.length > 0 ? [{ id: 'reviews', label: `Reviews (${totalReviews})` }] : [{ id: 'reviews', label: 'Reviews' }]),
+    ...(reviewsOn ? [{ id: 'reviews', label: totalReviews > 0 ? `Reviews (${totalReviews})` : 'Reviews' }] : []),
   ];
 
   return (
@@ -689,8 +556,8 @@ export default function ProductDetail() {
                 </p>
               )}
 
-              {/* Rating row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
+              {/* Rating row (only while reviews are on and there are some) */}
+              {reviewsOn && totalReviews > 0 && <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
                 <div style={{ display: 'flex', gap: 2 }}>
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star key={i} size={15} style={{ color: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb', fill: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb' }} />
@@ -698,7 +565,7 @@ export default function ProductDetail() {
                 </div>
                 <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{averageRating.toFixed(1)}</span>
                 <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>({totalReviews} reviews)</span>
-              </div>
+              </div>}
 
               {/* ── Pricing + Stock card ── */}
               <div style={{ borderRadius: 16, border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)', overflow: 'hidden' }}>
@@ -1161,324 +1028,7 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {activeTab === 'reviews' && (
-                  <div>
-                    {/* Lightbox */}
-                    {lightboxUrl && <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
-
-                    {/* ── Rating summary ───────────────────────────────────────────────── */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', gap: 20, marginBottom: 28,
-                      padding: '22px 26px',
-                      background: 'rgba(245, 158, 11, 0.04)',
-                      borderRadius: 14, border: '1px solid rgba(245, 158, 11, 0.15)',
-                    }}>
-                      <div style={{
-                        width: 80, height: 80, borderRadius: 14,
-                        background: 'linear-gradient(135deg, #f59e0b, #583801)',
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', lineHeight: 1 }}>
-                          {averageRating.toFixed(1)}
-                        </span>
-                        <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'rgba(255,255,255,0.75)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                          of 5
-                        </span>
-                      </div>
-                      <div>
-                        <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
-                          {Array.from({ length: 5 }).map((_, i) => (
-                            <Star
-                              key={i} size={16}
-                              style={{
-                                color: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb',
-                                fill: i < Math.round(averageRating) ? '#f59e0b' : '#e5e7eb',
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151', margin: 0 }}>
-                          {totalReviews} {totalReviews === 1 ? 'review' : 'reviews'}
-                        </p>
-                        <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '2px 0 0' }}>
-                          Based on verified purchases
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* ── Write a review CTA ───────────────────────────────────────────── */}
-                    {canReview && !showReviewForm && (
-                      <div style={{ marginBottom: 24, textAlign: 'center' }}>
-                        <button
-                          onClick={() => setShowReviewForm(true)}
-                          style={{
-                            padding: '10px 24px', borderRadius: 10, border: 'none',
-                            background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-                            color: 'white', fontSize: '0.82rem', fontWeight: 700,
-                            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7,
-                            boxShadow: '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
-                            transition: 'transform 150ms ease, box-shadow 150ms ease',
-                          }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 20px color-mix(in srgb, var(--color-primary-500) 40%, transparent)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 14px color-mix(in srgb, var(--color-primary-500) 30%, transparent)'; }}
-                        >
-                          <Star size={14} fill="white" /> Write a Review
-                        </button>
-                      </div>
-                    )}
-
-                    {!isAuthenticated && (
-                      <div style={{
-                        marginBottom: 24, textAlign: 'center', padding: '14px 18px',
-                        background: 'color-mix(in srgb, var(--color-primary-500) 4%, transparent)', borderRadius: 12,
-                        border: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)',
-                      }}>
-                        <p style={{ fontSize: '0.82rem', color: '#6b7280', margin: 0 }}>
-                          <a href="/login" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Log in</a> to write a review
-                        </p>
-                      </div>
-                    )}
-
-                    {isAuthenticated && !canReview && (
-                      <div style={{
-                        marginBottom: 24, textAlign: 'center', padding: '14px 18px',
-                        background: 'rgba(245,158,11,0.06)', borderRadius: 12,
-                        border: '1px solid rgba(245,158,11,0.2)',
-                      }}>
-                        <p style={{ fontSize: '0.82rem', color: '#92400e', margin: 0 }}>Purchase this product to leave a review</p>
-                      </div>
-                    )}
-
-                    {/* ── Review form ──────────────────────────────────────────────────── */}
-                    {showReviewForm && (
-                      <div style={{
-                        marginBottom: 28, padding: '22px 24px', borderRadius: 14,
-                        border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
-                        background: 'linear-gradient(180deg, #ffffff 0%, color-mix(in srgb, var(--color-primary-500) 4%, var(--bg-primary)) 100%)',
-                        boxShadow: '0 4px 20px color-mix(in srgb, var(--color-primary-500) 6%, transparent)',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <div style={{
-                              width: 28, height: 28, borderRadius: 8,
-                              background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            }}>
-                              <Star size={13} color="var(--color-primary-500)" />
-                            </div>
-                            <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--color-primary-600)', margin: 0 }}>Write Your Review</h3>
-                          </div>
-                          <button
-                            onClick={() => { setShowReviewForm(false); setReviewError(''); }}
-                            style={{
-                              width: 28, height: 28, borderRadius: 8, background: 'rgba(0,0,0,0.04)',
-                              border: '1px solid rgba(0,0,0,0.06)', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              color: '#9ca3af', fontSize: '0.9rem', fontWeight: 600,
-                            }}
-                          >✕</button>
-                        </div>
-
-                        {/* Order selector */}
-                        {eligibleOrders.length > 1 && (
-                          <div style={{ marginBottom: 16 }}>
-                            <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Select Order *</label>
-                            <select
-                              value={reviewData.order_id}
-                              onChange={e => setReviewData(prev => ({ ...prev, order_id: e.target.value }))}
-                              style={{
-                                width: '100%', padding: '9px 14px', borderRadius: 10,
-                                border: '1.5px solid #e5e7eb', fontSize: '0.82rem', color: '#111827',
-                                background: '#fff', outline: 'none',
-                              }}
-                              onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
-                              onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
-                            >
-                              <option value="">Choose an order...</option>
-                              {eligibleOrders.map(o => (
-                                <option key={o.order_id} value={o.order_id}>Order #{o.order_number}</option>
-                              ))}
-                            </select>
-                          </div>
-                        )}
-
-                        {/* Star rating */}
-                        <div style={{ marginBottom: 16 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Rating *</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                            {[1, 2, 3, 4, 5].map(n => (
-                              <button
-                                key={n} type="button"
-                                onClick={() => setReviewData(prev => ({ ...prev, rating: n }))}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, transition: 'transform 0.1s' }}
-                                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.15)'}
-                                onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                              >
-                                <Star size={24} fill={n <= reviewData.rating ? '#f59e0b' : 'none'} color={n <= reviewData.rating ? '#f59e0b' : '#d1d5db'} />
-                              </button>
-                            ))}
-                            {reviewData.rating > 0 && (
-                              <span style={{
-                                marginLeft: 8, fontSize: '0.72rem', fontWeight: 700, color: '#f59e0b',
-                                background: 'rgba(245,158,11,0.08)', padding: '3px 10px', borderRadius: 20,
-                                border: '1px solid rgba(245,158,11,0.2)',
-                              }}>
-                                {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][reviewData.rating]}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Title */}
-                        <div style={{ marginBottom: 16 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Review Title</label>
-                          <input
-                            value={reviewData.title}
-                            onChange={e => setReviewData(prev => ({ ...prev, title: e.target.value }))}
-                            placeholder="Sum up your review in one line"
-                            maxLength={255}
-                            style={{
-                              width: '100%', padding: '9px 14px', borderRadius: 10,
-                              border: '1.5px solid #e5e7eb', fontSize: '0.82rem', color: '#111827',
-                              background: '#fff', boxSizing: 'border-box', outline: 'none',
-                            }}
-                            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
-                            onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
-                          />
-                        </div>
-
-                        {/* Comment */}
-                        <div style={{ marginBottom: 16 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Your Review</label>
-                          <textarea
-                            value={reviewData.comment}
-                            onChange={e => setReviewData(prev => ({ ...prev, comment: e.target.value }))}
-                            placeholder="What did you like or dislike about this product?"
-                            rows={4} maxLength={2000}
-                            style={{
-                              width: '100%', padding: '9px 14px', borderRadius: 10,
-                              border: '1.5px solid #e5e7eb', fontSize: '0.82rem', color: '#111827',
-                              background: '#fff', resize: 'vertical', boxSizing: 'border-box',
-                              fontFamily: 'inherit', outline: 'none',
-                            }}
-                            onFocus={e => { e.currentTarget.style.borderColor = 'var(--color-primary-500)'; e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent)'; }}
-                            onBlur={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}
-                          />
-                        </div>
-
-                        {/* Image upload */}
-                        <div style={{ marginBottom: 20 }}>
-                          <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-500)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                            Photos <span style={{ fontWeight: 400, color: '#9ca3af', textTransform: 'none', letterSpacing: 'normal' }}>(optional, max 5)</span>
-                          </label>
-                          <input
-                            type="file" accept="image/*" multiple
-                            onChange={e => {
-                              const files = Array.from(e.target.files).slice(0, 5);
-                              setReviewData(prev => ({ ...prev, images: files }));
-                            }}
-                            style={{ fontSize: '0.78rem', color: '#6b7280' }}
-                          />
-                          {/* Selected image previews */}
-                          {reviewData.images.length > 0 && (
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
-                              {reviewData.images.map((file, i) => (
-                                <img
-                                  key={i}
-                                  src={URL.createObjectURL(file)}
-                                  alt={`Preview ${i + 1}`}
-                                  onClick={() => setLightboxUrl(URL.createObjectURL(file))}
-                                  style={{
-                                    width: 48, height: 48, objectFit: 'cover',
-                                    borderRadius: 8,
-                                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)',
-                                    cursor: 'pointer',
-                                    transition: 'border-color 0.15s, box-shadow 0.15s',
-                                  }}
-                                  onMouseEnter={e => {
-                                    e.currentTarget.style.boxShadow = '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 12%, transparent)';
-                                    e.currentTarget.style.borderColor = 'var(--color-primary-500)';
-                                  }}
-                                  onMouseLeave={e => {
-                                    e.currentTarget.style.boxShadow = 'none';
-                                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 30%, transparent)';
-                                  }}
-                                />
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Error */}
-                        {reviewError && (
-                          <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 10, background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                            <p style={{ fontSize: '0.78rem', color: '#dc2626', margin: 0, fontWeight: 600 }}>{reviewError}</p>
-                          </div>
-                        )}
-
-                        {/* Submit */}
-                        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                          <button
-                            onClick={() => { setShowReviewForm(false); setReviewError(''); }}
-                            style={{
-                              padding: '9px 18px', borderRadius: 10,
-                              border: '1.5px solid #e5e7eb', background: '#fff',
-                              color: '#6b7280', fontSize: '0.82rem', fontWeight: 600,
-                              cursor: 'pointer', transition: 'border-color 150ms',
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.borderColor = '#9ca3af'}
-                            onMouseLeave={e => e.currentTarget.style.borderColor = '#e5e7eb'}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSubmitReview}
-                            disabled={submittingReview || !reviewData.rating}
-                            style={{
-                              padding: '9px 22px', borderRadius: 10, border: 'none',
-                              background: !reviewData.rating ? '#d1d5db' : 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))',
-                              color: 'white', fontSize: '0.82rem', fontWeight: 700,
-                              cursor: !reviewData.rating ? 'not-allowed' : 'pointer',
-                              opacity: submittingReview ? 0.6 : 1,
-                              display: 'inline-flex', alignItems: 'center', gap: 6,
-                              boxShadow: reviewData.rating ? '0 4px 12px color-mix(in srgb, var(--color-primary-500) 30%, transparent)' : 'none',
-                              transition: 'transform 150ms ease, box-shadow 150ms ease',
-                            }}
-                            onMouseEnter={e => { if (reviewData.rating) { e.currentTarget.style.transform = 'translateY(-1px)'; } }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}
-                          >
-                            {submittingReview ? 'Submitting...' : 'Submit Review'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* ── Review list ──────────────────────────────────────────────────── */}
-                    {reviews.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        {reviews.map(review => (
-                          <ReviewCard
-                            key={review?.id}
-                            review={review}
-                            onMarkHelpful={handleMarkHelpful}
-                            onImageClick={setLightboxUrl}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <div style={{
-                        textAlign: 'center', padding: '48px 24px',
-                        background: 'color-mix(in srgb, var(--color-primary-500) 3%, transparent)', borderRadius: 14,
-                        border: '1px dashed color-mix(in srgb, var(--color-primary-500) 15%, transparent)',
-                      }}>
-                        <Star size={36} style={{ margin: '0 auto 10px', display: 'block', color: 'var(--color-primary-400)' }} />
-                        <p style={{ fontWeight: 700, marginBottom: 4, color: '#374151', fontSize: '0.9rem' }}>No reviews yet</p>
-                        <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>Be the first to review this product!</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                {activeTab === 'reviews' && reviewsOn && product?.id && <Discussion type="product" id={product.id} />}
               </div>
 
               {/* Trust strip */}

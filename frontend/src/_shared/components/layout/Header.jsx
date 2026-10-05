@@ -395,7 +395,7 @@ export default function Header() {
       },
       {
         label: 'Support', items: [
-          { label: 'Reviews', icon: Star,      to: '/admin/reviews' },
+          { label: 'Reviews', icon: Star,      to: '/admin/engagement' },
           { label: 'Tickets', icon: LifeBuoy,  to: '/admin/tickets' },
           { label: 'Reports', icon: BarChart2, to: '/admin/books?tab=reports' },
         ],

@@ -1146,7 +1146,7 @@ function RouteMapAppendix() {
         { path: '/admin/categories',                comp: 'CategoryController' },
         { path: '/admin/categories/create',         comp: 'CategoryController@store' },
         { path: '/admin/categories/:id/edit',       comp: 'CategoryController@update' },
-        { path: '/admin/reviews',                   comp: 'ProductReviewController@adminIndex' },
+        { path: '/admin/engagement',                comp: 'EngagementModerationController@index' },
       ]} />
 
       <RouteGroup title="7. Admin — Quotes & Tickets" routes={[

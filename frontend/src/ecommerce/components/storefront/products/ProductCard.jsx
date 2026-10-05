@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
+import useEngagement from '../../../../_shared/lib/engagementConfig';
 import {
   ShoppingCart,
   Star,
@@ -34,13 +35,14 @@ export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const { add: addToCart, chooser } = useCartAdder();
   const { toggle, has } = useWishlistStore();
+  const reviewsOn = useEngagement().on('product', 'review');
   
   const hasAuction = product?.active_auction && product.active_auction.status === 'active';
   const auction = product.active_auction || null;
 
   // ---------- Normalize fields ----------
   const rating = Number(product?.average_rating ?? product?.averagerating ?? product?.rating ?? 0);
-  const reviewsCount = Number(product?.reviews_count ?? product?.totalreviews ?? 0);
+  const reviewsCount = Number(product?.reviews_count ?? product?.totalreviews ?? product?.reviews ?? 0);
 
   const isNew = Number(product?.is_new ?? product?.isnew ?? 0) === 1;
   const onSale = Number(product?.on_sale ?? product?.onsale ?? 0) === 1;
@@ -281,7 +283,7 @@ export default function ProductCard({ product }) {
         </h3>
 
         {/* Rating */}
-        {rating > 0 && (
+        {reviewsOn && rating > 0 && (
           <div className="flex items-center gap-1 mb-2">
             <div className="flex items-center">
               {[...Array(5)].map((_, i) => (

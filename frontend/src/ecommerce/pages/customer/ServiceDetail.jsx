@@ -37,11 +37,14 @@ import Badge from '../../../_shared/components/common/Badge';
 import PriceBreakdown from '../../../_shared/components/common/PriceBreakdown';
 import useMoney from '../../../_shared/hooks/useMoney';
 import { servicePath, idFromParam, itemSlug } from '../../../_shared/lib/itemPath';
+import Discussion from '../../../extras/components/engagement/Discussion';
+import useEngagement from '../../../_shared/lib/engagementConfig';
 
 const ServiceDetail = () => {
   const { id: idParam } = useParams();
   const id = idFromParam(idParam);   // the address is id-SKU (12-ANG-001); the id is what is looked up
   const navigate = useNavigate();
+  const reviewsOn = useEngagement().on('service', 'review');
 
   const {
     currentService,
@@ -321,7 +324,7 @@ const ServiceDetail = () => {
             </div>
 
               {/* Rating */}
-              {service.rating > 0 && (
+              {reviewsOn && service.rating > 0 && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ display: 'flex', gap: 2 }}>
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -509,6 +512,14 @@ const ServiceDetail = () => {
               )}
             </div>
           </div>
+
+          {/* ── REVIEWS (the Engagement Engine; nothing shows when it is off) ── */}
+          {reviewsOn && service?.id && (
+            <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', padding: '22px 24px', marginBottom: 48 }}>
+              <h2 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 14px' }}>Reviews</h2>
+              <Discussion type="service" id={service.id} />
+            </div>
+          )}
 
           {/* ── RELATED SERVICES ──────────────────────────────────────────── */}
           {relatedServices && relatedServices.length > 0 && (

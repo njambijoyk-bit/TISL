@@ -165,7 +165,7 @@ const AdminCustomers     = lazy(() => import('./core/pages/admin/Customers'));
 const CustomerDetail     = lazy(() => import('./core/pages/admin/CustomerDetail'));
 const CreditDashboard    = lazy(() => import('./core/pages/admin/CreditDashboard'));
 const CreditDetail       = lazy(() => import('./core/pages/admin/CustomerCreditDetail'));
-const AdminReviews       = lazy(() => import('./ecommerce/pages/admin/Reviews'));
+const EngagementQueue    = lazy(() => import('./extras/pages/admin/EngagementQueue'));
 const BooksHub           = lazy(() => import('./core/pages/admin/books/BooksHub'));
 const VoucherForm        = lazy(() => import('./core/pages/admin/books/VoucherForm'));
 const Verification       = lazy(() => import('./core/pages/admin/verification/Verification'));
@@ -1354,14 +1354,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/admin/reviews"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminReviews />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/admin/engagement" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'sales_rep', 'finance']}><ModuleRoute module="extras" redirectTo="/admin"><EngagementQueue /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/reviews" element={<Navigate to="/admin/engagement" replace />} />
 
               <Route
                 path="/admin/loyalty"

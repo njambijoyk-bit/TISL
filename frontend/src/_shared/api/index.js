@@ -18,7 +18,6 @@ export { default as customerTiersAPI } from './customerTiers'
 export { default as categoriesAPI } from './categories';
 export { default as brandsAPI } from './brands';
 export { default as customersAPI } from './customers';
-export { default as reviewsAPI } from './reviews';
 export { default as servicesAPI } from './services';
 export { default as serviceCategoriesAPI } from './serviceCategories';
 export { default as projectsAPI } from './projects';

@@ -80,30 +80,6 @@ const productsAPI = {
     return response.data;
   },
 
-  // Get product reviews
-  getProductReviews: async (productId, params = {}) => {
-    const response = await api.get(`/products/${productId}/reviews`, { params });
-    return response.data;
-  },
-
-  // Create product review
-  createReview: async (productId, data) => {  
-    const config = data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};  
-    const response = await api.post(`/customer/products/${productId}/reviews`, data, config);  
-    return response.data;  
-  },
-
-  // Check if can review
-  canReview: async (productId) => {
-    const response = await api.get(`/customer/products/${productId}/can-review`);
-    return response.data;
-  },
-
-  // Mark review as helpful
-  markReviewHelpful: async (reviewId) => {
-    const response = await api.post(`/reviews/${reviewId}/helpful`);
-    return response.data;
-  },
 
   // ADMIN: Create product
   createProduct: async (data) => {
