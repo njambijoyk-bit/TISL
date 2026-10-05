@@ -86,7 +86,7 @@ export default function StockMovement() {
         </select>
       )}
       {mode === 'item' && (product
-        ? <span style={{ ...filterStyle, display: 'inline-flex', gap: 8, alignItems: 'center' }}><strong>{product.name}</strong><button type="button" onClick={() => { setProduct(null); setQ(''); }} style={{ ...link, textDecoration: 'none', color: colors.textMuted }}>change</button></span>
+        ? <span style={{ ...filterStyle, display: 'inline-flex', gap: 8, alignItems: 'center' }}><strong>{product.name}</strong><button type="button" onClick={() => { setProduct(null); setQ(''); }} style={{ ...link, textDecoration: 'none', color: 'var(--status-error, #ef4444)', fontWeight: 700 }}>change</button></span>
         : (
           <div style={{ position: 'relative' }}>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find an item…" style={{ ...filterStyle, width: 260 }} aria-label="Item" />
