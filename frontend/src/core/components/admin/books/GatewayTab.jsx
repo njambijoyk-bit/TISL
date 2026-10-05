@@ -20,7 +20,7 @@ const MASTERS = [
 
 const REPORTS = [
   ['Day book', 'day-book'], ['Ledger statement', 'ledger'], ['Trial balance', 'trial-balance'], ['Profit & loss', 'profit-loss'], ['Balance sheet', 'balance-sheet'],
-  ['Receivables ageing', 'receivables'], ['Payables ageing', 'payables'], ['Tax return', 'tax-return'], ['Withholding certificates', 'withholding'], ['Reconciliation', 'reconciliation'],
+  ['Stock movement', 'stock-movement'], ['Receivables ageing', 'receivables'], ['Payables ageing', 'payables'], ['Tax return', 'tax-return'], ['Withholding certificates', 'withholding'], ['Reconciliation', 'reconciliation'],
 ];
 
 const GROUPS = [

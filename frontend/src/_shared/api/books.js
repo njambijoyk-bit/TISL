@@ -56,6 +56,12 @@ const booksAPI = {
   versions: (id) => get(`/admin/books/vouchers/${id}/versions`),
   entitlements: (params) => get('/admin/books/vouchers/entitlements', params),
   checkSupplierInvoice: (params) => get('/admin/books/vouchers/check-supplier-invoice', params),
+  // what moved: stock with a ledger or an item, and money through cash and bank
+  movementLedgerItems: (params) => get('/admin/books/movement/ledger-items', params),
+  movementItemVouchers: (params) => get('/admin/books/movement/item-vouchers', params),
+  movementItemLedgers: (params) => get('/admin/books/movement/item-ledgers', params),
+  movementProducts: (q) => get('/admin/books/movement/products', { q }),
+  moneyFlow: (params) => get('/admin/books/movement/money-flow', params),
   lookup: (kind, q, purpose, extra = {}) => get('/admin/books/lookup', { kind, q, purpose, ...extra }),
   productVariants: (productId) => get(`/admin/books/products/${productId}/variants`),
   stockBatches: (variantId, locationId) => get('/admin/books/stock-batches', { variant_id: variantId, location_id: locationId }),

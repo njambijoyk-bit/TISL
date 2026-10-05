@@ -7,6 +7,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { card, colors } from '../../../../_shared/theme/tokens';
 import { ExportMenu } from './booksUi';
 import { money, filterStyle, yearStart, today } from './booksFmt';
+import StockMovement from './StockMovement';
 
 const REPORTS = [
   { id: 'day-book', label: 'Day book', range: true },
@@ -20,6 +21,7 @@ const REPORTS = [
   { id: 'withholding', label: 'Withholding certificates', range: true },
   { id: 'ratio-analysis', label: 'Ratio analysis', range: true },
   { id: 'reconciliation', label: 'Reconciliation', asOf: true },
+  { id: 'stock-movement', label: 'Stock movement', custom: true },   // draws itself: it starts from a ledger or an item
 ];
 
 const th = { padding: '8px 12px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
@@ -275,13 +277,14 @@ export default function ReportsTab() {
   const query = useCallback(() => ({ ...(def.asOf ? { to } : { from, to }), ...(id === 'ledger' ? { ledger_id: ledgerId } : {}) }), [def, from, to, id, ledgerId]);
 
   const run = useCallback(async () => {
+    if (def.custom) return;
     const mine = ++seq.current;   // an older answer arriving late is dropped
     if (id === 'ledger' && !ledgerId) { setResult(null); return; }
     setLoading(true); setError(null);
     try { const d = await booksAPI.report(id, query()); if (mine === seq.current) setResult({ id, data: d }); }
     catch (e) { if (mine === seq.current) { setResult(null); setError(errMsg(e, 'Could not run the report')); toast.error(errMsg(e, 'Could not run the report')); } }
     finally { if (mine === seq.current) setLoading(false); }
-  }, [id, ledgerId, query]);
+  }, [id, ledgerId, query, def.custom]);
 
   useEffect(() => { run(); }, [run]);
 
@@ -295,7 +298,8 @@ export default function ReportsTab() {
           </button>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
+      {def.custom && <StockMovement />}
+      {!def.custom && <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {id === 'ledger' && (
           <select value={ledgerId} onChange={(e) => setLedgerId(e.target.value)} style={{ ...filterStyle, minWidth: 220 }} aria-label="Ledger">
             <option value="">Choose a ledger…</option>
@@ -306,9 +310,9 @@ export default function ReportsTab() {
         <label style={{ fontSize: '0.75rem', color: colors.textMuted }}>{def.asOf ? 'As of' : 'To'} <input type="date" value={to} onChange={(e) => setTo(e.target.value)} style={filterStyle} /></label>
         <span style={{ flex: 1 }} />
         <ExportMenu onExport={(format) => booksAPI.exportReport(id, { ...query(), format })} />
-      </div>
-      {error && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>{error}</p>}
-      {loading && !data ? <p style={{ color: colors.textMuted }}>Running…</p>
+      </div>}
+      {!def.custom && error && <p role="alert" style={{ color: colors.dangerText, fontSize: '0.8rem' }}>{error}</p>}
+      {def.custom ? null : loading && !data ? <p style={{ color: colors.textMuted }}>Running…</p>
         : data ? <View id={id} data={data} nav={nav} onRefresh={run} />
         : id === 'ledger' && <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>Choose a ledger to see its statement.</p>}
     </div>

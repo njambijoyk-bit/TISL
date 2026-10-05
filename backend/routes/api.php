@@ -490,6 +490,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/vouchers/{id}/customer-copy', [\App\Http\Controllers\Api\DocumentMailController::class, 'copy'])->whereNumber('id');
         Route::get('/mail/documents',           [\App\Http\Controllers\Api\DocumentMailController::class, 'documents']);
         Route::get('/mail/sent',                [\App\Http\Controllers\Api\DocumentMailController::class, 'sent']);
+        Route::get('/movement/ledger-items',    [\App\Http\Controllers\Api\MovementReportController::class, 'ledgerItems']);
+        Route::get('/movement/item-vouchers',   [\App\Http\Controllers\Api\MovementReportController::class, 'itemVouchers']);
+        Route::get('/movement/item-ledgers',    [\App\Http\Controllers\Api\MovementReportController::class, 'itemLedgers']);
+        Route::get('/movement/products',        [\App\Http\Controllers\Api\MovementReportController::class, 'products']);
+        Route::get('/movement/money-flow',      [\App\Http\Controllers\Api\MovementReportController::class, 'moneyFlow']);
         Route::get('/vouchers/export',          [BooksVoucherController::class, 'exportList']);
         Route::get('/lookup',                   [BooksVoucherController::class, 'lookup']);
         Route::get('/products/{id}/variants',   [BooksVoucherController::class, 'productVariants']);

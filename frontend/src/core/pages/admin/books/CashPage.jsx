@@ -11,6 +11,7 @@ import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 import { money, today } from '../../../components/admin/books/booksFmt';
+import MoneyFlow from '../../../components/admin/books/MoneyFlow';
 
 const th = { padding: '8px 10px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
 const td = { padding: '8px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.05)}` };
@@ -178,6 +179,8 @@ export default function CashPage() {
                 </tbody>
               </table>
             </div>
+
+            <MoneyFlow accounts={[...(data?.ledgers ?? []), ...(data?.banks ?? [])]} />
           </>
         )}
       </div>
