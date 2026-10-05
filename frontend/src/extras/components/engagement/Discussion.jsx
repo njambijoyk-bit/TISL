@@ -4,6 +4,7 @@ import { BadgeCheck, Pencil, Star, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import engagementAPI from '../../../_shared/api/engagement';
 import useAuthStore from '../../../_shared/store/authStore';
+import { ReactionButton, ReportButton } from './Reactions';
 import useEngagement from '../../../_shared/lib/engagementConfig';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
@@ -94,6 +95,9 @@ function Post({ p, canReply, onReply, onChanged, rule, canEdit }) {
       <div style={{ display: 'flex', gap: 14, marginTop: 8, flexWrap: 'wrap' }}>
         {canReply && p.status === 'published' && !p.mine && <button type="button" onClick={() => setReplying((r) => !r)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.78rem', color: 'var(--color-primary-500)', padding: 0 }}>Reply</button>}
         {p.mine && canEdit && !editing && <button type="button" onClick={() => setEditing(true)} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem', color: 'var(--text-secondary)', padding: 0, display: 'inline-flex', gap: 4, alignItems: 'center' }}><Pencil size={12} /> Edit</button>}
+        {p.status === 'published' && <ReactionButton type="post" id={p.id} kind="helpful" initial={{ count: p.helpful, mine: p.marked }} />}
+        {p.status === 'published' && <ReactionButton type="post" id={p.id} kind="like" initial={{ count: p.likes, mine: p.liked }} />}
+        {p.status === 'published' && !p.mine && <ReportButton type="post" id={p.id} />}
         {p.mine && !editing && <button type="button" onClick={remove} style={{ border: 0, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.78rem', color: 'var(--status-error, #b91c1c)', padding: 0, display: 'inline-flex', gap: 4, alignItems: 'center' }}><Trash2 size={12} /> Delete</button>}
       </div>
       {replying && <div style={{ marginTop: 10, paddingLeft: 16 }}><Composer kind="comment" can={{ guest: !user }} label="Reply" onCancel={() => setReplying(false)} onSend={async (f) => { const r = await engagementAPI.reply(p.id, { body: f.body, guest_name: f.guest_name }); toast.success(r.message); setReplying(false); onReply(); }} /></div>}

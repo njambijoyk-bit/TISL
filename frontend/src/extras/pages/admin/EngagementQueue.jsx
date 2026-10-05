@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { BadgeCheck, Star } from 'lucide-react';
+import Modal from '../../../core/components/admin/ui/Modal';
+import { Field, TextArea, SelectInput } from '../../../core/components/admin/ui/Form';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { Toolbar } from '../../../core/components/admin/ui/HubHeader';
@@ -15,7 +17,7 @@ const TYPES = [['', 'Everything'], ['product', 'Products'], ['service', 'Service
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
 
 /** Reviews and comments waiting for a decision, and the ones already showing, hidden or removed. Admin, super admin and manager decide; sales rep and finance can read. */
-export default function EngagementQueue() {
+function Posts() {
   const [status, setStatus] = useState('held');
   const [type, setType] = useState('');
   const [q, setQ] = useState('');
@@ -40,9 +42,7 @@ export default function EngagementQueue() {
   const chip = (on) => ({ ...filterStyle, cursor: 'pointer', fontWeight: on ? 700 : 500, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' });
 
   return (
-    <AdminLayout>
-      <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
-        <HubHeader title="Reviews and comments" description="Approve what customers write before it shows, and hide or remove what should not stay. Who can write what is set in Settings, Engagement." />
+    <>
         <Toolbar>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{TABS.map(([k, l]) => <button key={k} type="button" style={chip(status === k)} onClick={() => setStatus(k)}>{l}{counts[k] != null && k !== 'removed' ? ` · ${counts[k]}` : ''}</button>)}</div>
           <select value={type} onChange={(e) => setType(e.target.value)} style={filterStyle} aria-label="Kind of thing">{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
@@ -75,6 +75,84 @@ export default function EngagementQueue() {
             </div>
           ))}
         </div>
+    </>
+  );
+}
+
+const RTABS = [['open', 'Open'], ['kept', 'Kept'], ['removed', 'Pulled down'], ['flagged', 'Flagged']];
+
+function Reports() {
+  const [status, setStatus] = useState('open');
+  const [data, setData] = useState({ data: [], policies: [], can_decide: false, counts: {} });
+  const [loading, setLoading] = useState(true);
+  const [flagging, setFlagging] = useState(null);
+  const [policy, setPolicy] = useState('');
+  const [note, setNote] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { setData(await engagementAPI.reportCases(status)); } catch (e) { toast.error(errMsg(e, 'Could not load the reports')); } finally { setLoading(false); }
+  }, [status]);
+  useEffect(() => { load(); }, [load]);
+
+  const decide = async (c, decision, extra = {}) => {
+    try { const r = await engagementAPI.decideReport({ target_type: c.target_type, target_id: c.target_id, decision, ...extra }); toast.success(r.message); setFlagging(null); setPolicy(''); setNote(''); load(); }
+    catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 6000 }); }
+  };
+  const chip = (on) => ({ ...filterStyle, cursor: 'pointer', fontWeight: on ? 700 : 500, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' });
+
+  return (
+    <>
+      <Toolbar><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{RTABS.map(([k, l]) => <button key={k} type="button" style={chip(status === k)} onClick={() => setStatus(k)}>{l}{data.counts[k] != null ? ` · ${data.counts[k]}` : ''}</button>)}</div></Toolbar>
+      {loading && data.data.length === 0 && <p style={{ color: colors.textFaint }}>Loading…</p>}
+      {!loading && data.data.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{status === 'open' ? 'Nothing has been reported.' : 'Nothing here.'}</p>}
+      <div style={{ display: 'grid', gap: 12 }}>
+        {data.data.map((c) => (
+          <div key={`${c.target_type}:${c.target_id}`} style={{ ...card, padding: 16, display: 'grid', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+              <strong style={{ color: colors.text }}>{c.target}</strong>
+              <span style={{ fontSize: '0.74rem', color: colors.textFaint, textTransform: 'uppercase' }}>{c.target_type === 'post' ? 'review or comment' : c.target_type}</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.8rem', fontWeight: 700, color: c.reports > 1 ? 'var(--status-warning, #b45309)' : colors.textMuted }}>{c.reports} {c.reports === 1 ? 'report' : 'reports'}</span>
+            </div>
+            {c.excerpt && <p style={{ margin: 0, fontSize: '0.86rem', color: colors.textMuted, whiteSpace: 'pre-wrap' }}>{c.excerpt}</p>}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{c.reasons.map((r) => <span key={r.reason} style={{ fontSize: '0.72rem', padding: '2px 9px', borderRadius: 999, background: 'var(--surface-hover, rgba(148,163,184,0.15))', color: colors.textMuted }}>{r.reason} · {r.count}</span>)}</div>
+            {c.notes.map((n, i) => <div key={i} style={{ fontSize: '0.78rem', color: colors.textFaint, fontStyle: 'italic' }}>"{n}"</div>)}
+            {c.hidden && <div style={{ fontSize: '0.74rem', fontWeight: 700, color: '#b91c1c' }}>Hidden from the public right now</div>}
+            {status !== 'open' && <div style={{ fontSize: '0.78rem', color: colors.textMuted }}>{c.policy ? `Breach of ${c.policy}. ` : ''}{c.decision_note ?? ''}</div>}
+            {status === 'open' && data.can_decide && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button type="button" style={btnPrimary} onClick={() => decide(c, 'keep')}>Keep it</button>
+                {c.hideable && <button type="button" style={btnGhost} onClick={() => window.confirm('Pull this down? It stops showing to the public.') && decide(c, 'remove')}>Pull it down</button>}
+                <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={() => setFlagging(c)}>Flag a policy breach…</button>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {flagging && (
+        <Modal title="Flag a policy breach" subtitle={flagging.target} onClose={() => setFlagging(null)} width={480}
+          footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={btnGhost} onClick={() => setFlagging(null)}>Cancel</button><button type="button" style={{ ...btnPrimary, opacity: policy && note.trim() ? 1 : 0.5 }} disabled={!policy || !note.trim()} onClick={() => decide(flagging, 'flag', { policy_key: policy, note })}>Flag and pull down</button></div>}>
+          <div style={{ display: 'grid', gap: 12 }}>
+            <Field label="Which policy was breached?"><SelectInput value={policy} onChange={(e) => setPolicy(e.target.value)}><option value="">Choose a policy…</option>{data.policies.map((p) => <option key={p.key} value={p.key}>{p.title}</option>)}</SelectInput></Field>
+            <Field label="What breached it?" hint="This note is kept with the decision."><TextArea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} /></Field>
+          </div>
+        </Modal>
+      )}
+    </>
+  );
+}
+
+/** Staff side of the Engagement Engine: reviews and comments to approve, and reports to decide on. */
+export default function EngagementQueue() {
+  const [tab, setTab] = useState('posts');
+  const big = (on) => ({ padding: '9px 18px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.86rem', color: on ? 'var(--color-primary-500)' : colors.textMuted, border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line)'}`, background: 'transparent' });
+
+  return (
+    <AdminLayout>
+      <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
+        <HubHeader title="Reviews, comments and reports" description="Approve what customers write before it shows, and decide on what people report. Who can do what is set in Settings, Engagement." />
+        <div style={{ display: 'flex', gap: 8, margin: '0 0 14px' }}><button type="button" style={big(tab === 'posts')} onClick={() => setTab('posts')}>Reviews and comments</button><button type="button" style={big(tab === 'reports')} onClick={() => setTab('reports')}>Reports</button></div>
+        {tab === 'posts' ? <Posts /> : <Reports />}
       </div>
     </AdminLayout>
   );

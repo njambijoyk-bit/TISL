@@ -18,11 +18,17 @@ const engagementAPI = {
   reply: async (postId, fields) => (await api.post(`/engagement/posts/${postId}/replies`, fields)).data,
   editPost: async (id, fields) => (await api.put(`/engagement/posts/${id}`, fields)).data,
   deletePost: async (id) => (await api.delete(`/engagement/posts/${id}`)).data,
+  // likes, helpful votes and reports
+  reactions: async (type, id) => (await api.get(`/engagement/${type}/${id}/reactions`)).data,
+  react: async (type, id, kind) => (await api.post(`/engagement/${type}/${id}/react`, { kind })).data,
+  report: async (type, id, reason, note) => (await api.post(`/engagement/${type}/${id}/report`, { reason, note })).data,
   // moderation (admin)
   queue: async (params) => (await api.get('/admin/engagement/posts', { params })).data,
   approve: async (id) => (await api.post(`/admin/engagement/posts/${id}/approve`)).data,
   hide: async (id) => (await api.post(`/admin/engagement/posts/${id}/hide`)).data,
   remove: async (id) => (await api.post(`/admin/engagement/posts/${id}/remove`)).data,
+  reportCases: async (status) => (await api.get('/admin/engagement/reports', { params: { status } })).data,
+  decideReport: async (body) => (await api.post('/admin/engagement/reports/decide', body)).data,
 };
 
 export default engagementAPI;
