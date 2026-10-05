@@ -842,6 +842,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // Staff area. Drivers are not here: their app uses /driver/* only.
     Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
+
+        // The merged activity timeline: every log on the site, each only to the roles allowed to see it
+        Route::get('/activity-feed', [\App\Http\Controllers\Api\ActivityFeedController::class, 'index']);
         // Dashboard
         // Route::get('/dashboard', [AdminController::class, 'dashboard']);
 

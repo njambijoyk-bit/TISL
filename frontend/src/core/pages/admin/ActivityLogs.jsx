@@ -13,6 +13,7 @@ import ordersAPI from '../../../_shared/api/orders';
 import shippingAPI from '../../../_shared/api/shipping';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { format } from 'date-fns';
+import ActivityFeed from '../../components/admin/logs/ActivityFeed';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const purple   = 'var(--color-primary-500)';
@@ -973,6 +974,7 @@ function TierLogsTab() {
 //  MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 const TABS = [
+  { id: 'all',       label: 'All activity', icon: Clock   },
   { id: 'orders',    label: 'Orders',    icon: FileText  },
   { id: 'hampers',   label: 'Hampers',   icon: Package   },
   { id: 'auctions',  label: 'Auctions',  icon: Gavel     },
@@ -981,9 +983,13 @@ const TABS = [
   { id: 'tiers',     label: 'Tiers',     icon: Crown     },
 ];
 
+const TAB_SOURCE = { orders: 'order_activity', hampers: 'hamper_activity', auctions: 'auction_order_activity', referrals: 'referral_activity', shipping: 'shipping', tiers: 'customer_tier' };
+
 export default function ActivityLogs() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState('all');
+  const [sources, setSources] = useState(null);   // what this role may see; the detail tabs follow it
+  const shown = TABS.filter((t) => !TAB_SOURCE[t.id] || !sources || sources.some((s) => s.key === TAB_SOURCE[t.id]));
 
   return (
     <AdminLayout>
@@ -1004,7 +1010,7 @@ export default function ActivityLogs() {
             Activity Logs
           </h1>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-tertiary)', margin: 0 }}>
-            Track all actions taken across orders, hampers, auctions, referrals, shipping, and customer tiers.
+            Everything that happens across the site, in one timeline: sales, books, catalogue, people, delivery and system. You see the areas your role allows.
           </p>
         </div>
         <button
@@ -1025,7 +1031,7 @@ export default function ActivityLogs() {
 
       {/* ── Tabs ── */}
       <div style={{ display: 'flex', gap: 2, marginBottom: 20, borderBottom: '1px solid var(--border, #f3f4f6)', flexWrap: 'wrap' }}>
-        {TABS.map(tab => {
+        {shown.map(tab => {
           const Icon = tab.icon;
           const active = activeTab === tab.id;
           return (
@@ -1052,6 +1058,7 @@ export default function ActivityLogs() {
         })}
       </div>
 
+      {activeTab === 'all'       && <ActivityFeed sources={sources} onSources={setSources} />}
       {activeTab === 'orders'    && <OrderLogsTab />}
       {activeTab === 'hampers'   && <HamperLogsTab />}
       {activeTab === 'auctions'  && <AuctionLogsTab />}
