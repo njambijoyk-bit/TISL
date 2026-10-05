@@ -50,8 +50,6 @@ export const ADMIN_NAV = [
         id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes',
       },
       { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', keywords: 'gift voucher invoices' },
-      { id: 'reconciliation', title: 'Reconciliation', icon: Scale, color: '#065f46', path: '/admin/reconciliation', keywords: 'stock count' },
-      { id: 'memoranda', title: 'Memoranda', icon: NotebookPen, color: '#0ea5e9', path: '/admin/books/memoranda', keywords: 'memorandum memo notes expected agreed journal' },
     ],
   },
 
@@ -162,7 +160,9 @@ export const ADMIN_NAV = [
       { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
       { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
       { id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/books?tab=reports', roles: FINANCE_READ, keywords: 'day book trial balance profit loss balance sheet ageing receivables payables tax' },
-      { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', keywords: 'visitors traffic' },
+      { id: 'reconciliation', title: 'Reconciliation', icon: Scale, color: '#065f46', path: '/admin/reconciliation', keywords: 'stock count' },
+      { id: 'memoranda', title: 'Memoranda', icon: NotebookPen, color: '#0ea5e9', path: '/admin/books/memoranda', keywords: 'memorandum memo notes expected agreed journal' },
+      { id: 'verification', title: 'Verification', icon: ClipboardList, color: '#0ea5e9', path: '/admin/verification', keywords: 'verify vouchers check audit register observation query' },
     ],
   },
 
@@ -188,7 +188,7 @@ export const ADMIN_NAV = [
         ],
       },
       { id: 'assets', title: 'Assets', icon: Boxes, color: '#c2410c', path: '/admin/assets', also: ['/admin/inventory'], keywords: 'furniture equipment laptops issued loaned repairs depreciation register' },
-      { id: 'verification', title: 'Verification', icon: ClipboardList, color: '#0ea5e9', path: '/admin/verification', keywords: 'verify vouchers check audit register observation query' },
+      { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', keywords: 'visitors traffic' },
       { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
       { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
       {
