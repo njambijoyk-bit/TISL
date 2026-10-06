@@ -331,7 +331,7 @@ const ServiceDetail = () => {
                       <Star key={i} size={15} style={{ color: i < Math.round(service.rating) ? '#f59e0b' : '#e5e7eb', fill: i < Math.round(service.rating) ? '#f59e0b' : '#e5e7eb' }} />
                     ))}
                   </div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{service.rating.toFixed(1)}</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{Number(service.rating).toFixed(1)}</span>
                   <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>({service.review_count} reviews)</span>
                   {service.order_count > 0 && (
                     <>

@@ -282,7 +282,7 @@ const ServicesTab = ({ existingItemIds, selectedServices, onSelectionChange }) =
                   )}
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {s.estimated_duration && <span style={{ fontSize: '0.7rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 3 }}><Clock size={10} />{s.estimated_duration}</span>}
-                    {s.rating > 0 && <span style={{ fontSize: '0.7rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 3 }}><Star size={10} color="#f59e0b" fill="#f59e0b" />{s.rating.toFixed(1)} ({s.review_count})</span>}
+                    {s.rating > 0 && <span style={{ fontSize: '0.7rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 3 }}><Star size={10} color="#f59e0b" fill="#f59e0b" />{Number(s.rating).toFixed(1)} ({s.review_count})</span>}
                   </div>
                 </div>
               </div>

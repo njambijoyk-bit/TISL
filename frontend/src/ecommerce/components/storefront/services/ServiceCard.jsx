@@ -230,7 +230,7 @@ const ServiceCard = ({ service, onClick }) => {
           {service.rating > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Star size={12} style={{ color: '#f59e0b', fill: '#f59e0b' }} />
-              <span style={{ fontWeight: 700, color: '#111827' }}>{service.rating.toFixed(1)}</span>
+              <span style={{ fontWeight: 700, color: '#111827' }}>{Number(service.rating).toFixed(1)}</span>
               <span style={{ color: '#9ca3af' }}>({service.review_count || 0})</span>
             </div>
           )}

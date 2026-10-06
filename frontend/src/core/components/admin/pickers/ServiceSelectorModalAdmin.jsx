@@ -274,7 +274,7 @@ const ServiceSelectorModalAdmin = ({ onClose, onSelect, selectedServices = [] })
 
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                         {service.estimated_duration && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={11} />{service.estimated_duration}</span>}
-                        {service.rating > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}><Star size={11} color="#f59e0b" fill="#f59e0b" />{service.rating.toFixed(1)} ({service.review_count})</span>}
+                        {service.rating > 0 && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}><Star size={11} color="#f59e0b" fill="#f59e0b" />{Number(service.rating).toFixed(1)} ({service.review_count})</span>}
                         {service.lead_time && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Lead: {service.lead_time}</span>}
                       </div>
 
