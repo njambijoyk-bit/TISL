@@ -33,7 +33,7 @@ class CampaignMoodboardController extends Controller
         $m = CampaignMoodboard::forStaff($r->user())->with('owner:id,name')->findOrFail($id);
         abort_unless(CampaignAccess::canPublish($r->user()) || (int) $m->owner_user_id === (int) $r->user()->id || $m->is_template, 403, 'That is not your moodboard.');
         if ($forEdit) {
-            abort_unless($this->moods->canEdit($r->user(), $m), 403, 'You cannot change this moodboard (it is waiting for a decision, or it is a customer's).');
+            abort_unless($this->moods->canEdit($r->user(), $m), 403, 'You cannot change this moodboard (it is waiting for a decision, or it belongs to a customer).');
         }
 
         return $m;
