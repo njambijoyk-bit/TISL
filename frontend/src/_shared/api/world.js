@@ -4,6 +4,7 @@ import api from './axios';
 const worldAPI = {
   pins: async (params) => (await api.get('/world/pins', { params })).data,
   pin: async (id) => (await api.get(`/world/pins/${id}`)).data.data,
+  boards: async (params) => (await api.get('/world/boards', { params })).data,
   board: async (id, after) => (await api.get(`/world/boards/${id}`, { params: { after: after || undefined } })).data.data,
   // fetched as a file so a refusal can be shown as a message instead of a blank page
   download: async (id) => {

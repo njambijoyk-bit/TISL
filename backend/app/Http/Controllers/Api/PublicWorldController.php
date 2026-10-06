@@ -136,4 +136,46 @@ class PublicWorldController extends Controller
     {
         return response()->json(['data' => $this->moods->present($this->publicMoodboards()->findOrFail($id))]);
     }
+
+    /** "Ann Kamau" -> "Ann K." so a board shows who made it without a full name. */
+    private function shortName(?string $name): ?string
+    {
+        if (! $name) {
+            return null;
+        }
+        $parts = preg_split('/\s+/', trim($name));
+
+        return count($parts) > 1 ? $parts[0] . ' ' . mb_strtoupper(mb_substr(end($parts), 0, 1)) . '.' : $parts[0];
+    }
+
+    /**
+     * GET /world/boards?q=&sort=new|followed&after=: the public boards that have at least one public pin. `after` is how many were already sent.
+     * A board's cover is its chosen cover pin, or its first pin.
+     */
+    public function boards(Request $request): JsonResponse
+    {
+        $offset = max(0, (int) $request->query('after', 0));
+        $q = $this->feed->publicBoards()->with('owner:id,name')
+            ->whereExists(fn ($w) => $w->select(DB::raw(1))->from('campaign_board_pins as p')->join('campaign_pins as cp', 'cp.id', '=', 'p.pin_id')->whereColumn('p.board_id', 'campaign_boards.id')->where('cp.status', 'visible')->whereNull('cp.deleted_at'))
+            ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('title', 'like', '%' . $request->query('q') . '%')->orWhere('description', 'like', '%' . $request->query('q') . '%')));
+        if ($request->query('sort') === 'followed') {
+            $q->selectRaw('campaign_boards.*, (SELECT COUNT(*) FROM campaign_board_follows f WHERE f.board_id = campaign_boards.id) as followers_count')->orderByDesc('followers_count');
+        }
+        $rows = $q->orderByDesc('campaign_boards.id')->offset($offset)->limit(Feed::PAGE + 1)->get();
+        $more = $rows->count() > Feed::PAGE;
+        $rows = $rows->take(Feed::PAGE);
+        $ids = $rows->pluck('id')->all();
+        $followers = DB::table('campaign_board_follows')->whereIn('board_id', $ids)->selectRaw('board_id, COUNT(*) n')->groupBy('board_id')->pluck('n', 'board_id');
+        $counts = DB::table('campaign_board_pins as p')->join('campaign_pins as cp', 'cp.id', '=', 'p.pin_id')->whereIn('p.board_id', $ids)->where('cp.status', 'visible')->whereNull('cp.deleted_at')
+            ->selectRaw('p.board_id, COUNT(*) n')->groupBy('p.board_id')->pluck('n', 'board_id');
+        $data = $rows->map(function ($b) use ($followers, $counts) {
+            $cover = ($b->cover_pin_id ? \App\Models\CampaignPin::where('status', 'visible')->find($b->cover_pin_id) : null)
+                ?? $b->pins()->where('campaign_pins.status', 'visible')->first();
+
+            return ['id' => $b->id, 'title' => $b->title, 'description' => $b->description, 'slug_path' => $b->slugPath(), 'by' => $b->is_official ? null : $this->shortName($b->owner?->name),
+                'pins' => (int) ($counts[$b->id] ?? 0), 'followers' => (int) ($followers[$b->id] ?? 0), 'cover' => $cover ? ($cover->thumb_path ?: $cover->media_path ?: ($cover->video['poster'] ?? null)) : null];
+        })->all();
+
+        return response()->json(['data' => $data, 'next' => $more ? $offset + Feed::PAGE : null]);
+    }
 }

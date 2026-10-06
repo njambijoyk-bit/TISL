@@ -180,6 +180,7 @@ Route::prefix('world')->middleware('module:campaigns')->group(function () {
     Route::get('/pins',               [$c, 'pins'])->middleware('throttle:120,1');
     Route::get('/pins/{id}',          [$c, 'pin'])->whereNumber('id');
     Route::get('/pins/{id}/download', [$c, 'download'])->whereNumber('id')->middleware('throttle:30,1');
+    Route::get('/boards',             [$c, 'boards']);
     Route::get('/boards/{id}',        [$c, 'board'])->whereNumber('id');
     Route::get('/moodboards',         [$c, 'moodboards']);
     Route::get('/moodboards/{id}',    [$c, 'moodboard'])->whereNumber('id');
