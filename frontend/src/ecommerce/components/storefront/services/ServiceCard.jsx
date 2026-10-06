@@ -1,3 +1,4 @@
+import { HoverVideo } from './ServiceVideoPlayer';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -41,6 +42,7 @@ const ServiceCard = ({ service, onClick }) => {
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [imgError, setImgError] = useState(false);
+  const [hovering, setHovering] = useState(false);
 
   const handlePrev = (e) => {
     e.stopPropagation();
@@ -79,7 +81,7 @@ const ServiceCard = ({ service, onClick }) => {
       borderLeft: `3px solid ${BOOST_BADGE[service.boost_badge_type]?.bg ?? '#10b981'}`,
     } : {}}>
       {/* Smaller Image - Changed from h-48 to h-40 */}
-      <div className="relative h-40 overflow-hidden bg-gray-200 dark:bg-gray-700">
+      <div className="relative h-40 overflow-hidden bg-gray-200 dark:bg-gray-700" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
         {/* Arrows */}
         {allImages.length > 1 && (
           <>
@@ -105,6 +107,9 @@ const ServiceCard = ({ service, onClick }) => {
             <Images size={64} className="text-gray-300 dark:text-gray-600" />
           </div>
         )}
+
+        {/* A video, if the service has one: it plays silently while the pointer is on the card, and the picture comes back when it leaves */}
+        {service.video && <HoverVideo video={service.video} hovering={hovering} />}
 
         {/* Smaller Badges */}
         <div className="absolute top-1.5 left-1.5 flex flex-col gap-1">

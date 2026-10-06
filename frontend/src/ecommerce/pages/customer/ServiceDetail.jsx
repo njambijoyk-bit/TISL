@@ -18,6 +18,7 @@ import {
   Check,
   Info,
   Heart,
+  Play,
 } from 'lucide-react';
 import useServiceStore from '../../../_shared/store/serviceStore';
 import useRequestListStore from '../../../_shared/store/requestListStore';
@@ -29,6 +30,7 @@ import { formatMoney } from '../../../_shared/lib/money';
 import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
+import { DetailVideo } from '../../components/storefront/services/ServiceVideoPlayer';
 import ServiceGrid from '../../components/storefront/services/ServiceGrid';
 import CollapsedServiceCard from '../../components/storefront/services/CollapsedServiceCard';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
@@ -150,6 +152,10 @@ const ServiceDetail = () => {
     ...(service.images_url || []),
   ].filter(Boolean);
 
+  // The gallery runs: video (if any), main image, other images, then round to the video again.
+  const media = [...(service.video ? [{ type: 'video', video: service.video }] : []), ...allImages.map((src) => ({ type: 'image', src }))];
+  const current = media[selectedImageIdx] ?? media[0];
+
   const hasVariants = service.features && service.features.length > 0;
   const requirementFields = picker.data?.requirements ?? [];
   const hasRequirements = requirementFields.length > 0;
@@ -234,55 +240,62 @@ const ServiceDetail = () => {
                 </div>
 
                 {/* Image counter */}
-                {allImages.length > 1 && (
+                {media.length > 1 && (
                   <div style={{
                     position: 'absolute', top: 14, right: 14, zIndex: 10,
                     background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
                     color: '#fff', fontSize: '0.72rem', fontWeight: 700,
                     padding: '4px 10px', borderRadius: 20, letterSpacing: '0.05em',
                   }}>
-                    {selectedImageIdx + 1} / {allImages.length}
+                    {selectedImageIdx + 1} / {media.length}
                   </div>
                 )}
 
                 {/* Arrow nav */}
-                {allImages.length > 1 && (
+                {media.length > 1 && (
                   <>
-                    <button onClick={() => setSelectedImageIdx(i => (i - 1 + allImages.length) % allImages.length)}
+                    <button onClick={() => setSelectedImageIdx(i => (i - 1 + media.length) % media.length)}
                       style={{ ...arrowBtn, left: 12 }}><ChevronLeft size={18} /></button>
-                    <button onClick={() => setSelectedImageIdx(i => (i + 1) % allImages.length)}
+                    <button onClick={() => setSelectedImageIdx(i => (i + 1) % media.length)}
                       style={{ ...arrowBtn, right: 12 }}><ChevronRight size={18} /></button>
                   </>
                 )}
 
-                {/* Image or placeholder */}
-                {allImages.length === 0 || imageErrors[selectedImageIdx] ? (
+                {/* Video, image or placeholder */}
+                {media.length === 0 || (current?.type === 'image' && imageErrors[selectedImageIdx]) ? (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', gap: 12 }}>
                     <Package size={56} style={{ color: '#d1d5db' }} />
                     <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>No image available</span>
                   </div>
                 ) : (
-                  <img
-                    src={allImages[selectedImageIdx]}
-                    alt={service.name}
-                    style={{
-                      width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-                      transition: 'transform 400ms ease, opacity 200ms ease',
-                    }}
-                    onError={() => handleImageError(selectedImageIdx)}
-                  />
+                  <>
+                    {current.type === 'image' && (
+                      <img
+                        src={current.src}
+                        alt={service.name}
+                        style={{
+                          width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                          transition: 'transform 400ms ease, opacity 200ms ease',
+                        }}
+                        onError={() => handleImageError(selectedImageIdx)}
+                      />
+                    )}
+                    {/* the video stays mounted so it keeps its place; it only plays when it is the chosen item and in view */}
+                    {service.video && <div style={{ position: 'absolute', inset: 0, visibility: current.type === 'video' ? 'visible' : 'hidden' }}><DetailVideo video={service.video} active={current.type === 'video'} poster={allImages[0]} /></div>}
+                  </>
                 )}
 
                 {/* Thumbnail strip — floats inside image at bottom */}
-                {allImages.length > 1 && (
+                {media.length > 1 && (
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
                     background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)',
                     padding: '32px 14px 14px',
                     display: 'flex', gap: 8, overflowX: 'auto',
                   }}>
-                    {allImages.map((img, idx) => {
-                      const hasError = imageErrors[idx];
+                    {media.map((m, idx) => {
+                      const img = m.type === 'video' ? (m.video.thumb || allImages[0]) : m.src;
+                      const hasError = m.type === 'image' && imageErrors[idx];
                       return hasError ? (
                         <div key={idx} style={{ width: 52, height: 52, borderRadius: 8, border: '2px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           <Package size={18} style={{ color: 'rgba(255,255,255,0.5)' }} />
@@ -292,7 +305,7 @@ const ServiceDetail = () => {
                           key={idx}
                           onClick={() => setSelectedImageIdx(idx)}
                           style={{
-                            width: 52, height: 52, borderRadius: 8, overflow: 'hidden', padding: 0,
+                            width: 52, height: 52, borderRadius: 8, overflow: 'hidden', padding: 0, position: 'relative',
                             border: selectedImageIdx === idx ? '2px solid #fff' : '2px solid rgba(255,255,255,0.35)',
                             background: 'transparent', cursor: 'pointer', flexShrink: 0,
                             opacity: selectedImageIdx === idx ? 1 : 0.65,
@@ -301,7 +314,8 @@ const ServiceDetail = () => {
                             boxShadow: selectedImageIdx === idx ? '0 0 0 2px color-mix(in srgb, var(--color-primary-500) 70%, transparent)' : 'none',
                           }}
                         >
-                          <img src={img} alt={`View ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => handleImageError(idx)} />
+                          {img ? <img src={img} alt={m.type === 'video' ? 'Video' : `View ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => handleImageError(idx)} /> : <span style={{ display: 'block', width: '100%', height: '100%', background: '#111827' }} />}
+                          {m.type === 'video' && <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', background: 'rgba(0,0,0,0.35)' }}><Play size={16} fill="#fff" /></span>}
                         </button>
                       );
                     })}

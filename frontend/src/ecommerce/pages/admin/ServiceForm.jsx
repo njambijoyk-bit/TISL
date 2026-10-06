@@ -1,6 +1,7 @@
+import ServiceVideoField from '../../components/admin/services/ServiceVideoField';
 import ItemPinButton from '../../../campaigns/components/ItemPinButton';
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useCalculatorContext from '../../../_shared/hooks/useCalculatorContext';
 import {
@@ -302,6 +303,7 @@ const ServiceForm = () => {
   useCalculatorContext(id ? { type: 'service', id: Number(id) } : null);   // Alt+C: what did this service earn
   const navigate    = useNavigate();
   const isEditMode  = !!id;
+  const [video, setVideo] = useState(null);   // the service's saved video, set from its own field
 
   const {
     currentService, categories = [], loading, error,
@@ -319,7 +321,7 @@ const ServiceForm = () => {
     is_remote_available: true, booking_required: false,
     max_concurrent_bookings: '', is_available: true, is_visible: true,
     is_featured: false, status: 'draft',
-    brochure_url: '', video_url: '', badge: '', admin_notes: '',
+    badge: '', admin_notes: '',
     sales_ledger_id: '',
   });
 
@@ -373,10 +375,10 @@ const ServiceForm = () => {
       is_available: cs.is_available !== undefined ? cs.is_available : true,
       is_visible: cs.is_visible !== undefined ? cs.is_visible : true,
       is_featured: cs.is_featured || false, status: cs.status || 'draft',
-      brochure_url: cs.brochure_url || '', video_url: cs.video_url || '',
       badge: cs.badge || '', admin_notes: cs.admin_notes || '',
       sales_ledger_id: cs.sales_ledger_id ?? '',
     });
+    setVideo(cs.video ?? null);
     setFeatures(cs.features?.length > 0 ? cs.features : ['']);
     setDeliverables(cs.deliverables?.length > 0 ? cs.deliverables : ['']);
     const normalizeItems = arr => (arr || []).map(s =>
@@ -885,11 +887,11 @@ const ServiceForm = () => {
               <div style={card}>
                 <p style={sectionHeader}>Additional media (optional)</p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <Field label="Brochure URL">
-                    <SI name="brochure_url" value={formData.brochure_url} onChange={handleChange} placeholder="https://example.com/brochure.pdf" />
+                  <Field label="Video">
+                    <ServiceVideoField serviceId={isEditMode ? Number(id) : null} video={video} onChange={setVideo} />
                   </Field>
-                  <Field label="Video URL">
-                    <SI name="video_url" value={formData.video_url} onChange={handleChange} placeholder="https://youtube.com/watch?v=…" />
+                  <Field label="Brochure">
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>What the brochure shows, which template it uses and whether customers can download it are set on the <Link to="/admin/brochures" style={{ color: 'var(--color-primary-500)', fontWeight: 600 }}>Brochures</Link> tab.</span>
                   </Field>
                 </div>
               </div>
