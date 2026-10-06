@@ -5,8 +5,8 @@ import { storageUrl } from '../../_shared/lib/storageUrl';
 const ICON = { video: Play, item: ShoppingBag, link: Link2, note: StickyNote };
 
 function Card({ p, onOpen }) {
-  const src = p.thumb_path || p.media_path || p.video?.poster || p.item?.image;
-  const ratio = p.media_width && p.media_height ? `${p.media_width} / ${p.media_height}` : '4 / 3';
+  const src = p.thumb_path || p.media_path || p.video?.poster || p.video?.poster_remote || p.item?.image;
+  const ratio = p.media_width && p.media_height ? `${p.media_width} / ${p.media_height}` : p.kind === 'video' ? '16 / 9' : '4 / 3';
   const Icon = ICON[p.kind] ?? StickyNote;
   const title = p.title || p.item?.name || (p.kind === 'note' ? p.caption : '') || '';
 
