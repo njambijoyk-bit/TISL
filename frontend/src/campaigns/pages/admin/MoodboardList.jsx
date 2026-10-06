@@ -13,6 +13,7 @@ import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/token
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import BoardChip from '../../components/BoardChip';
 import Moodboard from '../../components/Moodboard';
+import DownloadMoodboardButton from '../../components/DownloadMoodboardButton';
 import { seedContents } from '../../lib/moodboardKit';
 
 const FILTERS = [['', 'All'], ['pending', 'Waiting for approval'], ['approved', 'Approved'], ['draft', 'Drafts'], ['rejected', 'Not approved']];
@@ -97,8 +98,9 @@ export default function MoodboardList() {
         {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{bin ? 'The recycle bin is empty.' : priv ? 'No private customer moodboards.' : templates ? 'No templates yet. Open a moodboard and choose Save as template.' : 'No moodboards yet. Start one with New moodboard.'}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
           {rows.map((m) => (
-            <div key={m.id} role={bin ? undefined : 'button'} tabIndex={bin ? undefined : 0} onClick={bin ? undefined : () => nav(`/admin/moodboards/${m.id}/edit`)} style={{ ...card, padding: 10, textAlign: 'left', cursor: bin ? 'default' : 'pointer', fontFamily: 'inherit', opacity: m.status === 'hidden' ? 0.6 : 1 }}>
+            <div key={m.id} role={bin ? undefined : 'button'} tabIndex={bin ? undefined : 0} onClick={bin ? undefined : () => nav(`/admin/moodboards/${m.id}/edit`)} style={{ ...card, position: 'relative', padding: 10, textAlign: 'left', cursor: bin ? 'default' : 'pointer', fontFamily: 'inherit', opacity: m.status === 'hidden' ? 0.6 : 1 }}>
               <Moodboard board={m} radius={8} />
+              {!bin && !m.is_template && <DownloadMoodboardButton board={m} icon style={{ top: 18, right: 18 }} />}
               <div style={{ marginTop: 8, fontWeight: 700, color: colors.text, fontSize: '0.88rem' }}>{m.title}</div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
                 {!m.is_template && <BoardChip board={{ approval_status: m.approval_status, status: m.status, visibility: 'public' }} />}

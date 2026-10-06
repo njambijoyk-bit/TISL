@@ -117,9 +117,10 @@ function drawSticker(ctx, c, w, h) {
 
 /**
  * Draw a moodboard ({ layout, contents }, photo spots carrying `image`) onto a canvas and save it as a PNG. Throws if a picture cannot be read
- * (the picture's server must allow it); the caller shows the message.
+ * (the picture's server must allow it); the caller shows the message. With `respectNoDownload`, a picture whose pin is set to "no download" is left out; the
+ * result says how many were left out ({ skipped }).
  */
-export async function downloadMoodboardImage(board, name = 'moodboard', width = 2000) {
+export async function downloadMoodboardImage(board, name = 'moodboard', width = 2000, { respectNoDownload = false } = {}) {
   const layout = board.layout; const ratio = layout.ratio ?? [4, 5];
   const W = width; const H = Math.round((W * ratio[1]) / ratio[0]);
   const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
@@ -128,14 +129,15 @@ export async function downloadMoodboardImage(board, name = 'moodboard', width = 
   const fonts = new Set(Object.values(board.contents ?? {}).filter((c) => c?.text).map((c) => FONT_STYLES[c.font] ?? FONT_STYLES.sans));
   try { await Promise.all([...fonts].map((f) => document.fonts.load(`${f.weight} 40px ${f.family}`))); } catch { /* fall back to system fonts */ }
   const photos = {};
-  await Promise.all(Object.entries(board.contents ?? {}).filter(([, c]) => c?.image).map(async ([id, c]) => { photos[id] = await loadImage(storageUrl(c.image)); }));
+  const skipped = new Set(respectNoDownload ? Object.entries(board.contents ?? {}).filter(([, c]) => c?.image && c.download === false).map(([id]) => id) : []);
+  await Promise.all(Object.entries(board.contents ?? {}).filter(([id, c]) => c?.image && !skipped.has(id)).map(async ([id, c]) => { photos[id] = await loadImage(storageUrl(c.image)); }));
 
   ctx.fillStyle = layout.background || '#ffffff'; ctx.fillRect(0, 0, W, H);
   drawPattern(ctx, layout.pattern, layout.background, W, H);
 
   [...layout.slots].map((s, i) => [s, i]).sort((a, b) => ((a[0].z || 1) - (b[0].z || 1)) || (a[1] - b[1])).forEach(([slot]) => {
     const c = board.contents?.[slot.id];
-    if (!c || !Object.keys(c).length) return;
+    if (!c || !Object.keys(c).length || skipped.has(slot.id)) return;
     const w = (slot.w / 100) * W; const h = (slot.h / 100) * H;
     ctx.save();
     ctx.translate((slot.x / 100) * W + w / 2, (slot.y / 100) * H + h / 2); ctx.rotate(((slot.rot || 0) * Math.PI) / 180); ctx.translate(-w / 2, -h / 2);
@@ -169,4 +171,6 @@ export async function downloadMoodboardImage(board, name = 'moodboard', width = 
   a.href = url; a.download = `${String(name).replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase() || 'moodboard'}.png`;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  return { skipped: skipped.size };
 }

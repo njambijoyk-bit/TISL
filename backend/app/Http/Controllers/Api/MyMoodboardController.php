@@ -71,7 +71,7 @@ class MyMoodboardController extends Controller
         $ids = $this->moods->customerPinIds($request->user());
         $q = CampaignPin::whereIn('id', $ids)->orderByDesc('id')->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('title', 'like', '%' . $request->query('q') . '%')->orWhere('caption', 'like', '%' . $request->query('q') . '%')))->limit(120)->get();
 
-        return response()->json(['data' => $q->map(fn ($p) => ['id' => $p->id, 'title' => $p->title, 'image' => $p->thumb_path ?: $p->media_path])->all()]);
+        return response()->json(['data' => $q->map(fn ($p) => ['id' => $p->id, 'title' => $p->title, 'image' => $p->thumb_path ?: $p->media_path, 'download' => (bool) $p->allow_download])->all()]);
     }
 
     public function store(Request $request): JsonResponse

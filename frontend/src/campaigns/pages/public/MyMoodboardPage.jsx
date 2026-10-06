@@ -84,7 +84,7 @@ export default function MyMoodboardPage() {
   };
   const run = async (fn) => { try { const r = await fn(); toast.success(r.message); take(r.data); } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 6000 }); } };
   const download = async () => {
-    try { await downloadMoodboardImage(show, m.title); toast.success('Image saved'); }
+    try { const r = await downloadMoodboardImage(show, m.title, 2000, { respectNoDownload: true }); toast.success(r.skipped ? `Image saved. ${r.skipped} ${r.skipped === 1 ? 'picture was' : 'pictures were'} left out because ${r.skipped === 1 ? 'it' : 'they'} cannot be downloaded.` : 'Image saved'); }
     catch { toast.error('Could not make the image. A picture may be blocked from being copied.'); }
   };
   const withSaved = (fn) => { if (dirty) { toast.error('Save your changes first.'); return; } fn(); };

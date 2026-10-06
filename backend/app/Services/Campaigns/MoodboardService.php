@@ -249,7 +249,7 @@ class MoodboardService
         return ['id' => $m->id, 'title' => $m->title, 'slug_path' => $m->slugPath(), 'layout' => $m->layout, 'contents' => (object) array_filter($contents)];
     }
 
-    /** @param int[] $ids @return array<int,array{title:?string,image:?string}> visible pins only */
+    /** @param int[] $ids @return array<int,array{title:?string,image:?string,download:bool}> visible pins only; `download` is false for a pin set to "no download" */
     public function images(array $ids): array
     {
         $pins = CampaignPin::whereIn('id', array_unique($ids))->where('status', 'visible')->get();
@@ -257,7 +257,7 @@ class MoodboardService
         $out = [];
         foreach ($rows as $r) {
             $img = $r['thumb_path'] ?: $r['media_path'] ?: ($r['video']['poster'] ?? null) ?: ($r['item']['image'] ?? null);
-            $out[$r['id']] = ['title' => $r['title'] ?: ($r['item']['name'] ?? null), 'image' => $img];
+            $out[$r['id']] = ['title' => $r['title'] ?: ($r['item']['name'] ?? null), 'image' => $img, 'download' => (bool) ($r['allow_download'] ?? true)];
         }
 
         return $out;

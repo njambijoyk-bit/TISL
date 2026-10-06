@@ -11,6 +11,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import Moodboard from '../../components/Moodboard';
 import { seedContents } from '../../lib/moodboardKit';
 import WorldTabs from '../../components/WorldTabs';
+import DownloadMoodboardButton from '../../components/DownloadMoodboardButton';
 import { stateLabel } from '../../components/moodboardState';
 
 const btn = (primary) => ({ padding: '9px 18px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.84rem', display: 'inline-flex', alignItems: 'center', gap: 6, border: primary ? 0 : '1.5px solid var(--line)', color: primary ? '#fff' : 'var(--text-primary)', background: primary ? 'var(--color-primary-500)' : 'transparent' });
@@ -66,11 +67,14 @@ export default function MyMoodboardsPage() {
           {rows?.map((m) => {
             const [label, color] = stateLabel(m);
             return (
-              <Link key={m.id} to={`/my/moodboards/${m.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit', padding: 10, borderRadius: 16, background: 'var(--surface-card)', border: '1px solid var(--line)' }}>
+              <div key={m.id} style={{ position: 'relative' }}>
+              <Link to={`/my/moodboards/${m.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit', padding: 10, borderRadius: 16, background: 'var(--surface-card)', border: '1px solid var(--line)' }}>
                 <Moodboard board={m} radius={10} />
                 <div style={{ marginTop: 8, fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{m.title}</div>
                 <div style={{ fontSize: '0.72rem', fontWeight: 700, color }}>{label}</div>
               </Link>
+              <DownloadMoodboardButton board={m} icon style={{ top: 18, right: 18 }} />
+              </div>
             );
           })}
         </div>
