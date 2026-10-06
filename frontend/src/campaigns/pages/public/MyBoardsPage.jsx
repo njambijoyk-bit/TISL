@@ -8,6 +8,7 @@ import Footer from '../../../_shared/components/layout/Footer';
 import myBoardsAPI from '../../../_shared/api/myBoards';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
+import WorldTabs from '../../components/WorldTabs';
 
 const tile = { display: 'block', textDecoration: 'none', borderRadius: 16, overflow: 'hidden', background: 'var(--surface-card)', border: '1px solid var(--line)', color: 'inherit' };
 const cover = (src) => <div style={{ aspectRatio: '4 / 3', background: 'var(--surface-input, rgba(148,163,184,0.15))' }}>{src && <img src={storageUrl(src)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}</div>;
@@ -33,6 +34,7 @@ export default function MyBoardsPage() {
       <Helmet><title>My boards | TISL</title></Helmet>
       <Header />
       <main style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 24px 64px' }}>
+        <WorldTabs active="mine" />
         <h1 style={{ margin: '0 0 6px', fontSize: 'clamp(1.7rem, 4vw, 2.3rem)', fontWeight: 900, color: 'var(--color-primary-500)' }}>My boards</h1>
         <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)' }}>Collect pins you love. New boards are private; make one public when you want others to see it. <Link to="/world" style={{ color: 'var(--color-primary-500)', fontWeight: 700 }}>Discover more ›</Link></p>
         <form onSubmit={make} style={{ display: 'flex', gap: 8, marginBottom: 24, maxWidth: 460 }}>
