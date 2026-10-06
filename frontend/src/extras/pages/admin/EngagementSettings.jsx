@@ -94,9 +94,9 @@ export default function EngagementSettings() {
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 10 }}>
           <p style={label}>What counts as "bought"</p>
-          <p style={{ margin: '0 0 4px', fontSize: '0.78rem', color: colors.textMuted }}>Used wherever a rule below says "Must have bought it". It is read from posted invoices and cash sales, less credit notes, and from bookings for services.</p>
-          <CheckboxRow checked={settings.paid_required} onChange={sw('paid_required')} label="The invoice must be paid" />
-          <CheckboxRow checked={settings.delivered_required} onChange={sw('delivered_required')} label="A product must have been delivered" />
+          <p style={{ margin: '0 0 4px', fontSize: '0.78rem', color: colors.textMuted }}>Used wherever a rule below says "Must have bought it". It is read from the customer's whole history of posted invoices and cash sales, less credit notes, and from bookings for services. They only need to have bought it once.</p>
+          <CheckboxRow checked={settings.paid_required} onChange={sw('paid_required')} label="At least one invoice with this item must be paid" description="Over everything they have bought. A pending invoice today does not matter if an earlier one was paid." />
+          <CheckboxRow checked={settings.delivered_required} onChange={sw('delivered_required')} label="The item must have been delivered at least once" description="Not every time: one delivery, on any of their purchases, is enough. Products only." />
           <p style={{ ...label, margin: '8px 0 0' }}>Services</p>
           <CheckboxRow checked={settings.service_completed_counts} onChange={sw('service_completed_counts')} label="A completed booking counts" />
           <CheckboxRow checked={settings.service_late_fee_counts} onChange={sw('service_late_fee_counts')} label="A late cancellation counts when its cancellation fee was invoiced (and paid, if the first switch is on)" />

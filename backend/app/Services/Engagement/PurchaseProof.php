@@ -11,8 +11,8 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * "Has this person bought it?", read from the books and the bookings and shaped by the switches on the Engagement settings page.
- * A product or hamper counts when a posted sales invoice or cash sale of it exists for the customer (paid, and delivered, if those switches are on)
- * and credit notes have not taken it all back. A service counts through its bookings (completed, late cancellation with a fee, no-show with a fee,
+ * A product or hamper counts when the customer has a posted sales invoice or cash sale of it that credit notes have not taken all back. Over their whole history,
+ * not invoice by invoice: if the paid switch is on, at least one such invoice must be paid; if the delivered switch is on, the item must have been delivered at least once. A service counts through its bookings (completed, late cancellation with a fee, no-show with a fee,
  * cancelled in time: each a switch), or through a sales invoice for it that did not come from a booking.
  */
 class PurchaseProof
@@ -90,6 +90,11 @@ class PurchaseProof
             ->when($apart, fn ($w) => $w->whereNotIn('v.id', fn ($q) => $q->select('order_voucher_id')->from('bookings')->whereNotNull('order_voucher_id')
                 ->union(DB::table('bookings')->select('upfront_voucher_id')->whereNotNull('upfront_voucher_id'))->union(DB::table('bookings')->select('invoice_voucher_id')->whereNotNull('invoice_voucher_id'))->union(DB::table('bookings')->select('fee_voucher_id')->whereNotNull('fee_voucher_id'))))
             ->orderBy('v.id')->get(['i.quantity', 'i.delivered_quantity', 'i.item_type', 'v.id as voucher_id']);
+        // Across everything they have bought, not invoice by invoice: they need at least one purchase that is not credited back, at least one of those paid
+        // (if that switch is on) and at least once the item delivered (if that switch is on). A pending invoice today does not cancel the paid ones before it.
+        $first = null;
+        $paid = null;
+        $delivered = false;
         foreach ($rows as $r) {
             $credited = (float) DB::table('voucher_items as ci')->join('vouchers as cv', 'cv.id', '=', 'ci.voucher_id')->join('voucher_types as ct', 'ct.id', '=', 'cv.voucher_type_id')
                 ->where('cv.source_voucher_id', $r->voucher_id)->where('cv.status', Voucher::POSTED)->where('ct.base_type', 'credit_note')
@@ -97,16 +102,18 @@ class PurchaseProof
             if ($credited + 0.0001 >= (float) $r->quantity) {
                 continue;   // all of it was credited back
             }
-            if ($s->delivered_required && $type === 'product' && (float) $r->delivered_quantity + 0.0001 < (float) $r->quantity - $credited) {
-                continue;
+            $first ??= (int) $r->voucher_id;
+            if ($paid === null && $this->paid(Voucher::find($r->voucher_id))) {
+                $paid = (int) $r->voucher_id;
             }
-            if ($s->paid_required && ! $this->paid(Voucher::find($r->voucher_id))) {
-                continue;
+            if ((float) $r->delivered_quantity > 0.0001) {
+                $delivered = true;
             }
-
-            return (int) $r->voucher_id;
+        }
+        if ($first === null || ($s->paid_required && $paid === null) || ($s->delivered_required && $type === 'product' && ! $delivered)) {
+            return null;
         }
 
-        return null;
+        return $paid ?? $first;
     }
 }
