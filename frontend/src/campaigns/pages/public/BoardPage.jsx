@@ -52,7 +52,7 @@ export default function BoardPage() {
       <Helmet><title>{head ? `${head.title} | TISL` : 'Board | TISL'}</title></Helmet>
       <Header />
       <main style={{ maxWidth: 1400, margin: '0 auto', padding: '32px 24px 64px' }}>
-        <Link to="/world" style={{ fontSize: '0.84rem', color: 'var(--color-primary-500)', fontWeight: 700 }}>‹ Discover</Link>
+        <Link to="/world?tab=boards" style={{ fontSize: '0.84rem', color: 'var(--color-primary-500)', fontWeight: 700 }}>‹ Boards</Link>
         {gone ? <p style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-secondary)' }}>This board is not available.</p> : (
           <>
             <div style={{ textAlign: 'center', margin: '10px 0 28px' }}>

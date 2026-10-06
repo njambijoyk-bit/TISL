@@ -48,6 +48,7 @@ export default function WorldPage() {
           <button type="button" style={chip(tab === 'boards')} onClick={() => set({ tab: 'boards' })}>Boards</button>
           <Link to="/moodboards" style={{ ...chip(false), textDecoration: 'none' }}>Moodboards</Link>
           {user && <Link to="/my/boards" style={{ ...chip(false), textDecoration: 'none' }}>My boards</Link>}
+          {user && <Link to="/my/moodboards" style={{ ...chip(false), textDecoration: 'none' }}>My moodboards</Link>}
           <form onSubmit={(e) => { e.preventDefault(); set({ q: text.trim() }); }} style={{ marginLeft: 'auto', position: 'relative', flex: '1 1 240px', maxWidth: 380 }}>
             <Search size={15} style={{ position: 'absolute', left: 14, top: 12, color: 'var(--text-tertiary)' }} />
             <input value={text} onChange={(e) => setText(e.target.value)} placeholder={tab === 'boards' ? 'Search boards' : 'Search pins'} aria-label={tab === 'boards' ? 'Search boards' : 'Search pins'} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px 10px 38px', borderRadius: 999, border: '1.5px solid var(--line)', background: 'var(--surface-card)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.88rem' }} />
