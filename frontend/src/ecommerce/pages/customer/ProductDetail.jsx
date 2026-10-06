@@ -309,6 +309,8 @@ export default function ProductDetail() {
     ...(hasSpecs ? [{ id: 'specs', label: 'Specifications' }] : []),
     ...(reviewsOn ? [{ id: 'reviews', label: totalReviews > 0 ? `Reviews (${totalReviews})` : 'Reviews' }] : []),
   ];
+  // the chosen tab may not exist for this product (no description or specifications): fall back to the first one that does
+  const shownTab = tabs.some((t) => t.id === activeTab) ? activeTab : tabs[0]?.id;
 
   return (
     <>
@@ -990,9 +992,9 @@ export default function ProductDetail() {
                     type="button"
                     style={{
                       padding: '16px 20px', fontSize: '0.85rem', fontWeight: 700,
-                      color: activeTab === tab.id ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
+                      color: shownTab === tab.id ? 'var(--color-primary-500)' : 'var(--text-tertiary)',
                       background: 'none', border: 'none', cursor: 'pointer',
-                      borderBottom: activeTab === tab.id ? '2px solid var(--color-primary-500)' : '2px solid transparent',
+                      borderBottom: shownTab === tab.id ? '2px solid var(--color-primary-500)' : '2px solid transparent',
                       marginBottom: -1, transition: 'all 150ms ease', letterSpacing: '0.02em',
                     }}
                   >
@@ -1003,7 +1005,7 @@ export default function ProductDetail() {
 
               {/* Tab content */}
               <div style={{ padding: '32px' }}>
-                {activeTab === 'description' && hasDescription && (
+                {shownTab === 'description' && hasDescription && (
                   <div style={{ maxWidth: 720 }}>
                     <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', lineHeight: 1.8, whiteSpace: 'pre-line' }}>
                       {product?.description}
@@ -1011,7 +1013,7 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {activeTab === 'specs' && hasSpecs && (
+                {shownTab === 'specs' && hasSpecs && (
                   <div style={{ maxWidth: 720 }}>
                     <div style={{ borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)' }}>
                       {Object.entries(product.specifications).map(([key, value], idx) => (
@@ -1028,7 +1030,7 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {activeTab === 'reviews' && reviewsOn && product?.id && <Discussion type="product" id={product.id} />}
+                {shownTab === 'reviews' && reviewsOn && product?.id && <Discussion type="product" id={product.id} />}
               </div>
 
               {/* Trust strip */}
