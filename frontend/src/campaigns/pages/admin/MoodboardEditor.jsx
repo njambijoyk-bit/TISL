@@ -11,6 +11,7 @@ import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/token
 import BoardChip from '../../components/BoardChip';
 import Moodboard from '../../components/Moodboard';
 import PinPicker from '../../components/PinPicker';
+import { downloadMoodboardImage } from '../../lib/moodboardExport';
 import { FONT_LIST, PATTERNS, STICKERS, SVG_LIST } from '../../lib/moodboardKit';
 import StickerPicker from '../../components/StickerPicker';
 
@@ -69,6 +70,10 @@ export default function MoodboardEditor() {
     if (!window.confirm(`Delete "${m.title}"?`)) return;
     try { await moodboardsAPI.remove(m.id); toast.success('Moodboard deleted'); nav('/admin/moodboards', { replace: true }); } catch (e) { toast.error(errMsg(e, 'Could not delete it')); }
   };
+  const download = async () => {
+    try { await downloadMoodboardImage(show, m.title); toast.success('Image saved'); }
+    catch { toast.error('Could not make the image. A picture may be blocked from being copied.'); }
+  };
   const withSaved = (fn) => { if (dirty) { toast.error('Save your changes first.'); return; } fn(); };
 
   return (
@@ -80,7 +85,8 @@ export default function MoodboardEditor() {
           <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>by {m.owner_name}</span>
           <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 6, flexWrap: 'wrap' }}>
             {perm.can_submit && <button type="button" style={btnPrimary} onClick={() => withSaved(() => run(() => moodboardsAPI.submit(m.id)))}>Send for approval</button>}
-            {!m.is_template && <button type="button" style={btnGhost} onClick={() => withSaved(template)}>Save as template</button>}
+            <button type="button" style={btnGhost} onClick={download}>Download image</button>
+            {!m.is_template && !m.private_customer && <button type="button" style={btnGhost} onClick={() => withSaved(template)}>Save as template</button>}
             {perm.can_publish && !m.is_template && (m.status === 'hidden' ? <button type="button" style={btnGhost} onClick={() => run(() => moodboardsAPI.unhide(m.id))}>Show again</button> : <button type="button" style={btnGhost} onClick={() => run(() => moodboardsAPI.hide(m.id))}>Hide</button>)}
             {perm.can_publish && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={remove}>Delete</button>}
           </span>

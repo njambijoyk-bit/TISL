@@ -1,12 +1,10 @@
 import { useEffect } from 'react';
 import { storageUrl } from '../../_shared/lib/storageUrl';
-import { FONT_STYLES, SVG_STICKERS, loadMoodboardFonts, patternStyle } from '../lib/moodboardKit';
+import { FONT_STYLES, SVG_STICKERS, TORN, loadMoodboardFonts, patternStyle } from '../lib/moodboardKit';
 
 const dashed = 'color-mix(in srgb, #64748b 55%, transparent)';
 
 const SHAPE_RADIUS = { circle: '50%', rounded: '3cqw', polaroid: '0.6cqw', arch: '50% 50% 0 0 / 28% 28% 0 0', corner: '0 16cqw 0 0', pill: '6cqw', blob: '58% 42% 55% 45% / 48% 56% 44% 52%' };
-// A paper note with a torn top and bottom edge.
-const TORN = 'polygon(0 3%,4% 0,9% 2%,15% 0,21% 3%,28% 1%,35% 3%,42% 0,50% 2%,58% 0,66% 3%,74% 1%,82% 3%,90% 0,96% 2%,100% 1%,100% 97%,95% 100%,88% 98%,80% 100%,72% 97%,64% 100%,56% 98%,47% 100%,38% 97%,30% 100%,22% 98%,13% 100%,6% 97%,0 99%)';
 
 /** Line-art sticker (drawn, so it can be any colour); tape is see-through. */
 export function Drawn({ value, color }) {

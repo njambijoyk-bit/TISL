@@ -80,3 +80,6 @@ export const SVG_LIST = Object.entries(SVG_STICKERS).map(([k, v]) => [`svg:${k}`
 export function seedContents(layout) {
   return Object.fromEntries((layout?.slots ?? []).filter((x) => x.default).map((x) => [x.id, x.default]));
 }
+
+// A paper note with a torn top and bottom edge.
+export const TORN = 'polygon(0 3%,4% 0,9% 2%,15% 0,21% 3%,28% 1%,35% 3%,42% 0,50% 2%,58% 0,66% 3%,74% 1%,82% 3%,90% 0,96% 2%,100% 1%,100% 97%,95% 100%,88% 98%,80% 100%,72% 97%,64% 100%,56% 98%,47% 100%,38% 97%,30% 100%,22% 98%,13% 100%,6% 97%,0 99%)';

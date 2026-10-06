@@ -10,6 +10,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
 import Moodboard from '../../components/Moodboard';
 import StickerPicker from '../../components/StickerPicker';
+import { downloadMoodboardImage } from '../../lib/moodboardExport';
 import { FONT_LIST, PATTERNS } from '../../lib/moodboardKit';
 import { stateLabel } from '../../components/moodboardState';
 
@@ -82,6 +83,10 @@ export default function MyMoodboardPage() {
     catch (e) { toast.error(errMsg(e, 'Could not save the moodboard'), { duration: 6000 }); } finally { setBusy(false); }
   };
   const run = async (fn) => { try { const r = await fn(); toast.success(r.message); take(r.data); } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 6000 }); } };
+  const download = async () => {
+    try { await downloadMoodboardImage(show, m.title); toast.success('Image saved'); }
+    catch { toast.error('Could not make the image. A picture may be blocked from being copied.'); }
+  };
   const withSaved = (fn) => { if (dirty) { toast.error('Save your changes first.'); return; } fn(); };
   const remove = async () => {
     if (!window.confirm(`Delete "${m.title}"? This cannot be undone.`)) return;
@@ -98,6 +103,7 @@ export default function MyMoodboardPage() {
           {m.visibility === 'private' || m.approval_status === 'rejected'
             ? <button type="button" style={btn(true)} onClick={() => withSaved(() => run(() => myMoodboardsAPI.publish(m.id)))}>Make public</button>
             : <button type="button" style={btn(false)} onClick={() => run(() => myMoodboardsAPI.makePrivate(m.id))}>{m.approval_status === 'pending' ? 'Take it back' : 'Make private'}</button>}
+          <button type="button" style={btn(false)} onClick={download}>Download image</button>
           <button type="button" style={{ ...btn(false), color: 'var(--status-error, #b91c1c)' }} onClick={remove}>Delete</button>
         </span>
       </div>
