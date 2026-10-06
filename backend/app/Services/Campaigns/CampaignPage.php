@@ -96,7 +96,7 @@ class CampaignPage
         }
         if ($type === 'moodboard') {
             $id = (int) ($settings['moodboard_id'] ?? 0);
-            if (! $id || ! \App\Models\CampaignMoodboard::where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved')->where('id', $id)->exists()) {
+            if (! $id || ! \App\Models\CampaignMoodboard::public()->where('id', $id)->exists()) {
                 throw ValidationException::withMessages(['sections' => ['Choose an approved moodboard for the moodboard section.']]);
             }
             $out['moodboard_id'] = $id;

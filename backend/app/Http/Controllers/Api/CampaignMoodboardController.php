@@ -30,7 +30,7 @@ class CampaignMoodboardController extends Controller
     private function find(Request $r, int $id, bool $forEdit = false): CampaignMoodboard
     {
         $this->builder($r);
-        $m = CampaignMoodboard::with('owner:id,name')->findOrFail($id);
+        $m = CampaignMoodboard::forStaff()->with('owner:id,name')->findOrFail($id);
         abort_unless(CampaignAccess::canPublish($r->user()) || (int) $m->owner_user_id === (int) $r->user()->id || $m->is_template, 403, 'That is not your moodboard.');
         if ($forEdit) {
             abort_unless($this->moods->canEdit($r->user(), $m), 403, 'You cannot change this moodboard while it is waiting for a decision.');
@@ -51,7 +51,7 @@ class CampaignMoodboardController extends Controller
     private function row(CampaignMoodboard $m, ?Request $r = null, bool $full = false): array
     {
         $row = ['id' => $m->id, 'title' => $m->title, 'template_key' => $m->template_key, 'is_template' => $m->is_template, 'approval_status' => $m->approval_status, 'rejected_note' => $m->rejected_note,
-            'status' => $m->status, 'owner_user_id' => $m->owner_user_id, 'owner_name' => $m->owner?->name, 'slug_path' => $m->slugPath(), 'filled' => count(array_filter($m->contents ?? [])), 'slots' => count($m->layout['slots'] ?? []), 'updated_at' => $m->updated_at?->toIso8601String()];
+            'status' => $m->status, 'source' => $m->source, 'owner_user_id' => $m->owner_user_id, 'owner_name' => $m->owner?->name, 'slug_path' => $m->slugPath(), 'filled' => count(array_filter($m->contents ?? [])), 'slots' => count($m->layout['slots'] ?? []), 'updated_at' => $m->updated_at?->toIso8601String()];
         if ($full) {
             $row += $this->moods->present($m) + ['raw_contents' => (object) ($m->contents ?? [])];
         }
@@ -78,7 +78,7 @@ class CampaignMoodboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $this->builder($request);
-        $q = CampaignMoodboard::with('owner:id,name')->where('is_template', $request->boolean('templates'))->orderByDesc('id')
+        $q = CampaignMoodboard::forStaff()->with('owner:id,name')->where('is_template', $request->boolean('templates'))->orderByDesc('id')
             ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())
             ->when($request->filled('approval'), fn ($w) => $w->where('approval_status', $request->query('approval')))
             ->when($request->filled('q'), fn ($w) => $w->where('title', 'like', '%' . $request->query('q') . '%'))

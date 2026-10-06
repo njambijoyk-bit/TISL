@@ -201,6 +201,16 @@ Route::middleware(['auth:sanctum', 'module:campaigns'])->group(function () {
         Route::put('/pins/{id}',    [$c, 'updatePin'])->whereNumber('id');
         Route::delete('/pins/{id}', [$c, 'destroyPin'])->whereNumber('id');
         Route::get('/following', [$c, 'following']);
+        $mm = \App\Http\Controllers\Api\MyMoodboardController::class;
+        Route::get('/moodboards/presets', [$mm, 'presets']);
+        Route::get('/moodboards/pins',    [$mm, 'pins']);
+        Route::get('/moodboards',         [$mm, 'index']);
+        Route::post('/moodboards',        [$mm, 'store'])->middleware('throttle:20,1');
+        Route::get('/moodboards/{id}',    [$mm, 'show'])->whereNumber('id');
+        Route::put('/moodboards/{id}',    [$mm, 'update'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::post('/moodboards/{id}/publish', [$mm, 'publish'])->whereNumber('id');
+        Route::post('/moodboards/{id}/private', [$mm, 'makePrivate'])->whereNumber('id');
+        Route::delete('/moodboards/{id}', [$mm, 'destroy'])->whereNumber('id');
     });
     Route::post('/world/boards/{id}/follow',   [$c, 'follow'])->whereNumber('id')->middleware('throttle:60,1');
     Route::delete('/world/boards/{id}/follow', [$c, 'unfollow'])->whereNumber('id');

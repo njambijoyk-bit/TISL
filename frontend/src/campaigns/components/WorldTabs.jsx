@@ -14,6 +14,7 @@ export default function WorldTabs({ active }) {
       <Link to="/world?tab=boards" style={chip(false)}>Boards</Link>
       <Link to="/moodboards" style={chip(active === 'moodboards')}>Moodboards</Link>
       {user && <Link to="/my/boards" style={chip(active === 'mine')}>My boards</Link>}
+      {user && <Link to="/my/moodboards" style={chip(active === 'mymood')}>My moodboards</Link>}
     </div>
   );
 }

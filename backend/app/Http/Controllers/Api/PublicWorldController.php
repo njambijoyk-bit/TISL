@@ -117,24 +117,32 @@ class PublicWorldController extends Controller
 
     private function publicMoodboards()
     {
-        return CampaignMoodboard::where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved');
+        return CampaignMoodboard::public();
     }
 
     /** GET /world/moodboards: the newest approved moodboards, 30 at a time (`after` is the last id seen). */
     public function moodboards(Request $request): JsonResponse
     {
-        $rows = $this->publicMoodboards()->when($request->integer('after'), fn ($w) => $w->where('id', '<', $request->integer('after')))->orderByDesc('id')->limit(Feed::PAGE + 1)->get();
+        $rows = $this->publicMoodboards()->with('owner:id,name')->when($request->integer('after'), fn ($w) => $w->where('id', '<', $request->integer('after')))->orderByDesc('id')->limit(Feed::PAGE + 1)->get();
         $more = $rows->count() > Feed::PAGE;
         $rows = $rows->take(Feed::PAGE);
         $images = $this->moods->images($rows->flatMap(fn ($m) => array_filter(array_map(fn ($c) => $c['pin_id'] ?? null, $m->contents ?? [])))->all());
 
-        return response()->json(['data' => $rows->map(fn ($m) => $this->moods->present($m, $images))->all(), 'next' => $more ? $rows->last()->id : null]);
+        return response()->json(['data' => $rows->map(fn ($m) => $this->moods->present($m, $images) + ['by' => $this->madeBy($m)])->all(), 'next' => $more ? $rows->last()->id : null]);
     }
 
     /** GET /world/moodboards/{id} */
     public function moodboard(int $id): JsonResponse
     {
-        return response()->json(['data' => $this->moods->present($this->publicMoodboards()->findOrFail($id))]);
+        $m = $this->publicMoodboards()->with('owner:id,name')->findOrFail($id);
+
+        return response()->json(['data' => $this->moods->present($m) + ['by' => $this->madeBy($m)]]);
+    }
+
+    /** A customer's moodboard shows who made it ("Ann K."); the brand's own show nobody. */
+    private function madeBy(CampaignMoodboard $m): ?string
+    {
+        return $m->source === 'customer' ? $this->shortName($m->owner?->name ?? CampaignMoodboard::find($m->id)?->owner?->name) : null;
     }
 
     /** "Ann Kamau" -> "Ann K." so a board shows who made it without a full name. */

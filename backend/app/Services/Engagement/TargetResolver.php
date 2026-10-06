@@ -23,7 +23,7 @@ class TargetResolver
             'hamper' => Hamper::where('id', $id)->exists(),
             'pin' => $this->feed->publicPins()->where('campaign_pins.id', $id)->exists(),
             'board' => $this->feed->publicBoards()->where('id', $id)->exists(),
-            'moodboard' => CampaignMoodboard::where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved')->where('id', $id)->exists(),
+            'moodboard' => CampaignMoodboard::public()->where('id', $id)->exists(),
             'campaign' => Campaign::where('id', $id)->where('is_published', true)->whereNull('archived_at')->exists(),
             'post' => EngagementPost::where('id', $id)->where('status', 'published')->exists(),
             default => false,

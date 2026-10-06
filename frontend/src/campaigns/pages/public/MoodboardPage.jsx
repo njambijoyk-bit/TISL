@@ -22,7 +22,7 @@ export default function MoodboardPage() {
       <main style={{ maxWidth: 860, margin: '0 auto', padding: '32px 20px 64px' }}>
         <Link to="/moodboards" style={{ fontSize: '0.84rem', color: 'var(--color-primary-500)', fontWeight: 700 }}>‹ Moodboards</Link>
         {gone && <p style={{ padding: '48px 0', textAlign: 'center', color: 'var(--text-secondary)' }}>This moodboard is not available.</p>}
-        {m && <><h1 style={{ margin: '14px 0 18px', fontSize: 'clamp(1.5rem, 4vw, 2.1rem)', fontWeight: 900, color: 'var(--text-primary)' }}>{m.title}</h1><Moodboard board={m} radius={16} /><div style={{ display: 'flex', gap: 18, margin: '14px 0 26px' }}><ReactionButton type="moodboard" id={m.id} /><ReportButton type="moodboard" id={m.id} /></div><Discussion type="moodboard" id={m.id} kind="comment" /></>}
+        {m && <><h1 style={{ margin: '14px 0 18px', fontSize: 'clamp(1.5rem, 4vw, 2.1rem)', fontWeight: 900, color: 'var(--text-primary)' }}>{m.title}</h1>{m.by && <p style={{ margin: '-10px 0 14px', fontSize: '0.84rem', color: 'var(--text-tertiary)' }}>by {m.by}</p>}<Moodboard board={m} radius={16} /><div style={{ display: 'flex', gap: 18, margin: '14px 0 26px' }}><ReactionButton type="moodboard" id={m.id} /><ReportButton type="moodboard" id={m.id} /></div><Discussion type="moodboard" id={m.id} kind="comment" /></>}
       </main>
       <Footer />
     </div>

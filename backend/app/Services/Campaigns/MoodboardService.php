@@ -22,7 +22,33 @@ class MoodboardService
             return true;
         }
 
+        if ($m->source === 'customer') {
+            return $u && (int) $m->owner_user_id === (int) $u->id && $m->approval_status !== 'pending';
+        }
+
         return CampaignAccess::canBuild($u) && (int) $m->owner_user_id === (int) $u->id && $m->approval_status !== 'pending';
+    }
+
+    public const CUSTOMER_MAX = 20;
+
+    /** A customer starts a moodboard from one of the built-in layouts. It is private and a draft until they ask to publish it. */
+    public function createForCustomer(string $title, string $preset, User $by): CampaignMoodboard
+    {
+        if (CampaignMoodboard::where('source', 'customer')->where('owner_user_id', $by->id)->count() >= self::CUSTOMER_MAX) {
+            throw new BooksException('You can keep up to ' . self::CUSTOMER_MAX . ' moodboards. Delete one to make another.');
+        }
+        $layout = MoodboardPresets::find($preset)['layout'] ?? throw new BooksException('Choose a layout.');
+
+        return CampaignMoodboard::create(['source' => 'customer', 'visibility' => 'private', 'owner_user_id' => $by->id, 'title' => $this->title($title), 'template_key' => $preset, 'layout' => $layout, 'contents' => [],
+            'is_template' => false, 'status' => 'visible', 'approval_status' => 'draft']);
+    }
+
+    /** Pins a customer may use in a photo spot: pictures on their own boards, or ones they made. */
+    public function customerPinIds(User $by): array
+    {
+        $onBoards = \Illuminate\Support\Facades\DB::table('campaign_board_pins as bp')->join('campaign_boards as b', 'b.id', '=', 'bp.board_id')->whereNull('b.deleted_at')->where('b.owner_user_id', $by->id)->pluck('bp.pin_id');
+
+        return CampaignPin::where('kind', 'image')->where('status', 'visible')->where(fn ($w) => $w->whereIn('id', $onBoards)->orWhere('owner_user_id', $by->id))->pluck('id')->all();
     }
 
     private function title(mixed $t): string
@@ -51,7 +77,7 @@ class MoodboardService
         }
         $publisher = CampaignAccess::canPublish($by);
 
-        return CampaignMoodboard::create(['owner_user_id' => $by->id, 'title' => $this->title($title), 'template_key' => $key, 'layout' => $layout, 'contents' => [], 'is_template' => false, 'status' => 'visible',
+        return CampaignMoodboard::create(['source' => 'staff', 'visibility' => 'public', 'owner_user_id' => $by->id, 'title' => $this->title($title), 'template_key' => $key, 'layout' => $layout, 'contents' => [], 'is_template' => false, 'status' => 'visible',
             'approval_status' => $publisher ? 'approved' : 'draft', 'approved_by' => $publisher ? $by->id : null, 'approved_at' => $publisher ? now() : null]);
     }
 
@@ -59,6 +85,7 @@ class MoodboardService
     private function cleanContents(CampaignMoodboard $m, array $contents): array
     {
         $slots = collect($m->layout['slots'] ?? [])->keyBy('id');
+        $allowed = $m->source === 'customer' ? $this->customerPinIds($m->owner) : null;   // a customer's photo spots only take pictures from their own boards
         $out = [];
         foreach ($contents as $id => $c) {
             $slot = $slots->get($id);
@@ -70,6 +97,9 @@ class MoodboardService
                 $pid = (int) ($c['pin_id'] ?? 0);
                 if (! $pid || ! CampaignPin::where('id', $pid)->where('status', 'visible')->exists()) {
                     throw new BooksException("\"{$slot['hint']}\": that pin is hidden or no longer exists.");
+                }
+                if ($allowed !== null && ! in_array($pid, $allowed, true)) {
+                    throw new BooksException("\"{$slot['hint']}\": choose a picture from your own boards.");
                 }
                 $out[$id] = ['pin_id' => $pid];
             } elseif ($type === 'color') {
@@ -127,6 +157,17 @@ class MoodboardService
 
     private function changed(CampaignMoodboard $m, User $by): void
     {
+        if ($m->source === 'customer') {
+            if ($m->visibility === 'public' && $m->approval_status === 'approved') {   // a change to a published moodboard goes for approval again, so nothing unchecked is public
+                try {
+                    $this->approval->submit($m->fresh(), $by);
+                } catch (BooksException) {
+                    $m->update(['visibility' => 'private', 'approval_status' => 'draft']);
+                }
+            }
+
+            return;
+        }
         if (! $m->is_template && ! CampaignAccess::canPublish($by) && $m->approval_status === 'approved') {
             try {
                 $this->approval->submit($m->fresh(), $by);
@@ -134,6 +175,27 @@ class MoodboardService
                 $m->update(['approval_status' => 'draft']);
             }
         }
+    }
+
+    /** The customer asks to make it public: it goes to staff for approval, and shows on the website once approved. */
+    public function publish(CampaignMoodboard $m, User $by): void
+    {
+        $m->update(['visibility' => 'public']);
+        try {
+            $this->approval->submit($m->fresh(), $by);
+        } catch (BooksException $e) {
+            $m->update(['visibility' => 'private']);
+            throw $e;
+        }
+    }
+
+    /** Back to private: off the website at once, and any request for approval is withdrawn. */
+    public function makePrivate(CampaignMoodboard $m, User $by): void
+    {
+        if ($m->approval_status === 'pending') {
+            $this->approval->withdraw($m, $by);
+        }
+        $m->update(['visibility' => 'private', 'approval_status' => 'draft', 'rejected_note' => null]);
     }
 
     public function hide(CampaignMoodboard $m): void

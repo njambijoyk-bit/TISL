@@ -290,7 +290,7 @@ class CampaignController extends Controller
     {
         $this->builder($request);
         $boards = app(\App\Services\Campaigns\Feed::class)->publicBoards()->orderByDesc('id')->limit(200)->get(['id', 'title'])->all();
-        $moods = \App\Models\CampaignMoodboard::where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved')->orderByDesc('id')->limit(200)->get(['id', 'title'])->all();
+        $moods = \App\Models\CampaignMoodboard::public()->orderByDesc('id')->limit(200)->get(['id', 'title'])->all();
 
         return response()->json(['boards' => $boards, 'moodboards' => $moods]);
     }
