@@ -349,6 +349,7 @@ Route::get('/services/{id}/packages', [ServiceCatalogController::class, 'publicP
 Route::get('/services/{id}/booking', [\App\Http\Controllers\Api\MyBookingController::class, 'availability'])->whereNumber('id')->middleware('throttle:60,1');
 Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/services/{id}/related', [ServiceController::class, 'related']);
+Route::get('/services/{id}/brochure', [\App\Http\Controllers\Api\ServiceBrochureController::class, 'publicShow'])->whereNumber('id')->middleware('throttle:30,1');
 
 // PUBLIC SERVICE CATEGORIES
 Route::get('/service-categories', [ServiceCategoryController::class, 'index']);
@@ -1189,6 +1190,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/restore', [ServiceController::class, 'restore']);
             Route::post('/{id}/publish', [ServiceController::class, 'publish']);
             Route::post('/{id}/unpublish', [ServiceController::class, 'unpublish']);
+            Route::post('/{id}/video',     [\App\Http\Controllers\Api\ServiceVideoController::class, 'store'])->whereNumber('id');
+            Route::delete('/{id}/video',   [\App\Http\Controllers\Api\ServiceVideoController::class, 'destroy'])->whereNumber('id');
+            Route::get('/{id}/brochure',   [\App\Http\Controllers\Api\ServiceBrochureController::class, 'preview'])->whereNumber('id');
 
             // Options, packages (variants) and requirements
             Route::get('/{id}/catalog',                                   [ServiceCatalogController::class, 'adminCatalog']);
@@ -1324,6 +1328,13 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Services settings: cancellation and reschedule windows, and the defaults of every service fee
+        Route::prefix('brochures')->middleware('module:ecommerce')->group(function () {
+            $c = \App\Http\Controllers\Api\ServiceBrochureController::class;
+            Route::get('/',          [$c, 'index']);
+            Route::put('/defaults',  [$c, 'saveDefaults'])->middleware('role:admin,super_admin,manager');
+            Route::put('/services',  [$c, 'saveServices'])->middleware('role:admin,super_admin,manager');
+        });
+
         Route::prefix('service-settings')->middleware('module:ecommerce')->group(function () {
             Route::get('/', [\App\Http\Controllers\Api\ServiceSettingsController::class, 'show']);
             Route::put('/', [\App\Http\Controllers\Api\ServiceSettingsController::class, 'update'])->middleware('role:admin,super_admin,manager');

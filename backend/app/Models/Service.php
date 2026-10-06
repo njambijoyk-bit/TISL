@@ -49,7 +49,7 @@ class Service extends Model
         'pricing_tiers',
         'images',
         'main_image',
-        'brochure_url',
+        'brochure_meta',
         'video_url',
         'is_available',
         'status',
@@ -93,6 +93,7 @@ class Service extends Model
         'requirements' => 'array',
         'pricing_tiers' => 'array',
         'images' => 'array',
+        'brochure_meta' => 'array',
         'related_services' => 'array',
         'meta_keywords' => 'array',
         'rating' => 'decimal:2',
@@ -112,6 +113,7 @@ class Service extends Model
         'pricing_model_label',
         'main_image_url',
         'images_url',
+        'video',
         'is_published',
         'display_price',
         'display_currency',
@@ -267,6 +269,12 @@ class Service extends Model
             // Otherwise prefix with asset path
             return asset($img);
         })->toArray();
+    }
+
+    /** The service's video: an uploaded file (video_url holds its /storage path) or a link to YouTube, Vimeo, TikTok or Facebook. Null when it has none. */
+    public function getVideoAttribute(): ?array
+    {
+        return \App\Services\ServiceVideo::describe($this->video_url);
     }
 
     /**

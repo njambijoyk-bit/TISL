@@ -339,8 +339,6 @@ class ServiceController extends Controller
             'images.*' => 'nullable|file|image|max:5120',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'nullable|url',
-            'brochure_url' => 'nullable|url',
-            'video_url' => 'nullable|url',
             
             // Availability
             'is_available' => 'nullable|boolean',
@@ -369,7 +367,7 @@ class ServiceController extends Controller
 
         DB::beginTransaction();
         try {
-            $data = $request->except(['main_image', 'images', 'image_urls', 'main_image_url']);
+            $data = $request->except(['main_image', 'images', 'image_urls', 'main_image_url', 'video_url', 'brochure_url', 'brochure_meta']);
             
             // Generate slug if not provided
             if (empty($data['slug'])) {
@@ -549,8 +547,6 @@ class ServiceController extends Controller
             'images.*' => 'nullable|file|image|max:5120',
             'image_urls' => 'nullable|array',
             'image_urls.*' => 'nullable|url',
-            'brochure_url' => 'nullable|url',
-            'video_url' => 'nullable|url',
             
             // Availability
             'is_available' => 'nullable|boolean',
@@ -579,7 +575,7 @@ class ServiceController extends Controller
 
         DB::beginTransaction();
         try {
-            $data = $request->except(['main_image', 'images', 'image_urls', 'main_image_url']);
+            $data = $request->except(['main_image', 'images', 'image_urls', 'main_image_url', 'video_url', 'brochure_url', 'brochure_meta']);
             
             // (a changed SKU was checked above to be unused)
 
