@@ -17,6 +17,8 @@ const campaignsAPI = {
   reject: async (id, note) => (await api.post(`/admin/campaigns/${id}/reject`, { note })).data,
   archive: async (id) => (await api.post(`/admin/campaigns/${id}/archive`)).data,
   remove: async (id) => (await api.delete(`/admin/campaigns/${id}`)).data,
+  restore: async (id) => (await api.post(`/admin/campaigns/${id}/restore`)).data,
+  purge: async (id) => (await api.delete(`/admin/campaigns/${id}/purge`)).data,
   uploadCover: async (id, file) => {
     const form = new FormData();
     form.append('cover', file);

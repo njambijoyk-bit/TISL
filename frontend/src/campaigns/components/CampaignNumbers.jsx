@@ -17,7 +17,7 @@ function Tile({ label, value, note, strong }) {
   );
 }
 
-/** How a campaign is doing: who looked, what they clicked, and what sold from its featured items inside its dates. */
+/** How a campaign is doing: who looked, what they clicked, and what sold: sales that came through it, and all sales of its featured items inside its dates. */
 export default function CampaignNumbers({ id }) {
   const [d, setD] = useState(null);
   const [err, setErr] = useState(null);
@@ -34,7 +34,8 @@ export default function CampaignNumbers({ id }) {
         <Tile label="Views" value={n(v.views)} note={`${n(v.visitors)} different visitors`} strong={d.goal === 'reach'} />
         <Tile label="Clicks" value={n(v.clicks)} note="buttons and links" />
         <Tile label="Item clicks" value={n(v.item_clicks)} note="featured items opened" />
-        {s ? <Tile label="Sales" value={money(s.total, s.currency)} note={`${n(s.orders)} orders · ${n(s.units)} units${rate ? ` · ${rate}` : ''}`} strong={d.goal === 'sales'} /> : <Tile label="Sales" value="—" note="Counted once it has started" />}
+        {s ? <Tile label="Campaign sales" value={money(s.attributed?.total ?? 0, s.currency)} note={`${n(s.attributed?.orders ?? 0)} orders · ${n(s.attributed?.units ?? 0)} units · bought within 7 days of opening one of its items`} strong={d.goal === 'sales'} /> : <Tile label="Campaign sales" value="—" note="Counted once it has started" />}
+        {s && <Tile label="Featured items sold" value={money(s.total, s.currency)} note={`${n(s.orders)} orders · ${n(s.units)} units inside its dates, however they were bought${rate ? ` · ${rate}` : ''}`} />}
       </div>
 
       {cm && (

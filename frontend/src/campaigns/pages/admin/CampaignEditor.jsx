@@ -72,7 +72,7 @@ export default function CampaignEditor() {
     } catch (er) { toast.error(errMsg(er, 'That did not work'), { duration: 6000 }); }
   };
   const remove = async () => {
-    if (!window.confirm(`Delete "${c.title}"?`)) return;
+    if (!window.confirm(`Move "${c.title}" to the recycle bin? It can be restored from there.`)) return;
     try { await campaignsAPI.remove(c.id); toast.success('Campaign deleted'); nav('/admin/campaigns', { replace: true }); } catch (er) { toast.error(errMsg(er, 'Could not delete it')); }
   };
   const upload = async (file) => {

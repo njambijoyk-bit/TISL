@@ -64,6 +64,7 @@ class CampaignController extends Controller
     {
         $this->builder($request);
         $q = Campaign::query()->withCount(['sections', 'items'])->orderByDesc('id')
+            ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())
             ->when($request->filled('type'), fn ($w) => $w->where('type', $request->query('type')))
             ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('title', 'like', '%' . $request->query('q') . '%')->orWhere('slug', 'like', '%' . $request->query('q') . '%')))
             ->when($request->filled('approval'), fn ($w) => $w->where('approval_status', $request->query('approval')))
@@ -351,5 +352,37 @@ class CampaignController extends Controller
         Campaign::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Campaign deleted.']);
+    }
+
+    /** POST /admin/campaigns/{id}/restore: out of the recycle bin. It comes back as it was (a published one is live again if its dates allow). */
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $this->publisher($request);
+        Campaign::onlyTrashed()->findOrFail($id)->restore();
+
+        return response()->json(['message' => 'Campaign restored.']);
+    }
+
+    /**
+     * DELETE /admin/campaigns/{id}/purge: super admin only. Deletes the campaign itself and the records that only exist for it (its sections, its list of featured
+     * items, its view and click counts). Pins, boards, moodboards, products, hampers and sales are never deleted; a pin, board or moodboard that was marked as
+     * belonging to it just loses that mark.
+     */
+    public function purge(Request $request, int $id): JsonResponse
+    {
+        abort_unless($request->user()?->role === 'super_admin', 403, 'Only a super admin can delete a campaign for good.');
+        $c = Campaign::withTrashed()->findOrFail($id);
+        $this->approval->clear($c);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($c) {
+            foreach (['campaign_pins', 'campaign_boards', 'campaign_moodboards'] as $t) {
+                \Illuminate\Support\Facades\DB::table($t)->where('campaign_id', $c->id)->update(['campaign_id' => null]);
+            }
+            foreach (['campaign_sections', 'campaign_items', 'campaign_events'] as $t) {
+                \Illuminate\Support\Facades\DB::table($t)->where('campaign_id', $c->id)->delete();
+            }
+            $c->forceDelete();
+        });
+
+        return response()->json(['message' => 'Campaign deleted for good.']);
     }
 }

@@ -82,6 +82,53 @@ class CampaignStats
         }
         $out['total'] = round($out['total'], 2);
         $out['orders'] = count($orders);
+        $out['attributed'] = $this->attributed($c);
+
+        return $out;
+    }
+
+    /**
+     * Sales that came through the campaign: invoices and cash sales whose meta says so (a visitor opened one of its featured items in the 7 days before buying),
+     * counting only the featured items' lines, less credit notes raised against those invoices. Receipts are not sales and are not counted.
+     *
+     * @return array{total:float,orders:int,units:float}
+     */
+    public function attributed(Campaign $c): array
+    {
+        $out = ['total' => 0.0, 'orders' => 0, 'units' => 0.0];
+        $since = $c->created_at?->toDateString() ?? '2000-01-01';
+        $metaOf = function ($raw) {
+            $m = is_string($raw) ? json_decode($raw, true) : (array) $raw;
+
+            return is_array($m) ? $m : [];
+        };
+        $orders = [];
+        foreach ($c->items as $it) {
+            $col = ['product' => 'i.product_id', 'hamper' => 'i.hamper_id'][$it->item_type] ?? null;   // checkout sells products and hampers
+            if (! $col) {
+                continue;
+            }
+            $rows = DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
+                ->where($col, $it->item_id)->where('v.status', 'posted')->whereIn('t.base_type', ['sales', 'cash_sale', 'credit_note'])->where('v.date', '>=', $since)
+                ->where('i.item_type', '!=', 'charge')->when($it->item_type === 'hamper', fn ($w) => $w->where('i.is_header', true), fn ($w) => $w->where('i.is_header', false)->whereNull('i.parent_item_id'))
+                ->get(['i.amount', 'i.quantity', 'v.exchange_rate', 'v.id as voucher_id', 'v.meta', 'v.source_voucher_id', 't.base_type']);
+            $originals = DB::table('vouchers')->whereIn('id', $rows->where('base_type', 'credit_note')->pluck('source_voucher_id')->filter()->unique()->all())->pluck('meta', 'id');
+            foreach ($rows as $r) {
+                $credit = $r->base_type === 'credit_note';
+                $meta = $metaOf($credit ? ($originals[$r->source_voucher_id] ?? null) : $r->meta);   // a credit note follows the invoice it was raised against
+                if ((int) ($meta['attribution']['campaign_id'] ?? 0) !== (int) $c->id) {
+                    continue;
+                }
+                $sign = $credit ? -1 : 1;
+                $out['total'] += $sign * round((float) $r->amount * (float) ($r->exchange_rate ?: 1), 2);
+                $out['units'] += $sign * (float) $r->quantity;
+                if (! $credit) {
+                    $orders[$r->voucher_id] = true;
+                }
+            }
+        }
+        $out['total'] = round($out['total'], 2);
+        $out['orders'] = count($orders);
 
         return $out;
     }

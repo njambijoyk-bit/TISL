@@ -1,4 +1,5 @@
 import api from './axios';
+import { campaignClaim } from '../lib/campaignAttribution';
 
 /** Fetch a file from the API and hand it to the browser as a download. */
 const saveBlob = async (url, params, fallbackName) => {
@@ -14,7 +15,7 @@ const saveBlob = async (url, params, fallbackName) => {
 const checkoutAPI = {
   options: async () => (await api.get('/checkout/options')).data,
   quote: async (data) => (await api.post('/checkout/quote', data)).data,
-  place: async (data) => (await api.post('/checkout/place', data)).data,
+  place: async (data) => (await api.post('/checkout/place', { ...data, attribution: data.attribution ?? campaignClaim() })).data,
   attempt: async (id, check = false) => (await api.get(`/customer/checkout/attempts/${id}`, { params: check ? { check: 1 } : undefined })).data,
   payOrder: async (id, data) => (await api.post(`/customer/checkout/orders/${id}/pay`, data)).data,
   orders: async (params) => (await api.get('/customer/sales-orders', { params })).data,

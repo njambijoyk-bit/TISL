@@ -973,6 +973,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                 [$c, 'index']);
             Route::post('/',                [$c, 'store']);
             Route::get('/{id}',             [$c, 'show'])->whereNumber('id');
+            Route::post('/{id}/restore',    [$c, 'restore'])->whereNumber('id');
+            Route::delete('/{id}/purge',    [$c, 'purge'])->whereNumber('id');
             Route::get('/{id}/numbers',     [$c, 'numbers'])->whereNumber('id');
             Route::put('/{id}',             [$c, 'update'])->whereNumber('id');
             Route::put('/{id}/page',        [$c, 'savePage'])->whereNumber('id');

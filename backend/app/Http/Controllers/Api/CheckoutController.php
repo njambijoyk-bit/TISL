@@ -48,6 +48,7 @@ class CheckoutController extends Controller
             'items.*.variant_id' => 'nullable|integer', 'items.*.variant_unit_id' => 'nullable|integer',
             'currency' => 'nullable|string|max:8', 'location_id' => 'nullable|integer|exists:locations,id',
             'delivery_method' => ['nullable', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
+            'attribution' => 'nullable|array', 'attribution.campaign' => 'nullable|string|max:120', 'attribution.at' => 'nullable|string|max:40',
             'promo_code' => 'nullable|string|max:40', 'use_credit' => 'nullable|array', 'use_credit.*' => 'integer', 'gift_voucher_code' => 'nullable|string|max:60', 'gift_voucher_codes' => 'nullable|array', 'gift_voucher_codes.*' => 'string|max:60',
         ];
     }

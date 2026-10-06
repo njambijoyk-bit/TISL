@@ -168,6 +168,7 @@ class CheckoutService
             'meta' => array_filter([
                 'contact' => $contact, 'discounts' => $discounts, 'promo_code_id' => $promoCodeId, 'referral_code_id' => $referralCodeId,
                 'policy_acceptances' => $in['policy_acceptances'] ?? null, 'guest' => $customer ? null : true,
+                'attribution' => app(\App\Services\Campaigns\CampaignAttribution::class)->resolve($in['attribution'] ?? null, $in['items'] ?? []),
             ], fn ($v) => $v !== null),
         ];
 
