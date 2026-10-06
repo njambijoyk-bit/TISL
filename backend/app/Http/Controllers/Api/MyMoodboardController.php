@@ -89,7 +89,7 @@ class MyMoodboardController extends Controller
     {
         $m = $this->mine($request, $id);
         abort_unless($this->moods->canEdit($request->user(), $m), 403, 'You cannot change this moodboard while it waits for a decision. Take it back first.');
-        $d = $request->validate(['title' => ['sometimes', 'string', 'max:160'], 'background' => ['sometimes', 'string', 'max:7'], 'contents' => ['sometimes', 'array']]);
+        $d = $request->validate(['title' => ['sometimes', 'string', 'max:160'], 'background' => ['sometimes', 'string', 'max:7'], 'pattern' => ['sometimes', 'string', 'max:10'], 'contents' => ['sometimes', 'array']]);
 
         return $this->guard(function () use ($request, $m, $d) {
             $m = $this->moods->update($m, $d, $request->user());

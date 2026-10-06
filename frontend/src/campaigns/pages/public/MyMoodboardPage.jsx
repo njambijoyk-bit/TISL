@@ -9,10 +9,10 @@ import myMoodboardsAPI from '../../../_shared/api/myMoodboards';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
 import Moodboard from '../../components/Moodboard';
+import StickerPicker from '../../components/StickerPicker';
+import { FONT_LIST, PATTERNS } from '../../lib/moodboardKit';
 import { stateLabel } from '../../components/moodboardState';
 
-const FONTS = [['sans', 'Plain'], ['serif', 'Classic'], ['script', 'Handwritten'], ['mono', 'Typewriter'], ['display', 'Bold poster']];
-const STICKERS = ['⭐', '❤️', '✨', '🌿', '🌸', '🔥', '🎁', '🛍️', '📍', '☀️', '🌙', '🎨', '💎', '🏷️', '👑', '🍃'];
 const btn = (primary) => ({ padding: '9px 18px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 700, fontSize: '0.84rem', display: 'inline-flex', alignItems: 'center', gap: 6, border: primary ? 0 : '1.5px solid var(--line)', color: primary ? '#fff' : 'var(--text-primary)', background: primary ? 'var(--color-primary-500)' : 'transparent' });
 const box = { padding: 14, borderRadius: 16, background: 'var(--surface-card)', border: '1px solid var(--line)', display: 'grid', gap: 10 };
 const input = { width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input, var(--surface-card))', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: '0.86rem' };
@@ -51,13 +51,14 @@ export default function MyMoodboardPage() {
   const [pins, setPins] = useState({});
   const [title, setTitle] = useState('');
   const [bg, setBg] = useState('#ffffff');
+  const [pat, setPat] = useState('none');
   const [sel, setSel] = useState(null);
   const [picking, setPicking] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const take = (d) => {
-    setM(d); setTitle(d.title); setBg(d.layout.background || '#ffffff'); setDirty(false);
+    setM(d); setTitle(d.title); setBg(d.layout.background || '#ffffff'); setPat(d.layout.pattern || 'none'); setDirty(false);
     const r = {}; const p = {};
     Object.entries(d.contents ?? {}).forEach(([k, c]) => { if (c.pin_id) { r[k] = { pin_id: c.pin_id }; p[c.pin_id] = { title: c.title, image: c.image }; } else r[k] = c; });
     setRaw(r); setPins(p);
@@ -70,14 +71,14 @@ export default function MyMoodboardPage() {
   const canEdit = m.can_edit;
   const slots = m.layout.slots;
   const slot = slots.find((s) => s.id === sel);
-  const show = { layout: { ...m.layout, background: bg }, contents: Object.fromEntries(Object.entries(raw).map(([k, c]) => [k, c.pin_id ? { ...c, ...(pins[c.pin_id] ?? {}) } : c])) };
+  const show = { layout: { ...m.layout, background: bg, pattern: pat }, contents: Object.fromEntries(Object.entries(raw).map(([k, c]) => [k, c.pin_id ? { ...c, ...(pins[c.pin_id] ?? {}) } : c])) };
   const setSlot = (value) => { setRaw((r) => { const n = { ...r }; if (value === null) delete n[sel]; else n[sel] = value; return n; }); setDirty(true); };
   const cur = raw[sel] ?? {};
   const [label, color] = stateLabel(m);
 
   const save = async () => {
     setBusy(true);
-    try { const r = await myMoodboardsAPI.update(m.id, { title, background: bg, contents: raw }); toast.success(r.message); take(r.data); }
+    try { const r = await myMoodboardsAPI.update(m.id, { title, background: bg, pattern: pat, contents: raw }); toast.success(r.message); take(r.data); }
     catch (e) { toast.error(errMsg(e, 'Could not save the moodboard'), { duration: 6000 }); } finally { setBusy(false); }
   };
   const run = async (fn) => { try { const r = await fn(); toast.success(r.message); take(r.data); } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 6000 }); } };
@@ -111,6 +112,7 @@ export default function MyMoodboardPage() {
           <section style={box}>
             <label style={lab}>Name<input value={title} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} disabled={!canEdit} maxLength={160} style={{ ...input, marginTop: 4 }} /></label>
             <label style={lab}>Background<br /><input type="color" value={bg} onChange={(e) => { setBg(e.target.value); setDirty(true); }} disabled={!canEdit} style={colorBox} aria-label="Background colour" /></label>
+            <label style={lab}>Pattern<select value={pat} onChange={(e) => { setPat(e.target.value); setDirty(true); }} disabled={!canEdit} style={{ ...input, marginTop: 4 }}>{PATTERNS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
             {canEdit && <button type="button" style={{ ...btn(true), justifyContent: 'center', opacity: dirty ? 1 : 0.6 }} onClick={save} disabled={busy}>{busy ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>}
           </section>
           <section style={box}>
@@ -131,15 +133,11 @@ export default function MyMoodboardPage() {
             {slot?.type === 'text' && (
               <>
                 <label style={lab}>Words<input value={cur.text ?? ''} onChange={(e) => setSlot({ font: 'sans', color: '#222222', ...cur, text: e.target.value })} disabled={!canEdit} maxLength={120} style={{ ...input, marginTop: 4 }} /></label>
-                <label style={lab}>Style<select value={cur.font ?? 'sans'} onChange={(e) => setSlot({ color: '#222222', text: '', ...cur, font: e.target.value })} disabled={!canEdit} style={{ ...input, marginTop: 4 }}>{FONTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+                <label style={lab}>Style<select value={cur.font ?? 'sans'} onChange={(e) => setSlot({ color: '#222222', text: '', ...cur, font: e.target.value })} disabled={!canEdit} style={{ ...input, marginTop: 4 }}>{FONT_LIST.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
                 <label style={lab}>Colour<br /><input type="color" value={cur.color ?? '#222222'} onChange={(e) => setSlot({ font: 'sans', text: '', ...cur, color: e.target.value })} disabled={!canEdit} style={colorBox} aria-label="Text colour" /></label>
               </>
             )}
-            {slot?.type === 'sticker' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4 }}>
-                {STICKERS.map((s) => <button key={s} type="button" disabled={!canEdit} onClick={() => setSlot({ value: s })} aria-label={`Sticker ${s}`} style={{ fontSize: '1.2rem', padding: 4, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: `2px solid ${cur.value === s ? 'var(--color-primary-500)' : 'transparent'}` }}>{s}</button>)}
-              </div>
-            )}
+            {slot?.type === 'sticker' && <StickerPicker cur={cur} disabled={!canEdit} onChange={setSlot} />}
             {slot && canEdit && raw[sel] && <button type="button" style={{ ...btn(false), color: 'var(--status-error, #b91c1c)' }} onClick={() => setSlot(null)}>Empty this spot</button>}
           </section>
         </div>

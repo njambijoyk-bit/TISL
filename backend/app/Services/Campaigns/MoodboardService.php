@@ -39,7 +39,7 @@ class MoodboardService
         }
         $layout = MoodboardPresets::find($preset)['layout'] ?? throw new BooksException('Choose a layout.');
 
-        return CampaignMoodboard::create(['source' => 'customer', 'visibility' => 'private', 'owner_user_id' => $by->id, 'title' => $this->title($title), 'template_key' => $preset, 'layout' => $layout, 'contents' => [],
+        return CampaignMoodboard::create(['source' => 'customer', 'visibility' => 'private', 'owner_user_id' => $by->id, 'title' => $this->title($title), 'template_key' => $preset, 'layout' => $layout, 'contents' => MoodboardPresets::seed($layout),
             'is_template' => false, 'status' => 'visible', 'approval_status' => 'draft']);
     }
 
@@ -77,7 +77,7 @@ class MoodboardService
         }
         $publisher = CampaignAccess::canPublish($by);
 
-        return CampaignMoodboard::create(['source' => 'staff', 'visibility' => 'public', 'owner_user_id' => $by->id, 'title' => $this->title($title), 'template_key' => $key, 'layout' => $layout, 'contents' => [], 'is_template' => false, 'status' => 'visible',
+        return CampaignMoodboard::create(['source' => 'staff', 'visibility' => 'public', 'owner_user_id' => $by->id, 'title' => $this->title($title), 'template_key' => $key, 'layout' => $layout, 'contents' => MoodboardPresets::seed($layout), 'is_template' => false, 'status' => 'visible',
             'approval_status' => $publisher ? 'approved' : 'draft', 'approved_by' => $publisher ? $by->id : null, 'approved_at' => $publisher ? now() : null]);
     }
 
@@ -117,10 +117,11 @@ class MoodboardService
                 $out[$id] = ['text' => mb_substr($text, 0, 120), 'font' => in_array($c['font'] ?? '', MoodboardPresets::FONTS, true) ? $c['font'] : 'sans', 'color' => preg_match('/^#[0-9a-fA-F]{6}$/', $color) ? strtolower($color) : '#222222'];
             } elseif ($type === 'sticker') {
                 $v = (string) ($c['value'] ?? '');
-                if (! in_array($v, MoodboardPresets::STICKERS, true)) {
+                if (! MoodboardPresets::stickerOk($v)) {
                     throw new BooksException("\"{$slot['hint']}\": choose a sticker from the list.");
                 }
-                $out[$id] = ['value' => $v];
+                $col = (string) ($c['color'] ?? '');
+                $out[$id] = ['value' => $v] + (str_starts_with($v, 'svg:') ? ['color' => preg_match('/^#[0-9a-fA-F]{6}$/', $col) ? strtolower($col) : '#222222'] : []);
             }
         }
 
@@ -138,7 +139,11 @@ class MoodboardService
             if (! preg_match('/^#[0-9a-fA-F]{6}$/', $bg)) {
                 throw new BooksException('Choose a background colour.');
             }
-            $c['layout'] = ['background' => strtolower($bg)] + $m->layout;
+            $c['layout'] = ['background' => strtolower($bg)] + ($c['layout'] ?? $m->layout);
+        }
+        if (array_key_exists('pattern', $d)) {
+            $pat = in_array($d['pattern'], MoodboardPresets::PATTERNS, true) ? $d['pattern'] : 'none';
+            $c['layout'] = ['pattern' => $pat] + ($c['layout'] ?? $m->layout);
         }
         if (array_key_exists('contents', $d)) {
             $c['contents'] = $this->cleanContents($m, (array) $d['contents']);

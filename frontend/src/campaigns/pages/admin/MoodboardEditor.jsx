@@ -11,9 +11,9 @@ import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/token
 import BoardChip from '../../components/BoardChip';
 import Moodboard from '../../components/Moodboard';
 import PinPicker from '../../components/PinPicker';
+import { FONT_LIST, PATTERNS, STICKERS, SVG_LIST } from '../../lib/moodboardKit';
+import StickerPicker from '../../components/StickerPicker';
 
-const FONTS = [['sans', 'Plain'], ['serif', 'Classic'], ['script', 'Handwritten'], ['mono', 'Typewriter'], ['display', 'Bold poster']];
-const STICKERS = ['⭐', '❤️', '✨', '🌿', '🌸', '🔥', '🎁', '🛍️', '📍', '☀️', '🌙', '🎨', '💎', '🏷️', '👑', '🍃'];
 const permOf = (r) => ({ can_edit: r.can_edit, can_publish: r.can_publish, can_decide: r.can_decide, can_submit: r.can_submit, can_withdraw: r.can_withdraw });
 const label = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
 
@@ -27,6 +27,7 @@ export default function MoodboardEditor() {
   const [pins, setPins] = useState({});         // pin id -> { title, image }, for drawing
   const [title, setTitle] = useState('');
   const [bg, setBg] = useState('#ffffff');
+  const [pat, setPat] = useState('none');
   const [sel, setSel] = useState(null);
   const [picking, setPicking] = useState(false);
   const [rejecting, setRejecting] = useState(null);
@@ -34,7 +35,7 @@ export default function MoodboardEditor() {
   const [busy, setBusy] = useState(false);
 
   const take = (d) => {
-    setM(d); setPerm(permOf(d)); setTitle(d.title); setBg(d.layout.background || '#ffffff'); setDirty(false);
+    setM(d); setPerm(permOf(d)); setTitle(d.title); setBg(d.layout.background || '#ffffff'); setPat(d.layout.pattern || 'none'); setDirty(false);
     const r = {}; const p = {};
     Object.entries(d.contents ?? {}).forEach(([k, c]) => { if (c.pin_id) { r[k] = { pin_id: c.pin_id }; p[c.pin_id] = { title: c.title, image: c.image }; } else r[k] = c; });
     setRaw(r); setPins(p);
@@ -45,13 +46,13 @@ export default function MoodboardEditor() {
   const canEdit = perm.can_edit && !(m.is_template && !perm.can_publish);
   const slots = m.layout.slots;
   const slot = slots.find((s) => s.id === sel);
-  const show = { layout: { ...m.layout, background: bg }, contents: Object.fromEntries(Object.entries(raw).map(([k, c]) => [k, c.pin_id ? { ...c, ...(pins[c.pin_id] ?? {}) } : c])) };
+  const show = { layout: { ...m.layout, background: bg, pattern: pat }, contents: Object.fromEntries(Object.entries(raw).map(([k, c]) => [k, c.pin_id ? { ...c, ...(pins[c.pin_id] ?? {}) } : c])) };
   const setSlot = (value) => { setRaw((r) => { const n = { ...r }; if (value === null) delete n[sel]; else n[sel] = value; return n; }); setDirty(true); };
   const cur = raw[sel] ?? {};
 
   const save = async () => {
     setBusy(true);
-    try { const r = await moodboardsAPI.update(m.id, { title, background: bg, contents: raw }); toast.success(r.message); take(r.data); }
+    try { const r = await moodboardsAPI.update(m.id, { title, background: bg, pattern: pat, contents: raw }); toast.success(r.message); take(r.data); }
     catch (e) { toast.error(errMsg(e, 'Could not save the moodboard'), { duration: 6000 }); } finally { setBusy(false); }
   };
   const run = async (fn, ok) => {
@@ -105,6 +106,7 @@ export default function MoodboardEditor() {
             <section style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
               <Field label="Name"><TextInput value={title} onChange={(e) => { setTitle(e.target.value); setDirty(true); }} disabled={!canEdit} maxLength={160} /></Field>
               <Field label="Background"><input type="color" value={bg} onChange={(e) => { setBg(e.target.value); setDirty(true); }} disabled={!canEdit} style={{ width: 56, height: 34, border: 0, background: 'transparent', padding: 0 }} aria-label="Background colour" /></Field>
+              <Field label="Pattern"><SelectInput value={pat} onChange={(e) => { setPat(e.target.value); setDirty(true); }} disabled={!canEdit}>{PATTERNS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
               {canEdit && <button type="button" style={{ ...btnPrimary, opacity: dirty ? 1 : 0.6 }} onClick={save} disabled={busy}>{busy ? 'Saving…' : dirty ? 'Save changes' : 'Saved'}</button>}
             </section>
             <section style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
@@ -125,15 +127,11 @@ export default function MoodboardEditor() {
               {slot?.type === 'text' && (
                 <>
                   <Field label="Words"><TextInput value={cur.text ?? ''} onChange={(e) => setSlot({ font: 'sans', color: '#222222', ...cur, text: e.target.value })} disabled={!canEdit} maxLength={120} /></Field>
-                  <Field label="Style"><SelectInput value={cur.font ?? 'sans'} onChange={(e) => setSlot({ color: '#222222', text: '', ...cur, font: e.target.value })} disabled={!canEdit}>{FONTS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
+                  <Field label="Style"><SelectInput value={cur.font ?? 'sans'} onChange={(e) => setSlot({ color: '#222222', text: '', ...cur, font: e.target.value })} disabled={!canEdit}>{FONT_LIST.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
                   <Field label="Colour"><input type="color" value={cur.color ?? '#222222'} onChange={(e) => setSlot({ font: 'sans', text: '', ...cur, color: e.target.value })} disabled={!canEdit} style={{ width: 56, height: 34, border: 0, background: 'transparent', padding: 0 }} aria-label="Text colour" /></Field>
                 </>
               )}
-              {slot?.type === 'sticker' && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: 4 }}>
-                  {STICKERS.map((s) => <button key={s} type="button" disabled={!canEdit} onClick={() => setSlot({ value: s })} aria-label={`Sticker ${s}`} style={{ fontSize: '1.2rem', padding: 4, borderRadius: 8, cursor: 'pointer', background: 'transparent', border: `2px solid ${cur.value === s ? 'var(--color-primary-500)' : 'transparent'}` }}>{s}</button>)}
-                </div>
-              )}
+              {slot?.type === 'sticker' && <StickerPicker cur={cur} disabled={!canEdit} onChange={setSlot} />}
               {slot && canEdit && raw[sel] && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={() => setSlot(null)}>Empty this spot</button>}
             </section>
           </div>

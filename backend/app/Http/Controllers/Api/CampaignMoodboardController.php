@@ -115,7 +115,7 @@ class CampaignMoodboardController extends Controller
     {
         $m = $this->find($request, $id, true);
         abort_if($m->is_template && ! CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can change a template.');
-        $d = $request->validate(['title' => ['sometimes', 'string', 'max:160'], 'background' => ['sometimes', 'string', 'max:7'], 'contents' => ['sometimes', 'array']]);
+        $d = $request->validate(['title' => ['sometimes', 'string', 'max:160'], 'background' => ['sometimes', 'string', 'max:7'], 'pattern' => ['sometimes', 'string', 'max:10'], 'contents' => ['sometimes', 'array']]);
 
         return $this->guard(function () use ($request, $m, $d) {
             $m = $this->moods->update($m, $d, $request->user());

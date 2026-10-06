@@ -9,6 +9,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import myMoodboardsAPI from '../../../_shared/api/myMoodboards';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import Moodboard from '../../components/Moodboard';
+import { seedContents } from '../../lib/moodboardKit';
 import WorldTabs from '../../components/WorldTabs';
 import { stateLabel } from '../../components/moodboardState';
 
@@ -33,7 +34,7 @@ function NewMoodboard({ onClose }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
         {src?.presets.map((p) => (
           <button key={p.key} type="button" onClick={() => setPreset(p.key)} style={{ padding: 8, textAlign: 'left', cursor: 'pointer', borderRadius: 12, background: 'var(--surface-card)', border: `2px solid ${preset === p.key ? 'var(--color-primary-500)' : 'var(--line)'}`, fontFamily: 'inherit' }}>
-            <Moodboard board={{ layout: p.layout, contents: {} }} editing radius={6} />
+            <Moodboard board={{ layout: p.layout, contents: seedContents(p.layout) }} editing radius={6} />
             <div style={{ fontWeight: 700, fontSize: '0.8rem', color: 'var(--text-primary)', marginTop: 6 }}>{p.label}</div>
           </button>
         ))}

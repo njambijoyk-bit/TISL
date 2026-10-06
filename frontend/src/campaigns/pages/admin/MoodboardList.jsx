@@ -13,6 +13,7 @@ import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/token
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import BoardChip from '../../components/BoardChip';
 import Moodboard from '../../components/Moodboard';
+import { seedContents } from '../../lib/moodboardKit';
 
 const FILTERS = [['', 'All'], ['pending', 'Waiting for approval'], ['approved', 'Approved'], ['draft', 'Drafts'], ['rejected', 'Not approved']];
 
@@ -29,7 +30,7 @@ function NewMoodboard({ onClose }) {
   };
   const pick = (key, label, layout, sub) => (
     <button key={key} type="button" onClick={() => setFrom(key)} style={{ padding: 8, textAlign: 'left', cursor: 'pointer', borderRadius: 12, background: 'var(--surface-card)', border: `2px solid ${from === key ? 'var(--color-primary-500)' : 'var(--line)'}`, fontFamily: 'inherit' }}>
-      <Moodboard board={{ layout, contents: {} }} editing radius={6} />
+      <Moodboard board={{ layout, contents: seedContents(layout) }} editing radius={6} />
       <div style={{ fontWeight: 700, fontSize: '0.8rem', color: colors.text, marginTop: 6 }}>{label}</div>
       {sub && <div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{sub}</div>}
     </button>
