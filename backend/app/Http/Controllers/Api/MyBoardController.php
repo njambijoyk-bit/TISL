@@ -165,7 +165,7 @@ class MyBoardController extends Controller
         abort_if((int) $b->owner_user_id === (int) $request->user()->id, 422, 'You cannot follow your own board.');
         $row = ['user_id' => $request->user()->id, 'board_id' => $b->id];
         if (! DB::table('campaign_board_follows')->where($row)->exists()) {
-            DB::table('campaign_board_follows')->insert($row + ['created_at' => now(), 'updated_at' => now()]);
+            DB::table('campaign_board_follows')->insert($row + ['created_at' => now()]);
         }
 
         return response()->json(['following' => true, 'followers' => DB::table('campaign_board_follows')->where('board_id', $b->id)->count()]);
