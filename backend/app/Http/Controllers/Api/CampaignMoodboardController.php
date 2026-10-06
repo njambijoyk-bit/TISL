@@ -79,9 +79,10 @@ class CampaignMoodboardController extends Controller
     {
         $this->builder($request);
         $q = CampaignMoodboard::with('owner:id,name')->where('is_template', $request->boolean('templates'))->orderByDesc('id')
+            ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())
             ->when($request->filled('approval'), fn ($w) => $w->where('approval_status', $request->query('approval')))
             ->when($request->filled('q'), fn ($w) => $w->where('title', 'like', '%' . $request->query('q') . '%'))
-            ->when(! CampaignAccess::canPublish($request->user()) && ! $request->boolean('templates'), fn ($w) => $w->where('owner_user_id', $request->user()->id));
+            ->when(! CampaignAccess::canPublish($request->user()) && (! $request->boolean('templates') || $request->boolean('trashed')), fn ($w) => $w->where('owner_user_id', $request->user()->id));
         $page = $q->paginate(min(60, max(10, $request->integer('per_page', 30))));
         $ids = [];
         foreach ($page->items() as $m) {
@@ -190,5 +191,25 @@ class CampaignMoodboardController extends Controller
         $this->moods->destroy($m);
 
         return response()->json(['message' => 'Moodboard deleted.']);
+    }
+
+    /** POST /admin/moodboards/{id}/restore: out of the recycle bin (publishers, or the maker). */
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $m = CampaignMoodboard::onlyTrashed()->findOrFail($id);
+        abort_unless(CampaignAccess::canPublish($request->user()) || (int) $m->owner_user_id === (int) $request->user()->id, 403, 'That is not your moodboard.');
+        $this->moods->restore($m);
+
+        return response()->json(['message' => 'Moodboard restored.']);
+    }
+
+    /** DELETE /admin/moodboards/{id}/purge: super admin only, gone for good. */
+    public function purge(Request $request, int $id): JsonResponse
+    {
+        abort_unless($request->user()?->role === 'super_admin', 403, 'Only a super admin can delete a moodboard for good.');
+        $this->moods->purge(CampaignMoodboard::withTrashed()->findOrFail($id));
+
+        return response()->json(['message' => 'Moodboard deleted for good.']);
     }
 }

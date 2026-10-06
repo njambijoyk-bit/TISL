@@ -95,8 +95,9 @@ class CampaignBoardController extends Controller
             ->when($request->filled('approval'), fn ($w) => $w->where('approval_status', $request->query('approval')))
             ->when($request->filled('status'), fn ($w) => $w->where('status', $request->query('status')))
             ->when($request->filled('q'), fn ($w) => $w->where('title', 'like', '%' . $request->query('q') . '%'))
-            ->where('is_official', $request->boolean('official', true))   // customers' personal boards only when asked for (official=0)
-            ->when($request->boolean('official', true) && ! CampaignAccess::canPublish($request->user()), fn ($w) => $w->where('owner_user_id', $request->user()->id));
+            ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())
+            ->when(! $request->boolean('trashed'), fn ($w) => $w->where('is_official', $request->boolean('official', true)))   // customers' personal boards only when asked for (official=0)
+            ->when(($request->boolean('official', true) || $request->boolean('trashed')) && ! CampaignAccess::canPublish($request->user()), fn ($w) => $w->where('owner_user_id', $request->user()->id));
         $page = $q->paginate(min(60, max(10, $request->integer('per_page', 30))));
         $rows = collect($page->items())->map(fn ($b) => $this->row($b))->all();
 
@@ -249,5 +250,25 @@ class CampaignBoardController extends Controller
         $this->boards->destroy($b);
 
         return response()->json(['message' => 'Board deleted.']);
+    }
+
+    /** POST /admin/boards/{id}/restore: out of the recycle bin. */
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $b = CampaignBoard::onlyTrashed()->findOrFail($id);
+        abort_unless(CampaignAccess::canPublish($request->user()) || (int) $b->owner_user_id === (int) $request->user()->id, 403, 'That is not your board.');
+        $this->boards->restore($b);
+
+        return response()->json(['message' => 'Board restored.']);
+    }
+
+    /** DELETE /admin/boards/{id}/purge: super admin only, gone for good. */
+    public function purge(Request $request, int $id): JsonResponse
+    {
+        abort_unless($request->user()?->role === 'super_admin', 403, 'Only a super admin can delete a board for good.');
+        $this->boards->purge(CampaignBoard::withTrashed()->findOrFail($id));
+
+        return response()->json(['message' => 'Board deleted for good.']);
     }
 }

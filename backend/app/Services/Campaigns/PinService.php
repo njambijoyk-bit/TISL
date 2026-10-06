@@ -242,14 +242,21 @@ class PinService
         foreach (\App\Models\CampaignBoard::whereIn('id', $boards)->where('cover_pin_id', $p->id)->get() as $b) {   // a board whose cover went takes its first pin instead
             $b->update(['cover_pin_id' => $db::table('campaign_board_pins')->where('board_id', $b->id)->orderBy('position')->value('pin_id')]);
         }
-        $posts = $db::table('engagement_posts')->where('target_type', 'pin')->where('target_id', $p->id)->pluck('id');
+        $this->forgetTarget('pin', $p->id);
+        $p->forceDelete();
+    }
+
+    /** Remove the comments, likes and reports about a pin, board or moodboard (used when it is deleted for good). */
+    public function forgetTarget(string $type, int $id): void
+    {
+        $db = \Illuminate\Support\Facades\DB::class;
+        $posts = $db::table('engagement_posts')->where('target_type', $type)->where('target_id', $id)->pluck('id');
         $db::table('engagement_reactions')->where('target_type', 'post')->whereIn('target_id', $posts)->delete();
         $db::table('engagement_reports')->where('target_type', 'post')->whereIn('target_id', $posts)->delete();
         $db::table('engagement_posts')->whereIn('id', $posts)->delete();
         foreach (['engagement_reactions', 'engagement_reports'] as $t) {
-            $db::table($t)->where('target_type', 'pin')->where('target_id', $p->id)->delete();
+            $db::table($t)->where('target_type', $type)->where('target_id', $id)->delete();
         }
-        $p->forceDelete();
     }
 
     /** Move a pin to the recycle bin. Nothing else changes (files and board places stay), so Restore brings it back whole. */

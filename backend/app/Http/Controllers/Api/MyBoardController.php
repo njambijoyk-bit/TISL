@@ -82,7 +82,7 @@ class MyBoardController extends Controller
 
     public function destroy(Request $request, int $id): JsonResponse
     {
-        $this->boards->destroy($this->mine($request, $id));
+        $this->boards->purge($this->mine($request, $id));   // a customer's own delete is final
 
         return response()->json(['message' => 'Board deleted. Its pins are still in the world if they are on other boards.']);
     }

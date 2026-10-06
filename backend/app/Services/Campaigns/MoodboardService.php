@@ -146,10 +146,27 @@ class MoodboardService
         $m->update(['status' => 'visible']);
     }
 
+    /** Move a moodboard to the recycle bin; Restore brings it back as it was. */
     public function destroy(CampaignMoodboard $m): void
     {
         $this->approval->clear($m);
         $m->delete();
+    }
+
+    public function restore(CampaignMoodboard $m): void
+    {
+        $m->restore();
+        if ($m->approval_status === 'pending') {
+            $m->update(['approval_status' => 'draft']);   // its approval task went when it was deleted, so it has to be sent again
+        }
+    }
+
+    /** Delete a moodboard for good, with its comments and likes. Pins it used are never touched. */
+    public function purge(CampaignMoodboard $m): void
+    {
+        $this->approval->clear($m);
+        app(PinService::class)->forgetTarget('moodboard', $m->id);
+        $m->forceDelete();
     }
 
     /** What a page needs to draw it: the layout and contents, with each photo slot's pin turned into a picture. */

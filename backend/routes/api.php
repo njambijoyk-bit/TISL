@@ -906,6 +906,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/hide',            [$c, 'hide'])->whereNumber('id');
             Route::post('/{id}/unhide',          [$c, 'unhide'])->whereNumber('id');
             Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id');
+            Route::post('/{id}/restore',         [$c, 'restore'])->whereNumber('id');
+            Route::delete('/{id}/purge',         [$c, 'purge'])->whereNumber('id');
         });
 
         Route::prefix('moodboards')->middleware('module:campaigns')->group(function () {
@@ -914,6 +916,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [$c,'index']); Route::post('/', [$c,'store']);
             Route::get('/{id}', [$c,'show'])->whereNumber('id'); Route::put('/{id}', [$c,'update'])->whereNumber('id'); Route::delete('/{id}', [$c,'destroy'])->whereNumber('id');
             Route::post('/{id}/template', [$c,'saveTemplate'])->whereNumber('id');
+            Route::post('/{id}/restore', [$c,'restore'])->whereNumber('id'); Route::delete('/{id}/purge', [$c,'purge'])->whereNumber('id');
             foreach (['submit','withdraw','approve','reject','hide','unhide'] as $a) { Route::post("/{id}/$a", [$c,$a])->whereNumber('id'); }
         });
 

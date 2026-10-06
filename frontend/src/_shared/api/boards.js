@@ -17,6 +17,8 @@ const boardsAPI = {
   hide: async (id, reason) => (await api.post(`/admin/boards/${id}/hide`, { reason })).data,
   unhide: async (id) => (await api.post(`/admin/boards/${id}/unhide`)).data,
   remove: async (id) => (await api.delete(`/admin/boards/${id}`)).data,
+  restore: async (id) => (await api.post(`/admin/boards/${id}/restore`)).data,
+  purge: async (id) => (await api.delete(`/admin/boards/${id}/purge`)).data,
 };
 
 export default boardsAPI;

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, RotateCcw, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { Toolbar } from '../../../core/components/admin/ui/HubHeader';
@@ -8,6 +8,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, TextInput } from '../../../core/components/admin/ui/Form';
 import moodboardsAPI from '../../../_shared/api/moodboards';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
+import useAuthStore from '../../../_shared/store/authStore';
 import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import BoardChip from '../../components/BoardChip';
@@ -59,22 +60,29 @@ export default function MoodboardList() {
   const [approval, setApproval] = useState('');
   const [q, setQ] = useState('');
   const [making, setMaking] = useState(false);
+  const isSuper = useAuthStore((st) => st.user?.role) === 'super_admin';
+  const [bin, setBin] = useState(false);   // the recycle bin: moodboards that were deleted
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setRows((await moodboardsAPI.list({ templates: templates ? 1 : 0, approval: !templates && approval ? approval : undefined, q: q || undefined })).data); }
+    try { setRows((await moodboardsAPI.list({ trashed: bin ? 1 : undefined, templates: templates ? 1 : 0, approval: !templates && approval ? approval : undefined, q: q || undefined })).data); }
     catch (e) { toast.error(errMsg(e, 'Could not load the moodboards')); } finally { setLoading(false); }
-  }, [templates, approval, q]);
+  }, [templates, approval, q, bin]);
   useEffect(() => { const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const act = async (fn, id) => { try { const r = await fn(id); toast.success(r.message); load(); } catch (e) { toast.error(errMsg(e, 'That did not work')); } };
+  const purge = (m) => { if (window.confirm(`Delete "${m.title}" for good? Its comments and likes go too (the pins stay). This cannot be undone.`)) act(moodboardsAPI.purge, m.id); };
   const chip = (on) => ({ ...filterStyle, cursor: 'pointer', fontWeight: on ? 700 : 500, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' });
 
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
         <HubHeader title="Moodboards" description="Collages of pictures, colours, words and stickers, made from a layout. Approved ones show on the website." />
-        <Toolbar right={<button type="button" style={btnPrimary} onClick={() => setMaking(true)}><Plus size={14} /> New moodboard</button>}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" style={btnGhost} onClick={() => setBin(!bin)}>{bin ? '‹ Back to moodboards' : <><Trash2 size={14} /> Recycle bin</>}</button>
+          {!bin && <button type="button" style={btnPrimary} onClick={() => setMaking(true)}><Plus size={14} /> New moodboard</button>}
+        </div>}>
+          <div style={{ display: bin ? 'none' : 'flex', gap: 6, flexWrap: 'wrap' }}>
             <button type="button" style={chip(!templates && !approval)} onClick={() => { setTemplates(false); setApproval(''); }}>All</button>
             {FILTERS.slice(1).map(([k, l]) => <button key={k} type="button" style={chip(!templates && approval === k)} onClick={() => { setTemplates(false); setApproval(k); }}>{l}</button>)}
             <button type="button" style={chip(templates)} onClick={() => setTemplates(true)}>Templates</button>
@@ -82,17 +90,23 @@ export default function MoodboardList() {
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name…" style={{ ...filterStyle, minWidth: 220 }} />
         </Toolbar>
         {loading && rows.length === 0 && <p style={{ color: colors.textFaint }}>Loading…</p>}
-        {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{templates ? 'No templates yet. Open a moodboard and choose Save as template.' : 'No moodboards yet. Start one with New moodboard.'}</p>}
+        {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{bin ? 'The recycle bin is empty.' : templates ? 'No templates yet. Open a moodboard and choose Save as template.' : 'No moodboards yet. Start one with New moodboard.'}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
           {rows.map((m) => (
-            <button key={m.id} type="button" onClick={() => nav(`/admin/moodboards/${m.id}/edit`)} style={{ ...card, padding: 10, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', opacity: m.status === 'hidden' ? 0.6 : 1 }}>
+            <div key={m.id} role={bin ? undefined : 'button'} tabIndex={bin ? undefined : 0} onClick={bin ? undefined : () => nav(`/admin/moodboards/${m.id}/edit`)} style={{ ...card, padding: 10, textAlign: 'left', cursor: bin ? 'default' : 'pointer', fontFamily: 'inherit', opacity: m.status === 'hidden' ? 0.6 : 1 }}>
               <Moodboard board={m} radius={8} />
               <div style={{ marginTop: 8, fontWeight: 700, color: colors.text, fontSize: '0.88rem' }}>{m.title}</div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 4 }}>
                 {!m.is_template && <BoardChip board={{ approval_status: m.approval_status, status: m.status, visibility: 'public' }} />}
                 <span style={{ fontSize: '0.7rem', color: colors.textFaint }}>{m.owner_name ?? ''} · {m.filled}/{m.slots} filled</span>
               </div>
-            </button>
+              {bin && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                  <button type="button" style={{ ...btnGhost, padding: '4px 9px', fontSize: '0.72rem' }} onClick={() => act(moodboardsAPI.restore, m.id)}><RotateCcw size={12} /> Restore</button>
+                  {isSuper && <button type="button" style={{ ...btnGhost, padding: '4px 9px', fontSize: '0.72rem', color: colors.danger }} onClick={() => purge(m)}><Trash2 size={12} /> Delete for good</button>}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>

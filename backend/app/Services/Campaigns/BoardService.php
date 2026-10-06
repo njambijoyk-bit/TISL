@@ -143,11 +143,28 @@ class BoardService
         $b->update(['status' => 'visible', 'hidden_reason' => null]);
     }
 
+    /** Move a board to the recycle bin. Its pins stay in the library; its places on the board and its followers are kept so Restore brings it back whole. */
     public function destroy(CampaignBoard $b): void
+    {
+        $this->approval->clear($b);
+        $b->delete();
+    }
+
+    public function restore(CampaignBoard $b): void
+    {
+        $b->restore();
+        if ($b->approval_status === 'pending') {
+            $b->update(['approval_status' => 'draft']);   // its approval task went when it was deleted, so it has to be sent again
+        }
+    }
+
+    /** Delete a board for good: its places, followers, comments and likes. The pins themselves are never touched. */
+    public function purge(CampaignBoard $b): void
     {
         $this->approval->clear($b);
         DB::table('campaign_board_pins')->where('board_id', $b->id)->delete();
         DB::table('campaign_board_follows')->where('board_id', $b->id)->delete();
-        $b->delete();
+        app(PinService::class)->forgetTarget('board', $b->id);
+        $b->forceDelete();
     }
 }

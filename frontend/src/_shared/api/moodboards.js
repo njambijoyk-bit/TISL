@@ -15,6 +15,8 @@ const moodboardsAPI = {
   hide: async (id) => (await api.post(`/admin/moodboards/${id}/hide`)).data,
   unhide: async (id) => (await api.post(`/admin/moodboards/${id}/unhide`)).data,
   remove: async (id) => (await api.delete(`/admin/moodboards/${id}`)).data,
+  restore: async (id) => (await api.post(`/admin/moodboards/${id}/restore`)).data,
+  purge: async (id) => (await api.delete(`/admin/moodboards/${id}/purge`)).data,
   publicList: async (after) => (await api.get('/world/moodboards', { params: { after: after || undefined } })).data,
   publicGet: async (id) => (await api.get(`/world/moodboards/${id}`)).data.data,
 };
