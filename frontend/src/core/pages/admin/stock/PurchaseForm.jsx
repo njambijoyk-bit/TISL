@@ -1,3 +1,4 @@
+import { purchaseChargeLedgers } from '../../../components/admin/books/ledgerPicks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Plus, Trash2, ArrowLeft, PackagePlus, X } from 'lucide-react';
@@ -263,6 +264,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   };
 
   const suppliers = ledgers.filter((l) => l.group?.name === 'Sundry Creditors');
+  const chargeLedgers = purchaseChargeLedgers(ledgers);   // the "Other charge" lines are expenses
   const lineAmount = (l) => Math.max(0, (Number(l.quantity) || 0) * (Number(l.rate) || 0) - (Number(l.discount) || 0));
   const subtotal = lines.reduce((s, l) => s + lineAmount(l), 0);
 
@@ -393,7 +395,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                             <label style={label}>Ledger *</label>
                             <select value={l.ledger_id} onChange={(e) => setLine(l.key, { ledger_id: e.target.value })} style={small}>
                               <option value="">Choose…</option>
-                              {ledgers.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+                              {[...chargeLedgers, ...ledgers.filter((x) => String(x.id) === String(l.ledger_id) && !chargeLedgers.some((c) => c.id === x.id))].map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                             </select>
                           </div>
                           <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem' }}>{money(lineAmount(l))}</div>

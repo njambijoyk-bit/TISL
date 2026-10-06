@@ -1,3 +1,4 @@
+import { notForPurchaseLines } from '../../../components/admin/books/ledgerPicks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
 import { Plus, Trash2, ArrowLeft } from 'lucide-react';
@@ -22,10 +23,6 @@ import { money, today } from '../../../components/admin/books/booksFmt';
 import noSlash from '../../../../_shared/lib/noSlash';
 
 // Sales-side voucher bases sell to customers; the rest buy or adjust, so they may pick "not for sale" materials.
-// On a purchase, a service or other charge is an expense: not a sales or purchase account, the money held for an auction deposit, or a payroll ledger
-const NOT_FOR_PURCHASE_LINES = ['Sales Accounts', 'Purchase Accounts', 'Service Income', 'Statutory Payroll Liabilities', 'Employee Benefits / Payroll Expenses'];
-const notForPurchaseLines = (l) => NOT_FOR_PURCHASE_LINES.includes(l.group?.name) || ['sales', 'purchase'].includes(l.group?.behaviour)
-  || l.settings?.charge_kind === 'deposit' || /auction.*deposit/i.test(l.name ?? '');
 const SALES_SIDE = ['quotation', 'sales_order', 'delivery_note', 'sales', 'cash_sale', 'credit_note'];
 
 const small = { ...input, padding: '6px 8px', fontSize: '0.8rem' };
