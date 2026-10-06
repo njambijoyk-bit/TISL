@@ -25,6 +25,7 @@ import useRequestListStore from '../../../_shared/store/requestListStore';
 import useWishlistStore from '../../../_shared/store/wishlistStore';
 import useServicePackages from '../../components/storefront/services/useServicePackages';
 import ServicePackagePicker from '../../components/storefront/services/ServicePackagePicker';
+import BrochureButton from '../../components/storefront/services/BrochureButton';
 import BookServicePanel from '../../components/storefront/services/BookServicePanel';
 import { formatMoney } from '../../../_shared/lib/money';
 import toast from 'react-hot-toast';
@@ -417,6 +418,7 @@ const ServiceDetail = () => {
 
               <ServicePackagePicker picker={picker} />
 
+              <div><BrochureButton service={service} /></div>
               <BookServicePanel serviceId={service.id} variantId={pkg?.id ?? null} money={formatMoney} />
 
               {/* CTA buttons */}

@@ -150,6 +150,7 @@ const BrandForm          = lazy(() => import('./ecommerce/pages/admin/BrandForm'
 const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services'));
 const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
 const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
+const Brochures          = lazy(() => import('./ecommerce/pages/admin/Brochures'));
 const Bookings           = lazy(() => import('./core/pages/admin/calendar/Bookings'));
 const MyBookings         = lazy(() => import('./core/pages/customer/MyBookings'));
 const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCalendar'));
@@ -1059,6 +1060,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin>
                     <ServiceForm />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/brochures"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Brochures />
                   </ProtectedRoute>
                 }
               />

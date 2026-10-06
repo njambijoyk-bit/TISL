@@ -54,16 +54,21 @@ class BrochureSettings
         return $out;
     }
 
+    private static ?array $memo = null;   // the defaults, read once per request (a list of services asks for them many times)
+
     /** @return array<string,mixed> the shop-wide defaults: the built-in ones, changed by what staff saved */
     public function defaults(): array
     {
+        if (self::$memo !== null) {
+            return self::$memo;
+        }
         $saved = [];
         if ($this->ready()) {
             $raw = DB::table('service_settings')->value('brochure_defaults');
             $saved = is_string($raw) ? (json_decode($raw, true) ?: []) : (array) $raw;
         }
 
-        return $this->clean($saved) + self::DEFAULTS;
+        return self::$memo = $this->clean($saved) + self::DEFAULTS;
     }
 
     /** @return array<string,mixed> what this service has chosen for itself (not its defaults) */
@@ -87,7 +92,9 @@ class BrochureSettings
             throw new BooksException('Run script 92 first: the brochure settings have nowhere to be saved yet.');
         }
         $row = ServiceSetting::current();
-        DB::table('service_settings')->where('id', $row->id)->update(['brochure_defaults' => json_encode($this->clean($in) + $this->defaults()), 'updated_by' => $by->id, 'updated_at' => now()]);
+        $merged = $this->clean($in) + $this->defaults();
+        DB::table('service_settings')->where('id', $row->id)->update(['brochure_defaults' => json_encode($merged), 'updated_by' => $by->id, 'updated_at' => now()]);
+        self::$memo = null;
 
         return $this->defaults();
     }

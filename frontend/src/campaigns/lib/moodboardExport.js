@@ -2,7 +2,7 @@ import { storageUrl } from '../../_shared/lib/storageUrl';
 import { FONT_STYLES, SVG_STICKERS, TORN } from './moodboardKit';
 
 const lum = (hex) => { const n = parseInt((hex || '#ffffff').slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
-const loadImage = (src) => new Promise((resolve) => {
+export const loadImage = (src) => new Promise((resolve) => {
   const img = new Image();
   img.crossOrigin = 'anonymous';
   img.onload = () => resolve(img);
@@ -11,7 +11,7 @@ const loadImage = (src) => new Promise((resolve) => {
 });
 
 /** Corner radii of a shape as [horizontal, vertical] pairs (top-left, top-right, bottom-right, bottom-left), in pixels. */
-function corners(shape, w, h, W) {
+export function corners(shape, w, h, W) {
   const e = (rx, ry) => ({ x: rx, y: ry });
   switch (shape) {
     case 'circle': return [e(w / 2, h / 2), e(w / 2, h / 2), e(w / 2, h / 2), e(w / 2, h / 2)];
@@ -26,7 +26,7 @@ function corners(shape, w, h, W) {
 }
 
 /** Trace a slot's outline (0,0 to w,h) and clip to it. */
-function clipShape(ctx, shape, w, h, W) {
+export function clipShape(ctx, shape, w, h, W) {
   ctx.beginPath();
   if (shape === 'torn') {
     TORN.slice(8, -1).split(',').forEach((pt, i) => {
@@ -42,13 +42,13 @@ function clipShape(ctx, shape, w, h, W) {
   ctx.clip();
 }
 
-function cover(ctx, img, x, y, w, h) {
+export function cover(ctx, img, x, y, w, h) {
   const r = Math.max(w / img.width, h / img.height);
   const sw = w / r; const sh = h / r;
   ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
 }
 
-function wrap(ctx, text, maxW) {
+export function wrap(ctx, text, maxW) {
   const lines = []; let line = '';
   String(text).split(/\s+/).forEach((word) => {
     const test = line ? `${line} ${word}` : word;
@@ -59,7 +59,7 @@ function wrap(ctx, text, maxW) {
   return lines;
 }
 
-function drawPattern(ctx, pattern, bg, W, H) {
+export function drawPattern(ctx, pattern, bg, W, H) {
   const ink = lum(bg) > 0.5 ? '0,0,0' : '255,255,255';
   const cell = 0.032 * W;
   ctx.save();
@@ -96,7 +96,7 @@ function drawText(ctx, c, w, h, W) {
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 }
 
-function drawSticker(ctx, c, w, h) {
+export function drawSticker(ctx, c, w, h) {
   if (String(c.value).startsWith('svg:')) {
     const def = SVG_STICKERS[String(c.value).slice(4)];
     if (!def) return;

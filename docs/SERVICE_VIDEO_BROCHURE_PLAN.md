@@ -1,4 +1,4 @@
-# Services: video and brochures - plan (nothing built yet)
+# Services: video and brochures - plan (built)
 
 Two changes to services, built together. A small detour from Campaigns.
 
@@ -63,3 +63,9 @@ One script (92): add `services.brochure_meta`, add `service_settings.brochure_de
 2. Existing services: brochure download on or off by default? (Suggest on, with the default template.)
 3. A service with a negotiable price: show "Price on request" in the brochure. OK?
 4. Three templates to start. OK, or different styles?
+
+## As built (decisions after the questions)
+- Link videos play muted on hover (YouTube and Vimeo; TikTok and Facebook cannot autoplay and show their picture with a play mark). Brochure download is on by default, with the default template. A negotiable price shows as "Negotiable" (or "Price on request" when that is the chosen price setting).
+- Templates are not fixed pages: they are moodboard-style layouts (boxes in percent of an A4 page, with the same shapes, patterns, fonts, emoji and drawn stickers) whose boxes are filled from the service: text fields, lists, sections that stack and skip empty ones, pictures and the booking policy. Four ship: Classic, Modern, Minimal, Scrapbook, each two pages.
+- The brochure is drawn in the browser (so it can use the web fonts and emoji, which a server PDF library cannot) and saved as a PDF built by a small writer in the code (each page a picture). The server only supplies the data and enforces the settings. No QR code (the link is printed instead).
+- A very long booking policy is shrunk to fit its box and cut with an ellipsis; staff can turn the policy off.

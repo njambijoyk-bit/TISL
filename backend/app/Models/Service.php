@@ -114,6 +114,7 @@ class Service extends Model
         'main_image_url',
         'images_url',
         'video',
+        'brochure_available',
         'is_published',
         'display_price',
         'display_currency',
@@ -269,6 +270,12 @@ class Service extends Model
             // Otherwise prefix with asset path
             return asset($img);
         })->toArray();
+    }
+
+    /** May customers download this service's brochure? (its own choice, else the shop default) */
+    public function getBrochureAvailableAttribute(): bool
+    {
+        return (bool) app(\App\Services\Brochures\BrochureSettings::class)->effective($this)['download'];
     }
 
     /** The service's video: an uploaded file (video_url holds its /storage path) or a link to YouTube, Vimeo, TikTok or Facebook. Null when it has none. */
