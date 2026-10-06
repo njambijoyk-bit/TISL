@@ -226,13 +226,22 @@ class PinService
     }
 
     /** Delete the pin and the files only it uses. */
-    /** Delete a pin for good (super admin): its files, board places, comments, likes and reports, then the row itself. Works on one already deleted. */
+    /** Delete a pin for good: its files, board places, comments, likes and reports, then the row itself. Works on a pin already in the recycle bin. */
     public function purge(CampaignPin $p): void
     {
-        if (! $p->trashed()) {
-            $this->destroy($p);
-        }
         $db = \Illuminate\Support\Facades\DB::class;
+        $this->forget($p->media_path);
+        if ($p->thumb_path !== $p->media_path) {
+            $this->forget($p->thumb_path);
+        }
+        if (($p->video['source'] ?? '') === 'upload') {
+            $this->forget($p->video['file'] ?? null);
+        }
+        $boards = $db::table('campaign_board_pins')->where('pin_id', $p->id)->pluck('board_id');
+        $db::table('campaign_board_pins')->where('pin_id', $p->id)->delete();
+        foreach (\App\Models\CampaignBoard::whereIn('id', $boards)->where('cover_pin_id', $p->id)->get() as $b) {   // a board whose cover went takes its first pin instead
+            $b->update(['cover_pin_id' => $db::table('campaign_board_pins')->where('board_id', $b->id)->orderBy('position')->value('pin_id')]);
+        }
         $posts = $db::table('engagement_posts')->where('target_type', 'pin')->where('target_id', $p->id)->pluck('id');
         $db::table('engagement_reactions')->where('target_type', 'post')->whereIn('target_id', $posts)->delete();
         $db::table('engagement_reports')->where('target_type', 'post')->whereIn('target_id', $posts)->delete();
@@ -243,21 +252,15 @@ class PinService
         $p->forceDelete();
     }
 
+    /** Move a pin to the recycle bin. Nothing else changes (files and board places stay), so Restore brings it back whole. */
     public function destroy(CampaignPin $p): void
     {
-        $this->forget($p->media_path);
-        if ($p->thumb_path !== $p->media_path) {
-            $this->forget($p->thumb_path);
-        }
-        if (($p->video['source'] ?? '') === 'upload') {
-            $this->forget($p->video['file'] ?? null);
-        }
-        $boards = \Illuminate\Support\Facades\DB::table('campaign_board_pins')->where('pin_id', $p->id)->pluck('board_id');
-        \Illuminate\Support\Facades\DB::table('campaign_board_pins')->where('pin_id', $p->id)->delete();
-        foreach (\App\Models\CampaignBoard::whereIn('id', $boards)->where('cover_pin_id', $p->id)->get() as $b) {   // a board whose cover went takes its first pin instead
-            $b->update(['cover_pin_id' => \Illuminate\Support\Facades\DB::table('campaign_board_pins')->where('board_id', $b->id)->orderBy('position')->value('pin_id')]);
-        }
         $p->delete();
+    }
+
+    public function restore(CampaignPin $p): void
+    {
+        $p->restore();
     }
 
     /** Delete a file we stored (/storage/campaigns/...); anything else is left alone. */

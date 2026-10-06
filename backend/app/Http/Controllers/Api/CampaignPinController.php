@@ -58,6 +58,7 @@ class CampaignPinController extends Controller
     {
         $this->builder($request);
         $q = CampaignPin::with('owner:id,name')->orderByDesc('id')
+            ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())
             ->when($request->filled('kind'), fn ($w) => $w->where('kind', $request->query('kind')))
             ->when($request->filled('status'), fn ($w) => $w->where('status', $request->query('status')))
             ->when($request->filled('source'), fn ($w) => $w->where('source', $request->query('source')))
@@ -131,7 +132,18 @@ class CampaignPinController extends Controller
         return response()->json(['message' => 'Pin deleted.']);
     }
 
-    /** DELETE /admin/pins/{id}/purge: super admin only, gone for good (also finds a pin already deleted). */
+    /** POST /admin/pins/{id}/restore: out of the recycle bin. */
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $this->builder($request);
+        $pin = CampaignPin::onlyTrashed()->findOrFail($id);
+        $this->mine($request, $pin);
+        $this->pins->restore($pin);
+
+        return response()->json(['message' => 'Pin restored.']);
+    }
+
+    /** DELETE /admin/pins/{id}/purge: super admin only, from the recycle bin, gone for good. */
     public function purge(Request $request, int $id): JsonResponse
     {
         abort_unless($request->user()?->role === 'super_admin', 403, 'Only a super admin can delete a pin for good.');

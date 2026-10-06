@@ -943,6 +943,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/hide',      [$c, 'hide'])->whereNumber('id');
             Route::post('/{id}/unhide',    [$c, 'unhide'])->whereNumber('id');
             Route::delete('/{id}',         [$c, 'destroy'])->whereNumber('id');
+            Route::post('/{id}/restore',   [$c, 'restore'])->whereNumber('id');
             Route::delete('/{id}/purge',   [$c, 'purge'])->whereNumber('id');
         });
 

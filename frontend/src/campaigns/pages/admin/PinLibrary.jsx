@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { EyeOff, Link2, Pencil, Play, Plus, StickyNote, Trash2, ShoppingBag } from 'lucide-react';
+import { EyeOff, Link2, Pencil, Play, Plus, StickyNote, Trash2, ShoppingBag, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { Toolbar } from '../../../core/components/admin/ui/HubHeader';
@@ -35,6 +35,8 @@ function Thumb({ p }) {
 export default function PinLibrary() {
   const user = useAuthStore((s) => s.user);
   const canHide = PUBLISHERS.includes(user?.role);
+  const isSuper = user?.role === 'super_admin';
+  const [bin, setBin] = useState(false);   // the recycle bin: pins that were deleted
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [info, setInfo] = useState({ ecommerce: false, max_video_mb: 100, max_image_mb: 10 });
@@ -46,17 +48,20 @@ export default function PinLibrary() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await pinsAPI.list({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), page });
+      const r = await pinsAPI.list({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), page, ...(bin ? { trashed: 1 } : {}) });
       setRows(r.data); setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
       setInfo({ ecommerce: r.ecommerce, max_video_mb: r.max_video_mb, max_image_mb: r.max_image_mb });
     } catch (e) { toast.error(errMsg(e, 'Could not load the pins')); } finally { setLoading(false); }
-  }, [f, page]);
+  }, [f, page, bin]);
   useEffect(() => { const t = setTimeout(load, f.q ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
   const setFilter = (k, v) => { setPage(1); setF((x) => ({ ...x, [k]: v })); };
 
   const act = async (fn, ...args) => { try { const r = await fn(...args); toast.success(r.message); load(); } catch (e) { toast.error(errMsg(e, 'That did not work')); } };
   const hide = (p) => { const reason = window.prompt('Why is it being hidden? (optional)', ''); if (reason !== null) act(pinsAPI.hide, p.id, reason); };
-  const remove = (p) => { if (window.confirm(`Delete ${p.title ? `"${p.title}"` : 'this pin'}? This cannot be undone.`)) act(pinsAPI.remove, p.id); };
+  const name = (p) => (p.title ? `"${p.title}"` : 'this pin');
+  const remove = (p) => { if (window.confirm(`Move ${name(p)} to the recycle bin? It can be restored from there.`)) act(pinsAPI.remove, p.id); };
+  const purge = (p) => { if (window.confirm(`Delete ${name(p)} for good? Its picture, comments and likes go too. This cannot be undone.`)) act(pinsAPI.purge, p.id); };
+  const switchBin = (on) => { setBin(on); setPage(1); };
   const mayChange = (p) => canHide || p.owner_user_id === user?.id;
 
   if (!CAMPAIGN_ROLES.includes(user?.role)) return null;
@@ -65,7 +70,10 @@ export default function PinLibrary() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
         <HubHeader title="Pins" description="Pictures, videos, products, links and notes that boards and campaigns are made from." />
-        <Toolbar right={<button type="button" style={btnPrimary} onClick={() => setForm('new')}><Plus size={14} /> New pin</button>}>
+        <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" style={btnGhost} onClick={() => switchBin(!bin)}>{bin ? '‹ Back to pins' : <><Trash2 size={14} /> Recycle bin</>}</button>
+          {!bin && <button type="button" style={btnPrimary} onClick={() => setForm('new')}><Plus size={14} /> New pin</button>}
+        </div>}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {KINDS.map(([k, l]) => <button key={k} type="button" onClick={() => setFilter('kind', k)} style={{ ...filterStyle, cursor: 'pointer', fontWeight: f.kind === k ? 700 : 500, background: f.kind === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' }}>{l}</button>)}
           </div>
@@ -74,7 +82,7 @@ export default function PinLibrary() {
         </Toolbar>
 
         {loading && rows.length === 0 && <p style={{ color: colors.textFaint }}>Loading…</p>}
-        {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>No pins yet. Start with New pin.</p>}
+        {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{bin ? 'The recycle bin is empty.' : 'No pins yet. Start with New pin.'}</p>}
         <div style={{ columnWidth: 230, columnGap: 14 }}>
           {rows.map((p) => (
             <div key={p.id} style={{ ...card, padding: 0, overflow: 'hidden', marginBottom: 14, breakInside: 'avoid', opacity: p.status === 'hidden' ? 0.6 : 1 }}>
@@ -90,6 +98,12 @@ export default function PinLibrary() {
                 {p.kind !== 'note' && p.caption && <div style={{ fontSize: '0.74rem', color: colors.textMuted, marginTop: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.caption}</div>}
                 {p.tags?.length > 0 && <div style={{ fontSize: '0.68rem', color: colors.textFaint, marginTop: 4 }}>{p.tags.map((t) => `#${t}`).join(' ')}</div>}
                 <div style={{ fontSize: '0.68rem', color: colors.textFaint, marginTop: 4 }}>by {p.owner_name ?? 'unknown'}{p.hidden_reason ? ` · ${p.hidden_reason}` : ''}</div>
+                {bin ? (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+                    {mayChange(p) && <button type="button" style={{ ...btnGhost, padding: '4px 9px', fontSize: '0.72rem' }} onClick={() => act(pinsAPI.restore, p.id)}><RotateCcw size={12} /> Restore</button>}
+                    {isSuper && <button type="button" style={{ ...btnGhost, padding: '4px 9px', fontSize: '0.72rem', color: colors.danger }} onClick={() => purge(p)}><Trash2 size={12} /> Delete for good</button>}
+                  </div>
+                ) : (
                 <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                   {mayChange(p) && <button type="button" style={{ ...btnGhost, padding: '4px 9px', fontSize: '0.72rem' }} onClick={() => setForm(p)}><Pencil size={12} /> Change</button>}
                   {canHide && (p.status === 'hidden'
@@ -97,6 +111,7 @@ export default function PinLibrary() {
                     : <button type="button" style={{ ...btnGhost, padding: '4px 9px', fontSize: '0.72rem' }} onClick={() => hide(p)}>Hide</button>)}
                   {mayChange(p) && <button type="button" aria-label="Delete" style={{ ...btnGhost, padding: '4px 8px', color: colors.danger }} onClick={() => remove(p)}><Trash2 size={12} /></button>}
                 </div>
+                )}
               </div>
             </div>
           ))}

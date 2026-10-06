@@ -143,7 +143,7 @@ class MyBoardController extends Controller
 
     public function destroyPin(Request $request, int $id): JsonResponse
     {
-        $this->pins->destroy($this->ownPin($request, $id));
+        $this->pins->purge($this->ownPin($request, $id));   // a customer's own delete is final
 
         return response()->json(['message' => 'Pin deleted.']);
     }
