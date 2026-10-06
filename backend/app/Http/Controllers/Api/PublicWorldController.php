@@ -27,7 +27,7 @@ class PublicWorldController extends Controller
         return [
             'id' => $p['id'], 'kind' => $p['kind'], 'title' => $p['title'], 'caption' => $p['caption'], 'credit' => $p['credit'], 'tags' => $p['tags'] ?? [],
             'media_path' => $p['media_path'], 'thumb_path' => $p['thumb_path'], 'media_width' => $p['media_width'], 'media_height' => $p['media_height'],
-            'video' => $video ? ['source' => $video['source'] ?? null, 'provider' => $video['provider'] ?? null, 'embed_url' => $video['embed_url'] ?? null, 'file' => $video['file'] ?? null, 'poster' => $video['poster'] ?? null] : null,
+            'video' => $video ? ['source' => $video['source'] ?? null, 'provider' => $video['provider'] ?? null, 'embed_url' => $video['embed_url'] ?? null, 'file' => $video['file'] ?? null, 'poster' => $video['poster'] ?? null, 'poster_remote' => $video['poster_remote'] ?? null] : null,
             'item_type' => $p['item_type'], 'item' => $p['item'] ?? null, 'link_url' => $p['link_url'],
             'can_download' => $this->downloadable($p), 'created_at' => $p['created_at'],
         ];

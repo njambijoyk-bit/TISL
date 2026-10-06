@@ -39,11 +39,12 @@ export default function MyBoardPage() {
     if (!window.confirm(`Delete "${b.title}"?`)) return;
     try { await myBoardsAPI.remove(id); toast.success('Board deleted'); nav('/my/boards', { replace: true }); } catch (er) { toast.error(errMsg(er, 'Could not delete it')); }
   };
-  const drop = async (p) => {
+  const [asking, setAsking] = useState(null);   // my own pin: take it off this board only, or delete it everywhere
+  const drop = async (p, everywhere = false) => {
     try {
-      if (p.mine && window.confirm('This is your own pin. Delete it completely? (Cancel keeps it and only takes it off this board.)')) await myBoardsAPI.deletePin(p.id);
+      if (everywhere) await myBoardsAPI.deletePin(p.id);
       else await myBoardsAPI.removePin(id, p.id);
-      setOpen(null); setTick((t) => t + 1);
+      setAsking(null); setOpen(null); setTick((t) => t + 1);
     } catch (er) { toast.error(errMsg(er, 'That did not work')); }
   };
   const shown = b?.pins?.find((p) => p.id === open);
@@ -77,7 +78,18 @@ export default function MyBoardPage() {
           <div onClick={(e) => e.stopPropagation()} style={{ position: 'relative', maxWidth: 820, margin: '0 auto', background: 'var(--surface-card)', borderRadius: 20, overflow: 'hidden' }}>
             <button type="button" onClick={() => setOpen(null)} aria-label="Close" style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 34, height: 34, borderRadius: '50%', border: 0, cursor: 'pointer', background: 'rgba(0,0,0,0.6)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={16} /></button>
             <PinDetail key={open} id={open} pin={shown} own />
-            {shown && <div style={{ padding: '0 22px 22px' }}><button type="button" style={{ ...btn(false), color: 'var(--status-error, #b91c1c)' }} onClick={() => drop(shown)}><Trash2 size={14} /> {shown.mine ? 'Remove or delete' : 'Remove from this board'}</button></div>}
+            {shown && <div style={{ padding: '0 22px 22px' }}><button type="button" style={{ ...btn(false), color: 'var(--status-error, #b91c1c)' }} onClick={() => (shown.mine ? setAsking(shown) : drop(shown))}><Trash2 size={14} /> {shown.mine ? 'Remove or delete' : 'Remove from this board'}</button></div>}
+          </div>
+        </div>
+      )}
+      {asking && (
+        <div onClick={() => setAsking(null)} role="dialog" aria-modal="true" style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.62)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420, width: '100%', background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 18, padding: 22, display: 'grid', gap: 12 }}>
+            <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>This is your own pin</h3>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>Take it off this board only, or delete it everywhere? Deleting removes it from every board it was saved to, including other people's.</p>
+            <button type="button" style={btn(false)} onClick={() => drop(asking)}>Take off this board only</button>
+            <button type="button" style={{ ...btn(false), color: 'var(--status-error, #b91c1c)' }} onClick={() => drop(asking, true)}>Delete the pin everywhere</button>
+            <button type="button" style={{ ...btn(false), border: 0 }} onClick={() => setAsking(null)}>Cancel</button>
           </div>
         </div>
       )}
