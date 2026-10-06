@@ -25,7 +25,6 @@ const CUSTOMER_GROUPS = [
       { name: 'Services',       icon: Wrench,          bg: 'linear-gradient(135deg,#3b82f6,#60a5fa)', path: '/services',      active: true },
       { name: 'Specials',       icon: Zap,             bg: 'linear-gradient(135deg,#ef4444,#f87171)', path: '/specials',      active: true },
       { name: 'Auctions',       icon: Gavel,           bg: 'linear-gradient(135deg,#f59e0b,#fbbf24)', path: '/auctions',      active: true },
-      { name: 'Brochures',      icon: Newspaper,       bg: 'linear-gradient(135deg,#06b6d4,#22d3ee)', path: '/brochures',     active: true },
       { name: 'Hampers',        icon: Gift,            bg: 'linear-gradient(135deg,#ec4899,#f472b6)', path: '/hampers',       active: true },
     ],
   },

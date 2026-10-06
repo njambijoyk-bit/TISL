@@ -60,8 +60,6 @@ use App\Http\Controllers\Api\ShippingOptionController;
 use App\Http\Controllers\Api\CustomerTierController;
 use App\Http\Controllers\Api\AlgorithmController;
 use App\Http\Controllers\Api\CustomerPinController;
-use App\Http\Controllers\Api\PublicationController;
-use App\Http\Controllers\Api\PublicationCommentController;
 use App\Http\Controllers\Api\SearchAnalyticsController;
 use App\Http\Controllers\Api\AdminSavedNoteController;
 use App\Http\Controllers\Api\ProductVariantController;
@@ -255,10 +253,6 @@ Route::get('/customer-type-discounts', [CustomerTierController::class, 'publicTy
 // Public
 // A staff member's calendar as a subscription feed (the secret token in the link is the key)
 Route::get('/calendar/feed/{token}', [\App\Http\Controllers\Api\CalendarController::class, 'feed'])->where('token', '[A-Za-z0-9]+(\.ics)?');
-
-Route::get('/publications', [PublicationController::class, 'publicIndex']);
-Route::get('/publications/{slug}', [PublicationController::class, 'publicShow']);
-Route::post('/publications/{id}/comments', [PublicationCommentController::class, 'store']);
 
 
 
@@ -2147,10 +2141,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // SUPER ADMIN & ADMIN ONLY ROUTES
     // ============================================
     Route::middleware('role:admin,super_admin')->prefix('admin')->group(function () {
-        Route::apiResource('publications', PublicationController::class);
-        Route::get('publications/{id}/comments', [PublicationCommentController::class, 'index']);
-        Route::patch('comments/{id}', [PublicationCommentController::class, 'updateStatus']);
-        Route::delete('comments/{id}', [PublicationCommentController::class, 'destroy']);
 
         Route::prefix('policies')->group(function () {
             Route::get('/',                    [PolicyController::class, 'adminIndex']);

@@ -89,9 +89,6 @@ const BugTrackerPage       = lazy(() => import('./core/pages/customer/BugTracker
 const MyBugReports         = lazy(() => import('./core/pages/customer/MyBugReports'));
 
 
-const BrochureListPage     = lazy(() => import('./core/pages/customer/BrochureListPage'));
-const BrochureDetail       = lazy(() => import('./core/pages/customer/BrochureDetail'));
-const PublicationDetail    = lazy(() => import('./core/pages/customer/PublicationDetail'));
 
 import CareersLayout       from './careers/layouts/CareersLayout';
 import CareersPage         from './careers/pages/CareersPage';
@@ -255,8 +252,6 @@ const ProductBulkPage      = lazy(() => import('./core/pages/admin/general/bulk/
 const CustomerBulkPage     = lazy(() => import('./core/pages/admin/general/bulk/CustomerBulkPage'));
 const EmployeeBulkPage     = lazy(() => import('./core/pages/admin/general/bulk/EmployeeBulkPage'));
 
-const StudioEditor         = lazy(() => import('./core/components/studio/StudioEditor'));
-const PublicationListPage  = lazy(() => import('./core/pages/admin/PublicationListPage'));
 const VaultPage            = lazy(() => import('./core/pages/admin/vault/VaultPage'));
 
 const Settings             = lazy(() => import('./core/pages/admin/settings/Settings'));
@@ -475,12 +470,6 @@ function App() {
             <Route path="/auction-terms"    element={<AuctionTerms />} />
             <Route path="/booking-policy"   element={<BookingPolicy />} />
             <Route path="ai-policy"         element={<AiPolicy />} />
-
-
-            <Route path="/brochures" element={<BrochureListPage />} />
-            <Route path="/brochures/:slug" element={<BrochureDetail />} />
-            <Route path="/news/:slug" element={<PublicationDetail />} />
-            <Route path="/blog/:slug" element={<PublicationDetail />} />
 
             <Route path="/report-bug"        element={<BugReportPage />} />
             <Route path="/track-bug"         element={<BugTrackerPage />} />
@@ -1224,22 +1213,6 @@ function App() {
                 }
               />
               <Route path="/admin/work" element={<Navigate to="/admin/calendar" replace />} />
-              <Route
-                path="/admin/settings/publications"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <PublicationListPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/settings/publications/:id/edit"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <StudioEditor />
-                  </ProtectedRoute>
-                }
-              />
 
               {/* Customers & Users */}
               <Route

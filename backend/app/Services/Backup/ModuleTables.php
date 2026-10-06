@@ -73,11 +73,10 @@ final class ModuleTables
             'payroll_settings', 'payroll_components', 'payroll_employee_items', 'payroll_runs', 'payroll_lines',
             'petty_cash_floats', 'petty_cash_spends',
             'verification_settings', 'verification_assignments', 'verification_items', 'verification_log',
-            // Help desk, content, policies, publications, notifications
+            // Help desk, content, policies, notifications
             'tickets', 'ticket_replies',
             'content_pages', 'content_sections', 'component_layouts',
             'policies', 'policy_acceptances', 'policy_change_logs',
-            'publications', 'publication_blocks', 'publication_comments', 'publication_authors',
             'notifications',
             // Themes / appearance
             'colourings', 'icon_styles', 'appearance_fonts', 'user_appearance_preferences',

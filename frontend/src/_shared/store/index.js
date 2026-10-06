@@ -20,7 +20,6 @@ export { default as useAiPanelStore } from './useAiPanelStore';
 export { default as useHeaderPositionStore } from './useHeaderPositionStore';
 
 export { default as useContentStore } from './contentStore';
-export { default as useStudioStore } from './studioStore';
 export { default as useMemoStore } from './memoStore';
 
 export { default as useCareersStore } from './useCareersStore';

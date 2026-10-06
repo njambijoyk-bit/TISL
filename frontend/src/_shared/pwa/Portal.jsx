@@ -70,7 +70,6 @@ const CUSTOMER_ROUTES = [
   { key: 'services',       label: 'Services',       icon: Wrench,        path: '/services',          color: '#06b6d4', module: MODULES.ECOMMERCE },
   { key: 'auctions',       label: 'Auctions',       icon: Gavel,         path: '/auctions',          color: '#dc2626', module: MODULES.AUCTIONS },
   { key: 'specials',       label: 'Specials',       icon: Tag,           path: '/specials',          color: '#f59e0b', module: MODULES.ECOMMERCE },
-  { key: 'brochures',      label: 'Brochures',      icon: BookOpen,      path: '/brochures',         color: '#64748b' },
   { key: 'careers',        label: 'Careers',        icon: Briefcase,     path: '/careers',           color: 'var(--color-primary-600)', module: MODULES.CAREERS },
   { key: 'profile',        label: 'My Profile',     icon: Info,          path: '/profile',           color: '#0ea5e9' },
   { key: 'd-hist',         label: 'Delivery History',icon: ScrollText,   path: '/delivery-history',  color: '#14b8a6', module: MODULES.EXTRAS },
@@ -1059,7 +1058,6 @@ function UnauthPWAHome() {
     { key: 'services',  label: 'Services',  path: '/services',  color: '#10b981', icon: Wrench,    module: MODULES.ECOMMERCE },
     { key: 'specials',  label: 'Specials',  path: '/specials',  color: '#f59e0b', icon: Tag,       module: MODULES.ECOMMERCE },
     { key: 'auctions',  label: 'Auctions',  path: '/auctions',  color: '#dc2626', icon: Gavel,     module: MODULES.AUCTIONS },
-    { key: 'brochures', label: 'Brochures', path: '/brochures', color: '#64748b', icon: BookOpen  },
     { key: 'careers',   label: 'Careers',   path: '/careers',   color: 'var(--color-primary-600)', icon: Briefcase, module: MODULES.CAREERS },
   ].filter((l) => isModuleActive(l.module));   // a switched-off or unlicensed module is not offered to visitors either
 
