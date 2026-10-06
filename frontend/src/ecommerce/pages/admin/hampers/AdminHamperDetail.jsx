@@ -1,3 +1,4 @@
+import ItemPinButton from '../../../../campaigns/components/ItemPinButton';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
@@ -993,6 +994,7 @@ export default function AdminHamperDetail() {
               </p>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
+              <ItemPinButton inline itemType="hamper" itemId={Number(hamper.id)} name={hamper.name} />
               <Btn onClick={() => navigate(`/admin/hampers/${id}/edit`)}>
                 <Edit2 size={14} /> Edit
               </Btn>

@@ -20,7 +20,7 @@ import {
 import useAuthStore from '../../../_shared/store/authStore';
 import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 import noSlash from '../../../_shared/lib/noSlash';
-import ProductPinButton from '../../../campaigns/components/ProductPinButton';
+import ItemPinButton from '../../../campaigns/components/ItemPinButton';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
@@ -1276,7 +1276,7 @@ export default function ProductForm() {
               <Field label="Admin notes" hint={!isView ? 'Internal only — not visible to customers' : undefined}>
                 <StyledTextarea name="admin_notes" value={formData.admin_notes} onChange={handleChange} disabled={isView} rows={4} placeholder="Supplier info, special handling, internal notes…" />
               </Field>
-              <ProductPinButton productId={id ? Number(id) : null} name={formData.name} categoryName={categories.find((c) => String(c.id) === String(formData.category_id))?.name} />
+              <ItemPinButton itemType="product" itemId={id ? Number(id) : null} name={formData.name} categoryName={categories.find((c) => String(c.id) === String(formData.category_id))?.name} />
             </>
           )}
 

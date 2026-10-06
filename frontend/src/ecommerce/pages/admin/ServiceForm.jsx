@@ -1,3 +1,4 @@
+import ItemPinButton from '../../../campaigns/components/ItemPinButton';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -916,6 +917,7 @@ const ServiceForm = () => {
                   Meta title, description and keywords are auto-generated from your service name and description.
                 </p>
               </div>
+              <ItemPinButton itemType="service" itemId={isEditMode ? Number(id) : null} name={formData.name} categoryName={categories.find((c) => String(c.id) === String(formData.category_id))?.name} />
             </div>
           </div>
         </form>

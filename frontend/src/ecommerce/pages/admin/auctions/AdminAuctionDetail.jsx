@@ -1,3 +1,4 @@
+import ItemPinButton from '../../../../campaigns/components/ItemPinButton';
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
@@ -334,6 +335,7 @@ export default function AdminAuctionDetail() {
                   style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid var(--line)', borderRadius: 10, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.825rem', cursor: 'pointer' }}>
                   <Edit size={14} /> Edit
                 </button>
+                <ItemPinButton inline itemType="auction" itemId={Number(auction.id)} name={auction.product?.name} categoryName={auction.product?.category?.name} />
                 {auction.status === 'active' && (
                   <button onClick={handleCloseNow}
                     style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1.5px solid rgba(5,150,105,0.4)', borderRadius: 10, background: 'rgba(5,150,105,0.06)', color: '#059669', fontWeight: 700, fontSize: '0.825rem', cursor: 'pointer' }}>
