@@ -354,7 +354,7 @@ export default function Products() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 16 }}>
           <StatCard label="Total Products" value={pagination.total}                                  icon={Package}      iconBg="color-mix(in srgb, var(--color-primary-600) 10%, transparent)"  iconColor="var(--color-primary-600)" />
           <StatCard label="Active"         value={products.filter(p => p.status === 'active').length} icon={CheckCircle}  iconBg="rgba(16,185,129,0.1)"  iconColor="#10b981" />
-          <StatCard label="Out of Stock"   value={products.filter(p => !p.in_stock).length}           icon={AlertCircle}  iconBg="rgba(239,68,68,0.1)"   iconColor="#ef4444" />
+          <StatCard label="Out of Stock"   value={products.filter(p => !p.in_stock || Number(p.stock_quantity) <= 0).length}           icon={AlertCircle}  iconBg="rgba(239,68,68,0.1)"   iconColor="#ef4444" />
           <StatCard label="Featured"       value={products.filter(p => p.is_featured).length}         icon={TrendingUp}   iconBg="rgba(245,158,11,0.1)"  iconColor="#f59e0b" />
         </div>
 

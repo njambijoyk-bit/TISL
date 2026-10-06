@@ -15,7 +15,6 @@ const FLAG_DEFS = [
 
 const STATUS_DEFS = [
   { value: 'active',       label: 'Active',       color: '#16a34a' },
-  { value: 'out_of_stock', label: 'Out of Stock',  color: '#d97706' },
   { value: 'inactive',     label: 'Inactive',      color: '#6b7280' },
   { value: 'draft',        label: 'Draft',         color: '#0369a1' },
 ];

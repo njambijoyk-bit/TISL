@@ -601,7 +601,7 @@ export default function ProductForm() {
           if (formData.track_expiry) { str('opening_batch_no', formData.opening_batch_no); str('opening_expiry_date', formData.opening_expiry_date); }
         }
       }
-      bool('in_stock', formData.in_stock);
+      bool('in_stock', Number(formData.stock_quantity) > 0);
       bool('is_for_sale', formData.is_for_sale); bool('track_expiry', formData.track_expiry);
       str('description', formData.description); str('short_description', formData.short_description);
       str('status', formData.status); bool('is_visible', formData.is_visible);
@@ -962,10 +962,11 @@ export default function ProductForm() {
                     sub='Shows "Request Quote" to customers'
                   />
                   <Toggle
-                    checked={formData.in_stock}
-                    onChange={v => setFormData(p => ({ ...p, in_stock: v }))}
-                    disabled={isView}
+                    checked={Number(formData.stock_quantity) > 0}
+                    onChange={() => {}}
+                    disabled
                     label="In stock"
+                    sub="Follows the stock quantity; it cannot be set by hand"
                   />
                 </div>
               </div>

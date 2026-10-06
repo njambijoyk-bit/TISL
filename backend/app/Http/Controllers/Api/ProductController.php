@@ -49,6 +49,19 @@ class ProductController extends Controller
             $query->where('status', $request->status);
         }
 
+        // Filters from the admin products page. In stock means the flag is on and there is stock; out of stock is everything else.
+        if ($request->filled('in_stock')) {
+            filter_var($request->in_stock, FILTER_VALIDATE_BOOLEAN)
+                ? $query->where('in_stock', true)->where('stock_quantity', '>', 0)
+                : $query->where(fn ($w) => $w->where('in_stock', false)->orWhere('stock_quantity', '<=', 0)->orWhereNull('stock_quantity'));
+        }
+        if ($request->filled('is_featured')) {
+            $query->where('is_featured', filter_var($request->is_featured, FILTER_VALIDATE_BOOLEAN));
+        }
+        if ($request->filled('on_sale')) {
+            $query->where('on_sale', filter_var($request->on_sale, FILTER_VALIDATE_BOOLEAN));
+        }
+
         // Filter by stock switches (admin lists: "materials only", "tracks expiry")
         if ($request->filled('is_for_sale')) {
             $query->where('is_for_sale', filter_var($request->is_for_sale, FILTER_VALIDATE_BOOLEAN));
