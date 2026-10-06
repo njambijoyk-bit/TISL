@@ -109,6 +109,27 @@ function ConvertModal({ v, methods, onClose, onDone }) {
 }
 
 /** Refund a credit note as a gift voucher instead of cash: Dr the customer's account, Cr Gift Vouchers Liability. */
+/** On a credit note: give the money back as cash, M-Pesa or bank, from what the customer is owed on this note. Hidden once nothing is left. */
+function RefundMoney({ v }) {
+  const nav = useNavigate();
+  const [left, setLeft] = useState(0);
+  useEffect(() => {
+    if (!v.party_ledger_id) return;
+    booksAPI.openBills(v.party_ledger_id).then((d) => setLeft((d.credits ?? []).filter((c) => c.voucher_id === v.id).reduce((t, c) => t + Number(c.amount), 0))).catch(() => {});
+  }, [v.party_ledger_id, v.id, v.status]);
+  if (left <= 0.004) return null;
+  const go = async () => {
+    try {
+      const types = await booksAPI.types();
+      const pay = types.find((t) => t.base_type === 'payment' && t.is_active);
+      if (!pay) { toast.error('There is no active Payment voucher type.'); return; }
+      nav(`/admin/books/vouchers/new?type=${pay.id}&refund=${v.id}`);
+    } catch (e) { toast.error(errMsg(e, 'Could not open the refund')); }
+  };
+
+  return <button type="button" style={btnGhost} onClick={go}><Banknote size={14} /> Refund {money(left)}</button>;
+}
+
 function RefundVoucherModal({ v, onClose, onDone }) {
   const left = Math.max(0, Number(v.total_amount) - Number(v.meta?.gift_refunded ?? 0));
   const [amount, setAmount] = useState(left.toFixed(2));
@@ -263,7 +284,8 @@ export default function VoucherView() {
             {canWrite && refundable && <button type="button" style={btnGhost} onClick={() => setModal('refund')}><Gift size={14} /> Refund as gift voucher</button>}
             {canWrite && receivable && <button type="button" style={btnPrimary} onClick={() => setModal('receive')}><Banknote size={14} /> Receive payment</button>}
             {canWrite && live && SENDABLE.includes(base) && <button type="button" style={btnGhost} onClick={() => setModal('send')}><Send size={14} /> Send</button>}
-            {canWrite && live && ['sales', 'purchase'].includes(base) && v.party_ledger_id && <Link to={`/admin/books/vouchers/${v.id}/return`} style={{ ...btnGhost, textDecoration: 'none' }}><Undo2 size={14} /> {base === 'sales' ? 'Credit note' : 'Debit note'}</Link>}
+            {canWrite && live && ['sales', 'cash_sale', 'purchase'].includes(base) && v.party_ledger_id && <Link to={`/admin/books/vouchers/${v.id}/return`} style={{ ...btnGhost, textDecoration: 'none' }}><Undo2 size={14} /> {base === 'purchase' ? 'Debit note' : 'Credit note'}</Link>}
+            {canWrite && live && base === 'credit_note' && <RefundMoney v={v} />}
             {canWriteOff && <button type="button" style={btnGhost} onClick={() => setModal('writeoff')}><Eraser size={14} /> Write off</button>}
             {canWrite && live && !lockedBy && !v.meta?.writeoff && !v.meta?.returned_from && <button type="button" style={btnGhost} disabled={!!v.period_lock} title={v.period_lock ? 'This voucher is in a closed period and cannot be edited' : undefined} onClick={() => nav(['purchase', 'receipt_note', 'opening_stock'].includes(base) ? `/admin/purchases/${v.id}/edit` : `/admin/books/vouchers/${v.id}/edit`)}><Pencil size={14} /> Edit</button>}
             {canWrite && live && <button type="button" style={{ ...btnGhost, color: colors.danger }} disabled={!!v.period_lock} title={v.period_lock ? 'This voucher is in a closed period and cannot be cancelled' : undefined} onClick={cancel}><Ban size={14} /> Cancel</button>}

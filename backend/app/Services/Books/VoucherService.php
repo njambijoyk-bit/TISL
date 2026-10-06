@@ -203,13 +203,13 @@ class VoucherService
 
     // ── returns: credit note / debit note against an invoice ─────────────
 
-    /** The note a document is reversed with: a sales invoice by a credit note, a purchase by a debit note. */
+    /** The note a document is reversed with: a sales invoice or a cash sale by a credit note, a purchase by a debit note. */
     private function returnBase(Voucher $source): string
     {
         $source->loadMissing('type');
         $base = $source->type->base_type;
-        if (! in_array($base, [VoucherType::SALES, VoucherType::PURCHASE], true)) {
-            throw new BooksException('A credit note is made against a sales invoice and a debit note against a purchase. (For a cash sale or a cash purchase, write a credit / debit note without an invoice for now.)');
+        if (! in_array($base, [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::PURCHASE], true)) {
+            throw new BooksException('A credit note is made against a sales invoice or a cash sale, and a debit note against a purchase. (For a cash purchase, write a debit note without an invoice for now.)');
         }
         if ($source->status !== Voucher::POSTED) {
             throw new BooksException('Only a live invoice can be credited.');
@@ -225,7 +225,8 @@ class VoucherService
             throw new BooksException("{$source->voucher_number} has no customer or supplier account, so a note can not be written against it.");
         }
 
-        return $base === VoucherType::SALES ? VoucherType::CREDIT_NOTE : VoucherType::DEBIT_NOTE;
+        // a cash sale is credited like an invoice; the customer is then owed the money (on account) and it is refunded with a Payment
+        return $base === VoucherType::PURCHASE ? VoucherType::DEBIT_NOTE : VoucherType::CREDIT_NOTE;
     }
 
     /** How much (net amount) of each top line of the document earlier live notes already reversed. @return array<int, float> */
