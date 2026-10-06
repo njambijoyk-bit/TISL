@@ -146,7 +146,7 @@ function Reports() {
   );
 }
 
-const KINDS = [['', 'Everything'], ['pin', 'Pins'], ['board', 'Boards'], ['moodboard', 'Moodboards'], ['campaign', 'Campaigns'], ['product', 'Products'], ['service', 'Services'], ['hamper', 'Hampers']];
+const KINDS = [['', 'Everything'], ['post', 'Reviews and comments'], ['pin', 'Pins'], ['board', 'Boards'], ['moodboard', 'Moodboards'], ['campaign', 'Campaigns'], ['product', 'Products'], ['service', 'Services'], ['hamper', 'Hampers']];
 
 /** The things people like most, with counts only (never who liked them). */
 function MostLiked() {

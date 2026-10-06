@@ -118,10 +118,18 @@ class EngagementModerationController extends Controller
     public function top(Request $request): JsonResponse
     {
         abort_unless(in_array($request->user()->role, array_merge(self::DECIDERS, ['sales_rep', 'finance']), true), 403);
-        $types = ['pin', 'board', 'moodboard', 'campaign', 'product', 'service', 'hamper'];
+        $types = ['post', 'pin', 'board', 'moodboard', 'campaign', 'product', 'service', 'hamper'];
         $rows = DB::table('engagement_reactions')->where('kind', 'like')->whereIn('target_type', $types)->when($request->filled('type') && in_array($request->query('type'), $types, true), fn ($w) => $w->where('target_type', $request->query('type')))
             ->selectRaw('target_type, target_id, COUNT(*) as likes')->groupBy('target_type', 'target_id')->orderByDesc('likes')->orderByDesc('target_id')->limit(30)->get();
 
-        return response()->json(['data' => $rows->map(fn ($r) => ['type' => $r->target_type, 'id' => (int) $r->target_id, 'label' => $this->targets->label($r->target_type, (int) $r->target_id), 'likes' => (int) $r->likes, 'url' => $this->targets->url($r->target_type, (int) $r->target_id)])->all()]);
+        return response()->json(['data' => $rows->map(fn ($r) => ['type' => $r->target_type, 'id' => (int) $r->target_id, 'label' => $r->target_type === 'post' ? $this->postLabel((int) $r->target_id) : $this->targets->label($r->target_type, (int) $r->target_id), 'likes' => (int) $r->likes, 'url' => $this->targets->url($r->target_type, (int) $r->target_id)])->all()]);
+    }
+
+    /** "Review on Utility Knife: Sharp and sturdy": what a liked review or comment says and where it is. */
+    private function postLabel(int $id): string
+    {
+        $p = EngagementPost::withTrashed()->find($id);
+
+        return $p ? ucfirst($p->parent_id ? 'reply' : $p->kind) . ' on ' . $this->targets->label($p->target_type, $p->target_id) . ': ' . mb_substr(trim(($p->title ? $p->title . ' - ' : '') . $p->body), 0, 80) : "Post #{$id}";
     }
 }
