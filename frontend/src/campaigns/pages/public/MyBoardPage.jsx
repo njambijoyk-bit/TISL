@@ -22,6 +22,8 @@ export default function MyBoardPage() {
   const [f, setF] = useState({ title: '', description: '', visibility: 'private' });
   const [tick, setTick] = useState(0);
   const [adding, setAdding] = useState(false);
+  const [rules, setRules] = useState(null);   // may I add my own pins, and how many are left this month
+  useEffect(() => { myBoardsAPI.pinRules().then(setRules).catch(() => {}); }, [tick]);
   const [open, setOpen] = useState(null);
 
   const take = (d) => { setB(d); setF({ title: d.title, description: d.description ?? '', visibility: d.visibility }); };
@@ -67,7 +69,14 @@ export default function MyBoardPage() {
         </form>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
           <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-primary)' }}>Pins{b ? ` (${b.pins_count})` : ''}</h2>
-          <button type="button" style={{ ...btn(true), marginLeft: 'auto' }} onClick={() => setAdding(true)}><Plus size={14} /> Add a pin</button>
+          {rules && !rules.enabled
+            ? <span style={{ marginLeft: 'auto', fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Adding your own pins is switched off. You can still save pins from Discover.</span>
+            : (
+              <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+                {rules?.limit > 0 && <span style={{ fontSize: '0.76rem', color: 'var(--text-tertiary)' }}>{rules.remaining} of {rules.limit} left this month</span>}
+                <button type="button" style={{ ...btn(true), opacity: rules && !rules.allowed ? 0.5 : 1 }} disabled={rules ? !rules.allowed : false} onClick={() => setAdding(true)}><Plus size={14} /> Add a pin</button>
+              </span>
+            )}
         </div>
         <PinGrid load={load} resetKey={`${id}|${tick}`} onOpen={(p) => setOpen(p.id)} empty="Nothing here yet. Add a pin, or save pins from Discover." />
       </main>

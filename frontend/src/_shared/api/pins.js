@@ -10,6 +10,9 @@ const form = (fields, files = {}) => {
 const multipart = { headers: { 'Content-Type': 'multipart/form-data' } };
 
 const pinsAPI = {
+  settings: async () => (await api.get('/admin/pins/settings')).data.data,
+  saveSettings: async (data) => (await api.put('/admin/pins/settings', data)).data,
+  customers: async (q) => (await api.get('/admin/pins/customers', { params: { q: q || undefined } })).data.data,
   list: async (params) => (await api.get('/admin/pins', { params })).data,
   create: async (fields, files) => (await api.post('/admin/pins', form(fields, files), multipart)).data,
   update: async (id, fields) => (await api.put(`/admin/pins/${id}`, fields)).data,

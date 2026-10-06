@@ -201,6 +201,7 @@ Route::middleware(['auth:sanctum', 'module:campaigns'])->group(function () {
         Route::put('/pins/{id}',    [$c, 'updatePin'])->whereNumber('id');
         Route::delete('/pins/{id}', [$c, 'destroyPin'])->whereNumber('id');
         Route::get('/following', [$c, 'following']);
+        Route::get('/pin-rules', [$c, 'pinRules']);
         $mm = \App\Http\Controllers\Api\MyMoodboardController::class;
         Route::get('/moodboards/presets', [$mm, 'presets']);
         Route::get('/moodboards/pins',    [$mm, 'pins']);
@@ -950,6 +951,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('pins')->middleware('module:campaigns')->group(function () {
             $c = \App\Http\Controllers\Api\CampaignPinController::class;
             Route::get('/',                [$c, 'index']);
+            Route::get('/settings',        [$c, 'settings']);
+            Route::put('/settings',        [$c, 'saveSettings']);
+            Route::get('/customers',       [$c, 'customers']);
             Route::post('/',               [$c, 'store']);
             Route::put('/{id}',            [$c, 'update'])->whereNumber('id');
             Route::post('/{id}/media',     [$c, 'media'])->whereNumber('id');

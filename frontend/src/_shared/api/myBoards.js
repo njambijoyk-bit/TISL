@@ -16,6 +16,7 @@ const myBoardsAPI = {
     return (await api.post('/my/pins', f, { headers: { 'Content-Type': 'multipart/form-data' } })).data;
   },
   deletePin: async (id) => (await api.delete(`/my/pins/${id}`)).data,
+  pinRules: async () => (await api.get('/my/pin-rules')).data.data,
   following: async () => (await api.get('/my/following')).data.data,
   follow: async (id) => (await api.post(`/world/boards/${id}/follow`)).data,
   unfollow: async (id) => (await api.delete(`/world/boards/${id}/follow`)).data,

@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\CampaignBoard;
 use App\Models\CampaignPin;
+use App\Services\Books\BooksException;
 use App\Services\Campaigns\BoardService;
+use App\Services\Campaigns\CustomerPinRules;
 use App\Services\Campaigns\Feed;
 use App\Services\Campaigns\PinService;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +25,7 @@ class MyBoardController extends Controller
     public const MAX_PINS = 500;
     private const KINDS = ['image', 'link', 'video', 'note'];
 
-    public function __construct(private BoardService $boards, private PinService $pins, private Feed $feed) {}
+    public function __construct(private BoardService $boards, private PinService $pins, private Feed $feed, private CustomerPinRules $rules) {}
 
     private function mine(Request $r, int $id): CampaignBoard
     {
@@ -121,13 +123,25 @@ class MyBoardController extends Controller
     }
 
     /** POST /my/pins (multipart): upload an image, or make a link, video link or note, and put it on one of my boards. */
+    /** GET /my/pin-rules: may I add my own pins, and how many have I left this month? */
+    public function pinRules(Request $request): JsonResponse
+    {
+        return response()->json(['data' => $this->rules->status($request->user())]);
+    }
+
     public function storePin(Request $request): JsonResponse
     {
+        try {
+            $this->rules->assertAllowed($request->user());
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 403);
+        }
         $request->validate(['kind' => ['required', Rule::in(self::KINDS)], 'board_id' => ['required', 'integer'], 'image' => ['nullable', 'file', 'mimes:png,jpg,jpeg,webp', 'max:' . PinService::MAX_IMAGE_KB]] + $this->textRules());
         $b = $this->mine($request, $request->integer('board_id'));
         abort_if($b->pins()->count() >= self::MAX_PINS, 422, 'A board can hold up to ' . self::MAX_PINS . ' pins.');
         $pin = $this->pins->create($request->only(['kind', 'title', 'caption', 'credit', 'tags', 'allow_download', 'link_url', 'video_url']), ['image' => $request->file('image')], $request->user(), 'customer');
         $this->boards->addPins($b, [$pin->id], $request->user());
+        $this->rules->record($request->user(), $pin->id);
 
         return response()->json(['message' => 'Pin added to ' . $b->title . '.', 'data' => $this->pins->presentMany([$pin])[0]], 201);
     }

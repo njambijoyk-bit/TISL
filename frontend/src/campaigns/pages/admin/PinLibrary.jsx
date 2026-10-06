@@ -11,6 +11,8 @@ import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/token
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import { CAMPAIGN_ROLES } from '../../../_shared/lib/roles';
 import PinForm from '../../components/PinForm';
+import CustomerFilter from '../../components/CustomerFilter';
+import CustomerPinSettings from '../../components/CustomerPinSettings';
 
 const KINDS = [['', 'All'], ['image', 'Images'], ['video', 'Videos'], ['item', 'Products and services'], ['link', 'Links'], ['note', 'Notes']];
 const PUBLISHERS = ['admin', 'super_admin', 'manager'];
@@ -36,7 +38,8 @@ export default function PinLibrary() {
   const user = useAuthStore((s) => s.user);
   const canHide = PUBLISHERS.includes(user?.role);
   const isSuper = user?.role === 'super_admin';
-  const [bin, setBin] = useState(false);   // the recycle bin: pins that were deleted
+  const [bin, setBin] = useState(false);
+  const [customer, setCustomer] = useState(null);   // show only this customer's pins   // the recycle bin: pins that were deleted
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState({ current_page: 1, last_page: 1, total: 0 });
   const [info, setInfo] = useState({ ecommerce: false, max_video_mb: 100, max_image_mb: 10 });
@@ -48,11 +51,11 @@ export default function PinLibrary() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await pinsAPI.list({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), page, ...(bin ? { trashed: 1 } : {}) });
+      const r = await pinsAPI.list({ ...Object.fromEntries(Object.entries(f).filter(([, v]) => v)), page, ...(customer ? { owner_user_id: customer.id } : {}), ...(bin ? { trashed: 1 } : {}) });
       setRows(r.data); setMeta({ current_page: r.current_page, last_page: r.last_page, total: r.total });
       setInfo({ ecommerce: r.ecommerce, max_video_mb: r.max_video_mb, max_image_mb: r.max_image_mb });
     } catch (e) { toast.error(errMsg(e, 'Could not load the pins')); } finally { setLoading(false); }
-  }, [f, page, bin]);
+  }, [f, page, bin, customer]);
   useEffect(() => { const t = setTimeout(load, f.q ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
   const setFilter = (k, v) => { setPage(1); setF((x) => ({ ...x, [k]: v })); };
 
@@ -70,6 +73,7 @@ export default function PinLibrary() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
         <HubHeader title="Pins" description="Pictures, videos, products, links and notes that boards and campaigns are made from." />
+        {canHide && <CustomerPinSettings canChange={['admin', 'super_admin'].includes(user?.role)} />}
         <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
           <button type="button" style={btnGhost} onClick={() => switchBin(!bin)}>{bin ? '‹ Back to pins' : <><Trash2 size={14} /> Recycle bin</>}</button>
           {!bin && <button type="button" style={btnPrimary} onClick={() => setForm('new')}><Plus size={14} /> New pin</button>}
@@ -78,6 +82,7 @@ export default function PinLibrary() {
             {KINDS.map(([k, l]) => <button key={k} type="button" onClick={() => setFilter('kind', k)} style={{ ...filterStyle, cursor: 'pointer', fontWeight: f.kind === k ? 700 : 500, background: f.kind === k ? 'color-mix(in srgb, var(--color-primary-500) 14%, var(--surface-card))' : 'var(--surface-card)' }}>{l}</button>)}
           </div>
           <select value={f.status} onChange={(e) => setFilter('status', e.target.value)} style={filterStyle} aria-label="Status"><option value="">Any status</option><option value="visible">Visible</option><option value="hidden">Hidden</option></select>
+          {canHide && <CustomerFilter value={customer} onChange={(c) => { setPage(1); setCustomer(c); }} />}
           <input value={f.q} onChange={(e) => setFilter('q', e.target.value)} placeholder="Search title, caption or credit…" style={{ ...filterStyle, minWidth: 220 }} />
         </Toolbar>
 

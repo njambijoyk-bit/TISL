@@ -17,7 +17,7 @@ use Illuminate\Validation\Rule;
  */
 class CampaignPinController extends Controller
 {
-    public function __construct(private PinService $pins, private CatalogueAdapter $catalogue) {}
+    public function __construct(private \App\Services\Campaigns\CustomerPinRules $rules, private PinService $pins, private CatalogueAdapter $catalogue) {}
 
     private function builder(Request $r): void
     {
@@ -62,6 +62,7 @@ class CampaignPinController extends Controller
             ->when($request->filled('kind'), fn ($w) => $w->where('kind', $request->query('kind')))
             ->when($request->filled('status'), fn ($w) => $w->where('status', $request->query('status')))
             ->when($request->filled('source'), fn ($w) => $w->where('source', $request->query('source')))
+            ->when($request->filled('owner_user_id'), fn ($w) => $w->where('owner_user_id', $request->integer('owner_user_id')))
             ->when($request->filled('tag'), fn ($w) => $w->where('tags', 'like', '%"' . str_replace(['%', '_', '"'], '', mb_strtolower((string) $request->query('tag'))) . '"%'))
             ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('title', 'like', '%' . $request->query('q') . '%')->orWhere('caption', 'like', '%' . $request->query('q') . '%')->orWhere('credit', 'like', '%' . $request->query('q') . '%')))
             ->when($request->boolean('mine') || ! CampaignAccess::canPublish($request->user()), fn ($w) => $w->where('owner_user_id', $request->user()->id));
@@ -150,5 +151,39 @@ class CampaignPinController extends Controller
         $this->pins->purge(CampaignPin::withTrashed()->findOrFail($id));
 
         return response()->json(['message' => 'Pin deleted for good.']);
+    }
+
+    /** GET /admin/pins/settings: whether customers may add pins, and the monthly cap. Admin, super admin and manager can read it. */
+    public function settings(Request $request): JsonResponse
+    {
+        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can see this.');
+
+        return response()->json(['data' => $this->rules->settings()]);
+    }
+
+    /** PUT /admin/pins/settings: admin and super admin only. */
+    public function saveSettings(Request $request): JsonResponse
+    {
+        abort_unless(in_array($request->user()->role, ['admin', 'super_admin'], true), 403, 'Only an admin or super admin can change this.');
+        $d = $request->validate(['enabled' => ['required', 'boolean'], 'per_month' => ['required', 'integer', 'min:0', 'max:100000']]);
+        try {
+            $new = $this->rules->update($d, $request->user());
+        } catch (\Throwable) {
+            return response()->json(['message' => 'The settings table is not set up yet. Run script 90 first.'], 503);
+        }
+
+        return response()->json(['message' => 'Saved.', 'data' => $new]);
+    }
+
+    /** GET /admin/pins/customers?q=: the customers who have pins (and how many), for the library's customer filter. */
+    public function customers(Request $request): JsonResponse
+    {
+        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can filter by customer.');
+        $rows = CampaignPin::where('source', 'customer')->join('users', 'users.id', '=', 'campaign_pins.owner_user_id')
+            ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('users.name', 'like', '%' . $request->query('q') . '%')->orWhere('users.email', 'like', '%' . $request->query('q') . '%')))
+            ->groupBy('users.id', 'users.name', 'users.email')->orderBy('users.name')->limit(40)
+            ->get(['users.id', 'users.name', 'users.email', \Illuminate\Support\Facades\DB::raw('COUNT(campaign_pins.id) as pins')]);
+
+        return response()->json(['data' => $rows->map(fn ($r) => ['id' => $r->id, 'name' => $r->name, 'email' => $r->email, 'pins' => (int) $r->pins])->all()]);
     }
 }
