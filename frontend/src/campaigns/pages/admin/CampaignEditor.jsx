@@ -126,27 +126,21 @@ export default function CampaignEditor() {
         <form onSubmit={save} style={{ display: 'grid', gap: 18, maxWidth: 940 }}>
           {err && <p role="alert" style={{ color: colors.dangerText, margin: 0, fontSize: '0.84rem' }}>{err}</p>}
 
-          <section style={{ ...card, padding: 18 }}>
+          <section style={{ ...card, padding: 18, display: 'grid', gap: 8 }}>
             <p style={label}>What kind of campaign</p>
-            {Object.entries(grouped).map(([family, list]) => (
-              <div key={family} style={{ marginBottom: 12 }}>
-                <div style={{ fontSize: '0.72rem', color: colors.textFaint, margin: '0 0 6px' }}>{family}</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(210px,1fr))', gap: 8 }}>
-                  {list.map((t) => {
-                    const on = f.type === t.key; const locked = t.status !== 'available';
-                    return (
-                      <button key={t.key} type="button" disabled={locked || readOnly || Boolean(id)} onClick={() => pickType(t)} title={locked ? 'Coming soon' : t.about}
-                        style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, cursor: locked ? 'not-allowed' : id ? 'default' : 'pointer', fontFamily: 'inherit', color: 'inherit', opacity: locked ? 0.5 : 1,
-                          border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line)'}`, background: on ? 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)' : 'transparent' }}>
-                        <div style={{ fontWeight: 700, fontSize: '0.84rem', display: 'flex', gap: 6, alignItems: 'center' }}>{t.label}{locked && <Lock size={11} />}</div>
-                        <div style={{ fontSize: '0.7rem', color: colors.textFaint, marginTop: 2 }}>{locked ? 'Coming soon' : t.about}</div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-            {id && <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>The type is fixed once a campaign is saved.</p>}
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <SelectInput value={f.type} disabled={readOnly || Boolean(id)} onChange={(e) => pickType(types.find((t) => t.key === e.target.value))} style={{ maxWidth: 280 }} aria-label="Campaign type">
+                {Object.entries(grouped).map(([family, list]) => {
+                  const ready = list.filter((t) => t.status === 'available');
+
+                  return ready.length ? <optgroup key={family} label={family}>{ready.map((t) => <option key={t.key} value={t.key}>{t.label}</option>)}</optgroup> : null;
+                })}
+              </SelectInput>
+              <span style={{ fontSize: '0.78rem', color: colors.textMuted, flex: 1, minWidth: 220 }}>{type?.about}</span>
+            </div>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: colors.textFaint }}>
+              {id ? 'The type is fixed once a campaign is saved.' : `${types.filter((t) => t.status !== 'available').length} more types are planned and will appear here when they are ready.`}
+            </p>
           </section>
 
           <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
