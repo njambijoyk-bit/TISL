@@ -18,12 +18,11 @@ class MoodboardService
 
     public function canEdit(?User $u, CampaignMoodboard $m): bool
     {
+        if ($m->source === 'customer') {   // a customer's moodboard is only ever changed by its maker, whoever looks at it
+            return $u && (int) $m->owner_user_id === (int) $u->id && $m->approval_status !== 'pending';
+        }
         if (CampaignAccess::canPublish($u)) {
             return true;
-        }
-
-        if ($m->source === 'customer') {
-            return $u && (int) $m->owner_user_id === (int) $u->id && $m->approval_status !== 'pending';
         }
 
         return CampaignAccess::canBuild($u) && (int) $m->owner_user_id === (int) $u->id && $m->approval_status !== 'pending';

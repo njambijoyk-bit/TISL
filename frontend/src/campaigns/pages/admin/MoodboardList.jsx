@@ -62,13 +62,15 @@ export default function MoodboardList() {
   const [q, setQ] = useState('');
   const [making, setMaking] = useState(false);
   const isSuper = useAuthStore((st) => st.user?.role) === 'super_admin';
-  const [bin, setBin] = useState(false);   // the recycle bin: moodboards that were deleted
+  const [bin, setBin] = useState(false);
+  const [priv, setPriv] = useState(false);   // customers' private moodboards (admin and super admin only; each look is logged)
+  const canSeePrivate = ['admin', 'super_admin'].includes(useAuthStore((st) => st.user?.role));   // the recycle bin: moodboards that were deleted
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { setRows((await moodboardsAPI.list({ trashed: bin ? 1 : undefined, templates: templates ? 1 : 0, approval: !templates && approval ? approval : undefined, q: q || undefined })).data); }
+    try { setRows((await moodboardsAPI.list({ trashed: bin ? 1 : undefined, private_customers: priv && !bin ? 1 : undefined, templates: templates ? 1 : 0, approval: !templates && approval ? approval : undefined, q: q || undefined })).data); }
     catch (e) { toast.error(errMsg(e, 'Could not load the moodboards')); } finally { setLoading(false); }
-  }, [templates, approval, q, bin]);
+  }, [templates, approval, q, bin, priv]);
   useEffect(() => { const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const act = async (fn, id) => { try { const r = await fn(id); toast.success(r.message); load(); } catch (e) { toast.error(errMsg(e, 'That did not work')); } };
@@ -84,14 +86,15 @@ export default function MoodboardList() {
           {!bin && <button type="button" style={btnPrimary} onClick={() => setMaking(true)}><Plus size={14} /> New moodboard</button>}
         </div>}>
           <div style={{ display: bin ? 'none' : 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <button type="button" style={chip(!templates && !approval)} onClick={() => { setTemplates(false); setApproval(''); }}>All</button>
-            {FILTERS.slice(1).map(([k, l]) => <button key={k} type="button" style={chip(!templates && approval === k)} onClick={() => { setTemplates(false); setApproval(k); }}>{l}</button>)}
-            <button type="button" style={chip(templates)} onClick={() => setTemplates(true)}>Templates</button>
+            <button type="button" style={chip(!templates && !approval && !priv)} onClick={() => { setTemplates(false); setApproval(''); setPriv(false); }}>All</button>
+            {FILTERS.slice(1).map(([k, l]) => <button key={k} type="button" style={chip(!templates && approval === k && !priv)} onClick={() => { setTemplates(false); setApproval(k); setPriv(false); }}>{l}</button>)}
+            <button type="button" style={chip(templates)} onClick={() => { setTemplates(true); setPriv(false); }}>Templates</button>
+            {canSeePrivate && <button type="button" style={chip(priv)} onClick={() => { setTemplates(false); setApproval(''); setPriv(true); }}>Customers' private</button>}
           </div>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name…" style={{ ...filterStyle, minWidth: 220 }} />
         </Toolbar>
         {loading && rows.length === 0 && <p style={{ color: colors.textFaint }}>Loading…</p>}
-        {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{bin ? 'The recycle bin is empty.' : templates ? 'No templates yet. Open a moodboard and choose Save as template.' : 'No moodboards yet. Start one with New moodboard.'}</p>}
+        {!loading && rows.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>{bin ? 'The recycle bin is empty.' : priv ? 'No private customer moodboards.' : templates ? 'No templates yet. Open a moodboard and choose Save as template.' : 'No moodboards yet. Start one with New moodboard.'}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
           {rows.map((m) => (
             <div key={m.id} role={bin ? undefined : 'button'} tabIndex={bin ? undefined : 0} onClick={bin ? undefined : () => nav(`/admin/moodboards/${m.id}/edit`)} style={{ ...card, padding: 10, textAlign: 'left', cursor: bin ? 'default' : 'pointer', fontFamily: 'inherit', opacity: m.status === 'hidden' ? 0.6 : 1 }}>

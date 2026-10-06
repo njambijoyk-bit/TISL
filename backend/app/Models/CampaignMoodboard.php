@@ -22,10 +22,20 @@ class CampaignMoodboard extends Model
         return $q->where('is_template', false)->where('status', 'visible')->where('approval_status', 'approved')->where('visibility', 'public');
     }
 
-    /** What staff may open: all staff moodboards, and a customer's only once it is public (a private one stays the customer's own). */
-    public function scopeForStaff($q)
+    /** What staff may open: all staff moodboards, and a customer's once it is public. A customer's private one is only for admin and super admin (every look is logged). */
+    public function scopeForStaff($q, ?User $by = null)
     {
+        if ($by && in_array($by->role, ['admin', 'super_admin'], true)) {
+            return $q;
+        }
+
         return $q->where(fn ($w) => $w->where('source', '!=', 'customer')->orWhere('visibility', 'public'));
+    }
+
+    /** A customer's moodboard that is still private. */
+    public function isPrivateCustomer(): bool
+    {
+        return $this->source === 'customer' && $this->visibility === 'private';
     }
 
     public function owner(): BelongsTo

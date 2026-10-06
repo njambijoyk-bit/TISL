@@ -115,7 +115,7 @@ class CampaignBoardController extends Controller
         $this->publisher($request);
         CampaignBoard::findOrFail($id);
         try {
-            $rows = DB::table('campaign_access_log as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->where('l.board_id', $id)->orderByDesc('l.id')->limit(100)
+            $rows = DB::table('campaign_access_log as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->where('l.board_id', $id)->where('l.action', 'view')->orderByDesc('l.id')->limit(100)
                 ->get(['l.created_at', 'l.ip_address', 'u.name', 'u.role'])->map(fn ($r) => ['name' => $r->name, 'role' => $r->role, 'at' => $r->created_at ? \Carbon\Carbon::parse($r->created_at)->setTimezone(config('app.timezone'))->format('Y-m-d\TH:i:sP') : null])->all();
         } catch (\Throwable) {
             $rows = [];

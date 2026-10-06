@@ -8,6 +8,7 @@ const moodboardsAPI = {
   create: async (title, from) => (await api.post('/admin/moodboards', { title, from })).data,
   update: async (id, data) => (await api.put(`/admin/moodboards/${id}`, data)).data,
   saveTemplate: async (id, title) => (await api.post(`/admin/moodboards/${id}/template`, { title })).data,
+  views: async (id) => (await api.get(`/admin/moodboards/${id}/views`)).data.data,
   submit: async (id) => (await api.post(`/admin/moodboards/${id}/submit`)).data,
   withdraw: async (id) => (await api.post(`/admin/moodboards/${id}/withdraw`)).data,
   approve: async (id) => (await api.post(`/admin/moodboards/${id}/approve`)).data,

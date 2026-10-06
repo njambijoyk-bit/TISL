@@ -30,10 +30,10 @@ class CampaignMoodboardController extends Controller
     private function find(Request $r, int $id, bool $forEdit = false): CampaignMoodboard
     {
         $this->builder($r);
-        $m = CampaignMoodboard::forStaff()->with('owner:id,name')->findOrFail($id);
+        $m = CampaignMoodboard::forStaff($r->user())->with('owner:id,name')->findOrFail($id);
         abort_unless(CampaignAccess::canPublish($r->user()) || (int) $m->owner_user_id === (int) $r->user()->id || $m->is_template, 403, 'That is not your moodboard.');
         if ($forEdit) {
-            abort_unless($this->moods->canEdit($r->user(), $m), 403, 'You cannot change this moodboard while it is waiting for a decision.');
+            abort_unless($this->moods->canEdit($r->user(), $m), 403, 'You cannot change this moodboard (it is waiting for a decision, or it is a customer's).');
         }
 
         return $m;
@@ -51,14 +51,14 @@ class CampaignMoodboardController extends Controller
     private function row(CampaignMoodboard $m, ?Request $r = null, bool $full = false): array
     {
         $row = ['id' => $m->id, 'title' => $m->title, 'template_key' => $m->template_key, 'is_template' => $m->is_template, 'approval_status' => $m->approval_status, 'rejected_note' => $m->rejected_note,
-            'status' => $m->status, 'source' => $m->source, 'owner_user_id' => $m->owner_user_id, 'owner_name' => $m->owner?->name, 'slug_path' => $m->slugPath(), 'filled' => count(array_filter($m->contents ?? [])), 'slots' => count($m->layout['slots'] ?? []), 'updated_at' => $m->updated_at?->toIso8601String()];
+            'status' => $m->status, 'source' => $m->source, 'private_customer' => $m->isPrivateCustomer(), 'owner_user_id' => $m->owner_user_id, 'owner_name' => $m->owner?->name, 'slug_path' => $m->slugPath(), 'filled' => count(array_filter($m->contents ?? [])), 'slots' => count($m->layout['slots'] ?? []), 'updated_at' => $m->updated_at?->toIso8601String()];
         if ($full) {
             $row += $this->moods->present($m) + ['raw_contents' => (object) ($m->contents ?? [])];
         }
         if ($r) {
             $u = $r->user();
             $mine = (int) $m->owner_user_id === (int) $u->id;
-            $row += ['can_edit' => $this->moods->canEdit($u, $m), 'can_publish' => CampaignAccess::canPublish($u), 'can_decide' => CampaignAccess::canPublish($u) && $m->approval_status === 'pending' && ! $mine,
+            $row += ['can_view_log' => in_array($u->role, ['admin', 'super_admin'], true) && $m->source === 'customer', 'can_edit' => $this->moods->canEdit($u, $m), 'can_publish' => CampaignAccess::canPublish($u), 'can_decide' => CampaignAccess::canPublish($u) && $m->approval_status === 'pending' && ! $mine,
                 'can_submit' => ! CampaignAccess::canPublish($u) && $mine && ! $m->is_template && in_array($m->approval_status, ['draft', 'rejected'], true), 'can_withdraw' => $mine && $m->approval_status === 'pending'];
         }
 
@@ -78,8 +78,10 @@ class CampaignMoodboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $this->builder($request);
-        $q = CampaignMoodboard::forStaff()->with('owner:id,name')->where('is_template', $request->boolean('templates'))->orderByDesc('id')
+        $q = CampaignMoodboard::forStaff($request->user())->with('owner:id,name')->where('is_template', $request->boolean('templates'))->orderByDesc('id')
             ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())
+            ->when($request->boolean('private_customers'), fn ($w) => $w->where('source', 'customer')->where('visibility', 'private'))
+            ->when(! $request->boolean('private_customers') && ! $request->boolean('trashed'), fn ($w) => $w->where(fn ($x) => $x->where('source', '!=', 'customer')->orWhere('visibility', 'public')))   // a private customer moodboard shows only on its own tab
             ->when($request->filled('approval'), fn ($w) => $w->where('approval_status', $request->query('approval')))
             ->when($request->filled('q'), fn ($w) => $w->where('title', 'like', '%' . $request->query('q') . '%'))
             ->when(! CampaignAccess::canPublish($request->user()) && (! $request->boolean('templates') || $request->boolean('trashed')), fn ($w) => $w->where('owner_user_id', $request->user()->id));
@@ -96,7 +98,38 @@ class CampaignMoodboardController extends Controller
 
     public function show(Request $request, int $id): JsonResponse
     {
-        return response()->json(['data' => $this->row($this->find($request, $id), $request, true)]);
+        $m = $this->find($request, $id);
+        $this->record($request, $m);
+
+        return response()->json(['data' => $this->row($m, $request, true)]);
+    }
+
+    /** A customer's private moodboard is only opened by admin and super admin, and each look is written to the access log first (without a log entry it does not open). */
+    private function record(Request $r, CampaignMoodboard $m): void
+    {
+        if (! $m->isPrivateCustomer() || (int) $m->owner_user_id === (int) $r->user()->id) {
+            return;
+        }
+        try {
+            \Illuminate\Support\Facades\DB::table('campaign_access_log')->insert(['user_id' => $r->user()->id, 'board_id' => $m->id, 'owner_user_id' => $m->owner_user_id, 'action' => 'mood_view', 'ip_address' => $r->ip(), 'created_at' => now()]);
+        } catch (\Throwable) {
+            abort(503, 'The access log is not set up yet, so a private moodboard cannot be opened. Ask an admin to run script 85.');
+        }
+    }
+
+    /** GET /admin/moodboards/{id}/views: who on the staff opened this customer's private moodboard, newest first. Admin and super admin only. */
+    public function views(Request $request, int $id): JsonResponse
+    {
+        abort_unless(in_array($request->user()->role, ['admin', 'super_admin'], true), 403, 'Only an admin or super admin can see who looked.');
+        CampaignMoodboard::forStaff($request->user())->findOrFail($id);
+        try {
+            $rows = \Illuminate\Support\Facades\DB::table('campaign_access_log as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->where('l.board_id', $id)->where('l.action', 'mood_view')->orderByDesc('l.id')->limit(100)
+                ->get(['l.created_at', 'u.name', 'u.role'])->map(fn ($r) => ['name' => $r->name, 'role' => $r->role, 'at' => $r->created_at ? \Carbon\Carbon::parse($r->created_at)->setTimezone(config('app.timezone'))->format('Y-m-d\TH:i:sP') : null])->all();
+        } catch (\Throwable) {
+            $rows = [];
+        }
+
+        return response()->json(['data' => $rows]);
     }
 
     public function store(Request $request): JsonResponse
@@ -188,6 +221,7 @@ class CampaignMoodboardController extends Controller
     {
         $m = $this->find($request, $id);
         abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can delete a moodboard.');
+        abort_if($m->isPrivateCustomer(), 403, 'This is a customer\'s private moodboard. Staff can look at it but not delete it.');
         $this->moods->destroy($m);
 
         return response()->json(['message' => 'Moodboard deleted.']);

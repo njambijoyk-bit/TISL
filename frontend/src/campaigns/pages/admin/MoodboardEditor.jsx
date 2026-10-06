@@ -33,6 +33,7 @@ export default function MoodboardEditor() {
   const [rejecting, setRejecting] = useState(null);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [views, setViews] = useState([]);
 
   const take = (d) => {
     setM(d); setPerm(permOf(d)); setTitle(d.title); setBg(d.layout.background || '#ffffff'); setPat(d.layout.pattern || 'none'); setDirty(false);
@@ -41,6 +42,8 @@ export default function MoodboardEditor() {
     setRaw(r); setPins(p);
   };
   useEffect(() => { moodboardsAPI.get(id).then(take).catch((e) => { toast.error(errMsg(e, 'Could not open the moodboard')); nav('/admin/moodboards', { replace: true }); }); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { if (m?.private_customer && m.can_view_log) moodboardsAPI.views(m.id).then(setViews).catch(() => {}); }, [m?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!m) return <AdminLayout><div style={{ padding: 32, color: colors.textFaint }}>Loading…</div></AdminLayout>;
   const canEdit = perm.can_edit && !(m.is_template && !perm.can_publish);
@@ -98,7 +101,18 @@ export default function MoodboardEditor() {
             {perm.can_submit && <div style={{ fontSize: '0.74rem', color: colors.textFaint, marginTop: 6 }}>Change what was asked, then send it for approval again.</div>}
           </div>
         )}
-        {!canEdit && <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted }}>You can look at this, but not change it{m.approval_status === 'pending' ? ' while it waits for a decision' : ''}.</p>}
+        {m.private_customer && (
+          <div style={{ ...card, padding: 12, margin: '0 0 14px', display: 'grid', gap: 6, borderColor: 'var(--status-warning, #b45309)' }}>
+            <div style={{ fontSize: '0.84rem', fontWeight: 700 }}>A customer's private moodboard. You can look but not change it, and your look is logged.</div>
+            {m.can_view_log && (
+              <>
+                <div style={label}>Who has looked</div>
+                {views.length === 0 ? <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>No one yet.</div> : views.slice(0, 15).map((v, i) => <div key={i} style={{ fontSize: '0.8rem', display: 'flex', gap: 10 }}><strong>{v.name ?? 'Unknown'}</strong><span style={{ color: colors.textFaint }}>{String(v.role ?? '').replace('_', ' ')}</span><span style={{ marginLeft: 'auto', color: colors.textMuted }}>{v.at ? new Date(v.at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}</span></div>)}
+              </>
+            )}
+          </div>
+        )}
+        {!canEdit && !m.private_customer && <p style={{ ...card, padding: 12, fontSize: '0.8rem', color: colors.textMuted }}>You can look at this, but not change it{m.approval_status === 'pending' ? ' while it waits for a decision' : ''}.</p>}
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 20, alignItems: 'start' }} className="mood-editor">
           <div style={{ ...card, padding: 14 }}><div style={{ maxWidth: 760, margin: '0 auto' }}><Moodboard board={show} editing selected={sel} onSlot={(s) => setSel(s.id)} /></div></div>
