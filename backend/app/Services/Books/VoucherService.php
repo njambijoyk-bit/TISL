@@ -5,6 +5,7 @@ namespace App\Services\Books;
 use App\Services\PromoCodeService;
 use App\Models\Books\AccountingSetting;
 use App\Models\Books\Ledger;
+use App\Models\Books\LedgerGroup;
 use App\Models\Books\PaymentMethod;
 use App\Models\Books\StockMovement;
 use App\Models\StockBatch;
@@ -209,7 +210,7 @@ class VoucherService
         $source->loadMissing('type');
         $base = $source->type->base_type;
         if (! in_array($base, [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::PURCHASE], true)) {
-            throw new BooksException('A credit note is made against a sales invoice or a cash sale, and a debit note against a purchase. (For a cash purchase, write a debit note without an invoice for now.)');
+            throw new BooksException('A credit note is made against a sales invoice or a cash sale, and a debit note against a purchase (paid at once or on credit).');
         }
         if ($source->status !== Voucher::POSTED) {
             throw new BooksException('Only a live invoice can be credited.');
@@ -221,12 +222,35 @@ class VoucherService
         if ($writtenOff) {
             throw new BooksException("{$source->voucher_number} was written off ({$writtenOff}). Cancel the write-off first, then write the credit note; whatever is still unpaid can be written off again.");
         }
-        if (! $source->party_ledger_id) {
+        if (! $source->party_ledger_id && ! $this->paidAtOnce($source)) {
             throw new BooksException("{$source->voucher_number} has no customer or supplier account, so a note can not be written against it.");
         }
 
         // a cash sale is credited like an invoice; the customer is then owed the money (on account) and it is refunded with a Payment
         return $base === VoucherType::PURCHASE ? VoucherType::DEBIT_NOTE : VoucherType::CREDIT_NOTE;
+    }
+
+    /** Was it paid at the till: a cash sale, or a purchase that opened no bill with a supplier? Such a note can give the money back at once. */
+    public function paidAtOnce(Voucher $source): bool
+    {
+        $source->loadMissing('type');
+        $base = $source->type->base_type;
+        if ($base === VoucherType::CASH_SALE) {
+            return true;
+        }
+
+        return $base === VoucherType::PURCHASE && ! DB::table('voucher_bill_refs')->where('voucher_id', $source->id)->where('ref_type', 'new')->exists();
+    }
+
+    /** The cash and bank ledgers money can go back through, and the one the original used (its biggest money entry). @return array{ledgers: array, default_id: ?int} */
+    private function refundLedgers(Voucher $source): array
+    {
+        $groupIds = LedgerGroup::whereIn('name', ['Cash-in-hand', 'Bank Accounts'])->get()->flatMap(fn ($g) => $g->selfAndDescendantIds())->unique()->all();
+        $ledgers = Ledger::whereIn('group_id', $groupIds)->where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $side = $source->type->base_type === VoucherType::PURCHASE ? 'C' : 'D';   // money came in on a sale (debited) and went out on a purchase (credited)
+        $used = DB::table('voucher_entries')->where('voucher_id', $source->id)->where('side', $side)->whereIn('ledger_id', $ledgers->pluck('id'))->orderByDesc('amount')->value('ledger_id');
+
+        return ['ledgers' => $ledgers->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->all(), 'default_id' => $used ? (int) $used : null];
     }
 
     /** How much (net amount) of each top line of the document earlier live notes already reversed. @return array<int, float> */
@@ -274,7 +298,8 @@ class VoucherService
         }
 
         return ['source' => ['id' => $source->id, 'voucher_number' => $source->voucher_number, 'date' => $source->date?->toDateString(), 'party' => $source->partyLedger?->name, 'total' => (float) $source->total_amount],
-            'note_base' => $noteBase, 'lines' => $lines];
+            'note_base' => $noteBase, 'lines' => $lines,
+            'paid_at_once' => $paidAtOnce = $this->paidAtOnce($source), 'has_party' => (bool) $source->party_ledger_id, 'refund' => $paidAtOnce ? $this->refundLedgers($source) : null];
     }
 
     /**
@@ -383,8 +408,22 @@ class VoucherService
                 'channel' => 'admin', 'source_voucher_id' => $source->id, 'lines_resolved' => $lines, 'moves_stock' => $stockLines,
                 'meta' => array_filter(['returned_from' => $source->voucher_number, 'return_reason' => $reason ?: null, 'written_off_goods' => $written ?: null]),
             ];
+            // Paid at the till: give the money back in the same step. The note is then posted against that cash / bank ledger instead of the customer or
+            // supplier, so nothing is left on their account. Without it, a customer or supplier account is needed to hold what is owed.
+            $refundLedger = ! empty($opts['refund_ledger_id']) ? (int) $opts['refund_ledger_id'] : null;
+            if ($refundLedger) {
+                if (! $this->paidAtOnce($source)) {
+                    throw new BooksException($sale ? 'Money can only go back at once for a sale that was paid at the till. This invoice is on account: the note reduces what the customer owes, and any refund is a separate payment.' : 'Money can only come back at once for a purchase that was paid at the till.');
+                }
+                $data['paid_ledger_id'] = $refundLedger;
+                $rl = Ledger::find($refundLedger);
+                $data['meta'] = ($data['meta'] ?? []) + ['refunded_to' => $rl?->name];
+                $data['narration'] .= ' — ' . ($sale ? 'refunded from ' : 'refund received into ') . ($rl?->name ?? 'the ledger');
+            } elseif (! $source->party_ledger_id) {
+                throw new BooksException('Choose where the money goes ' . ($sale ? 'back to the customer from' : 'when the supplier pays it back') . ': this was paid at the till and has no customer or supplier account to hold it.');
+            }
             $note = $this->create($data, $user);
-            $this->audit($source, $sale ? 'credited' : 'debited', $user, ['note' => $note->voucher_number]);
+            $this->audit($source, $sale ? 'credited' : 'debited', $user, ['note' => $note->voucher_number, 'refunded_to' => $refundLedger]);
 
             return $note->load($this->relations());
         });
@@ -656,11 +695,12 @@ class VoucherService
         // A purchase paid at once (cash, bank, M-Pesa) is credited to that ledger, not to the supplier: no debt is created.
         // The supplier may still be named (or the seller's details typed in) for the record.
         $paidLedgerId = null;
-        if ($base === VoucherType::PURCHASE && ($method?->ledger_id || ! empty($data['paid_ledger_id']))) {
+        // The same goes for a credit or debit note that gives the money back at once (a cash sale or cash purchase reversed): it is posted to that ledger.
+        if (in_array($base, [VoucherType::PURCHASE, VoucherType::CREDIT_NOTE, VoucherType::DEBIT_NOTE], true) && ($method?->ledger_id || ! empty($data['paid_ledger_id']))) {
             $paidLedgerId = (int) ($method?->ledger_id ?: $data['paid_ledger_id']);
             $paid = Ledger::find($paidLedgerId);
             if (! $paid || ! ($this->ledgers->isUnderGroup($paid, 'Cash-in-hand') || $this->ledgers->isUnderGroup($paid, 'Bank Accounts'))) {
-                throw new BooksException('A purchase paid at once must be paid from a cash or bank ledger.');
+                throw new BooksException($base === VoucherType::PURCHASE ? 'A purchase paid at once must be paid from a cash or bank ledger.' : 'The money must go back through a cash or bank ledger.');
             }
         }
         if (! $party && ! $paidLedgerId && $type->party_kind === 'supplier') {

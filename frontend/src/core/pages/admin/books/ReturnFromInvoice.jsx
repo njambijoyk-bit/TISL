@@ -35,9 +35,11 @@ export default function ReturnFromInvoice() {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [saveErr, setSaveErr] = useState(null);
+  const [refundNow, setRefundNow] = useState(true);   // paid at the till: give the money back in the same step
+  const [refundLedger, setRefundLedger] = useState('');
 
   useEffect(() => {
-    booksAPI.returnable(id).then(setData).catch((e) => setError(errMsg(e, 'Could not load the invoice')));
+    booksAPI.returnable(id).then((d) => { setData(d); setRefundLedger(d.refund?.default_id ?? d.refund?.ledgers?.[0]?.id ?? ''); if (d.paid_at_once && !d.has_party) setRefundNow(true); }).catch((e) => setError(errMsg(e, 'Could not load the invoice')));
   }, [id]);
 
   const sale = data?.note_base === 'credit_note';
@@ -94,7 +96,7 @@ export default function ReturnFromInvoice() {
         const mode = l.is_charge || l.is_header ? 'adjust' : p.mode;
         return mode === 'adjust' ? { item_id: l.id, mode, amount: Number(p.amount) } : { item_id: l.id, mode, quantity: Number(p.quantity) };
       });
-      const res = await booksAPI.createReturn(id, { lines, date, reason: reason.trim() || undefined });
+      const res = await booksAPI.createReturn(id, { lines, date, reason: reason.trim() || undefined, refund_ledger_id: data.paid_at_once && refundNow ? Number(refundLedger) : undefined });
       toast.success(res.message);
       nav(`/admin/books/vouchers/${res.data.id}`);
     } catch (e) { const m = errMsg(e, `Could not save the ${noun.toLowerCase()}`); setSaveErr(m); toast.error(m, { duration: 7000 }); }
@@ -188,11 +190,31 @@ export default function ReturnFromInvoice() {
           </label>
         </div>
 
+        {data.paid_at_once && (
+          <div style={{ ...card, padding: 16, marginTop: 16, display: 'grid', gap: 10 }}>
+            <strong style={{ fontSize: '0.84rem' }}>{sale ? 'Paying the customer back' : 'Getting the money back from the supplier'}</strong>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: '0.82rem', cursor: 'pointer' }}>
+              <input type="radio" name="refund" checked={refundNow} onChange={() => setRefundNow(true)} style={{ marginTop: 3 }} />
+              <span>
+                {sale ? 'Pay it back now' : 'It is paid back now'}, {sale ? 'from' : 'into'}{' '}
+                <select value={refundLedger} onChange={(e) => setRefundLedger(e.target.value)} onClick={() => setRefundNow(true)} style={select} aria-label="Cash or bank account">
+                  {(data.refund?.ledgers ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+                <span style={{ display: 'block', fontSize: '0.72rem', color: colors.textFaint, marginTop: 2 }}>{sale ? 'The money goes out of that account in this same step. Nothing is left on the customer\'s account.' : 'The money comes into that account in this same step. Nothing is left on the supplier\'s account.'}</span>
+              </span>
+            </label>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: '0.82rem', cursor: data.has_party ? 'pointer' : 'not-allowed', opacity: data.has_party ? 1 : 0.5 }}>
+              <input type="radio" name="refund" checked={!refundNow} disabled={!data.has_party} onChange={() => setRefundNow(false)} style={{ marginTop: 3 }} />
+              <span>{sale ? 'Keep it as credit on the customer\'s account' : 'Keep it as credit with the supplier'}{!data.has_party && ' (this has no account to hold it)'}<span style={{ display: 'block', fontSize: '0.72rem', color: colors.textFaint, marginTop: 2 }}>{sale ? 'Refund it later with a Payment, or use it on another invoice.' : 'Use it against a later bill, or have the supplier pay it back later.'}</span></span>
+            </label>
+          </div>
+        )}
+
         {picked.some((l) => picks[l.id].mode === 'writeoff') && <p role="status" style={{ margin: '12px 0 0', fontSize: '0.78rem', color: colors.warningText }}>Written-off goods do not go back into stock, and their cost stays as an expense (cost of goods sold is not reversed for them). The customer is still credited.</p>}
         {saveErr && <p role="alert" style={{ margin: '12px 0 0', color: colors.dangerText, fontSize: '0.82rem' }}>{saveErr}</p>}
         {problem && <p role="alert" style={{ margin: '12px 0 0', color: colors.dangerText, fontSize: '0.8rem' }}>{problem}</p>}
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-          <button type="button" style={{ ...btnPrimary, opacity: busy || !picked.length || problem ? 0.6 : 1 }} disabled={busy || !picked.length || Boolean(problem)} onClick={save}>{busy ? 'Saving…' : `Create ${noun.toLowerCase()}`}</button>
+          <button type="button" style={{ ...btnPrimary, opacity: busy || !picked.length || problem ? 0.6 : 1 }} disabled={busy || !picked.length || Boolean(problem) || (data.paid_at_once && refundNow && !refundLedger)} onClick={save}>{busy ? 'Saving…' : `Create ${noun.toLowerCase()}`}</button>
           <Link to={`/admin/books/vouchers/${id}`} style={{ ...btnGhost, textDecoration: 'none' }}>Cancel</Link>
         </div>
       </div>

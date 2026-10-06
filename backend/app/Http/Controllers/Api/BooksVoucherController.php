@@ -167,6 +167,7 @@ class BooksVoucherController extends Controller
             'lines' => 'required|array|min:1', 'lines.*.item_id' => 'required|integer', 'lines.*.mode' => 'nullable|in:return,adjust,writeoff',
             'lines.*.quantity' => 'nullable|numeric|min:0', 'lines.*.amount' => 'nullable|numeric|min:0',
             'date' => 'nullable|date', 'reason' => 'nullable|string|max:255', 'narration' => 'nullable|string', 'reference_no' => 'nullable|string|max:100',
+            'refund_ledger_id' => 'nullable|integer|exists:ledgers,id',
         ]);
 
         return $this->guard(function () use ($request, $id) {
