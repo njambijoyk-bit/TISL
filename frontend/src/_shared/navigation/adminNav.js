@@ -127,7 +127,7 @@ export const ADMIN_NAV = [
           { title: 'Referral codes', path: '/admin/referrals' },
         ],
       },
-      { id: 'reviews', title: 'Reviews & comments', icon: Star, color: '#f59e0b', path: '/admin/engagement', module: MODULES.EXTRAS, roles: ['admin', 'super_admin', 'manager', 'sales_rep', 'finance'], keywords: 'ratings feedback reviews comments approve moderate held' },
+      { id: 'reviews', title: 'Reviews & comments', icon: Star, color: '#f59e0b', path: '/admin/reviews', module: MODULES.EXTRAS, roles: ['admin', 'super_admin', 'manager', 'sales_rep', 'finance'], keywords: 'ratings feedback reviews comments approve moderate held' },
     ],
   },
 

@@ -37,7 +37,7 @@ class EngagementNotices
     private function task(User $u, string $source, int $id, string $title): void
     {
         $this->calendar->put(['user_id' => $u->id, 'source_type' => $source, 'source_id' => $id, 'kind' => 'approval', 'title' => $title, 'starts_at' => now()->startOfDay(), 'ends_at' => null, 'all_day' => true,
-            'status' => 'pending', 'visibility' => 'staff', 'url' => '/admin/engagement', 'meta' => []]);
+            'status' => 'pending', 'visibility' => 'staff', 'url' => '/admin/reviews', 'meta' => []]);
     }
 
     /** What is waiting: held posts, and things with open reports. @return array{held:int,reports:int} */

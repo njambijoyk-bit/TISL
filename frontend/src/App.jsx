@@ -1354,8 +1354,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin/engagement" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'sales_rep', 'finance']}><ModuleRoute module="extras" redirectTo="/admin"><EngagementQueue /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/reviews" element={<Navigate to="/admin/engagement" replace />} />
+              <Route path="/admin/reviews" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'sales_rep', 'finance']}><ModuleRoute module="extras" redirectTo="/admin"><EngagementQueue /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/engagement" element={<Navigate to="/admin/reviews" replace />} />   {/* the first name the page had; calendar tasks made then still use it */}
 
               <Route
                 path="/admin/loyalty"
