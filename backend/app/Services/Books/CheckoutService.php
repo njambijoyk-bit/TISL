@@ -127,8 +127,9 @@ class CheckoutService
             }
             $promoNet = round($sub + $hamperGoods + $promoNet, 2);
         } elseif (! empty($in['promo_code'])) {
-            throw new BooksException('Sign in to use a promo code.');
+            throw new BooksException($customer ? 'A promo code can not be used on what is in your cart.' : 'Sign in to use a promo code.');
         }
+        $promoAccepted = $sub > 0 || $hamperGoods > 0;   // false when the cart holds only hampers that take no promo codes (and gift vouchers)
 
         $final = [];
         foreach ($lines as $i => $l) {
@@ -170,7 +171,7 @@ class CheckoutService
             ], fn ($v) => $v !== null),
         ];
 
-        return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral') + ['option' => $option];
+        return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral', 'promoAccepted') + ['option' => $option];
     }
 
     /**
@@ -258,7 +259,7 @@ class CheckoutService
         return [
             'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'tax_breakdown' => $p['tax_breakdown'],
             'total' => $p['total'], 'discounts' => $a['discounts'], 'gift' => $gift, 'customer' => $this->customerCard($a['customer']),
-            'due_now' => round($p['total'] - $applied, 2),
+            'due_now' => round($p['total'] - $applied, 2), 'promo_accepted' => $a['promoAccepted'],
             'available' => $this->entitlements($a['customer'], (float) $p['total'], $a['promoNet'], $a['promoReferral'], $a['currency'], ! empty($in['promo_code']) ? (string) $in['promo_code'] : null),
         ];
     }

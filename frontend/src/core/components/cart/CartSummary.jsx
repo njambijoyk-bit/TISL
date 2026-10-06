@@ -57,7 +57,9 @@ export default function CartSummary({ blocked = false }) {
 
   const money = (n) => formatMoney(n, quote?.currency);
   const promos = quote?.available?.promo_codes ?? [];
+  const promoOn = quote?.promo_accepted !== false;   // false: the cart holds only hampers that take no promo codes
   const chosen = prefs.promo_code.trim().toLowerCase();
+  useEffect(() => { if (!promoOn && prefs.promo_code) prefs.set({ promo_code: '' }); }, [promoOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
@@ -79,7 +81,7 @@ export default function CartSummary({ blocked = false }) {
           </div>
         </div>
 
-        <div style={box}>
+        {promoOn && <div style={box}>
           <p style={head}><Tag size={14} /> Promo codes</p>
           {!isAuthenticated && <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0 0 8px' }}>Sign in to see your tier discount and the promo codes you can use.</p>}
           <div style={{ display: 'grid', gap: 7 }}>
@@ -94,7 +96,7 @@ export default function CartSummary({ blocked = false }) {
               </form>
             )}
           </div>
-        </div>
+        </div>}
       </div>
 
       <button onClick={() => { if (blocked) { toast.error('Choose an option for the items marked above first'); return; } navigate(isAuthenticated ? '/checkout' : '/login?redirect=/checkout'); }} disabled={blocked} style={{ opacity: blocked ? 0.6 : 1,
