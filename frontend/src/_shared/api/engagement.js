@@ -27,6 +27,7 @@ const engagementAPI = {
   approve: async (id) => (await api.post(`/admin/engagement/posts/${id}/approve`)).data,
   hide: async (id) => (await api.post(`/admin/engagement/posts/${id}/hide`)).data,
   remove: async (id) => (await api.post(`/admin/engagement/posts/${id}/remove`)).data,
+  top: async (type) => (await api.get('/admin/engagement/top', { params: { type: type || undefined } })).data.data,
   reportCases: async (status) => (await api.get('/admin/engagement/reports', { params: { status } })).data,
   decideReport: async (body) => (await api.post('/admin/engagement/reports/decide', body)).data,
 };

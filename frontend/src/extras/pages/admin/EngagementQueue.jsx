@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { BadgeCheck, Star } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { BadgeCheck, Heart, Star, ThumbsUp } from 'lucide-react';
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, TextArea, SelectInput } from '../../../core/components/admin/ui/Form';
 import toast from 'react-hot-toast';
@@ -21,6 +22,7 @@ function Posts() {
   const [status, setStatus] = useState('held');
   const [type, setType] = useState('');
   const [q, setQ] = useState('');
+  const [sort, setSort] = useState('');
   const [rows, setRows] = useState([]);
   const [counts, setCounts] = useState({});
   const [canDecide, setCanDecide] = useState(false);
@@ -29,10 +31,10 @@ function Posts() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const r = await engagementAPI.queue({ status, type: type || undefined, q: q || undefined });
+      const r = await engagementAPI.queue({ status, type: type || undefined, q: q || undefined, sort: sort || undefined });
       setRows(r.data); setCounts(r.counts ?? {}); setCanDecide(r.can_decide);
     } catch (e) { toast.error(errMsg(e, 'Could not load the list')); } finally { setLoading(false); }
-  }, [status, type, q]);
+  }, [status, type, q, sort]);
   useEffect(() => { const t = setTimeout(load, q ? 300 : 0); return () => clearTimeout(t); }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const act = async (fn, id, confirm) => {
@@ -46,6 +48,7 @@ function Posts() {
         <Toolbar>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{TABS.map(([k, l]) => <button key={k} type="button" style={chip(status === k)} onClick={() => setStatus(k)}>{l}{counts[k] != null && k !== 'removed' ? ` · ${counts[k]}` : ''}</button>)}</div>
           <select value={type} onChange={(e) => setType(e.target.value)} style={filterStyle} aria-label="Kind of thing">{TYPES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
+          <select value={sort} onChange={(e) => setSort(e.target.value)} style={filterStyle} aria-label="Order"><option value="">Newest first</option><option value="helpful">Most helpful first</option><option value="liked">Most liked first</option></select>
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the words…" style={{ ...filterStyle, minWidth: 200 }} />
         </Toolbar>
         {loading && rows.length === 0 && <p style={{ color: colors.textFaint }}>Loading…</p>}
@@ -59,6 +62,7 @@ function Posts() {
                 {p.kind === 'review' && <span style={{ display: 'inline-flex', gap: 1 }}>{[1, 2, 3, 4, 5].map((n) => <Star key={n} size={13} style={{ color: '#f59e0b', fill: n <= p.rating ? '#f59e0b' : 'transparent' }} />)}</span>}
                 {p.verified && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center', color: '#15803d', fontWeight: 700 }}><BadgeCheck size={13} /> Verified purchase</span>}
                 <span style={{ color: colors.textFaint }}>on {p.target_type === 'post' ? 'a ' : ''}{p.target}</span>
+                {(p.helpful > 0 || p.likes > 0) && <span style={{ display: 'inline-flex', gap: 10, color: colors.textMuted, fontWeight: 600 }}>{p.helpful > 0 && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><ThumbsUp size={12} /> {p.helpful} helpful</span>}{p.likes > 0 && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }}><Heart size={12} /> {p.likes}</span>}</span>}
                 <span style={{ marginLeft: 'auto', color: colors.textFaint }}>{when(p.created_at)}</span>
               </div>
               {p.title && <div style={{ fontWeight: 700, color: colors.text }}>{p.title}</div>}
@@ -142,7 +146,37 @@ function Reports() {
   );
 }
 
-/** Staff side of the Engagement Engine: reviews and comments to approve, and reports to decide on. */
+const KINDS = [['', 'Everything'], ['pin', 'Pins'], ['board', 'Boards'], ['moodboard', 'Moodboards'], ['campaign', 'Campaigns'], ['product', 'Products'], ['service', 'Services'], ['hamper', 'Hampers']];
+
+/** The things people like most, with counts only (never who liked them). */
+function MostLiked() {
+  const [type, setType] = useState('');
+  const [rows, setRows] = useState(null);
+  useEffect(() => { setRows(null); engagementAPI.top(type).then(setRows).catch((e) => { toast.error(errMsg(e, 'Could not load the list')); setRows([]); }); }, [type]);
+
+  return (
+    <>
+      <Toolbar><select value={type} onChange={(e) => setType(e.target.value)} style={filterStyle} aria-label="Kind of thing">{KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Toolbar>
+      {rows === null && <p style={{ color: colors.textFaint }}>Loading…</p>}
+      {rows?.length === 0 && <p style={{ ...card, padding: 18, color: colors.textMuted, fontSize: '0.86rem' }}>Nothing has been liked yet.</p>}
+      <div style={{ display: 'grid', gap: 8 }}>
+        {rows?.map((r, i) => (
+          <div key={`${r.type}:${r.id}`} style={{ ...card, padding: '12px 16px', display: 'flex', gap: 12, alignItems: 'center' }}>
+            <span style={{ width: 24, textAlign: 'right', fontWeight: 800, color: colors.textFaint }}>{i + 1}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 700, color: colors.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.label}</div>
+              <div style={{ fontSize: '0.7rem', color: colors.textFaint, textTransform: 'uppercase' }}>{r.type}</div>
+            </div>
+            {r.url && <Link to={r.url} style={{ fontSize: '0.78rem', fontWeight: 700, color: colors.primary, textDecoration: 'none' }}>Open ›</Link>}
+            <span style={{ display: 'inline-flex', gap: 5, alignItems: 'center', fontWeight: 800, color: colors.text }}><Heart size={14} /> {r.likes}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/** Staff side of the Engagement Engine: reviews and comments to approve, reports to decide on, and what people like most. */
 export default function EngagementQueue() {
   const [tab, setTab] = useState('posts');
   const big = (on) => ({ padding: '9px 18px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.86rem', color: on ? 'var(--color-primary-500)' : colors.textMuted, border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line)'}`, background: 'transparent' });
@@ -151,8 +185,8 @@ export default function EngagementQueue() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
         <HubHeader title="Reviews, comments and reports" description="Approve what customers write before it shows, and decide on what people report. Who can do what is set in Settings, Engagement." />
-        <div style={{ display: 'flex', gap: 8, margin: '0 0 14px' }}><button type="button" style={big(tab === 'posts')} onClick={() => setTab('posts')}>Reviews and comments</button><button type="button" style={big(tab === 'reports')} onClick={() => setTab('reports')}>Reports</button></div>
-        {tab === 'posts' ? <Posts /> : <Reports />}
+        <div style={{ display: 'flex', gap: 8, margin: '0 0 14px' }}><button type="button" style={big(tab === 'posts')} onClick={() => setTab('posts')}>Reviews and comments</button><button type="button" style={big(tab === 'reports')} onClick={() => setTab('reports')}>Reports</button><button type="button" style={big(tab === 'liked')} onClick={() => setTab('liked')}>Most liked</button></div>
+        {tab === 'posts' ? <Posts /> : tab === 'reports' ? <Reports /> : <MostLiked />}
       </div>
     </AdminLayout>
   );

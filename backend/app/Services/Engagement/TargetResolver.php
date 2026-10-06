@@ -46,4 +46,16 @@ class TargetResolver
 
         return $name ?: ucfirst($type) . " #{$id}";
     }
+
+    /** The public page for a thing, where it has one (products and services have their own address rules, so they are left out). */
+    public function url(string $type, int $id): ?string
+    {
+        return match ($type) {
+            'pin' => "/pins/{$id}",
+            'board' => ($b = \App\Models\CampaignBoard::find($id)) ? '/boards/' . $b->slugPath() : null,
+            'moodboard' => ($m = CampaignMoodboard::find($id)) ? '/moodboards/' . $m->slugPath() : null,
+            'campaign' => ($c = Campaign::find($id)) ? '/campaigns/' . $c->slug : null,
+            default => null,
+        };
+    }
 }

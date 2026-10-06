@@ -927,6 +927,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/posts/{id}/approve', [$m, 'approve'])->whereNumber('id');
             Route::post('/posts/{id}/hide',    [$m, 'hide'])->whereNumber('id');
             Route::post('/posts/{id}/remove',  [$m, 'remove'])->whereNumber('id');
+            Route::get('/top', [$m, 'top']);
             Route::get('/reports', [$m, 'reportCases']);
             Route::post('/reports/decide', [$m, 'decideReport']);
         });
