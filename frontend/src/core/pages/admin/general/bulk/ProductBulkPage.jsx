@@ -161,7 +161,7 @@ export default function ProductBulkPage() {
     }
   };
 
-  // One featured-item pin per selected product (Campaigns module); the pin reads the product live
+  // One featured-item pin per selected product (Campaigns module); the pin reads the product live and is tagged with its category
   const handleBulkPins = async () => {
     const chosen = products.filter(p => selectedIds.has(p.id));
     if (!chosen.length) return;
@@ -169,7 +169,8 @@ export default function ProductBulkPage() {
     let ok = 0;
     for (const p of chosen) {
       try {
-        await pinsAPI.create({ kind: 'item', item_type: 'product', item_id: p.id, title: p.name });
+        const cat = p.category?.name ?? categories.find(c => String(c.id) === String(p.category_id))?.name;
+        await pinsAPI.create({ kind: 'item', item_type: 'product', item_id: p.id, title: p.name, tags: cat ? [cat] : undefined });
         ok++;
       } catch { /* counted below */ }
     }
