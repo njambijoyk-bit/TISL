@@ -1472,7 +1472,19 @@ class VoucherService
         if (in_array($base, [VoucherType::CREDIT_NOTE, VoucherType::DEBIT_NOTE], true)) {
             $src = ! empty($data['source_voucher_id']) ? Voucher::find($data['source_voucher_id']) : null;
             if ($src && in_array($src->type->base_type, [VoucherType::SALES, VoucherType::PURCHASE], true)) {
-                return [['type' => 'against', 'ledger_id' => $plan['party']->id, 'amount' => $plan['total'], 'due' => null, 'against' => $src->id]];
+                // The note settles what is still open on the invoice. When the invoice is already paid (in part or in full) the rest is money owed back:
+                // it becomes credit on the customer's / supplier's account, to be refunded or used on another bill, not a negative balance on the invoice.
+                $left = max(0.0, round($this->outstanding($src, $plan['editing_id'] ?? null), 2));
+                $against = round(min((float) $plan['total'], $left), 2);
+                $bills = [];
+                if ($against > 0.004) {
+                    $bills[] = ['type' => 'against', 'ledger_id' => $plan['party']->id, 'amount' => $against, 'due' => null, 'against' => $src->id];
+                }
+                if ((float) $plan['total'] - $against > 0.004) {
+                    $bills[] = ['type' => 'advance', 'ledger_id' => $plan['party']->id, 'amount' => round((float) $plan['total'] - $against, 2), 'due' => null, 'against' => null];
+                }
+
+                return $bills;
             }
 
             return [['type' => 'advance', 'ledger_id' => $plan['party']->id, 'amount' => $plan['total'], 'due' => null, 'against' => null]];
