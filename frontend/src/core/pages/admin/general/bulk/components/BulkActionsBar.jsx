@@ -40,6 +40,7 @@ export default function BulkActionsBar({
   onSetStatus, 
   onSetSalesAccount,
   onSetPurchaseAccount,
+  onCreatePins,
   onClear,
 }) {
   const salesAccounts = useTradingAccounts('sales');
@@ -126,13 +127,13 @@ export default function BulkActionsBar({
           disabled={!bulkPrice}
           style={{
             padding: '5px 12px',
-            background: bulkPrice ? 'var(--accent, var(--color-primary-600))' : 'rgba(255,255,255,0.15)',
+            background: bulkPrice ? 'var(--accent, var(--color-primary-600))' : 'var(--border-color, rgba(128,128,128,0.3))',
             border: 'none',
             borderRadius: 6,
             fontSize: 12,
             fontWeight: 600,
             cursor: bulkPrice ? 'pointer' : 'not-allowed',
-            color: '#fff',
+            color: bulkPrice ? '#fff' : 'var(--text-muted, #6b7280)',
           }}
         >Apply</button>
       </div>
@@ -155,7 +156,7 @@ export default function BulkActionsBar({
             <button
               onClick={() => { onSetSalesAccount(Number(account)); setAccount(''); }}
               disabled={!account}
-              style={{ padding: '5px 12px', background: account ? 'var(--accent, var(--color-primary-600))' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: account ? 'pointer' : 'not-allowed', color: '#fff' }}
+              style={{ padding: '5px 12px', background: account ? 'var(--accent, var(--color-primary-600))' : 'var(--border-color, rgba(128,128,128,0.3))', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: account ? 'pointer' : 'not-allowed', color: account ? '#fff' : 'var(--text-muted, #6b7280)' }}
             >Apply</button>
           </div>
 
@@ -180,7 +181,7 @@ export default function BulkActionsBar({
             <button
               onClick={() => { onSetPurchaseAccount(Number(purchase) || null); setPurchase(''); }}
               disabled={purchase === ''}
-              style={{ padding: '5px 12px', background: purchase !== '' ? 'var(--accent, var(--color-primary-600))' : 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: purchase !== '' ? 'pointer' : 'not-allowed', color: '#fff' }}
+              style={{ padding: '5px 12px', background: purchase !== '' ? 'var(--accent, var(--color-primary-600))' : 'var(--border-color, rgba(128,128,128,0.3))', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: purchase !== '' ? 'pointer' : 'not-allowed', color: purchase !== '' ? '#fff' : 'var(--text-muted, #6b7280)' }}
             >Apply</button>
           </div>
 
@@ -254,6 +255,18 @@ export default function BulkActionsBar({
       </div>
 
       <Divider />
+
+      {/* ── Pins (Campaigns module) ─────────────────────────────────────── */}
+      {onCreatePins && (
+        <>
+          <button
+            onClick={onCreatePins}
+            title="Make a pin for each selected product"
+            style={{ padding: '5px 12px', background: 'var(--accent, var(--color-primary-600))', border: 'none', borderRadius: 6, color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+          >Create pin(s)</button>
+          <Divider />
+        </>
+      )}
 
       {/* ── Clear ──────────────────────────────────────────────────────── */}
       <button

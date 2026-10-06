@@ -7,6 +7,8 @@ import SearchableDropdown from '../../../../../_shared/components/common/Searcha
 import LoadingSpinner from '../../../../../_shared/components/layout/LoadingSpinner';
 import GeneralLayout from '../../../../../_shared/components/layout/GeneralLayout';
 import toast from 'react-hot-toast';
+import { isModuleActive } from '../../../../../_shared/navigation/modules';
+import pinsAPI from '../../../../../_shared/api/pins';
 const PER_PAGE = 50;
 
 export default function ProductBulkPage() {
@@ -157,6 +159,24 @@ export default function ProductBulkPage() {
         setBulkActionLoading(false);
         toast.dismiss('bulk-update'); // 👈 Clean up loading toast
     }
+  };
+
+  // One featured-item pin per selected product (Campaigns module); the pin reads the product live
+  const handleBulkPins = async () => {
+    const chosen = products.filter(p => selectedIds.has(p.id));
+    if (!chosen.length) return;
+    setBulkActionLoading(true);
+    let ok = 0;
+    for (const p of chosen) {
+      try {
+        await pinsAPI.create({ kind: 'item', item_type: 'product', item_id: p.id, title: p.name });
+        ok++;
+      } catch { /* counted below */ }
+    }
+    setBulkActionLoading(false);
+    if (ok) toast.success(`${ok} pin(s) created`);
+    if (ok < chosen.length) toast.error(`${chosen.length - ok} pin(s) failed`);
+    if (ok === chosen.length) setSelectedIds(new Set());
   };
 
   const handleBulkStatus = async (status) => {
@@ -448,6 +468,7 @@ export default function ProductBulkPage() {
         onSetStatus={handleBulkStatus}
         onSetSalesAccount={handleBulkSalesAccount}
         onSetPurchaseAccount={handleBulkPurchaseAccount}
+        onCreatePins={isModuleActive('campaigns') ? handleBulkPins : undefined}
         onClear={() => setSelectedIds(new Set())}
         disabled={bulkActionLoading}
       />
