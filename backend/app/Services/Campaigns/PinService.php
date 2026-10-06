@@ -226,6 +226,23 @@ class PinService
     }
 
     /** Delete the pin and the files only it uses. */
+    /** Delete a pin for good (super admin): its files, board places, comments, likes and reports, then the row itself. Works on one already deleted. */
+    public function purge(CampaignPin $p): void
+    {
+        if (! $p->trashed()) {
+            $this->destroy($p);
+        }
+        $db = \Illuminate\Support\Facades\DB::class;
+        $posts = $db::table('engagement_posts')->where('target_type', 'pin')->where('target_id', $p->id)->pluck('id');
+        $db::table('engagement_reactions')->where('target_type', 'post')->whereIn('target_id', $posts)->delete();
+        $db::table('engagement_reports')->where('target_type', 'post')->whereIn('target_id', $posts)->delete();
+        $db::table('engagement_posts')->whereIn('id', $posts)->delete();
+        foreach (['engagement_reactions', 'engagement_reports'] as $t) {
+            $db::table($t)->where('target_type', 'pin')->where('target_id', $p->id)->delete();
+        }
+        $p->forceDelete();
+    }
+
     public function destroy(CampaignPin $p): void
     {
         $this->forget($p->media_path);

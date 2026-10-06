@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, ExternalLink } from 'lucide-react';
+import { Download, ExternalLink, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import worldAPI from '../../_shared/api/world';
+import pinsAPI from '../../_shared/api/pins';
+import useAuthStore from '../../_shared/store/authStore';
 import SaveMenu from './SaveMenu';
 import Discussion from '../../extras/components/engagement/Discussion';
 import { ReactionButton, ReportButton } from '../../extras/components/engagement/Reactions';
@@ -26,7 +28,8 @@ function Media({ p }) {
 }
 
 /** One pin in full: its picture or video, words, tags, the boards it is on, and a download button when the pin allows it. */
-export default function PinDetail({ id, pin: given, onTag, own = false }) {
+export default function PinDetail({ id, pin: given, onTag, own = false, onPurged }) {
+  const isSuper = useAuthStore((s) => s.user?.role) === 'super_admin';
   const [p, setP] = useState(given ?? null);
   const [gone, setGone] = useState(false);
   useEffect(() => {
@@ -40,6 +43,11 @@ export default function PinDetail({ id, pin: given, onTag, own = false }) {
   if (gone) return <p style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>This pin is not available any more.</p>;
   if (!p) return <p style={{ padding: 40, textAlign: 'center', color: 'var(--text-tertiary)' }}>Loading…</p>;
   const download = async () => { try { await worldAPI.download(p.id); } catch (e) { toast.error(errMsg(e, 'Could not download it')); } };
+  const purge = async () => {
+    if (!window.confirm('Delete this pin for good? Its picture, comments and likes go too. This cannot be undone.')) return;
+    try { await pinsAPI.purge(p.id); toast.success('Pin deleted for good'); if (onPurged) onPurged(p.id); else setGone(true); }
+    catch (e) { toast.error(errMsg(e, 'Could not delete the pin')); }
+  };
   const title = p.title || p.item?.name;
   const canDownload = p.can_download ?? (p.allow_download && ((p.kind === 'image' && p.media_path) || (p.kind === 'video' && p.video?.file)));
   const internal = (u) => typeof u === 'string' && u.startsWith('/');
@@ -58,6 +66,7 @@ export default function PinDetail({ id, pin: given, onTag, own = false }) {
             : <a href={p.item.link} style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff', border: 0 }}>View it</a>)}
           {p.kind === 'link' && p.link_url && <a href={p.link_url} target="_blank" rel="noopener noreferrer nofollow" style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff', border: 0 }}><ExternalLink size={14} /> Open link</a>}
           {!own && <SaveMenu pinId={p.id} />}
+          {isSuper && <button type="button" onClick={purge} title="Delete for good (super admin)" aria-label="Delete for good" style={{ ...pill, padding: '9px 12px', background: 'transparent', color: 'var(--color-danger-500, #dc2626)', border: '1.5px solid var(--line)' }}><Trash2 size={14} /></button>}
           {canDownload && <button type="button" onClick={download} style={{ ...pill, background: 'transparent', color: 'var(--text-primary)', border: '1.5px solid var(--line)' }}><Download size={14} /> Download</button>}
         </div>
         {p.tags?.length > 0 && <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{p.tags.map((t) => (onTag

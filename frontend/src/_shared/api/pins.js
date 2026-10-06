@@ -17,6 +17,7 @@ const pinsAPI = {
   hide: async (id, reason) => (await api.post(`/admin/pins/${id}/hide`, { reason })).data,
   unhide: async (id) => (await api.post(`/admin/pins/${id}/unhide`)).data,
   remove: async (id) => (await api.delete(`/admin/pins/${id}`)).data,
+  purge: async (id) => (await api.delete(`/admin/pins/${id}/purge`)).data,
 };
 
 export default pinsAPI;

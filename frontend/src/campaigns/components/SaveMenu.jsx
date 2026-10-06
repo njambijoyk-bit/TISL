@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Bookmark, Check, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -15,14 +16,19 @@ export default function SaveMenu({ pinId }) {
   const [open, setOpen] = useState(false);
   const [boards, setBoards] = useState(null);
   const [name, setName] = useState('');
+  const [pos, setPos] = useState(null);
   const box = useRef(null);
+  const menu = useRef(null);
 
   useEffect(() => {
     if (!open) return undefined;
     myBoardsAPI.list(pinId).then((r) => setBoards(r.data)).catch((e) => toast.error(errMsg(e, 'Could not load your boards')));
-    const off = (e) => { if (box.current && !box.current.contains(e.target)) setOpen(false); };
+    const off = (e) => { if (box.current && !box.current.contains(e.target) && !menu.current?.contains(e.target)) setOpen(false); };
+    const close = () => setOpen(false);
     document.addEventListener('mousedown', off);
-    return () => document.removeEventListener('mousedown', off);
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    return () => { document.removeEventListener('mousedown', off); window.removeEventListener('resize', close); window.removeEventListener('scroll', close, true); };
   }, [open, pinId]);
 
   if (!user) return <Link to="/login" style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff' }}><Bookmark size={14} /> Sign in to save</Link>;
@@ -42,11 +48,21 @@ export default function SaveMenu({ pinId }) {
     } catch (er) { toast.error(errMsg(er, 'Could not make the board')); }
   };
 
+  // The list floats above the page (a portal), so a card or dialog around the button can never clip it
+  const toggle = () => {
+    if (!open && box.current) {
+      const r = box.current.getBoundingClientRect();
+      const up = window.innerHeight - r.bottom < 360 && r.top > window.innerHeight - r.bottom;
+      setPos({ left: Math.max(8, Math.min(r.left, window.innerWidth - 296)), ...(up ? { bottom: window.innerHeight - r.top + 8 } : { top: r.bottom + 8 }) });
+    }
+    setOpen((o) => !o);
+  };
+
   return (
     <span ref={box} style={{ position: 'relative' }}>
-      <button type="button" onClick={() => setOpen((o) => !o)} style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff', border: 0 }}><Bookmark size={14} /> Save</button>
-      {open && (
-        <div style={{ position: 'absolute', zIndex: 5, top: 'calc(100% + 8px)', left: 0, width: 280, maxHeight: 340, overflowY: 'auto', padding: 12, borderRadius: 14, background: 'var(--surface-card)', border: '1px solid var(--line)', boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
+      <button type="button" title="Add to board" aria-label="Add to board" onClick={toggle} style={{ ...pill, background: 'var(--color-primary-500)', color: '#fff', border: 0 }}><Bookmark size={14} /> Save</button>
+      {open && pos && createPortal(
+        <div ref={menu} style={{ position: 'fixed', zIndex: 10000, ...pos, width: 280, maxHeight: 340, overflowY: 'auto', padding: 12, borderRadius: 14, background: 'var(--surface-card)', border: '1px solid var(--line)', boxShadow: '0 12px 32px rgba(0,0,0,0.25)' }}>
           <form onSubmit={make} style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
             <input value={name} onChange={(e) => setName(e.target.value)} placeholder="New board name" maxLength={160} style={input} aria-label="New board name" />
             <button type="submit" aria-label="Make board" disabled={!name.trim()} style={{ ...pill, padding: '6px 10px', background: 'var(--color-primary-500)', color: '#fff', border: 0, opacity: name.trim() ? 1 : 0.5 }}><Plus size={14} /></button>
@@ -60,8 +76,7 @@ export default function SaveMenu({ pinId }) {
               {b.has_pin && <Check size={15} color="var(--color-primary-500)" />}
             </button>
           ))}
-        </div>
-      )}
+        </div>, document.body)}
     </span>
   );
 }

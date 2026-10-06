@@ -943,6 +943,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/hide',      [$c, 'hide'])->whereNumber('id');
             Route::post('/{id}/unhide',    [$c, 'unhide'])->whereNumber('id');
             Route::delete('/{id}',         [$c, 'destroy'])->whereNumber('id');
+            Route::delete('/{id}/purge',   [$c, 'purge'])->whereNumber('id');
         });
 
         // Campaigns (the Campaigns module): builders see their own; publishing is for admin, super admin and manager (checked in the controller)

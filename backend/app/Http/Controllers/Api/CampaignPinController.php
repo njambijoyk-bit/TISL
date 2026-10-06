@@ -130,4 +130,13 @@ class CampaignPinController extends Controller
 
         return response()->json(['message' => 'Pin deleted.']);
     }
+
+    /** DELETE /admin/pins/{id}/purge: super admin only, gone for good (also finds a pin already deleted). */
+    public function purge(Request $request, int $id): JsonResponse
+    {
+        abort_unless($request->user()?->role === 'super_admin', 403, 'Only a super admin can delete a pin for good.');
+        $this->pins->purge(CampaignPin::withTrashed()->findOrFail($id));
+
+        return response()->json(['message' => 'Pin deleted for good.']);
+    }
 }
