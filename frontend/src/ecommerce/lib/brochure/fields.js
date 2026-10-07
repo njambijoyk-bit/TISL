@@ -29,6 +29,7 @@ export function brochureFields(data, { money, company = {} } = {}) {
     s.delivery_mode && DELIVERY[s.delivery_mode] && `Delivery: ${DELIVERY[s.delivery_mode]}`,
     s.lead_time && `Lead time: ${s.lead_time}`,
     s.service_area && `Area: ${s.service_area}`,
+    s.is_remote_available && !s.requires_site_visit && 'Remote service available',
     s.requires_site_visit && 'A site visit is needed',
     s.booking_required && 'Booking is required',
   ].filter(Boolean);
