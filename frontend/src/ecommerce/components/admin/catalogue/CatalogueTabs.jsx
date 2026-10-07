@@ -5,7 +5,7 @@ import { colors } from '../../../../_shared/theme/tokens';
 const TABS = [
   { to: '/admin/price-lists', label: 'Price lists', also: ['/admin/price-lists'] },
   { to: '/admin/price-list-archive', label: 'Archive' },
-  { to: '/admin/catalogues', label: 'Brochures', also: ['/admin/catalogues'] },
+  { to: '/admin/catalogues', label: 'Catalogues', also: ['/admin/catalogues'] },
   { to: '/admin/catalogue-items', label: 'Item configuration' },
   { to: '/admin/catalogue-settings', label: 'Configuration' },
 ];

@@ -67,7 +67,7 @@ export const ADMIN_NAV = [
           { title: 'Brands', path: '/admin/brands' },
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
           { title: 'Price lists', path: '/admin/price-lists', also: ['/admin/price-list-archive'], roles: PRICE_ROLES },
-          { title: 'Brochures', path: '/admin/catalogues', also: ['/admin/catalogue-items'], roles: PRICE_ROLES },
+          { title: 'Catalogues', path: '/admin/catalogues', also: ['/admin/catalogue-items'], roles: PRICE_ROLES },
           { title: 'Configuration', path: '/admin/catalogue-settings', roles: PRICE_ROLES },
         ],
       },
