@@ -41,7 +41,7 @@ export default function CollapsedServiceCard({ service }) {
   // In the shopper's chosen currency ("From …" for fixed and project-based, as before).
   const money = useMoney();
   const getPricingDisplay = () =>
-    money.servicePrice(service, { contactLabel: null, fromModels: ['fixed', 'project_based'] });
+    money.servicePrice(service, { contactLabel: null });
   const pricingDisplay = getPricingDisplay();
 
   // ── Handlers ──────────────────────────────────────────────────────────────

@@ -73,14 +73,7 @@ const fmt = (amount, item) =>
 
 const getPricingDisplay = (service) => {
   if (service.price_is_negotiable) return 'Negotiable';
-  switch (service.pricing_model) {
-    case 'hourly':       return service.hourly_rate  ? `${fmt(service.hourly_rate, service)}/hr`   : 'Contact for pricing';
-    case 'daily':        return service.daily_rate   ? `${fmt(service.daily_rate, service)}/day`   : 'Contact for pricing';
-    case 'subscription': return service.base_price   ? `${fmt(service.base_price, service)}/mo`    : 'Contact for pricing';
-    case 'fixed':
-    case 'project_based':return service.base_price   ? `From ${fmt(service.base_price, service)}`  : 'Contact for pricing';
-    default:             return 'Contact for pricing';
-  }
+  return service.base_price ? `From ${fmt(service.base_price, service)}${service.price_unit?.name ? `/${service.price_unit.name.toLowerCase()}` : ''}` : 'Contact for pricing';
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────

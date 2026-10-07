@@ -57,19 +57,10 @@ const ServiceCard = ({ service, onClick }) => {
 
   // Pricing in the shopper's chosen currency ("From …" for fixed and project-based, as before).
   const money = useMoney();
-  const getPricingDisplay = () => money.servicePrice(service, { fromModels: ['fixed', 'project_based'] });
+  const getPricingDisplay = () => money.servicePrice(service);
 
-  // Get pricing model label
-  const getPricingModelLabel = () => {
-    const labels = {
-      hourly: 'Hourly Rate',
-      daily: 'Daily Rate',
-      fixed: 'Fixed Price',
-      project_based: 'Project Based',
-      subscription: 'Subscription',
-    };
-    return labels[service.pricing_model] || 'Custom Pricing';
-  };
+  // What the price covers, e.g. "per session"
+  const getPricingModelLabel = () => service.price_unit_label || '';
 
   
 

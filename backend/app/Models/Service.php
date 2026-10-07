@@ -13,6 +13,9 @@ class Service extends Model
 {
     use HasFactory, SoftDeletes, HasCurrencyConversion, \App\Traits\HasSalesTax;
 
+    /** Every service comes with its price unit, so a price can always be shown with what it covers. */
+    protected $with = ['priceUnit:id,code,name'];
+
     /**
      * The attributes that are mass assignable.
      */
@@ -26,9 +29,6 @@ class Service extends Model
         'base_price',
         'currency_id',
         'price_is_negotiable',
-        'pricing_model',
-        'hourly_rate',
-        'daily_rate',
         'minimum_charge',
         'description',
         'short_description',
@@ -72,8 +72,6 @@ class Service extends Model
      */
     protected $casts = [
         'base_price' => 'decimal:2',
-        'hourly_rate' => 'decimal:2',
-        'daily_rate' => 'decimal:2',
         'minimum_charge' => 'decimal:2',
         'price_is_negotiable' => 'boolean',
         'requires_site_visit' => 'boolean',
@@ -100,7 +98,7 @@ class Service extends Model
      */
     protected $appends = [
         'status_label',
-        'pricing_model_label',
+        'price_unit_label',
         'main_image_url',
         'images_url',
         'video',
@@ -204,19 +202,12 @@ class Service extends Model
         };
     }
 
-    /**
-     * Get human-readable pricing model label.
-     */
-    public function getPricingModelLabelAttribute(): string
+    /** "per session", "per hour"...: what the starting price covers, from the service unit chosen on the service (empty when none). */
+    public function getPriceUnitLabelAttribute(): string
     {
-        return match($this->pricing_model) {
-            'fixed' => 'Fixed Price',
-            'hourly' => 'Hourly Rate',
-            'daily' => 'Daily Rate',
-            'project_based' => 'Project Based',
-            'subscription' => 'Subscription',
-            default => ucfirst($this->pricing_model),
-        };
+        $name = $this->priceUnit?->name;
+
+        return $name ? 'per ' . mb_strtolower($name) : '';
     }
 
     public function getDisplayPriceAttribute(): ?float
@@ -329,14 +320,6 @@ class Service extends Model
     }
 
     /**
-     * Scope to get services by pricing model.
-     */
-    public function scopeByPricingModel($query, string $model)
-    {
-        return $query->where('pricing_model', $model);
-    }
-
-    /**
      * Scope to search services.
      */
     public function scopeSearch($query, string $search)
@@ -399,19 +382,10 @@ class Service extends Model
         ]);
     }
 
-    /**
-     * Get price based on pricing model.
-     */
+    /** The starting price (what a customer sees "from"). The packages carry the exact prices. */
     public function getPrice(): ?float
     {
-        return match($this->pricing_model) {
-            'fixed' => $this->base_price,
-            'hourly' => $this->hourly_rate,
-            'daily' => $this->daily_rate,
-            'project_based' => $this->base_price,
-            'subscription' => $this->base_price,
-            default => $this->base_price,
-        };
+        return $this->base_price;
     }
 
     /**

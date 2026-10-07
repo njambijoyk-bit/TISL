@@ -32,7 +32,7 @@ class BrochureData
         $priceMode = $set['price'];
         $service = $s->makeHidden(['admin_notes', 'created_by', 'updated_by', 'brochure_meta', 'meta_title', 'meta_description', 'meta_keywords', 'related_services'])->toArray();
         if ($priceMode !== 'show') {
-            foreach (['base_price', 'hourly_rate', 'daily_rate', 'minimum_charge', 'display_price', 'display_price_incl', 'display_tax'] as $k) {
+            foreach (['base_price', 'minimum_charge', 'display_price', 'display_price_incl', 'display_tax'] as $k) {
                 $service[$k] = null;
             }
         }

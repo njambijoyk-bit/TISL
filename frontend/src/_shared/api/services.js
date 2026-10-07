@@ -216,7 +216,6 @@ export const buildServiceQueryParams = (filters = {}) => {
   if (filters.search) params.search = filters.search;
   if (filters.category_id) params.category_id = filters.category_id;
   if (filters.type) params.type = filters.type;
-  if (filters.pricing_model) params.pricing_model = filters.pricing_model;
   if (filters.min_price) params.min_price = filters.min_price;
   if (filters.max_price) params.max_price = filters.max_price;
   if (filters.remote_only) params.remote_only = true;

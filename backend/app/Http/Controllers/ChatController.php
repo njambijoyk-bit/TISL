@@ -165,12 +165,12 @@ class ChatController extends Controller
             return Service::where('is_available', true)
                 ->where('is_visible', true)
                 ->where('status', 'active')
-                ->select('id', 'name', 'base_price', 'pricing_model', 'short_description', 'category_id')
+                ->select('id', 'name', 'base_price', 'price_unit_id', 'short_description', 'category_id')
                 ->with(['category:id,name'])
                 ->limit(30)
                 ->get()
                 ->map(fn($s) =>
-                    "[ID:{$s->id}] {$s->name} — Base: KSh " . number_format($s->base_price ?? 0, 2) . " ({$s->pricing_model})" .
+                    "[ID:{$s->id}] {$s->name} — From KSh " . number_format($s->base_price ?? 0, 2) . ($s->price_unit_label ? " {$s->price_unit_label}" : '') .
                     " | Category: " . ($s->category?->name ?? 'N/A') .
                     ($s->short_description ? " | {$s->short_description}" : "")
                 )->join("\n") ?: 'No services available.';

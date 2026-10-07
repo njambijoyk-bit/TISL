@@ -319,7 +319,7 @@ const ServiceForm = () => {
   const [formData, setFormData] = useState({
     name: '', sku: '', category_id: '', type: 'standard',
     short_description: '', description: '',
-    pricing_model: 'fixed', base_price: '', hourly_rate: '', daily_rate: '',
+    base_price: '',
     minimum_charge: '', price_is_negotiable: false, currency_id: '',
     estimated_duration: '', lead_time: '', service_area: '',
     price_unit_id: '', delivery_mode: '', requires_site_visit: false,
@@ -366,9 +366,9 @@ const ServiceForm = () => {
     setFormData({
       name: cs.name || '', sku: cs.sku || '', category_id: cs.category_id || '',
       type: cs.type || 'standard', short_description: cs.short_description || '',
-      description: cs.description || '', pricing_model: cs.pricing_model || 'fixed',
-      base_price: cs.base_price || '', hourly_rate: cs.hourly_rate || '',
-      daily_rate: cs.daily_rate || '', minimum_charge: cs.minimum_charge || '',
+      description: cs.description || '',
+      base_price: cs.base_price || '',
+      minimum_charge: cs.minimum_charge || '',
       price_is_negotiable: cs.price_is_negotiable || false,
       currency_id: cs.currency_id ?? cs.currency?.id ?? '',
       estimated_duration: cs.estimated_duration || '', lead_time: cs.lead_time || '',
@@ -429,10 +429,7 @@ const ServiceForm = () => {
   const validateForm = () => {
     if (!formData.name.trim()) return 'Service name is required';
     if (!formData.category_id) return 'Category is required';
-    if (!formData.pricing_model) return 'Pricing model is required';
-    if (formData.pricing_model === 'fixed' && !formData.base_price) return 'Base price is required for fixed pricing';
-    if (formData.pricing_model === 'hourly' && !formData.hourly_rate) return 'Hourly rate is required';
-    if (formData.pricing_model === 'daily'  && !formData.daily_rate)  return 'Daily rate is required';
+    if (!formData.price_is_negotiable && !formData.base_price) return 'A starting price is required (or mark the price as negotiable)';
     if (!formData.sales_ledger_id) return 'Service income account is required (Tax section)';
     return null;
   };
@@ -453,8 +450,6 @@ const ServiceForm = () => {
         galleryUrls: galleryUrls.filter(u => u?.trim()),
       };
       if (data.base_price) data.base_price = parseFloat(data.base_price);
-      if (data.hourly_rate) data.hourly_rate = parseFloat(data.hourly_rate);
-      if (data.daily_rate)  data.daily_rate  = parseFloat(data.daily_rate);
       if (data.minimum_charge) data.minimum_charge = parseFloat(data.minimum_charge);
       if (data.max_concurrent_bookings) data.max_concurrent_bookings = parseInt(data.max_concurrent_bookings);
 
@@ -488,10 +483,6 @@ const ServiceForm = () => {
     adminCurrencies.find(c => String(c.id) === String(formData.currency_id))?.code
     ?? adminCurrencies.find(c => c.is_base)?.code
     ?? 'KES';
-
-  const showBasePrice  = ['fixed','project_based','subscription'].includes(formData.pricing_model);
-  const showHourly     = formData.pricing_model === 'hourly';
-  const showDaily      = formData.pricing_model === 'daily';
 
   return (
     <AdminLayout>
@@ -572,12 +563,6 @@ const ServiceForm = () => {
                         <option value="maintenance">Maintenance</option>
                       </SS>
                     </Field>
-                    <Field label="Unit of measure" hint="Service units come from Settings, Units of measure">
-                      <SS name="price_unit_id" value={formData.price_unit_id} onChange={handleChange}>
-                        <option value="">Not set</option>
-                        {serviceUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                      </SS>
-                    </Field>
                   </div>
                   <Field label="Short description" hint="2–3 sentences — used for meta description and listings">
                     <ST name="short_description" value={formData.short_description} onChange={handleChange} rows={2} placeholder="Brief description" />
@@ -599,31 +584,16 @@ const ServiceForm = () => {
                       emptyLabel="Base currency"
                     />
                   </Field>
-                  <Field label="Pricing model *">
-                    <SS name="pricing_model" value={formData.pricing_model} onChange={handleChange} required>
-                      <option value="fixed">Fixed price</option>
-                      <option value="hourly">Hourly rate</option>
-                      <option value="daily">Daily rate</option>
-                      <option value="project_based">Project based</option>
-                      <option value="subscription">Subscription</option>
-                    </SS>
-                  </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                    {showBasePrice && (
-                      <Field label={`Base price (${priceCurrencyCode}, excl. tax) *`}>
-                        <SI type="number" name="base_price" value={formData.base_price} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required={formData.pricing_model === 'fixed'} />
-                      </Field>
-                    )}
-                    {showHourly && (
-                      <Field label={`Hourly rate (${priceCurrencyCode}, excl. tax) *`}>
-                        <SI type="number" name="hourly_rate" value={formData.hourly_rate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required />
-                      </Field>
-                    )}
-                    {showDaily && (
-                      <Field label={`Daily rate (${priceCurrencyCode}, excl. tax) *`}>
-                        <SI type="number" name="daily_rate" value={formData.daily_rate} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required />
-                      </Field>
-                    )}
+                    <Field label={`Starting price (${priceCurrencyCode}, excl. tax)${formData.price_is_negotiable ? '' : ' *'}`} hint="Customers see it as 'From ...'. Each package below has its own exact price.">
+                      <SI type="number" name="base_price" value={formData.base_price} onChange={handleChange} placeholder="0.00" step="0.01" min="0" required={!formData.price_is_negotiable} />
+                    </Field>
+                    <Field label="The price is per" hint="Service units come from Settings, Units of measure">
+                      <SS name="price_unit_id" value={formData.price_unit_id} onChange={handleChange}>
+                        <option value="">Not set</option>
+                        {serviceUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      </SS>
+                    </Field>
                     <Field label={`Minimum charge (${priceCurrencyCode}, excl. tax, optional)`}>
                       <SI type="number" name="minimum_charge" value={formData.minimum_charge} onChange={handleChange} placeholder="0.00" step="0.01" min="0" />
                     </Field>
@@ -645,7 +615,7 @@ const ServiceForm = () => {
 
               {/* Tax: the sales account decides it (required); overrides need a saved service */}
               <SectionCard title="Tax">
-                <SalesAccountSelect kind="sales" scope="service" required amount={formData.base_price || formData.hourly_rate || formData.daily_rate} currencyCode={priceCurrencyCode} value={formData.sales_ledger_id}
+                <SalesAccountSelect kind="sales" scope="service" required amount={formData.base_price} currencyCode={priceCurrencyCode} value={formData.sales_ledger_id}
                   onChange={(v) => setFormData((f) => ({ ...f, sales_ledger_id: v }))}
                   hint="The account decides the tax: an exempt service goes on an exempt account, a VAT-able one on a VAT-able account." />
               </SectionCard>

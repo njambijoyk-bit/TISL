@@ -156,14 +156,8 @@ const Services = () => {
   const getPricingDisplay = (service) => {
     const formatCurrency = (amount) => formatMoney(amount || 0, service.currency);
     if (service.price_is_negotiable) return 'Negotiable';
-    switch (service.pricing_model) {
-      case 'hourly': return `${formatCurrency(service.hourly_rate)}/hr`;
-      case 'daily': return `${formatCurrency(service.daily_rate)}/day`;
-      case 'fixed':
-      case 'project_based': return formatCurrency(service.base_price);
-      case 'subscription': return `${formatCurrency(service.base_price)}/mo`;
-      default: return service.base_price ? formatCurrency(service.base_price) : 'N/A';
-    }
+    if (!service.base_price) return 'N/A';
+    return `From ${formatCurrency(service.base_price)}${service.price_unit?.name ? `/${service.price_unit.name.toLowerCase()}` : ''}`;
   };
 
   // Bulk selection handlers for main table
@@ -355,7 +349,6 @@ const Services = () => {
           <Badge variant="primary" size="sm">
             {getPricingDisplay(service)}
           </Badge>
-          <div className="text-s text-gray-500">Pricing: {service.pricing_model}</div>
         </div>
       ),
     },

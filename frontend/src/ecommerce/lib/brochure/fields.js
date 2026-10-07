@@ -21,7 +21,7 @@ export function brochureFields(data, { money, company = {} } = {}) {
 
   let price = null;
   if (data.price_mode === 'show' && priced.length) price = `${priced.length > 1 ? 'From ' : ''}${fmt(Math.min(...priced.map((p) => Number(p.price))))}`;   // the packages' own prices, not the service's general one
-  else if (data.price_mode === 'show') price = data.negotiable ? 'Negotiable' : (money?.servicePrice(s, { fromModels: ['fixed', 'project_based'] }) ?? null);
+  else if (data.price_mode === 'show') price = data.negotiable ? 'Negotiable' : (money?.servicePrice(s) ?? null);
   else if (data.price_mode === 'on_request') price = 'Price on request';
 
   const facts = [
@@ -39,7 +39,7 @@ export function brochureFields(data, { money, company = {} } = {}) {
 
   return {
     name: s.name ?? '', tagline: s.short_description ?? '', description: (s.description ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
-    badge: s.badge ?? '', category: data.category ?? '', price: price ?? '', model: s.pricing_model_label ?? '',
+    badge: s.badge ?? '', category: data.category ?? '', price: price ?? '', model: s.price_unit_label ?? '',
     rating: data.rating ? `${data.rating.value.toFixed(1)} out of 5, from ${data.rating.count} ${data.rating.count === 1 ? 'review' : 'reviews'}` : '',
     company: company.name ?? '', companyTagline: company.tagline ?? '', contact: contact.join('   '), contactLines: contact, url: data.url ?? '',
     facts, features: bullets(data.features), deliverables: bullets(data.deliverables), requirements, packageRows, charges,

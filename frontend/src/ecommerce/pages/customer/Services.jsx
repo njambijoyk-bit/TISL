@@ -84,7 +84,7 @@ const Services = () => {
     fetchServices();
   }, [
     filters.search, filters.category_id, filters.type,
-    filters.pricing_model, filters.min_price, filters.max_price,
+    filters.min_price, filters.max_price,
     filters.remote_only, filters.requires_site_visit, filters.featured,
     filters.sort_by, filters.sort_order, filters.per_page, filters.page,
   ]);

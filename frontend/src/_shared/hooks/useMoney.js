@@ -3,9 +3,6 @@ import { formatMoney } from '../lib/money';
 
 const round2 = (n) => Math.round(n * 100) / 100;
 
-const SERVICE_SUFFIX = { hourly: '/hr', daily: '/day', subscription: '/mo' };
-const SERVICE_RATE_KEY = { hourly: 'hourly_rate', daily: 'daily_rate' };
-
 /**
  * Storefront money helpers, all in the shopper's chosen currency.
  *
@@ -111,25 +108,22 @@ export default function useMoney() {
   };
 
   /**
-   * "KSh 1,240/day", "From $ 500", "Contact for price" — for any pricing model.
-   * @param {object} opts
-   *   contactLabel  text when there's no price (null to render nothing)
-   *   fromModels    models prefixed with "From " (default: project_based)
-   *   suffixes      override per-model suffixes, e.g. { subscription: '/month' }
+   * A service's starting price: "From KSh 1,240/session", or "Contact for price" when it has none.
+   * The unit is the service unit chosen on the service (what the price covers).
+   * @param {object} opts  contactLabel  text when there's no price (null to render nothing)
    */
-  const servicePrice = (service, { contactLabel = 'Contact for price', fromModels = ['project_based'], suffixes = {} } = {}) => {
+  const servicePrice = (service, { contactLabel = 'Contact for price' } = {}) => {
     if (!service) return null;
     if (service.price_is_negotiable) return 'Negotiable';
-    const model = service.pricing_model;
-    const nativeAmount = service[SERVICE_RATE_KEY[model] ?? 'base_price'];
+    const nativeAmount = service.base_price;
     const r = 1 + rateOf(service) / 100;
     const amount = serverFresh(service)
       ? fmt(round2(Number(service.display_price) * r), symbolFor(service.display_currency))
       : (itemAmount(nativeAmount != null ? round2(Number(nativeAmount) * r) : nativeAmount, service)
          ?? (service.display_price != null ? fmt(service.display_price, symbolFor(service.display_currency)) : null));
     if (!amount || (nativeAmount == null && service.display_price == null)) return contactLabel;
-    const prefix = fromModels.includes(model) ? 'From ' : '';
-    return `${prefix}${amount}${{ ...SERVICE_SUFFIX, ...suffixes }[model] ?? ''}`;
+    const unit = service.price_unit?.name ? `/${String(service.price_unit.name).toLowerCase()}` : '';
+    return `From ${amount}${unit}`;
   };
 
   return {

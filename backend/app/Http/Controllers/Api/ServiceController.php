@@ -47,7 +47,6 @@ class ServiceController extends Controller
         }
         if ($request->has('category_id'))          { $query->where('category_id', $request->category_id); }
         if ($request->has('type') && $request->type) { $query->where('type', $request->type); }
-        if ($request->has('pricing_model'))        { $query->where('pricing_model', $request->pricing_model); }
         if ($request->boolean('remote_only'))      { $query->where('is_remote_available', true); }
         if ($request->has('requires_site_visit'))  { $query->where('requires_site_visit', $request->boolean('requires_site_visit')); }
         if ($request->boolean('featured'))         { $query->where('is_featured', true); }
@@ -220,11 +219,6 @@ class ServiceController extends Controller
             $query->where('category_id', $request->category_id);
         }
 
-        // Filter by pricing model
-        if ($request->has('pricing_model')) {
-            $query->where('pricing_model', $request->pricing_model);
-        }
-
         // Filter by availability
         if ($request->has('is_available')) {
             $query->where('is_available', $request->boolean('is_available'));
@@ -297,9 +291,6 @@ class ServiceController extends Controller
             'base_price' => 'nullable|numeric|min:0',
             'currency_id' => 'nullable|exists:currencies,id,is_active,1',
             'price_is_negotiable' => 'nullable|boolean',
-            'pricing_model' => 'required|in:fixed,hourly,daily,project_based,subscription',
-            'hourly_rate' => 'nullable|numeric|min:0',
-            'daily_rate' => 'nullable|numeric|min:0',
             'minimum_charge' => 'nullable|numeric|min:0',
             
             // Description
@@ -488,9 +479,6 @@ class ServiceController extends Controller
             'base_price' => 'nullable|numeric|min:0',
             'currency_id' => 'nullable|exists:currencies,id,is_active,1',
             'price_is_negotiable' => 'nullable|boolean',
-            'pricing_model' => 'sometimes|required|in:fixed,hourly,daily,project_based,subscription',
-            'hourly_rate' => 'nullable|numeric|min:0',
-            'daily_rate' => 'nullable|numeric|min:0',
             'minimum_charge' => 'nullable|numeric|min:0',
             
             // Description
@@ -713,7 +701,7 @@ class ServiceController extends Controller
     {
         $services = Service::where('status', 'active')
             ->where('is_available', true)
-            ->select('id', 'name', 'sku', 'pricing_model', 'base_price', 'hourly_rate', 'daily_rate', 'currency_id')
+            ->select('id', 'name', 'sku', 'price_unit_id', 'base_price', 'currency_id')
             ->orderBy('name')
             ->get();
 

@@ -16,16 +16,6 @@ const SORT_OPTIONS = [
   { value: 'price_high|desc', label: 'Price: High → Low',   sortBy: 'price_high', sortOrder: 'desc' },
 ];
 
-const PRICING_OPTIONS = [
-  { value: '',               label: 'All Pricing' },
-  { value: 'fixed',          label: 'Fixed Price' },
-  { value: 'hourly',         label: 'Hourly Rate' },
-  { value: 'daily',          label: 'Daily Rate' },
-  { value: 'project_based',  label: 'Project Based' },
-  { value: 'subscription',   label: 'Subscription' },
-  { value: 'negotiable',     label: 'Negotiable' },
-];
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Dropdown wrapper
 // ─────────────────────────────────────────────────────────────────────────────
@@ -192,7 +182,6 @@ export default function ServiceFilters({ categories = [], types = [], filters, o
   const activeCategory = useMemo(() =>
     categories.find((c) => c.id === filters?.category_id), [categories, filters?.category_id]);
 
-  const activePricing = PRICING_OPTIONS.find((p) => p.value === (filters?.pricing_model || ''));
 
   const activeSort = useMemo(() => {
     const key = `${filters?.sort_by || 'created_at'}|${filters?.sort_order || 'desc'}`;
@@ -215,7 +204,7 @@ export default function ServiceFilters({ categories = [], types = [], filters, o
 
   const activeCount = [
     filters?.search, filters?.category_id, filters?.type,
-    filters?.pricing_model, hasPriceFilter, filters?.featured,
+    hasPriceFilter, filters?.featured,
     locationMode,
   ].filter(Boolean).length;
 
@@ -322,23 +311,6 @@ export default function ServiceFilters({ categories = [], types = [], filters, o
             ))}
           </Dropdown>
         )}
-
-        {/* Pricing Model */}
-        <Dropdown
-          label={activePricing?.value ? activePricing.label : 'Pricing'}
-          icon={DollarSign}
-          active={!!filters?.pricing_model}
-          onClear={() => push({ pricing_model: null })}
-          minWidth={190}
-        >
-          {PRICING_OPTIONS.map((opt) => (
-            <Option
-              key={opt.value} label={opt.label}
-              selected={(filters?.pricing_model || '') === opt.value}
-              onClick={() => push({ pricing_model: opt.value || null })}
-            />
-          ))}
-        </Dropdown>
 
         {/* Price range */}
         <div ref={priceRef} style={{ position: 'relative', flexShrink: 0 }}>
@@ -468,7 +440,6 @@ export default function ServiceFilters({ categories = [], types = [], filters, o
           {filters?.search     && <Chip label={`"${filters.search}"`}  onRemove={() => { setSearchVal(''); onSearch?.(''); push({ search: '' }); }} />}
           {activeCategory      && <Chip label={activeCategory.name}    onRemove={() => push({ category_id: null })} />}
           {filters?.type       && <Chip label={activeType}             onRemove={() => push({ type: null })} />}
-          {filters?.pricing_model && <Chip label={activePricing?.label || filters.pricing_model} onRemove={() => push({ pricing_model: null })} />}
           {hasPriceFilter      && <Chip label={priceRangeText} onRemove={clearPrice} />}
           {locationMode === 'remote' && <Chip label="Remote Only"  onRemove={() => push({ remote_only: false, requires_site_visit: null })} />}
           {locationMode === 'onsite' && <Chip label="On-Site Only" onRemove={() => push({ remote_only: false, requires_site_visit: null })} />}

@@ -77,14 +77,7 @@ const fmt = (v) => `KES ${parseFloat(v || 0).toLocaleString()}`;
 
 const getPricingDisplay = (service) => {
   if (service.price_is_negotiable) return 'Negotiable';
-  switch (service.pricing_model) {
-    case 'hourly':        return service.hourly_rate ? `${fmt(service.hourly_rate)}/hr`  : 'Contact for pricing';
-    case 'daily':         return service.daily_rate  ? `${fmt(service.daily_rate)}/day`  : 'Contact for pricing';
-    case 'subscription':  return service.base_price  ? `${fmt(service.base_price)}/mo`   : 'Contact for pricing';
-    case 'fixed':
-    case 'project_based': return service.base_price  ? `From ${fmt(service.base_price)}` : 'Contact for pricing';
-    default:              return 'Contact for pricing';
-  }
+  return service.base_price ? `From ${fmt(service.base_price)}${service.price_unit?.name ? `/${service.price_unit.name.toLowerCase()}` : ''}` : 'Contact for pricing';
 };
 
 // ─── Products tab ────────────────────────────────────────────────────────────
@@ -325,7 +318,7 @@ const AddItemModal = ({ onClose, onAdd, existingItemIds = [] }) => {
         discount_amount:            0,
       })),
       ...selectedServices.map(s => {
-        const unitPrice = parseFloat(s.base_price || s.hourly_rate || 0);
+        const unitPrice = parseFloat(s.base_price || 0);
         return {
           ...s,
           item_type:                  'service',

@@ -25,7 +25,7 @@ export default function ServiceWishlistItem({ item }) {
         </button>
         {item.category?.name && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 6px' }}>{item.category.name}</p>}
         <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0 }}>
-          {money.servicePrice(item, { contactLabel: 'Contact for pricing', fromModels: ['fixed', 'project_based'], suffixes: { subscription: '/month' } })}
+          {money.servicePrice(item, { contactLabel: 'Contact for pricing' })}
         </p>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>

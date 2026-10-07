@@ -104,11 +104,7 @@ const ServiceDetail = () => {
 
   const getPricingDisplay = () => {
     if (!currentService) return '';
-    return money.servicePrice(currentService, {
-      contactLabel: 'Contact for pricing',
-      fromModels: ['fixed', 'project_based'],
-      suffixes: { subscription: '/month' },
-    });
+    return money.servicePrice(currentService, { contactLabel: 'Contact for pricing' });
   };
 
   // ── Loading state ──────────────────────────────────────────────────────────
@@ -356,7 +352,7 @@ const ServiceDetail = () => {
                 {/* Price row */}
                 <div style={{ padding: '20px 20px 16px', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', borderBottom: '1px solid color-mix(in srgb, var(--color-primary-500) 12%, transparent)' }}>
                   <p style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
-                    {service.pricing_model_label || 'Pricing'}
+                    {service.price_unit_label ? `Starting price ${service.price_unit_label}` : 'Starting price'}
                   </p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: '2.2rem', fontWeight: 800, color: 'var(--color-primary-500)', letterSpacing: '-0.03em', lineHeight: 1 }}>
