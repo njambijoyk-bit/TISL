@@ -8,6 +8,7 @@ import {
   ChevronLeft, Save, Eye, Upload, X, Plus, Trash2, Info,
 } from 'lucide-react';
 import useServiceStore from '../../../_shared/store/serviceStore';
+import useUomStore from '../../../_shared/store/uomStore';
 import ServiceSelectorModalAdmin from '../../../core/components/admin/pickers/ServiceSelectorModalAdmin';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
@@ -311,13 +312,17 @@ const ServiceForm = () => {
     clearCurrentService, clearError,
   } = useServiceStore();
 
+  const { fetchUnits, unitsByDimension } = useUomStore();
+  useEffect(() => { fetchUnits().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const serviceUnits = unitsByDimension('service_unit');
+
   const [formData, setFormData] = useState({
     name: '', sku: '', category_id: '', type: 'standard',
     short_description: '', description: '',
     pricing_model: 'fixed', base_price: '', hourly_rate: '', daily_rate: '',
     minimum_charge: '', price_is_negotiable: false, currency_id: '',
     estimated_duration: '', lead_time: '', service_area: '',
-    unit_of_measure: 'project', delivery_mode: '', requires_site_visit: false,
+    price_unit_id: '', delivery_mode: '', requires_site_visit: false,
     is_remote_available: true, booking_required: false,
     max_concurrent_bookings: '', is_available: true, is_visible: true,
     is_featured: false, status: 'draft',
@@ -367,7 +372,7 @@ const ServiceForm = () => {
       price_is_negotiable: cs.price_is_negotiable || false,
       currency_id: cs.currency_id ?? cs.currency?.id ?? '',
       estimated_duration: cs.estimated_duration || '', lead_time: cs.lead_time || '',
-      service_area: cs.service_area || '', unit_of_measure: cs.unit_of_measure || 'project', delivery_mode: cs.delivery_mode || '',
+      service_area: cs.service_area || '', price_unit_id: cs.price_unit_id ?? '', delivery_mode: cs.delivery_mode || '',
       requires_site_visit: cs.requires_site_visit || false,
       is_remote_available: cs.is_remote_available !== undefined ? cs.is_remote_available : true,
       booking_required: cs.booking_required || false,
@@ -567,13 +572,10 @@ const ServiceForm = () => {
                         <option value="maintenance">Maintenance</option>
                       </SS>
                     </Field>
-                    <Field label="Unit of measure">
-                      <SS name="unit_of_measure" value={formData.unit_of_measure} onChange={handleChange}>
-                        <option value="project">Per project</option>
-                        <option value="hour">Per hour</option>
-                        <option value="day">Per day</option>
-                        <option value="month">Per month</option>
-                        <option value="year">Per year</option>
+                    <Field label="Unit of measure" hint="Service units come from Settings, Units of measure">
+                      <SS name="price_unit_id" value={formData.price_unit_id} onChange={handleChange}>
+                        <option value="">Not set</option>
+                        {serviceUnits.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                       </SS>
                     </Field>
                   </div>

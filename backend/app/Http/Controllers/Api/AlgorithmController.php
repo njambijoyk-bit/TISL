@@ -466,7 +466,7 @@ class AlgorithmController extends Controller
             $scoreExpr = "(
                 services.is_featured * ?
             + (COALESCE(services.rating,0) / 5.0) * ?
-            + LEAST(COALESCE(services.order_count,0) / 100.0, 1.0) * ?
+            + LEAST(COALESCE(services.view_count,0) / 500.0, 1.0) * ?
             + EXISTS(
                     SELECT 1 FROM algorithm_bonus_content
                     WHERE entity_type = 'service' AND entity_id = services.id AND is_active = 1
@@ -515,7 +515,7 @@ class AlgorithmController extends Controller
             + products.is_new * ?
             + products.on_sale * ?
             + (COALESCE(products.rating,0) / 5.0) * ?
-            + LEAST(COALESCE(products.purchase_count,0) / 100.0, 1.0) * ?
+            + LEAST(COALESCE(products.view_count,0) / 500.0, 1.0) * ?
             + EXISTS(
                     SELECT 1 FROM algorithm_bonus_content
                     WHERE entity_type = 'product' AND entity_id = products.id AND is_active = 1

@@ -286,7 +286,6 @@ class ProductController extends Controller
             // Parse JSON fields
             $features = $request->has('features') ? json_decode($request->features, true) : null;
             $specifications = $request->has('specifications') ? json_decode($request->specifications, true) : null;
-            $variants = $request->has('variants') ? json_decode($request->variants, true) : null;
             $relatedProducts = $request->has('related_products') ? json_decode($request->related_products, true) : null;
             $metaKeywords = $request->has('meta_keywords') ? json_decode($request->meta_keywords, true) : null;
 
@@ -356,7 +355,6 @@ class ProductController extends Controller
                 'images' => !empty($additionalImages) ? $additionalImages : null,
                 'features' => $features,
                 'specifications' => $specifications,
-                'variants' => $variants,
                 'has_variants' => $hasVariants,
                 'related_products' => $relatedProducts,
                 'badge' => $request->badge,
@@ -511,7 +509,6 @@ class ProductController extends Controller
                     
                     // Variants
                     'has_variants' => $product->has_variants,
-                    'variants' => $product->variants ?? [],
                     
                     // Categories & Brand
                     'category' => $product->category ? [
@@ -759,10 +756,6 @@ class ProductController extends Controller
             
             if ($request->has('specifications')) {
                 $product->specifications = json_decode($request->specifications, true);
-            }
-            
-            if ($request->has('variants')) {
-                $product->variants = json_decode($request->variants, true);
             }
             
             if ($request->has('related_products')) {

@@ -22,7 +22,6 @@ class Service extends Model
         'slug',
         'sku',
         'category_id',
-        'service_category',
         'type',
         'base_price',
         'currency_id',
@@ -40,7 +39,6 @@ class Service extends Model
         'duration_unit_id',
         'price_unit_id',
         'delivery_mode',
-        'unit_of_measure',
         'requires_site_visit',
         'is_remote_available',
         'service_area',
@@ -62,8 +60,6 @@ class Service extends Model
         'is_featured',
         'rating',
         'review_count',
-        'quote_count',
-        'order_count',
         'view_count',
         'admin_notes',
         'created_by',
@@ -94,8 +90,6 @@ class Service extends Model
         'meta_keywords' => 'array',
         'rating' => 'decimal:2',
         'review_count' => 'integer',
-        'quote_count' => 'integer',
-        'order_count' => 'integer',
         'view_count' => 'integer',
         'max_concurrent_bookings' => 'integer',
         'published_at' => 'datetime',
@@ -351,7 +345,7 @@ class Service extends Model
             $q->where('name', 'like', "%{$search}%")
               ->orWhere('description', 'like', "%{$search}%")
               ->orWhere('sku', 'like', "%{$search}%")
-              ->orWhere('service_category', 'like', "%{$search}%");
+              ->orWhereHas('category', fn ($c) => $c->where('name', 'like', "%{$search}%"));
         });
     }
 
@@ -374,22 +368,6 @@ class Service extends Model
     // ========================================
     // HELPER METHODS
     // ========================================
-
-    /**
-     * Increment quote count.
-     */
-    public function incrementQuoteCount(): void
-    {
-        $this->increment('quote_count');
-    }
-
-    /**
-     * Increment order count.
-     */
-    public function incrementOrderCount(): void
-    {
-        $this->increment('order_count');
-    }
 
     /**
      * Increment view count.

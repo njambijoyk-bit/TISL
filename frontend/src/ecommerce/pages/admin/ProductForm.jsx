@@ -313,9 +313,6 @@ export default function ProductForm() {
   const [showProductSelector, setShowProductSelector] = useState(false);
   const [activeTab, setActiveTab]   = useState(searchParams.get('tab') === 'variants' ? 'variants' : 'basic');
   const adminCurrencies = useCurrencyStore(s => s.adminCurrencies);
-  // Structured variants loaded by the Variants tab (only counts for this product)
-  const structuredVariantCount = useProductVariantStore(s =>
-    s.productId === Number(id) ? s.variants.length : 0);
 
   const [existingImageUrlsRaw, setExistingImageUrlsRaw] = useState([]);
   const [additionalImages,     setAdditionalImages]     = useState([]);
@@ -327,7 +324,6 @@ export default function ProductForm() {
   const [featuresText,     setFeaturesText]     = useState('');
   const [metaKeywordsText, setMetaKeywordsText] = useState('');
   const [specifications,   setSpecifications]   = useState([{ key: '', value: '' }]);
-  const [variantsText,     setVariantsText]     = useState('');
   const [selectedRelated,  setSelectedRelated]  = useState([]);
 
   const [formData, setFormData] = useState({
@@ -378,7 +374,6 @@ export default function ProductForm() {
     setFormData(p => ({ ...p, ...typed }));
     setFeaturesText(d.featuresText ?? ''); setMetaKeywordsText(d.metaKeywordsText ?? '');
     if (Array.isArray(d.specifications) && d.specifications.length) setSpecifications(d.specifications);
-    setVariantsText(d.variantsText ?? '');
     if (d.activeTab) setActiveTab(d.activeTab);
   };
 
@@ -391,8 +386,8 @@ export default function ProductForm() {
 
   useEffect(() => {
     if (!draftReady.current || isView) return;
-    draftStore.write({ stamp: serverStamp.current, formData, featuresText, metaKeywordsText, specifications, variantsText, activeTab });
-  }, [formData, featuresText, metaKeywordsText, specifications, variantsText, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
+    draftStore.write({ stamp: serverStamp.current, formData, featuresText, metaKeywordsText, specifications, activeTab });
+  }, [formData, featuresText, metaKeywordsText, specifications, activeTab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new product gets a unique SKU from the server (like SMMK9T1206) as soon as the form opens; still editable.
   useEffect(() => {
@@ -481,9 +476,6 @@ export default function ProductForm() {
       if (product.specifications && typeof product.specifications === 'object') {
         const specs = Object.entries(product.specifications).map(([key, value]) => ({ key, value }));
         setSpecifications(specs.length > 0 ? specs : [{ key: '', value: '' }]);
-      }
-      if (product.has_variants && product.variants) {
-        setVariantsText(Array.isArray(product.variants) ? product.variants.join(', ') : product.variants);
       }
       
       const relatedSource = product.related_products_data     // adminShow: full objects inside product
@@ -631,14 +623,6 @@ export default function ProductForm() {
       if (validSpecs.length > 0) {
         const obj = {}; validSpecs.forEach(s => { obj[s.key] = s.value; });
         fd.append('specifications', JSON.stringify(obj));
-      }
-
-      // has_variants is only ever switched ON here. The server keeps it on when
-      // structured variants are created, and updates leave it alone when it's
-      // not sent — so never send '0' (that used to wipe it on every save).
-      if (formData.has_variants && variantsText.trim()) {
-        fd.append('variants', JSON.stringify(variantsText.split(',').map(v => v.trim()).filter(Boolean)));
-        fd.append('has_variants', '1');
       }
 
       if (selectedRelated.length > 0)
@@ -1139,16 +1123,6 @@ export default function ProductForm() {
           {activeTab === 'variants' && (
             id ? (
               <>
-                {formData.has_variants && variantsText.trim() && structuredVariantCount === 0 && (
-                  <div style={{
-                    marginBottom: 16, padding: '10px 14px', borderRadius: 10, fontSize: '0.78rem', lineHeight: 1.55,
-                    background: 'rgba(245,158,11,0.1)', color: '#92400e',
-                  }}>
-                    This product still uses the old text list of variants: <strong>{variantsText}</strong>.
-                    Recreate them below as options and variants to give each one its own SKU, stock and price —
-                    the old list stops being used once the first variant is saved.
-                  </div>
-                )}
                 <VariantEditor key={variantEditorKey} tracksExpiry={Boolean(formData.track_expiry)} defaultUnitId={formData.default_unit_id || null} alternateUnitId={formData.alternate_unit_id || null} productId={Number(id)} currencyCode={priceCurrencyCode} readOnly={isView} />
                 {/* Per-branch stock — only renders when there is more than one branch */}
                 <BranchStockPanel productId={Number(id)} readOnly={isView} />

@@ -23,7 +23,7 @@ export default function ServiceWishlistItem({ item }) {
             {item.name} <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: 99, padding: '1px 7px', marginLeft: 6 }}>Service</span>
           </p>
         </button>
-        {item.service_category && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 6px' }}>{item.service_category}</p>}
+        {item.category?.name && <p style={{ fontSize: '0.72rem', color: '#9ca3af', margin: '0 0 6px' }}>{item.category.name}</p>}
         <p style={{ fontSize: '0.85rem', fontWeight: 700, color: '#111827', margin: 0 }}>
           {money.servicePrice(item, { contactLabel: 'Contact for pricing', fromModels: ['fixed', 'project_based'], suffixes: { subscription: '/month' } })}
         </p>

@@ -335,9 +335,9 @@ const Services = () => {
       header: 'Category & Type',
       accessor: (service) => (
         <div className="space-y-1">
-          {service.service_category && (
+          {service.category?.name && (
             <div className="text-s text-accent">
-              {service.service_category}
+              {service.category.name}
             </div>
           )}
           {service.type && (

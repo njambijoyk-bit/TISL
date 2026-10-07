@@ -60,7 +60,6 @@ export default function ProductDetail() {
 
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedVariant, setSelectedVariant] = useState(null);
   // Structured variants: { variant, unit, image } from <VariantPicker>
   const [choice, setChoice] = useState(null);
   const [hasStructured, setHasStructured] = useState(false);
@@ -193,7 +192,7 @@ export default function ProductDetail() {
 
   /** The product as a cart / quote line — with the chosen variant and unit if any. */
   const cartLine = () => {
-    if (!choice) return { ...product, selectedVariant };
+    if (!choice) return { ...product };
     const { variant, unit } = choice;
     return {
       ...product,
@@ -277,31 +276,26 @@ export default function ProductDetail() {
     ...(Array.isArray(additionalImages) ? additionalImages : []),
     ...(Array.isArray(product?.images) ? product.images : []),
   ].filter(Boolean);
-  const currentPrice = choice ? (choice.unit.price ?? 0) : (selectedVariant?.price ?? product?.price ?? 0);
+  const currentPrice = choice ? (choice.unit.price ?? 0) : (product?.price ?? 0);
   const originalPrice = choice
     ? choice.unit.compare_at_price
-    : selectedVariant?.original_price ?? selectedVariant?.originalprice ?? product?.original_price ?? product?.originalprice ?? null;
+    : product?.original_price ?? product?.originalprice ?? null;
   
   const priceDiff = originalPrice && Number(originalPrice) !== Number(currentPrice);
   const isMarkdown = priceDiff && Number(originalPrice) > Number(currentPrice);
 
-  // Shown in the shopper's chosen currency. A (legacy) variant's own price is
-  // in the product's currency, so it's converted the same way.
-  const currentNative = choice ? choice.unit.price : (selectedVariant?.price ?? product?.price);
+  // Shown in the shopper's chosen currency (prices are in the product's own currency, so they are converted)
+  const currentNative = choice ? choice.unit.price : product?.price;
   const taxParts = currentNative != null && currentNative !== '' ? money.breakdown(currentNative, product) : null;
   const originalParts = originalPrice != null ? money.breakdown(originalPrice, product) : null;
   const currentPriceText = choice
     ? (choice.unit.price != null ? (taxParts ? money.formatIn(taxParts.gross, taxParts.symbol) : money.itemAmount(choice.unit.price, product)) : 'Price on request')
-    : selectedVariant?.price != null
-      ? (taxParts ? money.formatIn(taxParts.gross, taxParts.symbol) : money.itemAmount(selectedVariant.price, product))
-      : money.price(product);
+    : money.price(product);
   const originalPriceText = originalPrice != null ? (originalParts ? money.formatIn(originalParts.gross, originalParts.symbol) : money.itemAmount(originalPrice, product)) : null;
   const isMarkup   = priceDiff && Number(originalPrice) < Number(currentPrice);
   const priceDeltaPct = priceDiff
     ? Math.round(Math.abs(Number(originalPrice) - Number(currentPrice)) / Number(originalPrice) * 100)
     : null;
-  const hasVariants = product?.has_variants ?? product?.hasvariants ?? false;
-  const variants = product?.variants;
   const hasSpecs = product?.specifications && Object.keys(product.specifications).length > 0;
   const hasDescription = (product?.description ?? '').length > 0;
 
@@ -901,81 +895,6 @@ export default function ProductDetail() {
                   </div>
                 )}
 
-                {/* Variants */}
-                {!hasStructured && hasVariants && Array.isArray(variants) && variants.length > 0 && (
-                  <div style={{ flex: '1 1 220px' }}>
-                    <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
-                      Available Options
-                    </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {variants.map((variant, idx) => {
-                        const label = typeof variant === 'string' ? variant : variant?.name || `Option ${idx + 1}`;
-                        const vPrice = typeof variant === 'object' ? variant?.price : null;
-                        const isSelected = selectedVariant === variant;
-                        return (
-                          <div
-                            key={idx}
-                            onClick={() => setSelectedVariant(variant)}
-                            title="Mention this option in your order notes"
-                            style={{
-                              position: 'relative',
-                              display: 'inline-flex', alignItems: 'center', gap: 6,
-                              padding: '5px 12px', borderRadius: 20,
-                              border: isSelected ? '1.5px solid var(--color-primary-500)' : '1.5px dashed #d1d5db',
-                              background: isSelected ? 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' : 'transparent',
-                              color: isSelected ? 'var(--color-primary-500)' : '#6b7280',
-                              fontSize: '0.83rem', fontWeight: isSelected ? 700 : 500,
-                              cursor: 'pointer', transition: 'all 180ms ease',
-                              animation: `popIn 200ms ease both`,
-                              animationDelay: `${idx * 50}ms`,
-                            }}
-                            onMouseEnter={e => {
-                              e.currentTarget.setAttribute('data-hovered', 'true');
-                              const tip = e.currentTarget.querySelector('.variant-tip');
-                              if (tip) tip.style.opacity = '1';
-                            }}
-                            onMouseLeave={e => {
-                              const tip = e.currentTarget.querySelector('.variant-tip');
-                              if (tip) tip.style.opacity = '0';
-                            }}
-                          >
-                            {isSelected && (
-                              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--color-primary-500)', flexShrink: 0 }} />
-                            )}
-                            {label}
-                            {vPrice && (
-                              <span style={{ fontSize: '0.75rem', opacity: 0.7 }}>· {money.itemAmount(vPrice, product)}</span>
-                            )}
-
-                            {/* Hover tooltip */}
-                            <span
-                              className="variant-tip"
-                              style={{
-                                opacity: 0,
-                                position: 'absolute', bottom: 'calc(100% + 7px)', left: '50%',
-                                transform: 'translateX(-50%)',
-                                background: '#1f2937', color: '#fff',
-                                fontSize: '0.72rem', fontWeight: 500, whiteSpace: 'nowrap',
-                                padding: '4px 10px', borderRadius: 6,
-                                pointerEvents: 'none',
-                                transition: 'opacity 150ms ease',
-                                zIndex: 10,
-                              }}
-                            >
-                              Mention this in your order notes
-                              <span style={{
-                                position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                                width: 0, height: 0,
-                                borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-                                borderTop: '5px solid #1f2937',
-                              }} />
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
 
               </div>
 

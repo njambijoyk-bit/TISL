@@ -120,7 +120,7 @@ class CatalogueRankingService
 
     /**
      * Catalogue score SQL for products table.
-     * Signals: is_featured, is_new, on_sale, rating, purchase_count, boost
+     * Signals: is_featured, is_new, on_sale, rating, view_count (popularity), boost
      */
     protected function buildProductExpression(array $w): array
     {
@@ -129,7 +129,7 @@ class CatalogueRankingService
           + products.is_new      * ?
           + products.on_sale     * ?
           + (products.rating / 5.0) * ?
-          + LEAST(products.purchase_count / 100.0, 1.0) * ?
+          + LEAST(products.view_count / 500.0, 1.0) * ?
           + EXISTS(
                 SELECT 1 FROM algorithm_bonus_content
                 WHERE entity_type = 'product'
@@ -159,7 +159,7 @@ class CatalogueRankingService
         $expr = "(
             services.is_featured * ?
           + (services.rating / 5.0) * ?
-          + LEAST(services.order_count / 100.0, 1.0) * ?
+          + LEAST(services.view_count / 500.0, 1.0) * ?
           + EXISTS(
                 SELECT 1 FROM algorithm_bonus_content
                 WHERE entity_type = 'service'

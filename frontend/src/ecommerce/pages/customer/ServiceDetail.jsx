@@ -10,7 +10,6 @@ import {
   AlertCircle,
   Monitor,
   Package,
-  TrendingUp,
   FileText,
   Wrench,
   ChevronLeft,
@@ -348,14 +347,6 @@ const ServiceDetail = () => {
                   </div>
                   <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }}>{Number(service.rating).toFixed(1)}</span>
                   <span style={{ fontSize: '0.82rem', color: '#9ca3af' }}>({service.review_count} reviews)</span>
-                  {service.order_count > 0 && (
-                    <>
-                      <span style={{ color: '#e5e7eb' }}>·</span>
-                      <span style={{ fontSize: '0.82rem', color: '#9ca3af', display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <TrendingUp size={13} /> {service.order_count} completed
-                      </span>
-                    </>
-                  )}
                 </div>
               )}
 

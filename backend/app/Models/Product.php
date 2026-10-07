@@ -47,9 +47,7 @@ class Product extends Model
         'specifications',
         'images',
         'main_image',
-        'variants',
         'has_variants',
-        'bulk_pricing',
         'rating',
         'reviews',
         'badge',
@@ -57,12 +55,10 @@ class Product extends Model
         'is_new',
         'on_sale',
         'view_count',
-        'purchase_count',
         'meta_title',
         'meta_description',
         'meta_keywords',
         'related_products',
-        'recommended_products',
         'status',
         'is_visible',
         'published_at',
@@ -84,7 +80,6 @@ class Product extends Model
         'images' => 'array',
         'variants' => 'array',
         'has_variants' => 'boolean',
-        'bulk_pricing' => 'array',
         'rating' => 'decimal:2',
         'is_featured' => 'boolean',
         'is_new' => 'boolean',
@@ -92,7 +87,6 @@ class Product extends Model
         'is_visible' => 'boolean',
         'meta_keywords' => 'array',
         'related_products' => 'array',
-        'recommended_products' => 'array',
         'published_at' => 'datetime',
         'brochure_meta' => 'array',
     ];
@@ -163,12 +157,9 @@ class Product extends Model
     // VARIANT / OPTION / IMAGE RELATIONSHIPS
     // ========================================
     // Named productVariants()/productImages() rather than variants()/images():
-    // the products table already has raw JSON columns called 'variants' and
-    // 'images' (see $casts above). Eloquent always resolves a magic property
-    // access ($product->variants) against an existing raw attribute before
-    // it ever considers a relationship of the same name - so a variants()
-    // relation would be silently unreachable via $product->variants, only
-    // callable as $product->variants(). Distinct names sidestep that trap.
+    // the products table has a raw JSON column called 'images' (see $casts above), and
+    // Eloquent resolves a magic property access against an existing raw attribute before
+    // it considers a relationship of the same name. Distinct names sidestep that trap.
 
     /**
      * Structured variants (product_variants table) - the new system. Does
@@ -513,14 +504,6 @@ class Product extends Model
     }
 
     /**
-     * Increment purchase count.
-     */
-    public function incrementPurchaseCount($quantity = 1): void
-    {
-        $this->increment('purchase_count', $quantity);
-    }
-
-    /**
      * Decrease stock quantity.
      */
     public function decreaseStock($quantity): void
@@ -572,31 +555,5 @@ class Product extends Model
     public function hasStructuredVariants(): bool
     {
         return $this->has_variants && $this->productVariants()->exists();
-    }
-
-    /**
-     * Check if product has bulk pricing.
-     */
-    public function hasBulkPricing(): bool
-    {
-        return !empty($this->bulk_pricing);
-    }
-
-    /**
-     * Get bulk price for quantity.
-     */
-    public function getBulkPrice($quantity): ?float
-    {
-        if (!$this->hasBulkPricing()) {
-            return null;
-        }
-
-        foreach ($this->bulk_pricing as $tier) {
-            if ($quantity >= $tier['min_qty'] && $quantity <= $tier['max_qty']) {
-                return (float) $tier['price'];
-            }
-        }
-
-        return null;
     }
 }

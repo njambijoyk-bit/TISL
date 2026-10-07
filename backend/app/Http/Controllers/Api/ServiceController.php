@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Rules\NoSlash;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
-use App\Models\ServiceCategory;
 use App\Models\Product;
 use App\Services\CurrencyConversionService;
 use App\Services\FuzzySuggestService;
@@ -62,7 +61,7 @@ class ServiceController extends Controller
         $sortBy = $request->get('sort_by');
         if ($sortBy) {
             $sortOrder = $request->get('sort_order', 'desc');
-            if ($sortBy === 'popular')    { $query->orderBy('order_count', 'desc'); }
+            if ($sortBy === 'popular')    { $query->orderBy('view_count', 'desc'); }
             elseif ($sortBy === 'rating') { $query->orderBy('rating', 'desc'); }
             elseif ($sortBy === 'price_low')  { $query->orderByBasePrice('base_price', 'asc'); }
             elseif ($sortBy === 'price_high') { $query->orderByBasePrice('base_price', 'desc'); }
@@ -131,7 +130,7 @@ class ServiceController extends Controller
             ->where('is_visible', true)
             ->where('is_featured', true)
             ->where('status', 'active')
-            ->orderBy('order_count', 'desc')
+            ->orderBy('view_count', 'desc')
             ->take(10)
             ->get();
 
@@ -292,7 +291,6 @@ class ServiceController extends Controller
             'slug' => 'nullable|string|max:255|unique:services,slug',
             'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) { if ($value !== null && $value !== '' && app(\App\Services\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // left blank, a fresh one is generated
             'category_id' => 'nullable|exists:service_categories,id',
-            'service_category' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:100',
             
             // Pricing
@@ -312,7 +310,6 @@ class ServiceController extends Controller
             
             // Service Details
             'estimated_duration' => 'nullable|string|max:100',
-            'unit_of_measure' => 'nullable|string|max:50',
             'duration_value' => 'nullable|numeric|min:0',
             'duration_unit_id' => 'nullable|exists:units_of_measure,id',
             'price_unit_id' => 'nullable|exists:units_of_measure,id',
@@ -377,14 +374,6 @@ class ServiceController extends Controller
                 $data['sku'] = app(\App\Services\SkuGenerator::class)->generate();
             }
 
-            // Set service_category name from category_id
-            if (!empty($data['category_id'])) {
-                $category = ServiceCategory::find($data['category_id']);
-                if ($category) {
-                    $data['service_category'] = $category->name;
-                }
-            }
-            
             // Auto-generate meta info if not provided
             if (empty($data['meta_title'])) {
                 $data['meta_title'] = $request->name;
@@ -493,7 +482,6 @@ class ServiceController extends Controller
             'slug' => 'nullable|string|max:255|unique:services,slug,' . $id,
             'sku' => ['sometimes', 'required', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) use ($service) { if ($value !== $service->sku && app(\App\Services\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // a service always keeps a SKU
             'category_id' => 'nullable|exists:service_categories,id',
-            'service_category' => 'nullable|string|max:255',
             'type' => 'nullable|string|max:100',
             
             // Pricing
@@ -513,7 +501,6 @@ class ServiceController extends Controller
             
             // Service Details
             'estimated_duration' => 'nullable|string|max:100',
-            'unit_of_measure' => 'nullable|string|max:50',
             'duration_value' => 'nullable|numeric|min:0',
             'duration_unit_id' => 'nullable|exists:units_of_measure,id',
             'price_unit_id' => 'nullable|exists:units_of_measure,id',
@@ -564,14 +551,6 @@ class ServiceController extends Controller
             
             // (a changed SKU was checked above to be unused)
 
-            // Update service_category if category_id changed
-            if (!empty($data['category_id']) && $data['category_id'] != $service->category_id) {
-                $category = ServiceCategory::find($data['category_id']);
-                if ($category) {
-                    $data['service_category'] = $category->name;
-                }
-            }
-            
             $data['updated_by'] = Auth::id();
             if (array_key_exists('currency_id', $data) && empty($data['currency_id'])) {
                 $data['currency_id'] = app(CurrencyConversionService::class)->getBaseCurrency()->id;
