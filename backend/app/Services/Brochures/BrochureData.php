@@ -48,7 +48,6 @@ class BrochureData
             'image_others' => $others,
             'features' => $set['features'] ? $list($s->features) : [],
             'deliverables' => $set['deliverables'] ? $list($s->deliverables) : [],
-            'requirements' => $set['requirements'] ? $list($s->requirements) : [],
             'questions' => $set['requirements'] ? $this->questions($s) : [],
             'packages' => $set['tiers'] ? $this->packages($s, $priceMode === 'show') : [],
             'charges' => $set['charges'] ? $this->charges($s) : [],

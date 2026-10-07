@@ -33,7 +33,7 @@ export function brochureFields(data, { money, company = {} } = {}) {
     s.booking_required && 'Booking is required',
   ].filter(Boolean);
 
-  const requirements = [...bullets(data.requirements), ...(data.questions ?? []).map((q) => `You will be asked: ${q.label}${q.required ? ' (required)' : ''}`)];
+  const requirements = (data.questions ?? []).map((q) => `You will be asked: ${q.label}${q.required ? ' (required)' : ''}`);
   const charges = (data.charges ?? []).map((c) => `${c.name}: ${c.basis === 'percent' ? `${c.amount}%` : fmt(c.amount)}${c.unit ? ` per ${c.unit}` : ''}${c.when ? ` ${c.when}` : ''}${c.refundable ? ' (refundable)' : ''}`);
   const contact = [company.phone, company.email, company.website, [company.address, company.city].filter(Boolean).join(', ')].filter(Boolean);
 

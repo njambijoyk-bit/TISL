@@ -43,7 +43,6 @@ class ServiceController extends Controller
                 ->orWhere('service_area', 'like', $searchTerm)
                 ->orWhereRaw("JSON_SEARCH(features, 'one', ?) IS NOT NULL", [$search])
                 ->orWhereRaw("JSON_SEARCH(deliverables, 'one', ?) IS NOT NULL", [$search])
-                ->orWhereRaw("JSON_SEARCH(requirements, 'one', ?) IS NOT NULL", [$search])
                 ->orWhereHas('category', fn($q2) => $q2->where('name', 'like', $searchTerm));
             });
         }
@@ -310,7 +309,6 @@ class ServiceController extends Controller
             'short_description' => 'nullable|string',
             'features' => 'nullable|array',
             'deliverables' => 'nullable|array',
-            'requirements' => 'nullable|array',
             
             // Service Details
             'estimated_duration' => 'nullable|string|max:100',
@@ -512,7 +510,6 @@ class ServiceController extends Controller
             'short_description' => 'nullable|string',
             'features' => 'nullable|array',
             'deliverables' => 'nullable|array',
-            'requirements' => 'nullable|array',
             
             // Service Details
             'estimated_duration' => 'nullable|string|max:100',

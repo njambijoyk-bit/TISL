@@ -6,7 +6,7 @@ export const SAMPLE_DATA = {
   category: 'Home services', url: '', price_mode: 'on_request', negotiable: false,
   image_main: pic('#c9a27e', '#8aa1b8'), image_others: [pic('#7a9e8c', '#d6c3a1'), pic('#b4837a', '#a78bb0'), pic('#8aa1b8', '#7a9e8c')],
   features: ['All rooms cleaned', 'Kitchen and oven', 'Bathrooms descaled', 'Windows inside and out'], deliverables: ['A spotless home', 'A signed checklist'],
-  requirements: ['Water and power on site', 'Clear access to every room'], questions: [{ label: 'Number of bedrooms', required: true }],
+  questions: [{ label: 'Number of bedrooms', required: true }, { label: 'Is there clear access to every room?', required: false }],
   packages: [{ name: 'Studio', unit: null, price: null, branches: ['Main', 'North branch'] }, { name: 'Family home', unit: null, price: null, branches: ['Main'] }],
   charges: [{ name: 'Call-out fee', amount: 500, basis: 'fixed', unit: '', when: '', refundable: false }],
   policy: { title: 'Booking policy', text: 'You can cancel free of charge up to 24 hours before the start. After that a late cancellation fee applies.' },
