@@ -53,6 +53,9 @@ function bullets(c, b, item, th, title = 'Features') {
   }));
 }
 
+/** A service's how-it-works facts: the same bullet list as features, under its own heading. */
+const howItWorks = (c, b, item, th) => bullets(c, b, { ...item, features: item.facts }, th, 'How it works');
+
 function specs(c, b, item, th) {
   panel(c, b, th);
   const i = inner(c, b); const { u } = c;
@@ -242,7 +245,7 @@ const TERMS = { has: () => true, want: () => 14, min: () => 10, draw: terms };
 
 export const SECTIONS = {
   product: { hero: HERO, gallery: GALLERY, story: STORY, features: FEATURES, specs: SPECS, prices: LINES('Prices'), details: DETAILS },
-  service: { hero: HERO, gallery: GALLERY, story: STORY, features: FEATURES, packages: LINES('Packages and prices'), charges: { has: (it) => rowsOf(it, 'charges') > 0, want: (it) => 8 + rowsOf(it, 'charges') * 3.4, min: (it) => 8 + rowsOf(it, 'charges') * 3, draw: chargesSection }, details: DETAILS },
+  service: { hero: HERO, gallery: GALLERY, story: STORY, features: FEATURES, packages: LINES('Packages and prices'), howitworks: { has: (it) => rowsOf(it, 'facts') > 0, want: (it) => 8 + Math.ceil(rowsOf(it, 'facts') / 2) * 3, min: () => 8, draw: howItWorks }, charges: { has: (it) => rowsOf(it, 'charges') > 0, want: (it) => 8 + rowsOf(it, 'charges') * 3.4, min: (it) => 8 + rowsOf(it, 'charges') * 3, draw: chargesSection }, details: DETAILS },
   hamper: { hero: HERO, inside: INSIDE, story: STORY, price: BIG('Price'), terms: TERMS },
   auction: { hero: HERO, lot: { has: (it) => Boolean(it.auction), want: () => 28, min: () => 22, draw: lot }, schedule: { has: (it) => Boolean(it.auction), want: () => 15, min: () => 12, draw: schedule }, price: { has: (it) => rowsOf(it, 'lines') > 0, want: (it) => 16 + (it.payable?.rows?.length ?? 0) * 3.1 + 6, min: (it) => 14 + (it.payable?.rows?.length ?? 0) * 3.1 + 6, draw: auctionPrice }, terms: TERMS },
 };

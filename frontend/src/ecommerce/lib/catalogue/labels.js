@@ -11,6 +11,7 @@ export const SECTION_LABELS = {
   prices: 'Prices: every variant and unit, with tax',
   packages: 'Packages: each package and its price, with tax',
   charges: 'Extra charges: deposit, surcharges, service charge',
+  howitworks: 'How it works: duration, lead time, area, remote, booking',
   details: 'Details: code, barcode, category, brand',
   inside: "What's inside: the contents",
   price: 'Price: the price with tax (an auction also shows what the winner pays)',

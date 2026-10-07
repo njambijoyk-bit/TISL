@@ -14,7 +14,7 @@ class BrochureSections
     /** Every section an item type can use. */
     public const KEYS = [
         'product' => ['hero', 'gallery', 'story', 'features', 'specs', 'prices', 'details'],
-        'service' => ['hero', 'gallery', 'story', 'features', 'packages', 'charges', 'details'],
+        'service' => ['hero', 'gallery', 'story', 'features', 'packages', 'charges', 'howitworks', 'details'],
         'hamper'  => ['hero', 'inside', 'story', 'price', 'terms'],
         'auction' => ['hero', 'lot', 'schedule', 'price', 'terms'],
     ];

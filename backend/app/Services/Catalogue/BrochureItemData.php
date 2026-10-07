@@ -127,6 +127,22 @@ class BrochureItemData
             'upfront' => array_map(fn ($u) => ['label' => (string) $u['name'], 'amount' => (float) $u['gross']], $q['upfront'])];
     }
 
+    /** How the service works, as short lines (the same facts, and the same remote rule, as the service brochure). */
+    private function facts(Service $s): array
+    {
+        $delivery = ['on_site' => 'On site', 'remote' => 'Remote', 'in_branch' => 'In our branch', 'hybrid' => 'On site or remote'];
+
+        return array_values(array_filter([
+            $s->estimated_duration ? "Duration: {$s->estimated_duration}" : null,
+            ($s->delivery_mode && isset($delivery[$s->delivery_mode])) ? "Delivery: {$delivery[$s->delivery_mode]}" : null,
+            $s->lead_time ? "Lead time: {$s->lead_time}" : null,
+            $s->service_area ? "Area: {$s->service_area}" : null,
+            ($s->is_remote_available && ! $s->requires_site_visit) ? 'Remote service available' : null,
+            $s->requires_site_visit ? 'A site visit is needed' : null,
+            $s->booking_required ? 'Booking is required' : null,
+        ]));
+    }
+
     /** The extra charges a service carries (a deposit, a surcharge, a service charge...), with when each applies. */
     private function charges(Service $s): array
     {
@@ -199,7 +215,7 @@ class BrochureItemData
         return [
             'name' => $s->name, 'tagline' => $s->category?->name, 'category' => $s->category?->name, 'brand' => null,
             'short' => (string) $s->short_description, 'description' => (string) $s->description,
-            'features' => $this->strings($s->features), 'specs' => [], 'charges' => $this->charges($s),
+            'features' => $this->strings($s->features), 'specs' => [], 'charges' => $this->charges($s), 'facts' => $this->facts($s),
             'images' => $this->images($s->main_image ? $s->main_image_url : null, (array) ($s->images_url ?? [])), 'sku' => $s->sku, 'barcode' => null,
             'url' => url('/services/' . $s->id),
         ];
