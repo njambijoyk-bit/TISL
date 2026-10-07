@@ -19,14 +19,14 @@ export default function Brochures() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Helmet><title>Brochures and catalogues</title></Helmet>
+      <Helmet><title>Catalogues</title></Helmet>
       <Header />
       <div className="w-full px-4 py-6" style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <Breadcrumb items={[{ label: 'Products', href: '/products' }, { label: 'Brochures', href: '/brochures' }]} />
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ margin: '8px 0 4px' }}>Brochures and catalogues</h1>
+        <Breadcrumb items={[{ label: 'Products', path: '/products' }, { label: 'Catalogues' }]} />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ margin: '8px 0 4px' }}>Catalogues</h1>
         <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: '0.88rem', margin: '0 0 18px' }}>Look through them here, or download one as a PDF. <Link to="/price-lists" style={{ color: 'var(--color-primary-500)' }}>Price lists</Link> are kept separately.</p>
         {rows === null && <p style={{ color: 'var(--text-tertiary)' }}>Loading…</p>}
-        {rows?.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>There are no brochures to show right now.</p>}
+        {rows?.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>There are no catalogues to show right now.</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
           {rows?.map((b) => (
             <div key={b.id} style={card}>

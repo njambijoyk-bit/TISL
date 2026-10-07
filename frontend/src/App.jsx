@@ -460,7 +460,8 @@ function App() {
             <Route path="/auctions" element={<ModuleRoute module="ecommerce.auctions"><AuctionListPage /></ModuleRoute>} />
             <Route path="/auctions/:id" element={<ModuleRoute module="ecommerce.auctions"><AuctionDetailPage /></ModuleRoute>} />
             <Route path="/products" element={<ModuleRoute module="ecommerce"><Products /></ModuleRoute>} />
-            <Route path="/brochures" element={<ModuleRoute module="ecommerce"><CustomerBrochures /></ModuleRoute>} />
+            <Route path="/catalogues" element={<ModuleRoute module="ecommerce"><CustomerBrochures /></ModuleRoute>} />
+            <Route path="/brochures" element={<Navigate to="/catalogues" replace />} />
             <Route path="/price-lists" element={<ModuleRoute module="ecommerce"><CustomerPriceLists /></ModuleRoute>} />
             <Route path="/price-lists/:id" element={<ModuleRoute module="ecommerce"><CustomerPriceList /></ModuleRoute>} />
             <Route path="/products/:id" element={<ModuleRoute module="ecommerce"><ProductDetail /></ModuleRoute>} />

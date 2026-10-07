@@ -31,7 +31,7 @@ export default function PriceListsPage() {
       <div className="w-full px-4 py-6" style={{ maxWidth: 1100, margin: '0 auto' }}>
         <Breadcrumb items={[{ label: 'Products', href: '/products' }, { label: 'Price lists', href: '/price-lists' }]} />
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ margin: '8px 0 4px' }}>Price lists</h1>
-        <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: '0.88rem', margin: '0 0 18px' }}>Prices exclude tax, and each price is in its own item's currency. The tax for each line is shown with it. <Link to="/brochures" style={{ color: 'var(--color-primary-500)' }}>Brochures</Link> are kept separately.</p>
+        <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: '0.88rem', margin: '0 0 18px' }}>Prices exclude tax, and each price is in its own item's currency. The tax for each line is shown with it. <Link to="/catalogues" style={{ color: 'var(--color-primary-500)' }}>Catalogues</Link> are kept separately.</p>
 
         {lists === null && <p style={{ color: 'var(--text-tertiary)' }}>Loading…</p>}
         {lists?.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>There are no price lists to show right now.</p>}

@@ -16,7 +16,7 @@ export default function CatalogueLinks() {
 
   return (
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '0 0 14px' }}>
-      {s.catalogues?.show && <Link to="/brochures" style={pill}><BookOpen size={15} /> Catalogues</Link>}
+      {s.catalogues?.show && <Link to="/catalogues" style={pill}><BookOpen size={15} /> Catalogues</Link>}
       {s.price_lists?.show && <Link to="/price-lists" style={pill}><ListChecks size={15} /> Price lists</Link>}
     </div>
   );
