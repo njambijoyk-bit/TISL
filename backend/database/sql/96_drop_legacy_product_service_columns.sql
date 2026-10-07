@@ -19,6 +19,7 @@
 --       THEN run part B. After part B the old model is gone and cannot be mapped again (the unit can still be picked on the service form).
 -- Left alone on purpose: services.max_concurrent_bookings (kept for later), the ratings columns, and minimum_charge.
 -- Test data only: whatever was in the dropped columns is lost.
+-- (The comparisons force one collation, because services and units_of_measure use different ones.)
 -- Safe to re-run: each step is skipped if already done.
 -- Run each part on its own in Workbench.
 -- =====================================================================
@@ -35,7 +36,7 @@ ORDER BY table_name, column_name;
 --     Only meaningful while services.unit_of_measure still exists.
 SELECT s.unit_of_measure AS old_word, COUNT(*) AS services
 FROM services s
-LEFT JOIN units_of_measure u ON LOWER(u.code) = LOWER(s.unit_of_measure) AND u.dimension = 'service_unit'
+LEFT JOIN units_of_measure u ON LOWER(u.code) COLLATE utf8mb4_unicode_ci = LOWER(s.unit_of_measure) COLLATE utf8mb4_unicode_ci AND u.dimension = 'service_unit'
 WHERE s.id > 0 AND s.price_unit_id IS NULL AND s.unit_of_measure IS NOT NULL AND u.id IS NULL
 GROUP BY s.unit_of_measure;
 
@@ -53,7 +54,7 @@ FROM services s WHERE s.id > 0 ORDER BY s.id;
 SELECT s.pricing_model, COUNT(DISTINCT s.id) AS services, MAX(u.id IS NOT NULL) AS service_unit_found
 FROM services s
 LEFT JOIN units_of_measure u ON u.dimension = 'service_unit'
-  AND FIND_IN_SET(LOWER(u.code), CASE s.pricing_model WHEN 'hourly' THEN 'hour,hr,hours' WHEN 'daily' THEN 'day,days' WHEN 'subscription' THEN 'month,mo,months' ELSE 'project' END) > 0
+  AND FIND_IN_SET(LOWER(u.code) COLLATE utf8mb4_unicode_ci, CAST(CASE s.pricing_model WHEN 'hourly' THEN 'hour,hr,hours' WHEN 'daily' THEN 'day,days' WHEN 'subscription' THEN 'month,mo,months' ELSE 'project' END AS CHAR) COLLATE utf8mb4_unicode_ci) > 0
 WHERE s.id > 0
 GROUP BY s.pricing_model;
 
@@ -76,7 +77,7 @@ BEGIN
     -- 1. the old unit word becomes a foreign key value
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'services' AND column_name = 'unit_of_measure') THEN
         UPDATE services s
-        JOIN units_of_measure u ON LOWER(u.code) = LOWER(s.unit_of_measure) AND u.dimension = 'service_unit'
+        JOIN units_of_measure u ON LOWER(u.code) COLLATE utf8mb4_unicode_ci = LOWER(s.unit_of_measure) COLLATE utf8mb4_unicode_ci AND u.dimension = 'service_unit'
         SET s.price_unit_id = u.id
         WHERE s.id > 0 AND s.price_unit_id IS NULL;
     END IF;
@@ -89,7 +90,7 @@ BEGIN
         -- 3. the price unit, where it is still empty, comes from the pricing model
         UPDATE services s
         JOIN units_of_measure u ON u.dimension = 'service_unit'
-         AND FIND_IN_SET(LOWER(u.code), CASE s.pricing_model WHEN 'hourly' THEN 'hour,hr,hours' WHEN 'daily' THEN 'day,days' WHEN 'subscription' THEN 'month,mo,months' ELSE 'project' END) > 0
+         AND FIND_IN_SET(LOWER(u.code) COLLATE utf8mb4_unicode_ci, CAST(CASE s.pricing_model WHEN 'hourly' THEN 'hour,hr,hours' WHEN 'daily' THEN 'day,days' WHEN 'subscription' THEN 'month,mo,months' ELSE 'project' END AS CHAR) COLLATE utf8mb4_unicode_ci) > 0
         SET s.price_unit_id = u.id
         WHERE s.id > 0 AND s.price_unit_id IS NULL;
     END IF;
