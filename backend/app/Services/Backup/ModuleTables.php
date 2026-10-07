@@ -103,6 +103,8 @@ final class ModuleTables
             'services', 'service_categories',
             // fees a service carries (deposit, call-out…) and the cancellation windows
             'service_fees', 'service_settings',
+            // price lists, the Archive, brochures and catalogues, and their settings
+            'price_lists', 'price_list_items', 'price_list_archives', 'brochures', 'brochure_item_meta', 'catalogue_settings',
             // service options, packages (variants) and structured requirements
             'service_options', 'service_option_values', 'service_variants', 'service_variant_options', 'service_requirements', 'service_variant_materials',
             // saved products and services (wishlist)

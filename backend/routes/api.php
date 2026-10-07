@@ -351,6 +351,20 @@ Route::get('/services/{id}', [ServiceController::class, 'show']);
 Route::get('/services/{id}/related', [ServiceController::class, 'related']);
 Route::get('/services/{id}/brochure', [\App\Http\Controllers\Api\ServiceBrochureController::class, 'publicShow'])->whereNumber('id')->middleware('throttle:30,1');
 
+// PUBLIC PRICE LISTS, ARCHIVE AND BROCHURES (what the viewer may see; guests only see what is set for everyone)
+$pl = \App\Http\Controllers\Api\PriceListController::class;
+$ct = \App\Http\Controllers\Api\CatalogueController::class;
+Route::get('/price-lists',               [$pl, 'publicIndex'])->middleware('throttle:60,1');
+Route::get('/price-lists/{id}',          [$pl, 'publicShow'])->whereNumber('id')->middleware('throttle:60,1');
+Route::get('/price-lists/{id}/csv',      [$pl, 'publicCsv'])->whereNumber('id')->middleware('throttle:20,1');
+Route::get('/price-lists/{id}/json',     [$pl, 'publicJson'])->whereNumber('id')->middleware('throttle:20,1');
+Route::get('/price-list-archives',       [$pl, 'archiveIndex'])->middleware('throttle:60,1');
+Route::get('/price-list-archives/{id}/file', [$pl, 'archiveFile'])->whereNumber('id')->middleware('throttle:20,1');
+Route::get('/catalogue/status',          [$ct, 'status'])->middleware('throttle:120,1');
+Route::get('/catalogue/item/{type}/{id}', [$ct, 'itemBrochure'])->whereNumber('id')->middleware('throttle:30,1');
+Route::get('/catalogues',                [$ct, 'publicIndex'])->middleware('throttle:60,1');
+Route::get('/catalogues/{id}/data',      [$ct, 'publicData'])->whereNumber('id')->middleware('throttle:60,1');
+
 // PUBLIC SERVICE CATEGORIES
 Route::get('/service-categories', [ServiceCategoryController::class, 'index']);
 Route::get('/service-categories/main', [ServiceCategoryController::class, 'main']);
@@ -1325,6 +1339,51 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/slots',                [$c, 'slots'])->whereNumber('id');
             Route::get('/for-service/{serviceId}',   [$c, 'forService'])->whereNumber('serviceId');
             Route::put('/for-service/{serviceId}',   [$c, 'saveForService'])->whereNumber('serviceId');
+        });
+
+        // Price lists, the Archive, brochures and catalogues, and their settings
+        Route::middleware(['module:ecommerce', 'role:admin,super_admin,manager,finance,sales_rep'])->group(function () {
+            $pl = \App\Http\Controllers\Api\PriceListController::class;
+            $ct = \App\Http\Controllers\Api\CatalogueController::class;
+            Route::prefix('price-lists')->group(function () use ($pl) {
+                Route::get('/',                [$pl, 'index']);
+                Route::get('/picker',          [$pl, 'picker']);
+                Route::post('/',               [$pl, 'store'])->middleware('throttle:20,1');
+                Route::get('/{id}',            [$pl, 'show'])->whereNumber('id');
+                Route::put('/{id}',            [$pl, 'update'])->whereNumber('id');
+                Route::post('/{id}/refresh',   [$pl, 'refresh'])->whereNumber('id');
+                Route::post('/{id}/publish',   [$pl, 'publish'])->whereNumber('id');
+                Route::post('/{id}/activate',  [$pl, 'activate'])->whereNumber('id');
+                Route::post('/{id}/withdraw',  [$pl, 'withdraw'])->whereNumber('id');
+                Route::post('/{id}/restore',   [$pl, 'restore'])->whereNumber('id');
+                Route::delete('/{id}/purge',   [$pl, 'purge'])->whereNumber('id');
+                Route::delete('/{id}',         [$pl, 'destroy'])->whereNumber('id');
+                Route::get('/{id}/csv',        [$pl, 'csv'])->whereNumber('id');
+                Route::get('/{id}/json',       [$pl, 'json'])->whereNumber('id');
+            });
+            Route::prefix('price-list-archives')->group(function () use ($pl) {
+                Route::get('/',          [$pl, 'archiveAdminIndex']);
+                Route::post('/',         [$pl, 'archiveStore'])->middleware('throttle:10,1');
+                Route::put('/{id}',      [$pl, 'archiveUpdate'])->whereNumber('id');
+                Route::delete('/{id}',   [$pl, 'archiveDestroy'])->whereNumber('id');
+            });
+            Route::get('/catalogue-settings', [$ct, 'settings']);
+            Route::put('/catalogue-settings', [$ct, 'saveSettings']);
+            Route::prefix('catalogues')->group(function () use ($ct) {
+                Route::get('/',                 [$ct, 'index']);
+                Route::get('/picker',           [$ct, 'picker']);
+                Route::post('/expand',          [$ct, 'expand']);
+                Route::get('/items',            [$ct, 'itemList']);
+                Route::post('/item-meta/bulk',  [$ct, 'bulkItemMeta']);
+                Route::put('/item-meta/{type}/{id}', [$ct, 'saveItemMeta'])->whereNumber('id');
+                Route::post('/',                [$ct, 'store']);
+                Route::get('/{id}',             [$ct, 'show'])->whereNumber('id');
+                Route::get('/{id}/data',        [$ct, 'data'])->whereNumber('id');
+                Route::put('/{id}',             [$ct, 'update'])->whereNumber('id');
+                Route::post('/{id}/restore',    [$ct, 'restore'])->whereNumber('id');
+                Route::delete('/{id}/purge',    [$ct, 'purge'])->whereNumber('id');
+                Route::delete('/{id}',          [$ct, 'destroy'])->whereNumber('id');
+            });
         });
 
         // Services settings: cancellation and reschedule windows, and the defaults of every service fee

@@ -67,6 +67,7 @@ class Product extends Model
         'is_visible',
         'published_at',
         'admin_notes',
+        'brochure_meta',
         'created_by',
         'updated_by',
     ];
@@ -93,6 +94,7 @@ class Product extends Model
         'related_products' => 'array',
         'recommended_products' => 'array',
         'published_at' => 'datetime',
+        'brochure_meta' => 'array',
     ];
 
     // ========================================
