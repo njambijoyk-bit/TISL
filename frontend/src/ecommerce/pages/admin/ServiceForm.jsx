@@ -406,8 +406,6 @@ const ServiceForm = () => {
   const arrAdd    = (setter, arr) => setter([...arr, '']);
   const arrRemove = (i, setter, arr) => { if (arr.length > 1) setter(arr.filter((_, j) => j !== i)); };
 
-  // Pricing tiers
-
   // Images
   const handleMainImageChange = (e) => {
     const file = e.target.files[0]; if (!file) return;

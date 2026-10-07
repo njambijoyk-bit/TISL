@@ -2,7 +2,7 @@ import { Field, SelectInput } from '../../../../core/components/admin/ui/Form';
 import { colors } from '../../../../_shared/theme/tokens';
 import { PRICE_LABEL } from '../../../lib/brochure/labels';
 
-const SWITCHES = [['main_image', 'Main picture on the cover'], ['charges', 'Other charges'], ['policy', 'Booking policy'], ['features', 'Features'], ['deliverables', 'What the customer receives'], ['requirements', 'Requirements and questions'], ['tiers', 'Pricing options'], ['rating', 'Rating and reviews']];
+const SWITCHES = [['main_image', 'Main picture on the cover'], ['charges', 'Other charges'], ['policy', 'Booking policy'], ['features', 'Features'], ['deliverables', 'What the customer receives'], ['requirements', 'Requirements and questions'], ['tiers', 'Packages and their prices'], ['rating', 'Rating and reviews']];
 const yn = (v) => (v ? 'Yes' : 'No');
 
 /**

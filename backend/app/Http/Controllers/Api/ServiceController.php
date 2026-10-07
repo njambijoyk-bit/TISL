@@ -280,11 +280,6 @@ class ServiceController extends Controller
         // Decode JSON strings from FormData
         $input = $request->all();
         
-        // Decode pricing_tiers if it's a JSON string
-        if (isset($input['pricing_tiers']) && is_string($input['pricing_tiers'])) {
-            $input['pricing_tiers'] = json_decode($input['pricing_tiers'], true);
-        }
-        
         // Decode related items if they're JSON strings
         if (isset($input['related_services']) && is_string($input['related_services'])) {
             $input['related_services'] = json_decode($input['related_services'], true);
@@ -330,7 +325,6 @@ class ServiceController extends Controller
             'max_concurrent_bookings' => 'nullable|integer',
             
             // Pricing Tiers
-            'pricing_tiers' => 'nullable|array',
             
             // Media
             'main_image' => 'nullable|file|image|max:5120',
@@ -488,11 +482,6 @@ class ServiceController extends Controller
         // Decode JSON strings from FormData
         $input = $request->all();
         
-        // Decode pricing_tiers if it's a JSON string
-        if (isset($input['pricing_tiers']) && is_string($input['pricing_tiers'])) {
-            $input['pricing_tiers'] = json_decode($input['pricing_tiers'], true);
-        }
-        
         // Decode related items if they're JSON strings
         if (isset($input['related_services']) && is_string($input['related_services'])) {
             $input['related_services'] = json_decode($input['related_services'], true);
@@ -538,7 +527,6 @@ class ServiceController extends Controller
             'max_concurrent_bookings' => 'nullable|integer',
             
             // Pricing Tiers
-            'pricing_tiers' => 'nullable|array',
             
             // Media
             'main_image' => 'nullable|file|image|max:5120',

@@ -32,7 +32,7 @@ class BrochureData
         $priceMode = $set['price'];
         $service = $s->makeHidden(['admin_notes', 'created_by', 'updated_by', 'brochure_meta', 'meta_title', 'meta_description', 'meta_keywords', 'related_services'])->toArray();
         if ($priceMode !== 'show') {
-            foreach (['base_price', 'hourly_rate', 'daily_rate', 'minimum_charge', 'display_price', 'display_price_incl', 'display_tax', 'pricing_tiers'] as $k) {
+            foreach (['base_price', 'hourly_rate', 'daily_rate', 'minimum_charge', 'display_price', 'display_price_incl', 'display_tax'] as $k) {
                 $service[$k] = null;
             }
         }
@@ -50,7 +50,6 @@ class BrochureData
             'deliverables' => $set['deliverables'] ? $list($s->deliverables) : [],
             'requirements' => $set['requirements'] ? $list($s->requirements) : [],
             'questions' => $set['requirements'] ? $this->questions($s) : [],
-            'tiers' => ($set['tiers'] && $priceMode === 'show') ? $this->tiers($s) : [],
             'packages' => $set['tiers'] ? $this->packages($s, $priceMode === 'show') : [],
             'charges' => $set['charges'] ? $this->charges($s) : [],
             'policy' => $set['policy'] ? $this->policy() : null,
@@ -96,13 +95,6 @@ class BrochureData
 
         return ServiceRequirement::where('service_id', $s->id)->orderBy('position')->get()
             ->map(fn ($r) => ['label' => $r->label, 'type' => $r->field_type, 'required' => (bool) $r->is_required, 'help' => $r->help_text, 'choices' => $r->choices])->all();
-    }
-
-    private function tiers(Service $s): array
-    {
-        return collect($s->pricing_tiers ?? [])->filter(fn ($t) => is_array($t))->map(fn ($t) => [
-            'name' => (string) ($t['name'] ?? $t['label'] ?? ''), 'price' => isset($t['price']) ? (float) $t['price'] : null, 'description' => (string) ($t['description'] ?? ''),
-        ])->values()->all();
     }
 
     /** The fees this service carries (a deposit, a call-out, a late cancellation fee...), with when each applies. */

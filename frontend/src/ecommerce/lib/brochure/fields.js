@@ -34,7 +34,6 @@ export function brochureFields(data, { money, company = {} } = {}) {
   ].filter(Boolean);
 
   const requirements = [...bullets(data.requirements), ...(data.questions ?? []).map((q) => `You will be asked: ${q.label}${q.required ? ' (required)' : ''}`)];
-  const tiers = (data.tiers ?? []).map((t) => `${t.name || 'Option'}${t.price != null ? ` - ${fmt(t.price)}` : ''}${t.description ? `: ${t.description}` : ''}`);
   const charges = (data.charges ?? []).map((c) => `${c.name}: ${c.basis === 'percent' ? `${c.amount}%` : fmt(c.amount)}${c.unit ? ` per ${c.unit}` : ''}${c.when ? ` ${c.when}` : ''}${c.refundable ? ' (refundable)' : ''}`);
   const contact = [company.phone, company.email, company.website, [company.address, company.city].filter(Boolean).join(', ')].filter(Boolean);
 
@@ -43,7 +42,7 @@ export function brochureFields(data, { money, company = {} } = {}) {
     badge: s.badge ?? '', category: data.category ?? '', price: price ?? '', model: s.pricing_model_label ?? '',
     rating: data.rating ? `${data.rating.value.toFixed(1)} out of 5, from ${data.rating.count} ${data.rating.count === 1 ? 'review' : 'reviews'}` : '',
     company: company.name ?? '', companyTagline: company.tagline ?? '', contact: contact.join('   '), contactLines: contact, url: data.url ?? '',
-    facts, features: bullets(data.features), deliverables: bullets(data.deliverables), requirements, tiers: pk.length ? [] : tiers, packageRows, charges,
+    facts, features: bullets(data.features), deliverables: bullets(data.deliverables), requirements, packageRows, charges,
     policy: data.policy?.text ?? '', policyTitle: data.policy?.title ?? '',
   };
 }

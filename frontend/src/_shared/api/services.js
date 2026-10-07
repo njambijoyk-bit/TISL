@@ -58,7 +58,7 @@ export const nextServiceSku = async () => (await api.get('/admin/services/next-s
 
 export const createService = async (data) => {
   const formData = new FormData();
-  const skipKeys = ['mainImageFile', 'galleryFiles', 'galleryUrls', 'mainImageUrl', 'pricing_tiers', 'related_services', 'optional_products'];
+  const skipKeys = ['mainImageFile', 'galleryFiles', 'galleryUrls', 'mainImageUrl', 'related_services', 'optional_products'];
 
   Object.entries(data).forEach(([key, value]) => {
     if (value === null || value === undefined || skipKeys.includes(key)) return;
@@ -75,10 +75,6 @@ export const createService = async (data) => {
       formData.append(key, value);
     }
   });
-
-  if (data.pricing_tiers && Array.isArray(data.pricing_tiers) && data.pricing_tiers.length > 0) {
-    formData.append('pricing_tiers', JSON.stringify(data.pricing_tiers));
-  }
 
   if (data.related_services && Array.isArray(data.related_services) && data.related_services.length > 0) {
     formData.append('related_services', JSON.stringify(data.related_services));
@@ -114,7 +110,7 @@ export const createService = async (data) => {
 
 export const updateService = async (id, data) => {
   const formData = new FormData();
-  const skipKeys = ['mainImageFile', 'galleryFiles', 'galleryUrls', 'mainImageUrl', 'pricing_tiers', 'related_services', 'required_products', 'optional_products'];
+  const skipKeys = ['mainImageFile', 'galleryFiles', 'galleryUrls', 'mainImageUrl', 'related_services', 'required_products', 'optional_products'];
 
   Object.entries(data).forEach(([key, value]) => {
     if (value === null || value === undefined || skipKeys.includes(key)) return;
@@ -131,10 +127,6 @@ export const updateService = async (id, data) => {
       formData.append(key, value);
     }
   });
-
-  if (data.pricing_tiers && Array.isArray(data.pricing_tiers) && data.pricing_tiers.length > 0) {
-    formData.append('pricing_tiers', JSON.stringify(data.pricing_tiers));
-  }
 
   if (data.related_services && Array.isArray(data.related_services) && data.related_services.length > 0) {
     formData.append('related_services', JSON.stringify(data.related_services));
