@@ -111,6 +111,38 @@ function drawStack(ctx, items, box, o, fields) {
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
 }
 
+/**
+ * A table with a title, a header row and one line per row: the packages with their own prices and where they are offered. A column nobody has a value for is left out;
+ * when the rows do not fit, the text shrinks first and then the last ones are replaced by "...and N more".
+ */
+function drawTable(ctx, rows, box, o) {
+  const cols = o.columns.filter((c) => rows.some((r) => String(r[c.key] ?? '').trim()));
+  if (!cols.length || !rows.length) return;
+  const sum = cols.reduce((s, c) => s + c.w, 0); const pad = o.sizePx * 0.5;
+  let x = 0;
+  const at = cols.map((c) => { const left = x; x += (box.w * c.w) / sum; return { ...c, left, width: (box.w * c.w) / sum }; });
+  const titleH = o.sizePx * 2; const headH = o.sizePx * 1.5;
+  drawText(ctx, o.title, { w: box.w, h: titleH }, { font: o.titleFont, sizePx: o.sizePx * 0.95, color: o.accent, oneLine: true });
+  const cell = (text, c, y, h, opts) => {
+    ctx.save(); ctx.translate(c.left + (c.align === 'right' ? 0 : pad * 0.3), y);
+    drawText(ctx, text, { w: c.width - pad, h }, { font: 'sans', color: o.color, align: c.align === 'right' ? 'right' : 'left', oneLine: true, vcenter: true, ...opts });
+    ctx.restore();
+  };
+  at.forEach((c) => cell(c.label.toUpperCase(), c, titleH, headH, { sizePx: o.sizePx * 0.62, weight: 700, color: o.muted }));
+  const top = titleH + headH;
+  ctx.strokeStyle = o.rule; ctx.lineWidth = Math.max(1, o.sizePx * 0.06); ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(box.w, top); ctx.stroke();
+  const avail = box.h - top; const minRow = o.sizePx * 1.5;
+  const fit = Math.max(1, Math.floor(avail / minRow));
+  const shown = rows.length > fit ? rows.slice(0, Math.max(1, fit - 1)) : rows;
+  const rh = Math.min(o.sizePx * 2.7, avail / (shown.length + (rows.length > shown.length ? 1 : 0)));
+  shown.forEach((r, n) => {
+    const y = top + n * rh;
+    at.forEach((c) => cell(r[c.key] ?? '', c, y, rh, { sizePx: Math.min(o.sizePx, rh * 0.62), weight: c.key === 'name' || c.key === 'total' ? 700 : 400 }));
+    if (n < shown.length - 1 || rows.length > shown.length) { ctx.save(); ctx.globalAlpha = 0.45; ctx.beginPath(); ctx.moveTo(0, y + rh); ctx.lineTo(box.w, y + rh); ctx.stroke(); ctx.restore(); }
+  });
+  if (rows.length > shown.length) cell(`…and ${rows.length - shown.length} more`, at[0], top + shown.length * rh, rh, { sizePx: Math.min(o.sizePx * 0.85, rh * 0.55), color: o.muted });
+}
+
 function drawChip(ctx, text, box, o) {
   const r = box.h / 2;
   ctx.fillStyle = o.bg; ctx.beginPath(); ctx.roundRect(0, 0, box.w, box.h, r); ctx.fill();
@@ -179,6 +211,8 @@ export async function renderBrochure(data, templateKey, deps, { width = 1240 } =
         drawText(ctx, fields[s.field], { w, h }, { font: s.font, sizePx, color: s.color, align: s.align, weight: s.weight });
       } else if (s.kind === 'chip') {
         drawChip(ctx, fields[s.field], { w, h }, { bg: s.bg, color: s.color, font: s.font, sizePx });
+      } else if (s.kind === 'table') {
+        drawTable(ctx, fields[s.field], { w, h }, { columns: s.columns, title: s.title, sizePx, color: s.color, accent: s.accent, muted: s.muted ?? s.color, rule: s.rule ?? s.accent, titleFont: s.titleFont });
       } else if (s.kind === 'stack') {
         drawStack(ctx, s.items, { w, h }, { sizePx, color: s.color, accent: s.accent, font: s.font, titleFont: s.titleFont, bullet: s.bullet }, fields);
       }

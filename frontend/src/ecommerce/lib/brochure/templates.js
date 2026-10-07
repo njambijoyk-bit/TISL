@@ -15,11 +15,14 @@ const p = (x, y, w, h, src, o = {}) => ({ kind: 'photo', x, y, w, h, src, ...o }
 const k = (x, y, w, h, value, o = {}) => ({ kind: 'sticker', x, y, w, h, value, ...o });
 const r = (x, y, w, o = {}) => ({ kind: 'rule', x, y, w, h: 0, ...o });
 const st = (x, y, w, h, items, o = {}) => ({ kind: 'stack', x, y, w, h, items, ...o });
+const tb = (x, y, w, h, o = {}) => ({ kind: 'table', x, y, w, h, field: 'packageRows', need: 'packageRows', title: 'Packages and prices', columns: PACKAGE_COLUMNS, ...o });
+
+// the packages table: each package with where it is offered, its own price, the tax and the total
+const PACKAGE_COLUMNS = [{ key: 'name', label: 'Package', w: 26 }, { key: 'offered', label: 'Offered at', w: 24 }, { key: 'price', label: 'Price (excl. tax)', w: 18, align: 'right' }, { key: 'tax', label: 'Tax', w: 16, align: 'right' }, { key: 'total', label: 'Total', w: 16, align: 'right' }];
 
 const SECTION = {
   get: { title: 'What you get', field: 'features', kind: 'bullets' }, deliver: { title: 'What you receive', field: 'deliverables', kind: 'bullets' },
   need: { title: 'What we need from you', field: 'requirements', kind: 'bullets' }, how: { title: 'How it works', field: 'facts', kind: 'bullets' },
-  packages: { title: 'Packages, prices and where offered', field: 'packages', kind: 'bullets' },
   tiers: { title: 'Options and pricing', field: 'tiers', kind: 'bullets' }, charges: { title: 'Other charges', field: 'charges', kind: 'bullets' },
   policy: { title: 'Booking policy', field: 'policy', kind: 'text' },
 };
@@ -47,12 +50,13 @@ export const TEMPLATES = {
       { background: '#fbf8f2', pattern: 'paper', slots: [
         b(5, 3.5, 90, 93, { fill: 'transparent', border: { color: '#8a6d3b', width: 0.18 } }),
         t(8, 6, 60, 3, 'name', { font: 'headline', size: 2.2, color: '#2b2118' }), r(8, 10, 84, { color: '#8a6d3b', width: 0.12 }),
-        p(8, 12, 26.6, 12, 'other:0', { shape: 'rect' }), p(36.7, 12, 26.6, 12, 'other:1', { shape: 'rect' }), p(65.4, 12, 26.6, 12, 'other:2', { shape: 'rect' }),
-        st(8, 26, 40, 30, [SECTION.get, SECTION.deliver], { size: 2.05, color: '#3a2e22', accent: '#8a6d3b', titleFont: 'wide', font: 'serif', bullet: '✓' }),
-        st(52, 26, 40, 30, [SECTION.packages, SECTION.need, SECTION.tiers], { size: 2.05, color: '#3a2e22', accent: '#8a6d3b', titleFont: 'wide', font: 'serif', bullet: '·' }),
-        st(8, 57, 84, 12, [SECTION.charges], { size: 2.05, color: '#3a2e22', accent: '#8a6d3b', titleFont: 'wide', font: 'serif', bullet: '·' }),
-        r(8, 70, 84, { color: '#8a6d3b', width: 0.08 }),
-        st(8, 71.5, 84, 20, [SECTION.policy], { size: 1.52, color: '#5a4a38', accent: '#8a6d3b', titleFont: 'wide', font: 'serif' }),
+        p(8, 12, 26.6, 10, 'other:0', { shape: 'rect' }), p(36.7, 12, 26.6, 10, 'other:1', { shape: 'rect' }), p(65.4, 12, 26.6, 10, 'other:2', { shape: 'rect' }),
+        st(8, 24, 40, 20, [SECTION.get, SECTION.deliver], { size: 2.05, color: '#3a2e22', accent: '#8a6d3b', titleFont: 'wide', font: 'serif', bullet: '✓' }),
+        st(52, 24, 40, 20, [SECTION.need, SECTION.tiers], { size: 2.05, color: '#3a2e22', accent: '#8a6d3b', titleFont: 'wide', font: 'serif', bullet: '·' }),
+        tb(8, 45, 84, 19, { size: 1.75, color: '#3a2e22', muted: '#8a7a62', accent: '#8a6d3b', titleFont: 'wide' }),
+        st(8, 65, 84, 10, [SECTION.charges], { size: 2.05, color: '#3a2e22', accent: '#8a6d3b', titleFont: 'wide', font: 'serif', bullet: '·' }),
+        r(8, 76.5, 84, { color: '#8a6d3b', width: 0.08 }),
+        st(8, 78, 84, 13.5, [SECTION.policy], { size: 1.52, color: '#5a4a38', accent: '#8a6d3b', titleFont: 'wide', font: 'serif' }),
         t(8, 92, 84, 3, 'contact', { font: 'wide', size: 1.1, color: '#8a6d3b', align: 'center' }),
       ] },
     ],
@@ -79,11 +83,12 @@ export const TEMPLATES = {
       ] },
       { background: '#ffffff', pattern: 'dots', slots: [
         b(0, 0, 100, 9, { fill: '#10b981' }), t(6, 2, 70, 5, 'name', { font: 'poster', size: 2.6, color: '#fff' }),
-        p(6, 11, 28, 14, 'other:0', { shape: 'rounded' }), p(36, 11, 28, 14, 'other:1', { shape: 'rounded' }), p(66, 11, 28, 14, 'other:2', { shape: 'rounded' }),
-        st(6, 27, 42, 34, [SECTION.get, SECTION.deliver], { size: 2.05, color: '#1f2937', accent: '#059669', titleFont: 'wide', font: 'sans', bullet: '✓' }),
-        st(52, 27, 42, 34, [SECTION.packages, SECTION.need, SECTION.tiers], { size: 2.05, color: '#1f2937', accent: '#059669', titleFont: 'wide', font: 'sans', bullet: '→' }),
-        b(6, 62, 88, 12, { fill: '#fef9c3', shape: 'rounded' }), st(8, 63, 84, 10, [SECTION.charges], { size: 1.98, color: '#422006', accent: '#a16207', titleFont: 'wide', font: 'sans', bullet: '•' }),
-        st(6, 76, 88, 16, [SECTION.policy], { size: 1.46, color: '#4b5563', accent: '#059669', titleFont: 'wide', font: 'sans' }),
+        p(6, 11, 28, 10, 'other:0', { shape: 'rounded' }), p(36, 11, 28, 10, 'other:1', { shape: 'rounded' }), p(66, 11, 28, 10, 'other:2', { shape: 'rounded' }),
+        st(6, 23, 42, 20, [SECTION.get, SECTION.deliver], { size: 2.05, color: '#1f2937', accent: '#059669', titleFont: 'wide', font: 'sans', bullet: '✓' }),
+        st(52, 23, 42, 20, [SECTION.need, SECTION.tiers], { size: 2.05, color: '#1f2937', accent: '#059669', titleFont: 'wide', font: 'sans', bullet: '→' }),
+        tb(6, 44, 88, 19, { size: 1.75, color: '#1f2937', muted: '#6b7280', accent: '#059669', titleFont: 'wide' }),
+        b(6, 64, 88, 11, { fill: '#fef9c3', shape: 'rounded' }), st(8, 65, 84, 9, [SECTION.charges], { size: 1.98, color: '#422006', accent: '#a16207', titleFont: 'wide', font: 'sans', bullet: '•' }),
+        st(6, 77, 88, 14.5, [SECTION.policy], { size: 1.46, color: '#4b5563', accent: '#059669', titleFont: 'wide', font: 'sans' }),
         k(88, 92, 7, 5, 'svg:leaf', { color: '#10b981' }), t(6, 94, 76, 3, 'contact', { font: 'wide', size: 1.1, color: '#047857' }),
       ] },
     ],
@@ -107,13 +112,14 @@ export const TEMPLATES = {
       ] },
       { background: '#ffffff', pattern: 'lines', slots: [
         t(8, 6, 84, 3, 'name', { font: 'wide', size: 1.5, color: '#111827' }), r(8, 9.5, 84, { color: '#111827', width: 0.15 }),
-        p(8, 12, 40, 13, 'other:0', { shape: 'rect' }), p(52, 12, 40, 13, 'other:1', { shape: 'rect' }),
-        st(8, 28, 40, 30, [SECTION.get, SECTION.deliver], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
-        st(52, 28, 40, 30, [SECTION.packages, SECTION.need, SECTION.tiers], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
-        r(8, 60, 84, { color: '#d1d5db', width: 0.1 }),
-        st(8, 62, 40, 12, [SECTION.charges], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
-        st(52, 62, 40, 12, [SECTION.how], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
-        st(8, 75, 84, 18, [SECTION.policy], { size: 1.46, color: '#6b7280', accent: '#111827', titleFont: 'wide', font: 'sans' }),
+        p(8, 12, 40, 10, 'other:0', { shape: 'rect' }), p(52, 12, 40, 10, 'other:1', { shape: 'rect' }),
+        st(8, 24, 40, 20, [SECTION.get, SECTION.deliver], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
+        st(52, 24, 40, 20, [SECTION.need, SECTION.tiers], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
+        tb(8, 45, 84, 19, { size: 1.75, color: '#374151', muted: '#6b7280', accent: '#111827', titleFont: 'wide' }),
+        r(8, 65, 84, { color: '#d1d5db', width: 0.1 }),
+        st(8, 66.5, 40, 10, [SECTION.charges], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
+        st(52, 66.5, 40, 10, [SECTION.how], { size: 1.98, color: '#374151', accent: '#111827', titleFont: 'wide', font: 'sans', bullet: '-' }),
+        st(8, 78, 84, 15, [SECTION.policy], { size: 1.46, color: '#6b7280', accent: '#111827', titleFont: 'wide', font: 'sans' }),
         t(8, 94, 84, 3, 'contact', { font: 'wide', size: 1.05, color: '#6b7280' }),
       ] },
     ],
@@ -139,11 +145,12 @@ export const TEMPLATES = {
       ] },
       { background: '#f3efe6', pattern: 'grid', slots: [
         t(8, 5, 84, 5, 'name', { font: 'brush', size: 3.2, color: '#7c2d12' }),
-        p(8, 12, 26, 15, 'other:0', { shape: 'polaroid', rot: -3 }), p(37, 11, 26, 15, 'other:1', { shape: 'polaroid', rot: 2 }), p(66, 12, 26, 15, 'other:2', { shape: 'polaroid', rot: -2 }),
-        b(6, 31, 42, 28, { fill: '#fffdf8', shape: 'rounded' }), st(9, 32.5, 36, 26, [SECTION.get, SECTION.deliver], { size: 1.91, color: '#44403c', accent: '#9a3412', titleFont: 'brush', font: 'sans', bullet: '✓' }),
-        b(52, 31, 42, 28, { fill: '#fffdf8', shape: 'rounded' }), st(55, 32.5, 36, 26, [SECTION.packages, SECTION.need, SECTION.tiers], { size: 1.91, color: '#44403c', accent: '#9a3412', titleFont: 'brush', font: 'sans', bullet: '✿' }),
-        b(6, 62, 88, 11, { fill: '#fde68a', shape: 'torn' }), st(9, 63.5, 82, 9, [SECTION.charges], { size: 1.91, color: '#78350f', accent: '#7c2d12', titleFont: 'brush', font: 'sans', bullet: '•' }),
-        st(8, 75, 84, 16, [SECTION.policy], { size: 1.46, color: '#57534e', accent: '#9a3412', titleFont: 'brush', font: 'sans' }),
+        p(8, 11, 24, 12, 'other:0', { shape: 'polaroid', rot: -3 }), p(38, 10, 24, 12, 'other:1', { shape: 'polaroid', rot: 2 }), p(68, 11, 24, 12, 'other:2', { shape: 'polaroid', rot: -2 }),
+        b(6, 25, 42, 20, { fill: '#fffdf8', shape: 'rounded' }), st(9, 26, 36, 18, [SECTION.get, SECTION.deliver], { size: 1.91, color: '#44403c', accent: '#9a3412', titleFont: 'brush', font: 'sans', bullet: '✓' }),
+        b(52, 25, 42, 20, { fill: '#fffdf8', shape: 'rounded' }), st(55, 26, 36, 18, [SECTION.need, SECTION.tiers], { size: 1.91, color: '#44403c', accent: '#9a3412', titleFont: 'brush', font: 'sans', bullet: '✿' }),
+        b(6, 47, 88, 20, { fill: '#fffdf8', shape: 'rounded', need: 'packageRows' }), tb(9, 48, 82, 18, { size: 1.7, color: '#44403c', muted: '#78716c', accent: '#9a3412', titleFont: 'brush' }),
+        b(6, 68, 88, 9, { fill: '#fde68a', shape: 'torn' }), st(9, 69, 82, 7.5, [SECTION.charges], { size: 1.91, color: '#78350f', accent: '#7c2d12', titleFont: 'brush', font: 'sans', bullet: '•' }),
+        st(8, 79, 84, 12, [SECTION.policy], { size: 1.46, color: '#57534e', accent: '#9a3412', titleFont: 'brush', font: 'sans' }),
         k(84, 91, 9, 6.3, '✨'), t(8, 93, 74, 3, 'contact', { font: 'wide', size: 1.05, color: '#7c2d12' }),
       ] },
     ],

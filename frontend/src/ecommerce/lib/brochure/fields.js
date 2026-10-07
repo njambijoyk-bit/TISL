@@ -12,7 +12,12 @@ export function brochureFields(data, { money, company = {} } = {}) {
 
   const pk = data.packages ?? [];
   const priced = pk.filter((p) => p.price != null);
-  const packages = pk.map((p) => `${p.name}${p.price != null ? `: ${fmt(p.price)}${p.tax_name ? ` + ${p.tax_name}` : ''}` : ''}${p.branches?.length ? `  (offered at ${p.branches.join(', ')})` : ''}`);
+  // one table row per package: its own price, the tax on it, the total and where it is offered
+  const packageRows = pk.map((p) => ({
+    name: [p.name, p.unit].filter(Boolean).join(' · '), offered: (p.branches ?? []).join(', '),
+    price: p.price != null ? fmt(p.price) : '', tax: p.price != null && p.tax_amount != null ? `${fmt(p.tax_amount)}${p.tax_name ? ` ${p.tax_name}` : ''}` : '',
+    total: p.price != null ? fmt(Number(p.price) + Number(p.tax_amount ?? 0)) : '',
+  }));
 
   let price = null;
   if (data.price_mode === 'show' && priced.length) price = `${priced.length > 1 ? 'From ' : ''}${fmt(Math.min(...priced.map((p) => Number(p.price))))}`;   // the packages' own prices, not the service's general one
@@ -38,7 +43,7 @@ export function brochureFields(data, { money, company = {} } = {}) {
     badge: s.badge ?? '', category: data.category ?? '', price: price ?? '', model: s.pricing_model_label ?? '',
     rating: data.rating ? `${data.rating.value.toFixed(1)} out of 5, from ${data.rating.count} ${data.rating.count === 1 ? 'review' : 'reviews'}` : '',
     company: company.name ?? '', companyTagline: company.tagline ?? '', contact: contact.join('   '), contactLines: contact, url: data.url ?? '',
-    facts, features: bullets(data.features), deliverables: bullets(data.deliverables), requirements, tiers, packages, charges,
+    facts, features: bullets(data.features), deliverables: bullets(data.deliverables), requirements, tiers: pk.length ? [] : tiers, packageRows, charges,
     policy: data.policy?.text ?? '', policyTitle: data.policy?.title ?? '',
   };
 }
