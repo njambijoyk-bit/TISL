@@ -96,10 +96,8 @@ function priceTable(c, b, item, th, title) {
     ctx.save(); ctx.globalAlpha = 0.5; line(c, i.x, y - u * 0.3, i.x + i.w, y - u * 0.3, th.soft, 1); ctx.restore();
   });
   if (rows.length > shown.length) txt(c, `…and ${rows.length - shown.length} more`, cols.label, y, i.w * 0.5, rh, { sizePx: u * 1.25, color: th.muted, oneLine: true });
-  const accounts = [...new Set(rows.map((x) => x.tax_account).filter(Boolean))];
   const fy = i.y + i.h - u * 2.6;
   txt(c, stampOf(item), i.x, fy, i.w * 0.5, u * 1.4, { sizePx: u * 1.05, color: th.accent, weight: 700, oneLine: true });
-  txt(c, ['Prices exclude tax.', accounts.length ? `Sales account: ${accounts.join(', ')}.` : null].filter(Boolean).join(' '), i.x + i.w * 0.42, fy, i.w * 0.58, u * 1.4, { sizePx: u * 0.95, color: th.muted, align: 'right', oneLine: true });
 }
 
 function details(c, b, item, th) {
@@ -143,7 +141,7 @@ function bigPrice(c, b, item, th, title) {
   txt(c, 'excluding tax', i.x, i.y + u * 2.8 + i.h * 0.46, i.w * 0.6, u * 1.6, { sizePx: u * 1.1, color: th.muted, oneLine: true });
   const tax = x.tax_name ? `${x.tax_name}: ${money(x.tax_amount, x)}   ·   Total ${money(x.total, x)}` : `Total ${money(x.total, x)}`;
   txt(c, tax, i.x, i.y + i.h - u * 5.4, i.w, u * 2, { sizePx: u * 1.5, color: th.ink, weight: 700, oneLine: true });
-  txt(c, `${stampOf(item)}${x.tax_account ? `  ·  Sales account: ${x.tax_account}` : ''}`, i.x, i.y + i.h - u * 2.6, i.w, u * 1.5, { sizePx: u * 1.05, color: th.accent, oneLine: true });
+  txt(c, `${stampOf(item)}`, i.x, i.y + i.h - u * 2.6, i.w, u * 1.5, { sizePx: u * 1.05, color: th.accent, oneLine: true });
   if (item.type === 'hamper' && item.stock_left != null) txt(c, `${item.stock_left} left`, i.x + i.w * 0.6, i.y + u * 3, i.w * 0.4, u * 2.4, { sizePx: u * 1.8, color: th.accent, weight: 700, align: 'right', oneLine: true });
 }
 
@@ -182,7 +180,6 @@ function terms(c, b, item, th) {
   } else if (item.type === 'auction') {
     rows.push(`Bids are placed in ${item.auction?.currency_code ?? 'the lot’s currency'}. The highest bid when the auction closes wins, if it meets any reserve.`);
   }
-  rows.push('Prices exclude tax. The tax for each price is shown with it.');
   txt(c, rows.join('\n'), i.x, i.y + u * 2.8, i.w, i.h - u * 2.8, { sizePx: u * 1.35, color: th.ink });
 }
 

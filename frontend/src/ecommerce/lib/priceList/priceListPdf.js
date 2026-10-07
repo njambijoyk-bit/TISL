@@ -62,7 +62,6 @@ export function priceListPdf({ list, items, company, rule }) {
     } else if (e?.was) pdf.text(`Was ${amount(e.was)}, up ${e.up}%`, COLS.price, y + 18, { size: 6.5, color: MUTED, align: 'right' });
     pdf.text(amount(r.tax_amount), COLS.tax, y + 8, { size: 8, color: INK, align: 'right' });
     if (r.tax_name) pdf.text(pdf.fit(r.tax_name, 70, 6.5), COLS.tax, y + 17, { size: 6.5, color: MUTED, align: 'right' });
-    if (r.tax_account) pdf.text(pdf.fit(r.tax_account, 70, 6), COLS.tax, y + 24.5, { size: 6, color: MUTED, align: 'right' });
     pdf.text(amount(r.total), COLS.total, y + 8, { size: 8.5, bold: true, color: INK, align: 'right' });
     y += height;
     pdf.line(M, y - 3, pdf.W - M, y - 3, LINE, 0.4);

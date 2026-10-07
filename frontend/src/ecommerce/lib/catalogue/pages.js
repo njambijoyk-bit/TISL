@@ -120,6 +120,6 @@ export function drawBack(c, company, logo, asAt) {
   rows.forEach((r, n) => txt(c, r, x, y + n * u * 3.2, w, u * 3, { sizePx: u * 1.7, color: th.ink, oneLine: true }));
   y += rows.length * u * 3.2 + u * 5;
   line(c, x, y, x + u * 12, y, th.accent, 4); y += u * 3;
-  txt(c, `Prices shown exclude tax unless the tax line says otherwise. Each price is in its own currency. Prices are as at ${fmtDate(asAt ?? new Date())} or as of the price list named beside them, and may change.`, x, y, w * 0.8, u * 12, { sizePx: u * 1.3, color: th.muted });
+  txt(c, `Each price is in its own currency. Prices are as at ${fmtDate(asAt ?? new Date())} or as of the price list named beside them, and may change.`, x, y, w * 0.8, u * 12, { sizePx: u * 1.3, color: th.muted });
 }
 

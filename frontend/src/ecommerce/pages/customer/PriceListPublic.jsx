@@ -62,7 +62,7 @@ export default function PriceListPublic() {
                             {e?.strike && <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textDecoration: 'line-through' }}>{fmtAmount(e.strike, x.currency_code, x.currency_symbol)}</div>}
                             {e?.was && <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Was {fmtAmount(e.was, x.currency_code, x.currency_symbol)}, up {e.up}%</div>}
                           </td>
-                          <td style={td}>{fmtAmount(x.tax_amount, x.currency_code, x.currency_symbol)}<div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{[x.tax_name, x.tax_account].filter(Boolean).join(' · ')}</div></td>
+                          <td style={td}>{fmtAmount(x.tax_amount, x.currency_code, x.currency_symbol)}<div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{x.tax_name}</div></td>
                           <td style={td}><strong>{fmtAmount(x.total, x.currency_code, x.currency_symbol)}</strong></td>
                         </tr>
                       );

@@ -201,6 +201,6 @@ class BrochureItemData
 
         return ['variant' => $x['variant'] ?? null, 'unit' => $x['unit'] ?? null, 'code' => $x['code'] ?? null, 'currency_code' => $x['currency_code'] ?? '', 'currency_symbol' => $x['currency_symbol'] ?? null,
             'price' => (float) $x['price'], 'strike' => $e['strike'], 'was' => $e['was'], 'up_percent' => $e['up_percent'],
-            'tax_account' => $x['tax_account'] ?? null, 'tax_name' => $x['tax_name'] ?? null, 'tax_percent' => $x['tax_percent'] ?? null, 'tax_amount' => (float) ($x['tax_amount'] ?? 0), 'total' => (float) $x['total']];
+            'tax_name' => $x['tax_name'] ?? null, 'tax_percent' => $x['tax_percent'] ?? null, 'tax_amount' => (float) ($x['tax_amount'] ?? 0), 'total' => (float) $x['total']];
     }
 }

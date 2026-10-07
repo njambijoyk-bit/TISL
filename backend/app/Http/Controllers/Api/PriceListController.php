@@ -225,7 +225,7 @@ class PriceListController extends Controller
     {
         $l = $this->visibleList($request, $id);
 
-        return response()->json(['data' => $l->only(['id', 'name', 'description', 'as_at', 'earlier_price', 'item_count']) + ['items' => $l->items()->get()->makeHidden('price_list_id')->all()]]);
+        return response()->json(['data' => $l->only(['id', 'name', 'description', 'as_at', 'earlier_price', 'item_count']) + ['items' => $l->items()->get()->makeHidden(['price_list_id', 'tax_account'])->all()]]);
     }
 
     public function publicCsv(Request $request, int $id)
