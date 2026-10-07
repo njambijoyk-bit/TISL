@@ -26,7 +26,7 @@ export default function Catalogues() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    try { setRes(await cataloguesAPI.list(view === 'bin' ? { trashed: 1 } : {})); } catch (e) { toast.error(errMsg(e, 'Could not load the brochures')); }
+    try { setRes(await cataloguesAPI.list(view === 'bin' ? { trashed: 1 } : {})); } catch (e) { toast.error(errMsg(e, 'Could not load the catalogues')); }
   }, [view]);
   useEffect(() => { load(); }, [load]);
 
@@ -37,8 +37,8 @@ export default function Catalogues() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
         <CatalogueTabs />
-        <HubHeader title="Brochures and catalogues" description="The same document at different sizes: one item is a brochure, several make a catalogue. Products, services, hampers and auctions can all go in. Each entry is drawn from sections and themes."
-          action={<button type="button" style={{ ...btnPrimary, display: 'inline-flex', gap: 6, alignItems: 'center' }} onClick={() => navigate('/admin/catalogues/new')}><Plus size={15} /> New brochure</button>} />
+        <HubHeader title="Catalogues" description="The same document at different sizes: one item is a brochure, several make a catalogue. Products, services, hampers and auctions can all go in. Each entry is drawn from sections and themes."
+          action={<button type="button" style={{ ...btnPrimary, display: 'inline-flex', gap: 6, alignItems: 'center' }} onClick={() => navigate('/admin/catalogues/new')}><Plus size={15} /> New catalogue</button>} />
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {VIEWS.map(([k, l]) => <button key={k} type="button" onClick={() => setView(k)} style={k === 'bin' ? { ...small, borderRadius: 999, background: btnBin.background, border: btnBin.border, color: btnBin.color, fontWeight: 700, boxShadow: view === 'bin' ? '0 0 0 2px #431407' : 'none' } : { ...small, borderRadius: 999, background: view === k ? 'var(--color-primary-500)' : 'var(--surface-card)', color: view === k ? '#fff' : colors.text }}>{l}</button>)}

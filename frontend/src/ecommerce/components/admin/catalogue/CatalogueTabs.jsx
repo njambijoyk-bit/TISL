@@ -11,10 +11,10 @@ const TABS = [
 ];
 
 /** The small bar on every price list and brochure page, so it is one click between them. */
-export default function CatalogueTabs() {
+export default function CatalogueTabs({ back = '/admin/products', backLabel = 'Products' }) {
   return (
     <nav aria-label="Price lists and brochures" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-      <NavLink to="/admin/products" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', color: colors.textFaint, textDecoration: 'none', marginRight: 6 }}><ArrowLeft size={13} /> Products</NavLink>
+      <NavLink to={back} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.76rem', color: colors.textFaint, textDecoration: 'none', marginRight: 6 }}><ArrowLeft size={13} /> {backLabel}</NavLink>
       {TABS.map((t) => (
         <NavLink key={t.to} to={t.to} end={!t.also}
           style={({ isActive }) => ({ padding: '5px 12px', borderRadius: 999, fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', border: '1px solid var(--line)',

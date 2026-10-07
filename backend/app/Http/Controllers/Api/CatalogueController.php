@@ -299,13 +299,21 @@ class CatalogueController extends Controller
         $picks = (array) $request->input('picks', []);
         $found = $lists->pick($picks);
         $out = [];
-        Product::whereIn('id', $found['products'])->orderBy('name')->get(['id', 'name'])->each(fn ($p) => $out[] = ['type' => 'product', 'id' => $p->id, 'name' => $p->name]);
-        Service::whereIn('id', $found['services'])->orderBy('name')->get(['id', 'name'])->each(fn ($s) => $out[] = ['type' => 'service', 'id' => $s->id, 'name' => $s->name]);
+        foreach (Product::whereIn('id', $found['products'])->orderBy('name')->get(['id', 'name']) as $p) {
+            $out[] = ['type' => 'product', 'id' => $p->id, 'name' => $p->name];
+        }
+        foreach (Service::whereIn('id', $found['services'])->orderBy('name')->get(['id', 'name']) as $s) {
+            $out[] = ['type' => 'service', 'id' => $s->id, 'name' => $s->name];
+        }
         if (collect($picks)->contains('type', 'all_hampers')) {
-            Hamper::active()->orderBy('name')->get(['id', 'name'])->each(fn ($h) => $out[] = ['type' => 'hamper', 'id' => $h->id, 'name' => $h->name]);
+            foreach (Hamper::active()->orderBy('name')->get(['id', 'name']) as $h) {
+                $out[] = ['type' => 'hamper', 'id' => $h->id, 'name' => $h->name];
+            }
         }
         if (collect($picks)->contains('type', 'all_auctions')) {
-            Auction::with('product:id,name')->whereIn('status', ['active', 'scheduled'])->get()->each(fn ($a) => $out[] = ['type' => 'auction', 'id' => $a->id, 'name' => $a->product?->name ?? "Auction #{$a->id}"]);
+            foreach (Auction::with('product:id,name')->whereIn('status', ['active', 'scheduled'])->get() as $a) {
+                $out[] = ['type' => 'auction', 'id' => $a->id, 'name' => $a->product?->name ?? "Auction #{$a->id}"];
+            }
         }
 
         return response()->json(['data' => array_slice($out, 0, 500), 'total' => count($out)]);

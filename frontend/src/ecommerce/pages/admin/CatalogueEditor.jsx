@@ -30,7 +30,7 @@ export default function CatalogueEditor() {
   const role = useAuthStore((s) => s.user?.role);
   const canPublish = PUBLISHERS.includes(role);
   const [meta] = useCatalogueMeta();
-  const [f, setF] = useState({ title: '', subtitle: '', size: 'full', status: 'draft', access: 'staff', customer_types: [], settings: { cover: true, contents: true, back: true } });
+  const [f, setF] = useState({ title: '', subtitle: '', size: 'full', status: 'draft', access: 'everyone', customer_types: [], settings: { cover: true, contents: true, back: true } });
   const [entries, setEntries] = useState([]);
   const [loaded, setLoaded] = useState(isNew);
   const [canEdit, setCanEdit] = useState(true);
@@ -90,7 +90,7 @@ export default function CatalogueEditor() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto', display: 'grid', gap: 18 }}>
-        <div><CatalogueTabs /><HubHeader title={isNew ? 'New brochure' : f.title || 'Brochure'} description={entries.length > 1 ? `A catalogue of ${entries.length} items.` : 'One item makes a brochure; several make a catalogue.'} /></div>
+        <div><CatalogueTabs back="/admin/catalogues" backLabel="Catalogues" /><HubHeader title={isNew ? 'New catalogue' : f.title || 'Catalogue'} description={entries.length > 1 ? `A catalogue of ${entries.length} items.` : 'One item makes a brochure; several make a catalogue.'} /></div>
         {!canEdit && <p role="alert" style={{ ...card, padding: 12, fontSize: '0.84rem', color: colors.warningText }}>You can look at this one, but only its maker (while it is a draft) or a manager, finance, admin or super admin can change it.</p>}
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
@@ -100,7 +100,7 @@ export default function CatalogueEditor() {
             <Field label="Subtitle (optional)"><input value={f.subtitle} disabled={!canEdit} onChange={(e) => touch(() => setF({ ...f, subtitle: e.target.value }))} maxLength={255} style={fieldStyle} /></Field>
             <Field label="Size of each entry" hint="Each entry can still choose its own."><select value={f.size} disabled={!canEdit} onChange={(e) => touch(() => setF({ ...f, size: e.target.value }))} style={fieldStyle}>{Object.entries(SIZE_LABELS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
           </div>
-          <Field label="Who can see it once published"><AudiencePicker access={f.access} types={f.customer_types} disabled={!canEdit} onChange={(a) => touch(() => setF({ ...f, ...a }))} /></Field>
+          <Field label="Who can see it once published" hint="Customers only see the Catalogues link on the products page once one is published and open to them."><AudiencePicker access={f.access} types={f.customer_types} disabled={!canEdit} onChange={(a) => touch(() => setF({ ...f, ...a }))} /></Field>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap' }}>
             {[['cover', 'Cover page'], ['contents', 'Contents page'], ['back', 'Back page with our details']].map(([k, l]) => (
               <label key={k} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.84rem', color: colors.text }}><input type="checkbox" disabled={!canEdit} checked={f.settings[k]} onChange={(e) => touch(() => setF({ ...f, settings: { ...f.settings, [k]: e.target.checked } }))} /> {l}</label>

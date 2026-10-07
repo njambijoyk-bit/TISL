@@ -84,7 +84,7 @@ export default function PriceListView() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto', display: 'grid', gap: 16 }}>
-        <div><CatalogueTabs /><HubHeader title={d.name} description={d.description || 'A price list.'} /></div>
+        <div><CatalogueTabs back="/admin/price-lists" backLabel="Price lists" /><HubHeader title={d.name} description={d.description || 'A price list.'} /></div>
 
         <section style={{ ...card, padding: 16, display: 'grid', gap: 12 }}>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.82rem', color: colors.text }}>

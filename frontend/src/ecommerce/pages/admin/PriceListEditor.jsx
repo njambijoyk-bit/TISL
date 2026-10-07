@@ -57,7 +57,7 @@ export default function PriceListEditor() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto', display: 'grid', gap: 18 }}>
-        <div><CatalogueTabs /><HubHeader title="New price list" description="Choose the items, who can see the list and when it goes live. The prices are taken when you save and kept as they were." /></div>
+        <div><CatalogueTabs back="/admin/price-lists" backLabel="Price lists" /><HubHeader title="New price list" description="Choose the items, who can see the list and when it goes live. The prices are taken when you save and kept as they were." /></div>
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
           <strong style={{ color: colors.text }}>The list</strong>
