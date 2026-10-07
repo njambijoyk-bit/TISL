@@ -420,7 +420,7 @@ export default function AdminAuctionDetail() {
         {/* ── Edit form ── */}
         {editing && (
           <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)', padding: 24 }}>
-            <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 20px' }}>Edit Auction Settings</h3>
+            <h3 style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--color-primary-500)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 20px' }}>Edit Auction Configuration</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
               {[
                 { name: 'start_price', label: `Start Price (${adminCurrencies.find(c => String(c.id) === String(form.currency_id))?.code ?? auctionCode})`, type: 'number' },

@@ -33,14 +33,14 @@ export default function Gratuity() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <HubHeader title="Gratuity" description="Service pay owed to each person for their completed years, as at a date — the figure to provide for." action={<Link to="/admin/payroll/settings" style={{ ...btnGhost, textDecoration: 'none' }}>Rates in Payroll settings</Link>} />
+        <HubHeader title="Gratuity" description="Service pay owed to each person for their completed years, as at a date — the figure to provide for." action={<Link to="/admin/payroll/settings" style={{ ...btnGhost, textDecoration: 'none' }}>Rates in Payroll configuration</Link>} />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', margin: '6px 0 12px' }}>
           <label style={{ fontSize: '0.8rem' }}>As at <input type="date" value={asOf} onChange={(e) => setAsOf(e.target.value)} style={{ padding: 6, borderRadius: 6, border: '1px solid #d1d5db' }} /></label>
           <label style={{ fontSize: '0.8rem' }}><input type="checkbox" checked={left} onChange={(e) => setLeft(e.target.checked)} /> Include people who have left</label>
           {data && <button type="button" style={{ ...btnGhost, marginLeft: 'auto' }} onClick={csv}>Download CSV</button>}
         </div>
-        {data && !data.columns_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.78rem' }}>Using the built-in rates. Run script 66_payroll_gratuity.sql to set your own in Payroll settings.</p>}
+        {data && !data.columns_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.78rem' }}>Using the built-in rates. Run script 66_payroll_gratuity.sql to set your own in Payroll configuration.</p>}
         {data && (
           <>
             <p style={{ margin: '0 0 10px', fontSize: '0.78rem', color: colors.textMuted }}>{st.days_per_year} days of pay for each completed year, after {st.min_years} completed year{st.min_years === 1 ? '' : 's'}; a day's pay is basic ÷ {st.divisor}.</p>

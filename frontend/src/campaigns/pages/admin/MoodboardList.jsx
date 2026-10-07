@@ -9,7 +9,7 @@ import { Field, TextInput } from '../../../core/components/admin/ui/Form';
 import moodboardsAPI from '../../../_shared/api/moodboards';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import useAuthStore from '../../../_shared/store/authStore';
-import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
+import { btnPrimary, btnGhost, btnBin, card, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import BoardChip from '../../components/BoardChip';
 import Moodboard from '../../components/Moodboard';
@@ -83,7 +83,7 @@ export default function MoodboardList() {
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
         <HubHeader title="Moodboards" description="Collages of pictures, colours, words and stickers, made from a layout. Approved ones show on the website." />
         <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" style={btnGhost} onClick={() => setBin(!bin)}>{bin ? '‹ Back to moodboards' : <><Trash2 size={14} /> Recycle bin</>}</button>
+          <button type="button" style={bin ? btnGhost : btnBin} onClick={() => setBin(!bin)}>{bin ? '‹ Back to moodboards' : <><Trash2 size={14} /> Recycle bin</>}</button>
           {!bin && <button type="button" style={btnPrimary} onClick={() => setMaking(true)}><Plus size={14} /> New moodboard</button>}
         </div>}>
           <div style={{ display: bin ? 'none' : 'flex', gap: 6, flexWrap: 'wrap' }}>

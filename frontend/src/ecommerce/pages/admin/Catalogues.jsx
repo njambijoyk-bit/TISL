@@ -6,7 +6,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader from '../../../core/components/admin/ui/HubHeader';
 import cataloguesAPI from '../../../_shared/api/catalogues';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
+import { btnPrimary, btnGhost, btnBin, card, colors } from '../../../_shared/theme/tokens';
 import CatalogueTabs from '../../components/admin/catalogue/CatalogueTabs';
 import { StatusBadge } from '../../components/admin/catalogue/bits';
 import { audienceText } from '../../components/admin/catalogue/catalogueMeta';
@@ -16,7 +16,7 @@ import { fmtDate } from '../../lib/priceList/format';
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.textFaint };
 const td = { padding: '9px 10px', fontSize: '0.84rem', color: colors.text, borderTop: '1px solid var(--line)', verticalAlign: 'top' };
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' };
-const VIEWS = [['all', 'All'], ['published', 'Published'], ['draft', 'Drafts'], ['bin', 'Bin']];
+const VIEWS = [['all', 'All'], ['published', 'Published'], ['draft', 'Drafts'], ['bin', 'Recycle bin']];
 
 /** Brochures and catalogues: one document at different sizes. One item makes a brochure; several make a catalogue. */
 export default function Catalogues() {
@@ -41,7 +41,7 @@ export default function Catalogues() {
           action={<button type="button" style={{ ...btnPrimary, display: 'inline-flex', gap: 6, alignItems: 'center' }} onClick={() => navigate('/admin/catalogues/new')}><Plus size={15} /> New brochure</button>} />
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-          {VIEWS.map(([k, l]) => <button key={k} type="button" onClick={() => setView(k)} style={{ ...small, borderRadius: 999, background: view === k ? 'var(--color-primary-500)' : 'var(--surface-card)', color: view === k ? '#fff' : colors.text }}>{l}</button>)}
+          {VIEWS.map(([k, l]) => <button key={k} type="button" onClick={() => setView(k)} style={k === 'bin' ? { ...small, borderRadius: 999, background: btnBin.background, border: btnBin.border, color: btnBin.color, fontWeight: 700, boxShadow: view === 'bin' ? '0 0 0 2px #431407' : 'none' } : { ...small, borderRadius: 999, background: view === k ? 'var(--color-primary-500)' : 'var(--surface-card)', color: view === k ? '#fff' : colors.text }}>{l}</button>)}
         </div>
 
         <section style={{ ...card, padding: 0, overflow: 'hidden' }}>

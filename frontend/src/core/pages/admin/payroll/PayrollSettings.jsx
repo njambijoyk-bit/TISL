@@ -164,7 +164,7 @@ export default function PayrollSettings() {
                   </>
                 ) : <p style={{ margin: 0, fontSize: '0.76rem', color: '#92400e' }}>Run script 66_payroll_gratuity.sql to set these. Until then the report uses 15 days a year, after 1 completed year, with a day = basic ÷ 30.</p>}
               </div>
-              <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: colors.textFaint }}>Pay for a month = basic salary, less unpaid absence (verified attendance), plus overtime. Working days and hours come from Attendance settings.</p>
+              <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: colors.textFaint }}>Pay for a month = basic salary, less unpaid absence (verified attendance), plus overtime. Working days and hours come from Attendance configuration.</p>
             </section>
 
             <section style={{ ...card, padding: 8, overflowX: 'auto' }}>

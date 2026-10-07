@@ -38,7 +38,7 @@ function NoticeModal({ id, event, onClose }) {
         <button type="button" style={btnPrimary} disabled={busy || !n.to_email} onClick={mail}>{n.to_email ? `E-mail ${n.to_email}` : 'No e-mail on file'}</button>
         <a href={n.whatsapp_url} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-block', opacity: n.whatsapp_to_number ? 1 : 0.5 }}>WhatsApp{n.to_phone ? ` ${n.to_phone}` : ' (no number)'}</a>
       </div>
-      <p style={{ fontSize: '0.72rem', color: colors.textFaint }}>WhatsApp opens with the message ready — you press send. It is from your company phone (Books → Settings → Company).</p>
+      <p style={{ fontSize: '0.72rem', color: colors.textFaint }}>WhatsApp opens with the message ready — you press send. It is from your company phone (Books → Configuration → Company).</p>
     </Modal>
   );
 }

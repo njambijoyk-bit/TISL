@@ -59,7 +59,7 @@ function SendModal({ v, onClose }) {
       {!info ? <p style={{ color: colors.textMuted }}>{err ?? 'Loading…'}</p> : (
         <FormStack>
           <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>
-            {info.from_email ? <>E-mail goes out from <strong>{info.from_email}</strong> and replies come back to it.</> : <span style={{ color: colors.dangerText }}>No company e-mail yet — add one in Books → Settings → Company.</span>}
+            {info.from_email ? <>E-mail goes out from <strong>{info.from_email}</strong> and replies come back to it.</> : <span style={{ color: colors.dangerText }}>No company e-mail yet — add one in Books → Configuration → Company.</span>}
             {info.company_phone && <> The WhatsApp message quotes <strong>{info.company_phone}</strong>.</>}
           </p>
           <Field label="Send the e-mail to"><TextInput type="email" value={to} placeholder="customer@email.com" onChange={(e) => setTo(e.target.value)} /></Field>
@@ -303,8 +303,8 @@ export default function VoucherView() {
           <div role="status" style={{ padding: '12px 14px', borderRadius: 8, margin: '0 0 12px', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.45)', fontSize: '0.82rem', lineHeight: 1.55 }}>
             <strong>{v.period_lock.kind === 'year' ? `This voucher belongs to ${v.period_lock.year}, which is closed.` : `The books are locked up to ${v.period_lock.until}.`}</strong>{' '}
             It cannot be edited or cancelled by any role, not even a super admin. {v.period_lock.kind === 'year'
-              ? <>To change it, a super admin must first reopen the year in <Link to="/admin/books?tab=settings&sub=period">Books → Settings → Period control</Link>, make the change, then close the year again.</>
-              : <>To change it, a super admin must first move the lock date back in <Link to="/admin/books?tab=settings&sub=period">Books → Settings → Period control</Link>, make the change, then set the lock date again.</>}
+              ? <>To change it, a super admin must first reopen the year in <Link to="/admin/books?tab=settings&sub=period">Books → Configuration → Period control</Link>, make the change, then close the year again.</>
+              : <>To change it, a super admin must first move the lock date back in <Link to="/admin/books?tab=settings&sub=period">Books → Configuration → Period control</Link>, make the change, then set the lock date again.</>}
           </div>
         )}
 

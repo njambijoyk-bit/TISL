@@ -7,7 +7,7 @@ import pinsAPI from '../../../_shared/api/pins';
 import useAuthStore from '../../../_shared/store/authStore';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
-import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
+import { btnPrimary, btnGhost, btnBin, card, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import { CAMPAIGN_ROLES } from '../../../_shared/lib/roles';
 import PinForm from '../../components/PinForm';
@@ -75,7 +75,7 @@ export default function PinLibrary() {
         <HubHeader title="Pins" description="Pictures, videos, products, links and notes that boards and campaigns are made from." />
         {canHide && <CustomerPinSettings canChange={['admin', 'super_admin'].includes(user?.role)} />}
         <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" style={btnGhost} onClick={() => switchBin(!bin)}>{bin ? '‹ Back to pins' : <><Trash2 size={14} /> Recycle bin</>}</button>
+          <button type="button" style={bin ? btnGhost : btnBin} onClick={() => switchBin(!bin)}>{bin ? '‹ Back to pins' : <><Trash2 size={14} /> Recycle bin</>}</button>
           {!bin && <button type="button" style={btnPrimary} onClick={() => setForm('new')}><Plus size={14} /> New pin</button>}
         </div>}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>

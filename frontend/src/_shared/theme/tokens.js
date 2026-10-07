@@ -96,6 +96,12 @@ export const btnGhost = {
   cursor: 'pointer', fontFamily: 'inherit',
 };
 
+/** Every "Recycle bin" button: deliberately a fixed orange with dark brown text, in every theme. */
+export const btnBin = {
+  ...btnGhost,
+  background: '#f97316', border: '1.5px solid #ea580c', color: '#431407', fontWeight: 700,
+};
+
 export const btnIcon = {
   width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
   borderRadius: 7, border: 'none', cursor: 'pointer', background: 'none', color: colors.textFaint,

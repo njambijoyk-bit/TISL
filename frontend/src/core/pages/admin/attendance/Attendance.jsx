@@ -131,7 +131,7 @@ export default function Attendance() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
-        <HubHeader title="Attendance" description="Sign in and out. Your manager marks and verifies the rest; payroll counts only verified days." action={data?.can_configure ? <button type="button" style={btnGhost} onClick={() => setSettings(true)}>Settings</button> : null} />
+        <HubHeader title="Attendance" description="Sign in and out. Your manager marks and verifies the rest; payroll counts only verified days." action={data?.can_configure ? <button type="button" style={btnGhost} onClick={() => setSettings(true)}>Configuration</button> : null} />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         {data && !data.table_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>Run script 63_attendance.sql to use attendance.</p>}
         {data && (

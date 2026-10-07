@@ -639,7 +639,7 @@ export default function Referrals() {
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-          <button type="button" onClick={() => setShowProgramme(true)} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', background: 'var(--surface-card, #fff)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', color: 'var(--color-primary-600)' }}>Programme settings</button>
+          <button type="button" onClick={() => setShowProgramme(true)} style={{ padding: '7px 14px', borderRadius: 8, border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', background: 'var(--surface-card, #fff)', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', color: 'var(--color-primary-600)' }}>Programme configuration</button>
           <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => setDevNotesOpen(true)}

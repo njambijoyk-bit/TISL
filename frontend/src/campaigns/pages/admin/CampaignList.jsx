@@ -8,7 +8,7 @@ import SimpleTable from '../../../core/components/admin/ui/SimpleTable';
 import campaignsAPI from '../../../_shared/api/campaigns';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import useAuthStore from '../../../_shared/store/authStore';
-import { btnPrimary, btnGhost, colors } from '../../../_shared/theme/tokens';
+import { btnPrimary, btnGhost, btnBin, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import StatusChip from '../../components/StatusChip';
 
@@ -59,7 +59,7 @@ export default function CampaignList() {
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
         <HubHeader title="Campaigns" description="Launches, drops and brand stories: each one is a page made of sections, with its own dates." />
         <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
-          {canRestore && <button type="button" style={btnGhost} onClick={() => setBin(!bin)}>{bin ? '‹ Back to campaigns' : <><Trash2 size={14} /> Recycle bin</>}</button>}
+          {canRestore && <button type="button" style={bin ? btnGhost : btnBin} onClick={() => setBin(!bin)}>{bin ? '‹ Back to campaigns' : <><Trash2 size={14} /> Recycle bin</>}</button>}
           {!bin && <button type="button" style={btnPrimary} onClick={() => nav('/admin/campaigns/new')}><Plus size={14} /> New campaign</button>}
         </div>}>
           <div style={{ display: bin ? 'none' : 'flex', gap: 6, flexWrap: 'wrap' }}>

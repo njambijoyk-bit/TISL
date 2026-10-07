@@ -121,7 +121,7 @@ function RunView({ id, onBack, onChanged }) {
           . <span style={{ color: colors.textFaint }}>To undo it, use Cancel here — it cancels the payment first, then the journal.</span>
         </div>
       )}
-      {run.active_components === 0 && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>No deduction is switched on yet, so only basic pay is worked out. Set them up in <Link to="/admin/payroll/settings">Payroll settings</Link>, then "Work out again".</p>}
+      {run.active_components === 0 && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>No deduction is switched on yet, so only basic pay is worked out. Set them up in <Link to="/admin/payroll/settings">Payroll configuration</Link>, then "Work out again".</p>}
       {draft && unv > 0 && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>{unv} {unv === 1 ? 'person has' : 'people have'} attendance that is not fully verified. Verify it in <Link to="/admin/attendance">Attendance</Link>, then "Work out again" — or open their line and accept paying them as it stands.</p>}
       <section style={{ ...card, padding: 8, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -165,12 +165,12 @@ export default function Payroll() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <HubHeader title="Payroll" description="A month's payslips from salaries and verified attendance. Approving posts one journal to the books; paying records the bank payment." action={<Link to="/admin/payroll/settings" style={{ ...btnGhost, textDecoration: 'none' }}>Payroll settings</Link>} />
+        <HubHeader title="Payroll" description="A month's payslips from salaries and verified attendance. Approving posts one journal to the books; paying records the bank payment." action={<Link to="/admin/payroll/settings" style={{ ...btnGhost, textDecoration: 'none' }}>Payroll configuration</Link>} />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         {data && !data.table_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>Run script 64_payroll.sql to use payroll.</p>}
         {view ? <RunView id={view} onBack={() => setView(null)} onChanged={load} /> : data?.table_ready && (
           <div style={{ display: 'grid', gap: 14 }}>
-            {data.active_components === 0 && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>No deduction is switched on yet. Check the starter rates in <Link to="/admin/payroll/settings">Payroll settings</Link> and switch on the ones you use.</p>}
+            {data.active_components === 0 && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>No deduction is switched on yet. Check the starter rates in <Link to="/admin/payroll/settings">Payroll configuration</Link> and switch on the ones you use.</p>}
             <section style={{ ...card, padding: 14, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <strong>Start a payroll</strong>
               <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} style={{ padding: 6, borderRadius: 6, border: '1px solid #d1d5db' }} />

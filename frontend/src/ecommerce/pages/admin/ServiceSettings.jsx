@@ -83,7 +83,7 @@ export default function ServiceSettings() {
             <section style={{ ...card, padding: 20 }}>
               <p style={{ margin: 0, fontWeight: 700, color: colors.primaryDeep }}>Fee defaults</p>
               <p style={{ margin: '4px 0 12px', fontSize: '0.76rem', color: colors.textFaint, maxWidth: 680 }}>
-                The amount is what a service starts with, and a ticked fee is switched on for every <strong>new</strong> service (existing services keep what they have). Each fee posts to its own ledger with its own tax — see them under <Link to="/admin/books?tab=accounts">Books → Chart of accounts → Service Income</Link>. The accounts services post to by default are in <Link to="/admin/books?tab=settings">Books → Settings → Default ledgers</Link>.
+                The amount is what a service starts with, and a ticked fee is switched on for every <strong>new</strong> service (existing services keep what they have). Each fee posts to its own ledger with its own tax — see them under <Link to="/admin/books?tab=accounts">Books → Chart of accounts → Service Income</Link>. The accounts services post to by default are in <Link to="/admin/books?tab=settings">Books → Configuration → Default ledgers</Link>.
               </p>
               {BUCKETS.map(([title, kinds]) => {
                 const list = data.fees.filter((f) => kinds.includes(f.kind));

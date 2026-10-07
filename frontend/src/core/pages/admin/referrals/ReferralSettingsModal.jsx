@@ -30,7 +30,7 @@ export default function ReferralSettingsModal({ onClose }) {
 
   const pct = f?.referral_discount_type === 'percentage';
   return (
-    <Modal title="Referral programme" subtitle="Applies to every customer's personal referral code. Existing codes follow these settings straight away." onClose={onClose} width={580}>
+    <Modal title="Referral programme" subtitle="Applies to every customer's personal referral code. Existing codes follow this configuration straight away." onClose={onClose} width={580}>
       {!f ? <p>{err ?? 'Loading…'}</p> : (
         <form onSubmit={submit}>
           <FormStack>

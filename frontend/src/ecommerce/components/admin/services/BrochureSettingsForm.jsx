@@ -44,7 +44,7 @@ export default function BrochureSettingsForm({ value, onChange, templates, inher
         </SelectInput>
       </Field>
       {SWITCHES.map(([k, l]) => boolSel(k, l))}
-      {inherit && <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>Anything left on "Default" follows the shop-wide settings, so changing those later changes this service too.</p>}
+      {inherit && <p style={{ gridColumn: '1 / -1', margin: 0, fontSize: '0.74rem', color: colors.textFaint }}>Anything left on "Default" follows the shop-wide configuration, so changing those later changes this service too.</p>}
     </div>
   );
 }

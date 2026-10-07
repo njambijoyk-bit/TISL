@@ -8,7 +8,7 @@ import SimpleTable from '../../../core/components/admin/ui/SimpleTable';
 import boardsAPI from '../../../_shared/api/boards';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import useAuthStore from '../../../_shared/store/authStore';
-import { btnPrimary, btnGhost, colors } from '../../../_shared/theme/tokens';
+import { btnPrimary, btnGhost, btnBin, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import BoardChip from '../../components/BoardChip';
 
@@ -53,7 +53,7 @@ export default function BoardList() {
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
         <HubHeader title="Boards" description="Collections of pins. Public boards show on the website; private ones are only for staff." />
         <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" style={btnGhost} onClick={() => setBin(!bin)}>{bin ? '‹ Back to boards' : <><Trash2 size={14} /> Recycle bin</>}</button>
+          <button type="button" style={bin ? btnGhost : btnBin} onClick={() => setBin(!bin)}>{bin ? '‹ Back to boards' : <><Trash2 size={14} /> Recycle bin</>}</button>
           {!bin && <button type="button" style={btnPrimary} onClick={() => nav('/admin/boards/new')}><Plus size={14} /> New board</button>}
         </div>}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', ...(bin ? { display: 'none' } : {}) }}>

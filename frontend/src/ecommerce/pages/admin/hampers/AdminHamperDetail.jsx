@@ -211,7 +211,7 @@ function OverviewTab({ hamper }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
       <div style={{ ...card, padding: 20 }}>
-        <SectionLabel>Settings</SectionLabel>
+        <SectionLabel>Configuration</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {rows.map(({ label, value }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
