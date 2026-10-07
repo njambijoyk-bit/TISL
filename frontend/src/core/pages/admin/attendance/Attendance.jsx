@@ -83,7 +83,7 @@ function SettingsModal({ settings, onClose, onSaved }) {
   const save = async () => { try { await attendanceAPI.saveSettings(s); toast.success('Saved'); onSaved(); } catch (e) { toast.error(errMsg(e, 'Could not save')); } };
   const saveMarkers = async (id, ids) => { try { await attendanceAPI.saveMarkers(id, ids); setCfg((c) => ({ ...c, staff: c.staff.map((p) => (p.id === id ? { ...p, marker_ids: ids } : p)) })); } catch (e) { toast.error(errMsg(e, 'Could not save')); } };
   return (
-    <Modal title="Attendance settings" onClose={onClose}>
+    <Modal title="Attendance configuration" onClose={onClose}>
       <FormStack>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <div style={{ width: 110 }}><Field label="Work starts"><TextInput type="time" value={s.work_start} onChange={(e) => setS({ ...s, work_start: e.target.value })} /></Field></div>

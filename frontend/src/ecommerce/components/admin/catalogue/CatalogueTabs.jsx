@@ -6,8 +6,8 @@ const TABS = [
   { to: '/admin/price-lists', label: 'Price lists', also: ['/admin/price-lists'] },
   { to: '/admin/price-list-archive', label: 'Archive' },
   { to: '/admin/catalogues', label: 'Brochures', also: ['/admin/catalogues'] },
-  { to: '/admin/catalogue-items', label: 'Item settings' },
-  { to: '/admin/catalogue-settings', label: 'Settings' },
+  { to: '/admin/catalogue-items', label: 'Item configuration' },
+  { to: '/admin/catalogue-settings', label: 'Configuration' },
 ];
 
 /** The small bar on every price list and brochure page, so it is one click between them. */

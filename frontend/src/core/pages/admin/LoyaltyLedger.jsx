@@ -422,7 +422,7 @@ export default function LoyaltyLedger() {
                 color: 'var(--color-primary-600)', cursor: 'pointer', fontFamily: 'inherit',
               }}
             >
-              <Settings size={14} /> Settings
+              <Settings size={14} /> Configuration
             </button>
           </div>
         )}

@@ -238,7 +238,7 @@ export default function VaultSettingsView() {
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
-      setSaveError(err?.response?.data?.message ?? 'Failed to save settings.');
+      setSaveError(err?.response?.data?.message ?? 'Failed to save configuration.');
     }
   };
 
@@ -276,7 +276,7 @@ export default function VaultSettingsView() {
       {/* ── Page header ─────────────────────────────────────────────────────── */}
       <div className="vault-settings__header">
         <div>
-          <h2 className="vault-settings__title">Vault settings</h2>
+          <h2 className="vault-settings__title">Vault configuration</h2>
           <p className="vault-settings__sub">Global access controls, session behaviour, and audit preferences.</p>
         </div>
         <button

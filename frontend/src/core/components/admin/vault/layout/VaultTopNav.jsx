@@ -47,7 +47,7 @@ const TABS = [
   { id: 'archiver', label: 'Archiver', icon: Icons.archiver  },
   { id: 'policies', label: 'Policies', icon: Icons.policies  },
   { id: 'logs',     label: 'Logs',     icon: Icons.logs      },
-  { id: 'settings', label: 'Settings', icon: Icons.settings, superAdminOnly: true },
+  { id: 'settings', label: 'Configuration', icon: Icons.settings, superAdminOnly: true },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────

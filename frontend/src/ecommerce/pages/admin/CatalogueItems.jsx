@@ -72,7 +72,7 @@ export default function CatalogueItems() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto', display: 'grid', gap: 16 }}>
-        <div><CatalogueTabs /><HubHeader title="Item settings" description="Which sections each item uses in a brochure, and in which theme. An item with no choice of its own follows the default for its type. A catalogue can still choose differently for one entry." /></div>
+        <div><CatalogueTabs /><HubHeader title="Item configuration" description="Which sections each item uses in a brochure, and in which theme. An item with no choice of its own follows the default for its type. A catalogue can still choose differently for one entry." /></div>
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           {Object.entries(TYPE_LABELS).map(([k, l]) => <button key={k} type="button" onClick={() => setType(k)} style={{ ...small, borderRadius: 999, background: type === k ? 'var(--color-primary-500)' : 'var(--surface-card)', color: type === k ? '#fff' : colors.text }}>{l}</button>)}

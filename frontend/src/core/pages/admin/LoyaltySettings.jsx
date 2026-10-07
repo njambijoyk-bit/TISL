@@ -324,9 +324,9 @@ export default function LoyaltySettings() {
       };
       const res = await loyaltyAPI.updateSettings(payload);
       setSettings(res.settings);
-      showToast('Settings saved.');
+      showToast('Configuration saved.');
     } catch {
-      showToast('Failed to save settings.', 'error');
+      showToast('Failed to save configuration.', 'error');
     } finally { setSaving(false); }
   };
 
@@ -382,7 +382,7 @@ export default function LoyaltySettings() {
           <Settings2 size={18} style={{ color: 'var(--color-primary-500)' }} />
         </div>
         <div>
-          <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px', letterSpacing: '-0.02em' }}>Loyalty Settings</h1>
+          <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px', letterSpacing: '-0.02em' }}>Loyalty Configuration</h1>
           <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>Configure earning rules, redemption thresholds and rewards</p>
         </div>
       </div>
@@ -390,7 +390,7 @@ export default function LoyaltySettings() {
       {/* ── Global settings ── */}
       <div style={{ ...card, padding: '20px 24px', marginBottom: 20 }}>
         <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--color-primary-600)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 16px' }}>
-          Global Settings
+          Global Configuration
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -424,7 +424,7 @@ export default function LoyaltySettings() {
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
           <button onClick={saveSettings} disabled={saving} style={btn('primary')}>
             {saving ? <Loader2 size={14} style={{ animation: 'spin 700ms linear infinite' }} /> : <Check size={14} />}
-            Save settings
+            Save configuration
           </button>
         </div>
       </div>

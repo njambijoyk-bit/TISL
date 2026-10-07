@@ -18,7 +18,7 @@ export default function CatalogueSettings() {
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => { cataloguesAPI.settings().then((r) => { setRes(r); setF(r.data); }).catch((e) => toast.error(errMsg(e, 'Could not load the settings'))); }, []);
+  useEffect(() => { cataloguesAPI.settings().then((r) => { setRes(r); setF(r.data); }).catch((e) => toast.error(errMsg(e, 'Could not load the configuration'))); }, []);
   if (!f || !res) return <AdminLayout><div style={{ padding: 32, color: colors.textFaint }}>Loading…</div></AdminLayout>;
 
   const can = res.can_edit;
@@ -36,7 +36,7 @@ export default function CatalogueSettings() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto', display: 'grid', gap: 18 }}>
-        <div><CatalogueTabs /><HubHeader title="Price list and brochure settings" description="Shop-wide choices. Only a manager, admin or super admin can change them." /></div>
+        <div><CatalogueTabs /><HubHeader title="Price list and brochure configuration" description="Shop-wide choices. Only a manager, admin or super admin can change them." /></div>
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
           <strong style={{ color: colors.text }}>Price lists</strong>
@@ -62,7 +62,7 @@ export default function CatalogueSettings() {
           ))}
         </section>
 
-        {can && <div><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save settings</button></div>}
+        {can && <div><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save configuration</button></div>}
       </div>
     </AdminLayout>
   );

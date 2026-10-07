@@ -18,7 +18,7 @@ const TABS = [
   { id: 'gifts', label: 'Gift vouchers' },
   { id: 'mail', label: 'Mail' },
   { id: 'reports', label: 'Reports' },
-  { id: 'settings', label: 'Settings' },
+  { id: 'settings', label: 'Configuration' },
 ];
 
 /** Books — vouchers, ledgers, reports and the numbering / period settings. Tab lives in ?tab=; the strip to switch is the section tabs above the page (adminNav). */

@@ -139,7 +139,7 @@ export default function PayrollSettings() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <HubHeader title="Payroll settings" description="Earnings, deductions and employer contributions are rows you edit — any country, any levy. Each posts to its own ledger." action={<Link to="/admin/payroll" style={{ ...btnGhost, textDecoration: 'none' }}>← Payroll</Link>} />
+        <HubHeader title="Payroll configuration" description="Earnings, deductions and employer contributions are rows you edit — any country, any levy. Each posts to its own ledger." action={<Link to="/admin/payroll" style={{ ...btnGhost, textDecoration: 'none' }}>← Payroll</Link>} />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         {data && !data.table_ready && <p style={{ padding: '8px 12px', borderRadius: 8, background: '#fffbeb', color: '#92400e', fontSize: '0.8rem' }}>Run script 64_payroll.sql first.</p>}
         {data && s && (

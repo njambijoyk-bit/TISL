@@ -68,7 +68,7 @@ export const ADMIN_NAV = [
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
           { title: 'Price lists', path: '/admin/price-lists', also: ['/admin/price-list-archive'], roles: PRICE_ROLES },
           { title: 'Brochures', path: '/admin/catalogues', also: ['/admin/catalogue-items'], roles: PRICE_ROLES },
-          { title: 'Settings', path: '/admin/catalogue-settings', roles: PRICE_ROLES },
+          { title: 'Configuration', path: '/admin/catalogue-settings', roles: PRICE_ROLES },
         ],
       },
       {
@@ -93,7 +93,7 @@ export const ADMIN_NAV = [
           { title: 'Services', path: '/admin/services' },
           { title: 'Brochures', path: '/admin/brochures' },
           { title: 'Service categories', path: '/admin/service-categories' },
-          { title: 'Service settings', path: '/admin/service-settings' },
+          { title: 'Service configuration', path: '/admin/service-settings' },
         ],
       },
       { id: 'hampers', title: 'Hampers', icon: Gift, color: '#fc7bf5', path: '/admin/hampers', module: MODULES.HAMPERS },
@@ -121,7 +121,7 @@ export const ADMIN_NAV = [
         id: 'loyalty', title: 'Loyalty', icon: Award, color: '#ec4899', path: '/admin/loyalty', keywords: 'points',
         tabs: [
           { title: 'Ledger', path: '/admin/loyalty' },
-          { title: 'Loyalty settings', path: '/admin/loyalty/settings' },
+          { title: 'Loyalty configuration', path: '/admin/loyalty/settings' },
         ],
       },
       {
@@ -148,7 +148,7 @@ export const ADMIN_NAV = [
           { title: 'Gift vouchers', path: '/admin/books?tab=gifts' },
           { title: 'Mail', path: '/admin/books?tab=mail' },
           { title: 'Edit log', path: '/admin/books/edit-log' },
-          { title: 'Settings', path: '/admin/books?tab=settings' },
+          { title: 'Configuration', path: '/admin/books?tab=settings' },
         ],
       },
       { id: 'accounts', title: 'Chart of accounts', icon: ListTree, color: '#7c3aed', path: '/admin/books?tab=accounts', roles: FINANCE_READ, keywords: 'ledgers groups accounts chart' },
@@ -196,7 +196,7 @@ export const ADMIN_NAV = [
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',
         tabs: [
-          { title: 'AI settings', path: '/admin/ai-analytics', exact: true },
+          { title: 'AI configuration', path: '/admin/ai-analytics', exact: true },
           { title: 'Keys', path: '/admin/ai-analytics/keys' },
           { title: 'Modules', path: '/admin/ai-analytics/modules' },
           { title: 'Sessions', path: '/admin/ai-analytics/sessions' },
@@ -288,7 +288,7 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'Runs', path: '/admin/payroll', exact: true },
           { title: 'Gratuity', path: '/admin/payroll/gratuity' },
-          { title: 'Settings', path: '/admin/payroll/settings' },
+          { title: 'Configuration', path: '/admin/payroll/settings' },
         ],
       },
     ],

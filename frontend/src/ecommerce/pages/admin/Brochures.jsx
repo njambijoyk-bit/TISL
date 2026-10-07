@@ -78,18 +78,18 @@ export default function Brochures() {
     if (!Object.keys(settings).length) { toast.error('Choose something to change first.'); return; }
     if (await run(() => brochuresAPI.saveServices(sel, settings))) { setBulk({}); setSel([]); }
   };
-  const reset = async () => { if (window.confirm(`Take ${sel.length} service${sel.length === 1 ? '' : 's'} back to the shop-wide settings?`)) { if (await run(() => brochuresAPI.saveServices(sel, {}, Object.keys(d.builtin)))) setSel([]); } };
+  const reset = async () => { if (window.confirm(`Take ${sel.length} service${sel.length === 1 ? '' : 's'} back to the shop-wide configuration?`)) { if (await run(() => brochuresAPI.saveServices(sel, {}, Object.keys(d.builtin)))) setSel([]); } };
 
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto', display: 'grid', gap: 20 }}>
         <HubHeader title="Brochures" description="A brochure is drawn from each service's own details. Choose the look, what it shows, and whether customers can download it." />
-        {!d.ready && <p role="alert" style={{ ...card, padding: 12, fontSize: '0.84rem', color: colors.dangerText }}>Run script 92 first. Until then these settings cannot be saved and every service uses the built-in defaults.</p>}
+        {!d.ready && <p role="alert" style={{ ...card, padding: 12, fontSize: '0.84rem', color: colors.dangerText }}>Run script 92 first. Until then this configuration cannot be saved and every service uses the built-in defaults.</p>}
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
-          <div><strong style={{ color: colors.text }}>Shop-wide settings</strong><div style={{ fontSize: '0.78rem', color: colors.textFaint }}>Used by every service that has not chosen its own. A service with no template uses the default template.</div></div>
+          <div><strong style={{ color: colors.text }}>Shop-wide configuration</strong><div style={{ fontSize: '0.78rem', color: colors.textFaint }}>Used by every service that has not chosen its own. A service with no template uses the default template.</div></div>
           <BrochureSettingsForm value={defaults} onChange={setDefaults} templates={d.templates} maxImages={d.max_images} disabled={!canChange} />
-          <div><button type="button" style={{ ...btnPrimary, opacity: canChange && !busy ? 1 : 0.5 }} disabled={!canChange || busy} onClick={() => run(() => brochuresAPI.saveDefaults(defaults), 'Saved')}>Save shop-wide settings</button></div>
+          <div><button type="button" style={{ ...btnPrimary, opacity: canChange && !busy ? 1 : 0.5 }} disabled={!canChange || busy} onClick={() => run(() => brochuresAPI.saveDefaults(defaults), 'Saved')}>Save shop-wide configuration</button></div>
         </section>
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 12 }}>
@@ -109,7 +109,7 @@ export default function Brochures() {
               <Field label="Customer download"><SelectInput value={bulk.download === undefined ? '' : bulk.download ? '1' : '0'} onChange={(e) => setBulk((b) => ({ ...b, download: e.target.value === '' ? undefined : e.target.value === '1' }))}><option value="">(leave as is)</option><option value="1">Allowed</option><option value="0">Not allowed</option></SelectInput></Field>
               <Field label="Price"><SelectInput value={bulk.price ?? ''} onChange={(e) => setBulk((b) => ({ ...b, price: e.target.value }))}><option value="">(leave as is)</option>{Object.entries(PRICE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
               <button type="button" style={btnPrimary} disabled={busy} onClick={apply}>Apply to {sel.length}</button>
-              <button type="button" style={btnGhost} disabled={busy} onClick={reset}>Use shop-wide settings</button>
+              <button type="button" style={btnGhost} disabled={busy} onClick={reset}>Use shop-wide configuration</button>
             </div>
           )}
           <div style={{ overflowX: 'auto' }}>
@@ -125,7 +125,7 @@ export default function Brochures() {
                     <td style={td}>{PRICE_LABEL[s.effective.price]}{s.own.price === undefined && <span style={{ color: colors.textFaint }}> (default)</span>}</td>
                     <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
                       <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' }} onClick={() => setPreviewing(s)}><Eye size={12} /> Preview</button>{' '}
-                      {canChange && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' }} onClick={() => setEditing({ service: s, own: { ...s.own } })}><Pencil size={12} /> Settings</button>}
+                      {canChange && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' }} onClick={() => setEditing({ service: s, own: { ...s.own } })}><Pencil size={12} /> Configuration</button>}
                     </td>
                   </tr>
                 ))}
@@ -137,7 +137,7 @@ export default function Brochures() {
       </div>
 
       {editing && (
-        <Modal title={`${editing.service.name}: brochure settings`} subtitle="Leave a choice on Default to follow the shop-wide setting" onClose={() => setEditing(null)} width={900}
+        <Modal title={`${editing.service.name}: brochure configuration`} subtitle="Leave a choice on Default to follow the shop-wide configuration" onClose={() => setEditing(null)} width={900}
           footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={btnGhost} onClick={() => setEditing(null)}>Cancel</button><button type="button" style={btnPrimary} disabled={busy} onClick={async () => { if (await run(() => brochuresAPI.saveServices([editing.service.id], editing.own, Object.keys(d.builtin).filter((k) => editing.own[k] === undefined)))) setEditing(null); }}>Save</button></div>}>
           <BrochureSettingsForm value={editing.own} onChange={(own) => setEditing((e) => ({ ...e, own }))} templates={d.templates} inherit={d.defaults} maxImages={d.max_images} />
         </Modal>

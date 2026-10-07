@@ -1700,7 +1700,7 @@ function SettingsModal({ onClose, toast }) {
   };
 
   return (
-    <Modal title="Settings" onClose={onClose} width={760}>
+    <Modal title="Configuration" onClose={onClose} width={760}>
       <div style={{ display: "flex", gap: 0, borderBottom: `1px solid ${C.border}`, marginBottom: 20 }}>
         {["categories", "locations"].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
@@ -3074,7 +3074,7 @@ export default function AssetsPage() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <ActionBtn color={C.amber} outline small onClick={() => setSettingsOpen(true)}>⚙ Settings</ActionBtn>
+          <ActionBtn color={C.amber} outline small onClick={() => setSettingsOpen(true)}>⚙ Configuration</ActionBtn>
         </div>
       </div>
 

@@ -36,7 +36,7 @@ export default function ServiceSettings() {
     setWin({ cancellation_window_hours: d.settings.cancellation_window_hours, reschedule_window_hours: d.settings.reschedule_window_hours });
     setFees(d.fees.map((f) => ({ ledger_id: f.ledger.id, amount: f.amount ?? '', default_on: f.default_on })));
   }, []);
-  useEffect(() => { serviceSettingsAPI.get().then(apply).catch((e) => setError(errMsg(e, 'Could not load the settings'))); }, [apply]);
+  useEffect(() => { serviceSettingsAPI.get().then(apply).catch((e) => setError(errMsg(e, 'Could not load the configuration'))); }, [apply]);
 
   const dirty = useMemo(() => {
     if (!data) return false;
@@ -61,7 +61,7 @@ export default function ServiceSettings() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }}>
-        <HubHeader title="Services settings" description="Defaults for every service: when a cancellation is late, and what each fee comes to. A service can still change these for itself." />
+        <HubHeader title="Services configuration" description="Defaults for every service: when a cancellation is late, and what each fee comes to. A service can still change these for itself." />
         {error && <p role="alert" style={{ padding: '8px 12px', borderRadius: 8, background: '#fef2f2', color: '#991b1b', fontSize: '0.82rem' }}>{error}</p>}
         {!data && !error && <p style={{ color: colors.textMuted }}>Loading…</p>}
         {data && (
@@ -118,7 +118,7 @@ export default function ServiceSettings() {
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10 }}>
               {dirty && <span style={{ fontSize: '0.76rem', color: '#b45309' }}>Unsaved changes</span>}
-              <button type="button" style={btnPrimary} disabled={busy || !dirty} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</button>
+              <button type="button" style={btnPrimary} disabled={busy || !dirty} onClick={save}>{busy ? 'Saving…' : 'Save configuration'}</button>
             </div>
           </div>
         )}
