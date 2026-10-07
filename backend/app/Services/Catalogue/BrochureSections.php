@@ -14,7 +14,7 @@ class BrochureSections
     /** Every section an item type can use. */
     public const KEYS = [
         'product' => ['hero', 'gallery', 'story', 'features', 'specs', 'prices', 'details'],
-        'service' => ['hero', 'gallery', 'story', 'features', 'packages', 'details'],
+        'service' => ['hero', 'gallery', 'story', 'features', 'packages', 'charges', 'details'],
         'hamper'  => ['hero', 'inside', 'story', 'price', 'terms'],
         'auction' => ['hero', 'lot', 'schedule', 'price', 'terms'],
     ];
@@ -25,7 +25,7 @@ class BrochureSections
     /** What each type starts with when nothing else is chosen: its sections in order, each with a theme. */
     public const BUILT_IN = [
         'product' => [['hero', 'paper'], ['gallery', 'sand'], ['story', 'paper'], ['features', 'sage'], ['specs', 'mono'], ['prices', 'paper']],
-        'service' => [['hero', 'ocean'], ['gallery', 'sand'], ['story', 'paper'], ['features', 'sage'], ['packages', 'paper']],
+        'service' => [['hero', 'ocean'], ['gallery', 'sand'], ['story', 'paper'], ['features', 'sage'], ['packages', 'paper'], ['charges', 'sand']],
         'hamper'  => [['hero', 'blush'], ['inside', 'sand'], ['story', 'paper'], ['price', 'blush'], ['terms', 'mono']],
         'auction' => [['hero', 'night'], ['lot', 'paper'], ['schedule', 'sunset'], ['price', 'night'], ['terms', 'mono']],
     ];

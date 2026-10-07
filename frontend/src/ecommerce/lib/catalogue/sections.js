@@ -82,7 +82,8 @@ function priceTable(c, b, item, th, title) {
   const room = Math.max(1, Math.floor((i.y + i.h - foot - y) / rh));
   const shown = rows.length > room ? rows.slice(0, Math.max(1, room - 1)) : rows;
   shown.forEach((x) => {
-    txt(c, labelOf(x, item), cols.label, y, i.w * 0.5, rh, { sizePx: u * 1.4, color: th.ink, oneLine: true });
+    txt(c, labelOf(x, item), cols.label, y, i.w * 0.5, u * 2, { sizePx: u * 1.4, color: th.ink, oneLine: true });
+    if (x.branches?.length) txt(c, `Offered at ${x.branches.join(', ')}`, cols.label, y + u * 1.9, i.w * 0.5, u * 1.4, { sizePx: u * 0.95, color: th.muted, oneLine: true });
     txt(c, money(x.price, x), cols.price - i.w * 0.17, y, i.w * 0.17, u * 2, { sizePx: u * 1.5, color: th.ink, weight: 700, align: 'right', oneLine: true });
     if (x.strike || x.was) {
       const s = x.strike ? money(x.strike, x) : `Was ${money(x.was, x)}, up ${x.up_percent}%`;
@@ -145,6 +146,47 @@ function bigPrice(c, b, item, th, title) {
   if (item.type === 'hamper' && item.stock_left != null) txt(c, `${item.stock_left} left`, i.x + i.w * 0.6, i.y + u * 3, i.w * 0.4, u * 2.4, { sizePx: u * 1.8, color: th.accent, weight: 700, align: 'right', oneLine: true });
 }
 
+/** An auction's current price, and what the winner pays: the bid, its tax, each charge and the total, as the auction page shows it. */
+function auctionPrice(c, b, item, th) {
+  panel(c, b, th);
+  const i = inner(c, b); const { u } = c; const p = item.payable; const x = list(item.lines)[0];
+  heading(c, 'Current price and what you pay', i.x, i.y, i.w, th);
+  if (x) {
+    txt(c, money(x.price, x), i.x, i.y + u * 2.8, i.w * 0.44, u * 7, { font: th.head, sizePx: u * 4.6, color: th.ink, oneLine: true });
+    txt(c, 'current bid', i.x, i.y + u * 10, i.w * 0.44, u * 1.6, { sizePx: u * 1.1, color: th.muted, oneLine: true });
+    txt(c, stampOf(item), i.x, i.y + i.h - u * 1.6, i.w * 0.44, u * 1.4, { sizePx: u * 0.95, color: th.accent, oneLine: true });
+  }
+  if (!p) return;
+  const cur = (n) => fmtAmount(n, p.currency_code, p.currency_symbol);
+  const x0 = i.x + i.w * 0.5; const w = i.w * 0.5; const rh = u * 3.1;
+  txt(c, `IF YOU WIN AT ${cur(p.bid).toUpperCase()}`, x0, i.y + u * 2.8, w, u * 1.4, { sizePx: u * 0.95, color: th.muted, weight: 700, oneLine: true });
+  p.rows.forEach((r, n) => {
+    const y = i.y + u * 5 + n * rh;
+    txt(c, r.label, x0, y, w * 0.62, rh, { sizePx: u * 1.35, color: th.ink, oneLine: true, vcenter: true });
+    txt(c, cur(r.amount), x0 + w * 0.6, y, w * 0.4, rh, { sizePx: u * 1.35, color: th.ink, align: 'right', oneLine: true, vcenter: true });
+  });
+  const ty = i.y + u * 5 + p.rows.length * rh + u * 0.4;
+  line(c, x0, ty, x0 + w, ty, th.accent, 2);
+  txt(c, 'Amount payable', x0, ty + u * 0.6, w * 0.6, rh, { sizePx: u * 1.6, color: th.ink, weight: 700, oneLine: true, vcenter: true });
+  txt(c, cur(p.payable), x0 + w * 0.5, ty + u * 0.6, w * 0.5, rh, { sizePx: u * 1.8, color: th.accent, weight: 700, align: 'right', oneLine: true, vcenter: true });
+}
+
+/** A service's extra charges: a deposit, surcharges, a service charge, with when each applies. */
+function chargesSection(c, b, item, th) {
+  panel(c, b, th);
+  const i = inner(c, b); const { u } = c;
+  heading(c, 'Extra charges', i.x, i.y, i.w, th);
+  const rows = list(item.charges); const rh = Math.min(u * 3.4, (i.h - u * 3) / Math.max(1, rows.length));
+  const cur = list(item.lines)[0];
+  rows.forEach((r, n) => {
+    const y = i.y + u * 3 + n * rh;
+    const when = [r.when, r.unit ? `per ${r.unit}` : null, r.refundable ? 'refundable' : null].filter(Boolean).join(', ');
+    txt(c, r.name, i.x, y, i.w * 0.5, rh, { sizePx: u * 1.4, color: th.ink, oneLine: true, vcenter: true });
+    txt(c, when, i.x + i.w * 0.5, y, i.w * 0.28, rh, { sizePx: u * 1.05, color: th.muted, oneLine: true, vcenter: true });
+    txt(c, r.basis === 'percent' ? `${r.amount}%` : money(r.amount, cur ?? {}), i.x + i.w * 0.78, y, i.w * 0.22, rh, { sizePx: u * 1.4, color: th.ink, weight: 700, align: 'right', oneLine: true, vcenter: true });
+  });
+}
+
 function lot(c, b, item, th) {
   panel(c, b, th);
   const i = inner(c, b); const { u } = c; const a = item.auction ?? {};
@@ -200,9 +242,9 @@ const TERMS = { has: () => true, want: () => 14, min: () => 10, draw: terms };
 
 export const SECTIONS = {
   product: { hero: HERO, gallery: GALLERY, story: STORY, features: FEATURES, specs: SPECS, prices: LINES('Prices'), details: DETAILS },
-  service: { hero: HERO, gallery: GALLERY, story: STORY, features: FEATURES, packages: LINES('Packages and prices'), details: DETAILS },
+  service: { hero: HERO, gallery: GALLERY, story: STORY, features: FEATURES, packages: LINES('Packages and prices'), charges: { has: (it) => rowsOf(it, 'charges') > 0, want: (it) => 8 + rowsOf(it, 'charges') * 3.4, min: (it) => 8 + rowsOf(it, 'charges') * 3, draw: chargesSection }, details: DETAILS },
   hamper: { hero: HERO, inside: INSIDE, story: STORY, price: BIG('Price'), terms: TERMS },
-  auction: { hero: HERO, lot: { has: (it) => Boolean(it.auction), want: () => 28, min: () => 22, draw: lot }, schedule: { has: (it) => Boolean(it.auction), want: () => 15, min: () => 12, draw: schedule }, price: BIG('Current price'), terms: TERMS },
+  auction: { hero: HERO, lot: { has: (it) => Boolean(it.auction), want: () => 28, min: () => 22, draw: lot }, schedule: { has: (it) => Boolean(it.auction), want: () => 15, min: () => 12, draw: schedule }, price: { has: (it) => rowsOf(it, 'lines') > 0, want: (it) => 16 + (it.payable?.rows?.length ?? 0) * 3.1 + 6, min: (it) => 14 + (it.payable?.rows?.length ?? 0) * 3.1 + 6, draw: auctionPrice }, terms: TERMS },
 };
 
 /** The pictures an item needs on its page (the loader fetches only these). */

@@ -75,8 +75,72 @@ class BrochureItemData
         };
         $resolved = BrochureSections::resolve($type, $entry, $own, $this->settings->get()['brochure_defaults']);
         $price = $this->prices($type, $item, $viewer);
+        if ($type === 'service') {
+            $price['lines'] = $this->withBranches($item, $price['lines']);
+        }
+        $extra = $type === 'auction' ? ['payable' => $this->payable($item, $viewer)] : [];
 
-        return $base + ['type' => $type, 'id' => $item->id, 'sections' => $resolved['sections'], 'sections_from' => $resolved['source']] + $price;
+        return $base + ['type' => $type, 'id' => $item->id, 'sections' => $resolved['sections'], 'sections_from' => $resolved['source']] + $price + $extra;
+    }
+
+    /** Each package line told where it is offered: the branches of the people who do that package (the same answer the booking page gives). */
+    private function withBranches(Service $s, array $lines): array
+    {
+        try {
+            $book = app(\App\Services\Booking\BookingService::class);
+            $ids = $s->variants()->active()->pluck('id', 'name');
+            $whole = array_column($book->branchesFor($s, null), 'name');
+            $by = [];
+            foreach ($ids as $name => $vid) {
+                $by[$name] = array_column($book->branchesFor($s, (int) $vid), 'name');
+            }
+        } catch (\Throwable) {
+            return $lines;
+        }
+
+        return array_map(fn ($l) => $l + ['branches' => $by[$l['variant'] ?? ''] ?? $whole], $lines);
+    }
+
+    /** What the customer pays if they win at the current price: the bid, its tax, each charge, the tax on the charges, and the total, as the auction page shows it. */
+    private function payable(Auction $a, ?User $viewer): ?array
+    {
+        try {
+            $bid = max((float) ($a->current_price ?: 0), (float) $a->start_price);
+            $q = app(\App\Services\Books\AuctionChargeService::class)->quote($a, $bid, 0, $viewer?->customer);
+        } catch (\Throwable) {
+            return null;
+        }
+        $rows = [['label' => 'Winning bid', 'amount' => (float) $q['bid']['net']]];
+        if (($q['bid']['tax'] ?? 0) > 0) {
+            $rows[] = ['label' => (string) ($q['bid']['label'] ?? 'Tax'), 'amount' => (float) $q['bid']['tax']];
+        }
+        foreach ($q['lines'] as $l) {
+            $rows[] = ['label' => (string) $l['name'], 'amount' => (float) $l['net']];
+        }
+        $chargeTax = array_sum(array_column($q['lines'], 'tax'));
+        if ($chargeTax > 0) {
+            $rows[] = ['label' => 'Tax on charges', 'amount' => round($chargeTax, 2)];
+        }
+        $a->loadMissing('currency:id,code,symbol');
+
+        return ['bid' => $bid, 'rows' => $rows, 'payable' => (float) $q['totals']['payable'], 'currency_code' => $a->currency?->code, 'currency_symbol' => $a->currency?->symbol,
+            'upfront' => array_map(fn ($u) => ['label' => (string) $u['name'], 'amount' => (float) $u['gross']], $q['upfront'])];
+    }
+
+    /** The extra charges a service carries (a deposit, a surcharge, a service charge...), with when each applies. */
+    private function charges(Service $s): array
+    {
+        try {
+            $rows = app(\App\Services\Books\ServiceFeeService::class)->forService($s);
+        } catch (\Throwable) {
+            return [];
+        }
+        $when = ['always' => '', 'onsite' => 'on-site visits', 'urgent' => 'urgent bookings', 'after_hours' => 'outside normal hours', 'group' => 'larger groups'];
+
+        return collect($rows)->filter(fn ($r) => ! empty($r['is_enabled']) && ($r['amount'] ?? null) !== null)->map(fn ($r) => [
+            'name' => (string) $r['ledger']['name'], 'amount' => (float) $r['amount'], 'basis' => $r['basis'] ?? 'fixed', 'unit' => $r['unit'] ?? '', 'refundable' => (bool) ($r['refundable'] ?? false),
+            'when' => $when[$r['condition'] ?? 'always'] ?? '',
+        ])->values()->all();
     }
 
     private function abs(?string $u): ?string
@@ -135,7 +199,7 @@ class BrochureItemData
         return [
             'name' => $s->name, 'tagline' => $s->category?->name, 'category' => $s->category?->name, 'brand' => null,
             'short' => (string) $s->short_description, 'description' => (string) $s->description,
-            'features' => $this->strings($s->features), 'specs' => [],
+            'features' => $this->strings($s->features), 'specs' => [], 'charges' => $this->charges($s),
             'images' => $this->images($s->main_image ? $s->main_image_url : null, (array) ($s->images_url ?? [])), 'sku' => $s->sku, 'barcode' => null,
             'url' => url('/services/' . $s->id),
         ];

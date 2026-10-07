@@ -243,7 +243,7 @@ function OfferedAt({ staff, variant, variants, readOnly }) {
         const n = b.people.filter((r) => doesPackage(on, r.id, variant.id)).length;
         return (
           <button key={b.id} type="button" disabled={readOnly || busy} onClick={() => toggle(b)} title={`${n} of ${b.people.length} people at ${b.name} do this package`}
-            style={{ padding: '3px 9px', borderRadius: 999, fontSize: '0.72rem', cursor: readOnly ? 'default' : 'pointer', border: `1.5px solid ${n ? '#10b981' : '#e5e7eb'}`, background: n ? '#ecfdf5' : 'var(--surface-card, #fff)', color: n ? '#065f46' : colors.textMuted, fontWeight: n ? 700 : 500 }}>
+            style={{ padding: '3px 9px', borderRadius: 999, fontSize: '0.72rem', cursor: readOnly ? 'default' : 'pointer', border: `1.5px solid ${n ? '#10b981' : 'var(--line)'}`, background: n ? 'color-mix(in srgb, #10b981 18%, transparent)' : 'var(--surface-card)', color: n ? colors.text : colors.textMuted, fontWeight: n ? 700 : 500 }}>
             {b.name}{n ? ` · ${n}` : ''}
           </button>
         );
@@ -342,8 +342,8 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {error && <p role="alert" style={{ margin: 0, padding: '8px 12px', borderRadius: radius.md, background: '#fef2f2', color: '#991b1b', fontSize: '0.8rem' }}>{error}</p>}
-      {notice && !error && <p style={{ margin: 0, padding: '8px 12px', borderRadius: radius.md, background: '#f0fdf4', color: '#166534', fontSize: '0.8rem' }}>{notice}</p>}
+      {error && <p role="alert" style={{ margin: 0, padding: '8px 12px', borderRadius: radius.md, background: colors.dangerBg, border: `1px solid ${colors.danger}`, color: colors.text, fontSize: '0.8rem' }}>{error}</p>}
+      {notice && !error && <p style={{ margin: 0, padding: '8px 12px', borderRadius: radius.md, background: colors.successBg, border: `1px solid ${colors.success}`, color: colors.text, fontSize: '0.8rem' }}>{notice}</p>}
 
       {/* ── Options ── */}
       <Section title="Options" description="What a customer chooses between — type, size, location. Each combination becomes a package with its own price.">
@@ -353,7 +353,7 @@ export default function ServiceCatalogEditor({ serviceId, currencyCode = getBase
             <div key={o.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
               <strong style={{ fontSize: '0.82rem', minWidth: 110 }}>{o.name}</strong>
               {o.values.map((v) => (
-                <span key={v.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: radius.pill, background: '#f5f3ff', fontSize: '0.78rem' }}>
+                <span key={v.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 10px', borderRadius: radius.pill, background: 'color-mix(in srgb, var(--color-primary-500) 16%, transparent)', color: colors.text, fontSize: '0.78rem' }}>
                   {v.value}
                   {!readOnly && (
                     <button type="button" aria-label={`Remove ${v.value}`} disabled={busy} onClick={() => window.confirm(`Remove "${v.value}"? Packages using it are deleted.`) && run(() => serviceCatalogAPI.deleteValue(serviceId, o.id, v.id))}

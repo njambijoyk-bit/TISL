@@ -66,7 +66,7 @@ class PriceLines
             if ($v->price === null) {
                 continue;
             }
-            $lines[] = $this->line($s, $s->sku, $v->name, $v->priceUnit?->code, (float) $v->price, $v->compare_at_price !== null ? (float) $v->compare_at_price : null, $cur);
+            $lines[] = $this->line($s, $s->sku, $v->name, $v->priceUnit?->code, (float) $v->price, $v->compare_at_price !== null ? (float) $v->compare_at_price : null, $cur) + ['variant_id' => $v->id];
         }
         if (! $lines && $s->base_price !== null && (float) $s->base_price > 0) {
             $lines[] = $this->line($s, $s->sku, null, $s->priceUnit?->code, (float) $s->base_price, null, $cur);

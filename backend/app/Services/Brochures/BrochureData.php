@@ -51,11 +51,40 @@ class BrochureData
             'requirements' => $set['requirements'] ? $list($s->requirements) : [],
             'questions' => $set['requirements'] ? $this->questions($s) : [],
             'tiers' => ($set['tiers'] && $priceMode === 'show') ? $this->tiers($s) : [],
+            'packages' => $set['tiers'] ? $this->packages($s, $priceMode === 'show') : [],
             'charges' => $set['charges'] ? $this->charges($s) : [],
             'policy' => $set['policy'] ? $this->policy() : null,
             'rating' => $set['rating'] && (float) $s->rating > 0 ? ['value' => (float) $s->rating, 'count' => (int) $s->review_count] : null,
             'video' => $s->video,
         ];
+    }
+
+    /**
+     * The packages (the service's options): each with its OWN price and tax and the branches that offer it, so the brochure no longer shows only the service's general price.
+     * The prices are left out when the brochure hides the price.
+     */
+    private function packages(Service $s, bool $showPrice): array
+    {
+        try {
+            $lines = app(\App\Services\Catalogue\PriceLines::class)->forService($s);
+            $book = app(\App\Services\Booking\BookingService::class);
+        } catch (\Throwable) {
+            return [];
+        }
+        if (! $s->variants()->active()->exists()) {
+            return [];   // a service with no packages is described by its general price alone
+        }
+
+        return array_map(function ($l) use ($s, $book, $showPrice) {
+            try {
+                $branches = array_column($book->branchesFor($s, $l['variant_id'] ?? null), 'name');
+            } catch (\Throwable) {
+                $branches = [];
+            }
+
+            return ['name' => $l['variant'] ?: $s->name, 'unit' => $l['unit'], 'price' => $showPrice ? $l['price'] : null, 'strike' => $showPrice ? $l['original_price'] : null,
+                'tax_name' => $showPrice ? $l['tax_name'] : null, 'tax_amount' => $showPrice ? $l['tax_amount'] : null, 'branches' => $branches];
+        }, $lines);
     }
 
     /** What a customer is asked when they request the service. */
