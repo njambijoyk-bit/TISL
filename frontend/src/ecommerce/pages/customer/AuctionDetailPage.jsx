@@ -12,6 +12,7 @@ import Footer from '../../../_shared/components/layout/Footer';
 import AuctionCostPanel from '../../components/storefront/auctions/AuctionCostPanel';
 import Breadcrumb from '../../../_shared/components/layout/Breadcrumb';
 import { auctionPath, idFromParam, itemSlug } from '../../../_shared/lib/itemPath';
+import ItemBrochureButton from '../../components/catalogue/ItemBrochureButton';
 
 // ── responsive hook ──────────────────────────────────────────────────────────
 function useWindowWidth() {
@@ -284,6 +285,8 @@ export default function AuctionDetailPage() {
               <p style={{ textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af', margin: '-12px 0 0' }}>
                 {!isEnded && <>Minimum next bid: <strong style={{ color: '#374151' }}>{money(minBid)}</strong></>}
               </p>
+
+              <div><ItemBrochureButton type="auction" id={auction.id} /></div>
 
               <AuctionCostPanel auctionId={id} bid={Math.max(currentPrice, Number(auction.start_price) || 0)} money={money} ended={isEnded} onRegistrationChange={setRegState} onTermsChange={(checked, acceptances) => setTermsAgreed({ checked, acceptances })} />
 

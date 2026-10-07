@@ -151,6 +151,17 @@ const AdminServices      = lazy(() => import('./ecommerce/pages/admin/Services')
 const ServiceForm        = lazy(() => import('./ecommerce/pages/admin/ServiceForm'));
 const ServiceCategories  = lazy(() => import('./ecommerce/pages/admin/ServiceCategories'));
 const Brochures          = lazy(() => import('./ecommerce/pages/admin/Brochures'));
+const PriceLists         = lazy(() => import('./ecommerce/pages/admin/PriceLists'));
+const PriceListEditor    = lazy(() => import('./ecommerce/pages/admin/PriceListEditor'));
+const PriceListView      = lazy(() => import('./ecommerce/pages/admin/PriceListView'));
+const PriceListArchive   = lazy(() => import('./ecommerce/pages/admin/PriceListArchive'));
+const Catalogues         = lazy(() => import('./ecommerce/pages/admin/Catalogues'));
+const CatalogueEditor    = lazy(() => import('./ecommerce/pages/admin/CatalogueEditor'));
+const CatalogueItems     = lazy(() => import('./ecommerce/pages/admin/CatalogueItems'));
+const CatalogueSettings  = lazy(() => import('./ecommerce/pages/admin/CatalogueSettings'));
+const CustomerBrochures  = lazy(() => import('./ecommerce/pages/customer/Brochures'));
+const CustomerPriceLists = lazy(() => import('./ecommerce/pages/customer/PriceListsPage'));
+const CustomerPriceList  = lazy(() => import('./ecommerce/pages/customer/PriceListPublic'));
 const Bookings           = lazy(() => import('./core/pages/admin/calendar/Bookings'));
 const MyBookings         = lazy(() => import('./core/pages/customer/MyBookings'));
 const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCalendar'));
@@ -449,6 +460,9 @@ function App() {
             <Route path="/auctions" element={<ModuleRoute module="ecommerce.auctions"><AuctionListPage /></ModuleRoute>} />
             <Route path="/auctions/:id" element={<ModuleRoute module="ecommerce.auctions"><AuctionDetailPage /></ModuleRoute>} />
             <Route path="/products" element={<ModuleRoute module="ecommerce"><Products /></ModuleRoute>} />
+            <Route path="/brochures" element={<ModuleRoute module="ecommerce"><CustomerBrochures /></ModuleRoute>} />
+            <Route path="/price-lists" element={<ModuleRoute module="ecommerce"><CustomerPriceLists /></ModuleRoute>} />
+            <Route path="/price-lists/:id" element={<ModuleRoute module="ecommerce"><CustomerPriceList /></ModuleRoute>} />
             <Route path="/products/:id" element={<ModuleRoute module="ecommerce"><ProductDetail /></ModuleRoute>} />
             <Route path="/services" element={<ModuleRoute module="ecommerce"><Services /></ModuleRoute>} />
             <Route path="/specials" element={<ModuleRoute module="ecommerce"><SpecialsPage /></ModuleRoute>} />
@@ -1071,6 +1085,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/admin/price-lists" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceLists /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/price-lists/new" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/price-lists/:id" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListView /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/price-list-archive" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListArchive /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogues" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><Catalogues /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogues/new" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogues/:id" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogue-items" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueItems /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogue-settings" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueSettings /></ModuleRoute></ProtectedRoute>} />
               <Route
                 path="/admin/service-categories"
                 element={

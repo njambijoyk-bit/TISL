@@ -12,6 +12,7 @@ import useMoney from '../../../_shared/hooks/useMoney';
 import { formatMoney } from '../../../_shared/lib/money';
 import Discussion from '../../../extras/components/engagement/Discussion';
 import useEngagement from '../../../_shared/lib/engagementConfig';
+import ItemBrochureButton from '../../components/catalogue/ItemBrochureButton';
 
 // Amount in a given currency (object or ISO code); nothing → KSh, as before
 const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
@@ -257,6 +258,8 @@ export default function HamperDetail() {
                   </p>
                 </div>
               )}
+
+              <ItemBrochureButton type="hamper" id={hamper.id} style={{ width: '100%', marginTop: 10 }} />
 
               <p style={{ fontSize: '0.68rem', color: '#9ca3af', textAlign: 'center', margin: '12px 0 0' }}>
                 {(hamper.items?.length ?? 0)} items included in this bundle

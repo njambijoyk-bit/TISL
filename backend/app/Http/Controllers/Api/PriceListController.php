@@ -61,6 +61,15 @@ class PriceListController extends Controller
     /** GET /admin/price-lists?status=&trashed=&q= */
     public function index(Request $request): JsonResponse
     {
+        try {
+            return $this->listing($request);
+        } catch (\Illuminate\Database\QueryException) {
+            return response()->json(['message' => 'The price list tables are not set up yet. Run script 93 first.'], 503);
+        }
+    }
+
+    private function listing(Request $request): JsonResponse
+    {
         $u = $request->user();
         $q = $this->mineOrPublished(PriceList::with('creator:id,name')->orderByDesc('id'), $u)
             ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())

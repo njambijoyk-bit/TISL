@@ -95,6 +95,15 @@ class CatalogueController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        try {
+            return $this->listing($request);
+        } catch (\Illuminate\Database\QueryException) {
+            return response()->json(['message' => 'The brochure tables are not set up yet. Run script 93 first.'], 503);
+        }
+    }
+
+    private function listing(Request $request): JsonResponse
+    {
         $this->builder($request);
         $q = $this->mineOrPublished(Brochure::with('creator:id,name')->orderByDesc('id'), $request->user())
             ->when($request->boolean('trashed'), fn ($w) => $w->onlyTrashed())
@@ -340,7 +349,11 @@ class CatalogueController extends Controller
         $clean = BrochureSections::cleanMeta($type, $meta);
         $blank = $clean['enabled'] && ! $clean['sections'];   // nothing special: fall back to the default
         if ($type === 'product') {
-            Product::whereKey($id)->update(['brochure_meta' => $blank ? null : json_encode($clean)]);
+            try {
+                Product::whereKey($id)->update(['brochure_meta' => $blank ? null : json_encode($clean)]);
+            } catch (\Illuminate\Database\QueryException) {
+                throw new BooksException('The products table has no brochure column yet. Run script 93 first.');
+            }
 
             return;
         }
@@ -438,6 +451,12 @@ class CatalogueController extends Controller
         $staff = Audience::isStaff($u);
         $out = ['catalogues' => ['enabled' => $s['customer_catalogue_link'] || $staff, 'count' => $this->liveFor($u)->count()]];
         $out['catalogues']['show'] = $out['catalogues']['enabled'] && $out['catalogues']['count'] > 0;
+        try {
+            $out['price_lists'] = ['count' => Audience::scope(\App\Models\PriceList::live(), $u)->count(), 'archive' => Audience::scope(\App\Models\PriceListArchive::query(), $u)->count()];
+        } catch (\Throwable) {
+            $out['price_lists'] = ['count' => 0, 'archive' => 0];
+        }
+        $out['price_lists']['show'] = $out['price_lists']['count'] + $out['price_lists']['archive'] > 0;
         if ($request->filled('type') && $request->filled('id')) {
             $type = (string) $request->query('type');
             $reason = null;

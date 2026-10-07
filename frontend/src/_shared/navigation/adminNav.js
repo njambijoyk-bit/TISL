@@ -7,7 +7,7 @@ import {
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
-import { FINANCE_READ, PAYROLL_ROLES, CAMPAIGN_ROLES } from '../lib/roles';
+import { FINANCE_READ, PAYROLL_ROLES, CAMPAIGN_ROLES, PRICE_ROLES } from '../lib/roles';
 
 /**
  * The admin navigation — the single source for the sidebar, the section tabs
@@ -60,12 +60,15 @@ export const ADMIN_NAV = [
     items: [
       {
         id: 'products', title: 'Products', icon: Package, color: 'var(--color-primary-500)', path: '/admin/products', module: MODULES.ECOMMERCE,
-        keywords: 'variants stock categories brands', also: ['/admin/categories', '/admin/brands'],
+        keywords: 'variants stock categories brands price list catalogue brochure archive', also: ['/admin/categories', '/admin/brands', '/admin/price-lists', '/admin/price-list-archive', '/admin/catalogues', '/admin/catalogue-items', '/admin/catalogue-settings'],
         tabs: [
           { title: 'All products', path: '/admin/products' },
           { title: 'Categories', path: '/admin/categories' },
           { title: 'Brands', path: '/admin/brands' },
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
+          { title: 'Price lists', path: '/admin/price-lists', also: ['/admin/price-list-archive'], roles: PRICE_ROLES },
+          { title: 'Brochures', path: '/admin/catalogues', also: ['/admin/catalogue-items'], roles: PRICE_ROLES },
+          { title: 'Settings', path: '/admin/catalogue-settings', roles: PRICE_ROLES },
         ],
       },
       {

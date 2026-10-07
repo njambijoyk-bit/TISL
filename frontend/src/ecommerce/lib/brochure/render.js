@@ -6,12 +6,12 @@ import { brochureFields } from './fields';
 
 // Draws a brochure onto canvases, one per page, from a template and the service's data.
 
-const fontOf = (key, size, extra = {}) => {
+export const fontOf = (key, size, extra = {}) => {
   const f = FONT_STYLES[key] ?? FONT_STYLES.sans;
   return { css: `${extra.weight ?? f.weight} ${size}px ${f.family}`, spacing: f.spacing, upper: f.upper };
 };
 
-const setFont = (ctx, key, size, weight) => {
+export const setFont = (ctx, key, size, weight) => {
   const f = fontOf(key, size, { weight });
   ctx.font = f.css;
   if ('letterSpacing' in ctx) ctx.letterSpacing = f.spacing ? `${parseFloat(f.spacing) * size}px` : '0px';
@@ -20,7 +20,7 @@ const setFont = (ctx, key, size, weight) => {
 };
 
 /** Words wrapped to a width, using the font that is set on the context. */
-const wrapLines = (ctx, text, maxW) => {
+export const wrapLines = (ctx, text, maxW) => {
   const lines = [];
   String(text).split(/\n+/).forEach((para) => {
     let line = '';
@@ -34,7 +34,7 @@ const wrapLines = (ctx, text, maxW) => {
   return lines;
 };
 
-const ellipsize = (ctx, line, maxW) => {
+export const ellipsize = (ctx, line, maxW) => {
   if (ctx.measureText(line).width <= maxW) return line;
   let l = line;
   while (l.length > 1 && ctx.measureText(`${l}…`).width > maxW) l = l.slice(0, -1);
@@ -43,10 +43,10 @@ const ellipsize = (ctx, line, maxW) => {
 };
 
 /** One field in a box: the biggest size up to `sizePx` at which it fits, then cut with … if it still does not. */
-function drawText(ctx, text, box, o) {
+export function drawText(ctx, text, box, o) {
   const f = FONT_STYLES[o.font] ?? FONT_STYLES.sans;
   const content = f.upper ? String(text).toUpperCase() : String(text);
-  const maxSize = o.sizePx; const minSize = Math.max(8, maxSize * (o.oneLine ? 0.3 : 0.55));
+  const maxSize = o.sizePx; const minSize = Math.min(maxSize, Math.max(8, maxSize * (o.oneLine ? 0.3 : 0.55)));
   let size = maxSize; let lines = [];
   for (; size >= minSize; size -= Math.max(0.5, maxSize * 0.03)) {
     setFont(ctx, o.font, size, o.weight);

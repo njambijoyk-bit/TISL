@@ -1,4 +1,4 @@
-# Price lists and brochures / catalogues - plan v2 (nothing built yet)
+# Price lists and brochures / catalogues - plan v3 (BUILT: see the as-built notes at the end)
 
 Two related things in the E-commerce module (hidden unless E-commerce is licensed and on). Books is only ever read, never written.
 
@@ -61,3 +61,17 @@ Sections by item type (each type gets sensible defaults):
 3. Price list PDF (real text), CSV, JSON, zip; archive upload; hard delete.
 4. Brochure sections and themes; type defaults; per-item settings (with bulk); the brochure / catalogue builder with per-entry overrides and sizes; the page drawing with progress.
 5. Customer download buttons; checks (database, PDF, zip, a large catalogue), lint and build.
+
+
+## As built (changes from the plan above)
+Run script 93 once (`backend/database/sql/93_pricelists_brochures.sql`); nothing works until then (screens say so with a 503).
+
+- **Tables:** `products.brochure_meta` (the only change to `products`), `brochure_item_meta` (services, hampers and auctions share it), `price_lists`, `price_list_items`, `price_list_archives`, `brochures` (its entries are one JSON column, so **there is no `brochure_entries` table**), `catalogue_settings` (one row). All are in the backup map under E-commerce.
+- **Limit:** counts every list kept, **the bin included**. Only "delete for good" (admin, super admin, from the bin) frees a place. Delete, restore and delete for good exist for price lists and for brochures.
+- **Catalogue prices:** each product and service takes the most recent live price list the viewer may see that holds it, stamped "As of <list>, <date>". With none (or on any failure) it uses the live price stamped "As of <today>". Hampers and auctions have no price lists, so they are always live.
+- **Sizes:** full page (one entry a page), half page (two) and card (six). An entry can choose its own size.
+- **Sections:** product (hero, gallery, story, features, specs, prices, details), service (hero, gallery, story, features, packages, details), hamper (hero, inside, story, price, terms), auction (hero, lot, schedule, price, terms). Eight themes. Layers: this catalogue's entry, then the item's own settings, then the type default (Settings tab). Half and card sizes use the entry's lead section's theme.
+- **Customer side:** "Download brochure" on product, hamper and auction pages (asks `/catalogue/status`; shown only when the shop switch is on, the item has not switched it off, and the item is visible to that customer). The products page shows "Look at these brochures" and "Price lists" only when the visitor can open at least one. Pages: `/brochures`, `/price-lists`, `/price-lists/:id`.
+- **Services** keep their existing own brochure on the service page; in a catalogue a service uses the section engine.
+- **Staff screens** (Products menu tabs: All products, Categories, Brands, Bulk edit, Price lists, Brochures, Settings): `/admin/price-lists` (+ `/new`, `/:id`), `/admin/price-list-archive`, `/admin/catalogues` (+ `/new`, `/:id`), `/admin/catalogue-items` (each item's sections and themes, one by one or in bulk by ticks, category, brand or all), `/admin/catalogue-settings`. A small tab bar on all of them links the five areas; the Products page has a "Price lists" shortcut between Trash and Create Product.
+- **Files:** price list PDF is drawn in the browser with real text (standard Helvetica; characters outside Latin-1 show as "?" in the PDF, while the CSV and JSON keep them); the zip is built in the browser (store only); brochures are drawn page by page on one reused canvas and written straight into a JPEG PDF, with a progress line, and very long catalogues are drawn a little smaller.

@@ -12,6 +12,9 @@ export const canUsePayroll = (user) => PAYROLL_ROLES.includes(user?.role);
 // Campaigns: these build them (admin, super admin and manager also publish; sales rep and finance make drafts for approval)
 export const CAMPAIGN_ROLES = ['admin', 'super_admin', 'manager', 'sales_rep', 'finance'];
 
+// Price lists, the Archive, brochures and catalogues (a sales rep's list waits for someone else to activate it)
+export const PRICE_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'sales_rep'];
+
 export const canReadFinance  = (user) => FINANCE_READ.includes(user?.role);
 export const canWriteFinance = (user) => FINANCE_WRITE.includes(user?.role);
 

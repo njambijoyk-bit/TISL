@@ -41,6 +41,7 @@ import { useCartStore, useProductStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import VariantPicker from '../../components/storefront/products/VariantPicker';
+import ItemBrochureButton from '../../components/catalogue/ItemBrochureButton';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
 import { auctionPath, idFromParam, itemSlug, productPath } from '../../../_shared/lib/itemPath';
 
@@ -860,6 +861,7 @@ export default function ProductDetail() {
                   );
                 })()}
               </div>
+              <div><ItemBrochureButton type="product" id={product?.id} /></div>
               
               {/* Side-by-side layout */}
               <style>{`

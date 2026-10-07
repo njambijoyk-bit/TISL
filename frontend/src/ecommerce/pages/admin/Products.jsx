@@ -8,7 +8,7 @@ import PriceTag from '../../../_shared/components/common/PriceTag';
 import CurrencySelect from '../../../_shared/components/common/currency/CurrencySelect';
 import Header from '../../../_shared/components/layout/Header';
 import {
-  Plus, Search, Edit2, Eye, Trash2, Filter, X,
+  Plus, Search, Edit2, Eye, Trash2, Filter, X, ListChecks,
   Package, TrendingUp, AlertCircle, CheckCircle, XCircle, Archive,
 } from 'lucide-react';
 import useAuthStore from '../../../_shared/store/authStore';
@@ -343,6 +343,9 @@ export default function Products() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Btn onClick={() => { setTrashModal(p => ({ ...p, isOpen: true })); fetchTrashProducts(1, ''); }} title="View Trash">
               <Archive size={15} /> Trash
+            </Btn>
+            <Btn onClick={() => navigate('/admin/price-lists')} title="Price lists and brochures">
+              <ListChecks size={15} /> Price lists
             </Btn>
             <PrimaryBtn onClick={() => navigate('/admin/products/create')}>
               <Plus size={15} /> Create Product

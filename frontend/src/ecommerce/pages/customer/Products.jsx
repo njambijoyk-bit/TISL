@@ -7,6 +7,7 @@ import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import Breadcrumb from '../../../_shared/components/layout/Breadcrumb';
 import SmartSearchBox from '../../../_shared/components/common/SmartSearchBox';
+import CatalogueLinks from '../../components/catalogue/CatalogueLinks';
 import ProductFilters from '../../components/storefront/products/ProductFilters';
 import ProductGrid from '../../components/storefront/products/ProductGrid';
 import CollapsedProductCard from '../../components/storefront/products/CollapsedProductCard';
@@ -234,6 +235,8 @@ export default function Products() {
             <button type="button" onClick={() => setViewMode('polaroid')} style={{ ...toggleStyles.btn, ...(viewMode === 'polaroid' ? toggleStyles.active : toggleStyles.inactive) }}><Image size={15} /> Polaroid</button>
           </div>
         </div>
+
+        <CatalogueLinks />
 
         <SmartSearchBox
           context="product"
