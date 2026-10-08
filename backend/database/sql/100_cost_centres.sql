@@ -98,7 +98,7 @@ WHERE NOT EXISTS (SELECT 1 FROM cost_centres c WHERE c.location_id = l.id AND c.
 UPDATE locations l
 JOIN cost_centres c ON c.location_id = l.id AND c.type = 'branch'
 SET l.cost_centre_id = c.id
-WHERE l.cost_centre_id IS NULL;
+WHERE l.id > 0 AND l.cost_centre_id IS NULL;   -- (l.id > 0 keeps Workbench's safe update mode happy)
 
 -- the defaults: every kind of document starts on General, so nothing is ever empty
 INSERT INTO cost_centre_settings (`key`, value, created_at, updated_at)
