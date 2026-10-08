@@ -109,6 +109,16 @@ export default function CatalogueEditor() {
           </div>
         </section>
 
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          {canEdit && <button type="button" style={btnPrimary} disabled={busy} onClick={() => save()}>{isNew ? 'Save as draft' : 'Save'}</button>}
+          {canEdit && canPublish && f.status !== 'published' && <button type="button" style={btnGhost} disabled={busy || entries.length === 0} onClick={() => save('published')}>Save and publish</button>}
+          {canEdit && canPublish && f.status === 'published' && <button type="button" style={btnGhost} disabled={busy} onClick={() => save('draft')}>Take off (back to draft)</button>}
+          {!isNew && <button type="button" style={{ ...btnGhost, display: 'inline-flex', gap: 6, alignItems: 'center' }} disabled={dirty || entries.length === 0} title={dirty ? 'Save your changes first' : ''} onClick={() => setPreview(true)}><Eye size={14} /> Preview and download</button>}
+          {!canPublish && <span style={{ fontSize: '0.78rem', color: colors.textFaint }}>A manager, finance, admin or super admin publishes it.</span>}
+          {dirty && <span style={{ fontSize: '0.78rem', color: colors.warningText }}>Unsaved changes</span>}
+          <button type="button" style={{ ...btnGhost, marginLeft: 'auto' }} onClick={() => navigate('/admin/catalogues')}>Back to the list</button>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 18, alignItems: 'start' }}>
           {canEdit && (
             <section style={{ ...card, padding: 18, display: 'grid', gap: 10 }}>
@@ -156,16 +166,6 @@ export default function CatalogueEditor() {
               </div>
             ))}
           </section>
-        </div>
-
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          {canEdit && <button type="button" style={btnPrimary} disabled={busy} onClick={() => save()}>{isNew ? 'Save as draft' : 'Save'}</button>}
-          {canEdit && canPublish && f.status !== 'published' && <button type="button" style={btnGhost} disabled={busy || entries.length === 0} onClick={() => save('published')}>Save and publish</button>}
-          {canEdit && canPublish && f.status === 'published' && <button type="button" style={btnGhost} disabled={busy} onClick={() => save('draft')}>Take off (back to draft)</button>}
-          {!isNew && <button type="button" style={{ ...btnGhost, display: 'inline-flex', gap: 6, alignItems: 'center' }} disabled={dirty || entries.length === 0} title={dirty ? 'Save your changes first' : ''} onClick={() => setPreview(true)}><Eye size={14} /> Preview and download</button>}
-          {!canPublish && <span style={{ fontSize: '0.78rem', color: colors.textFaint }}>A manager, finance, admin or super admin publishes it.</span>}
-          {dirty && <span style={{ fontSize: '0.78rem', color: colors.warningText }}>Unsaved changes</span>}
-          <button type="button" style={{ ...btnGhost, marginLeft: 'auto' }} onClick={() => navigate('/admin/catalogues')}>Back to the list</button>
         </div>
       </div>
 
