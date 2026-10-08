@@ -6,7 +6,7 @@ import {
   Package, Wrench, Tag, Award, Star, FileText, ClipboardList, FolderOpen, LogInIcon,
   LogOut, Settings, LayoutDashboard, Users, ShoppingBag, MessageSquare, UserCog,
   BarChart3, Layers, BookOpen, Phone, Info, Zap, Search, BarChart2, LifeBuoy,
-  Bug, Volume2, VolumeX, Gift, CalendarCheck, Truck, KeyRound,
+  Bug, Volume2, VolumeX, Gift, CalendarCheck, Truck, KeyRound, Palette,
 } from 'lucide-react';
 import logo from '../../../assets/images/logo.png';
 import { ThemePicker } from '../common/ThemePicker';
@@ -253,6 +253,8 @@ export default function Header() {
   const [serviceCategories, setServiceCategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [accentsOpen, setAccentsOpen] = useState(false);
+  const { colourings, activeColouringId, setColouring } = useTheme();
   
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
 
@@ -826,6 +828,29 @@ export default function Header() {
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 500, color: '#9ca3af', textDecoration: 'none' }}>
                           <KeyRound size={13} /> Dev Auth
                         </Link>
+                      </div>
+                    )}
+
+                    {/* Accents: a peek-a-boo row, closed until asked for */}
+                    {colourings.some((c) => c.is_active !== false) && (
+                      <div style={{ borderTop: '1px solid #f3f4f6', padding: '6px 6px 8px' }}>
+                        <button type="button" onClick={() => setAccentsOpen((o) => !o)} aria-expanded={accentsOpen}
+                          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 500, color: '#9ca3af', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                          <Palette size={13} /> <span style={{ flex: 1 }}>Accents</span>
+                          <ChevronDown size={12} style={{ transition: 'transform 200ms', transform: accentsOpen ? 'rotate(180deg)' : 'none' }} />
+                        </button>
+                        {accentsOpen && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, padding: '8px 12px 6px' }}>
+                            {colourings.filter((c) => c.is_active !== false).map((c) => {
+                              const swatch = c.light_tokens?.['--color-primary-500'] ?? '#a855f7';
+                              const on = activeColouringId === c.id;
+                              return (
+                                <button key={c.id} type="button" title={c.name} aria-label={c.name} aria-pressed={on} onClick={() => setColouring(c.id)}
+                                  style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer', background: swatch, outline: on ? '2.5px solid var(--text-primary)' : '2.5px solid transparent', outlineOffset: 2 }} />
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
