@@ -15,17 +15,38 @@ class StockJobController extends Controller
 {
     public function __construct(private StockJobService $jobs) {}
 
+    private function branches(): \App\Services\Access\BranchFilter
+    {
+        return app(\App\Services\Access\BranchFilter::class);
+    }
+
+    private function seen(StockJob $j): StockJob
+    {
+        $this->branches()->assertVisible($j->location_id ? (int) $j->location_id : null, 'stock', 'jobs');
+
+        return $j;
+    }
+
+    private function mine(StockJob $j): StockJob
+    {
+        $this->branches()->assertWrite(request()->user(), $j->location_id ? (int) $j->location_id : null, 'stock', 'jobs');
+
+        return $j;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $d = $request->validate(['status' => 'nullable|in:open,completed,cancelled']);
-        $rows = StockJob::when(! empty($d['status']), fn ($q) => $q->where('status', $d['status']))->orderByDesc('id')->limit(100)->get()->map(fn (StockJob $j) => $this->row($j))->values();
+        $q = StockJob::when(! empty($d['status']), fn ($q) => $q->where('status', $d['status']))->orderByDesc('id')->limit(100);
+        $this->branches()->apply($q, 'location_id', 'stock', 'jobs');
+        $rows = $q->get()->map(fn (StockJob $j) => $this->row($j))->values();
 
         return response()->json(['rows' => $rows, 'wip_total' => $this->jobs->cost(), 'branches' => DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name'])]);
     }
 
     public function show(int $id): JsonResponse
     {
-        $j = StockJob::findOrFail($id);
+        $j = $this->seen(StockJob::findOrFail($id));
         $lines = DB::table('stock_job_lines as l')->join('product_variants as pv', 'pv.id', '=', 'l.variant_id')->join('products as p', 'p.id', '=', 'pv.product_id')
             ->leftJoin('stock_batches as sb', 'sb.id', '=', 'l.batch_id')->where('l.job_id', $j->id)->orderBy('l.id')
             ->get(array_merge(['l.id', 'l.variant_id', 'p.name as product', 'pv.name as variant', 'sb.batch_no', 'l.quantity', 'l.unit_cost', 'l.issued_at'], \Illuminate\Support\Facades\Schema::hasColumn('stock_job_lines', 'sale_price') ? ['l.sale_price'] : []))
@@ -41,6 +62,7 @@ class StockJobController extends Controller
         $d = $request->validate(['title' => 'required|string|max:160', 'location_id' => 'required|integer|exists:locations,id', 'customer_id' => 'nullable|integer|exists:customers,id', 'note' => 'nullable|string|max:255']);
 
         return $this->guard(function () use ($d, $request) {
+            $this->branches()->assertWrite($request->user(), (int) $d['location_id'], 'stock', 'jobs');
             $j = $this->jobs->open($d['title'], (int) $d['location_id'], $d['customer_id'] ?? null, $d['note'] ?? null, $request->user());
 
             return response()->json(['message' => "Job {$j->number} opened.", 'id' => $j->id], 201);
@@ -53,7 +75,7 @@ class StockJobController extends Controller
         $d = $request->validate(['items' => 'required|array|min:1', 'items.*.variant_id' => 'required|integer|exists:product_variants,id', 'items.*.quantity' => 'required|numeric|min:0.0001', 'items.*.price' => 'nullable|numeric|min:0']);
 
         return $this->guard(function () use ($d, $request, $id) {
-            $this->jobs->issue(StockJob::findOrFail($id), $d['items'], $request->user());
+            $this->jobs->issue($this->mine(StockJob::findOrFail($id)), $d['items'], $request->user());
 
             return response()->json(['message' => 'Materials issued to the job.']);
         });
@@ -64,7 +86,7 @@ class StockJobController extends Controller
         $d = $request->validate(['quantity' => 'nullable|numeric|min:0.0001']);
 
         return $this->guard(function () use ($d, $request, $id, $lineId) {
-            $this->jobs->returnLine(StockJob::findOrFail($id), $lineId, isset($d['quantity']) ? (float) $d['quantity'] : null, $request->user());
+            $this->jobs->returnLine($this->mine(StockJob::findOrFail($id)), $lineId, isset($d['quantity']) ? (float) $d['quantity'] : null, $request->user());
 
             return response()->json(['message' => 'Returned to stock.']);
         });
@@ -75,7 +97,7 @@ class StockJobController extends Controller
         $d = $request->validate(['invoice_voucher_id' => 'nullable|integer|exists:vouchers,id']);
 
         return $this->guard(function () use ($d, $request, $id) {
-            $j = $this->jobs->complete(StockJob::findOrFail($id), $d['invoice_voucher_id'] ?? null, $request->user());
+            $j = $this->jobs->complete($this->mine(StockJob::findOrFail($id)), $d['invoice_voucher_id'] ?? null, $request->user());
 
             return response()->json(['message' => "Job {$j->number} completed; its materials are booked as a cost of the service."]);
         });
@@ -90,7 +112,7 @@ class StockJobController extends Controller
         ]);
 
         return $this->guard(function () use ($d, $request, $id) {
-            $j = StockJob::findOrFail($id);
+            $j = $this->mine(StockJob::findOrFail($id));
             if (! empty($d['preview'])) {
                 return response()->json($this->jobs->invoice($j, $d, $request->user(), true));
             }
@@ -103,7 +125,7 @@ class StockJobController extends Controller
     public function cancel(Request $request, int $id): JsonResponse
     {
         return $this->guard(function () use ($request, $id) {
-            $j = $this->jobs->cancel(StockJob::findOrFail($id), $request->user());
+            $j = $this->jobs->cancel($this->mine(StockJob::findOrFail($id)), $request->user());
 
             return response()->json(['message' => "Job {$j->number} cancelled; the materials are back in stock."]);
         });

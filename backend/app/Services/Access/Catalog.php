@@ -20,6 +20,19 @@ class Catalog
             'algorithm.run', 'projects.use', 'projects.delete', 'projects.purge', 'hr.manage', 'careers.manage', 'analytics.view', 'insight.mimi', 'resources.manage'],
     ];
 
+    /** The areas branch limits are switched on for, one at a time. key => label. */
+    public const AREAS = ['books' => 'Books: vouchers, day book and reports', 'stock' => 'Stock: stock, transfers, counts and jobs'];
+
+    /** Which area a permission belongs to (for the branch limit mode that applies to it). */
+    public static function areaOf(string $permission): string
+    {
+        return match (explode('.', $permission)[0]) {
+            'books', 'tax', 'currency', 'credit' => 'books',
+            'stock', 'inventory', 'vendors', 'menus' => 'stock',
+            default => 'general',
+        };
+    }
+
     /** The catalogue version that introduced a permission. */
     public static function since(string $permission): int
     {

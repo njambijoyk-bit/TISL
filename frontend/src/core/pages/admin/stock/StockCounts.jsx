@@ -9,7 +9,7 @@ import { Field, SelectInput, TextInput, FormStack, ModalActions, FormError } fro
 import { money } from '../../../components/admin/books/booksFmt';
 import { stockCountsAPI } from '../../../../_shared/api/stockOps';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { canReadFinance, canWriteFinance, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors, input } from '../../../../_shared/theme/tokens';
 
@@ -37,7 +37,7 @@ function StartModal({ branches, onClose, onDone }) {
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
-          <Field label="Branch"><SelectInput required value={loc} onChange={(e) => setLoc(e.target.value)}><option value="">Choose…</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
+          <Field label="Branch"><SelectInput required value={loc} onChange={(e) => setLoc(e.target.value)}><option value="">Choose…</option>{limitBranches(branches, 'stock').map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
           <Field label="Note (optional)"><TextInput value={note} onChange={(e) => setNote(e.target.value)} /></Field>
           <ModalActions onCancel={onClose} submitLabel="Start" busy={busy} />
         </FormStack>

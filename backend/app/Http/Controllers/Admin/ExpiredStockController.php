@@ -35,6 +35,7 @@ class ExpiredStockController extends Controller
             ->whereIn('sb.status', [StockBatch::ACTIVE, StockBatch::EXPIRED])
             ->where('sb.expiry_date', '<=', $today->copy()->addDays($within)->toDateString())
             ->when(! empty($d['location_id']), fn ($q) => $q->where('bb.location_id', $d['location_id']))
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'bb.location_id', 'stock', 'expiry'))
             ->orderBy('sb.expiry_date')->orderBy('sb.id')
             ->get(['sb.id as batch_id', 'sb.batch_no', 'sb.expiry_date', 'sb.status', 'sb.unit_cost', 'sb.clearance_percent', 'sb.received_voucher_id', 'bb.location_id', 'bb.quantity',
                 'p.id as product_id', 'p.name as product', 'pv.id as variant_id', 'pv.name as variant', 'pv.sku', 'l.name as location',
@@ -74,6 +75,7 @@ class ExpiredStockController extends Controller
         $d = $request->validate(['batch_id' => 'required|integer', 'location_id' => 'nullable|integer', 'quantity' => 'nullable|numeric|min:0.0001', 'reason' => 'required|string|max:255']);
 
         return $this->guard(function () use ($d, $request) {
+            $this->branchWrite($request, $d['location_id'] ?? null);
             $r = $this->writeOffs->writeOff(StockBatch::findOrFail($d['batch_id']), $d['location_id'] ?? null, isset($d['quantity']) ? (float) $d['quantity'] : null, $d['reason'], $request->user());
 
             return response()->json(['message' => 'Written off: ' . round($r['quantity'], 4) . ' units, ' . number_format($r['cost'], 2) . ' lost.'] + $r);
@@ -86,10 +88,22 @@ class ExpiredStockController extends Controller
         $d = $request->validate(['batch_id' => 'required|integer', 'location_id' => 'required|integer', 'quantity' => 'required|numeric|min:0.0001', 'supplier_ledger_id' => 'nullable|integer|exists:ledgers,id', 'reason' => 'nullable|string|max:255']);
 
         return $this->guard(function () use ($d, $request) {
+            $this->branchWrite($request, $d['location_id']);
             $note = $this->writeOffs->returnToSupplier(StockBatch::findOrFail($d['batch_id']), (int) $d['location_id'], (float) $d['quantity'], $d['supplier_ledger_id'] ?? null, $d['reason'] ?? '', $request->user());
 
             return response()->json(['message' => "Debit note {$note->voucher_number} raised.", 'voucher_id' => $note->id]);
         });
+    }
+
+    /** Writing stock off or returning it needs full access to the branch it is at; a person limited to some branches must say which. */
+    private function branchWrite(Request $request, $locationId): void
+    {
+        $filter = app(\App\Services\Access\BranchFilter::class);
+        if ($locationId) {
+            $filter->assertWrite($request->user(), (int) $locationId, 'stock', 'expiry');
+        } elseif ($filter->enforcing('stock')) {
+            abort(422, 'Choose the branch the stock is at.');
+        }
     }
 
     private function guard(\Closure $fn): JsonResponse

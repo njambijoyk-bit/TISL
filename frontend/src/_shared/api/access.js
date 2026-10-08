@@ -19,6 +19,7 @@ const accessAPI = {
   updateRole: async (id, body) => (await api.put(`/admin/access/roles/${id}`, body)).data,
   deleteRole: async (id) => (await api.delete(`/admin/access/roles/${id}`)).data,
   renameLevel: async (level, body) => (await api.put(`/admin/access/levels/${level}`, body)).data,
+  setScopeMode: async (area, mode) => (await api.put('/admin/access/scope-modes', { area, mode })).data,
 };
 
 export default accessAPI;

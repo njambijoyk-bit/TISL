@@ -8,7 +8,7 @@ import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, Fo
 import { money } from '../../../components/admin/books/booksFmt';
 import stockTransfersAPI from '../../../../_shared/api/stockTransfers';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { canReadFinance, canWriteFinance, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import VariantPicker from '../../../components/admin/pickers/VariantPicker';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
@@ -46,7 +46,7 @@ function SendModal({ branches, onClose, onDone }) {
         <FormStack>
           <FormError message={err} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="From"><SelectInput required value={from} onChange={(e) => setFrom(e.target.value)}><option value="">Choose…</option>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
+            <Field label="From"><SelectInput required value={from} onChange={(e) => setFrom(e.target.value)}><option value="">Choose…</option>{limitBranches(branches, 'stock').map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
             <Field label="To"><SelectInput required value={to} onChange={(e) => setTo(e.target.value)}><option value="">Choose…</option>{branches.filter((b) => String(b.id) !== String(from)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
           </div>
           <VariantPicker onPick={add} />

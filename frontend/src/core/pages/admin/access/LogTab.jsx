@@ -7,7 +7,8 @@ import { card, input, btn, h2, sub, th, td, when, chip } from './ui';
 const ACTIONS = {
   role_assigned: 'Role given', role_removed: 'Role taken away', primary_role_changed: 'Main role changed', clearance_changed: 'Clearance changed',
   default_location_changed: 'Default branch changed', grant_added: 'Branch access given', grant_revoked: 'Branch access taken away',
-  role_saved: 'Role saved', role_deleted: 'Role deleted', level_renamed: 'Level renamed', would_deny: 'Would have been refused',
+  role_saved: 'Role saved', role_deleted: 'Role deleted', level_renamed: 'Level renamed', would_deny: 'Would have been refused', would_hide: 'Would have been hidden',
+  scope_mode_changed: 'Branch limit switched',
 };
 
 const detail = (a, d) => {
@@ -20,7 +21,9 @@ const detail = (a, d) => {
     case 'grant_added': return `${d.resource}${d.expires_at ? ` until ${when(d.expires_at)}` : ' for good'}${d.reason ? ` · ${d.reason}` : ''}`;
     case 'grant_revoked': return d.resource;
     case 'role_saved': return `${d.role}${d.created ? ' (new)' : ''}`;
-    case 'would_deny': return `${d.permission} at branch ${d.location_id}`;
+    case 'would_deny': return `${d.area ? `${d.area}: ` : ''}${d.permission} at branch ${d.location_id}`;
+    case 'would_hide': return `${d.area}: ${d.screen} — ${d.hidden} record${d.hidden === 1 ? '' : 's'} outside their branches`;
+    case 'scope_mode_changed': return `${d.area}: ${d.from} → ${d.to}`;
     default: return Object.values(d).filter((x) => x !== null && typeof x !== 'object').join(' · ');
   }
 };
@@ -51,7 +54,7 @@ export default function LogTab() {
               {res.data.map((l) => (
                 <tr key={l.id}>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>{when(l.at.replace(' ', 'T'))}</td>
-                  <td style={td}><span style={chip(l.action === 'would_deny' ? '#d97706' : undefined)}>{ACTIONS[l.action] ?? l.action}</span></td>
+                  <td style={td}><span style={chip(['would_deny', 'would_hide'].includes(l.action) ? '#d97706' : undefined)}>{ACTIONS[l.action] ?? l.action}</span></td>
                   <td style={td}>{l.actor ?? '—'}</td>
                   <td style={td}>{l.subject ?? '—'}</td>
                   <td style={{ ...td, color: 'var(--text-secondary)' }}>{detail(l.action, l.details)}</td>

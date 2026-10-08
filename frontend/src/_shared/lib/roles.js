@@ -25,6 +25,24 @@ export const hasPermission = (user, permission, fallbackRoles = []) => {
 export const isStaff = (user, access = accessOf()) =>
   access?.permissions ? access.permissions.includes('admin.access') : LEGACY_STAFF_ROLES.includes(user?.role);
 
+/**
+ * The branch ids a person is limited to in an area ('books', 'stock'), or null when nothing limits them (global role, no branch set, or the
+ * limit is off / in test mode for that area). Screens use it to narrow their branch lists; the server enforces it either way.
+ */
+export const branchLimit = (area) => {
+  const a = accessOf();
+  if (!a?.scope || a.scope.global || a.scope.open || a.branch_limits?.[area] !== 'on') return null;
+  return Object.keys(a.scope.locations ?? {}).map(Number);
+};
+
+/** A list of branches ({ id }) cut down to the ones the person may use in this area. `keep` ids stay (the branch a record already has). */
+export const limitBranches = (list, area, keep = []) => {
+  const ids = branchLimit(area);
+  if (!ids) return list;
+  const keepSet = new Set((Array.isArray(keep) ? keep : [keep]).filter(Boolean).map(Number));
+  return list.filter((b) => ids.includes(Number(b.id)) || keepSet.has(Number(b.id)));
+};
+
 /** The clearance number 0 to 6 (0 when unknown). */
 export const clearanceOf = () => accessOf()?.clearance ?? 0;
 

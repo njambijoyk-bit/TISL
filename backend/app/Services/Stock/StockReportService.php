@@ -42,6 +42,7 @@ class StockReportService
 
         $q = DB::table('stock_movements as m')->where('m.reversed', false)->where('m.movement_date', '<=', $to)
             ->when($loc, fn ($s) => $s->where('m.location_id', $loc))
+            ->when(true, fn ($s) => app(\App\Services\Access\BranchFilter::class)->apply($s, 'm.location_id', 'stock', 'reports'))
             ->when(! empty($f['item_type']), fn ($s) => $s->whereRaw("{$t} = ?", [$f['item_type']]));
         if (! empty($f['q'])) {
             $ids = [];
@@ -157,7 +158,8 @@ class StockReportService
         [$t, $i] = $this->cols();
 
         return DB::table('stock_movements as m')->where('m.reversed', false)->whereRaw("{$t} = ?", [$type])->whereRaw("{$i} = ?", [$id])
-            ->when($loc, fn ($s) => $s->where('m.location_id', $loc));
+            ->when($loc, fn ($s) => $s->where('m.location_id', $loc))
+            ->when(true, fn ($s) => app(\App\Services\Access\BranchFilter::class)->apply($s, 'm.location_id', 'stock', 'reports'));
     }
 
     private function describeOne(string $type, int $id): array
@@ -269,7 +271,7 @@ class StockReportService
 
         $places = DB::table('stock_batch_balances as b')->join('stock_batches as sb', 'sb.id', '=', 'b.batch_id')->join('locations as lo', 'lo.id', '=', 'b.location_id')
             ->when($batchTbl, fn ($s) => $s->where('sb.item_type', $type)->where('sb.item_id', $id), fn ($s) => $s->where('sb.variant_id', $id))
-            ->when($loc, fn ($s) => $s->where('b.location_id', $loc))->where('b.quantity', '!=', 0)->orderBy('lo.name')->orderBy('sb.received_at')
+            ->when($loc, fn ($s) => $s->where('b.location_id', $loc))->when(true, fn ($s) => app(\App\Services\Access\BranchFilter::class)->apply($s, 'b.location_id', 'stock', 'reports'))->where('b.quantity', '!=', 0)->orderBy('lo.name')->orderBy('sb.received_at')
             ->get(['lo.name as location', 'sb.batch_no', 'sb.expiry_date', 'sb.status', 'b.quantity'])
             ->map(fn ($r) => ['location' => $r->location, 'batch_no' => $r->batch_no, 'expiry_date' => $r->expiry_date ? Carbon::parse($r->expiry_date)->toDateString() : null, 'status' => $r->status, 'quantity' => (float) $r->quantity])->values()->all();
 
@@ -314,7 +316,7 @@ class StockReportService
         // month by month: stock in, stock out and what the stock was worth at each month end
         [$t] = $this->cols();
         $skip = $loc ? '' : "AND m.movement_type NOT IN ('transfer_in','transfer_out')";
-        $rows = DB::table('stock_movements as m')->where('m.reversed', false)->where('m.movement_date', '<=', $to)->when($loc, fn ($q) => $q->where('m.location_id', $loc))
+        $rows = DB::table('stock_movements as m')->where('m.reversed', false)->where('m.movement_date', '<=', $to)->when($loc, fn ($q) => $q->where('m.location_id', $loc))->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'm.location_id', 'stock', 'reports'))
             ->when(! empty($f['item_type']), fn ($q) => $q->whereRaw("{$t} = ?", [$f['item_type']]))
             ->get(['m.movement_date', 'm.quantity', 'm.unit_cost', 'm.movement_type']);
         $open = 0.0;
@@ -349,7 +351,7 @@ class StockReportService
 
         // what the movement was made of: purchases, sales, write-offs, counts…
         $labels = $this->movementLabels();
-        $kinds = DB::table('stock_movements as m')->where('m.reversed', false)->whereBetween('m.movement_date', [$from, $to])->when($loc, fn ($q) => $q->where('m.location_id', $loc))
+        $kinds = DB::table('stock_movements as m')->where('m.reversed', false)->whereBetween('m.movement_date', [$from, $to])->when($loc, fn ($q) => $q->where('m.location_id', $loc))->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'm.location_id', 'stock', 'reports'))
             ->when(! $loc, fn ($q) => $q->whereNotIn('m.movement_type', self::TRANSFERS))
             ->when(! empty($f['item_type']), fn ($q) => $q->whereRaw("{$t} = ?", [$f['item_type']]))
             ->groupBy('m.movement_type')->selectRaw('m.movement_type AS k, SUM(m.quantity) AS q, SUM(m.quantity * COALESCE(m.unit_cost,0)) AS v, COUNT(*) AS n')->get()

@@ -36,7 +36,8 @@ class DashboardService
     {
         return RestatedBase::join(DB::table('vouchers as v')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id'))
             ->where('v.status', Voucher::POSTED)->whereIn('t.base_type', $types)->whereBetween('v.date', [$from, $to])
-            ->when($locationId, fn ($q) => $q->where('v.location_id', $locationId));
+            ->when($locationId, fn ($q) => $q->where('v.location_id', $locationId))
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'dashboard'));
     }
 
     /** @return array<int, array{month: string, label: string, value: float}> one point per month of the range */
@@ -86,7 +87,8 @@ class DashboardService
             $b = RestatedBase::entry();
             $rows = RestatedBase::join(DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id'))
                 ->where('v.status', Voucher::POSTED)->whereBetween('v.date', [$from, $to])->whereIn('e.ledger_id', $top->pluck('ledger_id')->all())
-                ->when($loc, fn ($q) => $q->where('v.location_id', $loc))->groupBy('e.ledger_id', 'v.date')
+                ->when($loc, fn ($q) => $q->where('v.location_id', $loc))
+                ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'dashboard'))->groupBy('e.ledger_id', 'v.date')
                 ->selectRaw("e.ledger_id as l, v.date as d, SUM(CASE WHEN e.side = '{$sideCol}' THEN {$b} ELSE -{$b} END) as s")->get();
             foreach ($top as $l) {
                 $by = [];
@@ -150,6 +152,7 @@ class DashboardService
             ->where('v.status', Voucher::POSTED)->where('t.base_type', $orderBase)->where('i.is_header', false)->whereNull('i.parent_item_id')
             ->whereRaw('i.quantity > COALESCE(i.invoiced_quantity, 0)')
             ->when($loc, fn ($q) => $q->where('v.location_id', $loc))
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'dashboard'))
             ->selectRaw("v.id as vid, i.description as item, (i.quantity - COALESCE(i.invoiced_quantity, 0)) as pending, "
                 . "(i.quantity - COALESCE(i.invoiced_quantity, 0)) * ((i.amount + COALESCE(i.tax_amount, 0)) / NULLIF(i.quantity, 0)) * {$rate} as value");
     }

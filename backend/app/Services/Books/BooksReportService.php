@@ -13,6 +13,17 @@ use Illuminate\Support\Facades\DB;
  */
 class BooksReportService
 {
+    private function branches(): \App\Services\Access\BranchFilter
+    {
+        return app(\App\Services\Access\BranchFilter::class);
+    }
+
+    /** True when the person is limited to some branches (mode on), so the screen can say the figures cover those only. */
+    private function limited(): bool
+    {
+        return $this->branches()->enforcing('books');
+    }
+
     /** Per-ledger movement inside a period (posted vouchers only). */
     private function movement(?string $from, ?string $to, ?string $before = null): array
     {
@@ -30,6 +41,7 @@ class BooksReportService
         if ($before) {
             $q->where('v.date', '<', $before);
         }
+        $this->branches()->apply($q, 'v.location_id', 'books', 'reports');
 
         return $q->get()->keyBy('ledger_id')->map(fn ($r) => ['dr' => (float) $r->dr, 'cr' => (float) $r->cr])->all();
     }
@@ -58,13 +70,15 @@ class BooksReportService
             ->when($typeId, fn ($q) => $q->where('voucher_type_id', $typeId))
             ->when($locationId, fn ($q) => $q->where('location_id', $locationId))
             ->whereHas('type', fn ($t) => $t->where('base_type', '!=', \App\Models\Books\VoucherType::MEMORANDUM))   // a memorandum is a note, not a transaction
-            ->orderBy('date')->orderBy('id')->get();
+            ->orderBy('date')->orderBy('id');
+        $this->branches()->apply($rows, 'location_id', 'books', 'day_book');
+        $rows = $rows->get();
 
         $cur = \App\Models\Currency::all()->keyBy('id')->all();
         $base = fn ($v) => RestatedBase::amount((float) $v->total_amount, (float) $v->base_total, $v->currency_id, $cur, (float) $v->total_amount, (float) $v->base_total)[0];
 
         return [
-            'from' => $from, 'to' => $to,
+            'from' => $from, 'to' => $to, 'branch_limited' => $this->limited(),
             'rows' => $rows->map(fn ($v) => [
                 'id' => $v->id, 'date' => $v->date?->toDateString(), 'voucher_number' => $v->voucher_number,
                 'type' => $v->type?->name, 'base_type' => $v->type?->base_type, 'party' => $v->partyLedger?->name,
@@ -90,6 +104,7 @@ class BooksReportService
             ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
             ->where('e.ledger_id', $ledgerId)->where('v.status', Voucher::POSTED)
             ->when($to, fn ($q) => $q->where('v.date', '<=', $to))
+            ->when(true, fn ($q) => $this->branches()->apply($q, 'v.location_id', 'books', 'ledger'))
             ->orderBy('v.date')->orderBy('v.id')->orderBy('e.line_no')
             ->get(['v.id as voucher_id', 'v.date', 'v.voucher_number', 't.name as type', 'e.side', 'e.amount', 'e.base_amount', 'e.narration', 'v.narration as voucher_narration',
                 'v.currency_id', 'v.total_amount as v_total', 'v.base_total as v_base']);
@@ -126,7 +141,7 @@ class BooksReportService
         $bal ??= $open;
         $byCur = array_map(fn ($x) => array_map(fn ($v) => is_float($v) ? round($v, 2) : $v, $x), array_values($byCur));
 
-        return ['ledger' => ['id' => $ledger->id, 'name' => $ledger->name], 'from' => $from, 'to' => $to, 'base_currency' => $baseCode,
+        return ['ledger' => ['id' => $ledger->id, 'name' => $ledger->name], 'from' => $from, 'to' => $to, 'base_currency' => $baseCode, 'branch_limited' => $this->limited(),
             'opening' => round($open, 2), 'debit' => round($dr, 2), 'credit' => round($cr, 2), 'closing' => round($bal, 2), 'rows' => $out,
             'by_currency' => $byCur, 'has_foreign' => (bool) collect($out)->firstWhere('foreign', true), 'restated' => $restated];
     }
@@ -171,7 +186,7 @@ class BooksReportService
             $tCr += $diff > 0 ? $diff : 0;
         }
 
-        return ['from' => $from, 'to' => $to, 'rows' => $rows, 'total_debit' => round($tDr, 2), 'total_credit' => round($tCr, 2),
+        return ['from' => $from, 'to' => $to, 'branch_limited' => $this->limited(), 'rows' => $rows, 'total_debit' => round($tDr, 2), 'total_credit' => round($tCr, 2),
             'balanced' => abs($tDr - $tCr) < 0.01, 'restated_vouchers' => RestatedBase::restatedCount(),
             'opening_difference' => $diff, 'opening_balances' => abs($openNet) < 0.01 ? [] : $openings];
     }
@@ -197,7 +212,7 @@ class BooksReportService
         $gross = round($sum('income_direct') - $sum('expense_direct'), 2);
         $net = round($gross + $sum('income_indirect') - $sum('expense_indirect'), 2);
 
-        return ['from' => $from, 'to' => $to, 'restated_vouchers' => RestatedBase::restatedCount(), 'sections' => $sec,
+        return ['from' => $from, 'to' => $to, 'branch_limited' => $this->limited(), 'restated_vouchers' => RestatedBase::restatedCount(), 'sections' => $sec,
             'totals' => ['direct_income' => $sum('income_direct'), 'direct_expense' => $sum('expense_direct'), 'gross_profit' => $gross,
                 'indirect_income' => $sum('income_indirect'), 'indirect_expense' => $sum('expense_indirect'), 'net_profit' => $net]];
     }
@@ -240,7 +255,7 @@ class BooksReportService
         $tA = round(array_sum(array_column($assets, 'amount')), 2);
         $tL = round(array_sum(array_column($liabilities, 'amount')), 2);
 
-        return ['as_of' => $asOf, 'opening_difference' => $diff, 'restated_vouchers' => RestatedBase::restatedCount(), 'assets' => $assets, 'liabilities' => $liabilities, 'total_assets' => $tA, 'total_liabilities' => $tL, 'balanced' => abs($tA - $tL) < 0.01];
+        return ['as_of' => $asOf, 'branch_limited' => $this->limited(), 'opening_difference' => $diff, 'restated_vouchers' => RestatedBase::restatedCount(), 'assets' => $assets, 'liabilities' => $liabilities, 'total_assets' => $tA, 'total_liabilities' => $tL, 'balanced' => abs($tA - $tL) < 0.01];
     }
 
     /** Open bills per party, bucketed by days past due. kind: receivables | payables. */
@@ -253,6 +268,7 @@ class BooksReportService
             ->where('b.ref_type', 'new')->where('v.status', Voucher::POSTED)->whereIn('t.base_type', $bases)
             ->where('v.date', '<=', $asOf->toDateString())
             ->when($ledgerId, fn ($q) => $q->where('b.ledger_id', $ledgerId))
+            ->when(true, fn ($q) => $this->branches()->apply($q, 'v.location_id', 'books', 'ageing'))   // the payments that settle them are counted wherever they were taken
             ->get(['b.voucher_id', 'b.ledger_id', 'l.name as party', 'v.voucher_number', 'v.date', 'b.due_date', 'b.amount', 'v.total_amount', 'v.base_total', 'v.currency_id']);
         $cur = $this->currencyMap();
         $baseCode = (string) (collect($cur)->firstWhere('is_base', 1)->code ?? '');
@@ -298,6 +314,6 @@ class BooksReportService
         }
         unset($row);
 
-        return ['kind' => $kind, 'as_of' => $asOf->toDateString(), 'base_currency' => $baseCode, 'rows' => $rows, 'totals' => $tot];
+        return ['kind' => $kind, 'as_of' => $asOf->toDateString(), 'base_currency' => $baseCode, 'branch_limited' => $this->limited(), 'rows' => $rows, 'totals' => $tot];
     }
 }

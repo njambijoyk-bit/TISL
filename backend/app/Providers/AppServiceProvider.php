@@ -38,6 +38,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Scoped: remembers a person's roles and scope for the length of one request.
         $this->app->scoped(\App\Services\Access\Authorizer::class);
+        $this->app->scoped(\App\Services\Access\BranchFilter::class);
 
         // Scoped, not singleton: holds the per-request display currency.
         $this->app->scoped(\App\Services\CurrencyConversionService::class);

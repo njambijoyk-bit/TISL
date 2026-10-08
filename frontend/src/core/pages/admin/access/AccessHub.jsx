@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ShieldCheck, RefreshCw, Users, KeyRound, Layers, ScrollText } from 'lucide-react';
+import { ShieldCheck, RefreshCw, Users, KeyRound, Layers, ScrollText, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import accessAPI from '../../../../_shared/api/access';
@@ -9,6 +9,7 @@ import { card, chip } from './ui';
 import PeopleTab from './PeopleTab';
 import RolesTab from './RolesTab';
 import LevelsTab from './LevelsTab';
+import LimitsTab from './LimitsTab';
 import LogTab from './LogTab';
 
 /**
@@ -21,13 +22,14 @@ const TABS = [
   ['people', 'People', Users],
   ['roles', 'Roles', KeyRound],
   ['levels', 'Clearance levels', Layers],
+  ['limits', 'Branch limits', MapPin],
   ['log', 'Activity', ScrollText],
 ];
 
 const MODE = {
   off: ['Branch limits are off', 'Everyone sees every branch.'],
-  log: ['Branch limits are in test mode', 'Nothing is refused yet. The Activity tab lists what would have been refused so you can fix assignments before switching them on.'],
-  on: ['Branch limits are on', 'People outside their branches are refused.'],
+  log: ['Branch limits are in test mode', 'Nothing is refused yet. The Activity tab lists what would have been, so you can fix branch assignments before switching them on.'],
+  on: ['Branch limits are on', 'People outside their branches are refused. Some areas may still be in test: see the Branch limits tab.'],
 };
 
 export default function AccessHub() {
@@ -82,7 +84,9 @@ export default function AccessHub() {
     return <SettingsLayout><div style={{ padding: 20, maxWidth: 1000, margin: '0 auto' }}>{head}<button type="button" onClick={load} style={{ cursor: 'pointer' }}>Try again</button></div></SettingsLayout>;
   }
 
-  const [modeTitle, modeText] = MODE[data.scope_mode] ?? MODE.log;
+  const modes = new Set([data.scope.default, ...data.scope.areas.map((a) => a.mode)]);
+  const overall = modes.size === 1 ? [...modes][0] : (modes.has('on') ? 'on' : 'log');
+  const [modeTitle, modeText] = MODE[overall] ?? MODE.log;
   const props = { data, reload: load };
 
   return (
@@ -90,7 +94,7 @@ export default function AccessHub() {
       <div style={{ padding: '20px 4px', maxWidth: 1100, margin: '0 auto' }}>
         {head}
         <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', padding: '10px 14px' }}>
-          <span style={chip(data.scope_mode === 'on' ? '#16a34a' : '#d97706')}>{modeTitle}</span>
+          <span style={chip(overall === 'on' ? '#16a34a' : '#d97706')}>{modeTitle}</span>
           <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{modeText}</span>
         </div>
 
@@ -117,6 +121,7 @@ export default function AccessHub() {
         {tab === 'people' && <PeopleTab {...props} />}
         {tab === 'roles' && <RolesTab {...props} />}
         {tab === 'levels' && <LevelsTab {...props} />}
+        {tab === 'limits' && <LimitsTab {...props} />}
         {tab === 'log' && <LogTab {...props} />}
       </div>
     </SettingsLayout>

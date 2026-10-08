@@ -13,7 +13,7 @@ import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
 import useModuleStore from '../../../../_shared/store/moduleStore';
 import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
-import { canWriteFinance, hasAnyRole } from '../../../../_shared/lib/roles';
+import { canWriteFinance, hasAnyRole, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import shippingAPI from '../../../../_shared/api/shipping';
@@ -245,7 +245,10 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
     locationsAPI.getAdmin().then((r) => {
       const act = (r.locations ?? []).filter((l) => l.is_active !== false);
       setBranches(act);
-      setH((x) => (x.location_id ? x : { ...x, location_id: (act.find((l) => l.is_default) ?? act[0])?.id ?? '' }));
+      // a new voucher starts at the person's own branch when they have one, else the main branch
+      const mine = limitBranches(act, 'books');
+      const own = act.find((l) => String(l.id) === String(useAuthStore.getState().access?.scope?.default_location_id));
+      setH((x) => (x.location_id ? x : { ...x, location_id: (own ?? mine.find((l) => l.is_default) ?? mine[0] ?? act[0])?.id ?? '' }));
     }).catch(() => {});
   }, []);
 
@@ -560,7 +563,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div>
                 <label style={label}>Branch</label>
                 <select value={h.location_id} onChange={(e) => setH((x) => ({ ...x, location_id: e.target.value }))} style={small}>
-                  {branches.filter((b) => branchAllowed(base, b) || String(b.id) === String(h.location_id)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {limitBranches(branches, 'books', h.location_id).filter((b) => branchAllowed(base, b) || String(b.id) === String(h.location_id)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               {!editing && series.length > 0 && (

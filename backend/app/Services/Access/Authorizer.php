@@ -144,6 +144,12 @@ class Authorizer
         })->values()->all();
     }
 
+    /** Does this person hold any staff role? Portal accounts (customers, vendors, applicants) are not bound by branches: they only see their own things. */
+    public function isStaff(User $u): bool
+    {
+        return $this->staffRoles($u) !== [];
+    }
+
     /** Roles of the staff kind only: portal roles (customer, vendor, applicant) never hold permissions. */
     private function staffRoles(User $u): array
     {
@@ -266,7 +272,7 @@ class Authorizer
     private function withinScope(User $u, string $permission, bool $isWrite, array $ctx, string $roleKey): Decision
     {
         $loc = $ctx['location_id'] ?? null;
-        $mode = config('access.scope_mode', 'log');
+        $mode = app(AccessSettings::class)->mode(Catalog::areaOf($permission));
         if ($loc && $mode !== 'off' && ! $this->canAccessLocation($u, (int) $loc, $isWrite)) {
             if ($mode === 'on') {
                 return Decision::deny('outside_scope');
@@ -548,6 +554,8 @@ class Authorizer
             'permissions' => array_keys($perms),
             'data_scope' => $this->dataScope($u),
             'scope' => ['global' => $scope['global'], 'open' => $scope['open'], 'default_location_id' => $scope['default'], 'locations' => $scope['locations']],
+            // per area: is the branch limit off, in test, or on? The screens narrow their branch lists only when it is on.
+            'branch_limits' => collect(array_keys(Catalog::AREAS))->mapWithKeys(fn ($a) => [$a => app(AccessSettings::class)->mode($a)])->all(),
         ];
     }
 

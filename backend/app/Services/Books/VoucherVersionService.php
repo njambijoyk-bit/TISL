@@ -47,6 +47,7 @@ class VoucherVersionService
             ->when(! empty($f['from']), fn ($s) => $s->where('v.date', '>=', $f['from']))->when(! empty($f['to']), fn ($s) => $s->where('v.date', '<=', $f['to']))
             ->when(! empty($f['type']), fn ($s) => $s->where(fn ($w) => $w->where('t.base_type', $f['type'])->orWhere('t.id', is_numeric($f['type']) ? $f['type'] : 0)))
             ->when(! empty($f['search']), fn ($s) => $s->where(fn ($w) => $w->where('v.voucher_number', 'like', "%{$f['search']}%")->orWhere('pl.name', 'like', "%{$f['search']}%")->orWhere('v.party_name', 'like', "%{$f['search']}%")))
+            ->when(true, fn ($s) => app(\App\Services\Access\BranchFilter::class)->apply($s, 'v.location_id', 'books', 'edit_log'))
             ->groupBy('v.id', 'v.voucher_number', 'v.date', 't.name', 'pl.name', 'v.party_name', 'v.status')
             ->havingRaw("SUM(ver.activity IN ('altered','deleted')) > 0")
             ->orderByDesc('v.date')->orderByDesc('v.id');

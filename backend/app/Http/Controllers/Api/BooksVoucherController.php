@@ -18,6 +18,28 @@ class BooksVoucherController extends Controller
 {
     public function __construct(private VoucherService $vouchers, private BooksReportService $reports, private ExportService $export) {}
 
+    /** A voucher the person may look at (branch limits: a voucher at a branch they were not given is "not found"). */
+    private function visible(Voucher $v): Voucher
+    {
+        app(\App\Services\Access\BranchFilter::class)->assertVisible($v->location_id ? (int) $v->location_id : null, 'books', 'voucher');
+
+        return $v;
+    }
+
+    /** Posting at a branch: needs full access to it. */
+    private function writableAt($locationId): void
+    {
+        app(\App\Services\Access\BranchFilter::class)->assertWrite(request()->user(), $locationId ? (int) $locationId : null, 'books', 'voucher');
+    }
+
+    /** A voucher the person may change: needs full access to its branch. */
+    private function writable(Voucher $v): Voucher
+    {
+        app(\App\Services\Access\BranchFilter::class)->assertWrite(request()->user(), $v->location_id ? (int) $v->location_id : null, 'books', 'voucher');
+
+        return $v;
+    }
+
     private function guard(callable $fn)
     {
         try {
@@ -43,6 +65,7 @@ class BooksVoucherController extends Controller
                     ->orWhereHas('partyLedger', fn ($l) => $l->where('name', 'like', $s)));
             })
             ->orderByDesc('date')->orderByDesc('id');
+        app(\App\Services\Access\BranchFilter::class)->apply($q, 'location_id', 'books', 'vouchers');
 
         $page = $q->paginate(min((int) $request->get('per_page', 25), 200));
 
@@ -58,7 +81,7 @@ class BooksVoucherController extends Controller
 
     public function show($id): JsonResponse
     {
-        $v = Voucher::with($this->vouchers->relations())->findOrFail($id);
+        $v = $this->visible(Voucher::with($this->vouchers->relations())->findOrFail($id));
         $out = $v->toArray();
         $out['footer'] = $this->export->footer($v);
         $out['period_lock'] = app(\App\Services\Books\PeriodGuard::class)->sealFor($v->date);
@@ -91,6 +114,7 @@ class BooksVoucherController extends Controller
     public function store(Request $request): JsonResponse
     {
         return $this->guard(function () use ($request) {
+            $this->writableAt($request->input('location_id') ?: \App\Models\Location::default()?->id);
             $v = $this->vouchers->create($request->all(), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} saved", 'data' => $v->load($this->vouchers->relations())], 201);
@@ -100,7 +124,11 @@ class BooksVoucherController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         return $this->guard(function () use ($request, $id) {
-            $v = $this->vouchers->alter(Voucher::findOrFail($id), $request->all(), $request->user());
+            $existing = $this->writable(Voucher::findOrFail($id));
+            if ($request->filled('location_id')) {
+                $this->writableAt($request->input('location_id'));   // moving it to another branch needs that branch too
+            }
+            $v = $this->vouchers->alter($existing, $request->all(), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} updated", 'data' => $v->load($this->vouchers->relations())]);
         });
@@ -111,7 +139,7 @@ class BooksVoucherController extends Controller
         $request->validate(['reason' => 'nullable|string|max:255']);
 
         return $this->guard(function () use ($request, $id) {
-            $v = $this->vouchers->cancel(Voucher::findOrFail($id), $request->reason, $request->user());
+            $v = $this->vouchers->cancel($this->writable(Voucher::findOrFail($id)), $request->reason, $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} cancelled", 'data' => $v->load($this->vouchers->relations())]);
         });
@@ -126,7 +154,7 @@ class BooksVoucherController extends Controller
         ]);
 
         return $this->guard(function () use ($request, $id, $data) {
-            $v = $this->vouchers->convert(Voucher::findOrFail($id), $data['to'], $request->except('to'), $request->user());
+            $v = $this->vouchers->convert($this->writable(Voucher::findOrFail($id)), $data['to'], $request->except('to'), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} created", 'data' => $v->load($this->vouchers->relations())], 201);
         });
@@ -135,7 +163,7 @@ class BooksVoucherController extends Controller
     /** Where a document would be sent (e-mail, WhatsApp) and what the message says. */
     public function shareInfo($id): JsonResponse
     {
-        return $this->guard(fn () => response()->json(app(\App\Services\Books\VoucherShareService::class)->info(Voucher::with(['type', 'customer', 'partyLedger', 'currency'])->findOrFail($id))));
+        return $this->guard(fn () => response()->json(app(\App\Services\Books\VoucherShareService::class)->info($this->visible(Voucher::with(['type', 'customer', 'partyLedger', 'currency'])->findOrFail($id)))));
     }
 
     /** E-mail a document to the customer from the company's default address. */
@@ -145,7 +173,7 @@ class BooksVoucherController extends Controller
 
         return $this->guard(function () use ($request, $id) {
             try {
-                $to = app(\App\Services\Books\VoucherShareService::class)->email(Voucher::with('type')->findOrFail($id), $request->input('to'), $request->input('note'), $request->user()?->id);
+                $to = app(\App\Services\Books\VoucherShareService::class)->email($this->visible(Voucher::with('type')->findOrFail($id)), $request->input('to'), $request->input('note'), $request->user()?->id);
             } catch (\Symfony\Component\Mailer\Exception\TransportExceptionInterface $e) {
                 throw new BooksException('The mail server refused it: ' . $e->getMessage());
             }
@@ -157,7 +185,7 @@ class BooksVoucherController extends Controller
     /** What can still be credited / debited on an invoice, line by line. */
     public function returnable($id): JsonResponse
     {
-        return $this->guard(fn () => response()->json($this->vouchers->returnable(Voucher::with('partyLedger')->findOrFail($id))));
+        return $this->guard(fn () => response()->json($this->vouchers->returnable($this->visible(Voucher::with('partyLedger')->findOrFail($id)))));
     }
 
     /** Credit note against a sales invoice / debit note against a purchase, from the lines picked. */
@@ -171,7 +199,7 @@ class BooksVoucherController extends Controller
         ]);
 
         return $this->guard(function () use ($request, $id) {
-            $v = $this->vouchers->createReturn(Voucher::findOrFail($id), $request->all(), $request->user());
+            $v = $this->vouchers->createReturn($this->writable(Voucher::findOrFail($id)), $request->all(), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} created", 'data' => $v->load($this->vouchers->relations())], 201);
         });
@@ -183,7 +211,7 @@ class BooksVoucherController extends Controller
         $request->validate(['payment_method_id' => 'required_without:tenders|nullable|integer|exists:payment_methods,id', 'tenders' => 'nullable|array', 'withholding' => 'nullable|array', 'withholding.tax_rate_id' => 'required_with:withholding|integer|exists:ledgers,id', 'amount' => 'nullable|numeric|min:0.01', 'date' => 'nullable|date']);
 
         return $this->guard(function () use ($request, $id) {
-            $v = $this->vouchers->receive(Voucher::findOrFail($id), $request->all(), $request->user());
+            $v = $this->vouchers->receive($this->writable(Voucher::findOrFail($id)), $request->all(), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} recorded", 'data' => $v->load($this->vouchers->relations())], 201);
         });
@@ -195,7 +223,7 @@ class BooksVoucherController extends Controller
         $request->validate(['payment_method_id' => 'required|integer|exists:payment_methods,id', 'phone' => 'required|string', 'amount' => 'nullable|numeric|min:1']);
 
         return $this->guard(function () use ($request, $id) {
-            $v = Voucher::with('type')->findOrFail($id);
+            $v = $this->writable(Voucher::with('type')->findOrFail($id));
             $method = PaymentMethod::where('gateway', 'mpesa_stk')->findOrFail($request->payment_method_id);
             $due = $v->type->base_type === VoucherType::SALES ? $this->vouchers->outstanding($v) : (float) $v->total_amount;
             $amount = $request->filled('amount') ? min((float) $request->amount, $due) : $due;
@@ -207,7 +235,7 @@ class BooksVoucherController extends Controller
 
     public function export(Request $request, $id)
     {
-        return $this->guard(fn () => $this->export->voucher(Voucher::findOrFail($id), $request->get('format', 'pdf')));
+        return $this->guard(fn () => $this->export->voucher($this->visible(Voucher::findOrFail($id)), $request->get('format', 'pdf')));
     }
 
     /** Vouchers register as a file. */
@@ -253,7 +281,7 @@ class BooksVoucherController extends Controller
         $d = $request->validate(['amount' => 'nullable|numeric|min:0.01', 'credit_voucher_ids' => 'nullable|array', 'credit_voucher_ids.*' => 'integer']);
 
         return $this->guard(function () use ($request, $id, $credit, $d) {
-            $res = $credit->apply(Voucher::findOrFail($id), isset($d['amount']) ? (float) $d['amount'] : null, $d['credit_voucher_ids'] ?? null, $request->user());
+            $res = $credit->apply($this->writable(Voucher::findOrFail($id)), isset($d['amount']) ? (float) $d['amount'] : null, $d['credit_voucher_ids'] ?? null, $request->user());
 
             return response()->json($res + ['message' => 'Applied ' . number_format($res['applied'], 2) . ' of credit.']);
         });
@@ -265,7 +293,7 @@ class BooksVoucherController extends Controller
         $request->validate(['credit_voucher_id' => 'nullable|integer']);
 
         return $this->guard(function () use ($request, $id, $credit) {
-            $n = $credit->release(Voucher::findOrFail($id), $request->integer('credit_voucher_id') ?: null, $request->user());
+            $n = $credit->release($this->writable(Voucher::findOrFail($id)), $request->integer('credit_voucher_id') ?: null, $request->user());
 
             return response()->json(['released' => $n, 'message' => $n > 0 ? 'Credit given back: ' . number_format($n, 2) : 'No applied credit to give back.']);
         });
@@ -375,7 +403,7 @@ class BooksVoucherController extends Controller
     /** Every version of one voucher, for comparing any two. */
     public function versions(int $id, \App\Services\Books\VoucherVersionService $versions): JsonResponse
     {
-        $v = Voucher::with('type:id,name')->findOrFail($id);
+        $v = $this->visible(Voucher::with('type:id,name')->findOrFail($id));
 
         return response()->json(['voucher' => ['id' => $v->id, 'voucher_number' => $v->voucher_number, 'type' => $v->type?->name], 'versions' => $versions->versions($id)]);
     }
@@ -558,7 +586,7 @@ class BooksVoucherController extends Controller
         $d = $request->validate(['amount' => 'nullable|numeric|min:0.01', 'expires_at' => 'nullable|date|after:today']);
 
         return $this->guard(function () use ($request, $id, $d) {
-            $gv = app(\App\Services\Books\GiftVoucherService::class)->issueFromCreditNote(Voucher::findOrFail($id), isset($d['amount']) ? (float) $d['amount'] : null, $d['expires_at'] ?? null, $request->user());
+            $gv = app(\App\Services\Books\GiftVoucherService::class)->issueFromCreditNote($this->writable(Voucher::findOrFail($id)), isset($d['amount']) ? (float) $d['amount'] : null, $d['expires_at'] ?? null, $request->user());
 
             return response()->json(['message' => "Gift voucher {$gv->code} issued", 'data' => $gv->load('currency:id,code,symbol')], 201);
         });

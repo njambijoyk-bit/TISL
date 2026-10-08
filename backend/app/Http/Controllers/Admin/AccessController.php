@@ -10,6 +10,7 @@ use App\Models\Access\Role;
 use App\Models\Access\UserRole;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\Access\AccessSettings;
 use App\Services\Access\Authorizer;
 use App\Services\Access\Catalog;
 use Illuminate\Http\JsonResponse;
@@ -57,7 +58,8 @@ class AccessController extends Controller
             'permissions' => DB::table('permissions')->orderBy('group_name')->orderBy('sort_order')->get(['key', 'module_key', 'group_name', 'label', 'is_write']),
             'approvals' => Catalog::APPROVALS,
             'mine' => ['clearance' => $this->access->clearance($me), 'can_roles' => $this->access->allows($me, 'access.roles'), 'can_manage' => $this->access->allows($me, 'access.manage')],
-            'scope_mode' => config('access.scope_mode'),
+            'scope_mode' => app(AccessSettings::class)->mode('general'),
+            'scope' => $this->scopeSummary(),
             'locations' => Location::orderBy('name')->get(['id', 'name']),
         ]);
     }
@@ -103,6 +105,54 @@ class AccessController extends Controller
             'subject_user_id' => $l->subject_user_id, 'details' => $l->details, 'at' => (string) $l->created_at]);
 
         return response()->json($rows);
+    }
+
+    /**
+     * Branch limits for the settings tab: each area's mode, what test mode would have hidden or refused in the last 7 days,
+     * and who is limited (non-global staff with a default branch or grants).
+     */
+    private function scopeSummary(): array
+    {
+        $settings = app(AccessSettings::class);
+        $out = $settings->all();
+        $events = AccessLog::whereIn('action', ['would_hide', 'would_deny'])->where('created_at', '>=', now()->subDays(7))->orderByDesc('id')->limit(3000)->get();
+        $out['areas'] = array_map(function ($a) use ($events) {
+            $mine = $events->filter(fn ($e) => ($e->details['area'] ?? null) === $a['key']);
+
+            return $a + ['events' => $mine->count(), 'people' => $mine->pluck('subject_user_id')->unique()->count(),
+                'hidden' => (int) $mine->sum(fn ($e) => (int) ($e->details['hidden'] ?? 0)), 'refused' => $mine->where('action', 'would_deny')->count()];
+        }, $out['areas']);
+
+        $names = Location::pluck('name', 'id');
+        $limited = [];
+        foreach (User::query()->staffAccounts()->orderBy('name')->limit(300)->get(['id', 'name', 'role', 'default_location_id']) as $u) {
+            $ids = $this->access->locationIds($u);
+            if ($ids !== null) {
+                $limited[] = ['id' => $u->id, 'name' => $u->name, 'role' => $u->role, 'branches' => collect($ids)->map(fn ($i) => $names[$i] ?? "#{$i}")->values()->all()];
+            }
+        }
+        $out['limited_people'] = $limited;
+        $out['unassigned_sees_all'] = (bool) config('access.unassigned_sees_all', true);
+        $out['ready'] = \Illuminate\Support\Facades\Schema::hasTable('access_settings');
+
+        return $out;
+    }
+
+    /** PUT /scope-modes {area, mode}: switch branch limits off, test (log) or on for one area, or set the default. Owner only (access.roles). */
+    public function setScopeMode(Request $request): JsonResponse
+    {
+        $d = $request->validate(['area' => ['required', Rule::in(array_merge(['default'], array_keys(Catalog::AREAS)))], 'mode' => ['required', Rule::in(array_merge(AccessSettings::MODES, ['default']))]]);
+        if ($d['area'] === 'default' && $d['mode'] === 'default') {
+            return $this->refuse('The default needs a value: off, test or on.');
+        }
+        if (! \Illuminate\Support\Facades\Schema::hasTable('access_settings')) {
+            return $this->refuse('Run database/sql/99_access_scope_settings.sql first.', 409);
+        }
+        $before = app(AccessSettings::class)->mode($d['area'] === 'default' ? 'general' : $d['area']);
+        app(AccessSettings::class)->set($d['area'], $d['mode'], $request->user()->id);
+        AccessLog::record($request->user()->id, null, 'scope_mode_changed', ['area' => $d['area'], 'from' => $before, 'to' => $d['mode']]);
+
+        return response()->json(['message' => 'Saved.', 'scope' => $this->scopeSummary()]);
     }
 
     // --------------------------------------------------------- people: write

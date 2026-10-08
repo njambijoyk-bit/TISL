@@ -1,4 +1,4 @@
-# Identity and access: clearance levels, roles, permissions and scope (R1 and R2 built; R3 onwards planned)
+# Identity and access: clearance levels, roles, permissions and scope (R1 to R3 built; R4 onwards planned)
 
 Why first: cost centres, branches, entities, payroll and every module (kitchen, school, library, pharmacy) ask the same question: **may this person do this, on this branch, at this moment?** One engine answers it, and the engine is data driven: Chef, Librarian or Foreman are rows in a table, never new code.
 
@@ -100,21 +100,29 @@ The permission set reproduces today's route lists exactly (each permission stand
 1. Bulk employee import and its template are for people with `hr.manage` (admin, super admin), no longer any staff member.
 2. A person with an extra role never loses what their main role allows, but a rule written for one role name (for example "finance can only update themselves") now also applies to someone who merely holds that role as an extra. Data scope is the proper tool for "only their own": use it on new rules.
 
+## What R3 contains (built): branch limits, books and stock
+
+- **Per-area switch.** `database/sql/99_access_scope_settings.sql` adds `access_settings`. The owner sets **Off / Test / On** for each area (Books, Stock) and for a default, on Settings, Roles & access, **Branch limits**. Switching to On asks for confirmation and shows what Test mode recorded in the last 7 days. With no row, the server setting applies (Test).
+- **Who is limited.** Staff whose roles are not global and who have a default branch or grants. Admin, super admin and the senior accountant never are; neither are customers, vendors, and anything run without a person (queues, the storefront checkout). Records with no branch stay visible to everyone. A view-only grant lets someone look but not post.
+- **What is limited, in Books:** the voucher list and every voucher opened, exported, e-mailed or returned; the day book; the dashboard; trial balance, profit and loss, balance sheet, ledger statements, ageing; the movement, money-flow and compliance reports; the cheque register; memoranda; the edit log. **Posting** (a new voucher, an edit, cancel, convert, return, receive, settle a bill, apply credit, issue a gift voucher from a credit note) needs full access to the voucher's branch. Reports for a limited person say "these figures cover only your branches". Payments that settle a branch's bills are counted wherever they were taken.
+- **In Stock:** transfers (yours when either end is; sending needs the sending branch, receiving needs the receiving branch), stock counts, jobs, the stock journal, the expiry list (write-off and return need the branch), and the stock reports. Branch pickers on the voucher form, transfers and counts show only the branches you may use (when the area is On); a new voucher starts at the person's own branch.
+- **Test mode is useful.** Once an hour per person and screen it records how many records would have been hidden, and every post that would have been refused. The Branch limits tab shows the last 7 days per area and who is limited.
+- **Posting through internal flows** (payroll, depreciation, gift voucher activation, loyalty rewards) is not blocked by branch limits: only the screens a person uses are.
+
 ### Not done yet
 
-- The remaining ~120 screen checks that compare role names (user management, delivery, projects participants) still work on role names; they are limited to showing or hiding buttons, the server decides.
-- The old Users screen still creates users with the original roles only; new roles are given through Roles & access (or the Employees form).
-- Branch scope is **not enforced** anywhere yet except in `log` mode on routes that name a branch (R3).
+- Branch limits do not cover customers' own statements and credit (a customer's balance is the whole business's), cash counts and petty cash (their tills are ledgers, not branches), held stock, the catalogue, delivery or HR. Those follow with cost centres, which give every ledger line and till a branch.
+- A branch-limited person's balance sheet and trial balance show opening balances for the whole business with only their branches' movements. They are labelled; company-wide totals need someone with every branch.
+- About 120 screen checks still compare role names (they only show or hide buttons, the server decides).
+- The old Users screen still creates users with the original roles only.
 
 ## Rollout from here
-
-**R3: branch scope enforcement.** Books first (registers, day book, reports, posting refused to an out-of-scope branch), then stock, HR and the rest. Starts in `log`, then `on` per module once the log is quiet. Data scope (all, assigned, own) is applied to lists in the same pass.
 
 **R4: employment link.** When employees reach the cost-centre plan, the default branch comes from the employee's location, departments and cost centres attach, and grants can target cost centres and companies.
 
 **R5: housekeeping.** Effective access page, expiring-grants list, audit views, retire the `isAdmin()` name (it means "any staff").
 
-The build order of `docs/COST_CENTRES_AND_ENTITIES_PLAN.md` resumes after R3 (R4 needs employees and cost centres).
+R3 is done for Books and Stock; HR, delivery and the catalogue follow when those areas get cost centres. The build order of `docs/COST_CENTRES_AND_ENTITIES_PLAN.md` resumes now.
 
 ## Defaults chosen where there was no answer (change any of them)
 

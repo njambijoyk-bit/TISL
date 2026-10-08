@@ -40,7 +40,8 @@ class MovementReportService
             ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
             ->where('v.status', 'posted')->whereIn('t.base_type', array_keys(self::MOVES))
             ->whereNotNull('i.product_id')->where('i.item_type', '!=', 'charge')->where('i.is_header', false)
-            ->whereBetween('v.date', [$from, $to]);
+            ->whereBetween('v.date', [$from, $to])
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'movement'));
     }
 
     /** Quantity and base-currency value of one line, with its sign (a return counts negative). */
@@ -188,6 +189,7 @@ class MovementReportService
         $entries = DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id')->join('ledgers as l', 'l.id', '=', 'e.ledger_id')
             ->leftJoin('ledger_groups as g', 'g.id', '=', 'l.group_id')
             ->where('v.status', 'posted')->whereBetween('v.date', [$from, $to])
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'money_flow'))
             ->whereIn('e.voucher_id', function ($q) use ($money) {
                 $q->select('voucher_id')->from('voucher_entries')->whereIn('ledger_id', $money->keys()->all() ?: [0]);
             })

@@ -34,6 +34,7 @@ class ChequeService
         $q = DB::table('voucher_instruments as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->leftJoin('ledgers as p', 'p.id', '=', 'v.party_ledger_id')
             ->join('ledgers as b', 'b.id', '=', 'i.ledger_id')->where('i.type', 'cheque')->where('i.status', '!=', 'cancelled')
             ->select('i.*', 'v.voucher_number', 'v.date as voucher_date', 'p.name as party', 'b.name as our_bank');
+        app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'cheques');
 
         $all = $q->get();
         $summary = ['in_hand' => ['n' => 0, 'amount' => 0.0], 'post_dated' => ['n' => 0, 'amount' => 0.0], 'deposited' => ['n' => 0, 'amount' => 0.0], 'issued' => ['n' => 0, 'amount' => 0.0], 'bounced' => ['n' => 0, 'amount' => 0.0], 'cleared' => ['n' => 0, 'amount' => 0.0]];

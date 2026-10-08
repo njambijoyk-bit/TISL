@@ -929,6 +929,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::put('/roles/{id}',         [$c, 'updateRole'])->whereNumber('id');
                 Route::delete('/roles/{id}',      [$c, 'deleteRole'])->whereNumber('id');
                 Route::put('/levels/{level}',     [$c, 'renameLevel'])->whereNumber('level');
+                Route::put('/scope-modes',        [$c, 'setScopeMode']);
             });
         });
 

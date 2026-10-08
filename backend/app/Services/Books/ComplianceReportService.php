@@ -35,6 +35,7 @@ class ComplianceReportService
             ->groupBy('e.ledger_id');
         $from && $q->where('v.date', '>=', $from);
         $to && $q->where('v.date', '<=', $to);
+        app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'compliance');
 
         return $q->get()->keyBy('ledger_id')->map(fn ($r) => ['dr' => (float) $r->dr, 'cr' => (float) $r->cr])->all();
     }
@@ -51,6 +52,7 @@ class ComplianceReportService
             ->where('v.status', Voucher::POSTED)->whereIn('t.ledger_id', $ledgerIds)
             ->whereIn('vt.base_type', ['sales', 'cash_sale', 'credit_note', 'purchase', 'debit_note'])
             ->when($from, fn ($q) => $q->where('v.date', '>=', $from))->when($to, fn ($q) => $q->where('v.date', '<=', $to))
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'compliance'))
             ->groupBy('t.ledger_id', 'vt.base_type')
             ->selectRaw("t.ledger_id, vt.base_type, SUM(t.base_amount * {$rate}) AS base")->get();
         $out = [];
@@ -124,6 +126,7 @@ class ComplianceReportService
             ->where('v.status', Voucher::POSTED)->where('i.is_header', false)->whereNull('i.gift_meta')
             ->whereIn('vt.base_type', ['sales', 'cash_sale', 'credit_note', 'purchase', 'debit_note'])
             ->when($from, fn ($q) => $q->where('v.date', '>=', $from))->when($to, fn ($q) => $q->where('v.date', '<=', $to))
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'compliance'))
             ->groupBy('vt.base_type', 'l.tax_nature')
             ->selectRaw("vt.base_type as base, l.tax_nature as nature, SUM(i.amount * {$rate}) as value")->get();
         $out = ['sales' => [], 'purchases' => []];
@@ -152,6 +155,7 @@ class ComplianceReportService
             ->leftJoin('ledger_groups as g', 'g.id', '=', 'r.group_id')
             ->where('c.status', '<>', 'void')
             ->when($from, fn ($q) => $q->where('v.date', '>=', $from))->when($to, fn ($q) => $q->where('v.date', '<=', $to))
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'compliance'))
             ->orderBy('v.date')->orderBy('c.id')
             ->get(['c.id', 'v.date', 'v.voucher_number', 'v.id as voucher_id', 'c.certificate_number', 'c.direction', 'p.name as party', 'g.name as tax', 'r.name as rate',
                 'c.gross_amount', 'c.withheld_amount', 'c.net_amount', 'c.status', 'c.credit_status', 'c.cleared_amount', DB::raw("{$rate} as exchange_rate")])

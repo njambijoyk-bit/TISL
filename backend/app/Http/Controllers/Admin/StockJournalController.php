@@ -26,6 +26,7 @@ class StockJournalController extends Controller
             ->when(! empty($d['q']), fn ($s) => $s->where(fn ($w) => $w->where('p.name', 'like', "%{$d['q']}%")->orWhere('pv.sku', 'like', "%{$d['q']}%")->orWhere('sb.batch_no', 'like', "%{$d['q']}%")))
             ->when(! empty($d['type']), fn ($s) => $s->where('m.movement_type', $d['type']))
             ->when(! empty($d['location_id']), fn ($s) => $s->where('m.location_id', $d['location_id']))
+            ->when(true, fn ($s) => app(\App\Services\Access\BranchFilter::class)->apply($s, 'm.location_id', 'stock', 'journal'))
             ->when(! empty($d['from']), fn ($s) => $s->where('m.movement_date', '>=', $d['from']))
             ->when(! empty($d['to']), fn ($s) => $s->where('m.movement_date', '<=', $d['to']));
         $total = (clone $q)->count();

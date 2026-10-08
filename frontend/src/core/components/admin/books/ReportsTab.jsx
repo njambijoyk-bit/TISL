@@ -53,6 +53,11 @@ function View(props) {
           {n} voucher{n === 1 ? ' was' : 's were'} made when the base currency was different and {n === 1 ? 'is' : 'are'} shown at today's rate, so every figure here is in the current base currency.
         </div>
       )}
+      {props.data?.branch_limited && (
+        <div style={{ ...card, padding: '8px 12px', marginBottom: 10, fontSize: '0.76rem', color: colors.warningText }}>
+          These figures cover only the branches you have access to. Opening balances belong to the whole business, so ask someone with access to every branch for company-wide totals.
+        </div>
+      )}
       <ViewBody {...props} />
     </>
   );

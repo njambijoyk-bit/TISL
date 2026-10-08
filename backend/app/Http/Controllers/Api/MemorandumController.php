@@ -34,6 +34,7 @@ class MemorandumController extends Controller
     {
         $v = Voucher::whereHas('type', fn ($t) => $t->where('base_type', VoucherType::MEMORANDUM))->findOrFail($id);
         abort_unless($this->finance($r) || (int) $v->created_by === (int) $r->user()->id, 404);
+        app(\App\Services\Access\BranchFilter::class)->assertVisible($v->location_id ? (int) $v->location_id : null, 'books', 'memoranda');
 
         return $v;
     }
@@ -57,6 +58,7 @@ class MemorandumController extends Controller
             ->when($request->filled('purpose'), fn ($w) => $w->where('meta->memo->purpose', (string) $request->query('purpose')))
             ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('voucher_number', 'like', '%' . trim((string) $request->query('q')) . '%')->orWhere('narration', 'like', '%' . trim((string) $request->query('q')) . '%')))
             ->orderByDesc('date')->orderByDesc('id');
+        app(\App\Services\Access\BranchFilter::class)->apply($q, 'location_id', 'books', 'memoranda');
         $page = $q->paginate(min((int) $request->query('per_page', 30), 100));
         $rows = $page->getCollection()->map(fn ($v) => $this->memos->present($v));
         if (in_array($state, ['open', 'converted', 'dismissed'], true)) {
