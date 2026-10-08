@@ -329,6 +329,7 @@ export const ADMIN_NAV = [
           { group: 'Content', title: 'Footer', path: '/admin/settings/content/footer' },
           { group: 'Content', title: 'Policies', path: '/admin/settings/policy', description: 'Terms, privacy, returns' },
           { group: 'Access', title: 'Users & roles', path: '/admin/users', description: 'Staff accounts and their roles' },
+          { group: 'Access', title: 'Roles & access', path: '/admin/access', perm: 'access.view', roles: ['admin', 'super_admin'], description: 'Clearance levels, roles, permissions and branch access' },
           { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, description: 'Ranking, pins and catalogue boosts' },
           { group: 'Platform', title: 'Engagement', path: '/admin/settings/engagement', module: MODULES.EXTRAS, roles: ['admin', 'super_admin'], description: 'Who can review, comment, like, mark helpful and report' },
           { group: 'Platform', title: 'Vault', path: '/admin/vault', description: 'Stored documents and secrets' },

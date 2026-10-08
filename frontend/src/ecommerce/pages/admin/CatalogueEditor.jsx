@@ -16,6 +16,7 @@ import SectionListEditor from '../../components/admin/catalogue/SectionListEdito
 import { AudiencePicker } from '../../components/admin/catalogue/bits';
 import { fieldStyle, useCatalogueMeta } from '../../components/admin/catalogue/catalogueMeta';
 import { SIZE_LABELS, TYPE_ONE } from '../../lib/catalogue/labels';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const KINDS = [['product', 'Products'], ['service', 'Services'], ['hamper', 'Hampers'], ['auction', 'Auctions'], ['category', 'A category'], ['brand', 'A brand']];
 const PUBLISHERS = ['admin', 'super_admin', 'manager', 'finance'];
@@ -27,8 +28,8 @@ export default function CatalogueEditor() {
   const { id } = useParams();
   const isNew = !id;
   const navigate = useNavigate();
-  const role = useAuthStore((s) => s.user?.role);
-  const canPublish = PUBLISHERS.includes(role);
+  const roleUser = useAuthStore((s) => s.user);
+  const canPublish = hasAnyRole(roleUser, PUBLISHERS);
   const [meta] = useCatalogueMeta();
   const [f, setF] = useState({ title: '', subtitle: '', size: 'full', status: 'draft', access: 'everyone', customer_types: [], settings: { cover: true, contents: true, back: true } });
   const [entries, setEntries] = useState([]);

@@ -3,6 +3,7 @@ import { X, Trash2, RotateCcw, Search, AlertTriangle, ChevronLeft, ChevronRight 
 import toast from 'react-hot-toast';
 import useProjectStore from '../../../_shared/store/projectStore';
 import { useAuthStore } from '../../../_shared/store/index';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const formatDate = (d) => {
   if (!d) return '—';
@@ -100,7 +101,7 @@ const ProjectTrashModal = ({ onClose }) => {
     forceDeleteProject,
   } = useProjectStore();
 
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
 
   const [search, setSearch]           = useState('');
   const [page, setPage]               = useState(1);

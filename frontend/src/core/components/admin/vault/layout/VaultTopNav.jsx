@@ -2,6 +2,7 @@ import React from 'react';
 import useVaultStore from '../../../../../_shared/store/useVaultStore';
 import useAuthStore from '../../../../../_shared/store/authStore';
 import { VaultThemeSwitcher } from '../VaultThemeSwitcher'; 
+import { hasAnyRole } from '../../../../../_shared/lib/roles';
 
 // ── Icons (inline SVG — no extra dep) ────────────────────────────────────────
 const Icons = {
@@ -57,7 +58,7 @@ export default function VaultTopNav() {
   const { activeTab, setActiveTab, layout, setLayout, viewMode, setViewMode } = useVaultStore();
   const { user } = useAuthStore(); 
 
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
   const visibleTabs = TABS.filter(t => !t.superAdminOnly || isSuperAdmin);
 
   return (

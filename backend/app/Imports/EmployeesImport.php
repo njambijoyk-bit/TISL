@@ -14,6 +14,8 @@ use Maatwebsite\Excel\Concerns\WithBatchInserts;
 
 class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, WithValidation
 {
+    public function __construct(private ?User $actor = null) {}
+
     public function chunkSize(): int { return 50; }
 
     /** Safely cast to string, returning null for empty/missing values */
@@ -169,11 +171,21 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
             '*.email'           => 'required|email',
             '*.name'            => 'required|string|max:255',
             '*.department'      => 'required|string|max:255',
-            '*.role'            => 'nullable|in:admin,manager,sales_rep,finance,logistics',
+            '*.role'            => ['nullable', \Illuminate\Validation\Rule::in($this->allowedRoles())],
             '*.employment_type' => 'nullable|in:full_time,part_time,contract,intern',
             '*.status'          => 'nullable|in:active,on_leave,suspended,terminated,probation',
             '*.gender'          => 'nullable|in:male,female,other,prefer_not_to_say',
             '*.marital_status'  => 'nullable|in:single,married,divorced,widowed',
         ];
+    }
+
+    /** The roles a file may give: the staff roles below the importer's clearance. Never the owner role. */
+    private function allowedRoles(): array
+    {
+        if (! $this->actor) {
+            return ['admin', 'manager', 'sales_rep', 'finance', 'logistics'];
+        }
+
+        return array_values(array_diff(array_column(app(\App\Services\Access\Authorizer::class)->assignableRoles($this->actor), 'key'), ['super_admin']));
     }
 }

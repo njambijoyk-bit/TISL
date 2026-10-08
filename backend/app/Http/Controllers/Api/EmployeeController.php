@@ -272,6 +272,14 @@ class EmployeeController extends Controller
         }
     }
 
+    /** The roles the person using the form may give (with the clearance each needs), for the System Role choice. */
+    public function roles(Request $request)
+    {
+        $this->authorize('viewAny', Employee::class);
+
+        return response()->json(['data' => app(Authorizer::class)->assignableRoles($request->user())]);
+    }
+
     /**
      * Update employee details (ADMIN)
      */
@@ -673,7 +681,7 @@ class EmployeeController extends Controller
         ]);
 
         try {
-            Excel::import(new EmployeesImport(), $request->file('file'));
+            Excel::import(new EmployeesImport($request->user()), $request->file('file'));
             return response()->json(['message' => 'Employees imported successfully.']);
 
         } catch (ValidationException $e) {

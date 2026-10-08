@@ -10,6 +10,7 @@ import ProjectFilters from '../../components/shared/ProjectFilters';
 import ProjectTable from '../../components/shared/ProjectTable';
 import useProjectStore from '../../../_shared/store/projectStore';
 import { useAuthStore } from '../../../_shared/store/index';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const Projects = () => {
   const navigate  = useNavigate();
@@ -29,7 +30,7 @@ const Projects = () => {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showTrash, setShowTrash]         = useState(false);
 
-  const canDelete = ['admin', 'super_admin'].includes(user?.role);
+  const canDelete = hasAnyRole(user, ['admin', 'super_admin']);
 
   useEffect(() => {
     fetchProjects();

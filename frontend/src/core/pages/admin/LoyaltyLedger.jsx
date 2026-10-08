@@ -8,6 +8,7 @@ import SettingsLayout from '../../../_shared/components/layout/SettingsLayout';
 import loyaltyAPI from '../../../_shared/api/loyalty';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { useAuthStore } from '../../../_shared/store/index';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 // ── Style tokens ──────────────────────────────────────────────────────────────
 
@@ -353,7 +354,7 @@ export default function LoyaltyLedger() {
   const searchRef  = useRef(null);
   const debounceRef= useRef(null);
 
-  const canConfig = ['super_admin','admin'].includes(user?.role);
+  const canConfig = hasAnyRole(user, ['super_admin','admin']);
 
   const load = useCallback(async () => {
     setLoading(true);

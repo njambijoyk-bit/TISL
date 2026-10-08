@@ -58,7 +58,33 @@ class AccessController extends Controller
             'approvals' => Catalog::APPROVALS,
             'mine' => ['clearance' => $this->access->clearance($me), 'can_roles' => $this->access->allows($me, 'access.roles'), 'can_manage' => $this->access->allows($me, 'access.manage')],
             'scope_mode' => config('access.scope_mode'),
+            'locations' => Location::orderBy('name')->get(['id', 'name']),
         ]);
+    }
+
+    /** Staff accounts for the People tab: who they are, their clearance, default branch and how many extra roles and branch grants they hold. */
+    public function people(Request $request): JsonResponse
+    {
+        $me = $request->user();
+        $mine = $this->access->clearance($me);
+        $q = User::query()->staffAccounts()
+            ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('name', 'like', '%' . $request->q . '%')->orWhere('email', 'like', '%' . $request->q . '%')))
+            ->when($request->filled('role'), fn ($w) => $w->holding([(string) $request->role]))
+            ->orderBy('name');
+        $page = $q->paginate(min((int) $request->get('per_page', 25), 100), ['id', 'name', 'email', 'role', 'status', 'clearance_level', 'default_location_id']);
+        $ids = collect($page->items())->pluck('id');
+        $roleNames = Role::pluck('name', 'key');
+        $locNames = Location::pluck('name', 'id');
+        $extra = UserRole::whereIn('user_id', $ids)->where('is_primary', 0)->get()->filter(fn (UserRole $ur) => $ur->current())->groupBy('user_id')->map->count();
+        $grants = AccessGrant::whereIn('user_id', $ids)->where('status', 'active')->get()->filter(fn (AccessGrant $g) => $g->current())->groupBy('user_id')->map->count();
+        $page->getCollection()->transform(fn (User $u) => [
+            'id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'status' => $u->status, 'role' => $u->role, 'role_name' => $roleNames[$u->role] ?? $u->role,
+            'clearance_level' => (int) $u->clearance_level, 'default_location_id' => $u->default_location_id, 'default_location' => $locNames[$u->default_location_id] ?? null,
+            'extra_roles' => (int) ($extra[$u->id] ?? 0), 'grants' => (int) ($grants[$u->id] ?? 0),
+            'manageable' => $mine >= 6 || ((int) $u->clearance_level < $mine && $u->id !== $me->id),
+        ]);
+
+        return response()->json($page);
     }
 
     public function user(Request $request, int $id): JsonResponse
@@ -383,7 +409,8 @@ class AccessController extends Controller
             'status' => $g->status, 'in_force' => $g->current()])->values();
 
         return ['user' => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->role, 'clearance_level' => (int) $u->clearance_level, 'default_location_id' => $u->default_location_id],
-            'roles' => $roles, 'grants' => $grants, 'effective' => $this->access->summary($u)];
+            'roles' => $roles, 'grants' => $grants, 'effective' => $this->access->summary($u),
+            'manageable' => ($actor = request()->user()) ? $this->access->canManage($actor, $u) : false];
     }
 
     private function cannotManage(User $actor, User $target): ?JsonResponse

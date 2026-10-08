@@ -30,7 +30,7 @@ import Input from '../../../_shared/components/common/Input';
 import Select from '../../../_shared/components/common/Select';
 import Modal from '../../../_shared/components/common/Modal';
 import Badge from '../../../_shared/components/common/Badge';
-import { canDeleteCatalogue } from '../../../_shared/lib/roles';
+import { canDeleteCatalogue, hasAnyRole } from '../../../_shared/lib/roles';
 
 const Services = () => {
   const navigate = useNavigate();
@@ -70,7 +70,7 @@ const Services = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
   const canDelete = canDeleteCatalogue(user);
 
   useEffect(() => {

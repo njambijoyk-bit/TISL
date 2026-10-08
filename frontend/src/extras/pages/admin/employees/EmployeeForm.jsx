@@ -63,10 +63,11 @@ const CAN_REPORT_TO = {
 };
 
 // Helper function to check if a manager is eligible
-const canBeManager = (employeeRole, managerRole) => {
+// For the original roles the table above decides. For any role added since (cashier, chef, your own) the manager needs at least the clearance the role needs.
+const canBeManager = (employeeRole, managerRole, levels = {}) => {
   if (!employeeRole || !managerRole) return false;
-  const allowedManagers = CAN_REPORT_TO[employeeRole] || [];
-  return allowedManagers.includes(managerRole);
+  if (CAN_REPORT_TO[employeeRole] && CAN_REPORT_TO[managerRole]) return CAN_REPORT_TO[employeeRole].includes(managerRole);
+  return (levels[managerRole] ?? 0) >= (levels[employeeRole] ?? 99);
 };
 
 const EMPTY_FORM = {
@@ -188,8 +189,17 @@ export default function EmployeeForm() {
   const [currencies, setCurrencies]       = useState([]);
   const [errors, setErrors]               = useState({});
   const [form, setForm]                   = useState(EMPTY_FORM);
+  const [roleDefs, setRoleDefs]           = useState([]);   // the roles this person may give: [{ key, name, min_clearance }]
+
+  const roleLevels = Object.fromEntries(roleDefs.map((r) => [r.key, r.min_clearance]));
+  // from the server; the original list until it arrives. The role the person has now is always shown, even if you may not give it.
+  const roleOptions = (() => {
+    const base = roleDefs.length ? roleDefs.map((r) => ({ value: r.key, label: r.name })) : ROLE_OPTIONS;
+    return form.role && !base.some((o) => o.value === form.role) ? [...base, { value: form.role, label: form.role.replace(/_/g, ' ') }] : base;
+  })();
 
   useEffect(() => {
+    employeesApi.getRoles().then((r) => setRoleDefs(r.data || [])).catch(() => {});
     fetchManagers();
     fetchCurrencies();
     if (isEditing) fetchEmployee();
@@ -198,11 +208,11 @@ export default function EmployeeForm() {
   useEffect(() => {
     if (!form.manager_id || !form.role) return;
     const m = managers.find(m => String(m.id) === String(form.manager_id));
-    if (m && !canBeManager(form.role, m.role)) {
+    if (m && !canBeManager(form.role, m.role, roleLevels)) {
       set('manager_id', '');
       setManagerSearch('');
     }
-  }, [form.role, managers]);
+  }, [form.role, managers, roleLevels]);
 
   const fetchManagers = async () => {
     try { 
@@ -232,7 +242,7 @@ export default function EmployeeForm() {
       m.department?.toLowerCase().includes(q) ||
       m.role?.toLowerCase().includes(q);
     
-    const isEligibleManager = canBeManager(form.role, m.role);
+    const isEligibleManager = canBeManager(form.role, m.role, roleLevels);
     
     return matchesSearch && isEligibleManager;
   });
@@ -412,7 +422,7 @@ export default function EmployeeForm() {
             <Input value={form.work_phone} onChange={v => set('work_phone', v)} icon={Phone} />
           </Field>
           <Field label="System Role" required>
-            <Select value={form.role} onChange={v => set('role', v)} options={ROLE_OPTIONS} />
+            <Select value={form.role} onChange={v => set('role', v)} options={roleOptions} />
           </Field>
           <Field label="Reports To">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

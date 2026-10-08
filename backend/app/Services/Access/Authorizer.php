@@ -472,6 +472,24 @@ class Authorizer
         return $r ? $r['min_clearance'] : null;
     }
 
+    /**
+     * The staff roles a screen may offer this person when they make or edit someone: active staff roles below their own clearance (the owner: all).
+     * Before the access script has been run: the original roles they may give.
+     *
+     * @return array<int, array{key: string, name: string, min_clearance: int}>
+     */
+    public function assignableRoles(User $actor): array
+    {
+        if (self::ready()) {
+            $rows = DB::table('roles')->where('kind', 'staff')->where('is_active', 1)->orderBy('sort_order')->orderBy('name')->get(['key', 'name', 'min_clearance']);
+        } else {
+            $rows = collect(Catalog::roles())->filter(fn ($r, $k) => in_array($k, self::LEGACY_STAFF_ROLES, true))->map(fn ($r, $k) => (object) ['key' => $k, 'name' => $r['name'], 'min_clearance' => $r['min_clearance']])->values();
+        }
+
+        return $rows->filter(fn ($r) => $this->canAssignRole($actor, (int) $r->min_clearance))
+            ->map(fn ($r) => ['key' => $r->key, 'name' => $r->name, 'min_clearance' => (int) $r->min_clearance])->values()->all();
+    }
+
     /** May they give the role with this key? A role that does not exist cannot be given. */
     public function canAssignRoleKey(User $actor, string $key): bool
     {

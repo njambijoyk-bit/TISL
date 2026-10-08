@@ -25,6 +25,7 @@ import MessageComposer        from '../../components/shared/MessageComposer';
 import ProjectFinanceTab      from '../../components/shared/ProjectFinanceTab';
 import useProjectStore        from '../../../_shared/store/projectStore';
 import { useAuthStore }       from '../../../_shared/store/index';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = 'var(--color-primary-500)';
@@ -190,7 +191,7 @@ const ProjectDetail = () => {
   const msgRef     = useRef(null);
 
   // ── Derived permissions ───────────────────────────────────────────────────
-  const isAdminOwner = user?.role === 'super_admin' ||
+  const isAdminOwner = hasAnyRole(user, ['super_admin']) ||
     Number(activeProject?.owner_admin_id) === Number(user?.id) ||
     participants.some(p =>
       p.participant_type === 'admin' &&
@@ -199,8 +200,8 @@ const ProjectDetail = () => {
       p.status === 'active'
     );
 
-  const canDelete = user?.role === 'super_admin' ||
-    (user?.role === 'admin' && participants.some(p =>
+  const canDelete = hasAnyRole(user, ['super_admin']) ||
+    (hasAnyRole(user, ['admin']) && participants.some(p =>
       p.participant_type === 'admin' &&
       Number(p.admin_user_id) === Number(user?.id) &&
       ['invited', 'active'].includes(p.status)

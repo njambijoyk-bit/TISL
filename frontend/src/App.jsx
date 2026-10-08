@@ -15,7 +15,7 @@ import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
-import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES, CAMPAIGN_ROLES, hasAnyRole, isStaff } from './_shared/lib/roles';
+import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES, CAMPAIGN_ROLES, hasAnyRole, hasPermission, isStaff } from './_shared/lib/roles';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./core/pages/auth/Login'));
@@ -265,6 +265,7 @@ const VaultPage            = lazy(() => import('./core/pages/admin/vault/VaultPa
 const Settings             = lazy(() => import('./core/pages/admin/settings/Settings'));
 const ModuleCenter         = lazy(() => import('./core/pages/admin/settings/ModuleCenter'));
 const StockSettings        = lazy(() => import('./core/pages/admin/settings/StockSettings'));
+const AccessHub            = lazy(() => import('./core/pages/admin/access/AccessHub'));
 const NavigationSettings   = lazy(() => import('./core/pages/admin/settings/NavigationSettings'));
 const LocationsSettings    = lazy(() => import('./core/pages/admin/settings/LocationsSettings'));
 const FlowchartPage        = lazy(() => import('./core/pages/admin/settings/diagrams/FlowchartPage'));
@@ -312,7 +313,7 @@ function PageLoader() {
 }
 
 // ── Protected Route ───────────────────────────────────────────────────────────
-function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false, roles = null }) {
+function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false, roles = null, permission = null }) {
   const { isAuthenticated, user, access, fetchCustomer } = useAuthStore();
 
   // a session from before the engine has no `access` yet: load it once (the role lists decide until it arrives)
@@ -341,8 +342,13 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
     }
   }
 
-  // Narrower role list for a specific route (e.g. finance pages); a role that acts as a listed one (Senior accountant as Finance) passes too
-  if (roles && !hasAnyRole(user, roles)) {
+  // A permission the route needs (roles built in the role builder pass on this); `roles` is the fallback while the session has no access summary yet
+  if (permission) {
+    if (!hasPermission(user, permission, roles ?? [])) {
+      return <Navigate to="/admin" replace />;
+    }
+  } else if (roles && !hasAnyRole(user, roles)) {
+    // Narrower role list for a specific route (e.g. finance pages); a role that acts as a listed one (Senior accountant as Finance) passes too
     return <Navigate to="/admin" replace />;
   }
 
@@ -1537,6 +1543,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin requireSuperAdmin>
                     <ModuleCenter />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/access"
+                element={
+                  <ProtectedRoute requireAdmin permission="access.view" roles={['admin', 'super_admin']}>
+                    <AccessHub />
                   </ProtectedRoute>
                 }
               />

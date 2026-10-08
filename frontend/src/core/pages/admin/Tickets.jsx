@@ -19,6 +19,7 @@ import { useAuthStore } from '../../../_shared/store/index';
 import ticketsAPI from '../../../_shared/api/tickets';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -50,7 +51,7 @@ const CATEGORY_OPTIONS = [
 export default function AdminTickets() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
 
   const { tickets, statistics, loading, fetchAdminTickets, fetchStatistics, softDelete, restore, forceDelete } = useTicketStore();
 

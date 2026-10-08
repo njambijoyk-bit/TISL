@@ -9,7 +9,7 @@ import SettingsTab from '../../../components/admin/books/SettingsTab';
 import MailTab from '../../../components/admin/books/MailTab';
 import GiftVouchersTab from '../../../components/admin/books/GiftVouchersTab';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
+import { canReadFinance, canWriteFinance, hasAnyRole } from '../../../../_shared/lib/roles';
 
 const TABS = [
   { id: 'gateway', label: 'Gateway' },
@@ -41,7 +41,7 @@ export default function BooksHub() {
             {tab === 'gifts' && <GiftVouchersTab canWrite={canWrite} />}
             {tab === 'mail' && <MailTab canWrite={canWrite} />}
             {tab === 'reports' && <ReportsTab />}
-            {tab === 'settings' && <SettingsTab isSuper={user?.role === 'super_admin'} />}
+            {tab === 'settings' && <SettingsTab isSuper={hasAnyRole(user, ['super_admin'])} />}
           </>
         )}
       </div>

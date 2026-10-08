@@ -9,7 +9,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
 import { btnPrimary, btnGhost, btnBin, card, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
-import { CAMPAIGN_ROLES } from '../../../_shared/lib/roles';
+import { CAMPAIGN_ROLES, hasAnyRole } from '../../../_shared/lib/roles';
 import PinForm from '../../components/PinForm';
 import CustomerFilter from '../../components/CustomerFilter';
 import CustomerPinSettings from '../../components/CustomerPinSettings';
@@ -36,8 +36,8 @@ function Thumb({ p }) {
 /** The pin library: every pin, with its picture, kind and owner. Make, change, hide (admin, super admin, manager) and delete. */
 export default function PinLibrary() {
   const user = useAuthStore((s) => s.user);
-  const canHide = PUBLISHERS.includes(user?.role);
-  const isSuper = user?.role === 'super_admin';
+  const canHide = hasAnyRole(user, PUBLISHERS);
+  const isSuper = hasAnyRole(user, ['super_admin']);
   const [bin, setBin] = useState(false);
   const [customer, setCustomer] = useState(null);   // show only this customer's pins   // the recycle bin: pins that were deleted
   const [rows, setRows] = useState([]);
@@ -67,13 +67,13 @@ export default function PinLibrary() {
   const switchBin = (on) => { setBin(on); setPage(1); };
   const mayChange = (p) => canHide || p.owner_user_id === user?.id;
 
-  if (!CAMPAIGN_ROLES.includes(user?.role)) return null;
+  if (!hasAnyRole(user, CAMPAIGN_ROLES)) return null;
 
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
         <HubHeader title="Pins" description="Pictures, videos, products, links and notes that boards and campaigns are made from." />
-        {canHide && <CustomerPinSettings canChange={['admin', 'super_admin'].includes(user?.role)} />}
+        {canHide && <CustomerPinSettings canChange={hasAnyRole(user, ['admin', 'super_admin'])} />}
         <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
           <button type="button" style={bin ? btnGhost : btnBin} onClick={() => switchBin(!bin)}>{bin ? '‹ Back to pins' : <><Trash2 size={14} /> Recycle bin</>}</button>
           {!bin && <button type="button" style={btnPrimary} onClick={() => setForm('new')}><Plus size={14} /> New pin</button>}

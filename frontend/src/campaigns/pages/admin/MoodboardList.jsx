@@ -15,6 +15,7 @@ import BoardChip from '../../components/BoardChip';
 import Moodboard from '../../components/Moodboard';
 import DownloadMoodboardButton from '../../components/DownloadMoodboardButton';
 import { seedContents } from '../../lib/moodboardKit';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const FILTERS = [['', 'All'], ['pending', 'Waiting for approval'], ['approved', 'Approved'], ['draft', 'Drafts'], ['rejected', 'Not approved']];
 
@@ -62,10 +63,10 @@ export default function MoodboardList() {
   const [approval, setApproval] = useState('');
   const [q, setQ] = useState('');
   const [making, setMaking] = useState(false);
-  const isSuper = useAuthStore((st) => st.user?.role) === 'super_admin';
+  const isSuper = hasAnyRole(useAuthStore((st) => st.user), ['super_admin']);
   const [bin, setBin] = useState(false);
   const [priv, setPriv] = useState(false);   // customers' private moodboards (admin and super admin only; each look is logged)
-  const canSeePrivate = ['admin', 'super_admin'].includes(useAuthStore((st) => st.user?.role));   // the recycle bin: moodboards that were deleted
+  const canSeePrivate = hasAnyRole(useAuthStore((st) => st.user), ['admin', 'super_admin']);   // the recycle bin: moodboards that were deleted
 
   const load = useCallback(async () => {
     setLoading(true);

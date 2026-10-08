@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import pinsAPI from '../../_shared/api/pins';
 import useAuthStore from '../../_shared/store/authStore';
 import { isModuleActive } from '../../_shared/navigation/modules';
-import { CAMPAIGN_ROLES } from '../../_shared/lib/roles';
+import { CAMPAIGN_ROLES, hasAnyRole } from '../../_shared/lib/roles';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 
 const THING = { product: 'product', service: 'service', hamper: 'hamper', auction: 'auction' };
@@ -16,10 +16,10 @@ const THING = { product: 'product', service: 'service', hamper: 'hamper', auctio
  */
 export default function ItemPinButton({ itemType = 'product', itemId, name, categoryName, inline = false }) {
   const thing = THING[itemType] ?? 'item';
-  const role = useAuthStore((s) => s.user?.role);
+  const roleUser = useAuthStore((s) => s.user);
   const [busy, setBusy] = useState(false);
   const [made, setMade] = useState(0);
-  if (!isModuleActive('campaigns') || !CAMPAIGN_ROLES.includes(role)) return null;
+  if (!isModuleActive('campaigns') || !hasAnyRole(roleUser, CAMPAIGN_ROLES)) return null;
 
   const create = async () => {
     setBusy(true);

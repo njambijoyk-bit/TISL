@@ -1,4 +1,4 @@
-# Identity and access: clearance levels, roles, permissions and scope (R1 built; R2 onwards planned)
+# Identity and access: clearance levels, roles, permissions and scope (R1 and R2 built; R3 onwards planned)
 
 Why first: cost centres, branches, entities, payroll and every module (kitchen, school, library, pharmacy) ask the same question: **may this person do this, on this branch, at this moment?** One engine answers it, and the engine is data driven: Chef, Librarian or Foreman are rows in a table, never new code.
 
@@ -80,22 +80,33 @@ The permission set reproduces today's route lists exactly (each permission stand
 - **Frontend**: the auth store keeps `access`; `roles.js` gains `hasPermission`, `hasAnyRole`, `effectiveRoles`, `isStaff`, and the finance, payroll, credit and catalogue helpers ask the engine first; the admin route guard, the navigation (`perm` on an entry is checked against the engine) and the header use it.
 - **Backup map** lists the new tables.
 
-### Behaviour changes to know about
+### Behaviour changes in R1 to know about
 
 1. Senior accountant, cashier and chef can open the admin area (`admin.access`). Cashier and chef see only what has no role restriction.
 2. A **manager can no longer give the Finance role** (a manager's clearance is 3; roles are given only below your own clearance). Admin and super admin can.
 3. Between the old roles the user-management hierarchy is unchanged. Roles it did not know (senior accountant, cashier, chef, custom roles) are placed by clearance: a manager can edit a cashier or chef, not a senior accountant.
 4. The Employees screen refuses a role change to someone at or above your clearance, or to yourself.
 
-### Not done yet (R1 limits)
+## What R2 contains (built)
 
-- A **custom role only works on `permission:` routes** and the screens converted so far. The other ~75 route groups and the ~150 screen checks still look at role names (Senior accountant passes the finance ones through `acts_as`). Converting them module by module is R2.
-- No screens for the new data yet (R2). The API is complete, so a role can be built with it today.
+- **Every route guard is a permission.** The 75 `role:` guards (all but the customer and driver portals) became `permission:` guards with a catalogue of 58 permissions in groups (Books, Tax and money, Stock, Purchases, Customers, Payroll, People, Delivery, Catalogue, Campaigns, Menus, Marketing, Projects, Insight, Operations, Vault, Support, Access, System). Each permission's default holders reproduce the old role list exactly. This was **checked route by route against the original routes file for every older role: identical access on 1,299 routes**, apart from the two deliberate fixes below. A unit test keeps route and catalogue names in step.
+- **Upgrade path.** The catalogue has a version (now 2). `php artisan access:seed` gives a newly added permission to the built-in roles that hold it by default, once, and never takes back a change an admin made. Run it after deploying R2 so existing installs get the new permissions.
+- **Code checks.** `User::holdsAny()`, `hasPermission()` and `dataScope()` answer through the engine; `isAdmin()` means "may open the admin area". Policies, services and controllers that compared role names now accept every role a person holds and the names a role acts as. Tax certificate policies, campaigns, price lists and memoranda use permissions. "Who do we notify or ask to approve" queries use `User::holding([...])`; staff pickers use `User::staffAccounts()`. Edit windows (period guard) use the most generous limit across a person's roles. A sales rep's "own customers only" rule is the **assigned** data scope.
+- **Screens.** Settings, Access, **Roles & access**: *People* (every staff account with clearance, default branch, extra roles and branch access; open one to change the main role, clearance, extra roles with dates, default branch, branch access with dates and a reason, and to see what it adds up to), *Roles* (role builder with a checklist of permissions grouped by area, modules, approval limits, read-only, hours, IP ranges, maximum discount; copy a role; built-in roles can be adjusted; the owner and portal roles are fixed), *Clearance levels* (rename), *Activity* (every change, plus what branch limits would have refused). Employees: the System Role list comes from the roles table (only roles you may give), and "who may report to whom" uses clearance for roles added since.
+- **Two holes closed on the way.** Any staff member could bulk-import employees (with roles); import and template now need `hr.manage` and a file can only give roles below the importer's clearance. (R1 closed role changes in the Employees form.)
+
+### Behaviour changes in R2 to know about
+
+1. Bulk employee import and its template are for people with `hr.manage` (admin, super admin), no longer any staff member.
+2. A person with an extra role never loses what their main role allows, but a rule written for one role name (for example "finance can only update themselves") now also applies to someone who merely holds that role as an extra. Data scope is the proper tool for "only their own": use it on new rules.
+
+### Not done yet
+
+- The remaining ~120 screen checks that compare role names (user management, delivery, projects participants) still work on role names; they are limited to showing or hiding buttons, the server decides.
+- The old Users screen still creates users with the original roles only; new roles are given through Roles & access (or the Employees form).
 - Branch scope is **not enforced** anywhere yet except in `log` mode on routes that name a branch (R3).
 
 ## Rollout from here
-
-**R2: permissions everywhere and the screens.** Convert the remaining route groups and backend role checks to `permission:` (books first, then stock, HR, campaigns, delivery, vendors), the frontend `can()` replaces the role lists, and the screens: Roles (role builder with a checklist grouped by module, restrictions, approvals), Users (clearance, roles with dates, default branch, branch grants with dates and reason, effective access), the access log, and "grant expiring soon".
 
 **R3: branch scope enforcement.** Books first (registers, day book, reports, posting refused to an out-of-scope branch), then stock, HR and the rest. Starts in `log`, then `on` per module once the log is quiet. Data scope (all, assigned, own) is applied to lists in the same pass.
 
@@ -103,7 +114,7 @@ The permission set reproduces today's route lists exactly (each permission stand
 
 **R5: housekeeping.** Effective access page, expiring-grants list, audit views, retire the `isAdmin()` name (it means "any staff").
 
-After R2 the build order of `docs/COST_CENTRES_AND_ENTITIES_PLAN.md` resumes.
+The build order of `docs/COST_CENTRES_AND_ENTITIES_PLAN.md` resumes after R3 (R4 needs employees and cost centres).
 
 ## Defaults chosen where there was no answer (change any of them)
 

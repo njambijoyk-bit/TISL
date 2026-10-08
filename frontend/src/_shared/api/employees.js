@@ -69,6 +69,12 @@ const employeesAPI = {
     return response.data;
   },
 
+  /** The roles the person using the form may give, with the clearance each needs: { data: [{ key, name, min_clearance }] } */
+  getRoles: async () => {
+    const response = await api.get('/admin/employees/roles');
+    return response.data;
+  },
+
   getAllLeaveLogs: (params = {}) =>
     api.get('/admin/employees/leave-logs', { params }).then(r => r.data),
 

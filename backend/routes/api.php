@@ -912,6 +912,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::middleware('permission:access.view')->group(function () use ($c) {
                 Route::get('/',            [$c, 'overview']);
                 Route::get('/log',         [$c, 'log']);
+                Route::get('/people',      [$c, 'people']);
                 Route::get('/users/{id}',  [$c, 'user'])->whereNumber('id');
             });
             Route::middleware('permission:access.manage')->group(function () use ($c) {
@@ -1561,8 +1562,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('employees')->middleware('module:extras')->group(function () {
             Route::get('/my-record', [EmployeeController::class, 'myRecord']);
-            Route::get('/template', [EmployeeController::class, 'downloadTemplate']);
-            Route::post('/import', [EmployeeController::class, 'bulkImport']);
+            Route::get('/template', [EmployeeController::class, 'downloadTemplate'])->middleware('permission:hr.manage');
+            Route::post('/import', [EmployeeController::class, 'bulkImport'])->middleware('permission:hr.manage');
         });
 
         // User Management
@@ -2288,6 +2289,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/departments',              [EmployeeController::class, 'departments']);
             Route::get('/job-titles',               [EmployeeController::class, 'jobTitles']);
             Route::get('/potential-managers',       [EmployeeController::class, 'potentialManagers']);
+            Route::get('/roles',                    [EmployeeController::class, 'roles']);
             Route::get('/upcoming-birthdays',       [EmployeeController::class, 'upcomingBirthdays']);
             Route::get('/leave-logs',               [EmployeeController::class, 'allLeaveLogs']);
             Route::get('/{id}/leave-logs',          [EmployeeController::class, 'leaveLogs']);

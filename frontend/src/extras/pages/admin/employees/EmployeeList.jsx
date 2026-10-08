@@ -10,6 +10,7 @@ import toast from 'react-hot-toast';
 import employeesApi from '../../../../_shared/api/employees';
 import useAuthStore from '../../../../_shared/store/authStore';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import { hasAnyRole } from '../../../../_shared/lib/roles';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ function SkeletonRow() {
 export default function EmployeeList() {
   const navigate = useNavigate();
   const user = useAuthStore(state => state.user);
-  const isAdminOrSuper = ['admin', 'super_admin'].includes(user?.role);
+  const isAdminOrSuper = hasAnyRole(user, ['admin', 'super_admin']);
   const [employees, setEmployees]   = useState([]);
   const [loading, setLoading]       = useState(true);
   const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0 });

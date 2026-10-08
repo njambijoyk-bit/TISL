@@ -11,6 +11,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { btnPrimary, btnGhost, btnBin, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import StatusChip from '../../components/StatusChip';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const STATUSES = [['', 'All'], ['waiting', 'Waiting for approval'], ['live', 'Live'], ['scheduled', 'Scheduled'], ['teaser', 'Teaser'], ['draft', 'Drafts'], ['paused', 'Paused'], ['ended', 'Ended'], ['archived', 'Archived']];
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
@@ -23,8 +24,8 @@ export default function CampaignList() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState('');
   const [bin, setBin] = useState(false);   // the recycle bin: campaigns that were deleted
-  const isSuper = useAuthStore((st) => st.user?.role) === 'super_admin';
-  const canRestore = ['admin', 'super_admin', 'manager'].includes(useAuthStore((st) => st.user?.role));
+  const isSuper = hasAnyRole(useAuthStore((st) => st.user), ['super_admin']);
+  const canRestore = hasAnyRole(useAuthStore((st) => st.user), ['admin', 'super_admin', 'manager']);
   const [q, setQ] = useState('');
 
   useEffect(() => { campaignsAPI.types().then((r) => setTypes(Object.fromEntries(r.types.map((t) => [t.key, t])))).catch(() => {}); }, []);

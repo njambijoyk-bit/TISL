@@ -16,6 +16,7 @@ import BrochurePreview from '../../components/admin/services/BrochurePreview';
 import { brochurePages } from '../../lib/brochure';
 import { TEMPLATES } from '../../lib/brochure/templates';
 import { SAMPLE_COMPANY, SAMPLE_DATA, SAMPLE_MONEY } from '../../lib/brochure/sample';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.textFaint };
 const td = { padding: '9px 10px', fontSize: '0.84rem', color: colors.text, borderTop: '1px solid var(--line)' };
@@ -51,8 +52,8 @@ function Gallery({ templates, current, onPick, canChange }) {
 
 /** Brochures: the shop-wide defaults, the templates, and every service's own choices, with preview and "apply to many". */
 export default function Brochures() {
-  const role = useAuthStore((s) => s.user?.role);
-  const canChange = ['admin', 'super_admin', 'manager'].includes(role);
+  const roleUser = useAuthStore((s) => s.user);
+  const canChange = hasAnyRole(roleUser, ['admin', 'super_admin', 'manager']);
   const [d, setD] = useState(null);
   const [defaults, setDefaults] = useState({});
   const [q, setQ] = useState('');

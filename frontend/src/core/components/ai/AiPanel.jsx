@@ -10,6 +10,7 @@ import useAuthStore    from '../../../_shared/store/authStore';
 import aiAnalyticsAPI  from '../../../_shared/api/aiAnalytics';
 import { useAiPageAudio } from '../../../extras/pages/admin/ai-analytics/useAiPageAudio';
 import { C, MuteButton }  from '../../../extras/pages/admin/ai-analytics/AiPageShared';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PD = 'var(--color-primary-600)';
@@ -148,7 +149,7 @@ function OutputCard({ output, onDismiss, audio }) {
 // ── Main panel ────────────────────────────────────────────────────────────────
 export default function AiPanel() {
   const { user } = useAuthStore();
-  const isAdmin  = ADMIN_ROLES.includes(user?.role);
+  const isAdmin  = hasAnyRole(user, ADMIN_ROLES);
   const audio    = useAiPageAudio();
   const [maximised, setMaximised] = useState(false);
 

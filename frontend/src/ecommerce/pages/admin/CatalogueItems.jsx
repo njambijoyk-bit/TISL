@@ -14,6 +14,7 @@ import SectionListEditor from '../../components/admin/catalogue/SectionListEdito
 import { fieldStyle, useCatalogueMeta } from '../../components/admin/catalogue/catalogueMeta';
 import { SECTION_LABELS, TYPE_LABELS } from '../../lib/catalogue/labels';
 import { THEMES } from '../../lib/catalogue/themes';
+import { hasAnyRole } from '../../../_shared/lib/roles';
 
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.textFaint };
 const td = { padding: '8px 10px', fontSize: '0.84rem', color: colors.text, borderTop: '1px solid var(--line)' };
@@ -28,8 +29,8 @@ const summary = (meta, defaults) => {
 
 /** Each item's own brochure choice: which sections it uses and in which theme, and whether customers may download its brochure. Set one by one, or for many at once. */
 export default function CatalogueItems() {
-  const role = useAuthStore((s) => s.user?.role);
-  const canChange = ['admin', 'super_admin', 'manager'].includes(role);
+  const roleUser = useAuthStore((s) => s.user);
+  const canChange = hasAnyRole(roleUser, ['admin', 'super_admin', 'manager']);
   const [meta] = useCatalogueMeta();
   const [type, setType] = useState('product');
   const [q, setQ] = useState('');
