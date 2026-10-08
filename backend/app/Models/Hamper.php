@@ -140,13 +140,6 @@ class Hamper extends Model
         return $this->total_stock !== null && $this->stock_remaining <= 0;
     }
 
-    public function getIsBackorderableAttribute(): bool
-    {
-        // allows up to 100 units beyond sold out
-        // Hamper sales now come from the unified sales register (not built yet).
-        return false;
-    }
-
     // ── Helpers ───────────────────────────────────────────────────────────────
 
     public function decrementStock(): void

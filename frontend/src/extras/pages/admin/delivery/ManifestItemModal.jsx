@@ -120,7 +120,6 @@ function PayBadge({ status }) {
 function FulfilChip({ status }) {
     const map = {
         in_stock:  { color: '#15803d', bg: 'rgba(34,197,94,0.08)'  },
-        backorder: { color: '#b45309', bg: 'rgba(245,158,11,0.08)' },
         out_of_stock: { color: '#dc2626', bg: 'rgba(239,68,68,0.08)' },
     };
     const s = map[status] ?? { color: M.textDim, bg: M.surface };
@@ -397,9 +396,6 @@ function TabCustomer({ item }) {
                                                         {oi.stock_status?.replace('_', ' ')}
                                                     </span>
                                                 </span>
-                                                {oi.is_backorder && (
-                                                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: M.amber }}>BACKORDER</span>
-                                                )}
                                             </div>
                                         </div>
 

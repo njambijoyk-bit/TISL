@@ -317,7 +317,7 @@ function StopDetailModal({ item, onClose }) {
         returned:         '#f59e0b',
     };
     const PAYMENT_COLOR = { paid: '#14b8a6', unpaid: '#ef4444', overpayment: '#f59e0b', partial: '#f59e0b' };
-    const STOCK_COLOR   = { reserved: '#14b8a6', backorder: '#f59e0b', out_of_stock: '#ef4444' };
+    const STOCK_COLOR   = { reserved: '#14b8a6', out_of_stock: '#ef4444' };
 
     const paymentColor = PAYMENT_COLOR[order?.payment_status] ?? '#94a3b8';
     const statusColor  = STATUS_COLOR[item.status] ?? '#94a3b8';
@@ -497,7 +497,7 @@ function StopDetailModal({ item, onClose }) {
                     <SectionLabel>Items to Deliver ({(order?.items ?? []).length})</SectionLabel>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {(order?.items ?? []).map(oi => {
-                            const stockColor = ({ reserved: '#14b8a6', backorder: '#f59e0b', out_of_stock: '#ef4444' })[oi.stock_status] ?? '#94a3b8';
+                            const stockColor = ({ reserved: '#14b8a6', out_of_stock: '#ef4444' })[oi.stock_status] ?? '#94a3b8';
                             return (
                                 <div key={oi.id} style={{
                                     display: 'flex', alignItems: 'center', gap: 10,

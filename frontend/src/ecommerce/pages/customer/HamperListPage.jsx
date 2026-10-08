@@ -14,7 +14,7 @@ function HamperCard({ hamper, onClick }) {
   const accent     = hamper.accent_color || 'var(--color-primary-500)';
   const accentFade = `${accent}18`;
   const accentMid  = `${accent}35`;
-  const soldOut    = hamper.is_sold_out && !hamper.is_backorderable;
+  const soldOut    = hamper.is_sold_out;
   const atLimit    = hamper.at_purchase_limit;
   const unavailable = soldOut;   // a card at its limit can still be opened to read about it; only the ordering is closed
 
@@ -50,11 +50,6 @@ function HamperCard({ hamper, onClick }) {
         {soldOut && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ background: '#111827', color: 'white', padding: '6px 16px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.08em' }}>SOLD OUT</span>
-          </div>
-        )}
-        {!soldOut && hamper.is_sold_out && hamper.is_backorderable && (
-          <div style={{ position: 'absolute', top: 12, right: 12 }}>
-            <span style={{ background: '#f59e0b', color: 'white', padding: '4px 10px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 800 }}>BACKORDER</span>
           </div>
         )}
         {atLimit && !soldOut && (

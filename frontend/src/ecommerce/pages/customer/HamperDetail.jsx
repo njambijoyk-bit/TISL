@@ -79,7 +79,7 @@ export default function HamperDetail() {
   const accent      = hamper.accent_color || 'var(--color-primary-500)';
   const accentFade  = `${accent}12`;
   const accentMid   = `${accent}30`;
-  const soldOut     = hamper.is_sold_out && !hamper.is_backorderable;
+  const soldOut     = hamper.is_sold_out;
   const atLimit     = hamper.at_purchase_limit;
   const canPurchase = hamper.can_purchase;
 
@@ -206,14 +206,6 @@ export default function HamperDetail() {
                   <p style={{ margin: 0, fontSize: '0.75rem', color: '#92400e' }}>
                     Deal ends {new Date(hamper.valid_until).toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </p>
-                </div>
-              )}
-
-              {/* Backorder notice */}
-              {hamper.is_sold_out && hamper.is_backorderable && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 16, padding: '8px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)' }}>
-                  <AlertCircle size={13} style={{ color: '#f59e0b', flexShrink: 0 }} />
-                  <p style={{ margin: 0, fontSize: '0.75rem', color: '#92400e' }}>Currently on backorder — order now to reserve yours</p>
                 </div>
               )}
 
