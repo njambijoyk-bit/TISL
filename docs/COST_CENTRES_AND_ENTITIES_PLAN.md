@@ -1,98 +1,89 @@
-# Cost centres, locations and legal entities (DRAFT, nothing built, nothing decided yet)
+# Cost centres, departments, employees and legal entities (DRAFT v2: direction decided, nothing built yet)
 
-Replaces the earlier "branch profit" draft. Direction: **a branch is a cost centre inside one set of books. A separate legal entity (another company, another country) is a different thing, with its own books.** One legal entity means one chart of accounts and many dimensions. Many legal entities mean separate books and, later, consolidation.
+Direction: **a branch is a cost centre inside one set of books. A different company or country is a legal entity with its own books** (Tally style: separate companies, separate books, one open at a time per window, never mixed). Both are being built now, in the order below.
 
-## Where TISL stands today (checked in the code)
+## Decisions so far
 
-- **One company is built in.** `CompanyProfile::current()` (9 uses), the accounting settings row (`AccountingSetting`, about 33 uses: stock, cost of goods, loss and other ledger pointers, lock dates), the base currency lookup (about 66 uses), the period guard (one lock date, one set of financial years), one chart of accounts (ledgers carry no entity), one tax PIN on the company profile.
-- Every voucher has a `location_id`. Entries (the ledger lines) have **no** dimension of their own. Reports (trial balance, profit and loss, balance sheet) are company-wide. Only the day book and parts of the dashboard filter by location.
-- Locations carry a currency, a tax district, number series (`voucher_series.location_id`) and, since script 97, a kind and four capabilities (sells to customers, delivers, receives goods, makes things).
-- Stock sits per location in batches; a transfer posts nothing and the **batch cost travels with the stock**, so a branch's gross profit (sales less the cost of what it sold) is already honest.
-- A voucher with no location silently gets the default location, so shared costs would quietly land in one shop. That is the main way branch figures are wrong today.
+| # | Decision |
+|---|---|
+| 1 | Build both: cost centres inside a company, and legal entities (separate books), now, not later. |
+| 2 | Every location automatically gets a branch cost centre. Departments are a **table**, not free text. A department belongs to **one location**, so "Sales" exists once per location. Each department has its own cost centre, nested under its location's. |
+| 3 | An employee is created with an **entity, a location and a department** (the department list is filtered by the chosen location). |
+| 4 | No "no cost centre" bucket. A **configuration page** sets defaults, so every entry always has a cost centre and no screen can fail for lack of one. |
+| 5 | A Head office location and cost centre exist for shared costs. |
+| 6 | Shared costs are shared by report-time rules; nothing is posted. |
+| 7 | An employee can belong to **several cost centres** (their department's, plus for example a project for some dates, with a share). Payroll splits their cost by those shares. |
+| 8 | Each entity has its **own base currency, chart of accounts, tax setup, period lock, numbering and bank accounts**. Reports and screens always show **one entity**. No combined profit across entities. A company switcher sets which one, per browser tab, so two companies can be open in two tabs at once. |
+| 9 | Location kinds gain Office and Depot (labels only). |
+
+## What the code is today (checked)
+
+- One company is built in: `CompanyProfile::current()` (9 uses), accounting settings (`AccountingSetting`, about 33 uses), the base currency (about 66 uses), one lock date and set of financial years, one chart (ledgers have no entity), one tax PIN.
+- About 423 uses of `Voucher::`/`Ledger::` and similar models and 85 raw queries on vouchers, entries and ledgers, in about 100 files. Per-entity books means every one of those needs the current entity.
+- Vouchers have a `location_id`; entries have no dimension. Reports are company-wide (only the day book and dashboard filter by location).
+- Employees: `department` and `work_location` are **free text** on `employees`; `users.department` repeats it; job postings and inventory assignments use department text too. No real branch link, no employee-to-cost-centre link.
+- Locations: kind and four capabilities exist (script 97).
+- Stock cost travels with the batch on a transfer, so branch gross profit is already honest.
+- `backend/app/Models/us.php` looks like a stray copy of `UserController` sitting in the Models folder (not loaded by anything). To be checked and deleted.
 
 ## The model
 
 ```
-Organization / Group                          (later)
-  Legal entity                                (later; its own books, tax registrations, base currency)
-    Location        where it happened         (built: kind + capabilities)
-    Cost centre     who bears or reports it   (stage A)
+Legal entity (company)         own books, base currency, tax registrations, number series, lock dates
+  Location                     where it happened         (kind + capabilities)
+    Cost centre (branch)       auto-created per location, the location's default
+    Department                 per location: Sales at Nairobi, Sales at Mombasa
+      Cost centre (department) auto-created, nested under the branch's
+  Cost centres (projects, other)   free-standing, optionally under any parent
+Employee                       entity + location + department (+ extra cost centres with shares and dates)
 ```
 
-**Location and cost centre are different dimensions.** A location is a place (Nairobi HQ). A cost centre is who carries the cost or income (Sales, Admin, Marketing, or "Mombasa branch"). They often overlap. They are not the same column.
+Entries and vouchers carry: entity (from the location), location, cost centre. Resolution of a line's cost centre, first that exists: the line itself, the voucher, the configured default for that kind of document, the location's cost centre, the entity's "General" cost centre. So it is never empty.
 
-To honour "branches as cost centres" without double typing: **every location automatically gets a cost centre of kind "branch"**. A voucher made at a location inherits that location's cost centre unless a line says otherwise. Departments (Marketing, Admin, Logistics) and projects are extra cost centres, optionally nested (Nairobi HQ > Sales, Admin, Marketing) so figures roll up.
+## Employees and departments
 
-## Stage A: cost centres inside one set of books (build this)
+- `departments`: id, entity_id (via location), location_id, name, code, cost_centre_id, manager (employee), is_active. Unique per (location, name). A quick action "add this department to several locations" creates the repeats.
+- `employees`: add `legal_entity_id`, `location_id`, `department_id`. The old free-text `department` and `work_location` stay for a while and are filled from the new fields, then retired. `users.department` follows the employee. Existing text is matched into departments by a script (reviewed by you before it is applied).
+- `employee_cost_centres`: employee_id, cost_centre_id, share_percent, kind (home, project, other), valid_from, valid_to. The **home** row comes from the department and is 100% by default. A project assignment takes a share (for example 60% Procurement, 40% Project X) for dates. Shares in force on a payroll period must total 100%.
+- Payroll journal lines carry the cost centre, split by the shares in force. Statutory deductions follow the same split.
+- Employee form: choose entity, then location, then department (filtered), then optional extra cost centres with share and dates.
+- Careers (job postings) and inventory assignments: point at the department table where it makes sense, later.
 
-**Storage**
-- `cost_centres`: id, parent_id, code, name, kind (branch, department, project, other), location_id (set on the auto-created branch ones), is_active, sort_order.
-- `locations.cost_centre_id`: the default cost centre of the location (auto-created).
-- `vouchers.cost_centre_id` (optional header default) and `voucher_entries.cost_centre_id` and `voucher_entries.location_id` (optional, per line).
-- The cost centre of a line is `entry.cost_centre_id`, else `voucher.cost_centre_id`, else the voucher location's cost centre. Same rule for location. Nothing is back-filled: existing entries simply resolve through their voucher.
+## Configuration page (defaults)
 
-**Posting**
-- Sales, cash sales, delivery notes and the cost-of-goods entries copy the voucher's dimensions.
-- Bills, payments and journals ask per line, defaulting to the voucher's. A journal can split one rent bill over three cost centres.
-- A setting, "cost centre required on expense and income lines", is off by default. When off, a line with none lands in an explicit **"No cost centre"** bucket in reports. Nothing falls silently into the default branch.
-- A **Head office** location (kind "office", sells nothing) and its cost centre exist for shared costs.
+Settings, "Cost centres": the entity's General cost centre; defaults per kind of document (sales, purchases, expenses and payments, payroll, stock adjustments) falling back to the location's; the Head office cost centre; whether a line may be changed per entry. Every default has a value from day one (created by the script), so the database column is NOT NULL and no screen fails.
 
-**Reports**
-- Profit and loss, trial balance, ledger statement, day book and dashboard gain a cost centre filter, a location filter, and a **by cost centre** view: one column per cost centre plus a total and the "No cost centre" bucket. Roll-up through the hierarchy.
-- Branch stock value from batch balances (quantity times cost), nothing posted.
-- Sharing shared costs: report-time allocation rules (ledger or group to percentages per cost centre, or by basis: revenue, headcount). Nothing is posted, so rules can change and past periods can be re-run. Shown as "before sharing" and "after sharing".
+## Multiple companies, Tally style
 
-**Payroll:** an employee gets a default cost centre (real field, replacing the free-text `work_location`), optionally split by percentage. The payroll journal lines carry it.
+- **Separate books per entity.** Own chart (copied from a template when the entity is created, so different countries can differ), own accounting settings, base currency, period lock and financial years, number series, bank accounts and tax setup.
+- **The base currency** moves from a global flag to the entity (`legal_entities.base_currency_id`). Exchange rates can stay one shared table; each entity restates into its own base. The 66 places that ask for "the base currency" ask the current entity instead.
+- **The company switcher.** The admin header shows "Viewing: ABC Kenya Ltd" as a coloured chip and a switcher. The chosen entity is kept **per browser tab** and sent with every request (an `X-Entity` header, like the branch header today). Two tabs on two companies work side by side. The server checks the user may use that entity.
+- **Never mixed:** no endpoint adds up two entities. No consolidated profit. (A separate read-only consolidation can be considered much later, behind its own permission.)
+- **Scoping.** Ledgers, groups, vouchers, entries, series, bank accounts and settings carry the entity. A global scope on the models does most of the work. The 85 raw queries are converted by hand and tested.
+- **Customers and suppliers:** one identity (one login) across entities, with a separate party ledger per entity created at the first transaction. To be confirmed.
+- **Staff:** a user is attached to entities (and locations within them), possibly with different roles. A group-level super admin sees all, one entity at a time.
+- **A transfer between locations of different entities** is refused with a clear message, until intercompany (sale and purchase between the two companies, transfer price, currency, customs fields) is built.
+- **Tax belongs to the entity.** Tax registrations, regimes and rates per entity. Nothing about Kenya, Rwanda or customs is hard-coded.
+- **The storefront** needs a decision: one storefront per entity (a domain or subdomain picks the entity) or one storefront with branches across entities. Per entity is the simpler and safer default.
 
-**Transfers:** unchanged, at cost. Moving stock between locations of one entity posts nothing. Cost travels with the batch.
+## Build order (each step is a database script plus the matching code, in this order)
 
-**Access:** a cost centre or branch manager sees their own figures. Admin, super admin and finance see all. This follows `docs/BRANCH_SCOPING_PLAN.md`.
+The order follows what depends on what: entity, then location, then cost centre, then department, then employee, then posting and reports, then the heavy per-entity books.
 
-**Location kinds:** extend the labels to shop, warehouse, factory, office, depot, other (labels only; capabilities stay the switches).
-
-## Stage B: legal entities (design for it now, build later)
-
-Needed when there is **another company in the group or another country**. Tax and statutory books belong to the **legal entity**, not the building. A Kenyan company's Nairobi, Mombasa and warehouse are cost centres of one entity. A Rwandan subsidiary is a different entity with its own books, tax registrations, tax regimes, payroll, bank accounts and base currency. A foreign branch of the same company still creates local tax obligations, so model it as its own entity (or foreign branch entity) too. Tax rates and customs rules are never hard-coded.
-
-**What it takes in this code** (honest size: large)
-- `legal_entities` (name, country, base currency, tax registrations, letterhead and the company profile fields moved here). One default entity is created for every existing install, so a single-company shop sees no change.
-- `locations.legal_entity_id` (each location belongs to exactly one entity). `vouchers.legal_entity_id` is set from the location when posted and never changes.
-- One chart of accounts **per entity**, copied from a template when the entity is created (the cleanest legally, and allows different charts per country). Ledgers, groups, system ledgers, payment methods and bank accounts get an entity.
-- The singletons become per entity: company profile (9 uses), accounting settings (about 33), base currency (about 66), period guard and financial years, number series, tax configuration. All reports take an entity (a selector), and later "All entities (consolidated)".
-- Customers and suppliers can be one shared master, but their party ledgers (the receivable or payable account) are per entity.
-- **Stock transfer across entities is not a plain transfer.** It is an intercompany sale and purchase: the sending entity sells (receivable from the other entity), the receiving entity buys (payable to the other entity), with a transfer price, foreign currency and customs fields. Until that exists, a transfer between locations of different entities must be refused with a clear message.
-- Intercompany and consolidation: flag a customer or supplier as "another entity in my group", reconcile the two sides, and eliminate them at group level.
-- Stock batches and cost belong to the entity of their location.
-- Staff: users belong to entities (and to locations within them); a group-level super admin sees all.
-- Licensing: multi-entity is a natural paid module (like Campaigns), with the single default entity free.
-
-**The groundwork worth doing with stage A (cheap, changes nothing visible):** create the one default entity and `locations.legal_entity_id`; add a `CurrentEntity` accessor that returns it; stop adding **new** code that reads the company profile, accounting settings or base currency directly. Later conversion then becomes mechanical.
-
-**What not to do:** separate books per branch by default. That would make a normal growing Kenyan company needlessly painful.
-
-## Effects on other work
-
-- **Preorders** (on hold, `docs/PREORDER_PLAN.md`): the preorder voucher's income lands on the cost centre of its location; the entity is the location's entity. Preorders can wait for stage A only, not stage B.
-- **Location capabilities** already built stay as they are.
-- **Dashboard** gets a by cost centre view.
-
-## Phases
-
-1. Script: `cost_centres`, `locations.cost_centre_id` (auto-create one per location, with a Head office), the `voucher_entries` and `vouchers` columns, extra location kind labels. Also the default entity groundwork if agreed.
-2. Posting: sales and cost entries copy dimensions; bills, payments and journals ask per line.
-3. Reports: filters and the by-cost-centre view for profit and loss, trial balance, day book and dashboard.
-4. Employee cost centre and payroll split.
-5. Report-time allocation rules; branch stock value.
-6. Staff access by cost centre.
-7. Stage B when a second entity is real: entity layer, per-entity settings, per-entity chart, intercompany, consolidation.
+1. **Entities groundwork.** `legal_entities` with one default entity built from today's company profile and base currency; `locations.legal_entity_id`; a `CurrentEntity` accessor (returns the one entity); the company switcher shell (hidden while there is one entity). No behaviour change.
+2. **Cost centres.** `cost_centres` (nested), one per location plus Head office plus General, `locations.cost_centre_id`, location kinds Office and Depot, and the configuration page with its defaults.
+3. **Departments and employees.** `departments`, employee entity/location/department fields, `employee_cost_centres`, the employee form and list, the matching script for existing text.
+4. **Dimensions on the books.** Entity, location and cost centre columns on vouchers and entries, backfilled from the voucher's location in batches, then NOT NULL. Posting copies them. Payment, bill and journal forms get a cost centre per line, defaulted.
+5. **Reports.** Profit and loss, trial balance, day book, ledger statement and dashboard get the cost centre and location filters and a by-cost-centre view with roll-up; branch stock value; report-time allocation of shared costs.
+6. **Payroll** split by employee cost centre shares.
+7. **Per-entity books.** Chart, settings, base currency, lock dates, series, bank accounts per entity; the model scopes; the 85 raw queries; the `X-Entity` header and switcher live; refusing cross-entity transfers.
+8. **Staff access** by entity, location and cost centre.
+9. **Preorders** resume (they need steps 2 to 5).
 
 ## Open questions
 
-1. Is this the direction: stage A now, stage B only groundwork?
-2. Every location gets an automatic branch cost centre, plus separate department cost centres: yes?
-3. When a line has no cost centre: an explicit "No cost centre" bucket (suggested), or make it required?
-4. A Head office location and cost centre for shared costs: yes?
-5. Shared costs shared by report-time rules, nothing posted: yes?
-6. Employees get a default cost centre (with an optional percentage split): yes?
-7. Do you expect a second company or another country soon? That decides when stage B starts.
-8. Add Office and Depot to the location kinds?
+1. Storefront: one per entity (suggested) or one shared across entities?
+2. Customers: one identity with a party ledger per entity (suggested)?
+3. Exchange rates: one shared table (suggested), or per entity?
+4. Departments: do you also want a list of standard department names that can be added to a location in one click?
+5. Is it right that an employee's cost is split by shares only for payroll, and everything else they cause (expenses they claim, for example) takes the cost centre of the entry itself?
