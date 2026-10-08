@@ -88,7 +88,7 @@ export default function ThemeMenu({ buttonStyle, iconColor = 'var(--text-seconda
 
           {choices.length > 0 && (
             <>
-              <div style={{ ...head, borderTop: '1px solid var(--line)' }}>Colour</div>
+              <div style={{ ...head, borderTop: '1px solid var(--line)' }}>Accent</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 9, padding: '6px 14px 14px' }}>
                 {choices.map((c) => {
                   const swatch = c.light_tokens?.['--color-primary-500'] ?? '#a855f7';

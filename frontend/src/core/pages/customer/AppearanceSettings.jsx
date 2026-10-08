@@ -132,7 +132,7 @@ export default function AppearanceSettings() {
 
       {/* Colour Theme */}
       {activeColourings.length > 0 && (
-        <Card title="Colour theme" icon={Palette}>
+        <Card title="Accent colour" icon={Palette}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {activeColourings.map(c => (
               <OptionRow
