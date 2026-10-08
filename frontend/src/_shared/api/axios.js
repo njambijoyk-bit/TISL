@@ -40,16 +40,6 @@ api.interceptors.request.use(
       }
     }
 
-    // The company this browser tab is looking at (kept per tab, so two tabs can show two companies). The server falls back to the default one.
-    if (!config.headers['X-Entity']) {
-      try {
-        const id = sessionStorage.getItem('entity-in-tab');
-        if (id) config.headers['X-Entity'] = id;
-      } catch {
-        /* no session storage — the default company */
-      }
-    }
-
     return config;
   },
   (error) => {

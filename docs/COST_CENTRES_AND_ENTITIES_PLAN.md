@@ -1,4 +1,4 @@
-# Cost centres, departments, employees and legal entities (direction decided; step 1, entities groundwork, is built)
+# Cost centres, departments, employees and legal entities (DRAFT v2: direction decided, nothing built yet)
 
 Direction: **a branch is a cost centre inside one set of books. A different company or country is a legal entity with its own books** (Tally style: separate companies, separate books, one open at a time per window, never mixed). Both are being built now, in the order below.
 
@@ -79,7 +79,7 @@ Settings, "Cost centres": the entity's General cost centre; defaults per kind of
 
 The order follows what depends on what: entity, then location, then cost centre, then department, then employee, then posting and reports, then the heavy per-entity books.
 
-1. **Entities groundwork (BUILT, script 100).** `legal_entities` with one default entity built from today's company profile and base currency; `locations.legal_entity_id`; a `CurrentEntity` accessor (returns the one entity); the company switcher shell (hidden while there is one entity). No behaviour change. As built: `database/sql/100_legal_entities.sql` creates the table, one default entity from the company profile and the base currency, and `locations.legal_entity_id` (nullable until step 7, filled for every location). `App\Services\Entity\CurrentEntity` (scoped) resolves the request's company from an `X-Entity` header (`SetEntityContext` middleware), else the default; before the script runs it resolves to nothing and nobody asks. `GET /admin/entities` feeds the sidebar's "Viewing" switcher, which stays hidden while there is one entity; the choice is kept per browser tab (sessionStorage) and sent as `X-Entity`.
+1. **Entities groundwork.** `legal_entities` with one default entity built from today's company profile and base currency; `locations.legal_entity_id`; a `CurrentEntity` accessor (returns the one entity); the company switcher shell (hidden while there is one entity). No behaviour change.
 2. **Cost centres.** `cost_centres` (nested), one per location plus Head office plus General, `locations.cost_centre_id`, location kinds Office and Depot, and the configuration page with its defaults.
 3. **Departments and employees.** `departments`, employee entity/location/department fields, `employee_cost_centres`, the employee form and list, the matching script for existing text.
 4. **Dimensions on the books.** Entity, location and cost centre columns on vouchers and entries, backfilled from the voucher's location in batches, then NOT NULL. Posting copies them. Payment, bill and journal forms get a cost centre per line, defaulted.

@@ -22,7 +22,7 @@ class Location extends Model
     protected $table = 'locations';
 
     protected $fillable = [
-        'name', 'code', 'legal_entity_id', 'currency_id', 'tax_district_id',
+        'name', 'code', 'currency_id', 'tax_district_id',
         'phone', 'email',
         'address_line1', 'address_line2', 'city', 'state', 'country', 'postal_code',
         'latitude', 'longitude', 'timezone', 'opening_hours',
@@ -138,11 +138,6 @@ class Location extends Model
     public function scopeOrdered(Builder $q): Builder
     {
         return $q->orderBy('sort_order')->orderBy('name');
-    }
-
-    public function legalEntity()
-    {
-        return $this->belongsTo(LegalEntity::class, 'legal_entity_id');
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
