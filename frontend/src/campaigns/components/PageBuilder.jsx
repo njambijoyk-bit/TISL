@@ -147,7 +147,7 @@ function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, res
 }
 
 /** The page of a campaign: add, order, schedule and fill in its sections, with a live preview beside them. Saved in one go. */
-export default function PageBuilder({ campaign, sections: initial, items: initialItems, resolved: initialResolved, ecommerce, itemTypes, maxVideoMb, canEdit, onSaved }) {
+export default function PageBuilder({ campaign, sections: initial, items: initialItems, resolved: initialResolved, ecommerce, itemTypes, maxVideoMb, canEdit, onSaved, audience }) {
   const [list, setList] = useState(() => rows(initial, initialItems));
   const [resolved, setResolved] = useState(initialResolved);
   const [dirty, setDirty] = useState(false);
@@ -207,7 +207,7 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
                     <Field label="Show until" hint="Empty = for as long as the campaign shows."><TextInput type="datetime-local" value={s.show_until} onChange={(e) => patch(s.key, { show_until: e.target.value })} /></Field>
                   </div>
                   <div style={{ marginTop: 12 }}>
-                    <Field label="Who sees this section" hint="Inside the campaign's own audience, never wider. Save the campaign details first if you just changed who it is for. Staff always see it."><AudienceRule value={s.audience_rule} parent={campaign.audience_rule} noun="this section" onChange={(r) => patch(s.key, { audience_rule: r })} /></Field>
+                    <Field label="Who sees this section" hint="Inside the campaign's own audience, never wider. Staff always see it. Save the campaign details too, or the public still sees the old audience."><AudienceRule value={s.audience_rule} parent={audience ?? null} noun="this section" onChange={(r) => patch(s.key, { audience_rule: r })} /></Field>
                   </div>
                 </fieldset>
               </div>

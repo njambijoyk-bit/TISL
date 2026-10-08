@@ -223,7 +223,7 @@ export default function CampaignEditor() {
           <div style={{ marginTop: 30 }}>
             <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>The page</h2>
             <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Build what people see: add sections, drag them into order, and give any of them its own dates. Details above and the page below are saved separately.</p>
-            <PageBuilder campaign={c} sections={pg.sections} items={pg.items} resolved={pg.resolved} ecommerce={pg.ecommerce} itemTypes={pg.itemTypes} maxVideoMb={pg.maxVideoMb} canEdit={perm.can_edit}
+            <PageBuilder campaign={c} audience={f.audience_rule} sections={pg.sections} items={pg.items} resolved={pg.resolved} ecommerce={pg.ecommerce} itemTypes={pg.itemTypes} maxVideoMb={pg.maxVideoMb} canEdit={perm.can_edit}
               onSaved={(r) => setPg((p) => ({ ...p, sections: r.data.sections, items: r.data.items, resolved: r.resolved }))} />
           </div>
         )}
