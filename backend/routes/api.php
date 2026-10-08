@@ -685,7 +685,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // CUSTOMER ROUTES
     // ============================================
-    Route::middleware('role:customer')->prefix('customer')->group(function () {
+    Route::middleware('account:customer')->prefix('customer')->group(function () {
         // Customer Profile & Settings
         Route::get('/profile', [CustomerController::class, 'profile']);
         Route::put('/profile', [CustomerController::class, 'updateProfile']);
@@ -863,7 +863,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // DRIVER ROUTES
     // ============================================
-    Route::middleware('role:driver')->prefix('driver')->middleware('module:extras')->group(function () {
+    Route::middleware('permission:driver.app')->prefix('driver')->middleware('module:extras')->group(function () {
 
         // The driver's own payslips (their own only, approved or paid runs)
         Route::get('/my-payslips',          [\App\Http\Controllers\Api\MyPayslipController::class, 'index']);
@@ -1479,11 +1479,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [QuotationController::class, 'index']);
             Route::get('/meta', [QuotationController::class, 'meta']);
             Route::get('/lookup', [QuotationController::class, 'lookup']);
-            Route::post('/preview', [QuotationController::class, 'preview']);
+            Route::post('/preview', [QuotationController::class, 'preview'])->middleware('permission:quotes.write');
             Route::get('/{id}', [QuotationController::class, 'show']);
-            Route::put('/{id}', [QuotationController::class, 'update']);
-            Route::post('/{id}/send', [QuotationController::class, 'send']);
-            Route::post('/{id}/withdraw', [QuotationController::class, 'withdraw']);
+            Route::put('/{id}', [QuotationController::class, 'update'])->middleware('permission:quotes.write');
+            Route::post('/{id}/send', [QuotationController::class, 'send'])->middleware('permission:quotes.write');
+            Route::post('/{id}/withdraw', [QuotationController::class, 'withdraw'])->middleware('permission:quotes.write');
             Route::get('/{id}/export', [QuotationController::class, 'export']);
         });
 
@@ -1572,6 +1572,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/',                          [UserController::class, 'index']);
             Route::get('/statistics',               [UserController::class, 'statistics']);
             Route::get('/departments',              [UserController::class, 'departments']);
+            Route::get('/roles',                    [UserController::class, 'roles']);
             Route::post('/',                        [UserController::class, 'store']);
             Route::get('/{id}',                     [UserController::class, 'show']);
             Route::put('/{id}',                     [UserController::class, 'update']);
@@ -2309,7 +2310,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/force',            [EmployeeController::class, 'forceDelete']);
         });
 
-        Route::prefix('users')->middleware('permission:users.manage')->group(function () {
+        Route::prefix('users')->middleware('permission:hr.manage')->group(function () {
             Route::get('/staff-without-employee', [UserController::class, 'staffWithoutEmployee']);
         });
     });

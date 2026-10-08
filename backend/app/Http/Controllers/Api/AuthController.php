@@ -596,8 +596,8 @@ class AuthController extends Controller
      */
     public function getAdminUsers(Request $request)
     {
-        // Simplified version for testing
-        $users = User::holding(['super_admin', 'admin', 'manager', 'sales_rep'])
+        // staff who can be picked in an assign dialog: every staff account except drivers
+        $users = User::staffAccounts(app(\App\Services\Access\Authorizer::class)->driverRoleKeys())
             ->select('id', 'name', 'email', 'role')
             ->get();
         

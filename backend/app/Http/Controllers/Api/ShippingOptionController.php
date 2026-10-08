@@ -161,8 +161,8 @@ class ShippingOptionController extends Controller
      */
     public function destroy($id): JsonResponse
     {
-        if (! auth()->user()->holdsAny(['super_admin'])) {
-            return response()->json(['message' => 'Only superadmin can delete shipping options'], 403);
+        if (! auth()->user()->hasPermission('settings.delete')) {
+            return response()->json(['message' => 'You do not have permission to delete shipping options'], 403);
         }
 
         $option = ShippingOption::findOrFail($id);

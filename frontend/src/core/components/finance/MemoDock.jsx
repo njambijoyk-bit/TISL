@@ -7,7 +7,7 @@ import useDragPosition from '../../../_shared/hooks/useDragPosition';
 import useMemoStore from '../../../_shared/store/memoStore';
 import memorandaAPI from '../../../_shared/api/memoranda';
 import booksAPI from '../../../_shared/api/books';
-import { canWriteFinance } from '../../../_shared/lib/roles';
+import { canWriteFinance, isStaff } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import MemoLines from '../admin/books/MemoLines';
 import { StateChip, PurposeChip } from '../admin/books/memoBits';
@@ -24,7 +24,7 @@ const chip = (on) => ({ cursor: 'pointer', fontFamily: 'inherit', color: 'inheri
  */
 export default function MemoDock() {
   const user = useAuthStore((s) => s.user);
-  const staff = user && !['customer', 'applicant'].includes(user.role);
+  const staff = user && isStaff(user);
   if (!staff) return null;
   return <Dock user={user} />;
 }

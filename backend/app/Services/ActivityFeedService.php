@@ -14,10 +14,11 @@ use Illuminate\Support\Str;
  */
 class ActivityFeedService
 {
-    private const ADMINS = ['admin', 'super_admin'];
-    private const OPS = ['manager', 'admin', 'super_admin'];
-    private const FIN = ['finance', 'manager', 'admin', 'super_admin'];
-    private const SUPER = ['super_admin'];
+    // who sees a source is a permission, not a list of roles
+    private const ADMINS = 'system.logs';
+    private const OPS = 'insight.ops';
+    private const FIN = 'books.view';
+    private const SUPER = 'system.devtools';
 
     /** @return array<int,array{key:string,label:string,group:string,roles:array,table:string,at:string}> */
     private function sources(): array
@@ -25,33 +26,33 @@ class ActivityFeedService
         $o = self::OPS; $f = self::FIN; $a = self::ADMINS;
 
         return [
-            ['key' => 'hamper_activity', 'label' => 'Hampers', 'group' => 'Sales', 'roles' => $o, 'table' => 'hamper_activity_logs', 'at' => 'created_at'],
-            ['key' => 'auction_order_activity', 'label' => 'Auctions', 'group' => 'Sales', 'roles' => $o, 'table' => 'auction_order_activity_logs', 'at' => 'created_at'],
-            ['key' => 'referral_activity', 'label' => 'Referrals', 'group' => 'Customers', 'roles' => $o, 'table' => 'referral_activity_logs', 'at' => 'created_at'],
-            ['key' => 'customer_tier', 'label' => 'Customer tiers', 'group' => 'Customers', 'roles' => $o, 'table' => 'customer_tier_activities', 'at' => 'created_at'],
-            ['key' => 'shipping', 'label' => 'Shipping', 'group' => 'Sales', 'roles' => $o, 'table' => 'shipping_activities', 'at' => 'created_at'],
-            ['key' => 'product_activity', 'label' => 'Products', 'group' => 'Catalogue', 'roles' => $o, 'table' => 'product_activity_logs', 'at' => 'created_at'],
-            ['key' => 'voucher_audit', 'label' => 'Vouchers', 'group' => 'Books', 'roles' => $f, 'table' => 'voucher_audit_logs', 'at' => 'created_at'],
-            ['key' => 'verification', 'label' => 'Verification', 'group' => 'Books', 'roles' => $f, 'table' => 'verification_log', 'at' => 'created_at'],
-            ['key' => 'tax_activity', 'label' => 'Tax', 'group' => 'Books', 'roles' => $f, 'table' => 'tax_activity_logs', 'at' => 'created_at'],
-            ['key' => 'withholding_activity', 'label' => 'Withholding', 'group' => 'Books', 'roles' => $f, 'table' => 'withholding_activity_logs', 'at' => 'created_at'],
-            ['key' => 'currency_activity', 'label' => 'Currency', 'group' => 'Books', 'roles' => $f, 'table' => 'currency_activity_logs', 'at' => 'created_at'],
-            ['key' => 'delivery_activity', 'label' => 'Delivery', 'group' => 'Operations', 'roles' => $o, 'table' => 'delivery_activity_logs', 'at' => 'created_at'],
-            ['key' => 'project_activity', 'label' => 'Projects', 'group' => 'Work', 'roles' => $o, 'table' => 'project_activities', 'at' => 'created_at'],
-            ['key' => 'leave', 'label' => 'Leave', 'group' => 'People', 'roles' => $o, 'table' => 'leave_logs', 'at' => 'created_at'],
-            ['key' => 'application_status', 'label' => 'Job applications', 'group' => 'People', 'roles' => $a, 'table' => 'application_status_history', 'at' => 'created_at'],
-            ['key' => 'bug_status', 'label' => 'Bug reports', 'group' => 'System', 'roles' => $a, 'table' => 'bug_report_status_history', 'at' => 'created_at'],
-            ['key' => 'policy_change', 'label' => 'Policy changes', 'group' => 'System', 'roles' => $a, 'table' => 'policy_change_logs', 'at' => 'changed_at'],
-            ['key' => 'vault_access', 'label' => 'Vault', 'group' => 'System', 'roles' => $a, 'table' => 'vault_access_logs', 'at' => 'created_at'],
-            ['key' => 'mimi_query', 'label' => 'Mimi chats', 'group' => 'System', 'roles' => $a, 'table' => 'mimi_query_logs', 'at' => 'queried_at'],
-            ['key' => 'dev_access_key', 'label' => 'Developer key attempts', 'group' => 'System', 'roles' => self::SUPER, 'table' => 'dev_access_key_logs', 'at' => 'attempted_at'],
+            ['key' => 'hamper_activity', 'label' => 'Hampers', 'group' => 'Sales', 'permission' => $o, 'table' => 'hamper_activity_logs', 'at' => 'created_at'],
+            ['key' => 'auction_order_activity', 'label' => 'Auctions', 'group' => 'Sales', 'permission' => $o, 'table' => 'auction_order_activity_logs', 'at' => 'created_at'],
+            ['key' => 'referral_activity', 'label' => 'Referrals', 'group' => 'Customers', 'permission' => $o, 'table' => 'referral_activity_logs', 'at' => 'created_at'],
+            ['key' => 'customer_tier', 'label' => 'Customer tiers', 'group' => 'Customers', 'permission' => $o, 'table' => 'customer_tier_activities', 'at' => 'created_at'],
+            ['key' => 'shipping', 'label' => 'Shipping', 'group' => 'Sales', 'permission' => $o, 'table' => 'shipping_activities', 'at' => 'created_at'],
+            ['key' => 'product_activity', 'label' => 'Products', 'group' => 'Catalogue', 'permission' => $o, 'table' => 'product_activity_logs', 'at' => 'created_at'],
+            ['key' => 'voucher_audit', 'label' => 'Vouchers', 'group' => 'Books', 'permission' => $f, 'table' => 'voucher_audit_logs', 'at' => 'created_at'],
+            ['key' => 'verification', 'label' => 'Verification', 'group' => 'Books', 'permission' => $f, 'table' => 'verification_log', 'at' => 'created_at'],
+            ['key' => 'tax_activity', 'label' => 'Tax', 'group' => 'Books', 'permission' => $f, 'table' => 'tax_activity_logs', 'at' => 'created_at'],
+            ['key' => 'withholding_activity', 'label' => 'Withholding', 'group' => 'Books', 'permission' => $f, 'table' => 'withholding_activity_logs', 'at' => 'created_at'],
+            ['key' => 'currency_activity', 'label' => 'Currency', 'group' => 'Books', 'permission' => $f, 'table' => 'currency_activity_logs', 'at' => 'created_at'],
+            ['key' => 'delivery_activity', 'label' => 'Delivery', 'group' => 'Operations', 'permission' => $o, 'table' => 'delivery_activity_logs', 'at' => 'created_at'],
+            ['key' => 'project_activity', 'label' => 'Projects', 'group' => 'Work', 'permission' => $o, 'table' => 'project_activities', 'at' => 'created_at'],
+            ['key' => 'leave', 'label' => 'Leave', 'group' => 'People', 'permission' => $o, 'table' => 'leave_logs', 'at' => 'created_at'],
+            ['key' => 'application_status', 'label' => 'Job applications', 'group' => 'People', 'permission' => $a, 'table' => 'application_status_history', 'at' => 'created_at'],
+            ['key' => 'bug_status', 'label' => 'Bug reports', 'group' => 'System', 'permission' => $a, 'table' => 'bug_report_status_history', 'at' => 'created_at'],
+            ['key' => 'policy_change', 'label' => 'Policy changes', 'group' => 'System', 'permission' => $a, 'table' => 'policy_change_logs', 'at' => 'changed_at'],
+            ['key' => 'vault_access', 'label' => 'Vault', 'group' => 'System', 'permission' => $a, 'table' => 'vault_access_logs', 'at' => 'created_at'],
+            ['key' => 'mimi_query', 'label' => 'Mimi chats', 'group' => 'System', 'permission' => $a, 'table' => 'mimi_query_logs', 'at' => 'queried_at'],
+            ['key' => 'dev_access_key', 'label' => 'Developer key attempts', 'group' => 'System', 'permission' => self::SUPER, 'table' => 'dev_access_key_logs', 'at' => 'attempted_at'],
         ];
     }
 
     /** The sources this person may see (and that exist). */
     public function allowed(User $user): array
     {
-        return array_values(array_filter($this->sources(), fn ($s) => $user->holdsAny($s['roles']) && Schema::hasTable($s['table'])));
+        return array_values(array_filter($this->sources(), fn ($s) => $user->hasPermission($s['permission']) && Schema::hasTable($s['table'])));
     }
 
     public function feed(User $user, array $f): array

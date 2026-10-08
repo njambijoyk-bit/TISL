@@ -21,9 +21,6 @@ use Illuminate\Support\Facades\DB;
  */
 class PriceListService
 {
-    public const CREATORS = ['admin', 'super_admin', 'manager', 'finance', 'sales_rep'];
-    public const PUBLISHERS = ['admin', 'super_admin', 'manager', 'finance'];
-    public const PURGERS = ['admin', 'super_admin'];
     public const MAX_ITEMS = 5000;
     public const DRAFT_TASK = 'price_list_draft';
     public const ACTIVATE_TASK = 'price_list_activation';
@@ -37,12 +34,12 @@ class PriceListService
 
     public static function canPublish(?User $u): bool
     {
-        return $u && $u->holdsAny(self::PUBLISHERS);
+        return $u && $u->hasPermission('catalogue.publish');
     }
 
     public static function canPurge(?User $u): bool
     {
-        return $u && $u->holdsAny(self::PURGERS);
+        return $u && $u->hasPermission('catalogue.purge');
     }
 
     /** Publishers may change anything; anyone else only their own list while it is a draft. */
@@ -273,7 +270,7 @@ class PriceListService
             return [$manager];
         }
 
-        return User::holding(['admin', 'super_admin'])->where('id', '!=', $authorId)->get()->all();
+        return User::withPermission('catalogue.purge')->where('id', '!=', $authorId)->get()->all();
     }
 
     /** Someone other than the author makes a waiting list live. */

@@ -22,7 +22,7 @@ class ServiceIncomePack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['super_admin', 'admin', 'manager', 'finance']; }
+    public function permission(): string { return 'books.view'; }
 
     public function contexts(): array { return ['service', 'booking']; }
 

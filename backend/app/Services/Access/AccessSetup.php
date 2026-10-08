@@ -81,6 +81,10 @@ class AccessSetup
                 }
             }
 
+            if ($stored < 3) {
+                self::carryOverStockRoles($done);
+            }
+
             DB::table('access_meta')->updateOrInsert(['id' => 1], ['catalog_version' => Catalog::VERSION, 'seeded_at' => $now]);
         });
 
@@ -89,6 +93,40 @@ class AccessSetup
         Authorizer::reset();
 
         return $done;
+    }
+
+    /**
+     * The stock settings used to keep two lists of role names (who may sell expired stock, who gets the expiry warnings). Those are permissions now:
+     * whatever roles were listed hold them, and the built-in roles that held them by default but were taken off the list no longer do.
+     */
+    private static function carryOverStockRoles(array &$done): void
+    {
+        if (! Schema::hasTable('stock_settings') || ! Schema::hasColumn('stock_settings', 'override_roles')) {
+            return;
+        }
+        $row = DB::table('stock_settings')->first();
+        if (! $row) {
+            return;
+        }
+        foreach (['override_roles' => 'stock.override_expiry', 'notify_roles' => 'stock.expiry_alerts'] as $column => $permission) {
+            if (! property_exists($row, $column) || $row->{$column} === null) {
+                continue;
+            }
+            $wanted = json_decode((string) $row->{$column}, true);
+            if (! is_array($wanted)) {
+                continue;
+            }
+            foreach (DB::table('roles')->where('kind', 'staff')->get(['id', 'key']) as $role) {
+                $has = DB::table('role_permissions')->where('role_id', $role->id)->where('permission_key', $permission)->exists();
+                $want = in_array($role->key, $wanted, true);
+                if ($want && ! $has) {
+                    DB::table('role_permissions')->insert(['role_id' => $role->id, 'permission_key' => $permission]);
+                    $done['new_grants']++;
+                } elseif (! $want && $has && $role->key !== 'super_admin') {
+                    DB::table('role_permissions')->where('role_id', $role->id)->where('permission_key', $permission)->delete();
+                }
+            }
+        }
     }
 
     /** Every user gets a primary role row and a clearance; each branch assignment becomes a permanent grant. */

@@ -147,7 +147,7 @@ class CampaignPinController extends Controller
     /** DELETE /admin/pins/{id}/purge: super admin only, from the recycle bin, gone for good. */
     public function purge(Request $request, int $id): JsonResponse
     {
-        abort_unless($request->user()?->holdsAny(['super_admin']), 403, 'Only a super admin can delete a pin for good.');
+        abort_unless($request->user()?->hasPermission('campaigns.purge'), 403, 'You do not have permission to delete a pin for good.');
         $this->pins->purge(CampaignPin::withTrashed()->findOrFail($id));
 
         return response()->json(['message' => 'Pin deleted for good.']);
@@ -164,7 +164,7 @@ class CampaignPinController extends Controller
     /** PUT /admin/pins/settings: admin and super admin only. */
     public function saveSettings(Request $request): JsonResponse
     {
-        abort_unless($request->user()->holdsAny(['admin', 'super_admin']), 403, 'Only an admin or super admin can change this.');
+        abort_unless($request->user()->hasPermission('campaigns.admin'), 403, 'You do not have permission to change this.');
         $d = $request->validate(['enabled' => ['required', 'boolean'], 'per_month' => ['required', 'integer', 'min:0', 'max:100000']]);
         try {
             $new = $this->rules->update($d, $request->user());

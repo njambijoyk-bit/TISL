@@ -3,7 +3,7 @@ import { X, Trash2, RotateCcw, Search, AlertTriangle, ChevronLeft, ChevronRight 
 import toast from 'react-hot-toast';
 import useProjectStore from '../../../_shared/store/projectStore';
 import { useAuthStore } from '../../../_shared/store/index';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 const formatDate = (d) => {
   if (!d) return '—';
@@ -101,7 +101,7 @@ const ProjectTrashModal = ({ onClose }) => {
     forceDeleteProject,
   } = useProjectStore();
 
-  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
+  const isSuperAdmin = hasPermission(user, 'projects.purge');   // may delete projects for good
 
   const [search, setSearch]           = useState('');
   const [page, setPage]               = useState(1);
@@ -190,7 +190,7 @@ const ProjectTrashModal = ({ onClose }) => {
               border border-amber-200 dark:border-amber-800/50 rounded-lg flex-shrink-0">
               <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                You can restore projects. Only super admins can permanently delete them.
+                You can restore projects. You do not have the permission to delete them for good.
               </p>
             </div>
           )}

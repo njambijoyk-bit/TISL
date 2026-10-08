@@ -16,7 +16,7 @@ const useAuthStore = create(
         localStorage.setItem('token', token); // set FIRST so interceptor can read it
         set({ user, customer, token, access, isAuthenticated: true });
 
-        if (user.role === 'customer') {
+        if (access?.account === 'customer') {
           setTimeout(() => {
             import('./cartStore').then(m => m.default.getState().loadFromServer());
             import('./wishlistStore').then(m => m.default.getState().loadFromServer());

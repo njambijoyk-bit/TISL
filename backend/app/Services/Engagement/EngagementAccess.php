@@ -10,8 +10,6 @@ use App\Models\User;
  */
 class EngagementAccess
 {
-    public const STAFF = ['admin', 'super_admin', 'manager', 'sales_rep', 'finance', 'driver', 'employee'];
-
     public function __construct(private EngagementRules $rules, private PurchaseProof $proof) {}
 
     public function enabled(): bool
@@ -21,7 +19,7 @@ class EngagementAccess
 
     private function isStaff(?User $u): bool
     {
-        return $u && $u->holdsAny(self::STAFF);
+        return $u && ($u->isStaff() || $u->canDrive());
     }
 
     /** Does the "who" setting let this visitor in (before any purchase check)? */

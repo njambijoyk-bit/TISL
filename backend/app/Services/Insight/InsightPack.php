@@ -21,8 +21,8 @@ interface InsightPack
     /** The module it belongs to (null = Core). */
     public function module(): ?string;
 
-    /** @return string[] */
-    public function roles(): array;
+    /** The permission a person needs to be answered by this pack (for example books.view). */
+    public function permission(): string;
 
     /** Context types it answers: "voucher", "unit_price" … */
     public function contexts(): array;

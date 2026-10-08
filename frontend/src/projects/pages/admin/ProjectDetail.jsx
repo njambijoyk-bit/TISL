@@ -25,7 +25,7 @@ import MessageComposer        from '../../components/shared/MessageComposer';
 import ProjectFinanceTab      from '../../components/shared/ProjectFinanceTab';
 import useProjectStore        from '../../../_shared/store/projectStore';
 import { useAuthStore }       from '../../../_shared/store/index';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
 const purple   = 'var(--color-primary-500)';
@@ -191,7 +191,7 @@ const ProjectDetail = () => {
   const msgRef     = useRef(null);
 
   // ── Derived permissions ───────────────────────────────────────────────────
-  const isAdminOwner = hasAnyRole(user, ['super_admin']) ||
+  const isAdminOwner = hasPermission(user, 'projects.purge') ||
     Number(activeProject?.owner_admin_id) === Number(user?.id) ||
     participants.some(p =>
       p.participant_type === 'admin' &&
@@ -200,8 +200,8 @@ const ProjectDetail = () => {
       p.status === 'active'
     );
 
-  const canDelete = hasAnyRole(user, ['super_admin']) ||
-    (hasAnyRole(user, ['admin']) && participants.some(p =>
+  const canDelete = hasPermission(user, 'projects.purge') ||
+    (hasPermission(user, 'projects.delete') && participants.some(p =>
       p.participant_type === 'admin' &&
       Number(p.admin_user_id) === Number(user?.id) &&
       ['invited', 'active'].includes(p.status)
@@ -523,7 +523,7 @@ const ProjectDetail = () => {
               messages={messages}
               loading={loading.messages}
               currentUserId={user?.id}
-              userRole={user?.role}
+              user={user}
               onEditMessage={handleEditMessage}
               onDeleteMessage={handleDeleteMessage}
               onDeleteMessages={handleDeleteMessages}

@@ -16,13 +16,12 @@ use Illuminate\Http\Request;
  */
 class MemorandumController extends Controller
 {
-    private const NOT_STAFF = ['customer', 'applicant'];
 
     public function __construct(private MemorandumService $memos) {}
 
     private function staff(Request $r): void
     {
-        abort_if(! $r->user() || $r->user()->holdsAny(self::NOT_STAFF), 403, 'Memoranda are for staff.');
+        abort_if(! $r->user() || $r->user()->isPortal(), 403, 'Memoranda are for staff.');
     }
 
     private function finance(Request $r): bool

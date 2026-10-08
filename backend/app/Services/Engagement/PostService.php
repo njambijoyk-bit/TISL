@@ -212,7 +212,7 @@ class PostService
         $name = $p->user ? $this->shortName($p->user->name) : ($p->guest_name ?: 'Guest');
 
         return ['id' => $p->id, 'kind' => $p->kind, 'rating' => $p->rating, 'title' => $p->title, 'body' => $p->body, 'images' => $p->images ?? [], 'author' => $name,
-            'by_staff' => $p->user && $p->user->holdsAny(EngagementAccess::STAFF), 'verified' => (bool) $p->verified_purchase,
+            'by_staff' => $p->user && ($p->user->isStaff() || $p->user->canDrive()), 'verified' => (bool) $p->verified_purchase,
             'mine' => ($me && (int) $p->user_id === (int) $me->id) || (! $me && $guestKey && $p->guest_key === $guestKey), 'status' => $p->status === 'published' ? 'published' : 'held',
             'created_at' => $p->created_at?->setTimezone(config('app.timezone'))->format('Y-m-d\TH:i:sP'), 'edited' => (bool) $p->edited_at, 'replies' => $replies,
             'likes' => $react['like']['count'] ?? 0, 'liked' => $react['like']['mine'] ?? false, 'helpful' => $react['helpful']['count'] ?? 0, 'marked' => $react['helpful']['mine'] ?? false];

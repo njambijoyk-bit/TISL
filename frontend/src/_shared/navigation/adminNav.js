@@ -7,29 +7,26 @@ import {
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
-import { FINANCE_READ, PAYROLL_ROLES, CAMPAIGN_ROLES, PRICE_ROLES, effectiveRoles, hasAnyRole, hasPermission, isStaff } from '../lib/roles';
+import { accountType, hasPermission, isStaff } from '../lib/roles';
 
 /**
  * The admin navigation — the single source for the sidebar, the section tabs
  * at the top of a page, the Settings hub and the Ctrl+K quick-jump.
  *
- * Group:  { id, label, module?, roles?, ownerOnly?, items }
- * Item:   { id, title, icon, color, path, exact?, also?, roles?, module?,
+ * Group:  { id, label, module?, perm?, account?, items }
+ * Item:   { id, title, icon, color, path, exact?, also?, perm?, account?, module?,
  *           keywords?, tabs?, hideTabs? }
- * Tab:    { title, path, exact?, also?, roles?, module?, group?, soon?, icon?, color?, description? }
+ * Tab:    { title, path, exact?, also?, perm?, account?, module?, group?, soon?, icon?, color?, description? }
  *
  * - `path` must be a real route in App.jsx.
  * - `also` lists extra path prefixes that belong to the item (e.g. detail pages
  *   whose URL doesn't start with the item's path).
- * - `roles` is an allow-list; omitted = every admin role except drivers.
+ * - `perm` is a permission from the catalogue (see Roles & access), or a list of them (any one will do); omitted = everyone who may open the admin area (drivers have their own screens).
+ * - `account` shows an entry only to that kind of account ('driver' for the driver app). Never write role names here: roles are built in the role builder.
  * - `module` hides the group/item/tab when that module is off.
- * - `ownerOnly` = the platform owner's developer tools (super_admin for now).
  * - `hideTabs` keeps the tabs for search only (the page draws its own tabs).
  * - `soon` tabs appear on the Settings hub as "Soon" and nowhere else.
  */
-
-const PAYMENTS_ROLES = ['admin', 'super_admin', 'finance'];
-export const DRIVER_ROLE = 'driver';
 
 export const ADMIN_NAV = [
   {
@@ -44,8 +41,8 @@ export const ADMIN_NAV = [
     id: 'sales',
     label: 'Sales',
     items: [
-      { id: 'orders', title: 'Orders', icon: ShoppingCart, color: '#f97316', path: '/admin/orders', keywords: 'invoices shipping' },
-      { id: 'payments', title: 'Payments', icon: DollarSign, color: '#10b981', path: '/admin/finance/payments', roles: PAYMENTS_ROLES, keywords: 'mpesa transactions' },
+      { id: 'orders', title: 'Orders', icon: ShoppingCart, color: '#f97316', path: '/admin/orders', perm: 'books.view', keywords: 'invoices shipping' },
+      { id: 'payments', title: 'Payments', icon: DollarSign, color: '#10b981', path: '/admin/finance/payments', perm: 'books.post', keywords: 'mpesa transactions' },
       {
         id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes',
       },
@@ -66,25 +63,25 @@ export const ADMIN_NAV = [
           { title: 'Categories', path: '/admin/categories' },
           { title: 'Brands', path: '/admin/brands' },
           { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
-          { title: 'Price lists', path: '/admin/price-lists', also: ['/admin/price-list-archive'], roles: PRICE_ROLES },
-          { title: 'Catalogues', path: '/admin/catalogues', also: ['/admin/catalogue-items'], roles: PRICE_ROLES },
-          { title: 'Configuration', path: '/admin/catalogue-settings', roles: PRICE_ROLES },
+          { title: 'Price lists', path: '/admin/price-lists', also: ['/admin/price-list-archive'], perm: 'catalogue.pricelists' },
+          { title: 'Catalogues', path: '/admin/catalogues', also: ['/admin/catalogue-items'], perm: 'catalogue.pricelists' },
+          { title: 'Configuration', path: '/admin/catalogue-settings', perm: 'catalogue.pricelists' },
         ],
       },
       {
-        id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases', roles: FINANCE_READ,
+        id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases', perm: 'books.view',
         keywords: 'buy stock supplier vendor creditor receive batch expiry expired opening stock write off recall quarantine transfer branch count journal job work in progress wip', also: ['/admin/vendors', '/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/journal', '/admin/stock/reports', '/admin/stock/jobs'],
         tabs: [
           { title: 'Purchases', path: '/admin/purchases', exact: true },
-          { title: 'Vendors', path: '/admin/vendors' },
-          { title: 'Opening stock', path: '/admin/stock/opening' },
-          { title: 'Expiring stock', path: '/admin/stock/expiry' },
-          { title: 'Held stock', path: '/admin/stock/held' },
-          { title: 'Transfers', path: '/admin/stock/transfers' },
-          { title: 'Stock counts', path: '/admin/stock/counts' },
-          { title: 'Stock reports', path: '/admin/stock/reports' },
-          { title: 'Stock journal', path: '/admin/stock/journal' },
-          { title: 'Jobs in progress', path: '/admin/stock/jobs' },
+          { title: 'Vendors', path: '/admin/vendors', perm: 'vendors.view' },
+          { title: 'Opening stock', path: '/admin/stock/opening', perm: 'books.view' },
+          { title: 'Expiring stock', path: '/admin/stock/expiry', perm: 'stock.view' },
+          { title: 'Held stock', path: '/admin/stock/held', perm: 'stock.view' },
+          { title: 'Transfers', path: '/admin/stock/transfers', perm: 'stock.view' },
+          { title: 'Stock counts', path: '/admin/stock/counts', perm: 'stock.view' },
+          { title: 'Stock reports', path: '/admin/stock/reports', perm: 'stock.view' },
+          { title: 'Stock journal', path: '/admin/stock/journal', perm: 'stock.view' },
+          { title: 'Jobs in progress', path: '/admin/stock/jobs', perm: 'stock.view' },
         ],
       },
       {
@@ -131,7 +128,7 @@ export const ADMIN_NAV = [
           { title: 'Referral codes', path: '/admin/referrals' },
         ],
       },
-      { id: 'reviews', title: 'Reviews & comments', icon: Star, color: '#f59e0b', path: '/admin/reviews', module: MODULES.EXTRAS, roles: ['admin', 'super_admin', 'manager', 'sales_rep', 'finance'], keywords: 'ratings feedback reviews comments approve moderate held' },
+      { id: 'reviews', title: 'Reviews & comments', icon: Star, color: '#f59e0b', path: '/admin/reviews', module: MODULES.EXTRAS, perm: 'engagement.view', keywords: 'ratings feedback reviews comments approve moderate held' },
     ],
   },
 
@@ -140,7 +137,7 @@ export const ADMIN_NAV = [
     label: 'Tax & Finance',
     items: [
       {
-        id: 'books', title: 'Books', icon: BookOpen, color: '#6366f1', path: '/admin/books', also: ['/admin/books/vouchers'], roles: FINANCE_READ,
+        id: 'books', title: 'Books', icon: BookOpen, color: '#6366f1', path: '/admin/books', also: ['/admin/books/vouchers'], perm: 'books.view',
         keywords: 'vouchers ledgers accounts invoice sales purchase journal receipt payment day book trial balance profit loss mail email whatsapp send documents',
         tabs: [
           { title: 'Overview', path: '/admin/books', exact: true },
@@ -151,9 +148,9 @@ export const ADMIN_NAV = [
           { title: 'Configuration', path: '/admin/books?tab=settings' },
         ],
       },
-      { id: 'accounts', title: 'Chart of accounts', icon: ListTree, color: '#7c3aed', path: '/admin/books?tab=accounts', roles: FINANCE_READ, keywords: 'ledgers groups accounts chart' },
+      { id: 'accounts', title: 'Chart of accounts', icon: ListTree, color: '#7c3aed', path: '/admin/books?tab=accounts', perm: 'books.view', keywords: 'ledgers groups accounts chart' },
       {
-        id: 'cash-bank', title: 'Cash & bank', icon: Banknote, color: '#0d9488', path: '/admin/books/cash', roles: FINANCE_READ, keywords: 'till cash count cheque deposit bounce bank driver cash on delivery',
+        id: 'cash-bank', title: 'Cash & bank', icon: Banknote, color: '#0d9488', path: '/admin/books/cash', perm: 'books.view', keywords: 'till cash count cheque deposit bounce bank driver cash on delivery',
         tabs: [
           { title: 'Cash', path: '/admin/books/cash' },
           { title: 'Cheques', path: '/admin/books/cheques' },
@@ -162,10 +159,10 @@ export const ADMIN_NAV = [
       },
       { id: 'petty-cash', title: 'Petty cash', icon: Banknote, color: '#0d9488', path: '/admin/petty-cash', keywords: 'petty cash float custodian receipts' },
       { id: 'memoranda', title: 'Memoranda', icon: NotebookPen, color: '#0ea5e9', path: '/admin/books/memoranda', keywords: 'memorandum memo notes expected agreed journal' },
-      { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', roles: FINANCE_READ, keywords: 'vat kra tax rates' },
-      { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', roles: FINANCE_READ, keywords: 'wht certificates' },
+      { id: 'tax', title: 'Tax & Compliance', icon: Landmark, color: 'var(--color-primary-600)', path: '/admin/tax', perm: 'tax.view', keywords: 'vat kra tax rates' },
+      { id: 'withholding', title: 'Withholding & Compliance', icon: Receipt, color: '#0d9488', path: '/admin/withholding', perm: 'tax.view', keywords: 'wht certificates' },
       { id: 'verification', title: 'Verification', icon: ClipboardList, color: '#0ea5e9', path: '/admin/verification', keywords: 'verify vouchers check audit register observation query' },
-      { id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/books?tab=reports', roles: FINANCE_READ, keywords: 'day book trial balance profit loss balance sheet ageing receivables payables tax' },
+      { id: 'reports', title: 'Reports', icon: BarChart2, color: '#22c55e', path: '/admin/books?tab=reports', perm: 'books.view', keywords: 'day book trial balance profit loss balance sheet ageing receivables payables tax' },
     ],
   },
 
@@ -185,9 +182,9 @@ export const ADMIN_NAV = [
         id: 'calendar', title: 'Calendar', icon: CalendarCheck, color: '#10b981', path: '/admin/calendar', also: ['/admin/bookings'], keywords: 'schedule bookings staff availability google ics appointments',
         tabs: [
           { title: 'My calendar', path: '/admin/calendar', exact: true },
-          { title: 'Team calendar', path: '/admin/calendar/team', roles: ['admin', 'super_admin', 'manager'] },
+          { title: 'Team calendar', path: '/admin/calendar/team', perm: 'calendar.team' },
           { title: 'Bookings', path: '/admin/bookings' },
-          { title: 'Staff & resources', path: '/admin/resources', roles: ['admin', 'super_admin', 'manager'] },
+          { title: 'Staff & resources', path: '/admin/resources', perm: 'calendar.team' },
         ],
       },
       { id: 'assets', title: 'Assets', icon: Boxes, color: '#c2410c', path: '/admin/assets', also: ['/admin/inventory'], keywords: 'furniture equipment laptops issued loaned repairs depreciation register' },
@@ -212,7 +209,7 @@ export const ADMIN_NAV = [
     module: MODULES.MENUS,
     items: [
       {
-        id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', keywords: 'recipe ingredients manufacture production made to order dish',
+        id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', perm: 'menus.view', keywords: 'recipe ingredients manufacture production made to order dish',
         tabs: [{ title: 'Recipes & production', path: '/admin/menus/recipes' }],
       },
     ],
@@ -256,12 +253,12 @@ export const ADMIN_NAV = [
     id: 'campaigns',
     label: 'Campaigns',
     module: MODULES.CAMPAIGNS,
-    roles: CAMPAIGN_ROLES,
+    perm: 'campaigns.build',
     items: [
-      { id: 'campaigns', title: 'Campaigns', icon: Megaphone, color: '#d946ef', path: '/admin/campaigns', roles: CAMPAIGN_ROLES, keywords: 'launch drop collection teaser brand story promotion' },
-      { id: 'pins', title: 'Pins', icon: Pin, color: '#f43f5e', path: '/admin/pins', roles: CAMPAIGN_ROLES, keywords: 'pinterest images videos moodboard boards library' },
-      { id: 'boards', title: 'Boards', icon: LayoutGrid, color: '#8b5cf6', path: '/admin/boards', roles: CAMPAIGN_ROLES, keywords: 'pinterest collections moodboard approve pins' },
-      { id: 'moodboards', title: 'Moodboards', icon: Palette, color: '#ec4899', path: '/admin/moodboards', roles: CAMPAIGN_ROLES, keywords: 'collage template layout inspiration look' },
+      { id: 'campaigns', title: 'Campaigns', icon: Megaphone, color: '#d946ef', path: '/admin/campaigns', perm: 'campaigns.build', keywords: 'launch drop collection teaser brand story promotion' },
+      { id: 'pins', title: 'Pins', icon: Pin, color: '#f43f5e', path: '/admin/pins', perm: 'campaigns.build', keywords: 'pinterest images videos moodboard boards library' },
+      { id: 'boards', title: 'Boards', icon: LayoutGrid, color: '#8b5cf6', path: '/admin/boards', perm: 'campaigns.build', keywords: 'pinterest collections moodboard approve pins' },
+      { id: 'moodboards', title: 'Moodboards', icon: Palette, color: '#ec4899', path: '/admin/moodboards', perm: 'campaigns.build', keywords: 'collage template layout inspiration look' },
     ],
   },
 
@@ -284,7 +281,7 @@ export const ADMIN_NAV = [
       },
       { id: 'my-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/admin/my-payslips', keywords: 'salary pay slip wages my pay' },
       {
-        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', roles: PAYROLL_ROLES, keywords: 'salary payslip paye nssf deductions wages',
+        id: 'payroll', title: 'Payroll', icon: Banknote, color: '#16a34a', path: '/admin/payroll', perm: 'payroll.run', keywords: 'salary payslip paye nssf deductions wages',
         tabs: [
           { title: 'Runs', path: '/admin/payroll', exact: true },
           { title: 'Gratuity', path: '/admin/payroll/gratuity' },
@@ -298,13 +295,13 @@ export const ADMIN_NAV = [
     id: 'driver',
     label: 'My deliveries',
     module: MODULES.EXTRAS,
-    roles: [DRIVER_ROLE],
+    account: 'driver',
     items: [
-      { id: 'driver-profile', title: 'My profile', icon: UserCircle, color: '#8b5cf6', path: '/driver/profile', roles: [DRIVER_ROLE] },
-      { id: 'driver-manifests', title: 'My manifests', icon: FileText, color: '#3b82f6', path: '/driver/manifests', roles: [DRIVER_ROLE] },
-      { id: 'driver-ratings', title: 'My ratings', icon: Star, color: '#ec4899', path: '/driver/ratings', roles: [DRIVER_ROLE] },
-      { id: 'driver-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/driver/payslips', roles: [DRIVER_ROLE], keywords: 'salary pay slip wages my pay' },
-      { id: 'driver-incidents', title: 'My incidents', icon: AlertTriangle, color: '#f59e0b', path: '/driver/incidents', roles: [DRIVER_ROLE] },
+      { id: 'driver-profile', title: 'My profile', icon: UserCircle, color: '#8b5cf6', path: '/driver/profile', account: 'driver' },
+      { id: 'driver-manifests', title: 'My manifests', icon: FileText, color: '#3b82f6', path: '/driver/manifests', account: 'driver' },
+      { id: 'driver-ratings', title: 'My ratings', icon: Star, color: '#ec4899', path: '/driver/ratings', account: 'driver' },
+      { id: 'driver-payslips', title: 'My payslips', icon: Banknote, color: '#16a34a', path: '/driver/payslips', account: 'driver', keywords: 'salary pay slip wages my pay' },
+      { id: 'driver-incidents', title: 'My incidents', icon: AlertTriangle, color: '#f59e0b', path: '/driver/incidents', account: 'driver' },
     ],
   },
 
@@ -321,7 +318,7 @@ export const ADMIN_NAV = [
           { group: 'System', title: 'Units', path: '/admin/settings/units', description: 'Units of measure' },
           { group: 'System', title: 'Customer tiers', path: '/admin/settings/customer-tiers', description: 'Tiers and their discounts' },
           { group: 'System', title: 'Shipping', path: '/admin/settings/shipping', description: 'Zones and delivery fees' },
-          { group: 'System', title: 'Stock & expiry', path: '/admin/settings/stock', roles: ['admin', 'super_admin'], description: 'Expired goods, warnings and which batch is used first' },
+          { group: 'System', title: 'Stock & expiry', path: '/admin/settings/stock', perm: 'stock.settings', description: 'Expired goods, warnings and which batch is used first' },
           { group: 'Content', title: 'About', path: '/admin/settings/content/about' },
           { group: 'Content', title: 'Contact', path: '/admin/settings/content/contact' },
           { group: 'Content', title: 'Manual', path: '/admin/settings/content/manual' },
@@ -329,16 +326,16 @@ export const ADMIN_NAV = [
           { group: 'Content', title: 'Footer', path: '/admin/settings/content/footer' },
           { group: 'Content', title: 'Policies', path: '/admin/settings/policy', description: 'Terms, privacy, returns' },
           { group: 'Access', title: 'Users & roles', path: '/admin/users', description: 'Staff accounts and their roles' },
-          { group: 'Access', title: 'Roles & access', path: '/admin/access', perm: 'access.view', roles: ['admin', 'super_admin'], description: 'Clearance levels, roles, permissions and branch access' },
+          { group: 'Access', title: 'Roles & access', path: '/admin/access', perm: 'access.view', description: 'Clearance levels, roles, permissions and branch access' },
           { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, description: 'Ranking, pins and catalogue boosts' },
-          { group: 'Platform', title: 'Engagement', path: '/admin/settings/engagement', module: MODULES.EXTRAS, roles: ['admin', 'super_admin'], description: 'Who can review, comment, like, mark helpful and report' },
+          { group: 'Platform', title: 'Engagement', path: '/admin/settings/engagement', module: MODULES.EXTRAS, perm: 'engagement.settings', description: 'Who can review, comment, like, mark helpful and report' },
           { group: 'Platform', title: 'Vault', path: '/admin/vault', description: 'Stored documents and secrets' },
           { group: 'Platform', title: 'Activity logs', path: '/admin/logs', description: 'Who changed what, and exports' },
           { group: 'Platform', title: 'Appearance', path: '/admin/appearance', description: 'Colours, fonts, icons and layouts' },
-          { group: 'Platform', title: 'Branches', path: '/admin/settings/locations', roles: ['admin', 'super_admin'], description: 'Locations, per-branch currency and tax, staff clearance' },
-          { group: 'Platform', title: 'Navigation', path: '/admin/settings/navigation', roles: ['admin', 'super_admin'], description: 'Storefront menu and links' },
-          { group: 'Platform', title: 'Modules', path: '/admin/settings/modules', roles: ['super_admin'], description: 'Module Center and license keys' },
-          { group: 'Platform', title: 'Backups', path: '/admin/settings/backups', roles: ['admin', 'super_admin'], description: 'Scheduled encrypted data backups and restore' },
+          { group: 'Platform', title: 'Branches', path: '/admin/settings/locations', perm: 'locations.manage', description: 'Locations, per-branch currency and tax, staff clearance' },
+          { group: 'Platform', title: 'Navigation', path: '/admin/settings/navigation', perm: 'system.navigation', description: 'Storefront menu and links' },
+          { group: 'Platform', title: 'Modules', path: '/admin/settings/modules', perm: 'system.modules', description: 'Module Center and license keys' },
+          { group: 'Platform', title: 'Backups', path: '/admin/settings/backups', perm: 'system.backups', description: 'Scheduled encrypted data backups and restore' },
         ],
       },
     ],
@@ -347,13 +344,13 @@ export const ADMIN_NAV = [
   {
     id: 'developer',
     label: 'Developer',
-    ownerOnly: true,
+    perm: 'system.devtools',
     items: [
-      { id: 'bug-reports', title: 'Bug reports', icon: Bug, color: '#c2410c', path: '/admin/bug-reports', ownerOnly: true },
-      { id: 'dev-notes', title: 'Dev notes', icon: FolderCode, color: '#3b82f6', path: '/admin/dev-notes', ownerOnly: true },
-      { id: 'dev-keys', title: 'Dev keys', icon: FolderCog, color: 'var(--color-primary-600)', path: '/admin/dev-keys', ownerOnly: true },
+      { id: 'bug-reports', title: 'Bug reports', icon: Bug, color: '#c2410c', path: '/admin/bug-reports' },
+      { id: 'dev-notes', title: 'Dev notes', icon: FolderCode, color: '#3b82f6', path: '/admin/dev-notes' },
+      { id: 'dev-keys', title: 'Dev keys', icon: FolderCog, color: 'var(--color-primary-600)', path: '/admin/dev-keys' },
       {
-        id: 'flowcharts', title: 'Flowcharts', icon: GitBranch, color: '#ec4899', path: '/admin/flowchart/orders', also: ['/admin/flowchart'], ownerOnly: true,
+        id: 'flowcharts', title: 'Flowcharts', icon: GitBranch, color: '#ec4899', path: '/admin/flowchart/orders', also: ['/admin/flowchart'],
         tabs: [
           { title: 'Orders', path: '/admin/flowchart/orders' },
           { title: 'Customers', path: '/admin/flowchart/customers' },
@@ -366,32 +363,30 @@ export const ADMIN_NAV = [
 
 // ─── Access ──────────────────────────────────────────────────────────────────
 
-/** The platform owner. Until owner accounts exist, that's super_admin. */
-export const isOwner = (user) => effectiveRoles(user).includes('super_admin');
-
-function allowed(entry, user) {
-  if (entry.ownerOnly && !isOwner(user)) return false;
+/**
+ * May this person see this entry? Entries name a permission (`perm`) or a kind of account (`account`); with neither, groups and tabs show for
+ * everyone and items for everyone who may open the admin area (drivers have their own screens).
+ */
+function allowed(entry, user, fallback = isStaff(user)) {
   if (entry.module && !isModuleActive(entry.module)) return false;
-  if (entry.perm && !hasPermission(user, entry.perm, Array.isArray(entry.roles) ? entry.roles : [])) return false;   // `perm` is checked against the engine first
-  if (entry.roles === 'all') return true;
-  if (entry.perm) return true;
-  if (Array.isArray(entry.roles)) return hasAnyRole(user, entry.roles);
-  return isStaff(user); // default: everyone who may open the admin area (drivers have their own screens)
+  if (entry.account) return accountType(user) === entry.account;
+  if (entry.perm) return [].concat(entry.perm).some((p) => hasPermission(user, p));   // a list means any one of them
+  return fallback;
 }
 
 /**
- * The navigation this user may see: groups, items and tabs filtered by role,
- * module and owner flag. Empty groups are dropped. `soon` tabs are kept (the
+ * The navigation this user may see: groups, items and tabs filtered by permission,
+ * module and account kind. Empty groups are dropped. `soon` tabs are kept (the
  * Settings hub shows them) — use `liveTabs()` for anything clickable.
  */
 export function visibleNav(user) {
   return ADMIN_NAV
-    .filter((g) => allowed({ ...g, roles: g.roles ?? 'all' }, user))
+    .filter((g) => allowed(g, user, true))
     .map((g) => ({
       ...g,
       items: g.items
         .filter((i) => allowed(i, user))
-        .map((i) => (i.tabs ? { ...i, tabs: i.tabs.filter((t) => allowed({ ...t, roles: t.roles ?? 'all' }, user)) } : i)),
+        .map((i) => (i.tabs ? { ...i, tabs: i.tabs.filter((t) => allowed(t, user, true)) } : i)),
     }))
     .filter((g) => g.items.length > 0);
 }

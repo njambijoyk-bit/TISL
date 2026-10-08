@@ -10,7 +10,7 @@ import useAuthStore    from '../../../_shared/store/authStore';
 import aiAnalyticsAPI  from '../../../_shared/api/aiAnalytics';
 import { useAiPageAudio } from '../../../extras/pages/admin/ai-analytics/useAiPageAudio';
 import { C, MuteButton }  from '../../../extras/pages/admin/ai-analytics/AiPageShared';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { isDriver, isStaff } from '../../../_shared/lib/roles';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PD = 'var(--color-primary-600)';
@@ -18,7 +18,6 @@ const P  = C.purple;
 const PL = 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)';
 const PB = 'color-mix(in srgb, var(--color-primary-500) 20%, transparent)';
 
-const ADMIN_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep', 'driver'];
 
 const OUTPUT_TYPES = [
   { value: 'summary',        label: 'Summary',   desc: 'High-level overview' },
@@ -149,7 +148,7 @@ function OutputCard({ output, onDismiss, audio }) {
 // ── Main panel ────────────────────────────────────────────────────────────────
 export default function AiPanel() {
   const { user } = useAuthStore();
-  const isAdmin  = hasAnyRole(user, ADMIN_ROLES);
+  const isAdmin  = isStaff(user) || isDriver(user);
   const audio    = useAiPageAudio();
   const [maximised, setMaximised] = useState(false);
 

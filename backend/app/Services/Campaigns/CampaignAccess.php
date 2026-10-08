@@ -11,9 +11,6 @@ use App\Models\User;
  */
 class CampaignAccess
 {
-    public const PUBLISHERS = ['admin', 'super_admin', 'manager'];
-    public const BUILDERS = ['admin', 'super_admin', 'manager', 'sales_rep', 'finance'];
-
     public static function canBuild(?User $u): bool
     {
         return $u && $u->hasPermission('campaigns.build');

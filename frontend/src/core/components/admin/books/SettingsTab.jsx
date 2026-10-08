@@ -228,7 +228,7 @@ function MethodsSection() {
 
 // ── period control ──────────────────────────────────────────────────────
 
-function PeriodSection({ isSuper }) {
+function PeriodSection({ canSetup }) {
   const [data, setData] = useState(null);
   const [types, setTypes] = useState([]);
   const [win, setWin] = useState({ edit_window_days: '', locked_before: '' });
@@ -267,12 +267,12 @@ function PeriodSection({ isSuper }) {
   const closeYear = async (y) => {
     try { await booksAPI.closeYear(y.id, !y.is_closed); load(); } catch (e) { toast.error(errMsg(e, 'Could not change the year')); }
   };
-  const ro = !isSuper;
+  const ro = !canSetup;
   const small = { padding: '6px 8px', borderRadius: 6, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem', width: 110 };
 
   return (
     <>
-      {ro && <p style={{ fontSize: '0.8rem', color: colors.warningText, background: colors.warningBg, padding: '8px 12px', borderRadius: 8 }}>Only a super admin can change period control. You can see the current rules.</p>}
+      {ro && <p style={{ fontSize: '0.8rem', color: colors.warningText, background: colors.warningBg, padding: '8px 12px', borderRadius: 8 }}>You do not have the permission to change period control, so you can only see the current rules.</p>}
       <Section title="How far back can vouchers change?" hint="Company-wide fallback: vouchers older than this many days can't be edited or cancelled, and nothing before the lock date can change at all. Roles below can override the window.">
         <FormGrid min={180}>
           <Field label="Edit window (days)" hint="Blank = no limit"><NumberInput disabled={ro} min="0" value={win.edit_window_days} onChange={(e) => setWin((w) => ({ ...w, edit_window_days: e.target.value }))} /></Field>
@@ -282,7 +282,7 @@ function PeriodSection({ isSuper }) {
       </Section>
 
       <Section title="Limits by role" hint="Set how many days back each role may edit, and whether it may cancel. Leave days blank for unlimited. A row can be narrowed to one voucher type."
-        action={!ro && <button type="button" style={{ ...btnGhost, padding: '5px 10px' }} onClick={() => setLimits((l) => [...l, { role: 'admin', voucher_type_id: '', max_days_back: 30, can_edit: true, can_cancel: true }])}><Plus size={12} /> Add row</button>}>
+        action={!ro && <button type="button" style={{ ...btnGhost, padding: '5px 10px' }} onClick={() => setLimits((l) => [...l, { role: data.roles[0] ?? '', voucher_type_id: '', max_days_back: 30, can_edit: true, can_cancel: true }])}><Plus size={12} /> Add row</button>}>
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
             <thead><tr style={{ color: colors.textFaint, fontSize: '0.65rem', textAlign: 'left' }}><th style={{ padding: 6 }}>Role</th><th>Voucher type</th><th>Days back</th><th>Can edit</th><th>Can cancel</th><th /></tr></thead>
@@ -310,7 +310,7 @@ function PeriodSection({ isSuper }) {
           <div key={y.id} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: '8px 0', borderTop: `1px solid ${colors.tint(0.06)}`, fontSize: '0.85rem' }}>
             <strong style={{ flex: 1 }}>{y.name} <span style={{ fontWeight: 400, color: colors.textMuted }}>· {y.start_date} → {y.end_date}</span></strong>
             <span style={{ color: y.is_closed ? colors.dangerText : colors.successText, fontSize: '0.75rem', fontWeight: 700 }}>{y.is_closed ? 'Closed' : 'Open'}</span>
-            {isSuper && <button type="button" style={{ ...btnGhost, padding: '4px 10px' }} onClick={() => closeYear(y)}>{y.is_closed ? 'Reopen' : 'Close year'}</button>}
+            {canSetup && <button type="button" style={{ ...btnGhost, padding: '4px 10px' }} onClick={() => closeYear(y)}>{y.is_closed ? 'Reopen' : 'Close year'}</button>}
           </div>
         ))}
         {!ro && (
@@ -362,7 +362,7 @@ const DEFAULTS = [
   ['opening_balance_ledger_id', 'Opening stock balance', 'What opening stock is balanced against when you enter the stock you already hold.'],
 ];
 
-function DefaultsSection({ isSuper }) {
+function DefaultsSection({ canSetup }) {
   const [s, setS] = useState(null);
   const [ledgers, setLedgers] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -385,7 +385,7 @@ function DefaultsSection({ isSuper }) {
       <FormGrid min={260}>
         {DEFAULTS.map(([k, label, hint]) => (
           <Field key={k} label={label} hint={hint}>
-            <SelectInput disabled={!isSuper} value={s[k] ?? ''} onChange={(e) => setS((x) => ({ ...x, [k]: e.target.value }))}>
+            <SelectInput disabled={!canSetup} value={s[k] ?? ''} onChange={(e) => setS((x) => ({ ...x, [k]: e.target.value }))}>
               <option value="">— none —</option>
               {ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
             </SelectInput>
@@ -399,7 +399,7 @@ function DefaultsSection({ isSuper }) {
           <FormGrid min={260}>
             {[['sales_rounding', 'Sales invoices'], ['cash_sale_rounding', 'Cash sales']].map(([k, label]) => (
               <Field key={k} label={label}>
-                <SelectInput disabled={!isSuper} value={s[k] ?? 'none'} onChange={(e) => setS((x) => ({ ...x, [k]: e.target.value }))}>
+                <SelectInput disabled={!canSetup} value={s[k] ?? 'none'} onChange={(e) => setS((x) => ({ ...x, [k]: e.target.value }))}>
                   <option value="none">Do not round</option><option value="whole">Nearest whole number</option><option value="half">Nearest 0.50</option>
                 </SelectInput>
               </Field>
@@ -407,8 +407,8 @@ function DefaultsSection({ isSuper }) {
           </FormGrid>
         </>
       )}
-      {isSuper ? <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save</button></div>
-        : <p style={{ fontSize: '0.75rem', color: colors.textFaint }}>Only a super admin can change these.</p>}
+      {canSetup ? <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save</button></div>
+        : <p style={{ fontSize: '0.75rem', color: colors.textFaint }}>You do not have the permission to change these.</p>}
     </Section>
   );
 }
@@ -443,7 +443,7 @@ function ContactList({ title, hint, rows, onChange, placeholder, type, disabled,
   );
 }
 
-function CompanySection({ isSuper }) {
+function CompanySection({ canSetup }) {
   const [f, setF] = useState(null);
   const [busy, setBusy] = useState(false);
   const [errs, setErrs] = useState({});
@@ -483,7 +483,7 @@ function CompanySection({ isSuper }) {
         <div>
           <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>Company logo</div>
           <p style={{ margin: '2px 0 8px', fontSize: '0.74rem', color: colors.textMuted }}>Printed top left on statements, letters and documents. PNG, JPG, WebP or GIF, up to 2 MB. A wide logo on a white or transparent background works best.</p>
-          {isSuper && (
+          {canSetup && (
             <div style={{ display: 'flex', gap: 8 }}>
               <label style={{ ...btnPrimary, cursor: busy ? 'not-allowed' : 'pointer', opacity: busy ? 0.6 : 1 }}>
                 {f.logo_url ? 'Replace logo' : 'Upload logo'}
@@ -495,31 +495,31 @@ function CompanySection({ isSuper }) {
         </div>
       </div>
       <FormGrid min={240}>
-        {rows.map(([k, l]) => <Field key={k} label={l} error={errs[k]}><TextInput disabled={!isSuper} value={f[k] ?? ''} onChange={set(k)} /></Field>)}
+        {rows.map(([k, l]) => <Field key={k} label={l} error={errs[k]}><TextInput disabled={!canSetup} value={f[k] ?? ''} onChange={set(k)} /></Field>)}
       </FormGrid>
       <div style={{ marginTop: 16 }}>
         <div style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 6 }}>Printed on customer invoices and receipts</div>
         <FormGrid min={320}>
-          <Field label="Description (the line under the company name)" error={errs.description}><TextInput disabled={!isSuper} value={f.description ?? ''} onChange={set('description')} /></Field>
-          <Field label="Terms of payment (top right of an invoice)" error={errs.payment_terms}><TextInput disabled={!isSuper} value={f.payment_terms ?? ''} onChange={set('payment_terms')} /></Field>
-          <Field label="Terms of delivery" error={errs.delivery_terms}><TextInput disabled={!isSuper} value={f.delivery_terms ?? ''} onChange={set('delivery_terms')} /></Field>
-          <Field label="Mode of payment (M-Pesa till, bank details…)" error={errs.payment_mode}><textarea rows={3} disabled={!isSuper} value={f.payment_mode ?? ''} onChange={set('payment_mode')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
-          <Field label="Declaration" error={errs.declaration}><textarea rows={3} disabled={!isSuper} value={f.declaration ?? ''} onChange={set('declaration')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
+          <Field label="Description (the line under the company name)" error={errs.description}><TextInput disabled={!canSetup} value={f.description ?? ''} onChange={set('description')} /></Field>
+          <Field label="Terms of payment (top right of an invoice)" error={errs.payment_terms}><TextInput disabled={!canSetup} value={f.payment_terms ?? ''} onChange={set('payment_terms')} /></Field>
+          <Field label="Terms of delivery" error={errs.delivery_terms}><TextInput disabled={!canSetup} value={f.delivery_terms ?? ''} onChange={set('delivery_terms')} /></Field>
+          <Field label="Mode of payment (M-Pesa till, bank details…)" error={errs.payment_mode}><textarea rows={3} disabled={!canSetup} value={f.payment_mode ?? ''} onChange={set('payment_mode')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
+          <Field label="Declaration" error={errs.declaration}><textarea rows={3} disabled={!canSetup} value={f.declaration ?? ''} onChange={set('declaration')} style={{ width: '100%', boxSizing: 'border-box', font: 'inherit', padding: 8, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'inherit' }} /></Field>
         </FormGrid>
       </div>
       <div style={{ display: 'grid', gap: 16, marginTop: 16 }}>
-        <ContactList title="Phone numbers" type="tel" placeholder="+254 7…" disabled={!isSuper} rows={f.phones} onChange={(phones) => setF((x) => ({ ...x, phones }))}
+        <ContactList title="Phone numbers" type="tel" placeholder="+254 7…" disabled={!canSetup} rows={f.phones} onChange={(phones) => setF((x) => ({ ...x, phones }))}
           hint="Printed on invoices (default first) and quoted in the WhatsApp message to customers. The default is the main number." errors={errs.phones} />
-        <ContactList title="Email addresses" type="email" placeholder="sales@yourcompany.com" disabled={!isSuper} rows={f.emails} onChange={(emails) => setF((x) => ({ ...x, emails }))}
+        <ContactList title="Email addresses" type="email" placeholder="sales@yourcompany.com" disabled={!canSetup} rows={f.emails} onChange={(emails) => setF((x) => ({ ...x, emails }))}
           hint="The default is the address the system sends mail from; customers' replies come back to it. The others are printed on invoices." errors={errs['emails.0.value'] || errs.emails} />
       </div>
-      {isSuper ? <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save</button></div>
-        : <p style={{ fontSize: '0.75rem', color: colors.textFaint }}>Only a super admin can change these.</p>}
+      {canSetup ? <div style={{ marginTop: 12 }}><button type="button" style={btnPrimary} disabled={busy} onClick={save}>Save</button></div>
+        : <p style={{ fontSize: '0.75rem', color: colors.textFaint }}>You do not have the permission to change these.</p>}
     </Section>
   );
 }
 
-export default function SettingsTab({ isSuper }) {
+export default function SettingsTab({ canSetup }) {
   const [params] = useSearchParams();
   const [sub, setSub] = useState(SUBS.some((x) => x.id === params.get('sub')) ? params.get('sub') : 'numbering');
   const [branches, setBranches] = useState([]);
@@ -536,9 +536,9 @@ export default function SettingsTab({ isSuper }) {
       </div>
       {sub === 'numbering' && <NumberingSection branches={branches} />}
       {sub === 'methods' && <MethodsSection />}
-      {sub === 'period' && <PeriodSection isSuper={isSuper} />}
-      {sub === 'defaults' && <DefaultsSection isSuper={isSuper} />}
-      {sub === 'company' && <CompanySection isSuper={isSuper} />}
+      {sub === 'period' && <PeriodSection canSetup={canSetup} />}
+      {sub === 'defaults' && <DefaultsSection canSetup={canSetup} />}
+      {sub === 'company' && <CompanySection canSetup={canSetup} />}
     </div>
   );
 }

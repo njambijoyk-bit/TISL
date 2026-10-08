@@ -37,8 +37,6 @@ class StockSettingsController extends Controller
                 'id' => $o->id, 'scope' => $o->scope, 'scope_id' => $o->scope_id,
                 'name' => $names[$o->scope][$o->scope_id] ?? '(deleted)', 'settings' => $o->settings,
             ])->values(),
-            'roles' => DB::table('users')->whereNotNull('role')->where('role', '!=', 'customer')->distinct()->pluck('role')
-                ->merge(['manager', 'admin', 'super_admin', 'finance'])->merge(app(\App\Services\Access\Authorizer::class)->staffRoleKeys())->unique()->values(),
         ]);
     }
 
@@ -48,20 +46,16 @@ class StockSettingsController extends Controller
             'expired_on_storefront' => ['required', Rule::in(['hide', 'unavailable'])],
             'show_expiry_badge'     => 'required|boolean',
             'sell_expired'          => ['required', Rule::in(['never', 'override', 'allowed'])],
-            'override_roles'        => 'nullable|array', 'override_roles.*' => 'string|max:40',
             'min_days_online'       => 'required|integer|min:0|max:3650',
             'min_days_till'         => 'required|integer|min:0|max:3650',
             'expiry_action'         => ['required', Rule::in(['list', 'write_off'])],
             'write_off_after_days'  => 'required|integer|min:0|max:3650',
             'warning_days'          => 'nullable|array|max:6', 'warning_days.*' => 'integer|min:1|max:3650',
-            'notify_roles'          => 'nullable|array', 'notify_roles.*' => 'string|max:40',
             'pick_order'            => ['required', Rule::in(['fefo', 'fifo'])],
             'costing_method'        => ['required', Rule::in(['lot', 'average'])],
             'returns_to_quarantine' => 'required|boolean',
         ]);
         $d['warning_days'] = collect($d['warning_days'] ?? [])->map(fn ($x) => (int) $x)->unique()->sortDesc()->values()->all();
-        $d['override_roles'] = array_values($d['override_roles'] ?? []);
-        $d['notify_roles'] = array_values($d['notify_roles'] ?? []);
 
         StockSetting::current()->fill($d + ['updated_by' => $request->user()->id, 'updated_at' => now()])->save();
         $this->policy->flush();

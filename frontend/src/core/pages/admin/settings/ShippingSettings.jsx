@@ -13,6 +13,7 @@ import taxAPI from '../../../../_shared/api/tax';
 import useCurrencyStore from '../../../../_shared/store/currencyStore';
 import { useBaseCode } from '../../../../_shared/lib/baseCurrency';
 
+import { hasPermission } from '../../../../_shared/lib/roles';
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const inputStyle = {
@@ -417,7 +418,7 @@ export default function ShippingSettings() {
 
   // Detect role from auth (adjust if your auth store exposes role differently)
   const { user: authUser } = useAuthStore();
-  const isSuperAdmin = authUser?.role === 'super_admin';
+  const isSuperAdmin = hasPermission(authUser, 'settings.delete');   // may delete shipping options
 
   useEffect(() => { loadData(); loadActivity(); }, []);
 

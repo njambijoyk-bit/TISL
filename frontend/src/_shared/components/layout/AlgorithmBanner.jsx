@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/index';
 import { useCustomerScore } from '../../hooks/useCustomerScore';
 import { useFloatingWidgetAudio } from '../../hooks/useFloatingWidgetAudio';
+import { isDriver, isStaff } from '../../lib/roles';
 import {
   Trophy, Star, Zap, Moon, Sparkles, HandMetal,
   Gift, Rocket, RefreshCw, Heart, Award,
@@ -127,8 +128,7 @@ export default function AlgorithmBanner() {
     try { localStorage.setItem(STORAGE_KEY, 'false'); } catch {}
   };
 
-  const role = user?.role;
-  const isCustomerFacing = isAuthenticated && !['admin', 'super_admin', 'staff', 'finance', 'logistics', 'sales_rep', 'driver'].includes(role);
+  const isCustomerFacing = isAuthenticated && !isStaff(user) && !isDriver(user);
   if (!visible || !isCustomerFacing || profile.segment === 'guest') return null;
 
   const meta    = SEGMENT_META[profile.segment] ?? SEGMENT_META.loyal;

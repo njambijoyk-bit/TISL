@@ -10,7 +10,7 @@ import ProjectFilters from '../../components/shared/ProjectFilters';
 import ProjectTable from '../../components/shared/ProjectTable';
 import useProjectStore from '../../../_shared/store/projectStore';
 import { useAuthStore } from '../../../_shared/store/index';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 const Projects = () => {
   const navigate  = useNavigate();
@@ -30,7 +30,7 @@ const Projects = () => {
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [showTrash, setShowTrash]         = useState(false);
 
-  const canDelete = hasAnyRole(user, ['admin', 'super_admin']);
+  const canDelete = hasPermission(user, 'projects.delete');
 
   useEffect(() => {
     fetchProjects();
@@ -122,7 +122,7 @@ const Projects = () => {
               <span className="font-medium text-gray-900 dark:text-white">
                 {confirmDelete.title}
               </span>
-              ? This action can be undone by a super admin.
+              ? This can be undone by someone who may restore projects.
             </p>
             <div className="flex justify-end gap-3">
               <button

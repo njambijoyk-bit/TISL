@@ -380,7 +380,7 @@ class CampaignController extends Controller
      */
     public function purge(Request $request, int $id): JsonResponse
     {
-        abort_unless($request->user()?->holdsAny(['super_admin']), 403, 'Only a super admin can delete a campaign for good.');
+        abort_unless($request->user()?->hasPermission('campaigns.purge'), 403, 'You do not have permission to delete a campaign for good.');
         $c = Campaign::withTrashed()->findOrFail($id);
         $this->approval->clear($c);
         \Illuminate\Support\Facades\DB::transaction(function () use ($c) {

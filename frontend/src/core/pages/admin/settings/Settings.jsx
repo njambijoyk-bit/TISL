@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { visibleNav, isOwner } from '../../../../_shared/navigation/adminNav';
+import { visibleNav } from '../../../../_shared/navigation/adminNav';
+import { hasPermission } from '../../../../_shared/lib/roles';
 import routeMapHtml from './route-map.html?url';
 import toast from 'react-hot-toast';
 
@@ -758,7 +759,7 @@ function AlgorithmAppendix() {
         <span style={label}>AlgorithmBanner Visibility Rules</span>
         {p('The banner checks useAuthStore immediately on mount. It renders nothing (returns null) for:')}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-          {['admin', 'super_admin', 'staff', 'finance', 'vendor'].map(r => (
+          {['staff accounts', 'drivers', 'vendors'].map(r => (
             <span key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 700, background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }}>
               ✕ {r}
             </span>
@@ -767,15 +768,13 @@ function AlgorithmAppendix() {
             ✕ unauthenticated
           </span>
         </div>
-        {p('Only authenticated users whose role is not in the exclusion list — i.e. regular customers — see the banner. This is intentional: admins and vendors manage the system; they are not targets of personalisation nudges. Scoring and recommendations are customer-only features.')}
+        {p('Only signed-in customers see the banner (the access summary says what kind of account it is). This is intentional: admins and vendors manage the system; they are not targets of personalisation nudges. Scoring and recommendations are customer-only features.')}
         <div style={formulaBox}>
           {'// AlgorithmBanner.jsx — gate check'}<br />
-          {'const role = user?.role;'}<br />
-          {"const excluded = ['admin','super_admin','staff','finance','vendor'];"}<br />
-          {'const show = isAuthenticated && !excluded.includes(role);'}<br />
+          {'const show = isAuthenticated && !isStaff(user) && !isDriver(user);'}<br />
           {'if (!show) return null;'}
         </div>
-        {p('Admins can view and configure the algorithm via the Customer Scoring Algorithm page under /admin/algorithm. The Run Scoring Now button is additionally gated to super_admin only, matching the destructive-action convention used elsewhere in the admin panel.', { fontSize: '0.78rem', color: '#9ca3af' })}
+        {p('Admins can view and configure the algorithm via the Customer Scoring Algorithm page under /admin/algorithm. The Run Scoring Now button is additionally gated by the permission algorithm.run (the owner by default), matching the destructive-action convention used elsewhere in the admin panel.', { fontSize: '0.78rem', color: '#9ca3af' })}
       </div>
 
     </div>
@@ -1265,7 +1264,7 @@ export default function Settings() {
   const navigate = useNavigate();
   const user = useAuthStore((st) => st.user);
   const groups = hubGroups(user);
-  const owner = isOwner(user);
+  const owner = hasPermission(user, 'system.devtools');   // the owner's developer tools
 
   const leftGroups  = groups.filter((_, i) => i % 2 === 0);
   const rightGroups = groups.filter((_, i) => i % 2 !== 0);

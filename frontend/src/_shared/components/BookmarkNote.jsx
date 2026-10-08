@@ -12,6 +12,7 @@ import useNoteStore, { NOTE_MAX_LENGTH } from '../store/noteStore';
 import { useAuthStore } from '../store/index';
 import { useFloatingWidgetAudio } from '../hooks/useFloatingWidgetAudio';
 
+import { isCustomer as isCustomerAccount } from '../lib/roles';
 const STORAGE_KEY_COLLAPSED  = 'bookmark_note_collapsed';
 const STORAGE_KEY_PANEL_POS  = 'bookmark_note_panel_pos';
 const STORAGE_KEY_PILL_TOP   = 'bookmark_note_pill_top';
@@ -245,7 +246,7 @@ export default function BookmarkNote() {
   };
 
   // ── Guard ─────────────────────────────────────────────────────────────────
-  const isCustomer = isAuthenticated && user?.role === 'customer';
+  const isCustomer = isAuthenticated && isCustomerAccount(user);
   if (!visible || !isCustomer) return null;
 
   const charsLeft = NOTE_MAX_LENGTH - (note?.length ?? 0);

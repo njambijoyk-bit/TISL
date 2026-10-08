@@ -24,7 +24,7 @@ class CustomerDiscountPack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['super_admin', 'admin', 'manager', 'finance', 'sales_rep', 'logistics']; }
+    public function permission(): string { return 'insight.view'; }
 
     public function contexts(): array { return ['customer']; }
 
@@ -99,7 +99,7 @@ class CustomerDiscountPack implements InsightPack
         }
 
         // what they owe (not for sales reps)
-        if ($user->holdsAny(['super_admin', 'admin', 'manager', 'finance'])) {
+        if ($user->hasPermission('books.view')) {
             $ledger = \App\Models\Books\Ledger::where('customer_id', $c->id)->first();
             if ($ledger) {
                 $owed = app(\App\Services\Books\LedgerService::class)->balance($ledger->id);

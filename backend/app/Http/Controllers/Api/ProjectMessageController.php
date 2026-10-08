@@ -26,7 +26,7 @@ class ProjectMessageController extends Controller
         $this->authorize('view', $project);
 
         $query = ProjectMessage::where('project_id', $project->id)
-            ->with(['sender:id,name,email,role'])
+            ->with(['sender:id,name,email'])
             ->orderBy('created_at', 'asc');
 
         if (!$this->isStaff()) {
@@ -37,7 +37,7 @@ class ProjectMessageController extends Controller
             }
         }
 
-        return response()->json(['data' => $query->get()]);
+        return response()->json(['data' => $this->flagged($query->get())]);
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -75,7 +75,7 @@ class ProjectMessageController extends Controller
 
         return response()->json([
             'message' => 'Message sent successfully.',
-            'data'    => $message->load('sender:id,name,role'),
+            'data'    => $this->flagged($message->load('sender:id,name')),
         ], 201);
     }
 
@@ -111,7 +111,7 @@ class ProjectMessageController extends Controller
 
         return response()->json([
             'message' => 'Message sent successfully.',
-            'data'    => $message->load('sender:id,name,role'),
+            'data'    => $this->flagged($message->load('sender:id,name')),
         ], 201);
     }
 
@@ -139,10 +139,10 @@ class ProjectMessageController extends Controller
         $user = auth()->user();
 
         // Permission check
-        $isSuperAdmin = $user->holdsAny(['super_admin']);
+        $moderates = $user->hasPermission('projects.moderate');
         $isOwner      = $message->sender_user_id === $user->id;
 
-        if (!$isSuperAdmin && !$isOwner) {
+        if (!$moderates && !$isOwner) {
             return response()->json(['message' => 'You do not have permission to edit this message.'], 403);
         }
 
@@ -159,7 +159,7 @@ class ProjectMessageController extends Controller
 
         return response()->json([
             'message' => 'Message updated.',
-            'data'    => $message->fresh('sender:id,name,role'),
+            'data'    => $this->flagged($message->fresh('sender:id,name')),
         ]);
     }
 
@@ -185,18 +185,14 @@ class ProjectMessageController extends Controller
         }
 
         $user         = auth()->user();
-        $isSuperAdmin = $user->holdsAny(['super_admin']);
+        $moderates = $user->hasPermission('projects.moderate');
         $isStaff      = $this->isStaff();
         $isOwner      = $message->sender_user_id === $user->id;
 
-        // Staff roles who are not super_admin
-        $senderIsCustomer = !in_array(
-            optional($message->sender)->role,
-            ['super_admin', 'admin', 'manager', 'sales_rep'],
-            true
-        );
+        // staff messages can only be removed by their author or a moderator; a customer's by any staff member
+        $senderIsCustomer = ! ($message->sender && $message->sender->hasPermission('projects.manage'));
 
-        $canDelete = $isSuperAdmin
+        $canDelete = $moderates
             || $isOwner
             || ($isStaff && $senderIsCustomer);
 
@@ -230,21 +226,20 @@ class ProjectMessageController extends Controller
         ]);
 
         $user         = auth()->user();
-        $isSuperAdmin = $user->holdsAny(['super_admin']);
+        $moderates = $user->hasPermission('projects.moderate');
         $isStaff      = $this->isStaff();
-        $staffRoles   = ['super_admin', 'admin', 'manager', 'sales_rep'];
 
         $messages = ProjectMessage::whereIn('id', $validated['ids'])
             ->where('project_id', $project->id)
-            ->with('sender:id,role')
+            ->with('sender')
             ->get();
 
         $denied = [];
 
         foreach ($messages as $msg) {
             $isOwner          = $msg->sender_user_id === $user->id;
-            $senderIsCustomer = !in_array(optional($msg->sender)->role, $staffRoles, true);
-            $canDelete        = $isSuperAdmin || $isOwner || ($isStaff && $senderIsCustomer);
+            $senderIsCustomer = ! ($msg->sender && $msg->sender->hasPermission('projects.manage'));
+            $canDelete        = $moderates || $isOwner || ($isStaff && $senderIsCustomer);
 
             if (!$canDelete) {
                 $denied[] = $msg->id;
@@ -278,8 +273,8 @@ class ProjectMessageController extends Controller
     {
         $this->authorize('view', $project);
 
-        if (! auth()->user()->holdsAny(['super_admin'])) {
-            return response()->json(['message' => 'Only super admins can clear the chat.'], 403);
+        if (! auth()->user()->hasPermission('projects.moderate')) {
+            return response()->json(['message' => 'You do not have permission to clear the chat.'], 403);
         }
 
         $count = ProjectMessage::where('project_id', $project->id)->count();
@@ -296,9 +291,23 @@ class ProjectMessageController extends Controller
     // HELPERS
     // ─────────────────────────────────────────────────────────────
 
+    /** Staff for the project chat: whoever holds projects.manage. */
     private function isStaff(): bool
     {
-        return auth()->user()->holdsAny(['super_admin', 'admin', 'manager', 'sales_rep']);
+        return auth()->user()->hasPermission('projects.manage');
+    }
+
+    /** Mark each message with whether its sender is staff, so the screen can tell staff from customers without knowing role names. */
+    private function flagged($messages)
+    {
+        $items = $messages instanceof ProjectMessage ? collect([$messages]) : collect($messages);
+        $staff = \App\Models\User::whereIn('id', $items->pluck('sender_user_id')->filter()->unique())->get()
+            ->mapWithKeys(fn ($u) => [$u->id => $u->hasPermission('projects.manage')]);
+        foreach ($items as $m) {
+            $m->setAttribute('sender_is_staff', (bool) ($staff[$m->sender_user_id] ?? false));
+        }
+
+        return $messages;
     }
 
     private function processAttachments(Request $request, array $validated): array

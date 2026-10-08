@@ -20,7 +20,7 @@ class LoyaltySettingsPack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['super_admin', 'admin']; }   // who may change them
+    public function permission(): string { return 'loyalty.configure'; }   // who may change them
 
     public function contexts(): array { return ['loyalty_settings']; }
 

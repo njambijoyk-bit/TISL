@@ -97,7 +97,7 @@ export default function PriceListView() {
             <span><span style={{ color: colors.textFaint }}>Earlier price</span> {EARLIER_LABEL[d.earlier_price]}</span>
             <span><span style={{ color: colors.textFaint }}>Made by</span> {d.creator}</span>
           </div>
-          {d.status === 'pending' && <p style={{ margin: 0, fontSize: '0.82rem', color: colors.warningText }}>{d.mine ? 'Waiting for someone else to activate it.' : 'This list was made by a sales rep and is waiting for you or another manager, finance, admin or super admin to activate it.'}</p>}
+          {d.status === 'pending' && <p style={{ margin: 0, fontSize: '0.82rem', color: colors.warningText }}>{d.mine ? 'Waiting for someone else to activate it.' : 'This list was made by someone who may not publish, and is waiting for you or another publisher to activate it.'}</p>}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{act}</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 10, borderTop: '1px solid var(--line)' }}>
             <button type="button" style={small} disabled={busy} onClick={pdf}><FileDown size={13} /> PDF</button>

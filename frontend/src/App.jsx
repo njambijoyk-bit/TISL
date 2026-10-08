@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
@@ -15,7 +15,7 @@ import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
-import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES, CAMPAIGN_ROLES, hasAnyRole, hasPermission, isStaff } from './_shared/lib/roles';
+import { hasPermission, isDriver, isStaff } from './_shared/lib/roles';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./core/pages/auth/Login'));
@@ -313,42 +313,34 @@ function PageLoader() {
 }
 
 // ── Protected Route ───────────────────────────────────────────────────────────
-function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false, roles = null, permission = null }) {
+function ProtectedRoute({ children, requireAdmin = false, permission = null }) {
   const { isAuthenticated, user, access, fetchCustomer } = useAuthStore();
+  const [accessTried, setAccessTried] = useState(false);
 
-  // a session from before the engine has no `access` yet: load it once (the role lists decide until it arrives)
+  // a session from before the access engine has no `access` yet: load it once
   useEffect(() => {
-    if (isAuthenticated && !access) fetchCustomer();
+    if (isAuthenticated && !access) fetchCustomer().finally(() => setAccessTried(true));
   }, [isAuthenticated, access, fetchCustomer]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // Super admin only routes
-  if (requireSuperAdmin && !hasAnyRole(user, ['super_admin'])) {
-    return <Navigate to="/admin" replace />;
-  }
+  // everything below is decided by the access summary: wait for it
+  if (!access && !accessTried) return <PageLoader />;
 
   // Drivers only use the driver app (/driver/*); the API refuses them everywhere under /admin
-  if (requireAdmin && user?.role === 'driver' && !window.location.pathname.startsWith('/driver')) {
+  if (requireAdmin && isDriver(user, access) && !window.location.pathname.startsWith('/driver')) {
     return <Navigate to="/driver/manifests" replace />;
   }
 
-  // Admin routes: everyone who holds admin.access (the original staff roles and any role added since), and drivers for their own screens
-  if (requireAdmin) {
-    if (!isStaff(user, access) && user?.role !== 'driver') {
-      return <Navigate to="/" replace />;
-    }
+  // Admin routes: everyone who holds admin.access (any role that does), and drivers for their own screens
+  if (requireAdmin && !isStaff(user, access) && !isDriver(user, access)) {
+    return <Navigate to="/" replace />;
   }
 
-  // A permission the route needs (roles built in the role builder pass on this); `roles` is the fallback while the session has no access summary yet
-  if (permission) {
-    if (!hasPermission(user, permission, roles ?? [])) {
-      return <Navigate to="/admin" replace />;
-    }
-  } else if (roles && !hasAnyRole(user, roles)) {
-    // Narrower role list for a specific route (e.g. finance pages); a role that acts as a listed one (Senior accountant as Finance) passes too
+  // The permission the route needs. Roles are built in the role builder, so a route never names one.
+  if (permission && !hasPermission(user, permission)) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -764,21 +756,21 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin/purchases" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><AdminPurchases /></ProtectedRoute>} />
-              <Route path="/admin/purchases/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="purchase" /></ProtectedRoute>} />
-              <Route path="/admin/purchases/receipt/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="receipt" /></ProtectedRoute>} />
-              <Route path="/admin/purchases/:id/edit" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="purchase" /></ProtectedRoute>} />
-              <Route path="/admin/stock/expiry" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><ExpiringStock /></ProtectedRoute>} />
-              <Route path="/admin/stock/held" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><HeldStock /></ProtectedRoute>} />
-              <Route path="/admin/vendors" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><Vendors /></ProtectedRoute>} />
-              <Route path="/admin/stock/transfers" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockTransfers /></ProtectedRoute>} />
-              <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockCounts /></ProtectedRoute>} />
-              <Route path="/admin/menus/recipes" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><Recipes /></ProtectedRoute>} />
-              <Route path="/admin/stock/reports" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockReports /></ProtectedRoute>} />
-              <Route path="/admin/stock/journal" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockJournal /></ProtectedRoute>} />
-              <Route path="/admin/stock/jobs" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><StockJobs /></ProtectedRoute>} />
-              <Route path="/admin/stock/opening" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><AdminPurchases initial="opening_stock" /></ProtectedRoute>} />
-              <Route path="/admin/stock/opening/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><PurchaseForm kind="opening" /></ProtectedRoute>} />
+              <Route path="/admin/purchases" element={<ProtectedRoute requireAdmin permission="books.view"><AdminPurchases /></ProtectedRoute>} />
+              <Route path="/admin/purchases/new" element={<ProtectedRoute requireAdmin permission="books.post"><PurchaseForm kind="purchase" /></ProtectedRoute>} />
+              <Route path="/admin/purchases/receipt/new" element={<ProtectedRoute requireAdmin permission="books.post"><PurchaseForm kind="receipt" /></ProtectedRoute>} />
+              <Route path="/admin/purchases/:id/edit" element={<ProtectedRoute requireAdmin permission="books.post"><PurchaseForm kind="purchase" /></ProtectedRoute>} />
+              <Route path="/admin/stock/expiry" element={<ProtectedRoute requireAdmin permission="stock.view"><ExpiringStock /></ProtectedRoute>} />
+              <Route path="/admin/stock/held" element={<ProtectedRoute requireAdmin permission="stock.view"><HeldStock /></ProtectedRoute>} />
+              <Route path="/admin/vendors" element={<ProtectedRoute requireAdmin permission="vendors.view"><Vendors /></ProtectedRoute>} />
+              <Route path="/admin/stock/transfers" element={<ProtectedRoute requireAdmin permission="stock.view"><StockTransfers /></ProtectedRoute>} />
+              <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />
+              <Route path="/admin/menus/recipes" element={<ProtectedRoute requireAdmin permission="menus.view"><Recipes /></ProtectedRoute>} />
+              <Route path="/admin/stock/reports" element={<ProtectedRoute requireAdmin permission="stock.view"><StockReports /></ProtectedRoute>} />
+              <Route path="/admin/stock/journal" element={<ProtectedRoute requireAdmin permission="stock.view"><StockJournal /></ProtectedRoute>} />
+              <Route path="/admin/stock/jobs" element={<ProtectedRoute requireAdmin permission="stock.view"><StockJobs /></ProtectedRoute>} />
+              <Route path="/admin/stock/opening" element={<ProtectedRoute requireAdmin permission="books.view"><AdminPurchases initial="opening_stock" /></ProtectedRoute>} />
+              <Route path="/admin/stock/opening/new" element={<ProtectedRoute requireAdmin permission="books.post"><PurchaseForm kind="opening" /></ProtectedRoute>} />
               <Route
                 path="/admin/vault"
                 element={
@@ -1090,15 +1082,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin/price-lists" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceLists /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/price-lists/new" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListEditor /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/price-lists/:id" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListView /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/price-list-archive" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListArchive /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/catalogues" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><Catalogues /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/catalogues/new" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueEditor /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/catalogues/:id" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueEditor /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/catalogue-items" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueItems /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/catalogue-settings" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'finance', 'sales_rep']}><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueSettings /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/price-lists" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceLists /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/price-lists/new" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/price-lists/:id" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListView /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/price-list-archive" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListArchive /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogues" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><Catalogues /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogues/new" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogues/:id" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogue-items" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueItems /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/catalogue-settings" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><CatalogueSettings /></ModuleRoute></ProtectedRoute>} />
               <Route
                 path="/admin/service-categories"
                 element={
@@ -1112,7 +1104,7 @@ function App() {
               <Route path="/admin/calendar/team" element={<ProtectedRoute requireAdmin><TeamCalendar /></ProtectedRoute>} />
               <Route path="/admin/resources" element={<ProtectedRoute requireAdmin><StaffResources /></ProtectedRoute>} />
               <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin><ServiceSettings /></ProtectedRoute>} />
-              <Route path="/admin/settings/engagement" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin']}><ModuleRoute module="extras" redirectTo="/admin"><EngagementSettings /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/settings/engagement" element={<ProtectedRoute requireAdmin permission="engagement.settings"><ModuleRoute module="extras" redirectTo="/admin"><EngagementSettings /></ModuleRoute></ProtectedRoute>} />
 
               {/* Categories Routes */}
               <Route
@@ -1165,8 +1157,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin/orders" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><OrdersRegister /></ProtectedRoute>} />
-              <Route path="/admin/orders/:id" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><VoucherView /></ProtectedRoute>} />
+              <Route path="/admin/orders" element={<ProtectedRoute requireAdmin permission="books.view"><OrdersRegister /></ProtectedRoute>} />
+              <Route path="/admin/orders/:id" element={<ProtectedRoute requireAdmin permission="books.view"><VoucherView /></ProtectedRoute>} />
 
               {/* Admin Quote Routes (the old quote requests now live as quotations) */}
               <Route path="/admin/quote-requests/*" element={<Navigate to="/admin/quotes" replace />} />
@@ -1196,7 +1188,7 @@ function App() {
               />
 
               {/* Payments Dashboard */}
-              <Route path="/admin/finance/payments" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><OrdersRegister initial="receipt" /></ProtectedRoute>} />
+              <Route path="/admin/finance/payments" element={<ProtectedRoute requireAdmin permission="books.view"><OrdersRegister initial="receipt" /></ProtectedRoute>} />
 
               {/* Projects */}
               <Route
@@ -1350,7 +1342,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin/reviews" element={<ProtectedRoute requireAdmin roles={['admin', 'super_admin', 'manager', 'sales_rep', 'finance']}><ModuleRoute module="extras" redirectTo="/admin"><EngagementQueue /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/reviews" element={<ProtectedRoute requireAdmin permission="engagement.view"><ModuleRoute module="extras" redirectTo="/admin"><EngagementQueue /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/engagement" element={<Navigate to="/admin/reviews" replace />} />   {/* the first name the page had; calendar tasks made then still use it */}
 
               <Route
@@ -1434,15 +1426,15 @@ function App() {
               <Route path="/admin/books/memoranda" element={<ProtectedRoute requireAdmin><MemorandaRegister /></ProtectedRoute>} />
               <Route path="/admin/books/memoranda/new" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
               <Route path="/admin/books/memoranda/:id/edit" element={<ProtectedRoute requireAdmin><MemorandumForm /></ProtectedRoute>} />
-              <Route path="/admin/campaigns" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignList /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/pins" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><PinLibrary /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/boards" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><BoardList /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/boards/new" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><BoardEditor /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/boards/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><BoardEditor /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/moodboards" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><MoodboardList /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/moodboards/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><MoodboardEditor /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/campaigns/new" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
-              <Route path="/admin/campaigns/:id/edit" element={<ProtectedRoute requireAdmin roles={CAMPAIGN_ROLES}><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/campaigns" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignList /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/pins" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><PinLibrary /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/boards" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><BoardList /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/boards/new" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><BoardEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/boards/:id/edit" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><BoardEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/moodboards" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><MoodboardList /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/moodboards/:id/edit" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><MoodboardEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/campaigns/new" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/campaigns/:id/edit" element={<ProtectedRoute requireAdmin permission="campaigns.build"><ModuleRoute module="campaigns" redirectTo="/admin"><CampaignEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/financial-notes" element={<Navigate to="/admin/books/memoranda" replace />} />
 
               <Route path="/admin/reconciliation/*" element={<Navigate to="/admin/books" replace />} />
@@ -1506,26 +1498,26 @@ function App() {
                 }
               />
               {/* Books — finance roles only (mirrors the API) */}
-              <Route path="/admin/books" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><BooksHub /></ProtectedRoute>} />
-              <Route path="/admin/books/vouchers/new" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
-              <Route path="/admin/books/vouchers/:id/edit" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><VoucherForm /></ProtectedRoute>} />
+              <Route path="/admin/books" element={<ProtectedRoute requireAdmin permission="books.view"><BooksHub /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/new" element={<ProtectedRoute requireAdmin permission="books.post"><VoucherForm /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/:id/edit" element={<ProtectedRoute requireAdmin permission="books.post"><VoucherForm /></ProtectedRoute>} />
               <Route path="/admin/verification" element={<ProtectedRoute requireAdmin><Verification /></ProtectedRoute>} />
               <Route path="/admin/my-payslips" element={<ProtectedRoute requireAdmin><MyPayslips /></ProtectedRoute>} />
-              <Route path="/admin/payroll" element={<ProtectedRoute requireAdmin roles={PAYROLL_ROLES}><Payroll /></ProtectedRoute>} />
-              <Route path="/admin/payroll/gratuity" element={<ProtectedRoute requireAdmin roles={PAYROLL_ROLES}><Gratuity /></ProtectedRoute>} />
-              <Route path="/admin/payroll/settings" element={<ProtectedRoute requireAdmin roles={PAYROLL_ROLES}><PayrollSettings /></ProtectedRoute>} />
+              <Route path="/admin/payroll" element={<ProtectedRoute requireAdmin permission="payroll.run"><Payroll /></ProtectedRoute>} />
+              <Route path="/admin/payroll/gratuity" element={<ProtectedRoute requireAdmin permission="payroll.run"><Gratuity /></ProtectedRoute>} />
+              <Route path="/admin/payroll/settings" element={<ProtectedRoute requireAdmin permission="payroll.run"><PayrollSettings /></ProtectedRoute>} />
               <Route path="/admin/attendance" element={<ProtectedRoute requireAdmin><Attendance /></ProtectedRoute>} />
               <Route path="/admin/petty-cash" element={<ProtectedRoute requireAdmin><PettyCash /></ProtectedRoute>} />
-              <Route path="/admin/books/cash" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><CashPage /></ProtectedRoute>} />
-              <Route path="/admin/books/cheques" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><ChequeRegister /></ProtectedRoute>} />
-              <Route path="/admin/books/edit-log" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><EditLog /></ProtectedRoute>} />
-              <Route path="/admin/books/vouchers/:id/return" element={<ProtectedRoute requireAdmin roles={FINANCE_WRITE}><ReturnFromInvoice /></ProtectedRoute>} />
-              <Route path="/admin/books/vouchers/:id" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><VoucherView /></ProtectedRoute>} />
+              <Route path="/admin/books/cash" element={<ProtectedRoute requireAdmin permission="books.view"><CashPage /></ProtectedRoute>} />
+              <Route path="/admin/books/cheques" element={<ProtectedRoute requireAdmin permission="books.view"><ChequeRegister /></ProtectedRoute>} />
+              <Route path="/admin/books/edit-log" element={<ProtectedRoute requireAdmin permission="books.view"><EditLog /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/:id/return" element={<ProtectedRoute requireAdmin permission="books.post"><ReturnFromInvoice /></ProtectedRoute>} />
+              <Route path="/admin/books/vouchers/:id" element={<ProtectedRoute requireAdmin permission="books.view"><VoucherView /></ProtectedRoute>} />
               {/* Tax & withholding hubs — finance roles only (mirrors the API) */}
               <Route
                 path="/admin/tax"
                 element={
-                  <ProtectedRoute requireAdmin roles={FINANCE_READ}>
+                  <ProtectedRoute requireAdmin permission="tax.view">
                     <TaxCompliance />
                   </ProtectedRoute>
                 }
@@ -1533,7 +1525,7 @@ function App() {
               <Route
                 path="/admin/withholding"
                 element={
-                  <ProtectedRoute requireAdmin roles={FINANCE_READ}>
+                  <ProtectedRoute requireAdmin permission="tax.view">
                     <WithholdingCompliance />
                   </ProtectedRoute>
                 }
@@ -1541,7 +1533,7 @@ function App() {
               <Route
                 path="/admin/settings/modules"
                 element={
-                  <ProtectedRoute requireAdmin requireSuperAdmin>
+                  <ProtectedRoute requireAdmin permission="system.modules">
                     <ModuleCenter />
                   </ProtectedRoute>
                 }
@@ -1549,7 +1541,7 @@ function App() {
               <Route
                 path="/admin/access"
                 element={
-                  <ProtectedRoute requireAdmin permission="access.view" roles={['admin', 'super_admin']}>
+                  <ProtectedRoute requireAdmin permission="access.view">
                     <AccessHub />
                   </ProtectedRoute>
                 }
@@ -1557,7 +1549,7 @@ function App() {
               <Route
                 path="/admin/settings/stock"
                 element={
-                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                  <ProtectedRoute requireAdmin permission="stock.settings">
                     <StockSettings />
                   </ProtectedRoute>
                 }
@@ -1565,7 +1557,7 @@ function App() {
               <Route
                 path="/admin/settings/backups"
                 element={
-                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                  <ProtectedRoute requireAdmin permission="system.backups">
                     <BackupSettings />
                   </ProtectedRoute>
                 }
@@ -1573,7 +1565,7 @@ function App() {
               <Route
                 path="/admin/settings/navigation"
                 element={
-                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                  <ProtectedRoute requireAdmin permission="system.navigation">
                     <NavigationSettings />
                   </ProtectedRoute>
                 }
@@ -1581,7 +1573,7 @@ function App() {
               <Route
                 path="/admin/settings/locations"
                 element={
-                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                  <ProtectedRoute requireAdmin permission="locations.manage">
                     <LocationsSettings />
                   </ProtectedRoute>
                 }
@@ -1677,7 +1669,7 @@ function App() {
               <Route
                 path="/admin/settings/backup"
                 element={
-                  <ProtectedRoute requireAdmin roles={['admin', 'super_admin']}>
+                  <ProtectedRoute requireAdmin permission="system.backups">
                     <BackupSettings />
                   </ProtectedRoute>
                 }

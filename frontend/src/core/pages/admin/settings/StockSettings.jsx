@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { PackageX, Save, RefreshCw, Trash2, Plus, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
@@ -49,16 +50,12 @@ function Radio({ value, current, onChange, title, hint }) {
   );
 }
 
-function RoleBoxes({ roles, value, onChange }) {
-  const set = new Set(value ?? []);
+/** Who may do these things is a permission, given to roles in Roles & access (roles are made there, so no role names are listed here). */
+function PermissionNote({ permission, children }) {
   return (
-    <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-      {roles.map((r) => (
-        <label key={r} style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.82rem', cursor: 'pointer' }}>
-          <input type="checkbox" checked={set.has(r)} onChange={(e) => onChange(e.target.checked ? [...set, r] : [...set].filter((x) => x !== r))} /> {r.replace('_', ' ')}
-        </label>
-      ))}
-    </div>
+    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '8px 0 0' }}>
+      {children} Give the permission <strong>{permission}</strong> to the roles that should have it, in <Link to="/admin/access" style={{ color: 'var(--color-primary-600)' }}>Roles &amp; access</Link>.
+    </p>
   );
 }
 
@@ -216,7 +213,7 @@ export default function StockSettings() {
           <p style={sub}>Applies at the till and online.</p>
           {SELL.map(([v, t, h]) => <Radio key={v} value={v} current={form.sell_expired} onChange={(x) => set('sell_expired', x)} title={t} hint={h} />)}
           {form.sell_expired === 'override' && (
-            <div style={{ marginTop: 8 }}><label style={label}>Who may override</label><RoleBoxes roles={data.roles} value={form.override_roles} onChange={(v) => set('override_roles', v)} /></div>
+            <PermissionNote permission="Sell expired stock, with a reason">Who may override is decided by role.</PermissionNote>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 16, marginTop: 16 }}>
             <div><label style={label}>Days of shelf life needed — online orders</label><input type="number" min="0" value={form.min_days_online} onChange={(e) => set('min_days_online', Number(e.target.value))} style={input} />
@@ -243,8 +240,7 @@ export default function StockSettings() {
             <input value={warnText} onChange={(e) => setWarnText(e.target.value)} placeholder="90, 60, 30" style={input} />
             <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>Separate the days with commas.</p>
           </div>
-          <label style={label}>Who is told</label>
-          <RoleBoxes roles={data.roles} value={form.notify_roles} onChange={(v) => set('notify_roles', v)} />
+          <PermissionNote permission="Get the expiry warnings">Who is told is decided by role.</PermissionNote>
         </div>
 
         <div style={card}>

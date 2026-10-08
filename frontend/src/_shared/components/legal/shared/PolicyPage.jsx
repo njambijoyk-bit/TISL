@@ -9,6 +9,7 @@ import logo from '../../../../assets/images/logo.png';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 
+import { isCustomer } from '../../../lib/roles';
 // ── Disagree modal ────────────────────────────────────────────────────────────
 
 function DisagreeModal({ policy, onClose, onConfirm, loading }) {
@@ -295,7 +296,7 @@ export default function PolicyPage({ policyKey, actionContext = 'website_policy'
               </div>
 
               {/* Response section — only for logged-in customers */}
-              {user?.role === 'customer' && (
+              {isCustomer(user) && (
                 <div style={{
                   padding: '24px 40px 32px',
                   borderTop: '1px solid #f3f4f6',

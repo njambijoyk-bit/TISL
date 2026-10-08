@@ -7,15 +7,98 @@ use App\Models\User;
 use App\Models\Customer;
 use App\Models\Employee;
 use App\Models\Vendor;                       
-use App\Policies\UserPolicy;
+use App\Services\Access\Authorizer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class UserController extends Controller
 {
+    private function access(): Authorizer
+    {
+        return app(Authorizer::class);
+    }
+
+    /** The roles this screen may name when it makes or edits an account: the staff roles in the roles table, and the portal accounts it can build a profile for (customers and vendors; job applicants register themselves). */
+    private function giveableRoleKeys(): array
+    {
+        $az = $this->access();
+
+        return array_merge($az->staffRoleKeys(), $az->portalRoleKeys('customer'), $az->portalRoleKeys('vendor'));
+    }
+
+    /** `$current` is the role the account already has: sending it back unchanged is always fine. */
+    private function roleRule(?string $current = null): array
+    {
+        return ['sometimes', Rule::in(array_filter(array_merge($this->giveableRoleKeys(), [$current])))];
+    }
+
+    /** Role keys of the staff accounts that have an employee record: every staff role, drivers included, but not the owner level. */
+    private function employeeRoleKeys(): array
+    {
+        return array_values(array_diff($this->access()->staffRoleKeys(), $this->access()->roleKeysAtOrAbove(6)));
+    }
+
+    /** Role keys of the staff who are not drivers (the Staff tab). */
+    private function officeRoleKeys(): array
+    {
+        return array_values(array_diff($this->access()->staffRoleKeys(), $this->access()->driverRoleKeys()));
+    }
+
+    /** What an account needs besides the login: a customer, a vendor or an employee record; drivers and other portal accounts need none. */
+    private function profileOf(User $u): string
+    {
+        return match (true) {
+            $u->isCustomer() => 'customer',
+            $u->isVendor() => 'vendor',
+            $u->isPortal() => 'none',
+            $u->isDriver() => 'driver',
+            default => 'employee',
+        };
+    }
+
+    /** What the Users screen needs besides the record: the role's name, whether it is a staff or portal role, the clearance, and whether the viewer may manage the person. */
+    private function decorate(User $u, User $actor, array $info, int $mine, bool $mayManage): User
+    {
+        $r = $info[$u->role] ?? null;
+        $level = max((int) $u->clearance_level, $r && $r['kind'] === 'staff' ? $r['min_clearance'] : 0);
+        $u->setAttribute('role_name', $r['name'] ?? $u->role);
+        $u->setAttribute('role_kind', $r['kind'] ?? 'staff');
+        $u->setAttribute('clearance', $level);
+        // the same rule as canManage(), worked out from the numbers already at hand so a long list costs no extra queries
+        $u->setAttribute('manageable', $mayManage && ($mine >= 6 || ($level < $mine && $u->getKey() !== $actor->getKey())));
+
+        return $u;
+    }
+
+    /** A user as the screens want it (see decorate()), for responses that return one record. */
+    private function present(User $u, Request $request): User
+    {
+        $actor = $request->user();
+
+        return $this->decorate($u, $actor, $this->access()->roleInfo(), $this->access()->clearance($actor), $actor->hasPermission('users.manage'));
+    }
+
+    /** The roles the Users screens offer: every staff role (for the filter), and the ones the viewer may give when making or editing someone. */
+    public function roles(Request $request)
+    {
+        $this->authorize('viewAny', User::class);
+        $az = $this->access();
+        $actor = $request->user();
+        $info = $az->roleInfo();
+        $row = fn ($k) => ['key' => $k, 'name' => $info[$k]['name'] ?? $k, 'kind' => $info[$k]['kind'] ?? 'staff', 'min_clearance' => $info[$k]['min_clearance'] ?? 0];
+        $mayGive = $actor->hasPermission('users.manage');
+
+        return response()->json([
+            'staff' => array_map($row, $az->staffRoleKeys()),
+            'assignable' => $mayGive ? array_values(array_filter(array_map($row, $this->giveableRoleKeys()), fn ($r) => $az->canAssignRoleKey($actor, $r['key']))) : [],
+            'levels' => collect(range(0, 6))->mapWithKeys(fn ($l) => [$l => $az->levelName($l)]),
+        ]);
+    }
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', User::class);
@@ -23,34 +106,20 @@ class UserController extends Controller
         $actor  = $request->user();
         $trashed = $request->boolean('trashed');
 
-        $query = User::withTrashed()
-            ->when(!$trashed, fn($q) => $q->whereNull('deleted_at'))
-            ->whereRaw('? < (CASE role
-                WHEN "super_admin" THEN 1
-                WHEN "admin"       THEN 2
-                WHEN "manager"     THEN 3
-                WHEN "finance"     THEN 4
-                WHEN "logistics"   THEN 5
-                WHEN "sales_rep"   THEN 6
-                WHEN "customer"    THEN 7
-                WHEN "vendor"      THEN 8
-                WHEN "driver"      THEN 9
-                ELSE 99 END)', [UserPolicy::level($actor->role)]);    // ← added vendor case
+        $query = User::withTrashed()->when(!$trashed, fn($q) => $q->whereNull('deleted_at'));
+        // only people below the viewer's clearance (the owner sees everyone)
+        $this->access()->manageableUsers($query, $actor);
 
         // ── Tab filtering ─────────────────────────────────────────────────────
         $tab = $request->input('tab', 'staff');
         if ($tab === 'staff') {
-            $query->whereIn('role', ['admin', 'manager', 'sales_rep']);
-        } elseif ($tab === 'finance') {              // ← NEW
-            $query->where('role', 'finance');
-        } elseif ($tab === 'logistics') {           // ← NEW
-            $query->where('role', 'logistics');
-        } elseif ($tab === 'drivers') {             // ← NEW
-            $query->where('role', 'driver'); 
+            $query->whereIn('role', $this->officeRoleKeys());
+        } elseif ($tab === 'drivers') {
+            $query->whereIn('role', $this->access()->driverRoleKeys());
         } elseif ($tab === 'customers') {
-            $query->where('role', 'customer');
-        } elseif ($tab === 'vendors') {                                // ← NEW tab
-            $query->where('role', 'vendor');
+            $query->whereIn('role', $this->access()->portalRoleKeys('customer'));
+        } elseif ($tab === 'vendors') {
+            $query->whereIn('role', $this->access()->portalRoleKeys('vendor'));
         }
 
         if ($request->filled('search')) {
@@ -80,6 +149,10 @@ class UserController extends Controller
         $perPage = (int) $request->input('per_page', 20);
         $users   = $query->paginate($perPage);
         $users->load(['employee.manager.user', 'vendor', 'customer']);             // ← added vendor eager load
+        $info = $this->access()->roleInfo();
+        $may  = $actor->hasPermission('users.manage');
+        $mine = $this->access()->clearance($actor);
+        $users->getCollection()->transform(fn (User $u) => $this->decorate($u, $actor, $info, $mine, $may));
 
         return response()->json($users);
     }
@@ -88,40 +161,27 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $actor      = $request->user();
-        $actorLevel = UserPolicy::level($actor->role);
-
-        $base = User::whereRaw('? < (CASE role
-            WHEN "super_admin" THEN 1
-            WHEN "admin"       THEN 2
-            WHEN "manager"     THEN 3
-            WHEN "finance"     THEN 4
-            WHEN "logistics"   THEN 5
-            WHEN "sales_rep"   THEN 6
-            WHEN "customer"    THEN 7
-            WHEN "vendor"      THEN 8
-            WHEN "driver"      THEN 9
-            ELSE 99 END)', [$actorLevel]);
+        $az   = $this->access();
+        $base = $az->manageableUsers(User::query(), $request->user());
+        $staff = $this->employeeRoleKeys();
 
         return response()->json([
             'total'                => (clone $base)->count(),
-            'staff'                => (clone $base)->whereIn('role', ['admin', 'manager', 'sales_rep'])->count(),
-            'finance'              => (clone $base)->where('role', 'finance')->count(),    // ← NEW
-            'logistics'            => (clone $base)->where('role', 'logistics')->count(),  // ← NEW
-            'drivers'              => (clone $base)->where('role', 'driver')->count(),     // ← NEW
-            'customers'            => (clone $base)->where('role', 'customer')->count(),
-            'vendors'              => (clone $base)->where('role', 'vendor')->count(),                // ← NEW
+            'staff'                => (clone $base)->whereIn('role', $this->officeRoleKeys())->count(),
+            'drivers'              => (clone $base)->whereIn('role', $az->driverRoleKeys())->count(),
+            'customers'            => (clone $base)->whereIn('role', $az->portalRoleKeys('customer'))->count(),
+            'vendors'              => (clone $base)->whereIn('role', $az->portalRoleKeys('vendor'))->count(),
             'active'               => (clone $base)->where('status', 'active')->count(),
             'suspended'            => (clone $base)->where('status', 'suspended')->count(),
             'pending_verification' => (clone $base)->where('status', 'pending_verification')->count(),
             'locked'               => (clone $base)->whereNotNull('locked_until')->where('locked_until', '>', now())->count(),
             'unverified'           => (clone $base)->whereNull('email_verified_at')->count(),
             'by_role'              => (clone $base)->selectRaw('role, COUNT(*) as count')->groupBy('role')->pluck('count', 'role'),
-            'by_department'        => (clone $base)->whereIn('role', ['admin','manager','sales_rep','finance','logistics','driver'])
+            'by_department'        => (clone $base)->whereIn('role', $staff)
                                         ->whereNotNull('department')
                                         ->selectRaw('department, COUNT(*) as count')
                                         ->groupBy('department')->pluck('count', 'department'),
-            'staff_without_employee_record' => (clone $base)->whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']) // ← expanded
+            'staff_without_employee_record' => (clone $base)->whereIn('role', $staff)
                                         ->whereDoesntHave('employee')->count(),
         ]);
     }
@@ -133,7 +193,8 @@ class UserController extends Controller
             ->findOrFail($id);
 
         $this->authorize('view', $user);
-        return response()->json(['data' => $user]);
+
+        return response()->json(['data' => $this->present($user, $request)]);
     }
 
     public function store(Request $request)
@@ -146,7 +207,7 @@ class UserController extends Controller
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|unique:users,email',
             'password'     => 'required|string|min:8',
-            'role'         => 'sometimes|in:admin,manager,sales_rep,finance,logistics,driver,customer,vendor',
+            'role'         => $this->roleRule(),
             'phone'        => 'nullable|string|unique:users,phone',
             'company_name' => 'nullable|string|max:255',
             'employee_id'  => 'nullable|string|unique:users,employee_id',
@@ -173,7 +234,7 @@ class UserController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if (!$actor->isSuperAdmin() && UserPolicy::level($request->role) <= UserPolicy::level($actor->role)) {
+        if (!$request->filled('role') || !$this->access()->canAssignRoleKey($actor, $request->role)) {
             return response()->json(['message' => 'You cannot create a user with this role.'], 403);
         }
 
@@ -196,7 +257,8 @@ class UserController extends Controller
                 'password_changed_at'   => now(),
             ]);
 
-            if ($user->holdsAny(['customer'])) {
+            $profile = $this->profileOf($user);
+            if ($profile === 'customer') {
                 $nameParts = explode(' ', $user->name, 2);
                 Customer::create([
                     'user_id'         => $user->id,
@@ -208,7 +270,7 @@ class UserController extends Controller
                     'company_name'    => $user->company_name ?? '',
                 ]);
 
-            } elseif ($user->holdsAny(['vendor'])) {                      // ← NEW branch
+            } elseif ($profile === 'vendor') {
                 $vendor = Vendor::create([
                     'user_id'            => $user->id,
                     'vendor_number'      => Vendor::generateVendorNumber(),
@@ -224,9 +286,8 @@ class UserController extends Controller
                 ]);
                 app(\App\Services\Books\LedgerService::class)->vendorLedger($vendor);   // every vendor is a Sundry Creditors ledger
 
-            } elseif ($user->holdsAny(['driver'])) {
-            // Driver is portal-only — no profile record until delivery system is built
-            // User record alone is sufficient for now, and avoids cluttering.
+            } elseif ($profile === 'driver' || $profile === 'none') {
+            // Drivers and other portal accounts have no profile record: the login alone is enough.
 
             } else {
                 Employee::create([
@@ -251,7 +312,7 @@ class UserController extends Controller
             DB::commit();
             return response()->json([
                 'message' => 'User created successfully.',
-                'data'    => $user->load(['customer', 'employee.manager.user', 'vendor']),  // ← added vendor
+                'data'    => $this->present($user->load(['customer', 'employee.manager.user', 'vendor']), $request),
             ], 201);
 
         } catch (\Exception $e) {
@@ -273,7 +334,7 @@ class UserController extends Controller
             'email'               => 'sometimes|email|unique:users,email,' . $id,
             'phone'               => 'nullable|string|unique:users,phone,' . $id,
             'company_name'        => 'nullable|string|max:255',
-            'role'                => 'sometimes|in:admin,manager,sales_rep,finance,logistics,driver,customer,vendor',
+            'role'                => $this->roleRule($user->role),
             'employee_id'         => 'nullable|string|unique:users,employee_id,' . $id,
             'department'          => 'nullable|string|max:255',
             'hired_at'            => 'nullable|date',
@@ -287,15 +348,15 @@ class UserController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if ($request->filled('role') && !$actor->isSuperAdmin()) {
-            if (UserPolicy::level($request->role) <= UserPolicy::level($actor->role)) {
-                return response()->json(['message' => 'You cannot assign this role.'], 403);
-            }
+        // changing someone's main role: only to a role below the actor's own clearance
+        if ($request->filled('role') && $request->role !== $user->role && !$this->access()->canAssignRoleKey($actor, $request->role)) {
+            return response()->json(['message' => 'You cannot assign this role.'], 403);
         }
 
         DB::beginTransaction();
         try {
             $oldRole = $user->role;
+            $was     = $this->profileOf($user);
 
             $user->update($request->only([
                 'name', 'email', 'phone', 'company_name', 'role',
@@ -305,11 +366,12 @@ class UserController extends Controller
 
             // ── Role transition handling ───────────────────────────────────────
             if ($request->filled('role') && $request->role !== $oldRole) {
-                $this->handleRoleTransition($user, $oldRole, $request->role, $actor, $request);
+                $this->access()->forget((int) $user->id);
+                $this->handleRoleTransition($user, $was, $actor, $request);
             }
 
             // ── Sync employee record fields on update ─────────────────────────
-            if ($user->isStaff() && $user->employee) {
+            if ($user->employee && in_array($this->profileOf($user), ['employee', 'driver'], true)) {
                 $employeeData = [];
                 if ($request->filled('employee_id')) $employeeData['employee_id'] = $request->employee_id;
                 if ($request->filled('department'))  $employeeData['department']  = $request->department;
@@ -320,7 +382,7 @@ class UserController extends Controller
             DB::commit();
             return response()->json([
                 'message' => 'User updated successfully.',
-                'data'    => $user->fresh(['customer', 'employee.manager.user', 'vendor']), // ← added vendor
+                'data'    => $this->present($user->fresh(['customer', 'employee.manager.user', 'vendor']), $request),
             ]);
 
         } catch (\Exception $e) {
@@ -331,17 +393,19 @@ class UserController extends Controller
     }
 
     /**
-     * Central role-transition logic extracted from update() to keep it readable.
-     * Handles all six meaningful role-change directions.
+     * Central role-transition logic extracted from update() to keep it readable: the profile the account had ($was) is torn down and the one its new
+     * main role needs is built. Profiles are decided by the kind of account, never by role name.
      */
-    private function handleRoleTransition(User $user, string $oldRole, string $newRole, User $actor, Request $request): void
+    private function handleRoleTransition(User $user, string $was, User $actor, Request $request): void
     {
-        $wasStaff    = in_array($oldRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']);
-        $isStaff     = in_array($newRole, ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']);
-        $wasCustomer = $oldRole === 'customer';
-        $isCustomer  = $newRole === 'customer';
-        $wasVendor   = $oldRole === 'vendor';
-        $isVendor    = $newRole === 'vendor';
+        $is = $this->profileOf($user);
+        $staffProfile = ['employee', 'driver'];
+        $wasStaff    = in_array($was, $staffProfile, true);
+        $isStaff     = in_array($is, $staffProfile, true);
+        $wasCustomer = $was === 'customer';
+        $isCustomer  = $is === 'customer';
+        $wasVendor   = $was === 'vendor';
+        $isVendor    = $is === 'vendor';
 
         // ── Tear down the old profile ─────────────────────────────────────────
         if ($wasStaff    && $user->employee) { $user->employee->delete(); }
@@ -366,7 +430,7 @@ class UserController extends Controller
             Employee::create([
                 'user_id'         => $user->id,
                 'employee_id'     => $request->employee_id,
-                'job_title'       => ucfirst($newRole),
+                'job_title'       => ucfirst(str_replace('_', ' ', (string) $user->role)),
                 'department'      => $request->department ?? 'General',
                 'employment_type' => 'full_time',
                 'hire_date'       => now(),
@@ -559,7 +623,7 @@ class UserController extends Controller
         $deleted = 0;
 
         foreach ($users as $user) {
-            if (UserPolicy::level($actor->role) < UserPolicy::level($user->role)) {
+            if ($actor->can('delete', $user)) {
                 $user->tokens()->delete();
                 if ($user->employee) { $user->employee->delete(); }
                 if ($user->customer) { $user->customer->delete(); }
@@ -590,7 +654,7 @@ class UserController extends Controller
         $count = 0;
 
         foreach ($users as $user) {
-            if (UserPolicy::level($actor->role) < UserPolicy::level($user->role)) {
+            if ($actor->can('restore', $user)) {
                 $user->restore();
                 if ($user->employee()->withTrashed()->exists()) $user->employee()->withTrashed()->restore();
                 if ($user->customer()->withTrashed()->exists()) $user->customer()->withTrashed()->restore();
@@ -634,7 +698,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $departments = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']) // ← expanded to include new staff roles
+        $departments = User::whereIn('role', $this->employeeRoleKeys())
             ->whereNotNull('department')
             ->distinct()
             ->pluck('department');
@@ -646,7 +710,7 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $users = User::whereIn('role', ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver']) // ← expanded to include new staff roles
+        $users = User::whereIn('role', $this->employeeRoleKeys())
             ->whereDoesntHave('employee')
             ->get(['id', 'name', 'email', 'role', 'department', 'employee_id']);
 

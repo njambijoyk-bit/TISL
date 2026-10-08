@@ -2,7 +2,7 @@ import React from 'react';
 import useVaultStore from '../../../../../_shared/store/useVaultStore';
 import useAuthStore from '../../../../../_shared/store/authStore';
 import { VaultThemeSwitcher } from '../VaultThemeSwitcher'; 
-import { hasAnyRole } from '../../../../../_shared/lib/roles';
+import { hasPermission } from '../../../../../_shared/lib/roles';
 
 // ── Icons (inline SVG — no extra dep) ────────────────────────────────────────
 const Icons = {
@@ -48,7 +48,7 @@ const TABS = [
   { id: 'archiver', label: 'Archiver', icon: Icons.archiver  },
   { id: 'policies', label: 'Policies', icon: Icons.policies  },
   { id: 'logs',     label: 'Logs',     icon: Icons.logs      },
-  { id: 'settings', label: 'Configuration', icon: Icons.settings, superAdminOnly: true },
+  { id: 'settings', label: 'Configuration', icon: Icons.settings, perm: 'vault.settings' },
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,8 +58,7 @@ export default function VaultTopNav() {
   const { activeTab, setActiveTab, layout, setLayout, viewMode, setViewMode } = useVaultStore();
   const { user } = useAuthStore(); 
 
-  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
-  const visibleTabs = TABS.filter(t => !t.superAdminOnly || isSuperAdmin);
+  const visibleTabs = TABS.filter(t => !t.perm || hasPermission(user, t.perm));
 
   return (
     <nav className="vault-topnav" role="navigation" aria-label="Vault navigation">

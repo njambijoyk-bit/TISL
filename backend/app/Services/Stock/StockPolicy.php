@@ -25,13 +25,11 @@ class StockPolicy
         'expired_on_storefront' => 'hide',        // hide | unavailable
         'show_expiry_badge'     => true,
         'sell_expired'          => 'never',       // never | override | allowed
-        'override_roles'        => ['manager', 'admin', 'super_admin'],
         'min_days_online'       => 0,
         'min_days_till'         => 0,
         'expiry_action'         => 'list',        // list | write_off
         'write_off_after_days'  => 30,
         'warning_days'          => [90, 60, 30],
-        'notify_roles'          => ['manager', 'admin'],
         'pick_order'            => 'fefo',        // fefo | fifo
         'costing_method'        => 'lot',         // lot (each batch keeps its own cost) | average (a product's batches share a moving average)
         'returns_to_quarantine' => false,         // a customer's return of an expiry product goes into a held batch for checking

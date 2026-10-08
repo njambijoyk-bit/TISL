@@ -3,102 +3,70 @@
 namespace App\Policies;
 
 use App\Models\User;
+use App\Services\Access\Authorizer;
 
+/**
+ * Who may manage whom comes from clearance, not from role names: a person may see and change people whose clearance is below their own (the owner:
+ * everyone), if their roles hold users.manage. Roles built in the role builder fit in without any change here.
+ */
 class UserPolicy
 {
-    /**
-     * Hierarchy: lower number = higher authority.
-     *
-     * finance   — operational, payment/reporting authority, no user management
-     * logistics — operational, delivery authority, no user management
-     * driver    — like vendor, portal access only, zero admin authority
-     */
-    private static array $hierarchy = [
-        'super_admin' => 1,
-        'admin'       => 2,
-        'manager'     => 3,
-        'finance'     => 4,
-        'logistics'   => 5,
-        'sales_rep'   => 6,
-        'customer'    => 7,
-        'vendor'      => 8,
-        'driver'      => 9,
-    ];
-
-    public static function level(string $role): int
+    private function access(): Authorizer
     {
-        return self::$hierarchy[$role] ?? 99;
+        return app(Authorizer::class);
     }
 
-    private function outranks(User $actor, User $target): bool
+    /** Whether the actor may manage this account: they hold users.manage and the account is below their clearance. */
+    private function manages(User $actor, User $target): bool
     {
-        // a role the access engine added (senior accountant, cashier, chef, one you made) is not in the table above: it is placed by clearance
-        if (! isset(self::$hierarchy[$target->role])) {
-            return app(\App\Services\Access\Authorizer::class)->canManage($actor, $target);
-        }
-
-        return self::level($actor->role) < self::level($target->role);
+        return $actor->hasPermission('users.manage') && $this->access()->canManage($actor, $target);
     }
 
+    /** Anyone in the admin area may open the list; they only ever see people below their own clearance. */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isStaff();
     }
 
+    /** Your own record is always yours to see. */
     public function view(User $user, User $model): bool
     {
-        // finance and logistics can view their own profile only
-        // not other users — they have no user management authority
-        if (in_array($user->role, ['finance', 'logistics'])) {
-            return $user->id === $model->id;
-        }
-
-        return $this->outranks($user, $model);
+        return $user->is($model) || $this->manages($user, $model);
     }
 
     public function create(User $user): bool
     {
-        // finance and logistics cannot create users
-        return in_array($user->role, ['super_admin', 'admin', 'manager']);
+        return $user->hasPermission('users.manage');
     }
 
     public function update(User $user, User $model): bool
     {
-        // finance and logistics can only update themselves
-        if (in_array($user->role, ['finance', 'logistics'])) {
-            return $user->id === $model->id;
-        }
-
-        return $this->outranks($user, $model);
+        return $this->manages($user, $model);
     }
 
     public function delete(User $user, User $model): bool
     {
-        return $this->outranks($user, $model);
+        return $this->manages($user, $model);
     }
 
     public function restore(User $user, User $model): bool
     {
-        return $this->outranks($user, $model);
+        return $this->manages($user, $model);
     }
 
     public function forceDelete(User $user, User $model): bool
     {
-        return $user->isSuperAdmin();
+        return $user->hasPermission('users.purge');
     }
 
     public function manageAccount(User $user, User $model): bool
     {
-        return $this->outranks($user, $model);
+        return $this->manages($user, $model);
     }
 
+    /** May they give this role (by key)? Only roles below their own clearance, and only if they may manage accounts. */
     public function canAssignRole(User $user, string $role): bool
     {
-        // finance, logistics, driver cannot assign any roles
-        if (in_array($user->role, ['finance', 'logistics', 'driver'])) {
-            return false;
-        }
-
-        return self::level($user->role) < self::level($role);
+        return $user->hasPermission('users.manage') && $this->access()->canAssignRoleKey($user, $role);
     }
 }

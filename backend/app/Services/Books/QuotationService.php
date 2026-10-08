@@ -72,7 +72,7 @@ class QuotationService
     {
         try {
             $name = trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: 'A customer';
-            foreach (User::holding(['super_admin', 'admin'])->get() as $admin) {
+            foreach (User::withPermission('quotes.write')->get() as $admin) {
                 Notification::createFor($admin, 'quotation_requested', 'New quotation request', "{$name} asked for prices — {$q->voucher_number}.", '/admin/quotes/' . $q->id, 'Price it', ['voucher_id' => $q->id], ['database'], 'normal');
             }
         } catch (\Throwable $e) {

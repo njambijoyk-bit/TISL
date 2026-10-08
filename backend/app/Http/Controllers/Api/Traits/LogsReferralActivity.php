@@ -44,8 +44,7 @@ trait LogsReferralActivity
     private function resolveActorType($user): string
     {
         if (!$user) return 'system';
-        $adminRoles = ['super_admin', 'admin', 'finance', 'logistics', 'driver'];
-        return $user->holdsAny($adminRoles) ? 'admin' : 'customer';
+        return $user->isPortal() ? 'customer' : 'admin';
     }
 
     // ─────────────────────────────────────────────────────────────────────────

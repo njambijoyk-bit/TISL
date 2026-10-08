@@ -11,7 +11,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { btnPrimary, btnGhost, btnBin, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
 import BoardChip from '../../components/BoardChip';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 const FILTERS = [['', 'All'], ['pending', 'Waiting for approval'], ['approved', 'Approved'], ['draft', 'Drafts'], ['rejected', 'Not approved']];
 
@@ -23,7 +23,7 @@ export default function BoardList() {
   const [approval, setApproval] = useState('');
   const [customers, setCustomers] = useState(false);
   const [q, setQ] = useState('');
-  const isSuper = hasAnyRole(useAuthStore((st) => st.user), ['super_admin']);
+  const isSuper = hasPermission(useAuthStore((st) => st.user), 'campaigns.purge');   // may delete for good
   const [bin, setBin] = useState(false);   // the recycle bin: boards that were deleted
 
   const load = useCallback(async () => {

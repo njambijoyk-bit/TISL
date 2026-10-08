@@ -61,7 +61,7 @@ const AssignModal = ({ onClose, onAssign, currentAssignedId = null }) => {
     try {
       const r = await api.get('/admin/users', { params: { per_page: 200 } });
       const all = r.data.data || r.data;
-      setAdmins(Array.isArray(all) ? all.filter(u => u.role !== 'customer') : []);
+      setAdmins(Array.isArray(all) ? all : []);
     } catch {
       setError('Failed to load staff users. Please try again.');
     } finally {

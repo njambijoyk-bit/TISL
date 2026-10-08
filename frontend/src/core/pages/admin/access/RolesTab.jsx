@@ -25,14 +25,14 @@ export default function RolesTab({ data, reload }) {
       <td style={td}>{r.permissions.length}{r.module_key ? <div style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{moduleName(r.module_key)} module</div> : null}</td>
       <td style={td}>{r.people}</td>
       <td style={{ ...td, whiteSpace: 'nowrap' }}>
-        {r.kind === 'staff' && r.key !== 'super_admin' && canBuild && (
+        {r.kind === 'staff' && !r.holds_everything && canBuild && (
           <>
             <button type="button" style={btn(false)} onClick={() => setEditing(r)}><Pencil size={13} /> Edit</button>{' '}
             <button type="button" style={btn(false)} title="Start a new role from this one" onClick={() => setEditing({ copyOf: r })}><Copy size={13} /> Copy</button>
           </>
         )}
-        {(r.key === 'super_admin' || r.kind === 'portal') && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'inline-flex', gap: 4, alignItems: 'center' }}><Lock size={12} /> Fixed</span>}
-        {r.kind === 'staff' && r.key !== 'super_admin' && !canBuild && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Owner only</span>}
+        {(r.holds_everything || r.kind === 'portal') && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', display: 'inline-flex', gap: 4, alignItems: 'center' }}><Lock size={12} /> Fixed</span>}
+        {r.kind === 'staff' && !r.holds_everything && !canBuild && <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Owner only</span>}
       </td>
     </tr>
   );

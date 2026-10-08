@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { hasPermission } from '../../../../_shared/lib/roles';
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const inputStyle = {
@@ -367,7 +368,7 @@ export default function CustomerTierSettings() {
   const [tab, setTab] = useState('tiers');
 
   const { user: authUser } = useAuthStore();
-  const isSuperAdmin = authUser?.role === 'super_admin';
+  const isSuperAdmin = hasPermission(authUser, 'settings.delete');   // may delete tiers and types
 
   useEffect(() => { loadAll(); loadActivity(); }, []);
 

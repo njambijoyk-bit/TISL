@@ -8,42 +8,26 @@ import {
   Edit2, X, Check, User, FileText, Bell, Settings,
 } from 'lucide-react';
 import useUsersStore from '../../../../_shared/store/usersStore';
-import { useAuthStore } from '../../../../_shared/store/index';
 import toast from 'react-hot-toast';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ROLE_META = {
-  super_admin: { label: 'Super Admin', color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  ring: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },
-  admin:       { label: 'Admin',       color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },
-  manager:     { label: 'Manager',     color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },
-  finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
-  logistics:   { label: 'Logistics',   color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
-  sales_rep:   { label: 'Sales Rep',   color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
-  driver:      { label: 'Driver',      color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
-  customer:    { label: 'Customer',    color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
-  vendor:      { label: 'Vendor',      color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   ring: 'rgba(220,38,38,0.25)'  },
-};
+// The role badge colour follows the clearance level (0 to 6), never the role's name: roles are made in the role builder.
+const LEVEL_STYLES = [
+  { color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },   // 0  no staff access (customers, vendors)
+  { color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },   // 1
+  { color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },   // 2
+  { color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },   // 3
+  { color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  ring: 'rgba(124,58,237,0.25)' },   // 4
+  { color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },   // 5
+  { color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)', ring: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },   // 6
+];
 
 const STATUS_STYLES = {
   active:               { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
   inactive:             { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)'  },
   suspended:            { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', dot: '#ef4444', ring: 'rgba(239,68,68,0.25)'   },
   pending_verification: { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', dot: '#f59e0b', ring: 'rgba(245,158,11,0.25)'  },
-};
-
-const ROLES_ASSIGNABLE = ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver', 'customer', 'vendor'];
-
-const LEVELS = {
-  super_admin: 1,
-  admin: 2,
-  manager: 3,
-  finance: 4,
-  logistics: 5,
-  sales_rep: 6,
-  customer: 7,
-  vendor: 8,
-  driver: 9
 };
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -275,11 +259,10 @@ function LockAccountModal({ onClose, onConfirm, loading }) {
 export default function UserDetail() {
   const { id }      = useParams();
   const navigate    = useNavigate();
-  const { user: currentAdmin } = useAuthStore();
 
   const {
     currentUser: user, loading, actionLoading,
-    fetchUserById, updateUser, deleteUser, restoreUser,
+    fetchUserById, fetchRoles, roles, updateUser, deleteUser, restoreUser,
     updateStatus, unlockUser, forcePasswordReset, resetPassword,
     clearCurrentUser, verifyEmail, unverifyEmail,
     verifyPhone, unverifyPhone, lockAccount,
@@ -293,6 +276,7 @@ export default function UserDetail() {
 
   useEffect(() => {
     fetchUserById(id);
+    fetchRoles();
     return () => clearCurrentUser();
   }, [id]);
 
@@ -315,9 +299,9 @@ export default function UserDetail() {
   }, [user]);
 
   const isLocked  = user?.locked_until && new Date(user.locked_until) > new Date();
-  const canManage = user ? LEVELS[currentAdmin?.role] < LEVELS[user.role] : false;
-  const isStaff   = ['admin', 'manager', 'sales_rep'].includes(user?.role);
-  const rm        = ROLE_META[user?.role]        ?? ROLE_META.customer;
+  const canManage = Boolean(user?.manageable);   // worked out by the server from clearance
+  const isStaff   = user?.role_kind === 'staff';
+  const rm        = LEVEL_STYLES[user?.clearance ?? 0] ?? LEVEL_STYLES[0];
   const st        = STATUS_STYLES[user?.status]  ?? STATUS_STYLES.inactive;
 
   const setF = (k) => (v) => setFormData(f => ({ ...f, [k]: v }));
@@ -383,11 +367,7 @@ export default function UserDetail() {
 
           {/* Avatar */}
           <img
-            src={
-              user.role === 'customer'
-                ? (user.customer?.profile_image_url || user.profile_picture_url)
-                : user.profile_picture_url
-            }
+            src={user.customer ? (user.customer.profile_image_url || user.profile_picture_url) : user.profile_picture_url}
             alt={user.name}
             style={{
               width: 64, height: 64, borderRadius: '50%', objectFit: 'cover',
@@ -399,7 +379,7 @@ export default function UserDetail() {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
               <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{user.name}</h1>
-              <Badge bg={rm.bg} color={rm.color} ring={rm.ring}>{rm.label}</Badge>
+              <Badge bg={rm.bg} color={rm.color} ring={rm.ring}>{user.role_name || user.role}</Badge>
               <Badge bg={st.bg} color={st.color} ring={st.ring}>
                 <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
                 {user.status?.replace('_', ' ')}
@@ -532,8 +512,9 @@ export default function UserDetail() {
                 <div>
                   <p style={sectionHeader}><Shield size={14} style={{ color: 'var(--text-tertiary)' }} /> Role</p>
                   <select value={formData.role} onChange={e => setF('role')(e.target.value)} style={{ ...inputStyle, width: 'auto', minWidth: 180 }} onFocus={inputFocus} onBlur={inputBlur}>
-                    {ROLES_ASSIGNABLE.filter(r => LEVELS[currentAdmin?.role] < LEVELS[r]).map(r => (
-                      <option key={r} value={r}>{ROLE_META[r].label}</option>
+                    {/* the roles you may give, from the server; the role they have now is always listed */}
+                    {[...(roles?.assignable ?? []), ...((roles?.assignable ?? []).some(r => r.key === user.role) ? [] : [{ key: user.role, name: user.role_name || user.role }])].map(r => (
+                      <option key={r.key} value={r.key}>{r.name}</option>
                     ))}
                   </select>
                 </div>

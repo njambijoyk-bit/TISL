@@ -19,7 +19,7 @@ class LoyaltyJournalPack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['finance', 'manager', 'admin', 'super_admin']; }
+    public function permission(): string { return 'books.view'; }
 
     public function contexts(): array { return ['voucher']; }
 

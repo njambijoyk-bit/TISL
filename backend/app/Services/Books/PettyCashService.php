@@ -19,8 +19,6 @@ use Illuminate\Support\Facades\Schema;
  */
 class PettyCashService
 {
-    public const MANAGERS = ['admin', 'super_admin', 'finance'];
-
     public function __construct(private VoucherService $vouchers, private LedgerService $ledgers) {}
 
     public static function ready(): bool
@@ -30,7 +28,7 @@ class PettyCashService
 
     public static function isManager(?User $u): bool
     {
-        return $u && $u->holdsAny(self::MANAGERS);
+        return $u && $u->hasPermission('books.pettycash');
     }
 
     /** Every petty cash ledger, with what it holds, its float and custodian, and what it takes to top it up. */

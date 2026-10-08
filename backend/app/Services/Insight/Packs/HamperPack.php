@@ -20,7 +20,7 @@ class HamperPack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['super_admin', 'admin', 'manager']; }
+    public function permission(): string { return 'insight.ops'; }
 
     public function contexts(): array { return ['hamper']; }
 

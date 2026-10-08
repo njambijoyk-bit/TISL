@@ -105,7 +105,7 @@ class DeliveryStatsController extends Controller
             'driver_performance_stats',
             300,
             function () {
-                $drivers = User::where('role', 'driver')
+                $drivers = User::drivers()
                     ->where('status', 'active')
                     ->get();
 
@@ -153,7 +153,7 @@ class DeliveryStatsController extends Controller
 
     public function driverDetail(Request $request, int $driverId): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($driverId);
+        $driver = User::drivers()->findOrFail($driverId);
 
         $aiOutput = null;
         if ($request->boolean('include_ai')) {
@@ -208,7 +208,7 @@ class DeliveryStatsController extends Controller
         $manifest = DeliveryManifest::findOrFail($manifestId);
         $user     = Auth::user();
 
-        $isAdmin      = $user->holdsAny(['admin']);
+        $isAdmin      = $user->hasPermission('delivery.manage');
         $isOwnDriver  = $manifest->driver_id === $user->id;
 
         if (! $isAdmin && ! $isOwnDriver)

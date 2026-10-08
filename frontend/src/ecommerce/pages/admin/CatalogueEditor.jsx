@@ -16,10 +16,9 @@ import SectionListEditor from '../../components/admin/catalogue/SectionListEdito
 import { AudiencePicker } from '../../components/admin/catalogue/bits';
 import { fieldStyle, useCatalogueMeta } from '../../components/admin/catalogue/catalogueMeta';
 import { SIZE_LABELS, TYPE_ONE } from '../../lib/catalogue/labels';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 const KINDS = [['product', 'Products'], ['service', 'Services'], ['hamper', 'Hampers'], ['auction', 'Auctions'], ['category', 'A category'], ['brand', 'A brand']];
-const PUBLISHERS = ['admin', 'super_admin', 'manager', 'finance'];
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.76rem', display: 'inline-flex', gap: 4, alignItems: 'center' };
 const iconBtn = { border: '1px solid var(--line)', background: 'var(--surface-card)', color: 'inherit', borderRadius: 6, padding: 4, display: 'inline-flex', cursor: 'pointer' };
 
@@ -29,7 +28,7 @@ export default function CatalogueEditor() {
   const isNew = !id;
   const navigate = useNavigate();
   const roleUser = useAuthStore((s) => s.user);
-  const canPublish = hasAnyRole(roleUser, PUBLISHERS);
+  const canPublish = hasPermission(roleUser, 'catalogue.publish');
   const [meta] = useCatalogueMeta();
   const [f, setF] = useState({ title: '', subtitle: '', size: 'full', status: 'draft', access: 'everyone', customer_types: [], settings: { cover: true, contents: true, back: true } });
   const [entries, setEntries] = useState([]);
@@ -92,7 +91,7 @@ export default function CatalogueEditor() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto', display: 'grid', gap: 18 }}>
         <div><CatalogueTabs back="/admin/catalogues" backLabel="Catalogues" /><HubHeader title={isNew ? 'New catalogue' : f.title || 'Catalogue'} description={entries.length > 1 ? `A catalogue of ${entries.length} items.` : 'One item makes a brochure; several make a catalogue.'} /></div>
-        {!canEdit && <p role="alert" style={{ ...card, padding: 12, fontSize: '0.84rem', color: colors.warningText }}>You can look at this one, but only its maker (while it is a draft) or a manager, finance, admin or super admin can change it.</p>}
+        {!canEdit && <p role="alert" style={{ ...card, padding: 12, fontSize: '0.84rem', color: colors.warningText }}>You can look at this one, but only its maker (while it is a draft) or someone who may publish can change it.</p>}
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
           <strong style={{ color: colors.text }}>The document</strong>
@@ -115,7 +114,7 @@ export default function CatalogueEditor() {
           {canEdit && canPublish && f.status !== 'published' && <button type="button" style={btnGhost} disabled={busy || entries.length === 0} onClick={() => save('published')}>Save and publish</button>}
           {canEdit && canPublish && f.status === 'published' && <button type="button" style={btnGhost} disabled={busy} onClick={() => save('draft')}>Take off (back to draft)</button>}
           {!isNew && <button type="button" style={{ ...btnGhost, display: 'inline-flex', gap: 6, alignItems: 'center' }} disabled={dirty || entries.length === 0} title={dirty ? 'Save your changes first' : ''} onClick={() => setPreview(true)}><Eye size={14} /> Preview and download</button>}
-          {!canPublish && <span style={{ fontSize: '0.78rem', color: colors.textFaint }}>A manager, finance, admin or super admin publishes it.</span>}
+          {!canPublish && <span style={{ fontSize: '0.78rem', color: colors.textFaint }}>Someone who may publish price lists and catalogues makes it live.</span>}
           {dirty && <span style={{ fontSize: '0.78rem', color: colors.warningText }}>Unsaved changes</span>}
           <button type="button" style={{ ...btnGhost, marginLeft: 'auto' }} onClick={() => navigate('/admin/catalogues')}>Back to the list</button>
         </div>

@@ -16,7 +16,7 @@ class UnitPricePack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['super_admin', 'admin', 'manager', 'finance', 'sales_rep', 'logistics']; }
+    public function permission(): string { return 'insight.view'; }
 
     public function contexts(): array { return ['unit_price']; }
 

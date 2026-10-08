@@ -25,6 +25,7 @@ import employeesAPI from '../api/employees';
 import ThemeMenu from '../components/common/ThemeMenu';
 import toast from 'react-hot-toast';
 
+import { clearanceOf, isDriver as isDriverAccount, isStaff, roleName } from '../lib/roles';
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const BG       = 'transparent';
 const SURFACE  = 'rgba(128,128,128,0.07)';
@@ -96,14 +97,8 @@ const ADMIN_ROUTES = [
 const DEFAULT_CUSTOMER_SHORTCUTS = ['orders', 'quotes', 'profile', 'products', 'services'];
 const DEFAULT_ADMIN_SHORTCUTS    = ['dashboard', 'orders', 'products', 'customers', 'reports'];
 
-const ROLE_LABELS = {
-  admin: 'Admin', super_admin: 'Super Admin', manager: 'Manager', finance: 'Finance',
-  driver: 'Driver', logistics: 'Logistics', sales_rep: 'Sales Rep', staff: 'Staff',
-};
-const ROLE_COLORS = {
-  super_admin: 'var(--color-primary-500)', admin: '#3b82f6', manager: '#10b981', finance: '#f59e0b',
-  driver: '#0ea5e9', logistics: '#f97316', sales_rep: '#ec4899', staff: '#06b6d4',
-};
+// the colour of the role card follows the clearance level (0 to 6), not the role's name: roles are made in the role builder
+const LEVEL_COLORS = ['#6b7280', '#06b6d4', '#f97316', '#10b981', '#f59e0b', '#3b82f6', 'var(--color-primary-500)'];
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -905,7 +900,7 @@ function AdminPWAHome({ user, onLogout }) {
   }, []);
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
-  const isDriver  = user?.role === 'driver';   // a driver has their own routes under Overview: no calendar tab, no quick access
+  const isDriver  = isDriverAccount(user);   // a driver has their own routes under Overview: no calendar tab, no quick access
   const tabs      = isDriver ? ADMIN_TABS.filter((t) => t.key !== 'calendar') : ADMIN_TABS;
 
   return (
@@ -935,10 +930,9 @@ function AdminPWAHome({ user, onLogout }) {
 }
 
 function AdminOverviewTab({ user, navigate }) {
-  const role      = user?.role ?? 'staff';
-  const roleColor = ROLE_COLORS[role] ?? '#6b7280';
-  const roleLabel = ROLE_LABELS[role] ?? role;
-  const isDriver = role === 'driver';
+  const roleColor = LEVEL_COLORS[clearanceOf()] ?? '#6b7280';
+  const roleLabel = roleName(user) || 'Staff';
+  const isDriver = isDriverAccount(user);
   const driverLinks = [
     { label: 'My profile',   desc: 'Your details and password',    path: '/driver/profile',   icon: User,          color: '#8b5cf6' },
     { label: 'My manifests', desc: 'Today\'s deliveries and stops', path: '/driver/manifests', icon: Truck,         color: '#3b82f6' },
@@ -998,7 +992,7 @@ function AdminEmployeeTab({ user, empRecord, navigate }) {
   const rows = empRecord ? [
     { label: 'Full Name',    value: user?.name },
     { label: 'Email',        value: user?.email },
-    { label: 'Role',         value: user?.role?.replace(/_/g, ' ')?.toUpperCase() },
+    { label: 'Role',         value: roleName(user).toUpperCase() },
     { label: 'Job Title',    value: empRecord.job_title || '—' },
     { label: 'Department',   value: empRecord.department?.name || '—' },
     { label: 'Employee No.', value: empRecord.employee_number || '—' },
@@ -1007,7 +1001,7 @@ function AdminEmployeeTab({ user, empRecord, navigate }) {
   ] : [
     { label: 'Full Name', value: user?.name },
     { label: 'Email',     value: user?.email },
-    { label: 'Role',      value: user?.role?.replace(/_/g, ' ')?.toUpperCase() },
+    { label: 'Role',      value: roleName(user).toUpperCase() },
   ];
 
   return (
@@ -1033,7 +1027,7 @@ function AdminEmployeeTab({ user, empRecord, navigate }) {
         </GlassCard>
       )}
 
-      <button onClick={() => navigate(user?.role === 'driver' ? '/driver/profile' : '/admin/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+      <button onClick={() => navigate(isDriverAccount(user) ? '/driver/profile' : '/admin/profile')} className="portal-press" style={{ width: '100%', padding: '10px', borderRadius: 11, border: `1px solid ${BORDER_P}`, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', color: PURPLE, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
         Full Employee Record <ChevronRight size={13} />
       </button>
     </div>
@@ -1126,7 +1120,7 @@ export default function Portal() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const navigate = useNavigate();
   const handleLogout = () => { logout(); navigate('/login'); };
-  const isAdmin = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep', 'driver','staff'].includes(user?.role);
+  const isAdmin = isStaff(user) || isDriverAccount(user);
 
   if (!isAuthenticated) return <UnauthPWAHome />;
   if (isAdmin)          return <AdminPWAHome   user={user} onLogout={handleLogout} />;

@@ -85,13 +85,8 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
             return null;
         }
 
-        // Determine role from explicit field or department mapping
-        $role = $row['role'] ?? match (strtolower($row['department'] ?? '')) {
-            'finance'   => 'finance',
-            'logistics' => 'logistics',
-            'sales'     => 'sales_rep',
-            default     => 'admin',
-        };
+        // the file names the role (validated against the roles the importer may give)
+        $role = $row['role'];
 
         return DB::transaction(function () use ($row, $role, $email) {
             
@@ -171,7 +166,7 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
             '*.email'           => 'required|email',
             '*.name'            => 'required|string|max:255',
             '*.department'      => 'required|string|max:255',
-            '*.role'            => ['nullable', \Illuminate\Validation\Rule::in($this->allowedRoles())],
+            '*.role'            => ['required', \Illuminate\Validation\Rule::in($this->allowedRoles())],
             '*.employment_type' => 'nullable|in:full_time,part_time,contract,intern',
             '*.status'          => 'nullable|in:active,on_leave,suspended,terminated,probation',
             '*.gender'          => 'nullable|in:male,female,other,prefer_not_to_say',
@@ -182,10 +177,9 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
     /** The roles a file may give: the staff roles below the importer's clearance. Never the owner role. */
     private function allowedRoles(): array
     {
-        if (! $this->actor) {
-            return ['admin', 'manager', 'sales_rep', 'finance', 'logistics'];
-        }
+        $access = app(\App\Services\Access\Authorizer::class);
+        $keys = $this->actor ? array_column($access->assignableRoles($this->actor), 'key') : $access->staffRoleKeys();
 
-        return array_values(array_diff(array_column(app(\App\Services\Access\Authorizer::class)->assignableRoles($this->actor), 'key'), ['super_admin']));
+        return array_values(array_diff($keys, $access->roleKeysAtOrAbove(6)));
     }
 }

@@ -11,10 +11,17 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 2;
+    public const VERSION = 3;
+
+    /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
+    public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        3 => ['books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'loyalty.grant', 'loyalty.deduct', 'loyalty.configure', 'loyalty.export', 'customers.represent',
+            'stock.override_expiry', 'stock.expiry_alerts', 'verification.manage', 'verification.override', 'vendors.approve', 'calendar.team', 'attendance.manage', 'attendance.arbitrate',
+            'hr.view', 'hr.purge', 'hr.team', 'projects.manage', 'projects.moderate', 'campaigns.admin', 'campaigns.purge', 'catalogue.publish', 'catalogue.purge', 'engagement.view',
+            'engagement.moderate', 'engagement.settings', 'insight.ops', 'driver.app', 'ai.keys', 'vault.bypass', 'settings.delete'],
         2 => ['system.restore', 'system.logs', 'policies.manage', 'appearance.manage', 'vault.policies', 'vault.settings', 'users.manage', 'users.purge', 'tickets.purge', 'tax.view', 'tax.manage',
             'currency.manage', 'currency.base', 'inventory.accounting', 'inventory.manage', 'catalogue.settings', 'hampers.manage', 'promos.manage', 'promos.admin', 'algorithm.manage',
             'algorithm.run', 'projects.use', 'projects.delete', 'projects.purge', 'hr.manage', 'careers.manage', 'analytics.view', 'insight.mimi', 'resources.manage'],
@@ -117,11 +124,48 @@ class Catalog
         'analytics.view'    => ['extras', 'Insight', 'See search and customer analytics', false],
         'insight.mimi'      => [null, 'Insight', 'See the Mimi chat analytics and block abusers', true],
         'resources.manage'  => [null, 'Operations', 'Manage bookable staff, rooms, tables and equipment', true],
+        // added in R4: one for each role-name check that was left in the code
+        'books.writeoff'    => [null, 'Books', 'Write off what customers owe', true],
+        'books.bounce'      => [null, 'Books', 'Record a bounced cheque', true],
+        'books.pettycash'   => [null, 'Books', 'Top up petty cash, set the float and see every till\'s spends', true],
+        'quotes.write'      => [null, 'Customers', 'Write, change and send quotations', true],
+        'loyalty.grant'     => [null, 'Customers', 'Give loyalty points and redeem points for a customer', true],
+        'loyalty.deduct'    => [null, 'Customers', 'Take loyalty points away', true],
+        'loyalty.configure' => [null, 'Customers', 'Change the loyalty rules and settings', true],
+        'loyalty.export'    => [null, 'Customers', 'Export loyalty data', false],
+        'customers.represent' => [null, 'Customers', 'Can be a customer\'s sales representative', false],
+        'stock.override_expiry' => [null, 'Stock', 'Sell expired stock, with a reason', true],
+        'stock.expiry_alerts' => [null, 'Stock', 'Get the expiry warnings', false],
+        'verification.manage' => [null, 'Stock', 'Hand out verification work and check anyone\'s', true],
+        'verification.override' => [null, 'Stock', 'Verify any item assigned to you, whatever its rules', true],
+        'vendors.approve'   => [null, 'Purchases', 'Make and approve vendor accounts', true],
+        'calendar.team'     => [null, 'People', 'See the team calendar and other people\'s calendars', false],
+        'attendance.manage' => [null, 'People', 'Mark and verify attendance and set the attendance rules', true],
+        'attendance.arbitrate' => [null, 'People', 'Settle attendance disputes, see who reported, mark your own day', true],
+        'hr.view'           => ['extras', 'People', 'See employee records', false],
+        'hr.purge'          => ['extras', 'People', 'Delete employee records for good', true],
+        'hr.team'           => ['extras', 'People', 'Edit the records of the people who report to you', true],
+        'projects.manage'   => ['projects', 'Projects', 'Manage milestones and post staff messages', true],
+        'projects.moderate' => ['projects', 'Projects', 'Edit or remove anyone\'s project messages and see internal notes', true],
+        'campaigns.admin'   => ['campaigns', 'Campaigns', 'Change the customer pin settings and see who looked', true],
+        'campaigns.purge'   => ['campaigns', 'Campaigns', 'Delete boards, campaigns, pins and moodboards for good', true],
+        'catalogue.publish' => ['ecommerce', 'Catalogue', 'Make price lists and catalogues live', true],
+        'catalogue.purge'   => ['ecommerce', 'Catalogue', 'Delete price lists and catalogues for good', true],
+        'engagement.view'   => ['extras', 'Marketing', 'See the reviews, comments and reports waiting for a decision', false],
+        'engagement.moderate' => ['extras', 'Marketing', 'Approve, hide and decide on reviews, comments and reports', true],
+        'engagement.settings' => ['extras', 'Marketing', 'Change who can review, comment and like', true],
+        'insight.ops'       => [null, 'Insight', 'See operational insight and activity: hampers, auctions, promotions, deliveries, projects, leave', false],
+        'driver.app'        => ['extras', 'Delivery', 'Use the driver app: manifests, ratings, incidents and payslips', true],
+        'ai.keys'           => [null, 'System', 'Manage the AI provider keys', true],
+        'vault.bypass'      => [null, 'Vault', 'Get past the vault policies', true],
+        'settings.delete'   => [null, 'System', 'Delete shipping options, customer tiers and customer types', true],
     ];
 
-    /** What only the owner (and a role the owner builds) holds. Admin gets everything else by default. */
+    /** What the admin role does not hold by default (the owner holds everything, and builds roles that hold these). Admin gets everything else. */
     public const OWNER_ONLY = ['system.modules', 'system.devtools', 'system.restore', 'access.roles', 'books.period', 'payroll.run', 'currency.base',
-        'vault.settings', 'algorithm.run', 'projects.purge', 'tickets.purge', 'users.purge'];
+        'vault.settings', 'algorithm.run', 'projects.purge', 'tickets.purge', 'users.purge',
+        'books.writeoff', 'books.bounce', 'verification.override', 'attendance.arbitrate', 'hr.purge', 'projects.moderate', 'campaigns.purge', 'driver.app',
+        'vault.bypass', 'ai.keys', 'settings.delete'];
 
     /** Things a role can approve, optionally up to an amount. approval key => label. */
     public const APPROVALS = [
@@ -136,7 +180,7 @@ class Catalog
     /**
      * key => name, kind, min_clearance, scope_type, data_scope, module, acts_as, description, modules, permissions, approvals.
      * `permissions` of '*' means every permission (also the ones added later). `modules` of ['*'] means every module.
-     * `acts_as` are the old role names the role still satisfies in route checks that have not been moved to permissions yet.
+     * `acts_as` is no longer used for any decision (every check asks for a permission); the column stays so old data and the SQL script still fit.
      */
     public static function roles(): array
     {
@@ -150,34 +194,37 @@ class Catalog
             'admin' => ['name' => 'Admin', 'kind' => 'staff', 'min_clearance' => 5, 'scope_type' => 'global', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Runs the system day to day. Not security roles, the modules, developer tools, period locks or payroll (as before).', 'modules' => ['*'], 'permissions' => $notOwnerOnly,
                 'approvals' => ['journal.approve' => null, 'purchase.approve' => null, 'refund.approve' => null, 'campaign.publish' => null], 'sort' => 20],
-            'senior_accountant' => ['name' => 'Senior accountant', 'kind' => 'staff', 'min_clearance' => 4, 'scope_type' => 'global', 'data_scope' => 'all', 'module' => null, 'acts_as' => ['finance'],
+            'senior_accountant' => ['name' => 'Senior accountant', 'kind' => 'staff', 'min_clearance' => 4, 'scope_type' => 'global', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Sees every branch for the books. Posts and reviews. Cannot change security, roles or the modules.', 'modules' => ['*'],
                 'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'books.review', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage', 'credit.act',
                     'campaigns.build', 'catalogue.pricelists', 'menus.view', 'menus.manage', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
-                    'promos.manage', 'projects.use', 'analytics.view']),
+                    'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
+                    'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view']),
                 'approvals' => ['journal.approve' => null, 'purchase.approve' => null, 'refund.approve' => null], 'sort' => 30],
             'manager' => ['name' => 'Manager', 'kind' => 'staff', 'min_clearance' => 3, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Manages a branch: the default one plus any granted.', 'modules' => ['*'],
                 'permissions' => array_merge(self::STAFF, ['books.view', 'stock.view', 'inventory.view', 'vendors.view', 'menus.view', 'campaigns.build', 'campaigns.publish', 'catalogue.pricelists',
                     'catalogue.delete', 'credit.act', 'delivery.manage', 'tax.view', 'inventory.accounting', 'inventory.manage', 'catalogue.settings', 'promos.manage', 'projects.use',
-                    'analytics.view', 'insight.mimi', 'resources.manage']),
+                    'analytics.view', 'insight.mimi', 'resources.manage', 'quotes.write', 'calendar.team', 'hr.view', 'hr.team', 'stock.override_expiry', 'stock.expiry_alerts', 'loyalty.grant',
+                    'loyalty.deduct', 'loyalty.export', 'projects.manage', 'catalogue.publish', 'engagement.view', 'engagement.moderate', 'insight.ops', 'vendors.approve', 'users.manage']),
                 'approvals' => ['campaign.publish' => null], 'sort' => 40],
             'finance' => ['name' => 'Finance', 'kind' => 'staff', 'min_clearance' => 3, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Does the finance work of the branches assigned or granted.', 'modules' => ['*'],
                 'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage',
                     'menus.view', 'menus.manage', 'campaigns.build', 'catalogue.pricelists', 'credit.act', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
-                    'promos.manage', 'projects.use', 'analytics.view']),
+                    'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
+                    'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view']),
                 'approvals' => [], 'sort' => 50],
             'logistics' => ['name' => 'Logistics', 'kind' => 'staff', 'min_clearance' => 2, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
-                'description' => 'Runs deliveries.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['delivery.manage']), 'approvals' => [], 'sort' => 60],
+                'description' => 'Runs deliveries.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['delivery.manage', 'hr.view']), 'approvals' => [], 'sort' => 60],
             'sales_rep' => ['name' => 'Sales representative', 'kind' => 'staff', 'min_clearance' => 2, 'scope_type' => 'assigned', 'data_scope' => 'assigned', 'module' => null, 'acts_as' => [],
-                'description' => 'Works with the customers assigned to them.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['campaigns.build', 'catalogue.pricelists']), 'approvals' => [], 'sort' => 70],
+                'description' => 'Works with the customers assigned to them.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['campaigns.build', 'catalogue.pricelists', 'quotes.write', 'loyalty.grant', 'customers.represent', 'projects.manage', 'engagement.view', 'users.manage']), 'approvals' => [], 'sort' => 70],
             'cashier' => ['name' => 'Cashier', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'own', 'module' => null, 'acts_as' => [],
                 'description' => 'Takes payments at a branch. Their permissions are added as the till features are tied to permissions.', 'modules' => ['*'], 'permissions' => ['admin.access'], 'approvals' => [], 'sort' => 80],
             'chef' => ['name' => 'Chef', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => 'menus', 'acts_as' => [],
                 'description' => 'Works with recipes and production in the kitchen.', 'modules' => ['menus'], 'permissions' => ['admin.access', 'menus.view', 'menus.manage'], 'approvals' => [], 'sort' => 90],
             'driver' => ['name' => 'Driver', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'own', 'module' => 'extras', 'acts_as' => [],
-                'description' => 'Delivers goods. Uses the driver screens only.', 'modules' => ['extras'], 'permissions' => [], 'approvals' => [], 'sort' => 100],
+                'description' => 'Delivers goods. Uses the driver screens only.', 'modules' => ['extras'], 'permissions' => ['driver.app'], 'approvals' => [], 'sort' => 100],
             'customer' => ['name' => 'Customer', 'kind' => 'portal', 'min_clearance' => 0, 'scope_type' => 'own', 'data_scope' => 'own', 'module' => null, 'acts_as' => [],
                 'description' => 'Shops and sees their own account.', 'modules' => [], 'permissions' => [], 'approvals' => [], 'sort' => 110],
             'vendor' => ['name' => 'Vendor', 'kind' => 'portal', 'min_clearance' => 0, 'scope_type' => 'own', 'data_scope' => 'own', 'module' => null, 'acts_as' => [],

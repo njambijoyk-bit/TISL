@@ -93,8 +93,8 @@ class DeliveryIncidentController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
 
         $reporterRole = match (true) {
-            $reporter->holdsAny(['driver'])   => 'driver',
-            $reporter->holdsAny(['customer']) => 'customer',
+            $reporter->isDriver()   => 'driver',
+            $reporter->isCustomer() => 'customer',
             default                        => 'admin',
         };
 
@@ -384,8 +384,8 @@ class DeliveryIncidentController extends Controller
             $reporterRole = 'admin';
         } else {
             $reporter = User::findOrFail($request->reported_by_user_id);
-            $reporterRole = $reporter->holdsAny(['driver']) ? 'driver'
-                : ($reporter->holdsAny(['customer']) ? 'customer' : 'admin');
+            $reporterRole = $reporter->isDriver() ? 'driver'
+                : ($reporter->isCustomer() ? 'customer' : 'admin');
         }
 
         // Validate reporter is in this manifest

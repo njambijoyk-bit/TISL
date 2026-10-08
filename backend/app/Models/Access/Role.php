@@ -21,7 +21,7 @@ class Role extends Model
     /** The owner's role holds every permission there is, including ones added later. */
     public function holdsEverything(): bool
     {
-        return $this->key === 'super_admin';
+        return $this->key === \App\Services\Access\Catalog::OWNER;
     }
 
     public function permissionKeys(): array
@@ -44,11 +44,5 @@ class Role extends Model
     public function approvals(): HasMany
     {
         return $this->hasMany(RoleApproval::class, 'role_id');
-    }
-
-    /** The old role names this role also counts as, plus its own key. */
-    public function legacyKeys(): array
-    {
-        return array_values(array_unique(array_merge([$this->key], $this->acts_as ?? [])));
     }
 }

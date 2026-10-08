@@ -34,7 +34,7 @@ class CampaignApproval
             return [$manager];
         }
 
-        return User::holding(['admin', 'super_admin'])->where('id', '!=', $authorId)->get()->all();
+        return User::withPermission('campaigns.admin')->where('id', '!=', $authorId)->get()->all();
     }
 
     /** The author sends a draft (or a rejected campaign) for approval. */

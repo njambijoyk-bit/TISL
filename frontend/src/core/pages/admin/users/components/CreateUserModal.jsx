@@ -5,17 +5,19 @@ import {
   MapPin, Calendar, GraduationCap, DollarSign, Users
 } from 'lucide-react';
 import useUsersStore from '../../../../../_shared/store/usersStore';
-import { useAuthStore } from '../../../../../_shared/store/index';
 import toast from 'react-hot-toast';
 
-const LEVELS = { super_admin: 1, admin: 2, manager: 3, sales_rep: 4, customer: 5 };
-
-const ALL_ROLES = [
-  { value: 'admin',     label: 'Admin',     color: '#2563eb', bg: '#eff6ff', ring: '#bfdbfe' },
-  { value: 'manager',   label: 'Manager',   color: '#0891b2', bg: '#ecfeff', ring: '#a5f3fc' },
-  { value: 'sales_rep', label: 'Sales Rep', color: '#059669', bg: '#f0fdf4', ring: '#bbf7d0' },
-  { value: 'customer',  label: 'Customer',  color: '#d97706', bg: '#fffbeb', ring: '#fde68a' },
+// The chip colour follows the clearance level a role needs (0 to 6), never the role's name: roles are made in the role builder.
+const LEVEL_CHIPS = [
+  { color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.3)'  },
+  { color: '#6b7280', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.3)' },
+  { color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.3)'  },
+  { color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.3)'  },
+  { color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  ring: 'rgba(124,58,237,0.3)' },
+  { color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.3)'  },
+  { color: '#be185d', bg: 'rgba(190,24,93,0.1)',   ring: 'rgba(190,24,93,0.3)'  },
 ];
+const chipOf = (r) => LEVEL_CHIPS[r?.min_clearance ?? 0] ?? LEVEL_CHIPS[0];
 
 const STATUS_OPTIONS = [
   { value: 'active',               label: 'Active',    dot: '#22c55e' },
@@ -31,14 +33,14 @@ const EMPLOYMENT_TYPES = [
 ];
 
 export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
-  const { user: currentAdmin } = useAuthStore();
-  const { createUser, actionLoading } = useUsersStore();
+  const { createUser, actionLoading, roles } = useUsersStore();
 
-  const assignableRoles = ALL_ROLES.filter(r => LEVELS[currentAdmin?.role] < LEVELS[r.value]);
+  // the roles this person may give, from the server (clearance decides, so a role built in the role builder appears here by itself)
+  const assignableRoles = roles?.assignable ?? [];
 
   const [form, setForm] = useState({
     name: '', email: '', password: '', phone: '',
-    role: assignableRoles[0]?.value || 'customer',
+    role: assignableRoles[0]?.key || '',
     company_name: '', employee_id: '', department: '',
     status: 'active', force_password_change: true,
     // Employee-specific fields
@@ -56,15 +58,22 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
   const [showPwd, setShowPwd]         = useState(false);
   const [activeTab, setActiveTab]     = useState('basic'); // 'basic' | 'employee'
 
-  const isStaff      = ['admin', 'manager', 'sales_rep'].includes(form.role);
-  const selectedRole = ALL_ROLES.find(r => r.value === form.role) || ALL_ROLES[0];
+  const selectedRole = assignableRoles.find(r => r.key === form.role);
+  const isStaff      = selectedRole?.kind === 'staff';
+  const chip         = chipOf(selectedRole);
 
-  // Reset employee fields when switching to customer role
+  // the first role you may give, once the list has arrived
+  useEffect(() => {
+    const first = (roles?.assignable ?? [])[0];
+    if (first) setForm(f => (f.role ? f : { ...f, role: first.key }));
+  }, [roles]);
+
+  // Reset employee fields when switching to a role that has no employee record
   useEffect(() => {
     if (!isStaff) {
       setActiveTab('basic');
     }
-  }, [form.role]);
+  }, [isStaff]);
 
   const set = (k, v) => {
     setForm(f => ({ ...f, [k]: v }));
@@ -121,13 +130,13 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: `linear-gradient(135deg, ${selectedRole.bg}, ${selectedRole.ring})` }}>
-              <UserPlus size={15} style={{ color: selectedRole.color }} />
+              style={{ background: `linear-gradient(135deg, ${chip.bg}, ${chip.ring})` }}>
+              <UserPlus size={15} style={{ color: chip.color }} />
             </div>
             <div>
               <h2 className="text-base font-bold text-gray-900 dark:text-white leading-tight">Create User</h2>
               <p className="text-xs text-gray-400 leading-tight">
-                {isStaff ? 'Add a new staff member' : 'Add a new customer account'}
+                {isStaff ? 'Add a new staff member' : `Add a new ${(selectedRole?.name || 'user').toLowerCase()} account`}
               </p>
             </div>
           </div>
@@ -175,13 +184,13 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
                 <Label>Role *</Label>
                 <div className="flex flex-wrap gap-2">
                   {assignableRoles.map(r => (
-                    <button key={r.value} type="button" onClick={() => set('role', r.value)}
+                    <button key={r.key} type="button" onClick={() => set('role', r.key)}
                       className="px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all"
-                      style={form.role === r.value
-                        ? { background: r.bg, color: r.color, borderColor: r.ring, boxShadow: `0 0 0 3px ${r.color}18` }
+                      style={form.role === r.key
+                        ? { background: chipOf(r).bg, color: chipOf(r).color, borderColor: chipOf(r).ring, boxShadow: `0 0 0 3px ${chipOf(r).color}18` }
                         : { background: 'transparent', color: 'var(--text-tertiary)', borderColor: 'var(--line)' }
                       }>
-                      {r.label}
+                      {r.name}
                     </button>
                   ))}
                 </div>

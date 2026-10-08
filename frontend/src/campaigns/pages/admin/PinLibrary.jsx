@@ -9,13 +9,12 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
 import { btnPrimary, btnGhost, btnBin, card, colors } from '../../../_shared/theme/tokens';
 import { filterStyle } from '../../../core/components/admin/books/booksFmt';
-import { CAMPAIGN_ROLES, hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 import PinForm from '../../components/PinForm';
 import CustomerFilter from '../../components/CustomerFilter';
 import CustomerPinSettings from '../../components/CustomerPinSettings';
 
 const KINDS = [['', 'All'], ['image', 'Images'], ['video', 'Videos'], ['item', 'Products and services'], ['link', 'Links'], ['note', 'Notes']];
-const PUBLISHERS = ['admin', 'super_admin', 'manager'];
 
 function Thumb({ p }) {
   const src = p.thumb_path || p.media_path || p.video?.poster_remote || p.item?.image;
@@ -36,8 +35,8 @@ function Thumb({ p }) {
 /** The pin library: every pin, with its picture, kind and owner. Make, change, hide (admin, super admin, manager) and delete. */
 export default function PinLibrary() {
   const user = useAuthStore((s) => s.user);
-  const canHide = hasAnyRole(user, PUBLISHERS);
-  const isSuper = hasAnyRole(user, ['super_admin']);
+  const canHide = hasPermission(user, 'campaigns.publish');
+  const isSuper = hasPermission(user, 'campaigns.purge');   // may delete for good
   const [bin, setBin] = useState(false);
   const [customer, setCustomer] = useState(null);   // show only this customer's pins   // the recycle bin: pins that were deleted
   const [rows, setRows] = useState([]);
@@ -67,13 +66,13 @@ export default function PinLibrary() {
   const switchBin = (on) => { setBin(on); setPage(1); };
   const mayChange = (p) => canHide || p.owner_user_id === user?.id;
 
-  if (!hasAnyRole(user, CAMPAIGN_ROLES)) return null;
+  if (!hasPermission(user, 'campaigns.build')) return null;
 
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
         <HubHeader title="Pins" description="Pictures, videos, products, links and notes that boards and campaigns are made from." />
-        {canHide && <CustomerPinSettings canChange={hasAnyRole(user, ['admin', 'super_admin'])} />}
+        {canHide && <CustomerPinSettings canChange={hasPermission(user, 'campaigns.admin')} />}
         <Toolbar right={<div style={{ display: 'flex', gap: 8 }}>
           <button type="button" style={bin ? btnGhost : btnBin} onClick={() => switchBin(!bin)}>{bin ? '‹ Back to pins' : <><Trash2 size={14} /> Recycle bin</>}</button>
           {!bin && <button type="button" style={btnPrimary} onClick={() => setForm('new')}><Plus size={14} /> New pin</button>}

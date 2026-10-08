@@ -5,108 +5,66 @@ namespace App\Policies;
 use App\Models\Customer;
 use App\Models\User;
 
+/**
+ * Loyalty: what staff may do comes from permissions (loyalty.grant, loyalty.deduct, credit.act, loyalty.configure, loyalty.export);
+ * a customer may only see and redeem their own.
+ */
 class LoyaltyPolicy
 {
-    /**
-     * Super admin bypasses every check.
-     */
-    public function before(User $user): ?bool
-    {
-        return $user->isSuperAdmin() ? true : null;
-    }
-
-    /**
-     * View the loyalty ledger list page (admin only).
-     */
+    /** View the loyalty ledger list page (staff). */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isStaff();
     }
 
-    /**
-     * View a specific customer's loyalty detail.
-     * Admins can see any customer; customers can only see themselves.
-     */
+    /** View a specific customer's loyalty detail. Staff can see any customer; customers only themselves. */
     public function view(User $user, Customer $customer): bool
     {
-        if ($user->isAdmin()) return true;
-
-        return $user->isCustomer() && $user->customer?->id === $customer->id;
+        return $user->isStaff() || $this->isThem($user, $customer);
     }
 
-    /**
-     * Grant points to a customer.
-     * All admin roles can grant.
-     */
     public function grantPoints(User $user): bool
     {
-        return $user->holdsAny([
-            'super_admin', 'admin', 'manager', 'finance', 'sales_rep',
-        ]);
+        return $user->hasPermission('loyalty.grant');
     }
 
-    /**
-     * Deduct points from a customer.
-     * Finance, manager, admin only — not sales_rep.
-     */
     public function deductPoints(User $user): bool
     {
-        return $user->holdsAny([
-            'super_admin', 'admin', 'manager', 'finance',
-        ]);
+        return $user->hasPermission('loyalty.deduct');
     }
 
-    /**
-     * Grant store credit to a customer.
-     */
+    /** Grant store credit to a customer. */
     public function grantCredit(User $user): bool
     {
-        return $user->holdsAny([
-            'super_admin', 'admin', 'manager', 'finance',
-        ]);
+        return $user->hasPermission('credit.act');
     }
 
-    /**
-     * Deduct store credit from a customer.
-     */
+    /** Deduct store credit from a customer. */
     public function deductCredit(User $user): bool
     {
-        return $user->holdsAny([
-            'super_admin', 'admin', 'manager', 'finance',
-        ]);
+        return $user->hasPermission('credit.act');
     }
 
-    /**
-     * Initiate a redemption on behalf of a customer (admin-side).
-     * Self-serve redemption (customer route) is handled separately by the customer gate.
-     */
+    /** Redeem points on a customer's behalf (staff), or for themselves (the customer). */
     public function redeem(User $user, Customer $customer): bool
     {
-        // Admin can redeem for any customer
-        if ($user->holdsAny(['super_admin', 'admin', 'manager', 'finance', 'sales_rep'])) {
-            return true;
-        }
-
-        // Customer can only redeem for themselves
-        return $user->isCustomer() && $user->customer?->id === $customer->id;
+        return $user->hasPermission('loyalty.grant') || $this->isThem($user, $customer);
     }
 
-    /**
-     * Manage redemption rules and global settings.
-     * Admin / super_admin only.
-     */
+    /** Manage redemption rules and global settings. */
     public function configureSettings(User $user): bool
     {
-        return $user->holdsAny(['super_admin', 'admin']);
+        return $user->hasPermission('loyalty.configure');
     }
 
-    /**
-     * Export loyalty data (reports).
-     */
+    /** Export loyalty data (reports). */
     public function export(User $user): bool
     {
-        return $user->holdsAny([
-            'super_admin', 'admin', 'manager', 'finance',
-        ]);
+        return $user->hasPermission('loyalty.export');
+    }
+
+    private function isThem(User $user, Customer $customer): bool
+    {
+        return $user->isCustomer() && $user->customer?->id === $customer->id;
     }
 }

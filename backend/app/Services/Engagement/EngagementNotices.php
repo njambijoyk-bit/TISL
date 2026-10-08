@@ -31,7 +31,7 @@ class EngagementNotices
     /** @return User[] */
     private function approvers(): array
     {
-        return User::holding(\App\Http\Controllers\Api\EngagementModerationController::DECIDERS)->get()->all();
+        return User::withPermission('engagement.moderate')->get()->all();
     }
 
     private function task(User $u, string $source, int $id, string $title): void

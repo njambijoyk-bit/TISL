@@ -9,9 +9,7 @@ import useAuthStore from '../../../../_shared/store/authStore';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnGhost, colors } from '../../../../_shared/theme/tokens';
 import { canManifest } from './booksFmt';
-import { hasAnyRole } from '../../../../_shared/lib/roles';
-
-const ROLES = ['admin', 'super_admin', 'manager', 'logistics'];
+import { hasPermission } from '../../../../_shared/lib/roles';
 
 /** "Add to manifest": put a Delivery Note on a draft manifest (same customer + address joins the stop already there). */
 export default function AddToManifest({ voucher, compact = false, onDone }) {
@@ -23,7 +21,7 @@ export default function AddToManifest({ voucher, compact = false, onDone }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
-  if (!hasAnyRole(roleUser, ROLES) || !canManifest(voucher)) return null;
+  if (!hasPermission(roleUser, 'delivery.manage') || !canManifest(voucher)) return null;
 
   const show = async (e) => {
     e?.stopPropagation();

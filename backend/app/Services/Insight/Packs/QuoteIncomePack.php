@@ -19,7 +19,7 @@ class QuoteIncomePack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['super_admin', 'admin', 'manager', 'finance', 'sales_rep']; }
+    public function permission(): string { return 'quotes.write'; }
 
     public function contexts(): array { return ['voucher']; }
 

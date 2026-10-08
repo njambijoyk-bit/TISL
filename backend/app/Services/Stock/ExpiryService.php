@@ -101,11 +101,9 @@ class ExpiryService
         }
 
         $made = 0;
-        $roles = $this->policy->global()['notify_roles'];
-        if ($roles) {
-            $made += $this->notify($roles, collect($due)->pluck('batch'), 'stock_expiring', fn ($n) => "{$n} " . ($n === 1 ? 'batch expires' : 'batches expire') . ' soon', fn ($b) => 'expires ' . $b->expiry_date->format('d M Y'));
-            $made += $this->notify($roles, $expiredToday, 'stock_expired', fn ($n) => "{$n} " . ($n === 1 ? 'batch has' : 'batches have') . ' expired', fn ($b) => 'expired ' . $b->expiry_date->format('d M Y'));
-        }
+        // told: everyone whose role holds stock.expiry_alerts, for the branches they cover
+        $made += $this->notify(collect($due)->pluck('batch'), 'stock_expiring', fn ($n) => "{$n} " . ($n === 1 ? 'batch expires' : 'batches expire') . ' soon', fn ($b) => 'expires ' . $b->expiry_date->format('d M Y'));
+        $made += $this->notify($expiredToday, 'stock_expired', fn ($n) => "{$n} " . ($n === 1 ? 'batch has' : 'batches have') . ' expired', fn ($b) => 'expired ' . $b->expiry_date->format('d M Y'));
         foreach ($due as $d) {
             $d['batch']->forceFill(['last_warned_days' => $d['band']])->saveQuietly();   // each band warns once, even if nobody could be told
         }
@@ -114,7 +112,7 @@ class ExpiryService
     }
 
     /** One notification per person, listing the batches at the branches they cover. */
-    private function notify(array $roles, Collection $batches, string $type, \Closure $title, \Closure $when): int
+    private function notify(Collection $batches, string $type, \Closure $title, \Closure $when): int
     {
         if ($batches->isEmpty()) {
             return 0;
@@ -124,9 +122,9 @@ class ExpiryService
         $byBatch = $batches->keyBy('id');
         $made = 0;
 
-        foreach (User::holding($roles)->get() as $user) {
-            $cleared = DB::table('location_user')->where('user_id', $user->id)->pluck('location_id')->map(fn ($x) => (int) $x)->all();
-            $mine = $rows->filter(fn ($r) => ! $cleared || in_array((int) $r->location_id, $cleared, true));   // no branch clearance = every branch
+        foreach (User::withPermission('stock.expiry_alerts')->get() as $user) {
+            $cleared = app(\App\Services\Access\Authorizer::class)->locationIds($user);   // null = every branch
+            $mine = $rows->filter(fn ($r) => $cleared === null || in_array((int) $r->location_id, $cleared, true));
             if ($mine->isEmpty()) {
                 continue;
             }

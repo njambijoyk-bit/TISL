@@ -14,7 +14,7 @@ class ProjectPolicy
      */
     private function isStaff(User $user): bool
     {
-        return $user->holdsAny(['super_admin', 'admin', 'manager', 'sales_rep', 'driver', 'logistics', 'finance',]);
+        return $user->isStaff() || $user->canDrive();
     }
 
     /**
@@ -62,9 +62,9 @@ class ProjectPolicy
         return $this->isStaff($user);
     }
 
-    private function isSuperAdmin(User $user): bool
+    private function canPurge(User $user): bool
     {
-        return $user->holdsAny(['super_admin']);
+        return $user->hasPermission('projects.purge');
     }
 
     /**
@@ -85,7 +85,7 @@ class ProjectPolicy
      */
     public function view(User $user, Project $project): bool
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->canPurge($user)) {
             return true;
         }
 
@@ -103,7 +103,7 @@ class ProjectPolicy
      */
     public function create(User $user): bool
     {
-        return $this->isStaff($user) || $user->holdsAny(['customer']);
+        return $this->isStaff($user) || $user->isCustomer();
     }
 
     /**
@@ -114,7 +114,7 @@ class ProjectPolicy
     public function update(User $user, Project $project): bool
     {
         if ($this->isStaff($user)) {
-            if ($user->holdsAny(['super_admin', 'admin'])) {
+            if ($user->hasPermission('projects.delete')) {
                 return true;
             }
 
@@ -143,11 +143,11 @@ class ProjectPolicy
      */
     public function delete(User $user, Project $project): bool
     {
-        if ($user->holdsAny(['super_admin'])) {
+        if ($this->canPurge($user)) {
             return true;
         }
 
-        if (! $user->holdsAny(['admin'])) {
+        if (! $user->hasPermission('projects.delete')) {
             return false;
         }
 
@@ -166,7 +166,7 @@ class ProjectPolicy
      */
     public function viewTrashed(User $user): bool
     {
-        return $user->holdsAny(['super_admin', 'admin']);
+        return $user->hasPermission('projects.delete');
     }
 
     /**
@@ -176,7 +176,7 @@ class ProjectPolicy
      */
     public function restore(User $user, Project $project): bool
     {
-        return $user->holdsAny(['super_admin', 'admin']);
+        return $user->hasPermission('projects.delete');
     }
 
     /**
@@ -185,7 +185,7 @@ class ProjectPolicy
      */
     public function forceDelete(User $user, Project $project): bool
     {
-        return $user->holdsAny(['super_admin']);
+        return $this->canPurge($user);
     }
 
     // -----------------------------
@@ -199,7 +199,7 @@ class ProjectPolicy
      */
     public function manageParticipants(User $user, Project $project): bool
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->canPurge($user)) {
             return true;
         }
 
@@ -222,7 +222,7 @@ class ProjectPolicy
      */
     public function comment(User $user, Project $project): bool
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->canPurge($user)) {
             return true;
         }
 
@@ -247,7 +247,7 @@ class ProjectPolicy
     public function viewFinance(User $user, Project $project): bool
     {
         if ($this->isStaff($user)) {
-            if ($user->holdsAny(['super_admin', 'admin'])) {
+            if ($user->hasPermission('projects.delete')) {
                 return true;
             }
             $p = $this->participant($user, $project);
@@ -265,7 +265,7 @@ class ProjectPolicy
      */
     public function manageLinks(User $user, Project $project): bool
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->canPurge($user)) {
             return true;
         }
 
@@ -285,7 +285,7 @@ class ProjectPolicy
      */
     public function manageWork(User $user, Project $project): bool
     {
-        if ($this->isSuperAdmin($user)) {
+        if ($this->canPurge($user)) {
             return true;
         }
 

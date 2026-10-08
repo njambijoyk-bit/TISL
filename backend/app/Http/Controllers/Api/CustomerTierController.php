@@ -133,8 +133,8 @@ class CustomerTierController extends Controller
 
     public function tierDestroy($id): JsonResponse
     {
-        if (! auth()->user()->holdsAny(['super_admin'])) {
-            return response()->json(['message' => 'Only superadmin can delete tiers'], 403);
+        if (! auth()->user()->hasPermission('settings.delete')) {
+            return response()->json(['message' => 'You do not have permission to delete tiers'], 403);
         }
 
         $tier = CustomerTier::findOrFail($id);
@@ -241,8 +241,8 @@ class CustomerTierController extends Controller
 
     public function typeDestroy($id): JsonResponse
     {
-        if (! auth()->user()->holdsAny(['super_admin'])) {
-            return response()->json(['message' => 'Only superadmin can delete customer types'], 403);
+        if (! auth()->user()->hasPermission('settings.delete')) {
+            return response()->json(['message' => 'You do not have permission to delete customer types'], 403);
         }
 
         $type = CustomerTypeDiscount::findOrFail($id);

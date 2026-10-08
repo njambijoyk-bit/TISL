@@ -207,7 +207,7 @@ class AccessController extends Controller
         if ($bad = $this->cannotManage($request->user(), $target) ?? $this->cannotAssign($request->user(), $role)) {
             return $bad;
         }
-        if ($stop = $this->lastOwnerStop($target, $role->key === 'super_admin' ? 6 : 0)) {
+        if ($stop = $this->lastOwnerStop($target, $role->holdsEverything() ? 6 : 0)) {
             return $stop;
         }
         $target->role = $role->key;
@@ -441,7 +441,7 @@ class AccessController extends Controller
     private function roleRow(Role $r): array
     {
         return ['id' => $r->id, 'key' => $r->key, 'name' => $r->name, 'kind' => $r->kind, 'min_clearance' => (int) $r->min_clearance, 'scope_type' => $r->scope_type, 'data_scope' => $r->data_scope,
-            'module_key' => $r->module_key, 'acts_as' => $r->acts_as ?? [], 'restrictions' => $r->restrictions ?? (object) [], 'description' => $r->description, 'is_system' => (bool) $r->is_system, 'is_active' => (bool) $r->is_active,
+            'module_key' => $r->module_key, 'holds_everything' => $r->holdsEverything(), 'restrictions' => $r->restrictions ?? (object) [], 'description' => $r->description, 'is_system' => (bool) $r->is_system, 'is_active' => (bool) $r->is_active,
             'permissions' => $r->holdsEverything() ? DB::table('permissions')->pluck('key')->all() : $r->rolePermissions->pluck('permission_key')->values()->all(),
             'modules' => $r->modules->pluck('module_key')->values()->all(),
             'approvals' => $r->approvals->map(fn ($a) => ['key' => $a->approval_key, 'max_amount' => $a->max_amount])->values()->all(),

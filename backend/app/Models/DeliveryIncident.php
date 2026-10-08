@@ -113,17 +113,17 @@ class DeliveryIncident extends Model
      */
     public function visibleDescriptionFor(User $user): ?string
     {
-        if ($user->isAdmin()) {
+        if ($user->isStaff()) {
             return $this->getRawOriginal('description');
         }
 
-        if ($user->holdsAny(['driver']) && $this->driver_can_see) {
+        if ($user->isDriver() && $this->driver_can_see) {
             return $this->is_redacted
                 ? $this->redacted_description
                 : $this->getRawOriginal('description');
         }
 
-        if ($user->holdsAny(['customer']) && $this->customer_can_see) {
+        if ($user->isCustomer() && $this->customer_can_see) {
             return $this->is_redacted
                 ? $this->redacted_description
                 : $this->getRawOriginal('description');

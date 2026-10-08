@@ -8,6 +8,7 @@ import loyaltyAPI from '../../../_shared/api/loyalty';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { useAuthStore } from '../../../_shared/store/index';
 
+import { hasPermission } from '../../../_shared/lib/roles';
 // ── Tokens ────────────────────────────────────────────────────────────────────
 
 const card = {
@@ -416,12 +417,11 @@ export default function LoyaltyLedgerDetail() {
   const [tierOptions, setTierOptions] = useState([]);
   useEffect(() => { customerTiersAPI.getActiveTiers().then(setTierOptions).catch(() => {}); }, []);
 
-  const role = user?.role;
-  const canGrantPoints  = ['super_admin','admin','manager','finance','sales_rep'].includes(role);
-  const canDeductPoints = ['super_admin','admin','manager','finance'].includes(role);
-  const canGrantCredit  = ['super_admin','admin','manager','finance'].includes(role);
-  const canDeductCredit = ['super_admin','admin','manager','finance'].includes(role);
-  const canRedeem       = ['super_admin','admin','manager','finance','sales_rep'].includes(role);
+  const canGrantPoints  = hasPermission(user, 'loyalty.grant');
+  const canDeductPoints = hasPermission(user, 'loyalty.deduct');
+  const canGrantCredit  = hasPermission(user, 'credit.act');
+  const canDeductCredit = hasPermission(user, 'credit.act');
+  const canRedeem       = hasPermission(user, 'loyalty.grant');
 
   // Load customer + settings once
   useEffect(() => {

@@ -9,7 +9,7 @@ import {
   Clock, RefreshCw, TrendingUp, Star, MessageSquare, Wrench, Tag, Users,
   Share2, BrainCircuit, BarChart2, SlidersHorizontal, GitBranch, Package, Info,
 } from 'lucide-react';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
@@ -462,8 +462,7 @@ function AlgoDevNotesModal({ onClose }) {
 export default function CustomerAlgorithmPanel() {
   const { user, token } = useAuthStore();
   const navigate = useNavigate();
-  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
-  console.log('user role:', user?.role, '| isSuperAdmin:', isSuperAdmin);
+  const isSuperAdmin = hasPermission(user, 'algorithm.run');   // may run the scoring
   const headers = { Authorization: `Bearer ${token}` };
 
   // ── Tab ─────────────────────────────────────────────────────────────────────

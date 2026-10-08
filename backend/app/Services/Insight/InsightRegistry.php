@@ -28,7 +28,7 @@ class InsightRegistry
 
     public function allowed(InsightPack $p, ?User $u): bool
     {
-        if (! $u || ! $u->holdsAny($p->roles())) {
+        if (! $u || ! $u->hasPermission($p->permission())) {
             return false;
         }
 

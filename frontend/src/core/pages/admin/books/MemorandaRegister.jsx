@@ -13,6 +13,7 @@ import { money, filterStyle } from '../../../components/admin/books/booksFmt';
 import { StateChip, PurposeChip, Direction } from '../../../components/admin/books/memoBits';
 import { PURPOSES } from '../../../components/admin/books/memoPurposes';
 
+import { isStaff } from '../../../../_shared/lib/roles';
 /** The memorandum register: every note with debit and credit lines that posts nothing, open ones first to work through. */
 export default function MemorandaRegister() {
   const nav = useNavigate();
@@ -47,7 +48,7 @@ export default function MemorandaRegister() {
     { key: 'by', label: 'By', render: (m) => m.created_by ?? '—' },
   ];
 
-  if (user?.role === 'customer') return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="memoranda" /></div></AdminLayout>;
+  if (!isStaff(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="memoranda" /></div></AdminLayout>;
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>

@@ -367,7 +367,7 @@ const MyProjectDetail = () => {
             <div style={{ flex: 1, overflowY: 'auto', padding: '8px 24px 0', minWidth: 0 }}>
               <MessageThread
                 messages={messages} loading={loading.messages}
-                currentUserId={user?.id} userRole={user?.role}
+                currentUserId={user?.id} user={user}
                 onEditMessage={(msgId, text) => customerEditMessage(id, msgId, text)}
                 onDeleteMessage={(msgId)     => customerDeleteMessage(id, msgId)}
                 onDeleteMessages={(ids)      => customerDeleteMessages(id, ids)}

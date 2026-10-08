@@ -10,6 +10,10 @@ const usersAPI = {
   getDepartments: () =>
     api.get('/admin/users/departments').then(r => r.data),
 
+  /** The roles the screens offer: { staff, assignable, levels } */
+  getRoles: () =>
+    api.get('/admin/users/roles').then(r => r.data),
+
   getById: (id) =>
     api.get(`/admin/users/${id}`).then(r => r.data),
 

@@ -2,28 +2,40 @@ import useAuthStore from '../store/authStore';
 
 /**
  * What a person may do comes from the authorization engine (clearance, roles, permissions), delivered with login and /me as `access`.
- * The role lists below are the fallback for a session that has no `access` yet (and for the screens not yet moved to permissions).
+ * Screens ask for a permission (`hasPermission(user, 'books.post')`) or for the kind of account (`accountType`, `isDriver`, `isCustomer`).
+ * They never compare role names: roles are made in the role builder and differ from one company to the next. The server enforces every rule
+ * either way; these checks only decide what to show.
  */
-export const LEGACY_STAFF_ROLES = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep'];
 
 const accessOf = () => useAuthStore.getState().access;
 
-/** Every role key the person satisfies: the roles they hold plus the older names those roles still stand for. */
-export const effectiveRoles = (user) => {
-  const a = accessOf();
-  return a?.role_keys?.length ? a.role_keys : (user?.role ? [user.role] : []);
-};
-export const hasAnyRole = (user, roles) => effectiveRoles(user).some((r) => roles.includes(r));
+/** Does the engine give them this permission (for example 'books.post')? Nothing is allowed until the access summary has loaded. */
+export const hasPermission = (_user, permission) => !!accessOf()?.permissions?.includes(permission);
 
-/** Does the engine give them this permission (for example 'books.post')? Without `access`, `fallbackRoles` decides, as before. */
-export const hasPermission = (user, permission, fallbackRoles = []) => {
-  const a = accessOf();
-  return a?.permissions ? a.permissions.includes(permission) : fallbackRoles.includes(user?.role);
-};
+/** Any one of these permissions. */
+export const hasAnyPermission = (user, permissions) => permissions.some((p) => hasPermission(user, p));
 
-/** Staff who may open the admin area (the six original staff roles, and any role that holds admin.access). */
-export const isStaff = (user, access = accessOf()) =>
-  access?.permissions ? access.permissions.includes('admin.access') : LEGACY_STAFF_ROLES.includes(user?.role);
+/** Staff: may open the admin area. */
+export const isStaff = (_user, access = accessOf()) => !!access?.permissions?.includes('admin.access');
+
+/**
+ * The kind of account: 'staff', 'driver' (uses the driver app, not the admin area), or a portal account ('customer', 'vendor', 'applicant').
+ * Null until the access summary has loaded.
+ */
+export const accountType = (_user, access = accessOf()) => access?.account ?? null;
+
+export const isDriver = (user, access) => accountType(user, access) === 'driver';
+export const isCustomer = (user, access) => accountType(user, access) === 'customer';
+export const isVendor = (user, access) => accountType(user, access) === 'vendor';
+
+/** A customer, vendor or applicant: they only ever see their own things. */
+export const isPortal = (user, access) => ['customer', 'vendor', 'applicant'].includes(accountType(user, access));
+
+/** The name of their main role as the roles table has it (for showing, never for deciding), with the clearance level it sits at. */
+export const roleName = (user, access = accessOf()) => {
+  const r = access?.roles?.find((x) => x.primary) ?? access?.roles?.[0];
+  return r?.name ?? (user?.role ? String(user.role).replace(/_/g, ' ') : '');
+};
 
 /**
  * The branch ids a person is limited to in an area ('books', 'stock'), or null when nothing limits them (global role, no branch set, or the
@@ -46,31 +58,10 @@ export const limitBranches = (list, area, keep = []) => {
 /** The clearance number 0 to 6 (0 when unknown). */
 export const clearanceOf = () => accessOf()?.clearance ?? 0;
 
-/**
- * Role groups — mirror the backend route groups in routes/api.php so the UI
- * hides what the API would refuse anyway.
- */
-export const FINANCE_READ  = ['finance', 'manager', 'admin', 'super_admin'];
-export const FINANCE_WRITE = ['finance', 'admin', 'super_admin'];
-
-// Payroll is seen and run by the super admin and finance only (not admin, not manager)
-export const PAYROLL_ROLES = ['finance', 'super_admin'];
-export const canUsePayroll = (user) => hasPermission(user, 'payroll.run', PAYROLL_ROLES);
-
-// Campaigns: these build them (admin, super admin and manager also publish; sales rep and finance make drafts for approval)
-export const CAMPAIGN_ROLES = ['admin', 'super_admin', 'manager', 'sales_rep', 'finance'];
-
-// Price lists, the Archive, brochures and catalogues (a sales rep's list waits for someone else to activate it)
-export const PRICE_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'sales_rep'];
-
-export const canReadFinance  = (user) => hasPermission(user, 'books.view', FINANCE_READ);
-export const canWriteFinance = (user) => hasPermission(user, 'books.post', FINANCE_WRITE);
-
-// Deleting catalogue items (products, services, categories, brands, variants, images)
-export const CATALOGUE_DELETE = ['manager', 'admin', 'super_admin'];
-export const canDeleteCatalogue = (user) => hasPermission(user, 'catalogue.delete', CATALOGUE_DELETE);
-
-// Acting on a customer's credit (payments, adjustments, schedules, invoices,
-// add credit / loyalty points). Every staff role can still view credit.
-export const CREDIT_ACT = ['finance', 'manager', 'admin', 'super_admin'];
-export const canActOnCredit = (user) => hasPermission(user, 'credit.act', CREDIT_ACT);
+// Named shortcuts for the checks many screens share. Each is one permission from the catalogue.
+export const canReadFinance = (user) => hasPermission(user, 'books.view');
+export const canWriteFinance = (user) => hasPermission(user, 'books.post');
+export const canUsePayroll = (user) => hasPermission(user, 'payroll.run');
+export const canDeleteCatalogue = (user) => hasPermission(user, 'catalogue.delete');
+/** Acting on a customer's credit: payments, adjustments, schedules, invoices, add credit / loyalty points. */
+export const canActOnCredit = (user) => hasPermission(user, 'credit.act');

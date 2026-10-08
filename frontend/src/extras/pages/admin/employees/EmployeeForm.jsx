@@ -42,37 +42,13 @@ const MARITAL_OPTIONS = [
   { value: 'widowed', label: 'Widowed'       },
 ];
 
-const ROLE_OPTIONS = [
-  { value: 'driver',    label: 'Driver' },
-  { value: 'sales_rep', label: 'Sales Rep' },
-  { value: 'finance',   label: 'Finance' },
-  { value: 'logistics', label: 'Logistics' },
-  { value: 'manager',   label: 'Manager'   },
-  { value: 'admin',     label: 'Admin'     },
-];
-
-// Role hierarchy mapping - who each role can report to
-const CAN_REPORT_TO = {
-  driver: ['driver', 'sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
-  sales_rep: ['sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
-  finance: ['finance', 'logistics', 'manager', 'admin', 'super_admin'],
-  logistics: ['logistics', 'finance', 'manager', 'admin', 'super_admin'],
-  manager: ['manager', 'admin', 'super_admin'],
-  admin: ['admin', 'super_admin'],
-  super_admin: ['super_admin'],
-};
-
-// Helper function to check if a manager is eligible
-// For the original roles the table above decides. For any role added since (cashier, chef, your own) the manager needs at least the clearance the role needs.
-const canBeManager = (employeeRole, managerRole, levels = {}) => {
-  if (!employeeRole || !managerRole) return false;
-  if (CAN_REPORT_TO[employeeRole] && CAN_REPORT_TO[managerRole]) return CAN_REPORT_TO[employeeRole].includes(managerRole);
-  return (levels[managerRole] ?? 0) >= (levels[employeeRole] ?? 99);
-};
+// Who may supervise whom comes from clearance: a manager must hold at least the clearance the employee's role needs
+// (the server gives each manager's clearance and each role's level, so roles built in the role builder fit in without a change here).
+const canBeManager = (roleMin, managerClearance) => roleMin != null && (managerClearance ?? 0) >= roleMin;
 
 const EMPTY_FORM = {
   name: '', email: '', phone: '',
-  role: 'sales_rep',
+  role: '',
   employee_id: '', job_title: '', department: '',
   employment_type: 'full_time', hire_date: '',
   work_location: '', work_email: '', work_phone: '',
@@ -190,16 +166,20 @@ export default function EmployeeForm() {
   const [errors, setErrors]               = useState({});
   const [form, setForm]                   = useState(EMPTY_FORM);
   const [roleDefs, setRoleDefs]           = useState([]);   // the roles this person may give: [{ key, name, min_clearance }]
+  const [allRoles, setAllRoles]           = useState([]);   // every staff role with the clearance it needs (to tell who may supervise a role you cannot give)
+  const [levelNames, setLevelNames]       = useState({});
 
-  const roleLevels = Object.fromEntries(roleDefs.map((r) => [r.key, r.min_clearance]));
-  // from the server; the original list until it arrives. The role the person has now is always shown, even if you may not give it.
+  const roleLevels = Object.fromEntries([...allRoles, ...roleDefs].map((r) => [r.key, r.min_clearance]));
+  const roleMin = roleLevels[form.role];
+  // from the server. The role the person has now is always shown, even if you may not give it.
   const roleOptions = (() => {
-    const base = roleDefs.length ? roleDefs.map((r) => ({ value: r.key, label: r.name })) : ROLE_OPTIONS;
-    return form.role && !base.some((o) => o.value === form.role) ? [...base, { value: form.role, label: form.role.replace(/_/g, ' ') }] : base;
+    const base = [{ value: '', label: 'Select a role' }, ...roleDefs.map((r) => ({ value: r.key, label: r.name }))];
+    const current = form.role && !base.some((o) => o.value === form.role) ? [{ value: form.role, label: allRoles.find((r) => r.key === form.role)?.name ?? form.role.replace(/_/g, ' ') }] : [];
+    return [...base, ...current];
   })();
 
   useEffect(() => {
-    employeesApi.getRoles().then((r) => setRoleDefs(r.data || [])).catch(() => {});
+    employeesApi.getRoles().then((r) => { setRoleDefs(r.data || []); setAllRoles(r.all || []); setLevelNames(r.levels || {}); }).catch(() => {});
     fetchManagers();
     fetchCurrencies();
     if (isEditing) fetchEmployee();
@@ -208,11 +188,11 @@ export default function EmployeeForm() {
   useEffect(() => {
     if (!form.manager_id || !form.role) return;
     const m = managers.find(m => String(m.id) === String(form.manager_id));
-    if (m && !canBeManager(form.role, m.role, roleLevels)) {
+    if (m && roleMin != null && !canBeManager(roleMin, m.clearance)) {
       set('manager_id', '');
       setManagerSearch('');
     }
-  }, [form.role, managers, roleLevels]);
+  }, [form.role, managers, roleMin]);
 
   const fetchManagers = async () => {
     try { 
@@ -240,9 +220,9 @@ export default function EmployeeForm() {
       m.name?.toLowerCase().includes(q) ||
       m.job_title?.toLowerCase().includes(q) ||
       m.department?.toLowerCase().includes(q) ||
-      m.role?.toLowerCase().includes(q);
+      m.role_name?.toLowerCase().includes(q);
     
-    const isEligibleManager = canBeManager(form.role, m.role, roleLevels);
+    const isEligibleManager = roleMin == null || canBeManager(roleMin, m.clearance);
     
     return matchesSearch && isEligibleManager;
   });
@@ -256,7 +236,7 @@ export default function EmployeeForm() {
 
       setForm({
         name: emp.user?.name || '', email: emp.user?.email || '', phone: emp.user?.phone || '',
-        employee_id: emp.employee_id || '', job_title: emp.job_title || '',role: emp.user?.role || 'sales_rep',
+        employee_id: emp.employee_id || '', job_title: emp.job_title || '',role: emp.user?.role || '',
         department: emp.department || '', employment_type: emp.employment_type || 'full_time',
         hire_date: toDateInput(emp.hire_date), work_location: emp.work_location || '',
         work_email: emp.work_email || '', work_phone: emp.work_phone || '',
@@ -426,20 +406,10 @@ export default function EmployeeForm() {
           </Field>
           <Field label="Reports To">
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* Role restriction hint */}
-              {form.role === 'admin' && (
-                <p style={{ fontSize: '0.7rem', color: '#b91c1c', margin: 0, fontWeight: 500 }}>
-                  Admins can only report to another admin or super admin.
-                </p>
-              )}
-              {form.role === 'manager' && (
-                <p style={{ fontSize: '0.7rem', color: '#b91c1c', margin: 0, fontWeight: 500 }}>
-                  Managers can report to managers, admins, or super admins.
-                </p>
-              )}
-              {form.role === 'driver' && (
-                <p style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', margin: 0, fontWeight: 500 }}>
-                  Drivers can report to anyone in the organization.
+              {/* Role restriction hint: from the clearance the role needs */}
+              {roleMin != null && (
+                <p style={{ fontSize: '0.7rem', color: roleMin >= 3 ? '#b91c1c' : 'var(--text-secondary)', margin: 0, fontWeight: 500 }}>
+                  {roleMin >= 6 ? 'Only the owner can supervise this role.' : `Can report to anyone with ${levelNames[roleMin] ?? `level ${roleMin}`} clearance or above.`}
                 </p>
               )}
 
@@ -500,7 +470,7 @@ export default function EmployeeForm() {
                   <option value="">— No Manager —</option>
                   {filteredManagers.map(m => (
                     <option key={m.id} value={m.id}>
-                      {m.name}{m.job_title ? ` · ${m.job_title}` : ''}{m.department ? ` (${m.department})` : ''}{m.role ? ` [${m.role.replace(/_/g, ' ')}]` : ''}
+                      {m.name}{m.job_title ? ` · ${m.job_title}` : ''}{m.department ? ` (${m.department})` : ''}{m.role_name ? ` [${m.role_name}]` : ''}
                     </option>
                   ))}
                 </select>

@@ -228,7 +228,7 @@ class ProjectMilestoneController extends Controller
 
     private function isStaff(): bool
     {
-        return auth()->user()->holdsAny(['super_admin', 'admin', 'manager', 'sales_rep']);
+        return auth()->user()->hasPermission('projects.manage');
     }
 
     private function customerCanViewFinance(Project $project): bool

@@ -79,9 +79,8 @@ class CatalogueRankingService
         $user = $tokenModel->tokenable;
         if (!$user) return $nil;
 
-        // Admins / staff / vendors get default (no personalisation, no pins)
-        $excluded = ['admin', 'super_admin', 'staff', 'finance', 'vendor'];
-        if ($user->holdsAny($excluded)) return $nil;
+        // Staff and vendors get the default (no personalisation, no pins)
+        if ($user->isStaff() || $user->isVendor()) return $nil;
 
         // Resolve customer record
         $customer = Customer::where('user_id', $user->id)

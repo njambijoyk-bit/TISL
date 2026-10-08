@@ -21,8 +21,6 @@ use Illuminate\Support\Facades\DB;
  */
 class ChequeService
 {
-    public const BOUNCE_ROLES = ['finance', 'super_admin'];
-
     public function __construct(private VoucherService $vouchers, private OpenBillsService $open) {}
 
     // ── the register ─────────────────────────────────────────────────────
@@ -132,8 +130,8 @@ class ChequeService
      */
     public function bounce(int $instrumentId, array $o, ?User $user): Voucher
     {
-        if (! $user || ! $user->holdsAny(self::BOUNCE_ROLES)) {
-            throw new BooksException('Only finance or a super admin can record a bounced cheque.');
+        if (! $user || ! $user->hasPermission('books.bounce')) {
+            throw new BooksException('You do not have permission to record a bounced cheque.');
         }
         $reason = trim((string) ($o['reason'] ?? ''));
         if ($reason === '') {

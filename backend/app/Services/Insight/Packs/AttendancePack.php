@@ -17,7 +17,7 @@ class AttendancePack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['finance', 'manager', 'admin', 'super_admin']; }   // attendance feeds payroll
+    public function permission(): string { return 'books.view'; }   // attendance feeds payroll
 
     public function contexts(): array { return ['attendance']; }
 

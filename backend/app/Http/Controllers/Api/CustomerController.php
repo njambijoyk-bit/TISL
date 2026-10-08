@@ -610,7 +610,7 @@ class CustomerController extends Controller
 
         // Verify sales rep role
         $salesRep = User::findOrFail($request->sales_rep_id);
-        if (!$salesRep->holdsAny(['sales_rep', 'admin', 'super_admin'])) {
+        if (!$salesRep->hasPermission('customers.represent')) {
             return response()->json([
                 'message' => 'User is not a sales representative'
             ], 400);

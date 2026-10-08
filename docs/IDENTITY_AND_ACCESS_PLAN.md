@@ -1,4 +1,4 @@
-# Identity and access: clearance levels, roles, permissions and scope (R1 to R3 built; R4 onwards planned)
+# Identity and access: clearance levels, roles, permissions and scope (R1 to R3 and the no-role-names sweep built; R4 onwards planned)
 
 Why first: cost centres, branches, entities, payroll and every module (kitchen, school, library, pharmacy) ask the same question: **may this person do this, on this branch, at this moment?** One engine answers it, and the engine is data driven: Chef, Librarian or Foreman are rows in a table, never new code.
 
@@ -34,7 +34,7 @@ Role
  └─ Restrictions        read only; working hours and days (overnight shifts work); allowed IP addresses or ranges; maximum discount %
 ```
 
-A role can also carry **acts_as**: the old role names it still satisfies in the route checks that have not been moved to permissions yet (Senior accountant acts as Finance).
+The `acts_as` column is kept for old data but **no decision reads it any more**: every check asks for a permission, so a role stands for exactly what it holds (the Senior accountant is no longer "Finance" anywhere).
 
 ## Who holds what
 
@@ -58,7 +58,7 @@ A role can also carry **acts_as**: the old role names it still satisfies in the 
 |---|---|---|---|---|
 | Super admin | 6 | global | all | everything, always (also permissions added later) |
 | Admin | 5 | global | all | everything except modules, developer tools, role building, period locks and payroll (payroll is finance and super admin only, as before) |
-| **Senior accountant** | 4 | global | all | books (view, post, review), payroll, stock, assets, vendors, credit, price lists, campaigns (build), menus; approves journals, purchases and refunds. No security, roles, modules or period locks. Acts as Finance |
+| **Senior accountant** | 4 | global | all | books (view, post, review), payroll, stock, assets, vendors, credit, price lists, campaigns (build), menus; approves journals, purchases and refunds. No security, roles, modules or period locks |
 | Manager | 3 | assigned | all | books (view), stock, assets, vendors, menus (view), campaigns (build, publish), price lists, catalogue delete, credit, deliveries |
 | Finance | 3 | assigned | all | books (view, post), payroll, stock, assets, vendors, menus, campaigns (build), price lists, credit |
 | Logistics | 2 | assigned | all | deliveries |
@@ -91,7 +91,7 @@ The permission set reproduces today's route lists exactly (each permission stand
 
 - **Every route guard is a permission.** The 75 `role:` guards (all but the customer and driver portals) became `permission:` guards with a catalogue of 58 permissions in groups (Books, Tax and money, Stock, Purchases, Customers, Payroll, People, Delivery, Catalogue, Campaigns, Menus, Marketing, Projects, Insight, Operations, Vault, Support, Access, System). Each permission's default holders reproduce the old role list exactly. This was **checked route by route against the original routes file for every older role: identical access on 1,299 routes**, apart from the two deliberate fixes below. A unit test keeps route and catalogue names in step.
 - **Upgrade path.** The catalogue has a version (now 2). `php artisan access:seed` gives a newly added permission to the built-in roles that hold it by default, once, and never takes back a change an admin made. Run it after deploying R2 so existing installs get the new permissions.
-- **Code checks.** `User::holdsAny()`, `hasPermission()` and `dataScope()` answer through the engine; `isAdmin()` means "may open the admin area". Policies, services and controllers that compared role names now accept every role a person holds and the names a role acts as. Tax certificate policies, campaigns, price lists and memoranda use permissions. "Who do we notify or ask to approve" queries use `User::holding([...])`; staff pickers use `User::staffAccounts()`. Edit windows (period guard) use the most generous limit across a person's roles. A sales rep's "own customers only" rule is the **assigned** data scope.
+- **Code checks.** `User::holdsAny()`, `hasPermission()` and `dataScope()` answer through the engine; `isAdmin()` means "may open the admin area". Policies, services and controllers that compared role names now accept every role a person holds (the sweep below then replaced the names with permissions). Tax certificate policies, campaigns, price lists and memoranda use permissions. "Who do we notify or ask to approve" queries use `User::withPermission(...)`; staff pickers use `User::staffAccounts()`. Edit windows (period guard) use the most generous limit across a person's roles. A sales rep's "own customers only" rule is the **assigned** data scope.
 - **Screens.** Settings, Access, **Roles & access**: *People* (every staff account with clearance, default branch, extra roles and branch access; open one to change the main role, clearance, extra roles with dates, default branch, branch access with dates and a reason, and to see what it adds up to), *Roles* (role builder with a checklist of permissions grouped by area, modules, approval limits, read-only, hours, IP ranges, maximum discount; copy a role; built-in roles can be adjusted; the owner and portal roles are fixed), *Clearance levels* (rename), *Activity* (every change, plus what branch limits would have refused). Employees: the System Role list comes from the roles table (only roles you may give), and "who may report to whom" uses clearance for roles added since.
 - **Two holes closed on the way.** Any staff member could bulk-import employees (with roles); import and template now need `hr.manage` and a file can only give roles below the importer's clearance. (R1 closed role changes in the Employees form.)
 
@@ -109,12 +109,33 @@ The permission set reproduces today's route lists exactly (each permission stand
 - **Test mode is useful.** Once an hour per person and screen it records how many records would have been hidden, and every post that would have been refused. The Branch limits tab shows the last 7 days per area and who is limited.
 - **Posting through internal flows** (payroll, depreciation, gift voucher activation, loyalty rewards) is not blocked by branch limits: only the screens a person uses are.
 
+## The no-role-names sweep (built): roles are data everywhere
+
+The owner's rule: **no hardcoding**. A role built in the role builder must control everything without a code change. Before this sweep about 120 checks in code and screens still compared role names. Now none do.
+
+- **One rule for code.** Every check is a permission (`hasPermission`) or the **kind of account**: staff (`admin.access`), driver (holds `driver.app`, not `admin.access`), or a portal account (customer, vendor, applicant) read from the role's kind. `User::isDriver()`, `isCustomer()`, `isVendor()`, `isPortal()`, `portalType()`; the `account:customer` route guard replaces `role:customer`; the `role:` middleware is gone. The access summary sent to the browser now carries `account`.
+- **Catalogue version 3: 34 more permissions** (92 in all), one for each check that was left (books write-off and bounce, quotations, loyalty grant, deduct, configure and export, stock expiry override and alerts, HR view, team and purge, project management and moderation, campaign admin and purge, catalogue publish and purge, engagement view, moderate and settings, driver app, AI keys, vault bypass, deleting shipping options and tiers, and others). Each one's default holders are exactly the old role list, so nothing changes on an install that has not edited a role; `tests/Unit/NoRoleNamesInCodeTest.php` freezes that table. Run `php artisan access:seed` after deploying (it also turns the old stock-override and expiry-notice role lists into the two new permissions, once).
+- **User management is by clearance.** You may see, change, suspend and delete people **below your clearance** (the owner: everyone) if your roles hold `users.manage`; `users.purge` deletes for good. Roles you may give when making or editing an account are the roles below your clearance, plus customer and vendor. The Users screen gets the role names, clearance and a `manageable` flag from the server; the Finance and Logistics tabs are gone (Staff, Drivers, Customers, Vendors, with a role filter built from the roles table).
+- **Screens.** Every route guard, sidebar entry, tab and button asks for a permission. The employee form works out who may supervise a role from clearance (the manager must hold at least the clearance the role needs), the project thread uses `projects.manage` and `projects.moderate`, the role badge colour follows the clearance level. Settings that listed role names (stock override and expiry notices) became permissions given in the role builder.
+- **Two guards keep it that way.** An ESLint rule (`no-restricted-syntax`) fails the build on `x.role === 'admin'`, on role names such as `super_admin` and `sales_rep` written in code, and on the old `hasAnyRole`; the PHPUnit test above fails on the same patterns in PHP, comments excluded. Role keys that are *data* (a vault policy naming roles) are still matched by `holdsAny($variable)`.
+
+### Behaviour changes in the sweep to know about
+
+1. **A manager no longer manages finance people.** Both are clearance 3 and you manage people strictly below you. (Lift the finance role to 4 or the manager to 4 in the role builder if that is not what you want.)
+2. **Manager and sales rep hold `users.manage`**, so they keep what they could do before (see and edit people below them). Finance and logistics can still open the Users list (other screens use it as a picker) but cannot change anyone, and can read their own record. Before, a sales rep could not create users; now they can create the roles below their level (customers, cashiers).
+3. **The Senior accountant is a role of its own.** Vault policies and anything else that matched "finance" no longer match them; name their role.
+4. **Quotation write routes** (preview, update, send, withdraw) need `quotes.write` (logistics no longer can; the screen never offered it).
+5. **Employees:** a new person needs a role chosen (no silent "sales rep"), a bulk-import file needs a `role` column (no silent "admin" from the department name), and "who may supervise" is by clearance: a finance person can no longer report to logistics, for example.
+6. **Services trash:** permanent delete follows `catalogue.delete`, which the server always checked; the button used to be shown to super admins only. Admin and manager now see it. Take `catalogue.delete` off a role if that is too much.
+7. **The assistant's payment summary** follows `books.view`; finance is no longer limited to payments they started.
+8. **The memo dock** shows for staff only (vendors used to see it by accident).
+
 ### Not done yet
 
+- Many `admin.access`-only staff routes (content pages, shipping options, referral codes and similar) still let any staff in; they never had a role check, so there was nothing to convert. A permission per area is the next sweep.
+- The Purchases menu entry needs `books.view`, so a stock-only role (stock.view without books.view) has no menu entry for the stock pages yet.
 - Branch limits do not cover customers' own statements and credit (a customer's balance is the whole business's), cash counts and petty cash (their tills are ledgers, not branches), held stock, the catalogue, delivery or HR. Those follow with cost centres, which give every ledger line and till a branch.
 - A branch-limited person's balance sheet and trial balance show opening balances for the whole business with only their branches' movements. They are labelled; company-wide totals need someone with every branch.
-- About 120 screen checks still compare role names (they only show or hide buttons, the server decides).
-- The old Users screen still creates users with the original roles only.
 
 ## Rollout from here
 

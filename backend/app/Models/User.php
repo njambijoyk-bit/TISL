@@ -88,6 +88,7 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_picture_url',
+        'role_name',
     ];
 
     // ========================================
@@ -112,7 +113,7 @@ class User extends Authenticatable
 
     /**
      * Branches this staff user is cleared for (multi-location).
-     * Empty for admin/super_admin, who are treated as all-access.
+     * Empty for people whose roles are not limited to branches (they are treated as all-access).
      */
     public function locations()
     {
@@ -122,7 +123,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Location clearance. Admin/super_admin see every branch; other staff see
+     * Location clearance. Roles that are not limited to branches see every branch; other staff see
      * only branches they're assigned to (or all, if they have no assignment yet
      * — so nothing is accidentally locked out before branches are set up).
      */
@@ -285,158 +286,78 @@ class User extends Authenticatable
     }
 
     // ========================================
-    // HELPER METHODS
+    // WHO THIS PERSON IS, AND WHAT THEY MAY DO
     // ========================================
 
+    private function access(): \App\Services\Access\Authorizer
+    {
+        return app(\App\Services\Access\Authorizer::class);
+    }
+
     /**
-     * Does this person hold any of these roles (by the older role names)? Counts the main role, the extra roles in force, and the names a role
-     * still stands for (a Senior accountant counts as Finance). Use hasPermission() for new checks.
+     * Does this person hold one of these roles, named by key? Only for matching against role keys that are DATA (a vault policy that names the
+     * roles it applies to). Never write role names in code: ask hasPermission().
      */
     public function holdsAny(array $roles): bool
     {
-        return app(\App\Services\Access\Authorizer::class)->hasAnyRole($this, $roles);
-    }
-
-    /**
-     * Check if user is an admin (any admin role).
-     * Means "may open the admin area": anyone holding admin.access, plus drivers (who have their own screens there).
-     */
-    public function isAdmin(): bool
-    {
-        return $this->role === 'driver' || app(\App\Services\Access\Authorizer::class)->allows($this, 'admin.access');
-    }
-
-    /**
-     * Check if user is a super admin.
-     */
-    public function isSuperAdmin(): bool
-    {
-        return $this->holdsAny(['super_admin']);
-    }
-
-    /**
-     * Check if user is a customer.
-     */
-    public function isCustomer(): bool
-    {
-        return $this->role === 'customer';
-    }
-
-    /**
-     * Check if user is a sales rep.
-     */
-    public function isSalesRep(): bool
-    {
-        return $this->holdsAny(['sales_rep']);
-    }
-
-    /**
-     * Check if user is a manager.
-     */
-    public function isManager(): bool
-    {
-        return $this->holdsAny(['manager']);
-    }
-
-    /**
-     * Vendor role check.
-     */
-    public function isVendor(): bool
-    {
-        return $this->role === 'vendor';
-    }
-
-    public function isFinance(): bool
-    {
-        return $this->holdsAny(['finance']);
-    }
-
-    public function isLogistics(): bool
-    {
-        return $this->holdsAny(['logistics']);
-    }
-
-    public function isDriver(): bool
-    {
-        return $this->role === 'driver';
-    }
-
-    /**
-     * Staff = has an employee record.
-     * finance and logistics are operational staff — they get employee records.
-     * driver is portal-only like vendor, no employee record.
-     */
-    public function isStaff(): bool
-    {
-        return $this->isAdmin();
-    }
-
-    /**
-     * Operational roles that access the panel but manage no users.
-     */
-    public function isOperational(): bool
-    {
-        return $this->holdsAny(['finance', 'logistics']);
-    }
-
-    /**
-     * Portal-only roles — external parties with limited access.
-     */
-    public function isPortalOnly(): bool
-    {
-        return in_array($this->role, ['vendor', 'driver']);
-    }
-
-    // ========================================
-    // PERMISSION HELPERS
-    // ========================================
-
-    /** Which records inside a branch they may see: 'all', 'assigned' (their own customers, for example) or 'own'. The widest of their roles. */
-    public function dataScope(): string
-    {
-        return app(\App\Services\Access\Authorizer::class)->dataScope($this);
+        return $this->access()->hasAnyRole($this, $roles);
     }
 
     /** May this person do this (for example 'books.post')? Answered by the authorization engine from the roles they hold. */
     public function hasPermission(string $permission): bool
     {
-        return app(\App\Services\Access\Authorizer::class)->allows($this, $permission);
+        return $this->access()->allows($this, $permission);
     }
 
-    /**
-     * Finance-specific permission checks.
-     */
-    public function canProcessPayments(): bool
+    /** Which records inside a branch they may see: 'all', 'assigned' (their own customers, for example) or 'own'. The widest of their roles. */
+    public function dataScope(): string
     {
-        return $this->holdsAny(['super_admin', 'admin', 'finance']);
+        return $this->access()->dataScope($this);
     }
 
-    public function canProcessRefunds(): bool
+    /** Staff: may open the admin area. */
+    public function isStaff(): bool
     {
-        return $this->holdsAny(['super_admin', 'finance']);
+        return $this->hasPermission('admin.access');
     }
 
-    public function canUpdateCurrencyRates(): bool
+    /** A driver: may use the driver app but not the admin area. */
+    public function isDriver(): bool
     {
-        return $this->holdsAny(['super_admin', 'finance']);
+        return $this->access()->isDriver($this);
     }
 
-    public function canViewFinancialReports(): bool
+    /** May use the driver app (the owner and anyone whose role holds it, driver or not). */
+    public function canDrive(): bool
     {
-        return $this->holdsAny(['super_admin', 'admin', 'finance']);
+        return $this->hasPermission('driver.app');
     }
 
-    /**
-     * Logistics-specific permission checks.
-     */
-    public function canManageDeliveries(): bool
+    /** What kind of account: customer, vendor or applicant (each a portal role), otherwise null. */
+    public function portalType(): ?string
     {
-        return $this->holdsAny(['super_admin', 'admin', 'logistics']);
+        return $this->access()->portalType($this);
     }
 
-    public function canAssignDrivers(): bool
+    public function isCustomer(): bool
     {
-        return $this->holdsAny(['super_admin', 'admin', 'logistics']);
+        return $this->portalType() === 'customer';
+    }
+
+    public function isVendor(): bool
+    {
+        return $this->portalType() === 'vendor';
+    }
+
+    public function isApplicant(): bool
+    {
+        return $this->portalType() === 'applicant';
+    }
+
+    /** A customer, vendor or applicant: they only ever see their own things. */
+    public function isPortal(): bool
+    {
+        return $this->portalType() !== null;
     }
 
     /**
@@ -549,6 +470,14 @@ class User extends Authenticatable
     /**
      * Get profile picture URL.
      */
+    /** The name of the main role as the roles table has it (for showing; never for deciding anything). */
+    public function getRoleNameAttribute(): ?string
+    {
+        $r = $this->access()->roleInfo()[$this->role] ?? null;
+
+        return $r['name'] ?? ($this->role ? ucfirst(str_replace('_', ' ', (string) $this->role)) : null);
+    }
+
     public function getProfilePictureUrlAttribute(): ?string
     {
         if (!$this->profile_picture) {
@@ -643,28 +572,25 @@ class User extends Authenticatable
     // SCOPES
     // ========================================
 
-    /**
-     * Scope to get only admin users: every staff account (the original staff roles and any role added since).
-     */
+    /** Staff accounts: every account whose main role is a staff role in the roles table. */
     public function scopeAdmins($query)
     {
         return $query->whereIn('role', app(\App\Services\Access\Authorizer::class)->staffRoleKeys());
     }
 
-    /** Staff accounts whose main role is one of the staff roles in the roles table (all of them unless some are named in $except). */
+    /** Staff accounts whose main role is one of the staff roles in the roles table (all of them unless some role keys are named in $except). */
     public function scopeStaffAccounts($query, array $except = [])
     {
         return $query->whereIn('role', array_values(array_diff(app(\App\Services\Access\Authorizer::class)->staffRoleKeys(), $except)));
     }
 
     /**
-     * People who hold any of these roles (by the older role names): main role, extra roles in force, and roles that still stand for them
-     * (a Senior accountant counts as Finance). For "who do we notify / who can approve".
+     * People who hold any of these roles, named by key: main role, extra roles in force, and roles that still stand for them. For role keys that are
+     * data (a vault policy's roles). To find people by what they may do, use withPermission().
      */
     public function scopeHolding($query, array $roles)
     {
-        $az = app(\App\Services\Access\Authorizer::class);
-        $keys = array_values(array_unique(array_merge($roles, $az->rolesActingAs($roles))));
+        $keys = array_values(array_unique($roles));
 
         return $query->where(function ($q) use ($keys) {
             $q->whereIn('role', $keys);
@@ -679,40 +605,16 @@ class User extends Authenticatable
         });
     }
 
-    /**
-     * Scope to get only customers.
-     */
-    public function scopeCustomers($query)
+    /** People whose roles hold this permission (who do we notify, who can approve). Ignores a role's hours and read-only limits. */
+    public function scopeWithPermission($query, string $permission)
     {
-        return $query->where('role', 'customer');
+        return $query->holding(app(\App\Services\Access\Authorizer::class)->rolesHolding($permission));
     }
 
-    public function scopeVendors($query)
-    {
-        return $query->where('role', 'vendor');
-    }
-
-    /**
-     * Scope to get only sales reps.
-     */
-    public function scopeSalesReps($query)
-    {
-        return $query->where('role', 'sales_rep');
-    }
-
-    public function scopeFinance($query)
-    {
-        return $query->where('role', 'finance');
-    }
-
-    public function scopeLogistics($query)
-    {
-        return $query->where('role', 'logistics');
-    }
-
+    /** Drivers: people whose roles let them use the driver app but not the admin area. */
     public function scopeDrivers($query)
     {
-        return $query->where('role', 'driver');
+        return $query->holding(app(\App\Services\Access\Authorizer::class)->driverRoleKeys());
     }
 
     /**
@@ -758,6 +660,9 @@ class User extends Authenticatable
      */
     public function scopeMissingEmployee($query)
     {
-        return $query->staffAccounts(['super_admin', 'driver'])->whereDoesntHave('employee');
+        // staff who have an employee record: not drivers, and not the owner level
+        $az = app(\App\Services\Access\Authorizer::class);
+
+        return $query->staffAccounts(array_merge($az->driverRoleKeys(), $az->roleKeysAtOrAbove(6)))->whereDoesntHave('employee');
     }
 }

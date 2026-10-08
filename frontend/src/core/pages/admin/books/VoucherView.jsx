@@ -11,7 +11,7 @@ import { Field, NumberInput, SelectInput, TextInput, FormStack, ModalActions, Fo
 import booksAPI from '../../../../_shared/api/books';
 import taxAPI from '../../../../_shared/api/tax';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { canWriteFinance, hasAnyRole } from '../../../../_shared/lib/roles';
+import { canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import useCalculatorContext from '../../../../_shared/hooks/useCalculatorContext';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
@@ -252,7 +252,7 @@ export default function VoucherView() {
   const live = v.status === 'posted';
   const convertible = live && ['quotation', 'sales_order', 'delivery_note', 'purchase_order', 'receipt_note'].includes(base) && v.fulfilment_status !== 'closed' && !(base === 'quotation' && v.doc_status !== 'quoted');
   const refundable = live && base === 'credit_note' && Number(v.total_amount) - Number(v.meta?.gift_refunded ?? 0) > 0.005;
-  const canWriteOff = live && base === 'sales' && Number(v.outstanding) > 0.005 && hasAnyRole(user, ['finance', 'super_admin']);
+  const canWriteOff = live && base === 'sales' && Number(v.outstanding) > 0.005 && hasPermission(user, 'books.writeoff');
   const receivable = live && ['sales', 'debit_note'].includes(base) && Number(v.outstanding) > 0.005;
   const lockedBy = base === 'sales_order' ? (v.children ?? []).find((c) => c.status !== 'cancelled') : null;
   const children = (id2) => (v.items ?? []).filter((i) => i.parent_item_id === id2);

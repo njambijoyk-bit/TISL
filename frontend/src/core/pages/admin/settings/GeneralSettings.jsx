@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../../../_shared/store/authStore';
+import { isDriver as isDriverAccount } from '../../../../_shared/lib/roles';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 
 const CATALOG_GROUP = {
@@ -385,8 +386,8 @@ const GroupCard = ({ group, onNavigate }) => (
 // ── Main Layout ─────────────────────────────────────────────────────────
 export default function GeneralLayout() {
   const navigate = useNavigate();
-  const userRole = useAuthStore((state) => state.user?.role);
-  const isDriver = userRole === 'driver';
+  const user = useAuthStore((state) => state.user);
+  const isDriver = isDriverAccount(user);
 
   // drivers only see their delivery group; admins see everything
   const groups = isDriver ? [DELIVERY_DRIVER_GROUP] : ADMIN_GROUPS;

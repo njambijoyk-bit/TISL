@@ -40,8 +40,8 @@ class VaultPolicyService
             return false;
         }
 
-        // 2. Super admin bypasses everything except global IP if enforce_ip_globally = true
-        if ($user->holdsAny(['super_admin'])) {
+        // 2. Whoever holds vault.bypass gets past every policy, except the global IP rule if enforce_ip_globally = true
+        if ($user->hasPermission('vault.bypass')) {
             $settings = VaultSetting::current();
             if ($settings->enforce_ip_globally) {
                 if (!$settings->isAllowedIp(Request::ip())) {

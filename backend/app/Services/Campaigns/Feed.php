@@ -35,7 +35,7 @@ class Feed
         return CampaignPin::where('campaign_pins.status', 'visible')->where(function ($w) {
             $w->whereExists($this->onPublicBoard())
                 ->orWhere(fn ($x) => $x->where('campaign_pins.source', 'staff')
-                    ->whereIn('campaign_pins.owner_user_id', fn ($u) => $u->select('id')->from('users')->whereIn('role', CampaignAccess::PUBLISHERS))
+                    ->whereIn('campaign_pins.owner_user_id', fn ($u) => $u->select('id')->from('users')->whereIn('role', app(\App\Services\Access\Authorizer::class)->rolesHolding('campaigns.publish')))
                     ->whereNotExists(fn ($q) => $q->select(DB::raw(1))->from('campaign_board_pins as any_bp')->whereColumn('any_bp.pin_id', 'campaign_pins.id')));
         });
     }

@@ -51,7 +51,7 @@ class CatalogueController extends Controller
 
     private function manager(Request $r): void
     {
-        abort_unless($r->user()->holdsAny(['admin', 'super_admin', 'manager']), 403, 'Only a manager, admin or super admin can do this.');
+        abort_unless($r->user()->hasPermission('catalogue.settings'), 403, 'You do not have permission to do this.');
     }
 
     // ---- settings --------------------------------------------------------------------------------------------------------------------------------
@@ -60,7 +60,7 @@ class CatalogueController extends Controller
     public function settings(Request $request): JsonResponse
     {
         return response()->json(['data' => $this->settings->get(), 'customer_types' => Audience::types(), 'sections' => BrochureSections::KEYS, 'themes' => BrochureSections::THEMES, 'sizes' => BrochureSections::SIZES,
-            'can_edit' => $request->user()->holdsAny(['admin', 'super_admin', 'manager'])]);
+            'can_edit' => $request->user()->hasPermission('catalogue.settings')]);
     }
 
     public function saveSettings(Request $request): JsonResponse

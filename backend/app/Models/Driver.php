@@ -20,13 +20,16 @@ class Driver extends User
      */
     protected static function booted(): void
     {
+        // a driver is whoever holds a role that lets them use the driver app but not the admin area
         static::addGlobalScope('driver', function ($query) {
-            $query->where('role', 'driver');
+            $query->holding(app(\App\Services\Access\Authorizer::class)->driverRoleKeys());
         });
 
-        // Ensure role is always set to 'driver' on creation
+        // a new driver gets a driver role unless one was given
         static::creating(function (Driver $driver) {
-            $driver->role = 'driver';
+            if (! $driver->role || ! in_array($driver->role, app(\App\Services\Access\Authorizer::class)->driverRoleKeys(), true)) {
+                $driver->role = app(\App\Services\Access\Authorizer::class)->driverRoleKeys()[0] ?? $driver->role;
+            }
         });
     }
 

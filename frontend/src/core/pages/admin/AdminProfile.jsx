@@ -18,6 +18,7 @@ import { authAPI, notificationsAPI } from '../../../_shared/api/index';
 import calendarAPI from '../../../_shared/api/calendar';
 import employeesAPI from '../../../_shared/api/employees';
 
+import { isDriver, roleName } from '../../../_shared/lib/roles';
 // ─── Style constants (matching customer Profile) ──────────────────────────────
 
 const card = {
@@ -122,7 +123,7 @@ export default function AdminProfile() {
   useEffect(() => {
     if (!user?.id) return;
     fetchDashboard();
-    if (user?.role !== 'driver') fetchEmployeeRecord();
+    if (!isDriver(user)) fetchEmployeeRecord();
   }, [user?.id]);
 
   const fetchDashboard = async () => {
@@ -279,7 +280,7 @@ export default function AdminProfile() {
                   background: 'rgba(255,255,255,0.2)', border: '1px solid rgba(255,255,255,0.3)',
                   textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
-                  {user?.role?.replace(/_/g, ' ')}
+                  {roleName(user)}
                 </span>
               </div>
               <p style={{ margin: 0, fontSize: '0.82rem', opacity: 0.8 }}>{user?.email}</p>
@@ -357,7 +358,7 @@ export default function AdminProfile() {
                       { label: 'Full Name', value: user?.name },
                       { label: 'Email',     value: user?.email },
                       { label: 'Phone',     value: user?.phone || '—' },
-                      { label: 'Role',      value: user?.role?.replace(/_/g, ' ')?.toUpperCase() },
+                      { label: 'Role',      value: roleName(user).toUpperCase() },
                     ].map(({ label, value }) => (
                       <div key={label}>
                         <label style={labelStyle}>{label}</label>

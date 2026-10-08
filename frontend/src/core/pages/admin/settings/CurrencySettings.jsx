@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { hasPermission } from '../../../../_shared/lib/roles';
 // ── Shared styles ─────────────────────────────────────────────────────────────
 
 const inputStyle = {
@@ -247,7 +248,7 @@ export default function CurrencySettings() {
     toggleStatus, deleteCurrency,
   } = useCurrencyStore();
 
-  const canSetBase = ['super_admin', 'finance'].includes(useAuthStore((s) => s.user?.role));   // changing the base restates every figure; deleting a currency is held to the same two roles
+  const canSetBase = hasPermission(useAuthStore((s) => s.user), 'currency.base');   // changing the base restates every figure; deleting a currency is held to the same permission
   const [editingAnchor, setEditingAnchor] = useState(null); // { id, value }
   const [showAdd,       setShowAdd]       = useState(false);
   const loading = adminLoading && !currencies.length;

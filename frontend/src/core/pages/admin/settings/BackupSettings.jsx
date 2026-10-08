@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+import { hasPermission } from '../../../../_shared/lib/roles';
 // ── Shared styles (match settings pages) ────────────────────────────────────
 const card = {
   background: 'var(--surface-card)', borderRadius: 12,
@@ -85,7 +86,7 @@ function DestinationFields({ driver, cfg, set }) {
 
 export default function BackupSettings() {
   const { user } = useAuthStore();
-  const isSuper = user?.role === 'super_admin';
+  const isSuper = hasPermission(user, 'system.restore');
 
   const [form, setForm] = useState(null);
   const [cfg, setCfg] = useState({});

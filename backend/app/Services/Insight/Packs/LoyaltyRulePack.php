@@ -18,7 +18,7 @@ class LoyaltyRulePack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['super_admin', 'admin']; }
+    public function permission(): string { return 'loyalty.configure'; }
 
     public function contexts(): array { return ['loyalty_rule']; }
 

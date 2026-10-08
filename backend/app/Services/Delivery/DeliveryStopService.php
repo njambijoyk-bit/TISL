@@ -179,7 +179,7 @@ class DeliveryStopService
     {
         $v = Voucher::find($voucherId);
         abort_unless($v, 404, 'Not found.');
-        if ($user && $user->holdsAny(['customer'])) {
+        if ($user && $user->isCustomer()) {
             $cid = Customer::where('user_id', $user->id)->value('id');
             abort_unless($cid && (int) $v->customer_id === (int) $cid, 404, 'Not found.');
         }

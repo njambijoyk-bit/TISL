@@ -13,7 +13,7 @@ import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
 import useModuleStore from '../../../../_shared/store/moduleStore';
 import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
-import { canWriteFinance, hasAnyRole, limitBranches } from '../../../../_shared/lib/roles';
+import { canWriteFinance, hasPermission, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import shippingAPI from '../../../../_shared/api/shipping';
@@ -170,7 +170,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const { id } = useParams();
   const [params] = useSearchParams();
   const user = useAuthStore((s) => s.user);
-  const canWrite = mode === 'quotation' ? hasAnyRole(user, ['finance', 'manager', 'admin', 'super_admin', 'sales_rep']) : canWriteFinance(user);
+  const canWrite = mode === 'quotation' ? hasPermission(user, 'quotes.write') : canWriteFinance(user);
   const home = mode === 'quotation' ? '/admin/quotes' : '/admin/books';
   const viewPath = (vid) => (mode === 'quotation' ? `/admin/quotes/${vid}` : `/admin/books/vouchers/${vid}`);
   const editing = Boolean(id);

@@ -7,7 +7,7 @@ import Modal from '../../../components/admin/ui/Modal';
 import { Field, NumberInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
 import booksAPI from '../../../../_shared/api/books';
 import useAuthStore from '../../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance, hasAnyRole } from '../../../../_shared/lib/roles';
+import { canReadFinance, canWriteFinance, hasPermission } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import { Chip } from '../../../components/admin/books/booksUi';
@@ -62,7 +62,7 @@ export default function ChequeRegister() {
   const [err, setErr] = useState(null);
   const [bounce, setBounce] = useState(null);
   const canMove = canWriteFinance(user);
-  const canBounce = hasAnyRole(user, ['finance', 'super_admin']);
+  const canBounce = hasPermission(user, 'books.bounce');
 
   const load = useCallback(() => booksAPI.cheques({ status: tab, search: search || undefined }).then((d) => { setData(d); setErr(null); }).catch((e) => setErr(errMsg(e, 'Could not load the cheques'))), [tab, search]);
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [load]);

@@ -30,7 +30,7 @@ import Input from '../../../_shared/components/common/Input';
 import Select from '../../../_shared/components/common/Select';
 import Modal from '../../../_shared/components/common/Modal';
 import Badge from '../../../_shared/components/common/Badge';
-import { canDeleteCatalogue, hasAnyRole } from '../../../_shared/lib/roles';
+import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 const Services = () => {
   const navigate = useNavigate();
@@ -70,8 +70,8 @@ const Services = () => {
   const [selectedIds, setSelectedIds] = useState([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
-  const isSuperAdmin = hasAnyRole(user, ['super_admin']);
   const canDelete = canDeleteCatalogue(user);
+  const isSuperAdmin = canDelete;   // permanent delete: the server allows it to whoever may delete from the catalogue
 
   useEffect(() => {
     console.log('Fetching services and statistics...');

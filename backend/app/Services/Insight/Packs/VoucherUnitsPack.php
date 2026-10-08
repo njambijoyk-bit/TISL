@@ -18,7 +18,7 @@ class VoucherUnitsPack implements InsightPack
 
     public function module(): ?string { return null; }
 
-    public function roles(): array { return ['finance', 'manager', 'admin', 'super_admin']; }   // who may open vouchers
+    public function permission(): string { return 'books.view'; }   // who may open vouchers
 
     public function contexts(): array { return ['voucher']; }
 

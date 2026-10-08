@@ -33,18 +33,11 @@ use Illuminate\Support\Facades\Schema;
  */
 class PayrollService
 {
-    public const MANAGERS = ['admin', 'super_admin', 'finance'];
-
     public function __construct(private VoucherService $vouchers, private LedgerService $ledgers) {}
 
     public static function ready(): bool
     {
         return Schema::hasTable('payroll_runs') && Schema::hasTable('payroll_components');
-    }
-
-    public static function isManager(?User $u): bool
-    {
-        return $u && $u->holdsAny(self::MANAGERS);
     }
 
     private function need(): void

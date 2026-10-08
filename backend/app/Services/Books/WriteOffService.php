@@ -15,7 +15,6 @@ use App\Models\User;
  */
 class WriteOffService
 {
-    public const ROLES = ['finance', 'super_admin'];
     public const KINDS = ['bad_debt' => 'Bad debt', 'small_balance' => 'Small balance (discount allowed)'];
 
     public function __construct(private VoucherService $vouchers, private OpenBillsService $open) {}
@@ -25,8 +24,8 @@ class WriteOffService
      */
     public function writeOff(array $items, string $kind, string $reason, ?User $user, ?string $date = null): Voucher
     {
-        if (! $user || ! $user->holdsAny(self::ROLES)) {
-            throw new BooksException('Only finance or a super admin can write off a balance.');
+        if (! $user || ! $user->hasPermission('books.writeoff')) {
+            throw new BooksException('You do not have permission to write off a balance.');
         }
         if (! isset(self::KINDS[$kind])) {
             throw new BooksException('Choose what kind of write-off this is.');

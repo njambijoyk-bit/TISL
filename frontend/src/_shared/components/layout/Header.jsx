@@ -20,7 +20,7 @@ import useRequestListStore from '../../store/requestListStore';
 import useWishlistStore from '../../store/wishlistStore';
 import { MODULES, isModuleActive } from '../../navigation/modules';
 import { visibleNav } from '../../navigation/adminNav';
-import { isStaff } from '../../lib/roles';
+import { isStaff, isDriver, roleName } from '../../lib/roles';
 import useNavStore from '../../store/navStore';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api/index';
 import { useTheme } from '../../theme';
@@ -271,7 +271,7 @@ export default function Header() {
   const services = useFlyout();
   const account = useFlyout();
 
-  const isAdmin = isStaff(user) || user?.role === 'driver';  
+  const isAdmin = isStaff(user) || isDriver(user);  
   const cartCount = cartItems?.reduce((sum, i) => sum + (i.quantity ?? 1), 0) ?? 0;
   const wishlistCount = (wishlistIds?.length ?? 0) + (wishlistServiceIds?.length ?? 0);
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
@@ -373,10 +373,10 @@ export default function Header() {
   };
 
   // ── Admin mega menu groups ─────────────────────────────────────────────────
-  const isDriver = user?.role === 'driver';
+  const driver = isDriver(user);
   // What the account menu offers staff. Admins: their profile, dashboard, settings and the support links. Drivers: the
   // manifests, ratings and incidents they can open (taken from the same list the sidebar uses, so it follows their role).
-  const adminGroups = isDriver
+  const adminGroups = driver
     ? [{
         label: 'Driver', items: [
           ...visibleNav(user).flatMap((g) => g.items).map((i) => ({ label: i.title, icon: i.icon, to: i.path })),
@@ -399,7 +399,7 @@ export default function Header() {
       },
     ];
 
-  const profilePath = user?.role === 'driver' ? '/driver/profile' : isAdmin ? '/admin/profile' : '/profile';
+  const profilePath = driver ? '/driver/profile' : isAdmin ? '/admin/profile' : '/profile';
 
   // ── Customer account menu (built from active modules) ───────────────────────
   const customerLinks = [
@@ -729,7 +729,7 @@ export default function Header() {
                           <p style={{ fontSize: '0.75rem', color: '#9ca3af', margin: '2px 0 0' }}>{user?.email}</p>
                           {isAdmin && (
                             <span style={{ display: 'inline-block', marginTop: 6, fontSize: '0.65rem', fontWeight: 800, color: 'var(--color-primary-600)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, var(--bg-primary))', padding: '2px 8px', borderRadius: 12, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                              {user?.role}
+                              {roleName(user)}
                             </span>
                           )}
                         </div>
@@ -755,7 +755,7 @@ export default function Header() {
                     </div>
 
                     {/* Preferences — currency + branch */}
-                    {((hasCurrencyChoice && !isAdmin) || (hasBranchChoice && !isDriver)) && (
+                    {((hasCurrencyChoice && !isAdmin) || (hasBranchChoice && !driver)) && (
                       <div style={{ padding: '10px 14px 12px', borderBottom: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 10 }} className="dark:border-gray-700">
                         {hasCurrencyChoice && !isAdmin && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -763,7 +763,7 @@ export default function Header() {
                             <CurrencyToggle />
                           </div>
                         )}
-                        {hasBranchChoice && !isDriver && (
+                        {hasBranchChoice && !driver && (
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                             <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#374151' }} className="dark:text-gray-300">Branch</span>
                             <LocationPicker />
@@ -789,7 +789,7 @@ export default function Header() {
                     {/* Admin section */}
                     {isAdmin && (
                       <div style={{ borderTop: '1px solid #f3f4f6', padding: '8px 6px' }}>
-                        {!isDriver && <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 6px' }}>Admin</p>}
+                        {!driver && <p style={{ fontSize: '0.65rem', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px 6px' }}>Admin</p>}
 
                         {adminGroups.map((group, gi) => (
                           <div key={group.label ?? gi}>
@@ -817,7 +817,7 @@ export default function Header() {
                     </div>
 
                     {/* Developer sign-in: only in a dev build or for admins, kept small at the very bottom */}
-                    {(import.meta.env.DEV || (isAdmin && !isDriver)) && (
+                    {(import.meta.env.DEV || (isAdmin && !driver)) && (
                       <div style={{ borderTop: '1px solid #f3f4f6', padding: '6px 6px 8px' }}>
                         <Link to="/dev/auth" onClick={() => setUserMenuOpen(false)} className="hdr-menu-link"
                           style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 12px', borderRadius: 8, fontSize: '0.72rem', fontWeight: 500, color: '#9ca3af', textDecoration: 'none' }}>
@@ -936,7 +936,7 @@ export default function Header() {
               {isAdmin && (
                 <>
                   <div style={{ height: 1, background: '#f3f4f6', margin: '8px 0' }} />
-                  {!isDriver && <p style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>}
+                  {!driver && <p style={{ fontSize: '0.68rem', fontWeight: 800, color: 'var(--color-primary-400)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '4px 12px' }}>Admin</p>}
                   {adminGroups.flatMap(g => g.items).map(item => (
                     <Link key={item.to} to={item.to}
                       style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.83rem', fontWeight: 500, color: '#374151', textDecoration: 'none' }}

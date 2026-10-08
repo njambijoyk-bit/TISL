@@ -67,7 +67,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         
         // Custom TISL middleware (we'll create this)
-        'role' => \App\Http\Middleware\CheckRole::class,
         'applicant' => \App\Http\Middleware\EnsureApplicant::class,
     ];
 }

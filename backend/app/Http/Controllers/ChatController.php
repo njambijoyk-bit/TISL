@@ -57,7 +57,7 @@ class ChatController extends Controller
         ]);
  
         $user       = $request->user();
-        $role       = $user->role ?? 'customer';
+        $role       = (string) $user->role;   // only a label for the assistant, never used to decide anything
         $isStaff    = $user->isStaff();
         $isCustomer = $user->isCustomer();
  
@@ -66,7 +66,7 @@ class ChatController extends Controller
             'services'          => $this->getServicesContext(),
             'serviceCategories' => $this->getServiceCategoriesContext(),
             'customerData'      => $isCustomer ? $this->getCustomerContext($user) : null,
-            'adminData'         => $isStaff    ? $this->getAdminContext($user, $role, $request->message) : null,
+            'adminData'         => $isStaff    ? $this->getAdminContext($user, $request->message) : null,
             'userRole'          => $role,
         ];
  
@@ -341,13 +341,13 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
     // general queries.
     // =========================================================================
 
-    private function getAdminContext(User $user, string $role, string $message): string
+    private function getAdminContext(User $user, string $message): string
     {
         $intent = $this->detectAdminIntent($message);
         $parts  = [];
 
         // ── Always inject base stats ───────────────────────────────────────────
-        $parts['stats'] = $this->getAdminStats($role, $user);
+        $parts['stats'] = $this->getAdminStats($user);
 
         // ── Intent-specific data ───────────────────────────────────────────────
         switch ($intent['type']) {
@@ -369,8 +369,8 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
                     ->orWhere('id', is_numeric($intent['identifier']) ? $intent['identifier'] : 0)
                     ->first(), null);
 
-                // Finance can only see their own payments
-                if ($payment && $role === 'finance' && $payment->initiated_by !== $user->id) {
+                // payment records are for people who see the books
+                if ($payment && ! $user->hasPermission('books.view')) {
                     $parts['lookup'] = "You don't have access to that payment record.";
                 } else {
                     $parts['lookup'] = $payment
@@ -391,11 +391,11 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
                 break;
 
             case 'recent_activity':
-                $parts['recent'] = $this->getRecentActivity($role, $user, $intent['filter'] ?? null);
+                $parts['recent'] = $this->getRecentActivity($user, $intent['filter'] ?? null);
                 break;
 
             case 'payment_summary':
-                $parts['payments'] = $this->getPaymentSummary($role, $user);
+                $parts['payments'] = $this->getPaymentSummary($user);
                 break;
         }
 
@@ -541,7 +541,7 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
     // STATS — always injected for staff
     // =========================================================================
 
-    private function getAdminStats(string $role, User $user): array
+    private function getAdminStats(User $user): array
     {
         $stats = [
             'orders' => [
@@ -553,13 +553,10 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
             'products'  => Product::where('status', 'active')->count(),
         ];
 
-        // Finance gets payment stats too
-        if (in_array($role, ['finance', 'admin', 'super_admin'])) {
-            $stats['payments'] = $this->safe(function () use ($role, $user) {
+        // whoever sees the books gets payment stats too
+        if ($user->hasPermission('books.view')) {
+            $stats['payments'] = $this->safe(function () {
                 $paymentQuery = Payment::query();
-                if ($role === 'finance') {
-                    $paymentQuery->where('initiated_by', $user->id);
-                }
                 return [
                     'pending'        => (clone $paymentQuery)->where('status', 'pending')->count(),
                     'failed'         => (clone $paymentQuery)->where('status', 'failed')->count(),
@@ -574,8 +571,8 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
             }
         }
 
-        // Sales rep sees only their assigned customers
-        if ($role === 'sales_rep') {
+        // someone whose data scope is "assigned" sees only the customers assigned to them
+        if ($user->dataScope() === 'assigned') {
             $assigned = Customer::where('assigned_sales_rep', $user->id)->pluck('id');
             $stats['orders']['total'] = $this->salesDocs()->whereIn('customer_id', $assigned)->count();
             $stats['customers']       = $assigned->count();
@@ -588,7 +585,7 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
     // RECENT ACTIVITY
     // =========================================================================
 
-    private function getRecentActivity(string $role, User $user, ?string $filter): string
+    private function getRecentActivity(User $user, ?string $filter): string
     {
         $query = $this->salesDocs()->with(['customer:id,first_name,last_name', 'type:id,name']);
 
@@ -600,7 +597,7 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
             $query->where('status', Voucher::POSTED);
         }
 
-        if ($role === 'sales_rep') {
+        if ($user->dataScope() === 'assigned') {
             $assigned = Customer::where('assigned_sales_rep', $user->id)->pluck('id');
             $query->whereIn('customer_id', $assigned);
         }
@@ -617,17 +614,18 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
     // PAYMENT SUMMARY — for finance/admin queries
     // =========================================================================
 
-    private function getPaymentSummary(string $role, User $user): string
+    private function getPaymentSummary(User $user): string
     {
-        return $this->safe(fn() => $this->paymentSummary($role, $user), 'Payment records are not available right now.');
+        if (! $user->hasPermission('books.view')) {
+            return 'Payment records are not available to you.';
+        }
+
+        return $this->safe(fn() => $this->paymentSummary(), 'Payment records are not available right now.');
     }
 
-    private function paymentSummary(string $role, User $user): string
+    private function paymentSummary(): string
     {
         $query = Payment::query();
-        if ($role === 'finance') {
-            $query->where('initiated_by', $user->id);
-        }
 
         $pending  = (clone $query)->where('status', 'pending')->count();
         $failed   = (clone $query)->where('status', 'failed')->count();

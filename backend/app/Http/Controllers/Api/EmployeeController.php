@@ -115,7 +115,7 @@ class EmployeeController extends Controller
             'email' => 'required_without:user_id|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:50',
             'password' => 'nullable|string|min:8',
-            'role' => ['nullable', Rule::in(app(Authorizer::class)->staffRoleKeys())],
+            'role' => ['required_without:user_id', 'nullable', Rule::in(app(Authorizer::class)->staffRoleKeys())],
             
             // Either user_id or name/email must be provided
             'user_id' => 'nullable|exists:users,id',
@@ -154,28 +154,13 @@ class EmployeeController extends Controller
             $manager = Employee::with('user')->find($request->manager_id);
             
             if ($manager && $manager->user) {
-                $canReportTo = [
-                    'driver' => ['driver', 'sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
-                    'sales_rep' => ['sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
-                    'finance' => ['finance', 'logistics', 'manager', 'admin', 'super_admin'],
-                    'logistics' => ['logistics', 'finance', 'manager', 'admin', 'super_admin'],
-                    'manager' => ['manager', 'admin', 'super_admin'],
-                    'admin' => ['admin', 'super_admin'],
-                    'super_admin' => ['super_admin'],
-                ];
-                
-                $allowedRoles = $canReportTo[$request->role] ?? [];
-                if (isset($canReportTo[$request->role], $canReportTo[$manager->user->role])) {
-                    $fits = in_array($manager->user->role, $allowedRoles);
-                } else {
-                    // a role added since (cashier, chef, senior accountant, your own): the manager must have at least its clearance
-                    $access = app(Authorizer::class);
-                    $fits = $access->clearance($manager->user) >= (int) $access->roleMinClearance($request->role);
-                }
+                // whoever supervises someone needs at least the clearance that person's role needs
+                $access = app(Authorizer::class);
+                $fits = $access->clearance($manager->user) >= (int) $access->roleMinClearance($request->role);
                 if (!$fits) {
                     return response()->json([
                         'errors' => [
-                            'manager_id' => ["The selected manager cannot supervise a {$request->role}." . ($allowedRoles ? ' They must be one of: ' . implode(', ', $allowedRoles) : ' They need a higher clearance.')]
+                            'manager_id' => ["The selected manager cannot supervise a {$request->role}: they need at least that role's clearance."]
                         ]
                     ], 422);
                 }
@@ -211,7 +196,7 @@ class EmployeeController extends Controller
                     'email' => $request->email,
                     'phone' => $request->phone,
                     'password' => bcrypt($request->password ?? 'password123'), // default password
-                    'role'  => $request->input('role', 'sales_rep'),
+                    'role'  => $request->role,
                     'status' => 'active',
                 ]);
             }
@@ -272,12 +257,21 @@ class EmployeeController extends Controller
         }
     }
 
-    /** The roles the person using the form may give (with the clearance each needs), for the System Role choice. */
+    /**
+     * For the System Role choice: `data` are the roles the person using the form may give; `all` are every active staff role with the clearance it needs
+     * (so the form can tell who may supervise a role it cannot give); `levels` are the clearance level names.
+     */
     public function roles(Request $request)
     {
         $this->authorize('viewAny', Employee::class);
+        $access = app(Authorizer::class);
+        $names = $access->roleNames();
 
-        return response()->json(['data' => app(Authorizer::class)->assignableRoles($request->user())]);
+        return response()->json([
+            'data' => $access->assignableRoles($request->user()),
+            'all' => collect($access->staffRoleKeys())->map(fn ($k) => ['key' => $k, 'name' => $names[$k] ?? $k, 'min_clearance' => (int) $access->roleMinClearance($k)])->values(),
+            'levels' => collect(range(0, 6))->mapWithKeys(fn ($l) => [$l => $access->levelName($l)]),
+        ]);
     }
 
     /**
@@ -330,28 +324,13 @@ class EmployeeController extends Controller
             $manager = Employee::with('user')->find($request->manager_id);
             
             if ($manager && $manager->user) {
-                $canReportTo = [
-                    'driver' => ['driver', 'sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
-                    'sales_rep' => ['sales_rep', 'finance', 'logistics', 'manager', 'admin', 'super_admin'],
-                    'finance' => ['finance', 'logistics', 'manager', 'admin', 'super_admin'],
-                    'logistics' => ['logistics', 'finance', 'manager', 'admin', 'super_admin'],
-                    'manager' => ['manager', 'admin', 'super_admin'],
-                    'admin' => ['admin', 'super_admin'],
-                    'super_admin' => ['super_admin'],
-                ];
-                
-                $allowedRoles = $canReportTo[$request->role] ?? [];
-                if (isset($canReportTo[$request->role], $canReportTo[$manager->user->role])) {
-                    $fits = in_array($manager->user->role, $allowedRoles);
-                } else {
-                    // a role added since (cashier, chef, senior accountant, your own): the manager must have at least its clearance
-                    $access = app(Authorizer::class);
-                    $fits = $access->clearance($manager->user) >= (int) $access->roleMinClearance($request->role);
-                }
+                // whoever supervises someone needs at least the clearance that person's role needs
+                $access = app(Authorizer::class);
+                $fits = $access->clearance($manager->user) >= (int) $access->roleMinClearance($request->role);
                 if (!$fits) {
                     return response()->json([
                         'errors' => [
-                            'manager_id' => ["The selected manager cannot supervise a {$request->role}." . ($allowedRoles ? ' They must be one of: ' . implode(', ', $allowedRoles) : ' They need a higher clearance.')]
+                            'manager_id' => ["The selected manager cannot supervise a {$request->role}: they need at least that role's clearance."]
                         ]
                     ], 422);
                 }
@@ -634,12 +613,16 @@ class EmployeeController extends Controller
             $query->where('id', '!=', $excludeId);
         }
         
-        $managers = $query->get()->map(function ($employee) {
+        $access = app(Authorizer::class);
+        $names = $access->roleNames();
+        $managers = $query->get()->map(function ($employee) use ($access, $names) {
             return [
                 'id' => $employee->id,
                 'user_id' => $employee->user_id,
                 'name' => $employee->full_name,
                 'role' => $employee->user?->role,
+                'role_name' => $names[$employee->user?->role] ?? $employee->user?->role,
+                'clearance' => $employee->user ? $access->clearance($employee->user) : 0,
                 'job_title' => $employee->job_title,
                 'department' => $employee->department,
             ];

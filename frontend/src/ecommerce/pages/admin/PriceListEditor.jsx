@@ -14,16 +14,15 @@ import CatalogueTabs from '../../components/admin/catalogue/CatalogueTabs';
 import { AudiencePicker } from '../../components/admin/catalogue/bits';
 import { fieldStyle, fromLocalInput, useCatalogueMeta } from '../../components/admin/catalogue/catalogueMeta';
 import { EARLIER_LABEL } from '../../lib/priceList/format';
-import { hasAnyRole } from '../../../_shared/lib/roles';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 const KINDS = [['product', 'Products'], ['category', 'Categories'], ['brand', 'Brands'], ['service', 'Services'], ['service_category', 'Service categories']];
-const PUBLISHERS = ['admin', 'super_admin', 'manager', 'finance'];
 
 /** Make a price list: choose what goes on it, who can see it, and whether to keep it as a draft or publish it. The prices are taken, and kept, when you save. */
 export default function PriceListEditor() {
   const navigate = useNavigate();
   const roleUser = useAuthStore((s) => s.user);
-  const canPublish = hasAnyRole(roleUser, PUBLISHERS);
+  const canPublish = hasPermission(roleUser, 'catalogue.publish');
   const [meta] = useCatalogueMeta();
   const [f, setF] = useState({ name: '', description: '', access: 'staff', customer_types: [], earlier_price: null, active_from: '' });
   const [picks, setPicks] = useState([]);

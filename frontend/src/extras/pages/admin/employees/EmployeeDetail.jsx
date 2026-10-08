@@ -21,12 +21,6 @@ const STATUS_META = {
   terminated: { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af', ring: 'rgba(107,114,128,0.2)',  label: 'Terminated' },
 };
 
-const ROLE_META = {
-  admin:     { bg: 'rgba(239,68,68,0.1)',   color: '#b91c1c', label: 'Admin'     },
-  manager:   { bg: 'rgba(59,130,246,0.1)',  color: '#1d4ed8', label: 'Manager'   },
-  sales_rep: { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', label: 'Sales Rep' },
-};
-
 const STATUS_OPTIONS = [
   { value: 'active',     label: 'Active',     color: '#10b981' },
   { value: 'on_leave',   label: 'On Leave',   color: '#f59e0b' },
@@ -62,12 +56,11 @@ function Badge({ status }) {
   );
 }
 
-function RoleBadge({ role }) {
-  const r = ROLE_META[role] || { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', label: role || '—' };
+function RoleBadge({ name }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, background: r.bg, color: r.color, whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: '0.68rem', fontWeight: 700, background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)', whiteSpace: 'nowrap' }}>
       <Shield size={10} />
-      {r.label}
+      {name || '—'}
     </span>
   );
 }
@@ -316,7 +309,7 @@ export default function EmployeeDetail() {
           <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 20 }}>
             {[
               { label: 'Status',          content: <Badge status={employee.status} /> },
-              { label: 'Role',            content: <RoleBadge role={employee.user?.role} /> },
+              { label: 'Role',            content: <RoleBadge name={employee.user?.role_name} /> },
               { label: 'Department',      content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Building2 size={13} style={{ color: 'var(--text-tertiary)' }} />{employee.department || '—'}</span> },
               { label: 'Employment Type', content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)' }}>{EMPLOYMENT_TYPE_LABELS[employee.employment_type] || '—'}</span> },
               { label: 'Hire Date',       content: <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}><Calendar size={13} style={{ color: 'var(--text-tertiary)' }} />{fmtDate(employee.hire_date)}</span> },

@@ -9,6 +9,7 @@ import useAuthStore from '../../store/authStore';
 import { useLayoutAudio } from './useLayoutAudio';
 import { useAdminShell } from './adminShellContext';
 import { visibleNav, findActive } from '../../navigation/adminNav';
+import { roleName } from '../../lib/roles';
 
 const W_OPEN = 240;
 const W_COLLAPSED = 68;
@@ -33,7 +34,6 @@ function useIsMobile() {
   return mobile;
 }
 
-const roleLabel = (r) => (r ? r.replace(/_/g, ' ') : '');
 
 /** Compact theme picker that lives in the sidebar header */
 function SidebarThemePicker() {
@@ -373,7 +373,7 @@ function SidebarInner({ onOpenSearch, onOpenCalc }) {
             {!collapsed && (
               <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.2 }}>
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 600 }}>{user?.name ?? 'My profile'}</span>
-                <span style={{ fontSize: '0.66rem', textTransform: 'capitalize', opacity: 0.7 }}>{roleLabel(user?.role)}</span>
+                <span style={{ fontSize: '0.66rem', textTransform: 'capitalize', opacity: 0.7 }}>{roleName(user)}</span>
               </span>
             )}
           </Link>

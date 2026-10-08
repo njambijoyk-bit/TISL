@@ -5,7 +5,7 @@ import booksAPI from '../../../../_shared/api/books';
 import { card, colors } from '../../../../_shared/theme/tokens';
 import { money } from './booksFmt';
 import { creditSentence } from './creditText';
-import { hasAnyRole } from '../../../../_shared/lib/roles';
+import { hasPermission } from '../../../../_shared/lib/roles';
 
 const th = { padding: '7px 10px', fontSize: '0.65rem', fontWeight: 700, color: colors.textFaint, textAlign: 'left', whiteSpace: 'nowrap' };
 const td = { padding: '7px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.05)}` };
@@ -67,7 +67,7 @@ export default function OpenBillsPanel({ ledgerId, base, amount, exceptId, alloc
         <span>{receipt ? 'Owes us' : 'We owe them'} <strong style={{ color: (receipt ? t.owed_to_us : t.we_owe) > 0 ? colors.warningText : colors.text }}>{money(receipt ? t.owed_to_us : t.we_owe)}</strong></span>
         {receipt && t.overdue > 0 && <span style={{ color: colors.dangerText }}>{money(t.overdue)} overdue</span>}
         {credits.length > 0 && <span>{receipt ? 'Overpaid / paid in advance' : 'Paid in advance'} <strong style={{ color: colors.successText }}>{money(credits.reduce((x, c) => x + c.amount, 0))}</strong></span>}
-        {receipt && t.owed_to_us > 0.005 && hasAnyRole(roleUser, ['finance', 'super_admin']) && <button type="button" onClick={() => setWriting(true)} style={{ border: 'none', background: 'none', color: colors.dangerText, cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Write off the balance…</button>}
+        {receipt && t.owed_to_us > 0.005 && hasPermission(roleUser, 'books.writeoff') && <button type="button" onClick={() => setWriting(true)} style={{ border: 'none', background: 'none', color: colors.dangerText, cursor: 'pointer', fontSize: '0.75rem', textDecoration: 'underline' }}>Write off the balance…</button>}
         {other > 0 && <span style={{ color: colors.textMuted }}>{receipt ? 'We also owe them' : 'They also owe us'} {money(other)}</span>}
       </div>
 

@@ -112,7 +112,7 @@ class DeliveryRatingController extends Controller
         if ($validator->fails())
             return response()->json(['errors' => $validator->errors()], 422);
 
-        $driver = User::where('role', 'driver')->findOrFail($driverId);
+        $driver = User::drivers()->findOrFail($driverId);
 
         $adjustment = DriverRatingAdjustment::create([
             'driver_id'        => $driver->id,
@@ -148,7 +148,7 @@ class DeliveryRatingController extends Controller
     /** Admin: all ratings for a driver with full breakdown + adjustments */
     public function driverRatings(Request $request, int $driverId): JsonResponse
     {
-        $driver = User::where('role', 'driver')->findOrFail($driverId);
+        $driver = User::drivers()->findOrFail($driverId);
 
         $ratings = DeliveryRating::forDriver($driverId)
             ->with(['customer:id,first_name,last_name', 'deliveryItem:id', 'deliveryItem.notes.voucher:id,voucher_number'])
@@ -231,7 +231,7 @@ class DeliveryRatingController extends Controller
     /** Admin: fleet-wide rating KPIs for the ratings page header */
     public function fleetRatingKpis(): JsonResponse
     {
-        $totalDrivers = User::where('role', 'driver')->count();
+        $totalDrivers = User::drivers()->count();
         $totalReviews = DeliveryRating::count();
 
         // Raw avg across all ratings (no adjustments — just for KPI display)

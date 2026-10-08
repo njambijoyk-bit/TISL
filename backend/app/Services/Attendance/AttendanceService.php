@@ -42,9 +42,10 @@ class AttendanceService
         }
     }
 
+    /** Whoever settles attendance disputes, sees who reported and may mark their own day (the permission attendance.arbitrate). */
     public static function isSuper(?User $u): bool
     {
-        return $u && $u->holdsAny(['super_admin']);
+        return $u && $u->hasPermission('attendance.arbitrate');
     }
 
     // ── who may do what ────────────────────────────────────────────────────
@@ -55,7 +56,7 @@ class AttendanceService
         if ($actor->id === $subjectId) {
             return self::isSuper($actor);
         }
-        if ($actor->holdsAny(['super_admin', 'admin'])) {
+        if ($actor->hasPermission('attendance.manage')) {
             return true;
         }
         $mgr = Employee::where('user_id', $subjectId)->value('manager_id');

@@ -25,8 +25,6 @@ use Illuminate\Support\Facades\Schema;
  */
 class VerificationService
 {
-    public const MANAGERS = ['admin', 'super_admin', 'finance'];
-
     public function __construct(private CalendarService $calendar, private VoucherVersionService $versions) {}
 
     public static function ready(): bool
@@ -34,9 +32,10 @@ class VerificationService
         return Schema::hasTable('verification_items') && Schema::hasTable('verification_assignments');
     }
 
+    /** Who hands out verification work and may check anyone's: the permission verification.manage. */
     public static function isManager(?User $u): bool
     {
-        return $u && $u->holdsAny(self::MANAGERS);
+        return $u && $u->hasPermission('verification.manage');
     }
 
     private function need(): void
@@ -334,7 +333,7 @@ class VerificationService
         if ((int) $i->assigned_to !== $u->id) {
             return false;
         }
-        if ($u->holdsAny(['super_admin'])) {
+        if ($u->hasPermission('verification.override')) {
             return true;
         }
         if ($i->subject_type === 'voucher') {

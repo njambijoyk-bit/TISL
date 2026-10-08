@@ -156,42 +156,80 @@ class Authorizer
         return array_values(array_filter($this->roles($u), fn ($d) => $d['kind'] === 'staff'));
     }
 
-    /** The old role names this person satisfies: every role they hold, plus the names those roles still stand for. Used by the role: route check. */
-    public function legacyKeys(User $u): array
+    /** The keys of every role this person holds: their main role and the extra roles in force. For matching against role keys that are data (a vault policy). */
+    public function roleKeys(User $u): array
     {
-        $keys = [(string) $u->role];
-        foreach ($this->roles($u) as $d) {
-            $keys = array_merge($keys, [$d['key']], $d['acts_as']);
-        }
-
-        return array_values(array_unique($keys));
+        return array_values(array_unique(array_merge([(string) $u->role], array_column($this->roles($u), 'key'))));
     }
 
-    /** The keys of roles that still stand for any of these older role names (Senior accountant for Finance). */
-    public function rolesActingAs(array $names): array
+    /** The key of the portal role a customer, vendor or applicant account has (null for staff). */
+    public function portalType(User $u): ?string
     {
-        $found = [];
+        foreach ($this->roles($u) as $d) {
+            if ($d['kind'] === 'portal') {
+                return $d['key'];
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A driver: someone whose roles let them use the driver app but not the admin area. (The owner holds both, so is not a driver.)
+     */
+    public function isDriver(User $u): bool
+    {
+        return $this->allows($u, 'driver.app') && ! $this->allows($u, 'admin.access');
+    }
+
+    /** Keys of the active staff roles that hold a permission (the owner role holds everything). For "who do we notify". */
+    public function rolesHolding(string $permission): array
+    {
         if (self::ready()) {
-            foreach (DB::table('roles')->whereNotNull('acts_as')->get(['key', 'acts_as']) as $r) {
-                if (array_intersect(json_decode($r->acts_as, true) ?: [], $names)) {
-                    $found[] = $r->key;
-                }
-            }
+            $keys = DB::table('roles as r')->join('role_permissions as p', 'p.role_id', '=', 'r.id')->where('r.is_active', 1)->where('r.kind', 'staff')
+                ->where('p.permission_key', $permission)->pluck('r.key')->all();
 
-            return $found;
+            return array_values(array_unique(array_merge($keys, ['super_admin'])));
         }
+        $keys = [];
         foreach (Catalog::roles() as $key => $r) {
-            if (array_intersect($r['acts_as'], $names)) {
-                $found[] = $key;
+            if ($r['kind'] === 'staff' && ($r['permissions'] === '*' || in_array($permission, $r['permissions'], true))) {
+                $keys[] = $key;
             }
         }
 
-        return $found;
+        return $keys;
+    }
+
+    /** Keys of the roles at or above a clearance level (the owner level is 6). */
+    public function roleKeysAtOrAbove(int $level): array
+    {
+        if (self::ready()) {
+            return DB::table('roles')->where('kind', 'staff')->where('min_clearance', '>=', $level)->pluck('key')->all();
+        }
+
+        return array_keys(array_filter(Catalog::roles(), fn ($r) => $r['kind'] === 'staff' && $r['min_clearance'] >= $level));
+    }
+
+    /** Keys of the portal roles of one kind (customer, vendor, applicant). */
+    public function portalRoleKeys(?string $only = null): array
+    {
+        $keys = self::ready() ? DB::table('roles')->where('kind', 'portal')->pluck('key')->all() : array_keys(array_filter(Catalog::roles(), fn ($r) => $r['kind'] === 'portal'));
+
+        return $only ? array_values(array_intersect($keys, [$only])) : $keys;
+    }
+
+    /** Keys of the roles that make a driver: they hold the driver app and not the admin area. */
+    public function driverRoleKeys(): array
+    {
+        $admin = $this->rolesHolding('admin.access');
+
+        return array_values(array_diff($this->rolesHolding('driver.app'), $admin));
     }
 
     public function hasAnyRole(User $u, array $keys): bool
     {
-        return (bool) array_intersect($this->legacyKeys($u), $keys);
+        return (bool) array_intersect($this->roleKeys($u), $keys);
     }
 
     // ------------------------------------------------------------ clearance
@@ -496,6 +534,27 @@ class Authorizer
             ->map(fn ($r) => ['key' => $r->key, 'name' => $r->name, 'min_clearance' => (int) $r->min_clearance])->values()->all();
     }
 
+    /** Role key => display name, for showing a role by its name (before the access script: the catalogue's names). */
+    public function roleNames(): array
+    {
+        return array_map(fn ($r) => $r['name'], $this->roleInfo());
+    }
+
+    /**
+     * Every role by key: its name, kind (staff or portal) and the clearance it needs. One query, for screens that list many people.
+     *
+     * @return array<string, array{name: string, kind: string, min_clearance: int}>
+     */
+    public function roleInfo(): array
+    {
+        if (self::ready()) {
+            return $this->memo['roleinfo'] ??= DB::table('roles')->get(['key', 'name', 'kind', 'min_clearance'])
+                ->mapWithKeys(fn ($r) => [$r->key => ['name' => $r->name, 'kind' => $r->kind, 'min_clearance' => (int) $r->min_clearance]])->all();
+        }
+
+        return array_map(fn ($r) => ['name' => $r['name'], 'kind' => $r['kind'], 'min_clearance' => $r['min_clearance']], Catalog::roles());
+    }
+
     /** May they give the role with this key? A role that does not exist cannot be given. */
     public function canAssignRoleKey(User $actor, string $key): bool
     {
@@ -526,6 +585,46 @@ class Authorizer
         return $mine >= 6 || $level < $mine;
     }
 
+    /**
+     * SQL for "this account's clearance" (same rule as clearance()): the number on the record, or the lowest level of the main role if higher.
+     * Portal accounts are 0. Before the access script the main role's level comes from the catalogue. Returns [sql, bindings] for whereRaw().
+     *
+     * @return array{0: string, 1: array}
+     */
+    public function clearanceSql(string $users = 'users'): array
+    {
+        $own = Schema::hasColumn('users', 'clearance_level') ? "COALESCE({$users}.clearance_level, 0)" : '0';
+        if (self::ready()) {
+            $role = "COALESCE((SELECT r.min_clearance FROM roles r WHERE r.`key` = {$users}.role AND r.kind = 'staff'), 0)";
+
+            return ["(CASE WHEN {$own} > {$role} THEN {$own} ELSE {$role} END)", []];
+        }
+        $when = [];
+        $binds = [];
+        foreach (Catalog::roles() as $key => $r) {
+            if ($r['kind'] === 'staff') {
+                $when[] = 'WHEN ? THEN ' . (int) $r['min_clearance'];
+                $binds[] = $key;
+            }
+        }
+        $role = '(CASE ' . $users . '.role ' . implode(' ', $when) . ' ELSE 0 END)';
+
+        // the role expression appears twice in the comparison, so its values are bound twice
+        return ["(CASE WHEN {$own} > {$role} THEN {$own} ELSE {$role} END)", array_merge($binds, $binds)];
+    }
+
+    /** Limit a users query to the accounts this person may manage: lower clearance than theirs (the owner: everyone). */
+    public function manageableUsers($query, User $actor, string $users = 'users')
+    {
+        $mine = $this->clearance($actor);
+        if ($mine >= 6) {
+            return $query;
+        }
+        [$sql, $binds] = $this->clearanceSql($users);
+
+        return $query->whereRaw("{$sql} < ?", array_merge($binds, [$mine]));
+    }
+
     // -------------------------------------------------------------- summary
 
     /** Everything about a person's access, for /me, the Users screen and support: what they can do, where, until when. */
@@ -547,10 +646,11 @@ class Authorizer
 
         return [
             'ready' => self::ready(),
+            'account' => $this->portalType($u) ?? ($this->isDriver($u) ? 'driver' : 'staff'),
             'clearance' => $level,
             'clearance_name' => $this->levelName($level),
             'roles' => array_map(fn ($d) => ['key' => $d['key'], 'name' => $d['name'], 'kind' => $d['kind'], 'primary' => $d['primary'], 'expires_at' => $d['expires_at']], $roles),
-            'role_keys' => $this->legacyKeys($u),
+            'role_keys' => $this->roleKeys($u),
             'permissions' => array_keys($perms),
             'data_scope' => $this->dataScope($u),
             'scope' => ['global' => $scope['global'], 'open' => $scope['open'], 'default_location_id' => $scope['default'], 'locations' => $scope['locations']],

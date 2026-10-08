@@ -5,132 +5,72 @@ namespace App\Policies;
 use App\Models\Employee;
 use App\Models\User;
 
+/**
+ * Employee records. Who may see, change, delete or purge them comes from the permissions hr.view, hr.manage, hr.team and hr.purge;
+ * anyone may see their own record and change a few fields of it (the controller limits which).
+ */
 class EmployeePolicy
 {
-    /**
-     * Determine whether the user can view any employees.
-     */
     public function viewAny(User $user): bool
     {
-        // Allow operational roles to view employees
-        return $user->holdsAny(['super_admin', 'admin', 'manager', 'finance', 'logistics']);
+        return $user->hasPermission('hr.view');
     }
 
-    /**
-     * Determine whether the user can view the employee.
-     */
     public function view(User $user, Employee $employee = null): bool
     {
-        // Admin, manager, and super_admin can view
-        if ($user->holdsAny(['super_admin', 'admin', 'manager'])) {
-            return true;
-        }
-
-        // Users can view their own employee record
-        if ($employee && $user->id === $employee->user_id) {
-            return true;
-        }
-
-        return false;
+        return $user->hasPermission('hr.view') || ($employee && $user->id === $employee->user_id);
     }
 
-    /**
-     * Determine whether the user can create employees.
-     */
     public function create(User $user): bool
     {
-        // Only admin and super_admin can create employee records
-        return $user->holdsAny(['super_admin', 'admin']);
+        return $user->hasPermission('hr.manage');
     }
 
-    /**
-     * Determine whether the user can update the employee.
-     */
     public function update(User $user, Employee $employee = null): bool
     {
-        // Super admin can update any
-        if ($user->isSuperAdmin()) {
+        if ($user->hasPermission('hr.manage')) {
             return true;
         }
 
-        // Admin can update
-        if ($user->holdsAny(['admin'])) {
-            return true;
-        }
-
-        // Managers can update their subordinates
-        if ($user->holdsAny(['manager'])) {
-            // If we have an employee, check if it's their subordinate
+        // someone who edits their team's records: their own reports (or, with no record named, in general)
+        if ($user->hasPermission('hr.team')) {
             if ($employee) {
-                $managerEmployee = Employee::where('user_id', $user->id)->first();
-                if ($managerEmployee) {
-                    return $employee->manager_id === $managerEmployee->id;
+                $mine = Employee::where('user_id', $user->id)->first();
+                if ($mine) {
+                    return $employee->manager_id === $mine->id;
                 }
             }
-            return true; // Allow manager to update in general
-        }
 
-        // Users can update their own record (limited fields)
-        if ($employee && $user->id === $employee->user_id) {
             return true;
         }
 
-        return false;
+        // anyone may update their own record (limited fields)
+        return (bool) ($employee && $user->id === $employee->user_id);
     }
 
-    /**
-     * Determine whether the user can delete the employee.
-     */
     public function delete(User $user, Employee $employee = null): bool
     {
-        // Only admin and super_admin can delete
-        return $user->holdsAny(['super_admin', 'admin']);
+        return $user->hasPermission('hr.manage');
     }
 
-    /**
-     * Determine whether the user can restore the employee.
-     */
     public function restore(User $user, Employee $employee = null): bool
     {
-        // Only admin and super_admin can restore
-        return $user->holdsAny(['super_admin', 'admin']);
+        return $user->hasPermission('hr.manage');
     }
 
-    /**
-     * Determine whether the user can permanently delete the employee.
-     */
     public function forceDelete(User $user, Employee $employee = null): bool
     {
-        // Only super_admin can force delete
-        return $user->isSuperAdmin();
+        return $user->hasPermission('hr.purge');
     }
 
-    /**
-     * Determine whether the user can manage sensitive employee data
-     * (salary, bank details, etc.)
-     */
+    /** Salary, bank, ID numbers and the like. */
     public function manageSensitiveData(User $user): bool
     {
-        // Only super_admin and admin can manage sensitive data
-        return $user->holdsAny(['super_admin', 'admin']);
+        return $user->hasPermission('hr.manage');
     }
 
-    /**
-     * Determine whether the user can manage employee status
-     * (terminate, suspend, etc.)
-     */
     public function manageStatus(User $user, Employee $employee = null): bool
     {
-        // Super admin can manage any
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        // Admin can manage
-        if ($user->holdsAny(['admin'])) {
-            return true;
-        }
-
-        return false;
+        return $user->hasPermission('hr.manage');
     }
 }

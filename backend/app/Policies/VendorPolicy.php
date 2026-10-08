@@ -13,7 +13,7 @@ class VendorPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->isStaff();
     }
 
     /**
@@ -22,7 +22,7 @@ class VendorPolicy
      */
     public function view(User $user, Vendor $vendor): bool
     {
-        if ($user->isAdmin()) {
+        if ($user->isStaff()) {
             return true;
         }
 
@@ -35,7 +35,7 @@ class VendorPolicy
      */
     public function create(User $user): bool
     {
-        return $user->holdsAny(['super_admin', 'admin', 'manager']);
+        return $user->hasPermission('vendors.approve');
     }
 
     /**
@@ -44,7 +44,7 @@ class VendorPolicy
      */
     public function update(User $user, Vendor $vendor): bool
     {
-        if ($user->isAdmin()) {
+        if ($user->isStaff()) {
             return true;
         }
 
@@ -56,17 +56,17 @@ class VendorPolicy
      */
     public function delete(User $user, Vendor $vendor): bool
     {
-        return $user->isAdmin();
+        return $user->isStaff();
     }
 
     public function restore(User $user, Vendor $vendor): bool
     {
-        return $user->isAdmin();
+        return $user->isStaff();
     }
 
     public function forceDelete(User $user, Vendor $vendor): bool
     {
-        return $user->isSuperAdmin();
+        return $user->hasPermission('users.purge');
     }
 
     /**
@@ -74,7 +74,7 @@ class VendorPolicy
      */
     public function approve(User $user, Vendor $vendor): bool
     {
-        return $user->holdsAny(['super_admin', 'admin', 'manager']);
+        return $user->hasPermission('vendors.approve');
     }
 
     /**
@@ -83,6 +83,6 @@ class VendorPolicy
      */
     public function manageProducts(User $user, Vendor $vendor): bool
     {
-        return $user->isAdmin();
+        return $user->isStaff();
     }
 }

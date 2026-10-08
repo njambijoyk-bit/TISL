@@ -36,7 +36,7 @@ export default function CatalogueSettings() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto', display: 'grid', gap: 18 }}>
-        <div><CatalogueTabs /><HubHeader title="Price list and brochure configuration" description="Shop-wide choices. Only a manager, admin or super admin can change them." /></div>
+        <div><CatalogueTabs /><HubHeader title="Price list and brochure configuration" description="Shop-wide choices. Only people with the permission to change the catalogue settings can change them." /></div>
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
           <strong style={{ color: colors.text }}>Price lists</strong>

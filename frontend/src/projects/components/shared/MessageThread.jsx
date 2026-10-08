@@ -5,10 +5,9 @@ import {
   Check, Loader2, CheckSquare, Square,
   ChevronDown, AlertTriangle,
 } from 'lucide-react';
+import { hasPermission } from '../../../_shared/lib/roles';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const STAFF_ROLES = ['super_admin', 'admin', 'manager', 'sales_rep'];
 
 const VISIBILITY_STYLES = {
   customer: '',
@@ -237,14 +236,15 @@ const MessageThread = ({
   messages = [],
   loading = false,
   currentUserId,
-  userRole = 'customer',
+  user = null,
   onDeleteMessage,
   onDeleteMessages,
   onEditMessage,
   onClearChat,
 }) => {
-  const isStaff      = STAFF_ROLES.includes(userRole);
-  const isSuperAdmin = userRole === 'super_admin';
+  // who may do what comes from permissions: moderating (edit or remove anyone's message), and staff removing a customer's message
+  const isStaff      = hasPermission(user, 'projects.manage');
+  const isSuperAdmin = hasPermission(user, 'projects.moderate');
 
   const canEditMsg = useCallback(
     (msg) => isSuperAdmin || msg.sender_user_id === currentUserId,
@@ -255,7 +255,7 @@ const MessageThread = ({
     (msg) => {
       if (isSuperAdmin) return true;
       if (msg.sender_user_id === currentUserId) return true;
-      if (isStaff && !STAFF_ROLES.includes(msg.sender?.role)) return true;
+      if (isStaff && !msg.sender_is_staff) return true;
       return false;
     },
     [isSuperAdmin, isStaff, currentUserId]

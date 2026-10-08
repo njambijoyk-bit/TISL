@@ -266,7 +266,7 @@ class CampaignBoardController extends Controller
     /** DELETE /admin/boards/{id}/purge: super admin only, gone for good. */
     public function purge(Request $request, int $id): JsonResponse
     {
-        abort_unless($request->user()?->holdsAny(['super_admin']), 403, 'Only a super admin can delete a board for good.');
+        abort_unless($request->user()?->hasPermission('campaigns.purge'), 403, 'You do not have permission to delete a board for good.');
         $this->boards->purge(CampaignBoard::withTrashed()->findOrFail($id));
 
         return response()->json(['message' => 'Board deleted for good.']);

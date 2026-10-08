@@ -431,7 +431,7 @@ class BooksMasterController extends Controller
             'settings' => AccountingSetting::current(),
             'edit_limits' => VoucherEditLimit::orderBy('role')->orderBy('voucher_type_id')->get(),
             'years' => FinancialYear::orderByDesc('start_date')->get(),
-            'roles' => DB::table('users')->whereNotNull('role')->distinct()->pluck('role')->merge(['super_admin', 'admin', 'finance', 'manager'])->merge(app(\App\Services\Access\Authorizer::class)->staffRoleKeys())->unique()->values(),
+            'roles' => DB::table('users')->whereNotNull('role')->distinct()->pluck('role')->merge(app(\App\Services\Access\Authorizer::class)->staffRoleKeys())->unique()->values(),
         ]);
     }
 

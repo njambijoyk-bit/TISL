@@ -17,7 +17,7 @@ const WHY = { rule: 'Every one is held', first: "Person's first post", guest: 'F
 const TYPES = [['', 'Everything'], ['product', 'Products'], ['service', 'Services'], ['hamper', 'Hampers'], ['pin', 'Pins'], ['board', 'Boards'], ['moodboard', 'Moodboards'], ['campaign', 'Campaigns'], ['post', 'Replies']];
 const when = (iso) => (iso ? new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
 
-/** Reviews and comments waiting for a decision, and the ones already showing, hidden or removed. Admin, super admin and manager decide; sales rep and finance can read. */
+/** Reviews and comments waiting for a decision, and the ones already showing, hidden or removed. Whoever holds the moderate permission decides; the others can read. */
 function Posts() {
   const [status, setStatus] = useState('held');
   const [type, setType] = useState('');

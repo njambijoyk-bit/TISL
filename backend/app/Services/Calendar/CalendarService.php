@@ -24,12 +24,10 @@ use Illuminate\Support\Str;
  */
 class CalendarService
 {
-    /** Roles that may look at other people's calendars. */
-    public const MANAGERS = ['super_admin', 'admin', 'manager'];
-
+    /** Who may look at other people's calendars: the permission calendar.team. */
     public static function isManager(?User $u): bool
     {
-        return $u && $u->holdsAny(self::MANAGERS);
+        return $u && $u->hasPermission('calendar.team');
     }
 
     /** Add or update the entry for a source (one per source, owner and resource). */

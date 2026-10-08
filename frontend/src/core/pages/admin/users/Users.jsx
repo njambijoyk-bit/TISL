@@ -8,24 +8,23 @@ import {
   ArrowUpDown, ChevronDown, ChevronUp, Building2,
 } from 'lucide-react';
 import useUsersStore from '../../../../_shared/store/usersStore';
-import { useAuthStore } from '../../../../_shared/store/index';
 import usersAPI from '../../../../_shared/api/users';
 import toast from 'react-hot-toast';
 import CreateUserModal from './components/CreateUserModal';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const ROLE_META = {
-  super_admin: { label: 'Super Admin', color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)',  ring: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },
-  admin:       { label: 'Admin',       color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },
-  manager:     { label: 'Manager',     color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },
-  finance:     { label: 'Finance',     color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
-  logistics:   { label: 'Logistics',   color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
-  sales_rep:   { label: 'Sales Rep',   color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },
-  driver:      { label: 'Driver',      color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },
-  customer:    { label: 'Customer',    color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },
-  vendor:      { label: 'Vendor',      color: '#dc2626', bg: 'rgba(220,38,38,0.1)',   ring: 'rgba(220,38,38,0.25)'  },
-};
+// The role badge colour follows the clearance level (0 to 6), never the role's name: roles are made in the role builder.
+const LEVEL_STYLES = [
+  { color: '#d97706', bg: 'rgba(217,119,6,0.1)',   ring: 'rgba(217,119,6,0.25)'  },   // 0  no staff access (customers, vendors)
+  { color: 'var(--text-secondary)', bg: 'rgba(107,114,128,0.1)', ring: 'rgba(107,114,128,0.2)' },   // 1
+  { color: '#059669', bg: 'rgba(5,150,105,0.1)',   ring: 'rgba(5,150,105,0.25)'  },   // 2
+  { color: '#0891b2', bg: 'rgba(8,145,178,0.1)',   ring: 'rgba(8,145,178,0.25)'  },   // 3
+  { color: '#7c3aed', bg: 'rgba(124,58,237,0.1)',  ring: 'rgba(124,58,237,0.25)' },   // 4
+  { color: '#2563eb', bg: 'rgba(37,99,235,0.1)',   ring: 'rgba(37,99,235,0.25)'  },   // 5
+  { color: 'var(--color-primary-600)', bg: 'color-mix(in srgb, var(--color-primary-600) 10%, transparent)', ring: 'color-mix(in srgb, var(--color-primary-600) 25%, transparent)' },   // 6
+];
+const levelStyle = (user) => LEVEL_STYLES[user.clearance ?? 0] ?? LEVEL_STYLES[0];
 
 const STATUS_STYLES = {
   active:               { bg: 'rgba(16,185,129,0.1)',  color: '#065f46', dot: '#10b981', ring: 'rgba(16,185,129,0.25)'  },
@@ -42,20 +41,6 @@ const STAT_META = [
   { key: 'locked',    label: 'Locked',       icon: <Lock size={18} />,        accent: '#d97706', bg: 'rgba(217,119,6,0.08)'   },
   { key: 'customers', label: 'Customers',    icon: <UserCheck size={18} />,   accent: '#0891b2', bg: 'rgba(8,145,178,0.08)'   },
 ];
-
-const STAFF_ROLES = ['admin', 'manager', 'sales_rep', 'finance', 'logistics', 'driver'];
-
-const LEVELS = { 
-  super_admin: 1, 
-  admin: 2, 
-  manager: 3, 
-  finance: 4, 
-  logistics: 5, 
-  sales_rep: 6, 
-  customer: 7, 
-  vendor: 8, 
-  driver: 9 
-};
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
@@ -290,8 +275,8 @@ const USERS_DEV_NOTES = {
       detail: "Rather than returning a 403 when some IDs in a bulk request aren't permitted, it processes what it can and returns a count. This prevents information leakage — the actor can't determine which IDs existed vs were protected. The same pattern is used in bulkRestore.",
     },
     {
-      title: "Role-based tab filtering mirrors the backend hierarchy",
-      detail: "The tab system (staff / finance / logistics / drivers / customers / vendors) maps cleanly to the backend's role-gated query. The frontend LEVELS constant mirrors UserPolicy::$hierarchy, so canManage() in the UI reflects the same rules as the policy gate.",
+      title: "Tabs follow the kind of account; manageability comes from the server",
+      detail: "The tab system (staff / drivers / customers / vendors) maps to the kind of account the backend works out from the roles table, and each row arrives with a manageable flag the server worked out from clearance, so the UI never repeats the rules the policy gate applies.",
     },
   ],
   future: [
@@ -405,11 +390,10 @@ function UsersDevNotesModal({ onClose }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export default function UsersPage() {
   const navigate = useNavigate();
-  const { user: currentAdmin } = useAuthStore();
   const {
     users, statistics, departments, pagination, filters,
     loading, actionLoading,
-    fetchUsers, fetchStatistics, fetchDepartments,
+    fetchUsers, fetchStatistics, fetchDepartments, fetchRoles, roles,
     setFilter, setTab, resetFilters,
     deleteUser, restoreUser, updateStatus,
     unlockUser, forcePasswordReset, bulkDelete, bulkRestore,
@@ -421,7 +405,7 @@ export default function UsersPage() {
   const [showInfo, setShowInfo] = useState(false);
   const [devNotesOpen, setDevNotesOpen] = useState(false);
 
-  useEffect(() => { fetchStatistics(); fetchDepartments(); }, []);
+  useEffect(() => { fetchStatistics(); fetchDepartments(); fetchRoles(); }, []);
   useEffect(() => { fetchUsers(); setSelectedIds([]); }, [filters]);
 
   const toggleSelect    = (id) => setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
@@ -507,16 +491,14 @@ export default function UsersPage() {
   };
 
   const isLocked  = (user) => user.locked_until && new Date(user.locked_until) > new Date();
-  const canManage = (targetRole) => (LEVELS[currentAdmin?.role] || 99) < (LEVELS[targetRole] || 99);
   const hasFilters = filters.search || filters.role || filters.status || filters.department || filters.locked || filters.unverified || filters.trashed;
   const activeFilterCount = [filters.role, filters.status, filters.department, filters.locked && 'locked', filters.unverified && 'unverified', filters.trashed && 'trashed'].filter(Boolean).length;
 
   const showStaffTab = filters.tab === 'staff';
-  const showFinanceTab = filters.tab === 'finance';
-  const showLogisticsTab = filters.tab === 'logistics';
   const showDriversTab = filters.tab === 'drivers';
   const showCustomersTab = filters.tab === 'customers';
   const showVendorsTab = filters.tab === 'vendors';
+  const staffSide = showStaffTab || showDriversTab;   // staff and drivers have a department; customers and vendors a company
 
   return (
     <AdminLayout>
@@ -641,11 +623,9 @@ export default function UsersPage() {
             borderBottom: '1px solid var(--line)',
           }}>
             <div style={{ display: 'flex' }}>
-              {['staff', 'finance', 'logistics', 'drivers', 'customers', 'vendors'].map(tab => {
+              {['staff', 'drivers', 'customers', 'vendors'].map(tab => {
                 const tabLabels = {
                   staff: 'Staff',
-                  finance: 'Finance',
-                  logistics: 'Logistics',
                   drivers: 'Drivers',
                   customers: 'Customers',
                   vendors: 'Vendors',
@@ -653,8 +633,6 @@ export default function UsersPage() {
 
                 const tabStats = {
                   staff: statistics?.staff,
-                  finance: statistics?.finance,
-                  logistics: statistics?.logistics,
                   drivers: statistics?.drivers,
                   customers: statistics?.customers,
                   vendors: statistics?.vendors,
@@ -791,14 +769,14 @@ export default function UsersPage() {
               borderTop: '1px solid var(--line)',
               display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center',
             }}>
-              {(showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab) && (
+              {staffSide && (
                 <select value={filters.role ?? ''} onChange={e => setFilter('role', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
                   <option value="">All roles</option>
-                  {STAFF_ROLES.map(r => <option key={r} value={r}>{ROLE_META[r]?.label || r}</option>)}
+                  {(roles?.staff ?? []).map(r => <option key={r.key} value={r.key}>{r.name}</option>)}
                 </select>
               )}
 
-              {(showStaffTab || showFinanceTab || showLogisticsTab) && departments?.length > 0 && (
+              {showStaffTab && departments?.length > 0 && (
                 <select value={filters.department ?? ''} onChange={e => setFilter('department', e.target.value)} style={selectStyle} onFocus={selectFocus} onBlur={selectBlur}>
                   <option value="">All departments</option>
                   {departments.map(d => <option key={d} value={d}>{d}</option>)}
@@ -862,7 +840,7 @@ export default function UsersPage() {
                     <TH_LABEL>User</TH_LABEL>
                   </th>
                   <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
-                    <TH_LABEL>{showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab ? 'Department' : 'Company'}</TH_LABEL>
+                    <TH_LABEL>{staffSide ? 'Department' : 'Company'}</TH_LABEL>
                   </th>
                   <th style={{ padding: '10px 16px', textAlign: 'left', minWidth: 110 }}>
                     <TH_LABEL>Role</TH_LABEL>
@@ -903,7 +881,7 @@ export default function UsersPage() {
                     )
 
                     : users.map((user, i) => {
-                      const rm     = ROLE_META[user.role]     ?? ROLE_META.customer;
+                      const rm     = levelStyle(user);
                       const st     = STATUS_STYLES[user.status] ?? STATUS_STYLES.inactive;
                       const locked = isLocked(user);
                       const isLast = i === users.length - 1;
@@ -931,11 +909,7 @@ export default function UsersPage() {
                           <td style={{ padding: '12px 20px', cursor: 'pointer' }} onClick={() => navigate(`/admin/users/${user.id}`)}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                               <img
-                                src={
-                                  user.role === 'customer'
-                                    ? (user.customer?.profile_image_url || user.profile_picture_url)
-                                    : user.profile_picture_url
-                                }
+                                src={user.customer ? (user.customer.profile_image_url || user.profile_picture_url) : user.profile_picture_url}
                                 alt={user.name}
                                 style={{ 
                                   width: 36, height: 36, borderRadius: '50%', objectFit: 'cover',
@@ -960,13 +934,13 @@ export default function UsersPage() {
 
                           <td style={{ padding: '12px 16px' }}>
                             <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                              {showStaffTab || showFinanceTab || showLogisticsTab || showDriversTab ? (user.department || '—') : (user.company_name || '—')}
+                              {staffSide ? (user.department || '—') : (user.company_name || '—')}
                             </span>
                           </td>
 
                           <td style={{ padding: '12px 16px' }}>
                             <Badge bg={rm.bg} color={rm.color} ring={rm.ring}>
-                              {rm.label}
+                              {user.role_name || user.role}
                             </Badge>
                           </td>
 
@@ -1034,7 +1008,7 @@ export default function UsersPage() {
                           </td>
 
                           <td style={{ padding: '12px 16px' }} onClick={e => e.stopPropagation()}>
-                            {canManage(user.role) && (
+                            {user.manageable && (
                               <ActionMenu
                                 user={user}
                                 isLocked={locked}

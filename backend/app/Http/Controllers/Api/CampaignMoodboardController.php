@@ -58,7 +58,7 @@ class CampaignMoodboardController extends Controller
         if ($r) {
             $u = $r->user();
             $mine = (int) $m->owner_user_id === (int) $u->id;
-            $row += ['can_view_log' => $u->holdsAny(['admin', 'super_admin']) && $m->source === 'customer', 'can_edit' => $this->moods->canEdit($u, $m), 'can_publish' => CampaignAccess::canPublish($u), 'can_decide' => CampaignAccess::canPublish($u) && $m->approval_status === 'pending' && ! $mine,
+            $row += ['can_view_log' => $u->hasPermission('campaigns.admin') && $m->source === 'customer', 'can_edit' => $this->moods->canEdit($u, $m), 'can_publish' => CampaignAccess::canPublish($u), 'can_decide' => CampaignAccess::canPublish($u) && $m->approval_status === 'pending' && ! $mine,
                 'can_submit' => ! CampaignAccess::canPublish($u) && $mine && ! $m->is_template && in_array($m->approval_status, ['draft', 'rejected'], true), 'can_withdraw' => $mine && $m->approval_status === 'pending'];
         }
 
@@ -120,7 +120,7 @@ class CampaignMoodboardController extends Controller
     /** GET /admin/moodboards/{id}/views: who on the staff opened this customer's private moodboard, newest first. Admin and super admin only. */
     public function views(Request $request, int $id): JsonResponse
     {
-        abort_unless($request->user()->holdsAny(['admin', 'super_admin']), 403, 'Only an admin or super admin can see who looked.');
+        abort_unless($request->user()->hasPermission('campaigns.admin'), 403, 'You do not have permission to see who looked.');
         CampaignMoodboard::forStaff($request->user())->findOrFail($id);
         try {
             $rows = \Illuminate\Support\Facades\DB::table('campaign_access_log as l')->leftJoin('users as u', 'u.id', '=', 'l.user_id')->where('l.board_id', $id)->where('l.action', 'mood_view')->orderByDesc('l.id')->limit(100)
@@ -241,7 +241,7 @@ class CampaignMoodboardController extends Controller
     /** DELETE /admin/moodboards/{id}/purge: super admin only, gone for good. */
     public function purge(Request $request, int $id): JsonResponse
     {
-        abort_unless($request->user()?->holdsAny(['super_admin']), 403, 'Only a super admin can delete a moodboard for good.');
+        abort_unless($request->user()?->hasPermission('campaigns.purge'), 403, 'You do not have permission to delete a moodboard for good.');
         $this->moods->purge(CampaignMoodboard::withTrashed()->findOrFail($id));
 
         return response()->json(['message' => 'Moodboard deleted for good.']);

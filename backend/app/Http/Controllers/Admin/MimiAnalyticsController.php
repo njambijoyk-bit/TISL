@@ -153,7 +153,7 @@ class MimiAnalyticsController extends Controller
                     ->where('name',  'like', "%{$q}%")
                     ->orWhere('email', 'like', "%{$q}%")
                 )
-                ->whereIn('role', ['admin', 'super_admin', 'staff', 'finance', 'sales_rep'])
+                ->staffAccounts()
                 ->select('id', 'name', 'email', 'role')
                 ->limit(10)
                 ->get()

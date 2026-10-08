@@ -7,6 +7,7 @@ const useUsersStore = create((set, get) => ({
   currentUser: null,
   statistics:  null,
   departments: [],
+  roles:       null,   // { staff, assignable, levels } from the server
   pagination:  { total: 0, per_page: 20, current_page: 1, last_page: 1 },
 
   filters: {
@@ -90,6 +91,14 @@ const useUsersStore = create((set, get) => ({
       const data = await usersAPI.getDepartments();
       set({ departments: data.data || [] });
     } catch {}
+  },
+
+  fetchRoles: async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      set({ roles: await usersAPI.getRoles() });
+    } catch { /* the screens still work without the list */ }
   },
 
   fetchUserById: async (id) => {
