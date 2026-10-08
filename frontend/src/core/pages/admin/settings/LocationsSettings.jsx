@@ -27,7 +27,16 @@ const EMPTY = {
   timezone: 'Africa/Nairobi', price_display_default: 'inclusive',
   accepts_pickup: true, accepts_delivery: true, is_active: true, is_default: false,
   sort_order: 0, staff_ids: [],
+  kind: 'shop', sells_to_customers: true, fulfils_orders: true, receives_purchases: true, produces: false,
 };
+
+/** What each capability means, in the words the form and the list use. */
+const CAPABILITY_LABELS = [
+  ['sells_to_customers', 'Sells to customers', 'Customers can pick this branch and buy from it. A warehouse or factory should not.'],
+  ['fulfils_orders', 'Delivers orders', 'Delivery notes can be made from this branch.'],
+  ['receives_purchases', 'Receives goods', 'Goods you buy can be received into this branch.'],
+  ['produces', 'Makes things', 'Production runs (recipes) can happen here.'],
+];
 
 function Toggle({ checked, onChange, children }) {
   return (
@@ -59,6 +68,8 @@ function LocationModal({ open, onClose, editing, options, onSaved }) {
   if (!open) return null;
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  // choosing a kind fills in what that kind usually does; the four switches below can still be changed
+  const pickKind = (kind) => setForm((f) => ({ ...f, kind, ...(options.kind_defaults?.[kind] ?? {}) }));
   const toggleStaff = (id) => setForm((f) => ({
     ...f, staff_ids: f.staff_ids.includes(id) ? f.staff_ids.filter((x) => x !== id) : [...f.staff_ids, id],
   }));
@@ -124,6 +135,31 @@ function LocationModal({ open, onClose, editing, options, onSaved }) {
             </select>
           </div>
         </div>
+
+        {options.capabilities_ready === false ? (
+          <p style={{ margin: '16px 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+            Branch types (shop, warehouse, factory) switch on once database script 97 has been run.
+          </p>
+        ) : (
+          <div style={{ marginTop: 16, padding: 14, borderRadius: 10, border: '1px solid var(--line)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 220px) 1fr', gap: 12, alignItems: 'start' }}>
+              <div>
+                <label style={label}>What is it?</label>
+                <select style={input} value={form.kind} onChange={(e) => pickKind(e.target.value)}>
+                  {Object.entries(options.kinds ?? { shop: 'Shop', warehouse: 'Warehouse', factory: 'Factory', other: 'Other' }).map(([k, name]) => <option key={k} value={k}>{name}</option>)}
+                </select>
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {CAPABILITY_LABELS.map(([key, name, hint]) => (
+                  <div key={key}>
+                    <Toggle checked={form[key]} onChange={(v) => set(key, v)}>{name}</Toggle>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginLeft: 26 }}>{hint}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 16 }}>
           <Toggle checked={form.accepts_pickup} onChange={(v) => set('accepts_pickup', v)}>Accepts pickup</Toggle>
@@ -221,6 +257,8 @@ export default function LocationsSettings() {
                   <span style={{ fontFamily: 'monospace', fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{l.code}</span>
                   {l.is_default && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.68rem', fontWeight: 700, color: '#b45309', background: 'rgba(217,119,6,0.12)', padding: '2px 8px', borderRadius: 999 }}><Star size={11} /> Default</span>}
                   {!l.is_active && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--surface-input)', padding: '2px 8px', borderRadius: 999 }}>Inactive</span>}
+                  {l.kind && l.kind !== 'shop' && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--color-primary-600)', background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', padding: '2px 8px', borderRadius: 999, textTransform: 'capitalize' }}>{l.kind}</span>}
+                  {l.sells_to_customers === false && <span style={{ fontSize: '0.68rem', fontWeight: 700, color: 'var(--text-secondary)', background: 'var(--surface-input)', padding: '2px 8px', borderRadius: 999 }}>Staff only</span>}
                 </div>
                 <div style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', marginTop: 4 }}>
                   {[l.city, l.country].filter(Boolean).join(', ') || '—'}

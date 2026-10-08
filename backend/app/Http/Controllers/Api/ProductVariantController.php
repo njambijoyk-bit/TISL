@@ -97,7 +97,7 @@ class ProductVariantController extends Controller
                         'display_price_incl' => $price === null ? null : $convert(\App\Services\Books\PriceTax::split((float) $price, $taxInfo)['gross']),
                         'compare_at_price'   => $compare,
                         'display_compare_at' => $convert($compare),
-                        'available_quantity' => $u->availableQuantity(),
+                        'available_quantity' => $u->availableForSale(),
                         'is_default_sale'    => (bool) $u->is_default_sale,
                     ];
                 })
@@ -113,7 +113,7 @@ class ProductVariantController extends Controller
                 'selection'        => $v->optionValues->mapWithKeys(fn ($ov) => [$ov->option_id => $ov->id]),
                 'net_content_qty'  => $v->net_content_qty !== null ? (float) $v->net_content_qty : null,
                 'net_content_unit' => $v->contentUnit,
-                'in_stock'         => $v->inStock(),
+                'in_stock'         => $v->inStockForSale(),
                 'units'            => $units,
             ];
         })

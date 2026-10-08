@@ -29,7 +29,8 @@ class LocationContext
         if ($id === null) {
             return;
         }
-        $loc = Location::query()->active()->find($id);
+        // the customer's branch: only one customers can buy from (a warehouse id sent by hand is ignored)
+        $loc = Location::query()->sellsToCustomers()->find($id);
         if ($loc) {
             $this->set($loc);
         }
@@ -39,7 +40,7 @@ class LocationContext
     public function current(): ?Location
     {
         if (!$this->resolved) {
-            $this->current = Location::default();
+            $this->current = Location::defaultSelling() ?? Location::default();
             $this->resolved = true;
         }
         return $this->current;

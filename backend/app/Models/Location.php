@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * A branch / physical location (Core, multi-location).
@@ -27,6 +28,7 @@ class Location extends Model
         'latitude', 'longitude', 'timezone', 'opening_hours',
         'price_display_default', 'accepts_pickup', 'accepts_delivery', 'delivery_zone',
         'is_default', 'is_active', 'sort_order',
+        'kind', 'sells_to_customers', 'fulfils_orders', 'receives_purchases', 'produces',
     ];
 
     protected $casts = [
@@ -39,7 +41,36 @@ class Location extends Model
         'is_default'       => 'boolean',
         'is_active'        => 'boolean',
         'sort_order'       => 'integer',
+        'sells_to_customers' => 'boolean',
+        'fulfils_orders'     => 'boolean',
+        'receives_purchases' => 'boolean',
+        'produces'           => 'boolean',
     ];
+
+    /** What a location is for. It is a label: it only fills in the four capabilities below, which are what the app actually checks. */
+    public const KINDS = ['shop' => 'Shop', 'warehouse' => 'Warehouse', 'factory' => 'Factory', 'other' => 'Other'];
+
+    /** What a location may do: customers can buy from it, delivery notes can come from it, goods can be received into it, production can run in it. */
+    public const CAPABILITIES = ['sells_to_customers', 'fulfils_orders', 'receives_purchases', 'produces'];
+
+    /** The capabilities each kind starts with (a form can still change them). */
+    public const KIND_DEFAULTS = [
+        'shop'      => ['sells_to_customers' => true,  'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
+        'warehouse' => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
+        'factory'   => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => true],
+        'other'     => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => false],
+    ];
+
+    /**
+     * Has the capabilities script (97) been run? Until it has, every location counts as a shop that does everything but produce,
+     * so nothing that asks a question here can break an installation that has the new code but not yet the new columns.
+     */
+    public static function hasCapabilities(): bool
+    {
+        static $has = null;
+
+        return $has ??= Schema::hasColumn('locations', 'sells_to_customers');
+    }
 
     // ── Relationships ───────────────────────────────────────────────────────
 
@@ -78,6 +109,32 @@ class Location extends Model
         return $q->where('is_active', true);
     }
 
+    /** Branches customers may pick and buy from: active and marked "sells to customers". */
+    public function scopeSellsToCustomers(Builder $q): Builder
+    {
+        $q->where('is_active', true);
+
+        return self::hasCapabilities() ? $q->where('sells_to_customers', true) : $q;
+    }
+
+    /** Branches delivery notes may be made from. */
+    public function scopeFulfilsOrders(Builder $q): Builder
+    {
+        return self::hasCapabilities() ? $q->where('fulfils_orders', true) : $q;
+    }
+
+    /** Branches goods may be received into. */
+    public function scopeReceivesPurchases(Builder $q): Builder
+    {
+        return self::hasCapabilities() ? $q->where('receives_purchases', true) : $q;
+    }
+
+    /** Branches production can run in. Before the script is run nothing is marked, so none are. */
+    public function scopeProduces(Builder $q): Builder
+    {
+        return self::hasCapabilities() ? $q->where('produces', true) : $q->whereRaw('1 = 0');
+    }
+
     public function scopeOrdered(Builder $q): Builder
     {
         return $q->orderBy('sort_order')->orderBy('name');
@@ -91,6 +148,13 @@ class Location extends Model
         return static::query()->where('is_default', true)->first()
             ?? static::query()->active()->ordered()->first()
             ?? static::query()->ordered()->first();
+    }
+
+    /** The branch customers land on: the default one if customers can buy from it, else the first one that sells to them. */
+    public static function defaultSelling(): ?self
+    {
+        return static::query()->sellsToCustomers()->where('is_default', true)->first()
+            ?? static::query()->sellsToCustomers()->ordered()->first();
     }
 
     /** True once the business runs more than one branch (drives the UI). */

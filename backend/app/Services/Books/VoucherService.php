@@ -677,6 +677,7 @@ class VoucherService
             throw new BooksException("No exchange rate for {$currency->code}.");
         }
         $locationId = $data['location_id'] ?? Location::default()?->id;
+        $this->assertLocationCan($type, $locationId, $data);
 
         // ── party ─────────────────────────────────────────────────────
         $customer = ! empty($data['customer_id']) ? Customer::findOrFail($data['customer_id']) : null;
@@ -1316,6 +1317,27 @@ class VoucherService
         }
 
         return 0.0; // invoicing a delivery: the delivery already moved the stock
+    }
+
+    /**
+     * A location may only do what it is marked for: goods are received into branches that receive purchases, and delivery notes
+     * are made from branches that fulfil orders. (Before script 97 is run every location may do both.)
+     */
+    private function assertLocationCan(VoucherType $type, ?int $locationId, array $data): void
+    {
+        if (! $locationId || ! Location::hasCapabilities()) {
+            return;
+        }
+        $base = $type->base_type;
+        $movesStock = ($data['moves_stock'] ?? true) !== false && ($type->stock_effect ?? 'none') !== 'none';
+        [$cap, $what] = match (true) {
+            $base === VoucherType::RECEIPT_NOTE, $base === VoucherType::PURCHASE && $movesStock => ['receives_purchases', 'receive goods'],
+            $base === VoucherType::DELIVERY_NOTE => ['fulfils_orders', 'deliver orders'],
+            default => [null, null],
+        };
+        if ($cap && ($loc = Location::find($locationId)) && ! $loc->{$cap}) {
+            throw new BooksException("{$loc->name} can't {$what}. Choose a branch that can, or change what {$loc->name} is allowed to do in Settings, Branches.");
+        }
     }
 
     private function totals(array $lines): array

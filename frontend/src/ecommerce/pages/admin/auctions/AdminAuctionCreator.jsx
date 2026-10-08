@@ -170,7 +170,7 @@ export default function AdminAuctionCreator() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <div>
                 <label style={labelStyle}>Branch *</label>
-                <BranchSelect value={form.location_id} onChange={v => setForm(prev => ({ ...prev, location_id: v }))} />
+                <BranchSelect capability="sells_to_customers" value={form.location_id} onChange={v => setForm(prev => ({ ...prev, location_id: v }))} />
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '6px 0 0' }}>The auction belongs to this branch; the item must be in stock there.</p>
               </div>
               <div>

@@ -402,7 +402,16 @@ class Product extends Model
      */
     public function scopeInStock($query)
     {
-        return $query->where('in_stock', true)->where('stock_quantity', '>', 0);
+        return $query->where('in_stock', true)->where($this->sellableColumn(), '>', 0);
+    }
+
+    /** The stock column customers are shown: what the locations that sell to them hold (plain stock before script 97). */
+    private function sellableColumn(): string
+    {
+        static $has = null;
+        $has ??= \Illuminate\Support\Facades\Schema::hasColumn('products', 'sellable_quantity');
+
+        return $has ? 'sellable_quantity' : 'stock_quantity';
     }
 
     /**

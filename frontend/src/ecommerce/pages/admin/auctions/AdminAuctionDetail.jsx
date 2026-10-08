@@ -439,7 +439,7 @@ export default function AdminAuctionDetail() {
               ))}
               <div>
                 <label style={labelStyle}>Branch</label>
-                <BranchSelect value={form.location_id} onChange={v => setForm(prev => ({ ...prev, location_id: v }))} disabled={hasBids} />
+                <BranchSelect capability="sells_to_customers" value={form.location_id} onChange={v => setForm(prev => ({ ...prev, location_id: v }))} disabled={hasBids} />
               </div>
               <div>
                 <label style={labelStyle}>Variant</label>

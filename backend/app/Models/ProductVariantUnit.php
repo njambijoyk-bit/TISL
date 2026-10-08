@@ -140,6 +140,18 @@ class ProductVariantUnit extends Model
             : null;
     }
 
+    /** Stock customers can buy, in this unit: only the locations that sell to customers count. */
+    public function availableForSale(): float
+    {
+        $variant = $this->relationLoaded('variant') ? $this->variant : $this->variant()->first();
+
+        if ($variant === null || (float) $this->base_factor <= 0) {
+            return 0.0;
+        }
+
+        return round($variant->sellableQuantity() / (float) $this->base_factor, 4);
+    }
+
     /** Stock available for this unit, expressed in its own unit (base stock / base_factor). */
     public function availableQuantity(): float
     {

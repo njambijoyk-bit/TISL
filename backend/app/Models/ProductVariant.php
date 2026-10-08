@@ -124,6 +124,17 @@ class ProductVariant extends Model
         return (float) $this->stock_quantity > 0;
     }
 
+    /** What customers can buy: stock in the locations that sell to customers. Before script 97 it is the same as everything held. */
+    public function sellableQuantity(): float
+    {
+        return array_key_exists('sellable_quantity', $this->attributes) ? (float) $this->sellable_quantity : (float) $this->stock_quantity;
+    }
+
+    public function inStockForSale(): bool
+    {
+        return $this->sellableQuantity() > 0;
+    }
+
     /**
      * Assign this variant's option values, one per option, keyed by
      * option_id => option_value_id. Replaces any existing selections.

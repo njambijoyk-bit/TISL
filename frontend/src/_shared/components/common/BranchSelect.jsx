@@ -8,9 +8,10 @@ import { input, inputDisabled, focusRing } from '../../theme/tokens';
  * branch so a single-branch business never has to think about it.
  *
  * @param {number|string} value      location id
+ * @param {string} [capability]      only list branches that have it (e.g. 'sells_to_customers' for something customers buy)
  * @param {(id: number) => void} onChange
  */
-export default function BranchSelect({ value, onChange, disabled = false, id, style }) {
+export default function BranchSelect({ value, onChange, disabled = false, id, style, capability }) {
   const [branches, setBranches] = useState([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -19,7 +20,7 @@ export default function BranchSelect({ value, onChange, disabled = false, id, st
     locationsAPI.getAdmin()
       .then(({ locations = [] }) => {
         if (cancelled) return;
-        const active = locations.filter((l) => l.is_active !== false);
+        const active = locations.filter((l) => l.is_active !== false && (!capability || l[capability] !== false));
         setBranches(active);
         if (!value && active.length) onChange((active.find((l) => l.is_default) ?? active[0]).id);
       })

@@ -142,7 +142,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     locationsAPI.getAdmin().then((r) => {
       const act = (r.locations ?? []).filter((l) => l.is_active !== false);
       setBranches(act);
-      setH((x) => (x.location_id ? x : { ...x, location_id: (act.find((l) => l.is_default) ?? act[0])?.id ?? '' }));
+      const takes = act.filter((l) => l.receives_purchases !== false);   // goods are received into branches that take purchases
+      setH((x) => (x.location_id ? x : { ...x, location_id: (takes.find((l) => l.is_default) ?? takes[0] ?? act[0])?.id ?? '' }));
     }).catch(() => {});
   }, []);
 
@@ -329,7 +330,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               <div>
                 <label style={label}>Received at branch</label>
                 <select value={h.location_id} onChange={(e) => setH((x) => ({ ...x, location_id: e.target.value }))} style={small}>
-                  {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {branches.filter((b) => b.receives_purchases !== false || String(b.id) === String(h.location_id)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               {opening ? (

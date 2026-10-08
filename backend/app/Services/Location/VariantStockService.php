@@ -214,6 +214,21 @@ class VariantStockService
      * saveQuietly to avoid re-triggering the variant observer. Products with no
      * variants are left untouched (simple products keep their manual number).
      */
+    /** Has the capabilities script (97) added the customer-buyable stock columns? Until it has, "buyable" is simply "held". */
+    private function hasSellableColumns(): bool
+    {
+        static $has = null;
+
+        return $has ??= \Illuminate\Support\Facades\Schema::hasColumn('products', 'sellable_quantity')
+            && \Illuminate\Support\Facades\Schema::hasColumn('product_variants', 'sellable_quantity')
+            && Location::hasCapabilities();
+    }
+
+    /**
+     * Rebuild the stock figures on a product and its variants from the branch rows.
+     * stock_quantity is everything we hold, in every location (staff). sellable_quantity is what customers can buy:
+     * only locations that are active and sell to customers count, so warehouse and factory stock never makes a shop look stocked.
+     */
     public function recomputeCaches(Product $product): void
     {
         $product->loadMissing('productVariants');
@@ -221,25 +236,50 @@ class VariantStockService
             return;
         }
 
+        $sellable = $this->hasSellableColumns();
+        $sellingIds = $sellable ? Location::query()->sellsToCustomers()->pluck('id')->all() : [];
         $productTotal = 0.0;
+        $productSellable = 0.0;
 
         foreach ($product->productVariants as $variant) {
             $hasRows = VariantLocationStock::where('product_variant_id', $variant->id)->exists();
             if ($hasRows) {
                 $sum = (float) VariantLocationStock::where('product_variant_id', $variant->id)->sum('quantity');
+                $buyable = $sellable
+                    ? (float) VariantLocationStock::where('product_variant_id', $variant->id)->whereIn('location_id', $sellingIds)->sum('quantity')
+                    : $sum;
+                $changes = [];
                 if ((float) $variant->stock_quantity !== $sum) {
-                    $variant->forceFill(['stock_quantity' => $sum])->saveQuietly();
+                    $changes['stock_quantity'] = $sum;
+                }
+                if ($sellable && (float) $variant->sellable_quantity !== $buyable) {
+                    $changes['sellable_quantity'] = $buyable;
+                }
+                if ($changes) {
+                    $variant->forceFill($changes)->saveQuietly();
                 }
                 $productTotal += $sum;
+                $productSellable += $buyable;
             } else {
                 $productTotal += (float) $variant->stock_quantity;
+                $productSellable += (float) $variant->stock_quantity;
+                if ($sellable && (float) $variant->sellable_quantity !== (float) $variant->stock_quantity) {
+                    $variant->forceFill(['sellable_quantity' => $variant->stock_quantity])->saveQuietly();
+                }
             }
         }
 
         $product->forceFill([
             'stock_quantity' => $productTotal,
-            'in_stock'       => $productTotal > 0,
-        ])->saveQuietly();
+            'in_stock'       => ($sellable ? $productSellable : $productTotal) > 0,
+        ] + ($sellable ? ['sellable_quantity' => $productSellable] : []))->saveQuietly();
+    }
+
+    /** After a branch starts or stops selling to customers (or is switched on or off): redo the figures of every product it holds. */
+    public function recomputeForLocation(int $locationId): void
+    {
+        Product::whereHas('variantLocationStocks', fn ($q) => $q->where('location_id', $locationId))
+            ->chunkById(200, fn ($products) => $products->each(fn (Product $p) => $this->recomputeCaches($p)));
     }
 
     /** A sensible base unit id: a "piece/each" unit if present, else the first. */

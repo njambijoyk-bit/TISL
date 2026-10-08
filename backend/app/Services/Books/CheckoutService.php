@@ -36,13 +36,27 @@ class CheckoutService
 
     // ── Assembling ───────────────────────────────────────────────────────
 
+    /** The branch an order is placed at: one customers can buy from. None given means the branch customers land on. */
+    private function sellingLocationId($asked): ?int
+    {
+        if ($asked === null || $asked === '') {
+            return Location::defaultSelling()?->id ?? Location::default()?->id;
+        }
+        $loc = Location::query()->sellsToCustomers()->find((int) $asked);
+        if (! $loc) {
+            throw new BooksException('That branch does not take orders from customers. Choose another branch.');
+        }
+
+        return $loc->id;
+    }
+
     /** @return array{data: array, customer: ?Customer, currency: Currency, discounts: array, notes: array} */
     private function assemble(array $in, ?User $user): array
     {
         $customer = $user?->customer;
         // Orders are always charged in the base (operating) currency; the shopper's chosen currency is only how prices are shown.
         $currency = $this->money->getBaseCurrency();
-        $locationId = $in['location_id'] ?? Location::default()?->id;
+        $locationId = $this->sellingLocationId($in['location_id'] ?? null);
         $type = VoucherType::byBase(VoucherType::SALES_ORDER) ?? throw new BooksException('Ordering is switched off (the Sales Order voucher type is off).');
 
         $lines = [];

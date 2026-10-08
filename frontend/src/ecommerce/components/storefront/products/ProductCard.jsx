@@ -54,7 +54,7 @@ export default function ProductCard({ product }) {
     product?.price_is_negotiable ?? product?.priceisnegotiable ?? product?.priceIsNegotiable ?? 0;
   const isPriceNegotiable = negotiableValue === true || Number(negotiableValue) === 1;
 
-  const stockQuantityRaw = product?.stock_quantity ?? product?.stockquantity ?? null;
+  const stockQuantityRaw = product?.sellable_quantity ?? product?.stock_quantity ?? product?.stockquantity ?? null;   // sellable = what the shops hold, not the warehouse
   const stockQuantity = stockQuantityRaw == null ? null : Number(stockQuantityRaw);
 
   const inStock = useMemo(() => {

@@ -35,7 +35,7 @@ export default function CollapsedProductCard({ product }) {
     product?.price_is_negotiable ?? product?.priceisnegotiable ?? product?.priceIsNegotiable ?? 0;
   const isPriceNegotiable = negotiableValue === true || Number(negotiableValue) === 1;
 
-  const stockQuantityRaw = product?.stock_quantity ?? product?.stockquantity ?? null;
+  const stockQuantityRaw = product?.sellable_quantity ?? product?.stock_quantity ?? product?.stockquantity ?? null;
   const stockQuantity = stockQuantityRaw == null ? null : Number(stockQuantityRaw);
   const inStock =
     stockQuantity != null && !Number.isNaN(stockQuantity)

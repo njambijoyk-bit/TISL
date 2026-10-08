@@ -395,7 +395,7 @@ export default function AdminHamperCreate() {
                   </Field>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 14 }}>
                     <Field label="Branch *" error={errors.location_id}>
-                      <BranchSelect value={form.location_id} onChange={v => setForm(f => ({ ...f, location_id: v }))} />
+                      <BranchSelect capability="sells_to_customers" value={form.location_id} onChange={v => setForm(f => ({ ...f, location_id: v }))} />
                     </Field>
                     <Field label="Currency">
                       <CurrencySelect

@@ -69,7 +69,7 @@ class CheckoutController extends Controller
         return response()->json([
             'payment_methods' => PaymentMethod::offeredAtCheckout()->orderBy('sort_order')->get(['id', 'name', 'kind', 'gateway', 'instructions', 'requires_reference']),
             'shipping' => app(ShippingOptionController::class)->publicIndex()->getData(true),
-            'branches' => Location::where('is_active', true)->get(['id', 'name', 'code', 'is_default']),
+            'branches' => Location::sellsToCustomers()->get(['id', 'name', 'code', 'is_default']),   // customers choose only among branches they can buy from
             'account' => $account,
             'ledger_modes' => app(\App\Services\Books\PaymentModeService::class)->offered(),
             'credits' => $customer ? app(\App\Services\Books\OpenBillsService::class)->forCustomer($customer->id) : [],

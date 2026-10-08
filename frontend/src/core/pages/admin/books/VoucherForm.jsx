@@ -217,6 +217,8 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   const type = types.find((t) => String(t.id) === String(typeId));
   const base = type?.base_type;
+  // goods are received into branches that take purchases; delivery notes are made from branches that fulfil orders
+  const branchAllowed = (kind, b) => (kind === 'receipt_note' || kind === 'purchase' ? b.receives_purchases !== false : kind === 'delivery_note' ? b.fulfils_orders !== false : true);
   const hasItems = Boolean(type?.has_items);
   const isMoney = base === 'receipt' || base === 'payment';
   const isEntries = base === 'journal' || base === 'contra';
@@ -558,7 +560,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div>
                 <label style={label}>Branch</label>
                 <select value={h.location_id} onChange={(e) => setH((x) => ({ ...x, location_id: e.target.value }))} style={small}>
-                  {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  {branches.filter((b) => branchAllowed(base, b) || String(b.id) === String(h.location_id)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
               {!editing && series.length > 0 && (

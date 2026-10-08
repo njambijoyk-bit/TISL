@@ -42,6 +42,9 @@ class LocationController extends Controller
             'currencies'    => Currency::where('is_active', true)->get(['id', 'code', 'name', 'symbol', 'is_base']),
             'tax_districts' => TaxDistrict::where('is_active', true)->orderBy('name')->get(['id', 'name', 'level', 'locale']),
             'staff'         => User::whereIn('role', self::STAFF_ROLES)->orderBy('name')->get(['id', 'name', 'email', 'role']),
+            'kinds'         => Location::KINDS,
+            'kind_defaults' => Location::KIND_DEFAULTS,
+            'capabilities_ready' => Location::hasCapabilities(),
         ]);
     }
 
@@ -55,7 +58,7 @@ class LocationController extends Controller
 
     public function store(Request $request)
     {
-        $data = $this->validateData($request);
+        $data = $this->withCapabilities($this->validateData($request), $request, true);
         $staff = $request->input('staff_ids', []);
 
         $location = DB::transaction(function () use ($data, $staff) {
@@ -73,9 +76,13 @@ class LocationController extends Controller
     public function update(Request $request, int $id)
     {
         $location = Location::findOrFail($id);
-        $data = $this->validateData($request, $id);
+        $data = $this->withCapabilities($this->validateData($request, $id), $request, false);
         $staff = $request->input('staff_ids', null);
+        if ($refuse = $this->mustKeepASellingLocation($location, $data)) {
+            return response()->json(['ok' => false, 'message' => $refuse], 422);
+        }
 
+        $sellingBefore = $location->is_active && ($location->sells_to_customers ?? true);
         DB::transaction(function () use ($location, $data, $staff) {
             $location->update($data);
             $this->applyDefault($location, $data['is_default'] ?? false);
@@ -83,6 +90,11 @@ class LocationController extends Controller
                 $location->staff()->sync($this->cleanStaffIds($staff));
             }
         });
+
+        $location->refresh();
+        if ($sellingBefore !== ($location->is_active && ($location->sells_to_customers ?? true))) {
+            app(\App\Services\Location\VariantStockService::class)->recomputeForLocation($location->id);   // what customers can buy changed
+        }
 
         return response()->json(['ok' => true, 'message' => 'Branch saved.', 'location' => $this->present($location->fresh(['currency', 'taxDistrict']))]);
     }
@@ -96,6 +108,9 @@ class LocationController extends Controller
         }
         if ($location->is_default) {
             return response()->json(['ok' => false, 'message' => 'Set another branch as default before deleting this one.'], 422);
+        }
+        if ($refuse = $this->mustKeepASellingLocation($location, ['is_active' => false])) {
+            return response()->json(['ok' => false, 'message' => $refuse], 422);
         }
 
         // Offerings/prices for this branch are removed by FK cascade; sellables stay.
@@ -116,11 +131,11 @@ class LocationController extends Controller
         return response()->json(['ok' => true, 'message' => "“{$location->name}” is now the default branch."]);
     }
 
-    /** Public: active branches for the storefront branch picker. */
+    /** Public: the branches customers can pick and buy from (a warehouse or factory is not listed). */
     public function publicIndex()
     {
         $locations = Location::with('currency:id,code,symbol')
-            ->active()->ordered()
+            ->sellsToCustomers()->ordered()
             ->get()
             ->map(fn (Location $l) => [
                 'id'         => $l->id,
@@ -160,8 +175,51 @@ class LocationController extends Controller
             'accepts_delivery'      => 'boolean',
             'is_default'            => 'boolean',
             'is_active'             => 'boolean',
+            'kind'                  => ['nullable', Rule::in(array_keys(Location::KINDS))],
+            'sells_to_customers'    => 'boolean',
+            'fulfils_orders'        => 'boolean',
+            'receives_purchases'    => 'boolean',
+            'produces'              => 'boolean',
             'sort_order'            => 'nullable|integer|min:0|max:9999',
         ]);
+    }
+
+    /**
+     * The kind and its four capabilities. A new branch with a kind but no capabilities starts with that kind's defaults; what the form
+     * sends always wins. Before script 97 is run the columns are not there, so they are left out of the save.
+     */
+    private function withCapabilities(array $data, Request $request, bool $creating): array
+    {
+        if (! Location::hasCapabilities()) {
+            return array_diff_key($data, array_flip(['kind', ...Location::CAPABILITIES]));
+        }
+        if ($creating) {
+            $kind = $data['kind'] ?? 'shop';
+            $data['kind'] = $kind;
+            foreach (Location::KIND_DEFAULTS[$kind] as $cap => $on) {
+                if (! $request->has($cap)) {
+                    $data[$cap] = $on;
+                }
+            }
+        }
+
+        return $data;
+    }
+
+    /** Customers must always have at least one branch to buy from. Returns the reason when a save or delete would leave none. */
+    private function mustKeepASellingLocation(Location $location, array $changes): ?string
+    {
+        if (! Location::hasCapabilities() || ! $location->is_active || ! $location->sells_to_customers) {
+            return null;   // this one does not sell today, so changing it takes nothing away
+        }
+        $stillSells = ($changes['is_active'] ?? true) && ($changes['sells_to_customers'] ?? true);
+        if ($stillSells) {
+            return null;
+        }
+
+        return Location::sellsToCustomers()->where('id', '!=', $location->id)->exists()
+            ? null
+            : 'Customers need at least one branch to buy from. Keep this one active and selling, or make another branch sell first.';
     }
 
     /** Enforce a single default row. */
@@ -198,6 +256,11 @@ class LocationController extends Controller
             'accepts_delivery'      => $l->accepts_delivery,
             'is_default'            => $l->is_default,
             'is_active'             => $l->is_active,
+            'kind'                  => Location::hasCapabilities() ? ($l->kind ?? 'shop') : 'shop',
+            'sells_to_customers'    => Location::hasCapabilities() ? (bool) $l->sells_to_customers : true,
+            'fulfils_orders'        => Location::hasCapabilities() ? (bool) $l->fulfils_orders : true,
+            'receives_purchases'    => Location::hasCapabilities() ? (bool) $l->receives_purchases : true,
+            'produces'              => Location::hasCapabilities() ? (bool) $l->produces : false,
             'sort_order'            => $l->sort_order,
             'staff_count'           => $l->staff_count ?? ($full ? $l->staff->count() : null),
         ];

@@ -452,7 +452,7 @@ class ProductController extends Controller
             // Multi-location: is this offered at the branch in context, and where is it in stock?
             $branchId = app(LocationContext::class)->id();
             $offeredHere = $product->offeredAt($branchId);
-            $branchesInStock = Location::whereIn('id', $product->branchIdsInStock())
+            $branchesInStock = Location::sellsToCustomers()->whereIn('id', $product->branchIdsInStock())   // customers are only pointed at branches they can buy from
                 ->orderBy('name')->pluck('name', 'id');
             app(\App\Services\Stock\ExpiryBadges::class)->attach(collect([$product]));
 
@@ -490,6 +490,7 @@ class ProductController extends Controller
                     // Stock
                     'in_stock' => $product->in_stock,
                     'stock_quantity' => $product->stock_quantity,
+                    'sellable_quantity' => $product->sellable_quantity ?? $product->stock_quantity,   // what customers can buy (shops only)
                     
                     'active_auction' => $product->activeAuction ? [
                         'id' => $product->activeAuction->id,

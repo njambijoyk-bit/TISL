@@ -95,7 +95,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
   const negotiableValue = product?.price_is_negotiable ?? product?.priceisnegotiable ?? 0;
   const isNegotiable    = negotiableValue === true || Number(negotiableValue) === 1;
 
-  const stockQty  = product?.stock_quantity != null ? Number(product.stock_quantity) : null;
+  const stockQty  = (product?.sellable_quantity ?? product?.stock_quantity) != null ? Number(product?.sellable_quantity ?? product.stock_quantity) : null;
   const inStock   = stockQty != null ? stockQty > 0 : Boolean(product?.in_stock ?? product?.instock);
   const lowStock  = stockQty != null && stockQty > 0 && stockQty <= 10;
 

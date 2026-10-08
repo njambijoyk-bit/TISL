@@ -27,6 +27,9 @@ class ProductionService
         if ($qty <= 0) {
             throw new BooksException('Enter how much was made.');
         }
+        if (\App\Models\Location::hasCapabilities() && ($loc = \App\Models\Location::find($locationId)) && ! $loc->produces) {
+            throw new BooksException("{$loc->name} is not set up to make things. Choose a branch that produces, or switch Produces on for it in Settings, Branches.");
+        }
         $r->loadMissing('items');
         $out = DB::table('product_variants as pv')->join('products as p', 'p.id', '=', 'pv.product_id')->where('pv.id', $r->variant_id)->first(['p.name', 'p.track_expiry']);
         if ($r->deduct_on_sale) {
