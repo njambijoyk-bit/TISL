@@ -29,6 +29,7 @@ class AdminRoutesNeedAPermissionTest extends TestCase
         'api/admin/calendar' => 'CalendarService: your own calendar; the team calendar needs calendar.team',
         'api/admin/my-payslips' => 'only ever the signed-in person\'s own payslips',
         'api/admin/currencies' => 'read-only lookup every screen needs (changes need currency.manage)',
+        'api/admin/entities' => 'lookup for the company switcher: every staff member sees the companies they work in (access by entity comes later)',
         'api/admin/activity-feed' => 'ActivityFeedService shows each person only the feeds their permissions open',
         'api/modules/setup' => 'first-time ownership code, open to staff only while the install is unverified',
     ];

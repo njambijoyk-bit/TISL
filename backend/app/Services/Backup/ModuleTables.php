@@ -54,7 +54,7 @@ final class ModuleTables
             'admin_saved_notes', 'vault_settings', 'nav_links',
             // Multi-location (Core): branches + staff clearance + offered-at/priced-at.
             // Stock movement/transfers live in the Inventory (Extras) tier.
-            'locations', 'location_user', 'location_offering', 'location_price',
+            'locations', 'location_user', 'location_offering', 'location_price', 'legal_entities',
             // Identity and access: clearance levels, roles and what they hold, who holds which role, branch grants, the audit trail.
             'clearance_levels', 'roles', 'permissions', 'role_permissions', 'role_modules', 'role_approvals', 'user_roles', 'user_access_grants', 'access_log', 'access_meta', 'access_settings',
             // Loyalty: the point lots are the register behind Loyalty Points Liability.

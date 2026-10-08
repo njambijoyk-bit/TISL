@@ -11,6 +11,7 @@ import { useAdminShell } from './adminShellContext';
 import { visibleNav, findActive } from '../../navigation/adminNav';
 import { roleName } from '../../lib/roles';
 import { useCompany, brandMark } from '../../lib/useCompany';
+import EntitySwitcher from './EntitySwitcher';
 
 const W_OPEN = 240;
 const W_COLLAPSED = 68;
@@ -251,6 +252,8 @@ function SidebarInner({ onOpenSearch, onOpenCalc }) {
             </div>
           )}
         </div>
+
+        {!collapsed && <EntitySwitcher />}
 
         {/* ── Quick jump ───────────────────────────────────────────────── */}
         {onOpenSearch && (

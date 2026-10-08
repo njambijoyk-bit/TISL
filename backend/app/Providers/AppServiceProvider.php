@@ -45,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Scoped: holds the per-request branch in context (multi-location).
         $this->app->scoped(\App\Services\Location\LocationContext::class);
+        $this->app->scoped(\App\Services\Entity\CurrentEntity::class);
 
 
         $this->app->singleton(PromoCodeService::class);
