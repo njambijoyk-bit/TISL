@@ -36,7 +36,7 @@ return new class extends Migration
             $table->timestamp('valid_until')->nullable();
             
             // Conversion Tracking
-            $table->foreignId('converted_to_order_id')->nullable()->constrained('orders')->onDelete('set null');
+            $table->unsignedBigInteger('converted_to_order_id')->nullable();   // orders are vouchers now, so no link to an orders table
             $table->timestamp('converted_at')->nullable();
             
             // Customer Interaction
