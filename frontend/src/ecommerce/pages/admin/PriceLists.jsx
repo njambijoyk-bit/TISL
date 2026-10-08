@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { priceListPath } from '../../../_shared/lib/itemPath';
 import { Plus, Eye, Trash2, RotateCcw } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -65,7 +66,7 @@ export default function PriceLists() {
                 {res && rows.length === 0 && <tr><td style={td} colSpan={8}>{view === 'bin' ? 'The bin is empty.' : 'No price lists here yet.'}</td></tr>}
                 {rows.map((l) => (
                   <tr key={l.id}>
-                    <td style={td}><Link to={`/admin/price-lists/${l.id}`} style={{ fontWeight: 700, color: 'inherit' }}>{l.name}</Link>{l.description && <div style={{ fontSize: '0.72rem', color: colors.textFaint }}>{l.description}</div>}</td>
+                    <td style={td}><Link to={priceListPath(l, true)} style={{ fontWeight: 700, color: 'inherit' }}>{l.name}</Link>{l.description && <div style={{ fontSize: '0.72rem', color: colors.textFaint }}>{l.description}</div>}</td>
                     <td style={td}><StatusBadge status={l.status} live={l.live} trashed={view === 'bin'} /></td>
                     <td style={td}>{l.active_from ? fmtDateTime(l.active_from) : l.status === 'published' ? 'At once' : '—'}</td>
                     <td style={td}>{audienceText(l)}</td>
@@ -73,7 +74,7 @@ export default function PriceLists() {
                     <td style={td}>{fmtDate(l.as_at)}</td>
                     <td style={td}>{l.creator}{l.mine && ' (you)'}</td>
                     <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {view !== 'bin' && <button type="button" style={small} onClick={() => navigate(`/admin/price-lists/${l.id}`)}><Eye size={12} /> Open</button>}{' '}
+                      {view !== 'bin' && <button type="button" style={small} onClick={() => navigate(priceListPath(l, true))}><Eye size={12} /> Open</button>}{' '}
                       {view !== 'bin' && l.status === 'pending' && res.can.publish && !l.mine && <button type="button" style={{ ...small, color: colors.successText }} disabled={busy} onClick={() => run(() => priceListsAPI.activate(l.id))}>Activate</button>}{' '}
                       {view !== 'bin' && (res.can.publish || (l.mine && l.status !== 'published')) && <button type="button" style={{ ...small, color: colors.dangerText }} disabled={busy} onClick={() => { if (window.confirm(`Move "${l.name}" to the bin?`)) run(() => priceListsAPI.trash(l.id)); }}><Trash2 size={12} /> Delete</button>}
                       {view === 'bin' && <button type="button" style={small} disabled={busy} onClick={() => run(() => priceListsAPI.restore(l.id))}><RotateCcw size={12} /> Restore</button>}{' '}

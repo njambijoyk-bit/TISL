@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { idFromParam, priceListPath } from '../../../_shared/lib/itemPath';
 import { FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Helmet } from 'react-helmet-async';
@@ -17,12 +18,14 @@ const btn = { display: 'inline-flex', gap: 6, alignItems: 'center', padding: '7p
 
 /** One price list for a customer: its lines (price excluding tax, the earlier price, the tax and the total) and downloads. */
 export default function PriceListPublic() {
-  const { id } = useParams();
+  const { id: param } = useParams();
+  const id = idFromParam(param);
+  const navigate = useNavigate();
   const [d, setD] = useState(null);
   const [q, setQ] = useState('');
   const [shown, setShown] = useState(200);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { priceListsAPI.publicShow(id).then((r) => setD(r.data)).catch(() => setD(false)); }, [id]);
+  useEffect(() => { priceListsAPI.publicShow(id).then((r) => { setD(r.data); const want = priceListPath(r.data); if (r.data?.id && want !== `/price-lists/${param}`) navigate(want, { replace: true }); }).catch(() => setD(false)); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   const rows = useMemo(() => (d?.items ?? []).filter((x) => !q || `${x.code ?? ''} ${x.name} ${x.variant ?? ''} ${x.category ?? ''}`.toLowerCase().includes(q.toLowerCase())), [d, q]);
 
   const run = async (fn) => { setBusy(true); try { await fn(); } catch { toast.error('Could not make that file.'); } finally { setBusy(false); } };
@@ -33,7 +36,7 @@ export default function PriceListPublic() {
       <Helmet><title>{d?.name ?? 'Price list'}</title></Helmet>
       <Header />
       <div className="w-full px-4 py-6" style={{ maxWidth: 1200, margin: '0 auto' }}>
-        <Breadcrumb items={[{ label: 'Products', href: '/products' }, { label: 'Price lists', href: '/price-lists' }, { label: d?.name ?? '…', href: `/price-lists/${id}` }]} />
+        <Breadcrumb items={[{ label: 'Products', path: '/products' }, { label: 'Price lists', path: '/price-lists' }, { label: d?.name ?? '…' }]} />
         {d === false && <p style={{ color: 'var(--text-tertiary)', marginTop: 16 }}>This price list is not available.</p>}
         {d && (
           <>

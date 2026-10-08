@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { priceListPath } from '../../../_shared/lib/itemPath';
 import { X, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -50,7 +51,7 @@ export default function PriceListEditor() {
     try {
       const r = await priceListsAPI.create({ ...f, active_from: fromLocalInput(f.active_from), picks, publish });
       toast.success(r.message, { duration: 6000 });
-      navigate(`/admin/price-lists/${r.data.id}`);
+      navigate(priceListPath(r.data, true));
     } catch (e) { toast.error(errMsg(e, 'Could not save the list'), { duration: 8000 }); } finally { setBusy(false); }
   };
 

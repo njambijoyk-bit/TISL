@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { idFromParam } from '../../../_shared/lib/itemPath';
 import { FileDown, Archive as ArchiveIcon, Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -22,7 +23,8 @@ const small = { ...btnGhost, padding: '5px 12px', fontSize: '0.78rem', display: 
 
 /** One price list: its lines, what you can do with it (publish, activate, take off, delete, restore) and the downloads (PDF, CSV, JSON, zip, Archive). */
 export default function PriceListView() {
-  const { id } = useParams();
+  const { id: param } = useParams();
+  const id = idFromParam(param);
   const navigate = useNavigate();
   const [d, setD] = useState(null);
   const [can, setCan] = useState({});

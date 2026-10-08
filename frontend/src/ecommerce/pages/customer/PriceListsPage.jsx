@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { priceListPath } from '../../../_shared/lib/itemPath';
 import { Download, ListChecks } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Helmet } from 'react-helmet-async';
@@ -29,7 +30,7 @@ export default function PriceListsPage() {
       <Helmet><title>Price lists</title></Helmet>
       <Header />
       <div className="w-full px-4 py-6" style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <Breadcrumb items={[{ label: 'Products', href: '/products' }, { label: 'Price lists', href: '/price-lists' }]} />
+        <Breadcrumb items={[{ label: 'Products', path: '/products' }, { label: 'Price lists' }]} />
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white" style={{ margin: '8px 0 4px' }}>Price lists</h1>
         <p className="text-gray-500 dark:text-gray-400" style={{ fontSize: '0.88rem', margin: '0 0 18px' }}>Prices exclude tax, and each price is in its own item's currency. The tax for each line is shown with it. <Link to="/catalogues" style={{ color: 'var(--color-primary-500)' }}>Catalogues</Link> are kept separately.</p>
 
@@ -37,7 +38,7 @@ export default function PriceListsPage() {
         {lists?.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>There are no price lists to show right now.</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 14 }}>
           {lists?.map((l) => (
-            <Link key={l.id} to={`/price-lists/${l.id}`} style={{ ...card, textDecoration: 'none' }}>
+            <Link key={l.id} to={priceListPath(l)} style={{ ...card, textDecoration: 'none' }}>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', color: 'var(--color-primary-500)', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}><ListChecks size={14} /> {l.item_count} lines</div>
               <strong style={{ color: 'var(--text-primary)' }}>{l.name}</strong>
               {l.description && <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{l.description}</span>}

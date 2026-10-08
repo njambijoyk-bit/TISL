@@ -15,6 +15,13 @@ export const servicePath = (s) => `/services/${itemSlug(s)}`;
 /** An auction's address: its id then its product's SKU, e.g. /auctions/19-ANG-001. */
 export const auctionPath = (auction, product) => `/auctions/${itemSlug({ id: auction?.id, sku: (product ?? auction?.product)?.sku })}`;
 
+/** A price list's address: its id then its name, e.g. /price-lists/2-spring-prices. */
+export const namedSlug = (id, name) => {
+  const n = clean(String(name ?? '').toLowerCase());
+  return n ? `${id}-${n}` : `${id}`;
+};
+export const priceListPath = (l, admin = false) => `${admin ? '/admin' : ''}/price-lists/${namedSlug(l?.id, l?.name)}`;
+
 /** The id from an address parameter such as "12-ANG-001" (or plain "12"). */
 export const idFromParam = (param) => {
   const m = /^(\d+)(?:-|$)/.exec(String(param ?? ''));
