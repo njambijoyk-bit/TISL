@@ -1027,6 +1027,14 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // The merged activity timeline: every log on the site, each only to the roles allowed to see it
+        Route::prefix('cost-centres')->group(function () {
+            $c = \App\Http\Controllers\Api\CostCentreController::class;
+            Route::get('/',                [$c, 'index'])->middleware('permission:costcentres.view');
+            Route::put('/settings',        [$c, 'saveSettings'])->middleware('permission:costcentres.manage');
+            Route::post('/',               [$c, 'store'])->middleware('permission:costcentres.manage');
+            Route::put('/{id}',            [$c, 'update'])->whereNumber('id')->middleware('permission:costcentres.manage');
+            Route::delete('/{id}',         [$c, 'destroy'])->whereNumber('id')->middleware('permission:costcentres.manage');
+        });
         Route::get('/activity-feed', [\App\Http\Controllers\Api\ActivityFeedController::class, 'index']);
 
         // All auction activity across auctions (the Activity logs > Auctions tab)

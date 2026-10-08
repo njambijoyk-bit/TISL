@@ -285,6 +285,7 @@ const NotificationSettings = lazy(() => import('./core/pages/admin/settings/Noti
 const SecuritySettings     = lazy(() => import('./core/pages/admin/settings/SecuritySettings'));
 const EmailSettings        = lazy(() => import('./core/pages/admin/settings/EmailSettings'));
 const BackupSettings       = lazy(() => import('./core/pages/admin/settings/BackupSettings'));
+const CostCentres          = lazy(() => import('./core/pages/admin/settings/CostCentres'));
 const AppearanceSettings   = lazy(() => import('./core/pages/admin/settings/AppearanceSettings'));
 const AppearancePage       = lazy(() => import('./core/pages/admin/AppearancePage'));
 const IntegrationSettings  = lazy(() => import('./core/pages/admin/settings/IntegrationSettings'));
@@ -1543,6 +1544,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin permission="access.view">
                     <AccessHub />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/cost-centres"
+                element={
+                  <ProtectedRoute requireAdmin permission="costcentres.view">
+                    <CostCentres />
                   </ProtectedRoute>
                 }
               />

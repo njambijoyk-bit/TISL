@@ -113,6 +113,7 @@ class AppServiceProvider extends ServiceProvider
         // Seed new variants across branches + keep the product stock total auto-calculated.
         \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
         \App\Models\User::observe(\App\Observers\UserAccessObserver::class);
+        \App\Models\Location::observe(\App\Observers\LocationCostCentreObserver::class);
 
         ResetPassword::createUrlUsing(function ($user, string $token) {
             return env('FRONTEND_URL', 'http://localhost:5173')

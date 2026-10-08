@@ -22,7 +22,7 @@ class Location extends Model
     protected $table = 'locations';
 
     protected $fillable = [
-        'name', 'code', 'currency_id', 'tax_district_id',
+        'name', 'code', 'cost_centre_id', 'currency_id', 'tax_district_id',
         'phone', 'email',
         'address_line1', 'address_line2', 'city', 'state', 'country', 'postal_code',
         'latitude', 'longitude', 'timezone', 'opening_hours',
@@ -48,7 +48,7 @@ class Location extends Model
     ];
 
     /** What a location is for. It is a label: it only fills in the four capabilities below, which are what the app actually checks. */
-    public const KINDS = ['shop' => 'Shop', 'warehouse' => 'Warehouse', 'factory' => 'Factory', 'other' => 'Other'];
+    public const KINDS = ['shop' => 'Shop', 'warehouse' => 'Warehouse', 'depot' => 'Depot', 'factory' => 'Factory', 'office' => 'Office', 'other' => 'Other'];
 
     /** What a location may do: customers can buy from it, delivery notes can come from it, goods can be received into it, production can run in it. */
     public const CAPABILITIES = ['sells_to_customers', 'fulfils_orders', 'receives_purchases', 'produces'];
@@ -57,6 +57,8 @@ class Location extends Model
     public const KIND_DEFAULTS = [
         'shop'      => ['sells_to_customers' => true,  'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
         'warehouse' => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
+        'depot'     => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
+        'office'    => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => false, 'produces' => false],
         'factory'   => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => true],
         'other'     => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => false],
     ];
@@ -138,6 +140,11 @@ class Location extends Model
     public function scopeOrdered(Builder $q): Builder
     {
         return $q->orderBy('sort_order')->orderBy('name');
+    }
+
+    public function costCentre()
+    {
+        return $this->belongsTo(CostCentre::class, 'cost_centre_id');
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

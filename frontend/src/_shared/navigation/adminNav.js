@@ -318,6 +318,7 @@ export const ADMIN_NAV = [
           { group: 'System', title: 'Units', path: '/admin/settings/units', perm: 'catalogue.edit', description: 'Units of measure' },
           { group: 'System', title: 'Customer tiers', path: '/admin/settings/customer-tiers', perm: 'customers.tiers', description: 'Tiers and their discounts' },
           { group: 'System', title: 'Shipping', path: '/admin/settings/shipping', perm: 'shipping.manage', description: 'Zones and delivery fees' },
+          { group: 'System', title: 'Cost centres', path: '/admin/settings/cost-centres', perm: 'costcentres.view', description: 'Branches, utilities, payroll, projects and the defaults' },
           { group: 'System', title: 'Stock & expiry', path: '/admin/settings/stock', perm: 'stock.settings', description: 'Expired goods, warnings and which batch is used first' },
           { group: 'Content', title: 'About', path: '/admin/settings/content/about', perm: 'content.manage' },
           { group: 'Content', title: 'Contact', path: '/admin/settings/content/contact', perm: 'content.manage' },
