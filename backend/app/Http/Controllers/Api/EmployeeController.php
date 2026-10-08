@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use App\Services\Access\Authorizer;
 
 class EmployeeController extends Controller
 {
@@ -113,7 +115,7 @@ class EmployeeController extends Controller
             'email' => 'required_without:user_id|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:50',
             'password' => 'nullable|string|min:8',
-            'role' => 'nullable|in:super_admin,admin,manager,finance,logistics,sales_rep,driver',
+            'role' => ['nullable', Rule::in(app(Authorizer::class)->staffRoleKeys())],
             
             // Either user_id or name/email must be provided
             'user_id' => 'nullable|exists:users,id',
@@ -163,10 +165,17 @@ class EmployeeController extends Controller
                 ];
                 
                 $allowedRoles = $canReportTo[$request->role] ?? [];
-                if (!in_array($manager->user->role, $allowedRoles)) {
+                if (isset($canReportTo[$request->role], $canReportTo[$manager->user->role])) {
+                    $fits = in_array($manager->user->role, $allowedRoles);
+                } else {
+                    // a role added since (cashier, chef, senior accountant, your own): the manager must have at least its clearance
+                    $access = app(Authorizer::class);
+                    $fits = $access->clearance($manager->user) >= (int) $access->roleMinClearance($request->role);
+                }
+                if (!$fits) {
                     return response()->json([
                         'errors' => [
-                            'manager_id' => ["The selected manager cannot supervise a {$request->role}. They must be one of: " . implode(', ', $allowedRoles)]
+                            'manager_id' => ["The selected manager cannot supervise a {$request->role}." . ($allowedRoles ? ' They must be one of: ' . implode(', ', $allowedRoles) : ' They need a higher clearance.')]
                         ]
                     ], 422);
                 }
@@ -175,6 +184,10 @@ class EmployeeController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        if ($request->filled('role') && !app(Authorizer::class)->canAssignRoleKey($request->user(), $request->role)) {
+            return response()->json(['message' => 'You can only give roles below your own clearance.'], 403);
         }
 
         DB::beginTransaction();
@@ -302,7 +315,7 @@ class EmployeeController extends Controller
             'certifications' => 'nullable|array',
             'status' => 'in:active,on_leave,suspended,terminated,probation',
             'notes' => 'nullable|string',
-            'role' => 'nullable|in:super_admin,admin,manager,finance,logistics,sales_rep,driver',
+            'role' => ['nullable', Rule::in(app(Authorizer::class)->staffRoleKeys())],
         ]);
 
         if ($request->filled('manager_id') && $request->filled('role')) {
@@ -320,10 +333,17 @@ class EmployeeController extends Controller
                 ];
                 
                 $allowedRoles = $canReportTo[$request->role] ?? [];
-                if (!in_array($manager->user->role, $allowedRoles)) {
+                if (isset($canReportTo[$request->role], $canReportTo[$manager->user->role])) {
+                    $fits = in_array($manager->user->role, $allowedRoles);
+                } else {
+                    // a role added since (cashier, chef, senior accountant, your own): the manager must have at least its clearance
+                    $access = app(Authorizer::class);
+                    $fits = $access->clearance($manager->user) >= (int) $access->roleMinClearance($request->role);
+                }
+                if (!$fits) {
                     return response()->json([
                         'errors' => [
-                            'manager_id' => ["The selected manager cannot supervise a {$request->role}. They must be one of: " . implode(', ', $allowedRoles)]
+                            'manager_id' => ["The selected manager cannot supervise a {$request->role}." . ($allowedRoles ? ' They must be one of: ' . implode(', ', $allowedRoles) : ' They need a higher clearance.')]
                         ]
                     ], 422);
                 }
@@ -349,6 +369,14 @@ class EmployeeController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // a role can only be changed to one below the actor's clearance, and only for someone below it (nobody promotes themselves)
+        if ($request->filled('role') && $employee->user && $request->role !== $employee->user->role) {
+            $access = app(Authorizer::class);
+            if (!$access->canAssignRoleKey($request->user(), $request->role) || !$access->canManage($request->user(), $employee->user)) {
+                return response()->json(['message' => 'You can only change the role of someone below your own clearance, to a role below it.'], 403);
+            }
         }
 
         DB::beginTransaction();

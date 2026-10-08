@@ -9,10 +9,12 @@ const useAuthStore = create(
       customer: null,
       token: null,
       isAuthenticated: false,
+      // What the engine says this person may do: clearance, roles held, permissions, branch scope (from login and /me). Null until loaded.
+      access: null,
 
-      login: (user, customer, token) => {
+      login: (user, customer, token, access = null) => {
         localStorage.setItem('token', token); // set FIRST so interceptor can read it
-        set({ user, customer, token, isAuthenticated: true });
+        set({ user, customer, token, access, isAuthenticated: true });
 
         if (user.role === 'customer') {
           setTimeout(() => {
@@ -26,7 +28,7 @@ const useAuthStore = create(
       logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('auth-storage');
-        set({ user: null, customer: null, token: null, isAuthenticated: false });
+        set({ user: null, customer: null, token: null, access: null, isAuthenticated: false });
 
         import('./cartStore').then(m => m.default.getState().resetLocal());
         import('./wishlistStore').then(m => m.default.getState().resetLocal());
@@ -37,12 +39,12 @@ const useAuthStore = create(
       fetchCustomer: async () => {
         try {
           const data = await authAPI.me();
-          set({ user: data.user, customer: data.customer });
+          set({ user: data.user, customer: data.customer, access: data.access ?? null });
         } catch (err) {
           if (err.response?.status === 401) {
             // Token is dead — force logout
             localStorage.removeItem('token');
-            set({ user: null, customer: null, token: null, isAuthenticated: false });
+            set({ user: null, customer: null, token: null, access: null, isAuthenticated: false });
           }
         }
       },

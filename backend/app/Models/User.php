@@ -128,21 +128,19 @@ class User extends Authenticatable
      */
     public function canAccessLocation(int $locationId): bool
     {
-        if (in_array($this->role, ['admin', 'super_admin'], true)) {
-            return true;
-        }
-        $ids = $this->locations()->pluck('locations.id')->all();
-        return $ids === [] || in_array($locationId, $ids, true);
+        return app(\App\Services\Access\Authorizer::class)->canAccessLocation($this, $locationId);
     }
 
     /** Ids of branches this user may act on, or null for all-access. */
     public function accessibleLocationIds(): ?array
     {
-        if (in_array($this->role, ['admin', 'super_admin'], true)) {
-            return null; // all
-        }
-        $ids = $this->locations()->pluck('locations.id')->all();
-        return $ids === [] ? null : $ids;
+        return app(\App\Services\Access\Authorizer::class)->locationIds($this);
+    }
+
+    /** Everything about what this person may do and where: roles, clearance, permissions, branch scope. For /me and the Users screen. */
+    public function accessSummary(): array
+    {
+        return app(\App\Services\Access\Authorizer::class)->summary($this);
     }
 
     /**

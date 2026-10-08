@@ -7,7 +7,7 @@ import {
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
-import { FINANCE_READ, PAYROLL_ROLES, CAMPAIGN_ROLES, PRICE_ROLES } from '../lib/roles';
+import { FINANCE_READ, PAYROLL_ROLES, CAMPAIGN_ROLES, PRICE_ROLES, effectiveRoles, hasAnyRole, hasPermission, isStaff } from '../lib/roles';
 
 /**
  * The admin navigation — the single source for the sidebar, the section tabs
@@ -366,15 +366,16 @@ export const ADMIN_NAV = [
 // ─── Access ──────────────────────────────────────────────────────────────────
 
 /** The platform owner. Until owner accounts exist, that's super_admin. */
-export const isOwner = (user) => user?.role === 'super_admin';
+export const isOwner = (user) => effectiveRoles(user).includes('super_admin');
 
 function allowed(entry, user) {
-  const role = user?.role;
   if (entry.ownerOnly && !isOwner(user)) return false;
   if (entry.module && !isModuleActive(entry.module)) return false;
+  if (entry.perm && !hasPermission(user, entry.perm, Array.isArray(entry.roles) ? entry.roles : [])) return false;   // `perm` is checked against the engine first
   if (entry.roles === 'all') return true;
-  if (Array.isArray(entry.roles)) return entry.roles.includes(role);
-  return role !== DRIVER_ROLE; // default: every admin role except drivers
+  if (entry.perm) return true;
+  if (Array.isArray(entry.roles)) return hasAnyRole(user, entry.roles);
+  return isStaff(user); // default: everyone who may open the admin area (drivers have their own screens)
 }
 
 /**

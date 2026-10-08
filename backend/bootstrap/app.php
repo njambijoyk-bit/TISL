@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Register the role middleware alias
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
             'applicant' => \App\Http\Middleware\EnsureApplicant::class,
             'module' => \App\Http\Middleware\EnsureModuleActive::class,
         ]);

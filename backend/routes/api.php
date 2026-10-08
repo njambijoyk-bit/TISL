@@ -431,7 +431,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ============================================
     // Setup (ownership code) is open to any staff user while the install is
     // unverified, so a fresh site can be set up. Module Center is superadmin.
-    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->group(function () {
+    Route::middleware('permission:admin.access')->group(function () {
         Route::get('/modules/setup-status', [ModuleController::class, 'status']);
         Route::post('/modules/setup',       [ModuleController::class, 'setup']);
     });
@@ -518,10 +518,10 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // RECIPES & PRODUCTION (Menus) — see: finance, managers; act: finance, admins
-    Route::middleware(['module:menus', 'role:admin,super_admin,finance,manager'])->prefix('admin/menus')->group(function () {
+    Route::middleware(['module:menus', 'permission:menus.view'])->prefix('admin/menus')->group(function () {
         $r = \App\Http\Controllers\Admin\RecipeController::class;
         Route::get('/recipes', [$r, 'index']);
-        Route::middleware('role:admin,super_admin,finance')->group(function () use ($r) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r) {
             Route::put('/recipes', [$r, 'save']);
             Route::delete('/recipes/{id}', [$r, 'destroy'])->whereNumber('id');
             Route::post('/recipes/{id}/produce', [$r, 'produce'])->whereNumber('id');
@@ -904,7 +904,32 @@ Route::middleware('auth:sanctum')->group(function () {
     // ADMIN/MANAGER/SALES REP ROUTES
     // ============================================
     // Staff area. Drivers are not here: their app uses /driver/* only.
-    Route::middleware('role:admin,super_admin,manager,finance,logistics,sales_rep')->prefix('admin')->group(function () {
+    Route::middleware('permission:admin.access')->prefix('admin')->group(function () {
+
+        // Identity and access: who holds which role, clearance level, branch access; the role builder; the audit trail
+        Route::prefix('access')->group(function () {
+            $c = \App\Http\Controllers\Admin\AccessController::class;
+            Route::middleware('permission:access.view')->group(function () use ($c) {
+                Route::get('/',            [$c, 'overview']);
+                Route::get('/log',         [$c, 'log']);
+                Route::get('/users/{id}',  [$c, 'user'])->whereNumber('id');
+            });
+            Route::middleware('permission:access.manage')->group(function () use ($c) {
+                Route::put('/users/{id}/clearance',        [$c, 'setClearance'])->whereNumber('id');
+                Route::put('/users/{id}/default-location', [$c, 'setDefaultLocation'])->whereNumber('id');
+                Route::put('/users/{id}/primary-role',     [$c, 'setPrimaryRole'])->whereNumber('id');
+                Route::post('/users/{id}/roles',           [$c, 'addRole'])->whereNumber('id');
+                Route::delete('/users/{id}/roles/{roleId}', [$c, 'removeRole'])->whereNumber(['id', 'roleId']);
+                Route::post('/users/{id}/grants',          [$c, 'addGrant'])->whereNumber('id');
+                Route::delete('/users/{id}/grants/{grantId}', [$c, 'revokeGrant'])->whereNumber(['id', 'grantId']);
+            });
+            Route::middleware('permission:access.roles')->group(function () use ($c) {
+                Route::post('/roles',             [$c, 'createRole']);
+                Route::put('/roles/{id}',         [$c, 'updateRole'])->whereNumber('id');
+                Route::delete('/roles/{id}',      [$c, 'deleteRole'])->whereNumber('id');
+                Route::put('/levels/{level}',     [$c, 'renameLevel'])->whereNumber('level');
+            });
+        });
 
         // Boards, staff side (the Campaigns module): builders see their own; publishers see all and decide approvals
         Route::prefix('boards')->middleware('module:campaigns')->group(function () {
@@ -1259,7 +1284,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/my-payslips/{runId}',        [\App\Http\Controllers\Api\MyPayslipController::class, 'show'])->whereNumber('runId');
 
         // Payroll: runs, payslips, and the editable components (super admin and finance only)
-        Route::prefix('payroll')->middleware('role:super_admin,finance')->group(function () {
+        Route::prefix('payroll')->middleware('permission:payroll.run')->group(function () {
             $c = \App\Http\Controllers\Api\PayrollController::class;
             Route::get('/',                          [$c, 'index']);
             Route::post('/runs',                     [$c, 'create']);

@@ -20,6 +20,7 @@ import useRequestListStore from '../../store/requestListStore';
 import useWishlistStore from '../../store/wishlistStore';
 import { MODULES, isModuleActive } from '../../navigation/modules';
 import { visibleNav } from '../../navigation/adminNav';
+import { isStaff } from '../../lib/roles';
 import useNavStore from '../../store/navStore';
 import { categoriesAPI, brandsAPI, servicesAPI, serviceCategoriesAPI } from '../../api/index';
 import { useTheme } from '../../theme';
@@ -270,13 +271,7 @@ export default function Header() {
   const services = useFlyout();
   const account = useFlyout();
 
-  const isAdmin = user?.role === 'admin' || 
-                  user?.role === 'super_admin' || 
-                  user?.role === 'manager' || 
-                  user?.role === 'finance' || 
-                  user?.role === 'logistics' ||
-                  user?.role === 'sales_rep' ||
-                  user?.role === 'driver';  
+  const isAdmin = isStaff(user) || user?.role === 'driver';  
   const cartCount = cartItems?.reduce((sum, i) => sum + (i.quantity ?? 1), 0) ?? 0;
   const wishlistCount = (wishlistIds?.length ?? 0) + (wishlistServiceIds?.length ?? 0);
   const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');

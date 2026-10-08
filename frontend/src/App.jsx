@@ -15,7 +15,7 @@ import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
 
-import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES, CAMPAIGN_ROLES } from './_shared/lib/roles';
+import { FINANCE_READ, FINANCE_WRITE, PAYROLL_ROLES, CAMPAIGN_ROLES, hasAnyRole, isStaff } from './_shared/lib/roles';
 
 // ── Auth Pages ────────────────────────────────────────────────────────────────
 const Login               = lazy(() => import('./core/pages/auth/Login'));
@@ -313,14 +313,19 @@ function PageLoader() {
 
 // ── Protected Route ───────────────────────────────────────────────────────────
 function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = false, roles = null }) {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, access, fetchCustomer } = useAuthStore();
+
+  // a session from before the engine has no `access` yet: load it once (the role lists decide until it arrives)
+  useEffect(() => {
+    if (isAuthenticated && !access) fetchCustomer();
+  }, [isAuthenticated, access, fetchCustomer]);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
   // Super admin only routes
-  if (requireSuperAdmin && user?.role !== 'super_admin') {
+  if (requireSuperAdmin && !hasAnyRole(user, ['super_admin'])) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -329,16 +334,15 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
     return <Navigate to="/driver/manifests" replace />;
   }
 
-  // Admin routes (includes admin, super_admin, manager, finance, logistics, sales_rep)
+  // Admin routes: everyone who holds admin.access (the original staff roles and any role added since), and drivers for their own screens
   if (requireAdmin) {
-    const allowedRoles = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep', 'driver'];
-    if (!allowedRoles.includes(user?.role)) {
+    if (!isStaff(user, access) && user?.role !== 'driver') {
       return <Navigate to="/" replace />;
     }
   }
 
-  // Narrower role list for a specific route (e.g. finance pages)
-  if (roles && !roles.includes(user?.role)) {
+  // Narrower role list for a specific route (e.g. finance pages); a role that acts as a listed one (Senior accountant as Finance) passes too
+  if (roles && !hasAnyRole(user, roles)) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -347,11 +351,9 @@ function ProtectedRoute({ children, requireAdmin = false, requireSuperAdmin = fa
 
 // ── Role Based Profile Component ──────────────────────────────────────────────
 function RoleBasedProfile() {
-  const { user } = useAuthStore();
-  
-  const isStaff = ['admin', 'super_admin', 'manager', 'logistics', 'finance', 'sales_rep'].includes(user?.role);
-  
-  return isStaff ? <AdminProfile /> : <Profile />;
+  const { user, access } = useAuthStore();
+
+  return isStaff(user, access) ? <AdminProfile /> : <Profile />;
 }
 
 function PWARedirect() {

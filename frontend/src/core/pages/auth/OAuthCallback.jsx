@@ -4,6 +4,7 @@ import { useAuthStore } from '../../../_shared/store/index';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import authAPI from '../../../_shared/api/auth';
 import toast from 'react-hot-toast';
+import { isStaff } from '../../../_shared/lib/roles';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
@@ -42,11 +43,11 @@ export default function OAuthCallback() {
         }
 
         // Must match store signature: login(user, customer, token)
-        login(user, customer, token);
+        login(user, customer, token, response.access ?? null);
 
         toast.success(`Welcome back, ${user.name}!`);
 
-        const isAdmin = ['admin', 'super_admin', 'manager', 'sales_rep'].includes(user.role);
+        const isAdmin = isStaff(user, response.access);
         navigate(isAdmin ? '/admin' : '/');
 
       } catch (err) {

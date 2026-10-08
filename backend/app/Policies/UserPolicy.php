@@ -32,6 +32,11 @@ class UserPolicy
 
     private function outranks(User $actor, User $target): bool
     {
+        // a role the access engine added (senior accountant, cashier, chef, one you made) is not in the table above: it is placed by clearance
+        if (! isset(self::$hierarchy[$target->role])) {
+            return app(\App\Services\Access\Authorizer::class)->canManage($actor, $target);
+        }
+
         return self::level($actor->role) < self::level($target->role);
     }
 

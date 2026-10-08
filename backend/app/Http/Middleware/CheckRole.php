@@ -22,8 +22,9 @@ class CheckRole
             ], 401);
         }
 
-        // Check if user's role is in the allowed roles
-        if (!in_array($request->user()->role, $roles)) {
+        // Any role the person holds counts (the primary one, extra ones in date, and the names a role still stands for),
+        // so people with several roles pass without any route having to change.
+        if (! app(\App\Services\Access\Authorizer::class)->hasAnyRole($request->user(), $roles)) {
             return response()->json([
                 'message' => 'Forbidden. You do not have permission to access this resource.'
             ], 403);

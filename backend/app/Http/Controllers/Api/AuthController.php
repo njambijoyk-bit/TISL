@@ -346,6 +346,7 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Login successful',
             'user' => $user->load('customer'),
+            'access' => $user->accessSummary(),
             'customer' => $customer, // NEW: Separate customer data
             'token' => $token
         ], 200);
@@ -383,6 +384,7 @@ class AuthController extends Controller
 
         return response()->json([
             'user' => $user->load('customer'),
+            'access' => $user->accessSummary(),
             'customer' => $customer, // NEW: Separate customer data
         ], 200);
     }

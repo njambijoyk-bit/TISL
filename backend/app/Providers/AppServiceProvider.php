@@ -36,6 +36,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Scoped: remembers a person's roles and scope for the length of one request.
+        $this->app->scoped(\App\Services\Access\Authorizer::class);
+
         // Scoped, not singleton: holds the per-request display currency.
         $this->app->scoped(\App\Services\CurrencyConversionService::class);
 
@@ -108,6 +111,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Seed new variants across branches + keep the product stock total auto-calculated.
         \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
+        \App\Models\User::observe(\App\Observers\UserAccessObserver::class);
 
         ResetPassword::createUrlUsing(function ($user, string $token) {
             return env('FRONTEND_URL', 'http://localhost:5173')

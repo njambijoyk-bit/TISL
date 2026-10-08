@@ -39,7 +39,7 @@ export default function ForceChangePassword() {
         new_password_confirmation: form.new_password_confirmation,
       });
       // Backend logs the user in and returns a token
-      login(response.user, response.customer, response.token);
+      login(response.user, response.customer, response.token, response.access ?? null);
       toast.success('Password updated. Welcome!');
       navigate('/');
     } catch (err) {
