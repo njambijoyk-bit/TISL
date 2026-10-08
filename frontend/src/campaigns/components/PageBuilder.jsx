@@ -207,7 +207,7 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
                     <Field label="Show until" hint="Empty = for as long as the campaign shows."><TextInput type="datetime-local" value={s.show_until} onChange={(e) => patch(s.key, { show_until: e.target.value })} /></Field>
                   </div>
                   <div style={{ marginTop: 12 }}>
-                    <Field label="Who sees this section" hint="Narrower than the campaign's own audience. Staff always see it."><AudienceRule value={s.audience_rule} noun="this section" onChange={(r) => patch(s.key, { audience_rule: r })} /></Field>
+                    <Field label="Who sees this section" hint="Inside the campaign's own audience, never wider. Save the campaign details first if you just changed who it is for. Staff always see it."><AudienceRule value={s.audience_rule} parent={campaign.audience_rule} noun="this section" onChange={(r) => patch(s.key, { audience_rule: r })} /></Field>
                   </div>
                 </fieldset>
               </div>

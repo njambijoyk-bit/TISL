@@ -177,7 +177,7 @@ export default function CampaignEditor() {
               <AudienceRule value={f.audience_rule} disabled={readOnly} onChange={set('audience_rule')} noun="the campaign" />
             </Field>
             <Field label="Early access" hint={f.early_access_at ? 'Who gets in from the early access date, before it starts for everyone.' : 'Pick an early access date above first. Nobody gets in early without one.'}>
-              <AudienceRule value={f.early_access_audience} disabled={readOnly} onChange={set('early_access_audience')} noun="the early access" />
+              <AudienceRule value={f.early_access_audience} parent={f.audience_rule} disabled={readOnly} onChange={set('early_access_audience')} noun="the early access" />
             </Field>
           </section>
 
