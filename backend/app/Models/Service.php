@@ -175,14 +175,6 @@ class Service extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /**
-     * Get all order items that reference this service.
-     */
-    public function orderItems()
-    {
-        return $this->hasMany(OrderItem::class);
-    }
-
     // ========================================
     // ACCESSORS (Computed Properties)
     // ========================================

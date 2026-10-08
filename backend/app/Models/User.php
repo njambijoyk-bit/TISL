@@ -12,7 +12,6 @@ use App\Models\DeliveryManifest;
 use App\Models\DriverLocationPing;
 use App\Models\DeliveryRating;
 use App\Models\MpesaTransaction;
-use App\Models\Order;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Auth\MustVerifyEmail;
 
@@ -206,24 +205,6 @@ class User extends Authenticatable
         return $this->hasMany(MpesaTransaction::class, 'initiated_by');
     }
     /**
-     * Get orders placed by this user (who created the order).
-     * This is for admin/sales rep who create orders on behalf of customers.
-     */
-    public function placedOrders()
-    {
-        return $this->hasMany(Order::class, 'placed_by');
-    }
-
-    /**
-     * Get orders of this user's customer record.
-     * This is for when user is a customer and has their own orders.
-     */
-    public function customerOrders()
-    {
-        return $this->customer ? $this->customer->orders : collect();
-    }
-
-    /**
      * Get customers assigned to this user (if sales rep).
      */
     public function assignedCustomers()
@@ -285,14 +266,6 @@ class User extends Authenticatable
     public function updatedProducts()
     {
         return $this->hasMany(Product::class, 'updated_by');
-    }
-
-    /**
-     * Get orders assigned to this user (if admin).
-     */
-    public function assignedOrders()
-    {
-        return $this->hasMany(Order::class, 'assigned_to');
     }
 
     /**
@@ -590,18 +563,6 @@ class User extends Authenticatable
         }
  
         return url(\Illuminate\Support\Facades\Storage::url($this->profile_picture));
-    }
-
-    /**
-     * Get all orders for this user (combines both customer orders and placed orders).
-     */
-    public function getAllOrders()
-    {
-        if ($this->isCustomer() && $this->customer) {
-            return $this->customer->orders;
-        }
-        
-        return $this->placedOrders;
     }
 
     /**

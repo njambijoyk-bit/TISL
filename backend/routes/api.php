@@ -24,7 +24,6 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServiceCategoryController;
 use App\Http\Controllers\Api\SearchEventController;
-use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\HamperController;
 use App\Http\Controllers\Api\BooksMasterController;
 use App\Http\Controllers\Api\CompanyProfileController;
@@ -752,8 +751,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/documents/{id}/review', [CheckoutController::class, 'reviewDocument']);
         });
 
-        Route::get('/payments/order/{orderId}', [PaymentController::class, 'customerOrderPayments']);
-
         // ── Customer hamper routes (auth required) ────────────────────────────────────
         Route::prefix('hampers')->middleware('module:ecommerce')->group(function () {
             Route::get('/',                              [PublicHamperController::class, 'index']);
@@ -1463,16 +1460,6 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         
-        // Orders (retired): read-only views for the screens that still show them. Orders are vouchers now.
-        Route::prefix('orders')->group(function () {
-            Route::get('/', [OrderController::class, 'index']);
-            Route::get('/activity', [OrderController::class, 'getAllOrderActivity']);
-            Route::get('/statistics', [OrderController::class, 'statistics']);
-            Route::get('/{customerId}/order-statistics', [OrderController::class, 'customerOrderStatistics']);
-            Route::get('/{id}', [OrderController::class, 'adminShow']);
-            Route::get('/{id}/payments', [PaymentController::class, 'adminOrderPaymentHistory']);
-        });
-
         // Content Pages
         Route::prefix('content-pages')->group(function () {
             Route::get('/',                          [ContentPageController::class, 'index']);
@@ -1865,24 +1852,6 @@ Route::middleware('auth:sanctum')->group(function () {
                     Route::delete('/{id}',           [CurrencyController::class, 'destroy'])->middleware('role:super_admin,finance');
                 });
             });
-        });
-
-        // PAYMENTS
-        Route::prefix('payments')->group(function () {
-            Route::get('/',                          [PaymentController::class, 'index']);
-            Route::post('/initiate',                 [PaymentController::class, 'initiate']);
-            Route::get('/summary',                    [PaymentController::class, 'summary']);
-            Route::get('/order-payments', [PaymentController::class, 'orderPayments']);
-            Route::get('/order/{orderId}',           [PaymentController::class, 'orderPayments']);
-            
-            Route::get('/{payment}',                 [PaymentController::class, 'show']);
-            Route::get('/{payment}/status',          [PaymentController::class, 'status']);
-            Route::post('/{payment}/cancel',         [PaymentController::class, 'cancel']);
-            Route::post('/{payment}/retry',          [PaymentController::class, 'retry']);
-            Route::post('/{payment}/query-daraja',   [PaymentController::class, 'queryDaraja']);
-            Route::post('/{payment}/dispute',        [PaymentController::class, 'raiseDispute']);
-            Route::post('/{payment}/dispute/resolve',[PaymentController::class, 'resolveDispute']);
-            Route::post('/{payment}/notes',          [PaymentController::class, 'addNotes']);
         });
 
         // Projects — policy-gated, same as admin

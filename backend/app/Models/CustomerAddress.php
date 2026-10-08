@@ -67,22 +67,6 @@ class CustomerAddress extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    /**
-     * Get orders that used this address for shipping.
-     */
-    public function shippingOrders()
-    {
-        return $this->hasMany(Order::class, 'shipping_address_id');
-    }
-
-    /**
-     * Get orders that used this address for billing.
-     */
-    public function billingOrders()
-    {
-        return $this->hasMany(Order::class, 'billing_address_id');
-    }
-
     // ========================================
     // ACCESSORS (Computed Properties)
     // ========================================

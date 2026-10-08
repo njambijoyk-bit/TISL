@@ -36,11 +36,6 @@ class ReferralActivityLog extends Model
         return $this->belongsTo(User::class, 'actor_user_id');
     }
 
-    public function order(): BelongsTo
-    {
-        return $this->belongsTo(Order::class);
-    }
-
     public function referralCode(): BelongsTo
     {
         return $this->belongsTo(ReferralCode::class, 'entity_id');

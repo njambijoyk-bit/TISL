@@ -26,7 +26,7 @@ class AttendanceService
     /** Tables whose rows say "this person did something in the app at this time": [table, user column, time column]. Used only to infer a forgotten sign-in. */
     private const ACTIVITY = [
         ['vouchers', 'created_by', 'created_at'], ['tax_activity_logs', 'user_id', 'created_at'], ['withholding_activity_logs', 'user_id', 'created_at'],
-        ['product_activity_logs', 'user_id', 'created_at'], ['order_activity_logs', 'user_id', 'created_at'], ['hamper_activity_logs', 'user_id', 'created_at'],
+        ['product_activity_logs', 'user_id', 'created_at'], ['hamper_activity_logs', 'user_id', 'created_at'],
         ['delivery_activity_logs', 'user_id', 'created_at'], ['referral_activity_logs', 'user_id', 'created_at'], ['auction_order_activity_logs', 'user_id', 'created_at'],
     ];
 

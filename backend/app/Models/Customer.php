@@ -138,11 +138,12 @@ class Customer extends Model
     }
 
     /**
-     * Get all orders for this customer.
+     * This customer's orders: the Sales Order vouchers (orders are vouchers now).
      */
     public function orders()
     {
-        return $this->hasMany(Order::class);
+        return $this->hasMany(\App\Models\Books\Voucher::class)
+            ->whereHas('type', fn ($t) => $t->where('base_type', \App\Models\Books\VoucherType::SALES_ORDER));
     }
 
     /**
@@ -713,10 +714,7 @@ class Customer extends Model
                 ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(meta, '$.referral_code_id')) = ?", [(string) $this->referred_by_code_id])
                 ->exists();
         } catch (\Throwable) {
-            $alreadyApplied = \App\Models\Order::where('customer_id', $this->id)
-                ->where('referral_code_id', $this->referred_by_code_id)
-                ->whereNotIn('status', ['cancelled', 'failed'])
-                ->exists();
+            $alreadyApplied = false;
         }
 
         return !$alreadyApplied;
@@ -877,42 +875,12 @@ class Customer extends Model
         return true;
     }
 
-    /**
-     * Update statistics after order.
-     */
-    public function updateOrderStatistics(Order $order): void
-    {
-        $this->increment('total_orders');
-        $this->increment('total_spent', $order->total_kes ?? $order->total);
-
-        if (!$this->first_order_date) {
-            $this->update(['first_order_date' => now()]);
-        }
-
-        // Reload from DB so total_orders / total_spent reflect the incremented values
-        $this->refresh();
-
-        $this->update([
-            'last_order_date'     => now(),
-            'average_order_value' => $this->total_orders > 0
-                ? round($this->total_spent / $this->total_orders, 2)
-                : 0,
-        ]);
-
-        $this->checkTierUpgrade();
-        $this->triggerLoyaltyPromoIfEligible();
-    }
-
     // Customer model
     public function recalculateStatistics(): void
     {
-        $realTotal = Order::where('customer_id', $this->id)
-            ->whereNotIn('status', ['cancelled', 'failed'])
-            ->sum('total_kes');
-
-        $realCount = Order::where('customer_id', $this->id)
-            ->whereNotIn('status', ['cancelled', 'failed'])
-            ->count();
+        $stats = app(\App\Services\Books\OrderSummaryService::class)->statsForCustomer($this->id);
+        $realTotal = $stats['total_spent'];
+        $realCount = $stats['total_orders'];
 
         $this->update([
             'total_orders'        => $realCount,

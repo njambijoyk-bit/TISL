@@ -145,14 +145,6 @@ class Product extends Model
         return $this->belongsTo(User::class, 'updated_by');
     }
 
-    /**
-     * Get order items for this product.
-     */
-    public function orderItems()
-    {
-        return $this->hasMany(OrderItem::class);
-    }
-
     // ========================================
     // VARIANT / OPTION / IMAGE RELATIONSHIPS
     // ========================================

@@ -48,16 +48,6 @@ class TaxApplication extends Model
     // RELATIONSHIPS
     // ========================================
 
-    public function order(): BelongsTo
-    {
-        return $this->belongsTo(Order::class);
-    }
-
-    public function orderItem(): BelongsTo
-    {
-        return $this->belongsTo(OrderItem::class);
-    }
-
     public function taxRate(): BelongsTo
     {
         return $this->belongsTo(TaxRate::class);

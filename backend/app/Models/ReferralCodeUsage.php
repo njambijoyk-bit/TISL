@@ -87,14 +87,6 @@ class ReferralCodeUsage extends Model
         return $this->belongsTo(Customer::class);
     }
 
-    /**
-     * Get the order created with this code.
-     */
-    public function order()
-    {
-        return $this->belongsTo(Order::class);
-    }
-
     /** The invoice / cash sale this code was used on (orders no longer exist). */
     public function voucher()
     {
@@ -215,34 +207,6 @@ class ReferralCodeUsage extends Model
     // ========================================
 
     /**
-     * Complete the referral (order placed).
-     * Guard against double-completion — logs a warning and returns early if already done.
-     */
-    public function complete(Order $order): void
-    {
-        if ($this->status === 'completed') {
-            Log::warning("ReferralCodeUsage #{$this->id} complete() called but already completed.");
-            return;
-        }
-
-        $this->update([
-            'status'          => 'completed',
-            'order_id'        => $order->id,
-            'order_value'     => $order->subtotal_kes,
-            'final_price'     => $order->total_kes,
-            'discount_amount' => $order->referral_discount,
-            'completed_at'    => now(),
-        ]);
-
-        $this->customer->update(['referral_completed_at' => now()]);
-
-        // Only process reward if not already paid — prevents double reward
-        if (!$this->referrer_reward_paid) {
-            $this->processReferrerReward();
-        }
-    }
-
-    /**
      * Mark as expired (took too long to complete).
      */
     public function markAsExpired(): void
@@ -291,7 +255,7 @@ class ReferralCodeUsage extends Model
                 // "store credit" is a gift voucher now, booked through the books
                 app(\App\Services\Books\GiftVoucherService::class)->issue([
                     'amount' => $rewardAmount, 'customer_id' => $referrer->id, 'source' => 'referral',
-                    'note' => 'Referral reward' . ($this->order?->order_number ? " — {$this->order->order_number}" : ''),
+                    'note' => 'Referral reward',
                 ], null);
                 break;
 

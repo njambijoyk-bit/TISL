@@ -129,11 +129,6 @@ class Payment extends Model
     // RELATIONSHIPS
     // =========================================================================
 
-    public function order(): BelongsTo
-    {
-        return $this->belongsTo(Order::class);
-    }
-
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
@@ -227,30 +222,6 @@ class Payment extends Model
     // =========================================================================
 
     /**
-     * Get the parent order for this payment.
-     */
-    public function parentOrder(): ?Order
-    {
-        return $this->order;
-    }
-
-    /**
-     * Get the order type for display purposes.
-     */
-    public function orderType(): string
-    {
-        return 'regular';
-    }
-
-    /**
-     * Get the order number for display.
-     */
-    public function orderNumber(): ?string
-    {
-        return $this->order?->order_number;
-    }
-
-    /**
      * The authoritative amount received for this payment.
      */
     public function authoritativeAmountReceived(): float
@@ -283,32 +254,6 @@ class Payment extends Model
     // =========================================================================
     // SNAPSHOT BUILDER — polymorphic for both order types
     // =========================================================================
-
-    public static function buildSnapshot(Order $order): array
-    {
-        $orderId   = $order->id;
-
-        $previouslyPaid = static::query()
-            ->where('order_id', $orderId)
-            ->where('status', 'confirmed')
-            ->sum('mpesa_amount_confirmed');
-
-        $totalKes = (float) ($order->total_kes ?? $order->total ?? 0);
-        $creditDeduction = (float) ($order->metadata['credit_account_deduction'] ?? 0);
-        $effectiveTotalKes = $totalKes + $creditDeduction;
-        $stillOwed = max(0, $effectiveTotalKes - (float) $previouslyPaid);
-        $rate = $order->exchange_rate_to_kes ?? 1;
-
-        return [
-            'snapshot_subtotal_kes'               => (float) ($order->subtotal_kes ?? round(((float)($order->subtotal ?? 0)) * $rate, 2)),
-            'snapshot_tax_kes'                    => (float) round(((float)($order->tax ?? 0)) * $rate, 2),
-            'snapshot_discount_kes'               => (float) round(((float)($order->discount ?? 0)) * $rate, 2),
-            'snapshot_shipping_kes'               => (float) round(((float)($order->shipping_cost ?? 0)) * $rate, 2),
-            'snapshot_total_kes'                  => $effectiveTotalKes,
-            'snapshot_amount_previously_paid_kes' => (float) $previouslyPaid,
-            'snapshot_amount_still_owed_kes'      => $stillOwed,
-        ];
-    }
 
     // =========================================================================
     // ORDER PAYMENT STATUS SYNC — polymorphic

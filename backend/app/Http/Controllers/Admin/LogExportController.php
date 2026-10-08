@@ -10,7 +10,6 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class LogExportController extends Controller
 {
     private const LOGS = [
-        'order_activity'        => ['table' => 'order_activity_logs',           'date_col' => 'created_at'],
         'auction_order_activity'=> ['table' => 'auction_order_activity_logs',    'date_col' => 'created_at'],
         'hamper_activity'       => ['table' => 'hamper_activity_logs',           'date_col' => 'created_at'],
         'leave'                 => ['table' => 'leave_logs',                     'date_col' => 'created_at'],

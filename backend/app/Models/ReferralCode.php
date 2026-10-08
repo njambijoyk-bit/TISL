@@ -181,16 +181,6 @@ class ReferralCode extends Model
     }
 
     /**
-     * Get orders that used this code as a promo/discount code at checkout.
-     * NOTE: referral_code_id is a separate column tracking which referral link
-     * originally acquired the customer — not where the code was applied at checkout.
-     */
-    public function orders()
-    {
-        return $this->hasMany(Order::class, 'promo_code_id');
-    }
-
-    /**
      * Get the target customer for per-customer promo codes.
      */
     /** The currency a fixed amount / minimum order is quoted in. */

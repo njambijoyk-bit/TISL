@@ -25,7 +25,6 @@ class ActivityFeedService
         $o = self::OPS; $f = self::FIN; $a = self::ADMINS;
 
         return [
-            ['key' => 'order_activity', 'label' => 'Orders', 'group' => 'Sales', 'roles' => $o, 'table' => 'order_activity_logs', 'at' => 'created_at'],
             ['key' => 'hamper_activity', 'label' => 'Hampers', 'group' => 'Sales', 'roles' => $o, 'table' => 'hamper_activity_logs', 'at' => 'created_at'],
             ['key' => 'auction_order_activity', 'label' => 'Auctions', 'group' => 'Sales', 'roles' => $o, 'table' => 'auction_order_activity_logs', 'at' => 'created_at'],
             ['key' => 'referral_activity', 'label' => 'Referrals', 'group' => 'Customers', 'roles' => $o, 'table' => 'referral_activity_logs', 'at' => 'created_at'],
@@ -141,8 +140,6 @@ class ActivityFeedService
         $at = $r->{$s['at']} ?? null;
         $actor = null; $action = ''; $subject = ''; $summary = '';
         switch ($k) {
-            case 'order_activity':
-                $actor = $r->performed_by ?? $r->user_id; $action = $r->action; $subject = 'Order #' . $r->order_id; $summary = $this->short($r->description); break;
             case 'hamper_activity':
                 $actor = $r->performed_by ?? $r->user_id; $action = $r->action; $subject = 'Hamper #' . $r->hamper_id; $summary = $this->short($r->description); break;
             case 'auction_order_activity':

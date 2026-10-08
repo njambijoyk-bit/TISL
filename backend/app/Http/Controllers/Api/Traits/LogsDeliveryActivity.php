@@ -75,24 +75,6 @@ trait LogsDeliveryActivity
     }
 
     /**
-     * Shorthand for shipment-level activities.
-     */
-    protected function logShipmentActivity(
-        int    $shipmentId,
-        string $action,
-        string $severity = 'info',
-        array  $payload  = []
-    ): void {
-        $this->logDeliveryActivity(
-            \App\Models\OrderShipment::class,
-            $shipmentId,
-            $action,
-            $severity,
-            $payload
-        );
-    }
-
-    /**
      * Shorthand for incident-level activities.
      */
     protected function logIncidentActivity(

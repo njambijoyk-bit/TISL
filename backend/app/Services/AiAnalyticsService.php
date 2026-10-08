@@ -165,25 +165,29 @@ class AiAnalyticsService
     // ── Module data fetchers ─────────────────────────────────────────
     // ════════════════════════════════════════════════════════════════
 
+    /** Orders are Sales Order vouchers: one order with its lines, or the last 30 days of them. */
     private function fetchOrdersData(?int $entityId): array
     {
+        $type = "(SELECT id FROM voucher_types WHERE base_type = 'sales_order')";
+
         // ── Single order ─────────────────────────────────────────────
         if ($entityId) {
             $order = DB::selectOne("
-                SELECT o.id, o.order_number, o.status, o.payment_status,
-                    o.total, o.total_kes, o.currency, o.created_at,
-                    CONCAT(c.first_name, ' ', c.last_name) as customer_name,
-                    c.tier as customer_tier
-                FROM orders o
-                LEFT JOIN customers c ON c.id = o.customer_id
-                WHERE o.id = ?
+                SELECT v.id, v.voucher_number AS order_number, v.status, v.fulfilment_status,
+                    v.total_amount AS total, v.base_total AS total_kes, cur.code AS currency, v.date AS created_at,
+                    COALESCE(NULLIF(CONCAT(c.first_name, ' ', c.last_name), ' '), v.party_name) AS customer_name,
+                    c.tier AS customer_tier
+                FROM vouchers v
+                LEFT JOIN customers c ON c.id = v.customer_id
+                LEFT JOIN currencies cur ON cur.id = v.currency_id
+                WHERE v.id = ? AND v.voucher_type_id IN {$type}
             ", [$entityId]);
 
             $items = DB::select("
-                SELECT oi.quantity, oi.unit_price, oi.line_total,
-                    oi.line_total_after_discount, oi.product_name
-                FROM order_items oi
-                WHERE oi.order_id = ?
+                SELECT i.quantity, i.rate AS unit_price, i.amount AS line_total,
+                    (i.amount - i.discount_amount) AS line_total_after_discount, i.description AS product_name
+                FROM voucher_items i
+                WHERE i.voucher_id = ? AND i.is_header = 0
             ", [$entityId]);
 
             return ['order' => $order, 'items' => $items];
@@ -193,43 +197,38 @@ class AiAnalyticsService
         $stats = DB::selectOne("
             SELECT
                 COUNT(*)                                                          AS total_orders,
-                SUM(total_kes)                                                    AS total_revenue,
-                ROUND(AVG(total_kes), 2)                                          AS avg_order_value,
-                COUNT(CASE WHEN status = 'cancelled'        THEN 1 END)          AS cancellations,
-                COUNT(CASE WHEN status = 'pending'          THEN 1 END)          AS pending,
-                COUNT(CASE WHEN status = 'delivered'        THEN 1 END)          AS completed,
-                COUNT(CASE WHEN payment_status = 'unpaid'   THEN 1 END)          AS unpaid_orders,
-                SUM(CASE WHEN payment_status = 'unpaid' THEN total_kes END)      AS unpaid_revenue
-            FROM orders
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-            AND deleted_at IS NULL
+                SUM(CASE WHEN status <> 'cancelled' THEN base_total END)          AS total_revenue,
+                ROUND(AVG(CASE WHEN status <> 'cancelled' THEN base_total END), 2) AS avg_order_value,
+                COUNT(CASE WHEN status = 'cancelled' THEN 1 END)                  AS cancellations,
+                COUNT(CASE WHEN status <> 'cancelled' AND COALESCE(fulfilment_status, '') <> 'closed' THEN 1 END) AS open_orders,
+                COUNT(CASE WHEN status <> 'cancelled' AND fulfilment_status = 'closed' THEN 1 END) AS completed
+            FROM vouchers
+            WHERE voucher_type_id IN {$type} AND created_at >= NOW() - INTERVAL 30 DAY
         ");
 
         $byStatus = DB::select("
-            SELECT status, COUNT(*) as count, SUM(total_kes) as revenue
-            FROM orders
-            WHERE created_at >= NOW() - INTERVAL 30 DAY
-            AND deleted_at IS NULL
-            GROUP BY status
+            SELECT CASE WHEN status = 'cancelled' THEN 'cancelled' WHEN fulfilment_status = 'closed' THEN 'completed' ELSE 'open' END AS status,
+                COUNT(*) AS count, SUM(base_total) AS revenue
+            FROM vouchers
+            WHERE voucher_type_id IN {$type} AND created_at >= NOW() - INTERVAL 30 DAY
+            GROUP BY 1
         ");
 
         $topProducts = DB::select("
-            SELECT oi.product_name, SUM(oi.quantity) as units_sold,
-                SUM(oi.line_total_after_discount) as revenue
-            FROM order_items oi
-            JOIN orders o ON o.id = oi.order_id
-            WHERE o.created_at >= NOW() - INTERVAL 30 DAY
-            AND o.deleted_at IS NULL
-            GROUP BY oi.product_name
+            SELECT i.description AS product_name, SUM(i.quantity) AS units_sold, SUM(i.amount - i.discount_amount) AS revenue
+            FROM voucher_items i
+            JOIN vouchers v ON v.id = i.voucher_id
+            WHERE v.voucher_type_id IN {$type} AND v.status <> 'cancelled' AND i.is_header = 0 AND i.parent_item_id IS NULL
+                AND v.created_at >= NOW() - INTERVAL 30 DAY
+            GROUP BY i.description
             ORDER BY revenue DESC
             LIMIT 5
         ");
 
         $dailyTrend = DB::select("
-            SELECT DATE(created_at) as date, COUNT(*) as orders, SUM(total_kes) as revenue
-            FROM orders
-            WHERE created_at >= NOW() - INTERVAL 14 DAY
-            AND deleted_at IS NULL
+            SELECT DATE(created_at) AS date, COUNT(*) AS orders, SUM(base_total) AS revenue
+            FROM vouchers
+            WHERE voucher_type_id IN {$type} AND status <> 'cancelled' AND created_at >= NOW() - INTERVAL 14 DAY
             GROUP BY DATE(created_at)
             ORDER BY date ASC
         ");
@@ -348,10 +347,15 @@ class AiAnalyticsService
 
         $slowMoving = DB::select("
             SELECT p.name, p.sku, p.stock_quantity,
-                   COALESCE(SUM(oi.quantity), 0) as units_sold_30d
+                   COALESCE(SUM(sold.quantity), 0) as units_sold_30d
             FROM products p
-            LEFT JOIN order_items oi ON oi.product_id = p.id
-            LEFT JOIN orders o       ON o.id = oi.order_id AND o.created_at >= NOW() - INTERVAL 30 DAY
+            LEFT JOIN (
+                SELECT i.product_id, i.quantity
+                FROM voucher_items i
+                JOIN vouchers v ON v.id = i.voucher_id AND v.status = 'posted' AND v.created_at >= NOW() - INTERVAL 30 DAY
+                JOIN voucher_types vt ON vt.id = v.voucher_type_id AND vt.base_type IN ('sales', 'cash_sale')
+                WHERE i.product_id IS NOT NULL
+            ) sold ON sold.product_id = p.id
             WHERE p.status = 'active' AND p.stock_quantity > 0
             GROUP BY p.id
             HAVING units_sold_30d < 2
@@ -372,10 +376,11 @@ class AiAnalyticsService
                     c.email, c.tier, c.loyalty_points,
                     c.store_credit, c.created_at,
                     COUNT(o.id)          as total_orders,
-                    SUM(o.total_kes)     as lifetime_value,
+                    SUM(o.base_total)    as lifetime_value,
                     MAX(o.created_at)    as last_order_at
                 FROM customers c
-                LEFT JOIN orders o ON o.customer_id = c.id
+                LEFT JOIN vouchers o ON o.customer_id = c.id AND o.status <> 'cancelled'
+                    AND o.voucher_type_id IN (SELECT id FROM voucher_types WHERE base_type = 'sales_order')
                 WHERE c.id = ?
                 GROUP BY c.id
             ", [$entityId]);
@@ -401,7 +406,8 @@ class AiAnalyticsService
                 c.tier, MAX(o.created_at) as last_order_at,
                 DATEDIFF(NOW(), MAX(o.created_at)) as days_since_order
             FROM customers c
-            LEFT JOIN orders o ON o.customer_id = c.id
+            LEFT JOIN vouchers o ON o.customer_id = c.id AND o.status <> 'cancelled'
+                AND o.voucher_type_id IN (SELECT id FROM voucher_types WHERE base_type = 'sales_order')
             GROUP BY c.id
             HAVING days_since_order > 60 OR days_since_order IS NULL
             ORDER BY days_since_order DESC
@@ -410,9 +416,10 @@ class AiAnalyticsService
 
         $topByValue = DB::select("
             SELECT CONCAT(c.first_name, ' ', c.last_name) as name,
-                c.tier, SUM(o.total_kes) as lifetime_value, COUNT(o.id) as orders
+                c.tier, SUM(o.base_total) as lifetime_value, COUNT(o.id) as orders
             FROM customers c
-            JOIN orders o ON o.customer_id = c.id
+            JOIN vouchers o ON o.customer_id = c.id AND o.status <> 'cancelled'
+                AND o.voucher_type_id IN (SELECT id FROM voucher_types WHERE base_type = 'sales_order')
             WHERE o.created_at >= NOW() - INTERVAL 90 DAY
             GROUP BY c.id
             ORDER BY lifetime_value DESC
@@ -428,13 +435,13 @@ class AiAnalyticsService
     {
         $revenue = DB::selectOne("
             SELECT
-                SUM(CASE WHEN created_at >= NOW() - INTERVAL 30 DAY THEN total_kes END) AS revenue_30d,
-                SUM(CASE WHEN created_at >= NOW() - INTERVAL 7  DAY THEN total_kes END) AS revenue_7d,
+                SUM(CASE WHEN created_at >= NOW() - INTERVAL 30 DAY THEN base_total END) AS revenue_30d,
+                SUM(CASE WHEN created_at >= NOW() - INTERVAL 7  DAY THEN base_total END) AS revenue_7d,
                 SUM(CASE WHEN MONTH(created_at) = MONTH(NOW())
-                        AND YEAR(created_at)  = YEAR(NOW())  THEN total_kes END)       AS revenue_mtd
-            FROM orders
-            WHERE payment_status = 'paid'
-            AND deleted_at IS NULL
+                        AND YEAR(created_at)  = YEAR(NOW())  THEN base_total END)       AS revenue_mtd
+            FROM vouchers
+            WHERE status = 'posted'
+            AND voucher_type_id IN (SELECT id FROM voucher_types WHERE base_type IN ('sales', 'cash_sale'))
         ");
 
         $paymentMethods = DB::select("
