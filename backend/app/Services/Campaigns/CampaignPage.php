@@ -157,7 +157,7 @@ class CampaignPage
         DB::transaction(function () use ($c, $sections) {
             $keep = [];
             foreach (array_values($sections) as $pos => $s) {
-                $data = ['position' => $pos + 1, 'type' => $s['type'], 'settings' => $this->clean($s['type'], $s['settings'] ?? []), 'show_from' => $s['show_from'] ?? null, 'show_until' => $s['show_until'] ?? null, 'audience_rule' => $s['audience_rule'] ?? null];
+                $data = ['position' => $pos + 1, 'type' => $s['type'], 'settings' => $this->clean($s['type'], $s['settings'] ?? []), 'show_from' => $s['show_from'] ?? null, 'show_until' => $s['show_until'] ?? null, 'audience_rule' => \App\Services\Campaigns\CampaignAudience::clean($s['audience_rule'] ?? null)];
                 $row = ! empty($s['id']) ? CampaignSection::where('campaign_id', $c->id)->find($s['id']) : null;
                 $row ? $row->update($data) : $row = CampaignSection::create($data + ['campaign_id' => $c->id]);
                 $keep[] = $row->id;

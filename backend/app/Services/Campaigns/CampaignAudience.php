@@ -14,6 +14,26 @@ use Illuminate\Support\Facades\DB;
  */
 class CampaignAudience
 {
+    /** Keep only the keys a rule understands; an empty rule (everyone) is stored as null. */
+    public static function clean($rule): ?array
+    {
+        if (! is_array($rule)) {
+            return null;
+        }
+        $out = [];
+        if (! empty($rule['signed_in'])) {
+            $out['signed_in'] = true;
+        }
+        if (! empty($rule['tiers']) && is_array($rule['tiers'])) {
+            $out['tiers'] = array_values(array_unique(array_map('strval', array_filter($rule['tiers'], 'is_scalar'))));
+        }
+        if (! empty($rule['has_purchased'])) {
+            $out['has_purchased'] = true;
+        }
+
+        return $out ?: null;
+    }
+
     public static function allows(?User $user, ?array $rule): bool
     {
         if (! $rule) {

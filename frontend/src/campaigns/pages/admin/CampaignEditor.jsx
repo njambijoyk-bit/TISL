@@ -12,13 +12,14 @@ import noSlash from '../../../_shared/lib/noSlash';
 import { btnPrimary, btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import StatusChip from '../../components/StatusChip';
 import PageBuilder from '../../components/PageBuilder';
+import AudienceRule from '../../components/AudienceRule';
 import CampaignNumbers from '../../components/CampaignNumbers';
 
 const GOAL_LABEL = { reach: 'Reach (people seeing it)', sales: 'Sales' };
 const label = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
 // a datetime-local box wants "2026-10-18T09:00"; the server sends "2026-10-18T09:00:00.000000Z" in the server's time, so cut it down
 const toLocal = (iso) => (iso ? iso.slice(0, 16) : '');
-const EMPTY = { title: '', subtitle: '', slug: '', type: 'brand', goal: 'reach', accent_color: '', teaser_at: '', starts_at: '', ends_at: '', early_access_at: '', feature_on_home: false };
+const EMPTY = { title: '', subtitle: '', slug: '', type: 'brand', goal: 'reach', accent_color: '', teaser_at: '', starts_at: '', ends_at: '', early_access_at: '', audience_rule: null, early_access_audience: null, feature_on_home: false };
 
 /** Create or change a campaign: its type, name, address, dates and look. Its sections and featured items come next. */
 export default function CampaignEditor() {
@@ -42,7 +43,7 @@ export default function CampaignEditor() {
       const d = r.data;
       setC(d); setPerm({ can_edit: r.can_edit, can_publish: r.can_publish, can_decide: r.can_decide, can_submit: r.can_submit, can_withdraw: r.can_withdraw });
       setPg({ sections: d.sections, items: d.items, resolved: r.resolved, ecommerce: r.ecommerce, itemTypes: r.item_types, maxVideoMb: r.max_video_mb });
-      setF({ title: d.title, subtitle: d.subtitle ?? '', slug: d.slug, type: d.type, goal: d.goal, accent_color: d.accent_color ?? '', teaser_at: toLocal(d.teaser_at), starts_at: toLocal(d.starts_at), ends_at: toLocal(d.ends_at), early_access_at: toLocal(d.early_access_at), feature_on_home: d.feature_on_home });
+      setF({ title: d.title, subtitle: d.subtitle ?? '', slug: d.slug, type: d.type, goal: d.goal, accent_color: d.accent_color ?? '', teaser_at: toLocal(d.teaser_at), starts_at: toLocal(d.starts_at), ends_at: toLocal(d.ends_at), early_access_at: toLocal(d.early_access_at), audience_rule: d.audience_rule ?? null, early_access_audience: d.early_access_audience ?? null, feature_on_home: d.feature_on_home });
     }).catch((e) => setErr(errMsg(e, 'Could not load the campaign')));
   }, [id]);
 
@@ -166,8 +167,18 @@ export default function CampaignEditor() {
               <Field label="Teaser starts" hint="Optional: people see the teaser sections from here."><TextInput type="datetime-local" value={f.teaser_at} disabled={readOnly} onChange={(e) => set('teaser_at')(e.target.value)} /></Field>
               <Field label="Starts" hint="Empty = live as soon as it is published."><TextInput type="datetime-local" value={f.starts_at} disabled={readOnly} onChange={(e) => set('starts_at')(e.target.value)} /></Field>
               <Field label="Ends" hint="Empty = runs until archived."><TextInput type="datetime-local" value={f.ends_at} disabled={readOnly} onChange={(e) => set('ends_at')(e.target.value)} /></Field>
-              <Field label="Early access from" hint="Optional: chosen customers get in from here (set who in a later step)."><TextInput type="datetime-local" value={f.early_access_at} disabled={readOnly} onChange={(e) => set('early_access_at')(e.target.value)} /></Field>
+              <Field label="Early access from" hint="Optional: chosen customers get in from here (choose who below)."><TextInput type="datetime-local" value={f.early_access_at} disabled={readOnly} onChange={(e) => set('early_access_at')(e.target.value)} /></Field>
             </div>
+          </section>
+
+          <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>
+            <p style={label}>Who can see it</p>
+            <Field label="The campaign" hint="Who can see this campaign at all, its teaser included. You can narrow single sections on the page below.">
+              <AudienceRule value={f.audience_rule} disabled={readOnly} onChange={set('audience_rule')} noun="the campaign" />
+            </Field>
+            <Field label="Early access" hint={f.early_access_at ? 'Who gets in from the early access date, before it starts for everyone.' : 'Pick an early access date above first. Nobody gets in early without one.'}>
+              <AudienceRule value={f.early_access_audience} disabled={readOnly} onChange={set('early_access_audience')} noun="the early access" />
+            </Field>
           </section>
 
           <section style={{ ...card, padding: 18, display: 'grid', gap: 14 }}>

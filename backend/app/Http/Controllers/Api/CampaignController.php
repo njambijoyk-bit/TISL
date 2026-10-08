@@ -120,6 +120,11 @@ class CampaignController extends Controller
     {
         $this->builder($request);
         $d = $request->validate($this->rules());
+        foreach (['audience_rule', 'early_access_audience'] as $k) {
+            if (array_key_exists($k, $d)) {
+                $d[$k] = \App\Services\Campaigns\CampaignAudience::clean($d[$k]);
+            }
+        }
         $type = CampaignTypes::find($d['type']);
         abort_unless(in_array($d['goal'], $type['goals'], true), 422, 'That goal does not suit this type of campaign.');
         $d['slug'] = $d['slug'] ?? $this->slugFor($d['title']);
@@ -135,6 +140,11 @@ class CampaignController extends Controller
         $c = Campaign::findOrFail($id);
         $this->editable($request, $c);
         $d = $request->validate($this->rules($c));
+        foreach (['audience_rule', 'early_access_audience'] as $k) {
+            if (array_key_exists($k, $d)) {
+                $d[$k] = \App\Services\Campaigns\CampaignAudience::clean($d[$k]);
+            }
+        }
         $type = CampaignTypes::find($d['type']);
         abort_unless(in_array($d['goal'], $type['goals'], true), 422, 'That goal does not suit this type of campaign.');
         if (empty($d['slug'])) {

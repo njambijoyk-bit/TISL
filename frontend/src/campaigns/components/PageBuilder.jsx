@@ -7,6 +7,7 @@ import { storageUrl } from '../../_shared/lib/storageUrl';
 import { btnPrimary, btnGhost, card, colors } from '../../_shared/theme/tokens';
 import { Field, TextInput, TextArea, SelectInput } from '../../core/components/admin/ui/Form';
 import CampaignView from './CampaignView';
+import AudienceRule from './AudienceRule';
 import ItemPicker from './ItemPicker';
 import posterFrom from '../lib/videoPoster';
 
@@ -19,7 +20,7 @@ const keyOf = () => `n${++counter}`;
 
 /** Turn what the server sends (sections, items) into the builder's rows: each section carries its own items. */
 const rows = (sections, items) => sections.map((s) => ({
-  key: `s${s.id}`, id: s.id, type: s.type, settings: s.settings ?? {}, show_from: toLocal(s.show_from), show_until: toLocal(s.show_until), open: false,
+  key: `s${s.id}`, id: s.id, type: s.type, settings: s.settings ?? {}, show_from: toLocal(s.show_from), show_until: toLocal(s.show_until), audience_rule: s.audience_rule ?? null, open: false,
   items: items.filter((i) => i.section_id === s.id).map((i) => ({ item_type: i.item_type, item_id: i.item_id, available_from: toLocal(i.available_from), label_override: i.label_override ?? '' })),
 }));
 
@@ -165,7 +166,7 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
   const save = async () => {
     setBusy(true);
     try {
-      const body = list.map((s) => ({ id: s.id, type: s.type, settings: s.settings, show_from: s.show_from || null, show_until: s.show_until || null, items: s.type === 'products' ? s.items.map((i) => ({ ...i, available_from: i.available_from || null, label_override: i.label_override || null })) : undefined }));
+      const body = list.map((s) => ({ id: s.id, type: s.type, settings: s.settings, show_from: s.show_from || null, show_until: s.show_until || null, audience_rule: s.audience_rule ?? null, items: s.type === 'products' ? s.items.map((i) => ({ ...i, available_from: i.available_from || null, label_override: i.label_override || null })) : undefined }));
       const r = await campaignsAPI.savePage(campaign.id, body);
       toast.success(r.message);
       onSaved(r);
@@ -188,6 +189,7 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
               <button type="button" onClick={() => patch(s.key, { open: !s.open })} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, border: 'none', background: 'none', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', padding: 0 }}>
                 {s.open ? <ChevronDown size={15} /> : <ChevronRight size={15} />}<strong style={{ fontSize: '0.86rem' }}>{TYPE_LABEL[s.type]}</strong>
                 <span style={{ fontSize: '0.72rem', color: colors.textFaint }}>{s.settings.headline || s.settings.heading || ''}</span>
+                {s.audience_rule && <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#0f766e' }}>some people</span>}
                 {(s.show_from || s.show_until) && <span style={{ fontSize: '0.66rem', fontWeight: 700, color: '#7c3aed' }}>scheduled</span>}
               </button>
               {canEdit && <>
@@ -203,6 +205,9 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--line)' }}>
                     <Field label="Show from" hint="Empty = from the start. A teaser can reveal a section a day."><TextInput type="datetime-local" value={s.show_from} onChange={(e) => patch(s.key, { show_from: e.target.value })} /></Field>
                     <Field label="Show until" hint="Empty = for as long as the campaign shows."><TextInput type="datetime-local" value={s.show_until} onChange={(e) => patch(s.key, { show_until: e.target.value })} /></Field>
+                  </div>
+                  <div style={{ marginTop: 12 }}>
+                    <Field label="Who sees this section" hint="Narrower than the campaign's own audience. Staff always see it."><AudienceRule value={s.audience_rule} noun="this section" onChange={(r) => patch(s.key, { audience_rule: r })} /></Field>
                   </div>
                 </fieldset>
               </div>
