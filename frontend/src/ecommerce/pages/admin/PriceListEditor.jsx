@@ -41,6 +41,10 @@ export default function PriceListEditor() {
 
   const has = (type, id) => picks.some((p) => p.type === type && p.id === id);
   const add = (type, id, label) => { if (!has(type, id)) setPicks((p) => [...p, { type, id, label }]); };
+  const everything = () => setPicks((p) => (p.some((x) => x.type === 'all_products') && p.some((x) => x.type === 'all_services')
+    ? p.filter((x) => x.type !== 'all_products' && x.type !== 'all_services')
+    : [...p.filter((x) => x.type !== 'all_products' && x.type !== 'all_services'), { type: 'all_products', id: null, label: 'Every product on sale' }, { type: 'all_services', id: null, label: 'Every available service' }]));
+  const addShown = () => setPicks((p) => [...p, ...found.filter((x) => !p.some((y) => y.type === kind && y.id === x.id)).map((x) => ({ type: kind, id: x.id, label: x.label }))]);
   const allOn = (type) => picks.some((p) => p.type === type);
   const toggleAll = (type, label) => setPicks((p) => (p.some((x) => x.type === type) ? p.filter((x) => x.type !== type) : [...p, { type, id: null, label }]));
 
@@ -68,13 +72,17 @@ export default function PriceListEditor() {
 
         <section style={{ ...card, padding: 18, display: 'grid', gap: 12 }}>
           <div><strong style={{ color: colors.text }}>What goes on it</strong><div style={{ fontSize: '0.78rem', color: colors.textFaint }}>Products (every variant and unit) and services (every package). A category includes its sub-categories. Hampers and auctions are short term, so they are not on price lists. Their prices are never read from cost.</div></div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.84rem' }}><input type="checkbox" checked={allOn('all_products')} onChange={() => toggleAll('all_products', 'Every product on sale')} /> Every product on sale</label>
-            <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', fontSize: '0.84rem' }}><input type="checkbox" checked={allOn('all_services')} onChange={() => toggleAll('all_services', 'Every available service')} /> Every available service</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {[['all_products', 'Every product on sale'], ['all_services', 'Every available service']].map(([t, l]) => (
+              <button key={t} type="button" aria-pressed={allOn(t)} onClick={() => toggleAll(t, l)}
+                style={{ ...btnGhost, padding: '6px 14px', fontSize: '0.8rem', background: allOn(t) ? 'var(--color-primary-500)' : 'var(--surface-card)', color: allOn(t) ? '#fff' : colors.text }}>{allOn(t) ? '✓ ' : '+ '}{l}</button>
+            ))}
+            <button type="button" style={{ ...btnGhost, padding: '6px 14px', fontSize: '0.8rem' }} onClick={everything}>{allOn('all_products') && allOn('all_services') ? 'Clear both' : 'Add everything'}</button>
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {KINDS.map(([k, l]) => <button key={k} type="button" onClick={() => setKind(k)} style={{ ...btnGhost, padding: '4px 12px', fontSize: '0.78rem', borderRadius: 999, background: kind === k ? 'var(--color-primary-500)' : 'var(--surface-card)', color: kind === k ? '#fff' : colors.text }}>{l}</button>)}
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" style={{ ...fieldStyle, width: 220, marginLeft: 'auto' }} />
+            <button type="button" style={{ ...btnGhost, padding: '4px 12px', fontSize: '0.78rem', marginLeft: 'auto' }} disabled={found.every((x) => has(kind, x.id))} onClick={addShown}>Add all {found.length} shown</button>
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search…" style={{ ...fieldStyle, width: 220 }} />
           </div>
           <div style={{ display: 'grid', gap: 4, maxHeight: 240, overflowY: 'auto', border: '1px solid var(--line)', borderRadius: 10, padding: 6 }}>
             {found.length === 0 && <div style={{ padding: 8, fontSize: '0.82rem', color: colors.textFaint }}>Nothing found.</div>}
