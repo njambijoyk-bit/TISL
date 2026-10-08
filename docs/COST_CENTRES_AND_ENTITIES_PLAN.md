@@ -15,6 +15,12 @@ Direction: **a branch is a cost centre inside one set of books. A different comp
 | 7 | An employee can belong to **several cost centres** (their department's, plus for example a project for some dates, with a share). Payroll splits their cost by those shares. |
 | 8 | Each entity has its **own base currency, chart of accounts, tax setup, period lock, numbering and bank accounts**. Reports and screens always show **one entity**. No combined profit across entities. A company switcher sets which one, per browser tab, so two companies can be open in two tabs at once. |
 | 9 | Location kinds gain Office and Depot (labels only). |
+| 10 | A branch can have **several** cost centres (for example Stock, Payroll, Utilities under the branch), not just its automatic one. |
+| 11 | One storefront and one set of books for now. A company in another country has its own website and its own books. |
+| 12 | Later, after cost centres: a **view-only import** of another company's books (chart of accounts, vouchers) from an encrypted, password-protected exchange file (extension `.wnkjap`), and an API with a password for sites we build. Never mixed with our own books. |
+| 13 | Customers: one identity, a separate party ledger per company. Exchange rates: one shared table. Standard department names: a ready list that can be added to a branch in one click. |
+| 14 | Reports sort and filter per branch using the voucher's location (the voucher already carries it). |
+| 15 | **Identity and access comes first** (`docs/IDENTITY_AND_ACCESS_PLAN.md`): roles as data, several roles per person, default branch plus time-limited grants, admin and super admin never bound, a new Senior accountant role. |
 
 ## What the code is today (checked)
 
@@ -67,6 +73,9 @@ Settings, "Cost centres": the entity's General cost centre; defaults per kind of
 - **The storefront** needs a decision: one storefront per entity (a domain or subdomain picks the entity) or one storefront with branches across entities. Per entity is the simpler and safer default.
 
 ## Build order (each step is a database script plus the matching code, in this order)
+
+0. **Identity and access** (R1 and R2 of `docs/IDENTITY_AND_ACCESS_PLAN.md`) before everything below. Branch scope enforcement (R3) and the employee link (R4) follow when employees and cost centres exist.
+
 
 The order follows what depends on what: entity, then location, then cost centre, then department, then employee, then posting and reports, then the heavy per-entity books.
 
