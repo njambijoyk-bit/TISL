@@ -18,6 +18,7 @@ import {
   Save, X, Trash2, Edit2, ChevronLeft, Plus, AlertTriangle,
 } from 'lucide-react';
 import useAuthStore from '../../../_shared/store/authStore';
+import { canEditCatalogue } from '../../../_shared/lib/roles';
 import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 import noSlash from '../../../_shared/lib/noSlash';
 import ItemPinButton from '../../../campaigns/components/ItemPinButton';
@@ -291,7 +292,7 @@ export default function ProductForm() {
   const returnTo = rawReturn && rawReturn.startsWith('/admin/') && !rawReturn.startsWith('//') ? rawReturn : null;
 
   const mode    = searchParams.get('mode');
-  const isView  = mode === 'view';
+  const isView  = mode === 'view' || !canEditCatalogue();   // without catalogue.edit the form only shows
   const isEdit  = !!id && !isView;
   const isCreate = !id;
 

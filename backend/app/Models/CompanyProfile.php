@@ -28,6 +28,42 @@ class CompanyProfile extends Model
         });
     }
 
+    /** Words that do not count when a name is shortened: only the connectors. (Limited, Ltd and the like do count: "Tisl Industrial Supply Limited" is TISL.) */
+    private const SKIP_WORDS = ['and', 'of', 'the', 'for'];
+
+    /**
+     * A short mark from a name: the first letters of its words in capitals ("Tisl Industrial Supply Limited" gives TISL, "Acme Foods Ltd" gives AFL),
+     * up to five letters. One word gives its first four letters. Empty when the name has no letters or digits.
+     */
+    public static function abbreviate(?string $name): string
+    {
+        $words = preg_split('/[^\p{L}\p{N}]+/u', trim(str_replace(["'", '’'], '', (string) $name)), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        $kept = array_values(array_filter($words, fn ($w) => ! in_array(mb_strtolower($w), self::SKIP_WORDS, true)));
+        $words = $kept ?: $words;   // a name made only of skipped words keeps them
+        if (! $words) {
+            return '';
+        }
+        if (count($words) === 1) {
+            return mb_strtoupper(mb_substr($words[0], 0, 4));
+        }
+
+        return mb_strtoupper(implode('', array_map(fn ($w) => mb_substr($w, 0, 1), array_slice($words, 0, 5))));
+    }
+
+    /**
+     * What the admin sidebar and other small places show for the business: the short code if there is one, otherwise a short mark made from the
+     * trading name, otherwise from the legal name. (A profile that was never saved has only the placeholder code, so it is not used.)
+     */
+    public function brandMark(): string
+    {
+        $code = $this->exists ? trim((string) $this->short_code) : '';
+        if ($code !== '') {
+            return $code;
+        }
+
+        return self::abbreviate($this->name) ?: self::abbreviate($this->legal_name);
+    }
+
     /**
      * Tidy a list of contacts [{value, label, is_default}]: blanks dropped, exactly one default (the first marked one,
      * else the first). Returns [] when there are none.

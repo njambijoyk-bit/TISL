@@ -16,7 +16,7 @@ class CompanyProfileController extends Controller
         $c = CompanyProfile::current();
 
         return response()->json($c->only(['name', 'short_code', 'legal_name', 'tax_pin', 'email', 'phone', 'address', 'city', 'country', 'website', 'tagline', 'logo_url', 'description', 'declaration', 'payment_terms', 'payment_mode', 'delivery_terms'])
-            + ['emails' => $c->emailList(), 'phones' => $c->phoneList(),
+            + ['emails' => $c->emailList(), 'phones' => $c->phoneList(), 'brand_mark' => $c->brandMark(),
                 // where to load the logo from: served through the API, so it does not depend on /storage being reachable from the browser
                 'logo_view' => $c->logo_url ? url('/api/company/logo') . '?v=' . substr(md5((string) $c->logo_url), 0, 8) : null]);
     }

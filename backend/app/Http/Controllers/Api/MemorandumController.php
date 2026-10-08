@@ -97,7 +97,7 @@ class MemorandumController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         $this->staff($request);
-        abort_unless($this->finance($request), 403, 'Only finance can edit a memorandum.');
+        abort_unless($this->finance($request), 403, 'You do not have the permission to edit a memorandum.');
         $d = $request->validate([
             'narration' => 'sometimes|required|string|max:5000', 'purpose' => 'nullable|string|max:40', 'direction' => 'nullable|in:in,out', 'amount' => 'nullable|numeric|min:0',
             'date' => 'nullable|date', 'reference_no' => 'nullable|string|max:100', 'about_voucher_id' => 'nullable|integer',
@@ -114,7 +114,7 @@ class MemorandumController extends Controller
     public function destroy(Request $request, $id): JsonResponse
     {
         $this->staff($request);
-        abort_unless($this->finance($request), 403, 'Only finance can dismiss a memorandum.');
+        abort_unless($this->finance($request), 403, 'You do not have the permission to dismiss a memorandum.');
         $request->validate(['reason' => 'nullable|string|max:255']);
 
         return $this->run(function () use ($request, $id) {
@@ -127,7 +127,7 @@ class MemorandumController extends Controller
     public function convert(Request $request, $id): JsonResponse
     {
         $this->staff($request);
-        abort_unless($this->finance($request), 403, 'Only finance can convert a memorandum.');
+        abort_unless($this->finance($request), 403, 'You do not have the permission to convert a memorandum.');
         $d = $request->validate(['to' => 'nullable|in:journal,contra', 'date' => 'nullable|date']);
 
         return $this->run(function () use ($d, $request, $id) {

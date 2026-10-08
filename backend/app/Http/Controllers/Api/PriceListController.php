@@ -261,7 +261,7 @@ class PriceListController extends Controller
     /** POST /admin/price-list-archives (multipart): a zip holding a PDF, a CSV and a JSON file. */
     public function archiveStore(Request $request): JsonResponse
     {
-        abort_unless(PriceListService::canPublish($request->user()), 403, 'Only a manager, finance, admin or super admin can add to the Archive.');
+        abort_unless(PriceListService::canPublish($request->user()), 403, 'You do not have the permission to add to the Archive.');
         $d = $request->validate(['file' => ['required', 'file', 'mimes:zip', 'max:51200'], 'title' => ['required', 'string', 'max:160'], 'access' => ['nullable', 'string'], 'customer_types' => ['nullable'],
             'list_name' => ['nullable', 'string', 'max:160'], 'list_as_at' => ['nullable', 'date']]);
 
@@ -293,7 +293,7 @@ class PriceListController extends Controller
 
     public function archiveUpdate(Request $request, int $id): JsonResponse
     {
-        abort_unless(PriceListService::canPublish($request->user()), 403, 'Only a manager, finance, admin or super admin can change the Archive.');
+        abort_unless(PriceListService::canPublish($request->user()), 403, 'You do not have the permission to change the Archive.');
         $d = $request->validate(['title' => ['sometimes', 'string', 'max:160'], 'access' => ['sometimes', 'string'], 'customer_types' => ['nullable', 'array']]);
 
         return $this->guard(function () use ($d, $id) {
@@ -310,7 +310,7 @@ class PriceListController extends Controller
 
     public function archiveDestroy(Request $request, int $id): JsonResponse
     {
-        abort_unless(PriceListService::canPurge($request->user()), 403, 'Only an admin or super admin can delete from the Archive.');
+        abort_unless(PriceListService::canPurge($request->user()), 403, 'You do not have the permission to delete from the Archive.');
         $a = PriceListArchive::findOrFail($id);
         Storage::disk('public')->delete($a->file_path);
         $a->delete();

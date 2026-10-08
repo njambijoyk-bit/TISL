@@ -339,8 +339,8 @@ function ProtectedRoute({ children, requireAdmin = false, permission = null }) {
     return <Navigate to="/" replace />;
   }
 
-  // The permission the route needs. Roles are built in the role builder, so a route never names one.
-  if (permission && !hasPermission(user, permission)) {
+  // The permission the route needs (a comma list: any one of them). Roles are built in the role builder, so a route never names one.
+  if (permission && !permission.split(',').some((p) => hasPermission(user, p))) {
     return <Navigate to="/admin" replace />;
   }
 
@@ -686,39 +686,39 @@ function App() {
               <Route 
                 path="/admin/settings/policy" 
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="policies.manage">
                     <PolicySettings />
                   </ProtectedRoute>
                 } 
               />
               {/* Admin Career Management */}
               <Route path="/admin/careers" element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="careers.manage">
                       <AdminCareersStatsPage />
                   </ProtectedRoute>
               } />
               <Route path="/admin/careers/jobs" element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="careers.manage">
                       <AdminJobsPage />
                   </ProtectedRoute>
               } />
               <Route path="/admin/careers/jobs/:id" element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="careers.manage">
                       <AdminJobDetailPage />
                   </ProtectedRoute>
               } />
               <Route path="/admin/careers/applications" element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="careers.manage">
                       <AdminApplicationsPage />
                   </ProtectedRoute>
               } />
               <Route path="/admin/careers/applicants"    element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requireAdmin permission="careers.manage">
                   <AdminApplicantsPage />
                 </ProtectedRoute>
               } />
               <Route path="/admin/careers/applicants/:id" element={
-                <ProtectedRoute requireAdmin>
+                <ProtectedRoute requireAdmin permission="careers.manage">
                   <AdminApplicantDetailPage />
                 </ProtectedRoute>
               } />
@@ -735,7 +735,7 @@ function App() {
               <Route
                 path="/admin/products"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <AdminProducts />
                   </ProtectedRoute>
                 }
@@ -743,7 +743,7 @@ function App() {
               <Route
                 path="/admin/products/create"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.edit">
                     <ProductForm />
                   </ProtectedRoute>
                 }
@@ -751,7 +751,7 @@ function App() {
               <Route
                 path="/admin/products/:id/edit"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <ProductForm />
                   </ProtectedRoute>
                 }
@@ -779,15 +779,15 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin/hampers" element={<ProtectedRoute requireAdmin><AdminHampers /></ProtectedRoute>} />
-              <Route path="/admin/hampers/create" element={<ProtectedRoute requireAdmin><AdminHamperCreate /></ProtectedRoute>} />
-              <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin><AdminHamperDetail /></ProtectedRoute>} />    
-              <Route path="/admin/hampers/:id/edit" element={<ProtectedRoute requireAdmin><AdminHamperEdit /></ProtectedRoute>} />
+              <Route path="/admin/hampers" element={<ProtectedRoute requireAdmin permission="hampers.manage"><AdminHampers /></ProtectedRoute>} />
+              <Route path="/admin/hampers/create" element={<ProtectedRoute requireAdmin permission="hampers.manage"><AdminHamperCreate /></ProtectedRoute>} />
+              <Route path="/admin/hampers/:id" element={<ProtectedRoute requireAdmin permission="hampers.manage"><AdminHamperDetail /></ProtectedRoute>} />    
+              <Route path="/admin/hampers/:id/edit" element={<ProtectedRoute requireAdmin permission="hampers.manage"><AdminHamperEdit /></ProtectedRoute>} />
 
 
-              <Route path="/admin/bug-reports" element={<ProtectedRoute requireAdmin><AdminBugReportsPage /></ProtectedRoute>} />
-              <Route path="/admin/dev-notes"   element={<ProtectedRoute requireAdmin><AdminDevNotesPage /></ProtectedRoute>} />
-              <Route path="/admin/dev-keys"    element={<ProtectedRoute requireAdmin><AdminDevKeysPage /></ProtectedRoute>} />
+              <Route path="/admin/bug-reports" element={<ProtectedRoute requireAdmin permission="system.devtools"><AdminBugReportsPage /></ProtectedRoute>} />
+              <Route path="/admin/dev-notes"   element={<ProtectedRoute requireAdmin permission="system.devtools"><AdminDevNotesPage /></ProtectedRoute>} />
+              <Route path="/admin/dev-keys"    element={<ProtectedRoute requireAdmin permission="system.devtools"><AdminDevKeysPage /></ProtectedRoute>} />
               <Route
                 path="/admin/ai-analytics"
                 element={
@@ -857,7 +857,7 @@ function App() {
               <Route
                 path="/admin/delivery"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <DeliveryOverviewPage />
                   </ProtectedRoute>
                 }
@@ -867,7 +867,7 @@ function App() {
               <Route
                 path="/admin/delivery/manifests"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <ManifestsPage />
                   </ProtectedRoute>
                 }
@@ -875,7 +875,7 @@ function App() {
               <Route
                 path="/admin/delivery/manifests/create"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <CreateManifestPage />
                   </ProtectedRoute>
                 }
@@ -883,7 +883,7 @@ function App() {
               <Route
                 path="/admin/delivery/manifests/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <ManifestDetailPage />
                   </ProtectedRoute>
                 }
@@ -891,7 +891,7 @@ function App() {
               <Route
                 path="/admin/delivery/manifests/transfer"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <ManifestTransferPage />
                   </ProtectedRoute>
                 }
@@ -899,7 +899,7 @@ function App() {
               <Route
                 path="/admin/delivery/manifests/:id/route"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <ManifestRoutePage />
                   </ProtectedRoute>
                 }
@@ -909,7 +909,7 @@ function App() {
               <Route
                 path="/admin/delivery/drivers"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <DriversPage />
                   </ProtectedRoute>
                 }
@@ -917,7 +917,7 @@ function App() {
               <Route
                 path="/admin/delivery/drivers/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <DriverDetailPage />
                   </ProtectedRoute>
                 }
@@ -927,7 +927,7 @@ function App() {
               <Route
                 path="/admin/delivery/incidents"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <IncidentsPage />
                   </ProtectedRoute>
                 }
@@ -937,7 +937,7 @@ function App() {
               <Route
                 path="/admin/delivery/ratings"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <RatingsPage />
                   </ProtectedRoute>
                 }
@@ -947,7 +947,7 @@ function App() {
               <Route
                 path="/admin/delivery/insights"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <DeliveryInsightsPage />
                   </ProtectedRoute>
                 }
@@ -955,7 +955,7 @@ function App() {
               <Route
                 path="/admin/delivery/insights/:entityType"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <DeliveryInsightsPage />
                   </ProtectedRoute>
                 }
@@ -963,7 +963,7 @@ function App() {
               <Route
                 path="/admin/delivery/insights/:entityType/:entityId"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <DeliveryInsightsPage />
                   </ProtectedRoute>
                 }
@@ -973,7 +973,7 @@ function App() {
               <Route
                 path="/admin/delivery/reports"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="delivery.manage">
                     <DeliveryReportsPage />
                   </ProtectedRoute>
                 }
@@ -1026,7 +1026,7 @@ function App() {
               <Route
                 path="/admin/auctions"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="auctions.manage">
                     <AdminAuctions />
                   </ProtectedRoute>
                 }
@@ -1034,7 +1034,7 @@ function App() {
               <Route 
                 path="/admin/auctions/create" 
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="auctions.manage">
                     <AdminAuctionCreator />
                   </ProtectedRoute>
                 } 
@@ -1043,7 +1043,7 @@ function App() {
               <Route
                 path="/admin/auctions/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="auctions.manage">
                     <AdminAuctionDetail />
                   </ProtectedRoute>
                 }
@@ -1053,7 +1053,7 @@ function App() {
               <Route
                 path="/admin/services"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <AdminServices />
                   </ProtectedRoute>
                 }
@@ -1061,7 +1061,7 @@ function App() {
               <Route
                 path="/admin/services/new"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.edit">
                     <ServiceForm />
                   </ProtectedRoute>
                 }
@@ -1069,7 +1069,7 @@ function App() {
               <Route
                 path="/admin/services/:id/edit"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.edit">
                     <ServiceForm />
                   </ProtectedRoute>
                 }
@@ -1077,7 +1077,7 @@ function App() {
               <Route
                 path="/admin/brochures"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <Brochures />
                   </ProtectedRoute>
                 }
@@ -1094,23 +1094,23 @@ function App() {
               <Route
                 path="/admin/service-categories"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <ServiceCategories />
                   </ProtectedRoute>
                 }
               />
-              <Route path="/admin/bookings" element={<ProtectedRoute requireAdmin><Bookings /></ProtectedRoute>} />
+              <Route path="/admin/bookings" element={<ProtectedRoute requireAdmin permission="bookings.manage"><Bookings /></ProtectedRoute>} />
               <Route path="/admin/calendar" element={<ProtectedRoute requireAdmin><MyCalendar /></ProtectedRoute>} />
-              <Route path="/admin/calendar/team" element={<ProtectedRoute requireAdmin><TeamCalendar /></ProtectedRoute>} />
-              <Route path="/admin/resources" element={<ProtectedRoute requireAdmin><StaffResources /></ProtectedRoute>} />
-              <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin><ServiceSettings /></ProtectedRoute>} />
+              <Route path="/admin/calendar/team" element={<ProtectedRoute requireAdmin permission="calendar.team"><TeamCalendar /></ProtectedRoute>} />
+              <Route path="/admin/resources" element={<ProtectedRoute requireAdmin permission="resources.manage"><StaffResources /></ProtectedRoute>} />
+              <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin permission="catalogue.view"><ServiceSettings /></ProtectedRoute>} />
               <Route path="/admin/settings/engagement" element={<ProtectedRoute requireAdmin permission="engagement.settings"><ModuleRoute module="extras" redirectTo="/admin"><EngagementSettings /></ModuleRoute></ProtectedRoute>} />
 
               {/* Categories Routes */}
               <Route
                 path="/admin/categories"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <Categories />
                   </ProtectedRoute>
                 }
@@ -1118,7 +1118,7 @@ function App() {
               <Route
                 path="/admin/categories/create"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.edit">
                     <CategoryForm />
                   </ProtectedRoute>
                 }
@@ -1126,7 +1126,7 @@ function App() {
               <Route
                 path="/admin/categories/:id/edit"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <CategoryForm />
                   </ProtectedRoute>
                 }
@@ -1136,7 +1136,7 @@ function App() {
               <Route
                 path="/admin/brands"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <Brands />
                   </ProtectedRoute>
                 }
@@ -1144,7 +1144,7 @@ function App() {
               <Route
                 path="/admin/brands/create"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.edit">
                     <BrandForm />
                   </ProtectedRoute>
                 }
@@ -1152,7 +1152,7 @@ function App() {
               <Route
                 path="/admin/brands/:id/edit"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.view">
                     <BrandForm />
                   </ProtectedRoute>
                 }
@@ -1165,7 +1165,7 @@ function App() {
               <Route
                 path="/admin/quotes"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="quotes.view">
                     <Quotes />
                   </ProtectedRoute>
                 }
@@ -1173,7 +1173,7 @@ function App() {
               <Route
                 path="/admin/quotes/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="quotes.view">
                     <QuoteDetail />
                   </ProtectedRoute>
                 }
@@ -1181,7 +1181,7 @@ function App() {
               <Route
                 path="/admin/quotes/:id/edit"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="quotes.view">
                     <QuoteEdit />
                   </ProtectedRoute>
                 }
@@ -1194,7 +1194,7 @@ function App() {
               <Route
                 path="/admin/projects"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="projects.use">
                     <ProjectDashboard />
                   </ProtectedRoute>
                 }
@@ -1202,7 +1202,7 @@ function App() {
               <Route
                 path="/admin/projects/list"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="projects.use">
                     <Projects />
                   </ProtectedRoute>
                 }
@@ -1210,7 +1210,7 @@ function App() {
               <Route
                 path="/admin/projects/create"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="projects.use">
                     <ProjectCreate />
                   </ProtectedRoute>
                 }
@@ -1218,7 +1218,7 @@ function App() {
               <Route
                 path="/admin/projects/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="projects.use">
                     <ProjectDetail />
                   </ProtectedRoute>
                 }
@@ -1229,7 +1229,7 @@ function App() {
               <Route
                 path="/admin/customers"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="customers.view">
                     <AdminCustomers />
                   </ProtectedRoute>
                 }
@@ -1237,7 +1237,7 @@ function App() {
               <Route
                 path="/admin/customers/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="customers.view">
                     <CustomerDetail />
                   </ProtectedRoute>
                 }
@@ -1245,7 +1245,7 @@ function App() {
               <Route
                 path="/admin/credit"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="credit.view">
                     <CreditDashboard />
                   </ProtectedRoute>
                 }
@@ -1253,7 +1253,7 @@ function App() {
               <Route
                 path="/admin/credit/customers/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="credit.view">
                     <CreditDetail />
                   </ProtectedRoute>
                 }
@@ -1278,7 +1278,7 @@ function App() {
               <Route
                 path="/admin/employees"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="hr.view">
                     <EmployeeList />
                   </ProtectedRoute>
                 }
@@ -1287,7 +1287,7 @@ function App() {
               <Route
                 path="/admin/employees/create"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="hr.manage,hr.team">
                     <EmployeeForm />
                   </ProtectedRoute>
                 }
@@ -1295,7 +1295,7 @@ function App() {
               <Route
                 path="/admin/employees/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="hr.view">
                     <EmployeeDetail />
                   </ProtectedRoute>
                 }
@@ -1303,7 +1303,7 @@ function App() {
               <Route
                 path="/admin/employees/:id/edit"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="hr.manage,hr.team">
                     <EmployeeForm />
                   </ProtectedRoute>
                 }
@@ -1313,7 +1313,7 @@ function App() {
               <Route
                 path="/admin/referrals"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="promos.manage">
                     <Referrals />
                   </ProtectedRoute>
                 }
@@ -1321,7 +1321,7 @@ function App() {
               <Route
                 path="/admin/referrals/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="promos.manage">
                     <ReferralDetail />
                   </ProtectedRoute>
                 }
@@ -1329,7 +1329,7 @@ function App() {
               <Route
                 path="/admin/promo-codes"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="promos.manage">
                     <PromoCodes />
                   </ProtectedRoute>
                 }
@@ -1337,7 +1337,7 @@ function App() {
               <Route
                 path="/admin/promo-codes/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="promos.manage">
                     <PromoCodeDetail />
                   </ProtectedRoute>
                 }
@@ -1348,7 +1348,7 @@ function App() {
               <Route
                 path="/admin/loyalty"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="customers.view">
                     <LoyaltyLedger />
                   </ProtectedRoute>
                 }
@@ -1356,7 +1356,7 @@ function App() {
               <Route
                 path="/admin/loyalty/settings"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="loyalty.configure">
                     <LoyaltySettings />
                   </ProtectedRoute>
                 }
@@ -1364,7 +1364,7 @@ function App() {
               <Route
                 path="/admin/loyalty/:customerId"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="customers.view">
                     <LoyaltyLedgerDetail />
                   </ProtectedRoute>
                 }
@@ -1373,7 +1373,7 @@ function App() {
               <Route
                 path="/admin/tickets"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="tickets.manage">
                     <AdminTickets />
                   </ProtectedRoute>
                 }
@@ -1382,7 +1382,7 @@ function App() {
               <Route
                 path="/admin/tickets/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="tickets.manage">
                     <AdminTicketDetail />
                   </ProtectedRoute>
                 }
@@ -1393,7 +1393,7 @@ function App() {
               <Route
                 path="/admin/logs"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="system.logs">
                     <ActivityLogs />
                   </ProtectedRoute>
                 }
@@ -1401,7 +1401,7 @@ function App() {
               <Route
                 path="/admin/assets"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="inventory.view">
                     <InventoryPage />
                   </ProtectedRoute>
                 }
@@ -1410,14 +1410,14 @@ function App() {
               <Route
                 path="/admin/algorithm"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="algorithm.manage">
                     <CustomerAlgorithmPanel />
                   </ProtectedRoute>
                 }
               />
               <Route path="/admin/algorithm/catalogue-boosts"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="algorithm.manage">
                     <CatalogueBoostPage />
                   </ProtectedRoute>}
               />
@@ -1442,7 +1442,7 @@ function App() {
               <Route 
                 path="/admin/logs/export" 
                 element={
-                    <ProtectedRoute requireAdmin>
+                    <ProtectedRoute requireAdmin permission="system.logs">
                         <LogExportPage />
                     </ProtectedRoute>
                 } 
@@ -1484,7 +1484,7 @@ function App() {
               <Route 
                 path="/admin/settings/analytics"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="analytics.view">
                     <AnalyticDashboard />
                   </ProtectedRoute>
                 }
@@ -1492,7 +1492,7 @@ function App() {
               <Route
                 path="/admin/settings/analytics/:id"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="analytics.view">
                     <AnalyticsDetail />
                   </ProtectedRoute>
                 }
@@ -1581,7 +1581,7 @@ function App() {
               <Route
                 path="/admin/settings/units"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.edit">
                     <UnitsOfMeasure />
                   </ProtectedRoute>
                 }
@@ -1589,7 +1589,7 @@ function App() {
               <Route
                 path="/admin/settings/currency"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="currency.manage">
                     <CurrencySettings />
                   </ProtectedRoute>
                 }
@@ -1597,7 +1597,7 @@ function App() {
               <Route
                 path="/admin/settings/customer-tiers"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="customers.tiers">
                     <CustomerTierSettings />
                   </ProtectedRoute>
                 }
@@ -1605,7 +1605,7 @@ function App() {
               <Route
                 path="/admin/settings/shipping"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="shipping.manage">
                     <ShippingSettings />
                   </ProtectedRoute>
                 }
@@ -1621,7 +1621,7 @@ function App() {
               <Route
                 path="/admin/settings/general/bulk/products"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="catalogue.edit">
                     <ProductBulkPage />
                   </ProtectedRoute>
                 }
@@ -1629,7 +1629,7 @@ function App() {
               <Route
                 path="/admin/settings/general/bulk/customers"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="customers.manage">
                     <CustomerBulkPage />
                   </ProtectedRoute>
                 }
@@ -1637,7 +1637,7 @@ function App() {
               <Route
                 path="/admin/settings/general/bulk/employees"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="hr.manage">
                     <EmployeeBulkPage />
                   </ProtectedRoute>
                 }
@@ -1685,7 +1685,7 @@ function App() {
               <Route
                 path="/admin/appearance"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="appearance.manage">
                     <AppearancePage />
                   </ProtectedRoute>
                 }
@@ -1703,7 +1703,7 @@ function App() {
               <Route
                 path="/admin/settings/content/about"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="content.manage">
                     <AboutSettings />
                   </ProtectedRoute>
                 }
@@ -1711,7 +1711,7 @@ function App() {
               <Route
                 path="/admin/settings/content/contact"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="content.manage">
                     <ContactSettings />
                   </ProtectedRoute>
                 }
@@ -1719,7 +1719,7 @@ function App() {
               <Route
                 path="/admin/settings/content/manual"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="content.manage">
                     <ManualSettings />
                   </ProtectedRoute>
                 }
@@ -1727,7 +1727,7 @@ function App() {
               <Route
                 path="/admin/settings/content/homepage"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="content.manage">
                     <HomepageSettings />
                   </ProtectedRoute>
                 }
@@ -1735,7 +1735,7 @@ function App() {
               <Route
                 path="/admin/settings/content/footer"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="content.manage">
                     <FooterSettings />
                   </ProtectedRoute>
                 }

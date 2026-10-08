@@ -6,6 +6,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import LoadingSpinner from '../../../_shared/components/layout/LoadingSpinner';
 import { ChevronLeft, Save, Edit2, X, Trash2, AlertTriangle, AlertCircle } from 'lucide-react';
 import useAuthStore from '../../../_shared/store/authStore';
+import { canEditCatalogue } from '../../../_shared/lib/roles';
 import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -149,7 +150,7 @@ export default function CategoryForm() {
   const [searchParams] = useSearchParams();
 
   const mode    = searchParams.get('mode');
-  const isView  = mode === 'view';
+  const isView  = mode === 'view' || !canEditCatalogue();   // without catalogue.edit the form only shows
   const isEdit  = !!id && !isView;
   const isCreate = !id;
 

@@ -138,7 +138,7 @@ class NoRoleNamesInCodeTest extends TestCase
         'promos.admin' => ['super_admin', 'admin'],
         'algorithm.manage' => ['super_admin', 'admin'],
         'algorithm.run' => ['super_admin'],
-        'projects.use' => ['super_admin', 'admin', 'manager', 'finance'],
+        'projects.use' => ['super_admin', 'admin', 'manager', 'finance', 'sales_rep'],
         'projects.delete' => ['super_admin', 'admin'],
         'projects.purge' => ['super_admin'],
         'hr.manage' => ['super_admin', 'admin'],
@@ -180,6 +180,18 @@ class NoRoleNamesInCodeTest extends TestCase
         'ai.keys' => ['super_admin'],
         'vault.bypass' => ['super_admin'],
         'settings.delete' => ['super_admin'],
+        'customers.view' => ['super_admin', 'admin', 'manager', 'finance', 'logistics', 'sales_rep'],
+        'customers.manage' => ['super_admin', 'admin', 'manager', 'finance', 'sales_rep'],
+        'customers.tiers' => ['super_admin', 'admin'],
+        'credit.view' => ['super_admin', 'admin', 'manager', 'finance', 'sales_rep'],
+        'quotes.view' => ['super_admin', 'admin', 'manager', 'finance', 'logistics', 'sales_rep'],
+        'catalogue.view' => ['super_admin', 'admin', 'manager', 'finance', 'logistics', 'sales_rep'],
+        'catalogue.edit' => ['super_admin', 'admin', 'manager', 'finance'],
+        'auctions.manage' => ['super_admin', 'admin', 'manager'],
+        'shipping.manage' => ['super_admin', 'admin', 'manager', 'logistics'],
+        'content.manage' => ['super_admin', 'admin'],
+        'tickets.manage' => ['super_admin', 'admin', 'manager', 'finance', 'logistics', 'sales_rep'],
+        'bookings.manage' => ['super_admin', 'admin', 'manager', 'sales_rep'],
     ];
 
     public function test_the_original_roles_hold_what_the_old_lists_gave_them(): void

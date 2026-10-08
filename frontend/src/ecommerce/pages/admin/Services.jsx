@@ -30,7 +30,7 @@ import Input from '../../../_shared/components/common/Input';
 import Select from '../../../_shared/components/common/Select';
 import Modal from '../../../_shared/components/common/Modal';
 import Badge from '../../../_shared/components/common/Badge';
-import { canDeleteCatalogue } from '../../../_shared/lib/roles';
+import { canDeleteCatalogue, canEditCatalogue } from '../../../_shared/lib/roles';
 
 const Services = () => {
   const navigate = useNavigate();
@@ -71,6 +71,7 @@ const Services = () => {
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
 
   const canDelete = canDeleteCatalogue(user);
+  const canEdit = canEditCatalogue(user);
   const isSuperAdmin = canDelete;   // permanent delete: the server allows it to whoever may delete from the catalogue
 
   useEffect(() => {
@@ -361,15 +362,17 @@ const Services = () => {
       accessor: (service) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           {/* Edit */}
+          {canEdit && (
           <button
-            onClick={() => navigate(`/admin/services/${service.id}/edit`)}
-            title="Edit"
-            style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: 'var(--color-primary-600)', cursor: 'pointer' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-          >
-            <Edit size={15} />
-          </button>
+              onClick={() => navigate(`/admin/services/${service.id}/edit`)}
+              title="Edit"
+              style={{ width: 32, height: 32, borderRadius: 7, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'transparent', color: 'var(--color-primary-600)', cursor: 'pointer' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-600) 8%, transparent)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Edit size={15} />
+            </button>
+          )}
 
           {/* Publish toggle */}
           {service.status === 'active' ? (
@@ -458,27 +461,29 @@ const Services = () => {
               </button>
 
               {/* Add Service — primary/purple */}
+              {canEdit && (
               <button
-                onClick={() => navigate('/admin/services/new')}
-                style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 7,
-                  padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
-                  fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
-                  background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
-                  border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
-                  transition: 'all 150ms',
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
-                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
-                  e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
-                }}
-              >
-                <Plus size={16} /> Add Service
-              </button>
+                  onClick={() => navigate('/admin/services/new')}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '7px 14px', borderRadius: 9, cursor: 'pointer',
+                    fontSize: '0.82rem', fontWeight: 600, fontFamily: 'inherit',
+                    background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--color-primary-600)',
+                    border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 25%, transparent)',
+                    transition: 'all 150ms',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 18%, transparent)';
+                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 40%, transparent)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)';
+                    e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 25%, transparent)';
+                  }}
+                >
+                  <Plus size={16} /> Add Service
+                </button>
+              )}
 
 
             </div>

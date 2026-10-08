@@ -43,7 +43,7 @@ class CampaignController extends Controller
 
     private function publisher(Request $r): void
     {
-        abort_unless(CampaignAccess::canPublish($r->user()), 403, 'Only an admin, super admin or manager can do that.');
+        abort_unless(CampaignAccess::canPublish($r->user()), 403, 'You do not have the permission to do that.');
     }
 
     private function editable(Request $r, Campaign $c): void

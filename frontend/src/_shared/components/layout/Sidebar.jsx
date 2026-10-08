@@ -10,6 +10,7 @@ import { useLayoutAudio } from './useLayoutAudio';
 import { useAdminShell } from './adminShellContext';
 import { visibleNav, findActive } from '../../navigation/adminNav';
 import { roleName } from '../../lib/roles';
+import { useCompany, brandMark } from '../../lib/useCompany';
 
 const W_OPEN = 240;
 const W_COLLAPSED = 68;
@@ -58,6 +59,7 @@ export default function Sidebar({ shell = false, onOpenSearch, onOpenCalc }) {
 
 function SidebarInner({ onOpenSearch, onOpenCalc }) {
   const audio = useLayoutAudio();
+  const company = useCompany();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -222,7 +224,7 @@ function SidebarInner({ onOpenSearch, onOpenCalc }) {
             {!collapsed && (
               <div>
                 <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 800, letterSpacing: '-0.01em', color: 'var(--color-text, currentColor)' }}>
-                  TISL
+                  {brandMark(company)}
                 </p>
                 <p style={{ margin: 0, fontSize: '0.62rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-text-disabled, var(--color-text-muted, var(--color-text-secondary)))' }}>
                   Admin

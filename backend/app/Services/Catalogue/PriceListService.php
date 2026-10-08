@@ -197,7 +197,7 @@ class PriceListService
     public function update(PriceList $l, array $d, User $by): PriceList
     {
         if (! self::canEdit($by, $l)) {
-            throw new BooksException($l->status === 'draft' ? 'You can only change your own drafts.' : 'Only a manager, finance, admin or super admin can change a list that is no longer a draft.');
+            throw new BooksException($l->status === 'draft' ? 'You can only change your own drafts.' : 'You do not have the permission to change a list that is already published.');
         }
         $fields = [];
         foreach (['name', 'description', 'active_from', 'earlier_price'] as $k) {
@@ -280,7 +280,7 @@ class PriceListService
             throw new BooksException('This list is not waiting for activation.');
         }
         if (! self::canPublish($by)) {
-            throw new BooksException('Only a manager, finance, admin or super admin can activate a list.');
+            throw new BooksException('You do not have the permission to activate a list.');
         }
         if ((int) $l->created_by === (int) $by->id) {
             throw new BooksException('Someone else has to activate your list.');
@@ -299,7 +299,7 @@ class PriceListService
             throw new BooksException('Only the author or a publisher can do this.');
         }
         if ($l->status === 'published' && ! self::canPublish($by)) {
-            throw new BooksException('Only a manager, finance, admin or super admin can take a published list off.');
+            throw new BooksException('You do not have the permission to take a published list off.');
         }
         if ($l->status === 'draft') {
             throw new BooksException('It is already a draft.');
@@ -344,7 +344,7 @@ class PriceListService
     public function purge(PriceList $l, User $by): void
     {
         if (! self::canPurge($by)) {
-            throw new BooksException('Only an admin or super admin can delete a list for good.');
+            throw new BooksException('You do not have the permission to delete a list for good.');
         }
         if (! $l->trashed()) {
             throw new BooksException('Delete it first, then delete it for good from the bin.');

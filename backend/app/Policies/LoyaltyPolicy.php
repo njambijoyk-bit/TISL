@@ -11,16 +11,16 @@ use App\Models\User;
  */
 class LoyaltyPolicy
 {
-    /** View the loyalty ledger list page (staff). */
+    /** View the loyalty ledger list page: whoever may see customers (a customer's points are part of their record). */
     public function viewAny(User $user): bool
     {
-        return $user->isStaff();
+        return $user->hasPermission('customers.view');
     }
 
-    /** View a specific customer's loyalty detail. Staff can see any customer; customers only themselves. */
+    /** View a specific customer's loyalty detail. Whoever may see customers can; customers only themselves. */
     public function view(User $user, Customer $customer): bool
     {
-        return $user->isStaff() || $this->isThem($user, $customer);
+        return $user->hasPermission('customers.view') || $this->isThem($user, $customer);
     }
 
     public function grantPoints(User $user): bool

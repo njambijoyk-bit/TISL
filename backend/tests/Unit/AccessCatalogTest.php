@@ -52,4 +52,29 @@ class AccessCatalogTest extends TestCase
         }
         $this->assertSame('*', $roles['super_admin']['permissions']);
     }
+
+    public function test_grants_to_existing_permissions_name_real_roles_and_permissions(): void
+    {
+        $roles = Catalog::roles();
+        foreach (Catalog::GRANTED as $version => $byRole) {
+            $this->assertLessThanOrEqual(Catalog::VERSION, $version);
+            foreach ($byRole as $role => $keys) {
+                $this->assertArrayHasKey($role, $roles);
+                foreach ($keys as $k) {
+                    $this->assertArrayHasKey($k, Catalog::PERMISSIONS);
+                    $this->assertContains($k, $roles[$role]['permissions'], "{$role} should hold {$k} by default, since version {$version} grants it");
+                }
+            }
+        }
+    }
+
+    public function test_a_permission_added_in_a_version_is_reported_as_since_that_version(): void
+    {
+        foreach (Catalog::ADDED as $version => $keys) {
+            foreach ($keys as $k) {
+                $this->assertSame($version, Catalog::since($k), "{$k}");
+            }
+        }
+        $this->assertSame(1, Catalog::since('books.view'));
+    }
 }

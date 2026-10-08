@@ -9,7 +9,7 @@ import {
   Tag, CheckCircle, XCircle, TrendingUp, Globe, Star,
 } from 'lucide-react';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canDeleteCatalogue } from '../../../_shared/lib/roles';
+import { canDeleteCatalogue, canEditCatalogue } from '../../../_shared/lib/roles';
 
 // ─── Style tokens (mirrors Products page) ────────────────────────────────────
 
@@ -220,6 +220,7 @@ export default function Brands() {
   const [searchTerm, setSearchTerm] = useState('');
   const { user } = useAuthStore();
   const canDelete = canDeleteCatalogue(user);
+  const canEdit = canEditCatalogue(user);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, brand: null, loading: false });
 
   useEffect(() => { fetchBrands(); }, []);
@@ -270,9 +271,11 @@ export default function Brands() {
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>Manage product brands and manufacturers</p>
           </div>
-          <PrimaryBtn onClick={() => navigate('/admin/brands/create')}>
-            <Plus size={15} /> New Brand
-          </PrimaryBtn>
+          {canEdit && (
+            <PrimaryBtn onClick={() => navigate('/admin/brands/create')}>
+              <Plus size={15} /> New Brand
+            </PrimaryBtn>
+          )}
         </div>
 
         {/* ── Stat cards ─────────────────────────────────────────────────── */}
@@ -319,11 +322,11 @@ export default function Brands() {
               <p style={{ margin: '0 0 20px', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
                 {searchTerm ? 'Try a different search term' : 'Get started by creating your first brand'}
               </p>
-              {!searchTerm && (
-                <PrimaryBtn onClick={() => navigate('/admin/brands/create')}>
-                  <Plus size={15} /> Create First Brand
-                </PrimaryBtn>
-              )}
+              {!searchTerm && canEdit && (
+                  <PrimaryBtn onClick={() => navigate('/admin/brands/create')}>
+                    <Plus size={15} /> Create First Brand
+                  </PrimaryBtn>
+                )}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -412,9 +415,11 @@ export default function Brands() {
                           <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
                             <Eye size={15} />
                           </IconBtn>
-                          <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit`)} title="Edit" color="var(--color-primary-600)">
-                            <Edit2 size={15} />
-                          </IconBtn>
+                          {canEdit && (
+                            <IconBtn onClick={() => navigate(`/admin/brands/${brand.id}/edit`)} title="Edit" color="var(--color-primary-600)">
+                              <Edit2 size={15} />
+                            </IconBtn>
+                          )}
                           {canDelete && (
                             <IconBtn onClick={() => setDeleteModal({ isOpen: true, brand, loading: false })} title="Delete" color="var(--color-text-danger)">
                               <Trash2 size={15} />

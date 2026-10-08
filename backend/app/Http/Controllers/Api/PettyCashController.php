@@ -77,7 +77,7 @@ class PettyCashController extends Controller
 
     public function topUp(Request $request): JsonResponse
     {
-        abort_unless(PettyCashService::isManager($request->user()), 403, 'Only finance can top up petty cash.');
+        abort_unless(PettyCashService::isManager($request->user()), 403, 'You do not have the permission to top up petty cash.');
         $d = $request->validate(['ledger_id' => 'required|integer|exists:ledgers,id', 'from_ledger_id' => 'required|integer|exists:ledgers,id', 'amount' => 'nullable|numeric|min:0.01', 'date' => 'nullable|date']);
 
         return $this->guard(function () use ($request, $d) {
@@ -89,7 +89,7 @@ class PettyCashController extends Controller
 
     public function setFloat(Request $request): JsonResponse
     {
-        abort_unless(PettyCashService::isManager($request->user()), 403, 'Only finance can set the float.');
+        abort_unless(PettyCashService::isManager($request->user()), 403, 'You do not have the permission to set the float.');
         $d = $request->validate(['ledger_id' => 'required|integer|exists:ledgers,id', 'float_amount' => 'required|numeric|min:0', 'custodian_user_id' => 'nullable|integer|exists:users,id']);
 
         return $this->guard(function () use ($request, $d) {

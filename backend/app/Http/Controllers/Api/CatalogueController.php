@@ -46,7 +46,7 @@ class CatalogueController extends Controller
 
     private function publisher(Request $r): void
     {
-        abort_unless(PriceListService::canPublish($r->user()), 403, 'Only a manager, finance, admin or super admin can do this.');
+        abort_unless(PriceListService::canPublish($r->user()), 403, 'You do not have the permission to do this.');
     }
 
     private function manager(Request $r): void
@@ -262,7 +262,7 @@ class CatalogueController extends Controller
 
     public function purge(Request $request, int $id): JsonResponse
     {
-        abort_unless(PriceListService::canPurge($request->user()), 403, 'Only an admin or super admin can delete for good.');
+        abort_unless(PriceListService::canPurge($request->user()), 403, 'You do not have the permission to delete for good.');
         $b = Brochure::onlyTrashed()->findOrFail($id);
         $b->forceDelete();
 

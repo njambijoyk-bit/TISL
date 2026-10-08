@@ -44,9 +44,9 @@ export const ADMIN_NAV = [
       { id: 'orders', title: 'Orders', icon: ShoppingCart, color: '#f97316', path: '/admin/orders', perm: 'books.view', keywords: 'invoices shipping' },
       { id: 'payments', title: 'Payments', icon: DollarSign, color: '#10b981', path: '/admin/finance/payments', perm: 'books.post', keywords: 'mpesa transactions' },
       {
-        id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes',
+        id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes', perm: 'quotes.view',
       },
-      { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', keywords: 'gift voucher invoices' },
+      { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', perm: 'credit.view', keywords: 'gift voucher invoices' },
     ],
   },
 
@@ -59,20 +59,20 @@ export const ADMIN_NAV = [
         id: 'products', title: 'Products', icon: Package, color: 'var(--color-primary-500)', path: '/admin/products', module: MODULES.ECOMMERCE,
         keywords: 'variants stock categories brands price list catalogue brochure archive', also: ['/admin/categories', '/admin/brands', '/admin/price-lists', '/admin/price-list-archive', '/admin/catalogues', '/admin/catalogue-items', '/admin/catalogue-settings'],
         tabs: [
-          { title: 'All products', path: '/admin/products' },
-          { title: 'Categories', path: '/admin/categories' },
-          { title: 'Brands', path: '/admin/brands' },
-          { title: 'Bulk edit', path: '/admin/settings/general/bulk/products' },
+          { title: 'All products', path: '/admin/products', perm: 'catalogue.view' },
+          { title: 'Categories', path: '/admin/categories', perm: 'catalogue.view' },
+          { title: 'Brands', path: '/admin/brands', perm: 'catalogue.view' },
+          { title: 'Bulk edit', path: '/admin/settings/general/bulk/products', perm: 'catalogue.edit' },
           { title: 'Price lists', path: '/admin/price-lists', also: ['/admin/price-list-archive'], perm: 'catalogue.pricelists' },
           { title: 'Catalogues', path: '/admin/catalogues', also: ['/admin/catalogue-items'], perm: 'catalogue.pricelists' },
           { title: 'Configuration', path: '/admin/catalogue-settings', perm: 'catalogue.pricelists' },
         ],
       },
       {
-        id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases', perm: 'books.view',
+        id: 'purchases', title: 'Purchases', icon: PackagePlus, color: '#0ea5e9', path: '/admin/purchases',
         keywords: 'buy stock supplier vendor creditor receive batch expiry expired opening stock write off recall quarantine transfer branch count journal job work in progress wip', also: ['/admin/vendors', '/admin/stock/opening', '/admin/stock/expiry', '/admin/stock/held', '/admin/stock/transfers', '/admin/stock/counts', '/admin/stock/journal', '/admin/stock/reports', '/admin/stock/jobs'],
         tabs: [
-          { title: 'Purchases', path: '/admin/purchases', exact: true },
+          { title: 'Purchases', path: '/admin/purchases', exact: true, perm: 'books.view' },
           { title: 'Vendors', path: '/admin/vendors', perm: 'vendors.view' },
           { title: 'Opening stock', path: '/admin/stock/opening', perm: 'books.view' },
           { title: 'Expiring stock', path: '/admin/stock/expiry', perm: 'stock.view' },
@@ -87,15 +87,15 @@ export const ADMIN_NAV = [
       {
         id: 'services', title: 'Services', icon: Wrench, color: '#10b981', path: '/admin/services', module: MODULES.ECOMMERCE, also: ['/admin/brochures', '/admin/service-categories', '/admin/service-settings'],
         tabs: [
-          { title: 'Services', path: '/admin/services' },
-          { title: 'Brochures', path: '/admin/brochures' },
-          { title: 'Service categories', path: '/admin/service-categories' },
-          { title: 'Service configuration', path: '/admin/service-settings' },
+          { title: 'Services', path: '/admin/services', perm: 'catalogue.view' },
+          { title: 'Brochures', path: '/admin/brochures', perm: 'catalogue.view' },
+          { title: 'Service categories', path: '/admin/service-categories', perm: 'catalogue.view' },
+          { title: 'Service configuration', path: '/admin/service-settings', perm: 'catalogue.view' },
         ],
       },
-      { id: 'hampers', title: 'Hampers', icon: Gift, color: '#fc7bf5', path: '/admin/hampers', module: MODULES.HAMPERS },
+      { id: 'hampers', title: 'Hampers', icon: Gift, color: '#fc7bf5', path: '/admin/hampers', module: MODULES.HAMPERS, perm: 'hampers.manage' },
       {
-        id: 'auctions', title: 'Auctions', icon: Gavel, color: '#ef4444', path: '/admin/auctions', module: MODULES.AUCTIONS, keywords: 'bids',
+        id: 'auctions', title: 'Auctions', icon: Gavel, color: '#ef4444', path: '/admin/auctions', module: MODULES.AUCTIONS, perm: 'auctions.manage', keywords: 'bids',
         tabs: [
           { title: 'Auctions', path: '/admin/auctions' },
         ],
@@ -110,19 +110,19 @@ export const ADMIN_NAV = [
       {
         id: 'customers', title: 'Customers', icon: Users, color: '#6366f1', path: '/admin/customers', keywords: 'crm clients',
         tabs: [
-          { title: 'All customers', path: '/admin/customers' },
-          { title: 'Bulk edit', path: '/admin/settings/general/bulk/customers' },
+          { title: 'All customers', path: '/admin/customers', perm: 'customers.view' },
+          { title: 'Bulk edit', path: '/admin/settings/general/bulk/customers', perm: 'customers.manage' },
         ],
       },
       {
-        id: 'loyalty', title: 'Loyalty', icon: Award, color: '#ec4899', path: '/admin/loyalty', keywords: 'points',
+        id: 'loyalty', title: 'Loyalty', icon: Award, color: '#ec4899', path: '/admin/loyalty', perm: 'customers.view', keywords: 'points',
         tabs: [
-          { title: 'Ledger', path: '/admin/loyalty' },
-          { title: 'Loyalty configuration', path: '/admin/loyalty/settings' },
+          { title: 'Ledger', path: '/admin/loyalty', perm: 'customers.view' },
+          { title: 'Loyalty configuration', path: '/admin/loyalty/settings', perm: 'loyalty.configure' },
         ],
       },
       {
-        id: 'codes', title: 'Promo & referral codes', icon: TicketPercent, color: 'var(--color-primary-600)', path: '/admin/promo-codes', also: ['/admin/referrals'], keywords: 'discount coupon',
+        id: 'codes', title: 'Promo & referral codes', icon: TicketPercent, color: 'var(--color-primary-600)', path: '/admin/promo-codes', also: ['/admin/referrals'], perm: 'promos.manage', keywords: 'discount coupon',
         tabs: [
           { title: 'Promo codes', path: '/admin/promo-codes' },
           { title: 'Referral codes', path: '/admin/referrals' },
@@ -170,12 +170,12 @@ export const ADMIN_NAV = [
     id: 'workplace',
     label: 'Workplace',
     items: [
-      { id: 'tickets', title: 'Help desk', icon: LifeBuoy, color: '#ef4444', path: '/admin/tickets', keywords: 'tickets support' },
+      { id: 'tickets', title: 'Help desk', icon: LifeBuoy, color: '#ef4444', path: '/admin/tickets', perm: 'tickets.manage', keywords: 'tickets support' },
       {
         id: 'team', title: 'Team', icon: IdCardLanyard, color: '#eab308', path: '/admin/employees', keywords: 'employees staff',
         tabs: [
-          { title: 'Employees', path: '/admin/employees' },
-          { title: 'Bulk edit', path: '/admin/settings/general/bulk/employees' },
+          { title: 'Employees', path: '/admin/employees', perm: 'hr.view' },
+          { title: 'Bulk edit', path: '/admin/settings/general/bulk/employees', perm: 'hr.manage' },
         ],
       },
       {
@@ -183,12 +183,12 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'My calendar', path: '/admin/calendar', exact: true },
           { title: 'Team calendar', path: '/admin/calendar/team', perm: 'calendar.team' },
-          { title: 'Bookings', path: '/admin/bookings' },
-          { title: 'Staff & resources', path: '/admin/resources', perm: 'calendar.team' },
+          { title: 'Bookings', path: '/admin/bookings', perm: 'bookings.manage' },
+          { title: 'Staff & resources', path: '/admin/resources', perm: 'resources.manage' },
         ],
       },
-      { id: 'assets', title: 'Assets', icon: Boxes, color: '#c2410c', path: '/admin/assets', also: ['/admin/inventory'], keywords: 'furniture equipment laptops issued loaned repairs depreciation register' },
-      { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', keywords: 'visitors traffic' },
+      { id: 'assets', title: 'Assets', icon: Boxes, color: '#c2410c', path: '/admin/assets', also: ['/admin/inventory'], perm: 'inventory.view', keywords: 'furniture equipment laptops issued loaned repairs depreciation register' },
+      { id: 'analytics', title: 'Site analytics', icon: TrendingUp, color: '#0ea5e9', path: '/admin/settings/analytics', perm: 'analytics.view', keywords: 'visitors traffic' },
       { id: 'attendance', title: 'Attendance', icon: IdCardLanyard, color: '#eab308', path: '/admin/attendance', keywords: 'sign in clock staff present absent late verify dispute' },
       {
         id: 'mimi', title: 'Mimi AI', icon: Bot, color: '#3b82f6', path: '/admin/ai-analytics', module: MODULES.MIMI, keywords: 'ai assistant chatbot',
@@ -221,7 +221,7 @@ export const ADMIN_NAV = [
     module: MODULES.PROJECTS,
     items: [
       {
-        id: 'projects', title: 'Projects', icon: ClipboardList, color: '#14b8a6', path: '/admin/projects', keywords: 'milestones tasks',
+        id: 'projects', title: 'Projects', icon: ClipboardList, color: '#14b8a6', path: '/admin/projects', perm: 'projects.use', keywords: 'milestones tasks',
         tabs: [
           { title: 'Overview', path: '/admin/projects', exact: true },
           { title: 'All projects', path: '/admin/projects/list' },
@@ -237,7 +237,7 @@ export const ADMIN_NAV = [
     module: MODULES.CAREERS,
     items: [
       {
-        id: 'careers', title: 'Careers', icon: GraduationCap, color: '#6366f1', path: '/admin/careers', keywords: 'jobs ats applicants recruitment',
+        id: 'careers', title: 'Careers', icon: GraduationCap, color: '#6366f1', path: '/admin/careers', perm: 'careers.manage', keywords: 'jobs ats applicants recruitment',
         hideTabs: true, // the careers pages draw their own tab bar
         tabs: [
           { title: 'Overview', path: '/admin/careers', exact: true },
@@ -268,7 +268,7 @@ export const ADMIN_NAV = [
     module: MODULES.EXTRAS,
     items: [
       {
-        id: 'delivery', title: 'Delivery', icon: Truck, color: '#f97316', path: '/admin/delivery', keywords: 'manifests drivers logistics',
+        id: 'delivery', title: 'Delivery', icon: Truck, color: '#f97316', path: '/admin/delivery', perm: 'delivery.manage', keywords: 'manifests drivers logistics',
         tabs: [
           { title: 'Overview', path: '/admin/delivery', exact: true },
           { title: 'Manifests', path: '/admin/delivery/manifests' },
@@ -314,24 +314,24 @@ export const ADMIN_NAV = [
         tabs: [
           { group: 'System', title: 'Overview', path: '/admin/settings', exact: true, description: 'Every setting in one place' },
           { group: 'System', title: 'General', path: '/admin/settings/general', description: 'Business details and defaults' },
-          { group: 'System', title: 'Currency', path: '/admin/settings/currency', description: 'Currencies and exchange rates' },
-          { group: 'System', title: 'Units', path: '/admin/settings/units', description: 'Units of measure' },
-          { group: 'System', title: 'Customer tiers', path: '/admin/settings/customer-tiers', description: 'Tiers and their discounts' },
-          { group: 'System', title: 'Shipping', path: '/admin/settings/shipping', description: 'Zones and delivery fees' },
+          { group: 'System', title: 'Currency', path: '/admin/settings/currency', perm: 'currency.manage', description: 'Currencies and exchange rates' },
+          { group: 'System', title: 'Units', path: '/admin/settings/units', perm: 'catalogue.edit', description: 'Units of measure' },
+          { group: 'System', title: 'Customer tiers', path: '/admin/settings/customer-tiers', perm: 'customers.tiers', description: 'Tiers and their discounts' },
+          { group: 'System', title: 'Shipping', path: '/admin/settings/shipping', perm: 'shipping.manage', description: 'Zones and delivery fees' },
           { group: 'System', title: 'Stock & expiry', path: '/admin/settings/stock', perm: 'stock.settings', description: 'Expired goods, warnings and which batch is used first' },
-          { group: 'Content', title: 'About', path: '/admin/settings/content/about' },
-          { group: 'Content', title: 'Contact', path: '/admin/settings/content/contact' },
-          { group: 'Content', title: 'Manual', path: '/admin/settings/content/manual' },
-          { group: 'Content', title: 'Homepage', path: '/admin/settings/content/homepage' },
-          { group: 'Content', title: 'Footer', path: '/admin/settings/content/footer' },
-          { group: 'Content', title: 'Policies', path: '/admin/settings/policy', description: 'Terms, privacy, returns' },
+          { group: 'Content', title: 'About', path: '/admin/settings/content/about', perm: 'content.manage' },
+          { group: 'Content', title: 'Contact', path: '/admin/settings/content/contact', perm: 'content.manage' },
+          { group: 'Content', title: 'Manual', path: '/admin/settings/content/manual', perm: 'content.manage' },
+          { group: 'Content', title: 'Homepage', path: '/admin/settings/content/homepage', perm: 'content.manage' },
+          { group: 'Content', title: 'Footer', path: '/admin/settings/content/footer', perm: 'content.manage' },
+          { group: 'Content', title: 'Policies', path: '/admin/settings/policy', perm: 'policies.manage', description: 'Terms, privacy, returns' },
           { group: 'Access', title: 'Users & roles', path: '/admin/users', description: 'Staff accounts and their roles' },
           { group: 'Access', title: 'Roles & access', path: '/admin/access', perm: 'access.view', description: 'Clearance levels, roles, permissions and branch access' },
-          { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, description: 'Ranking, pins and catalogue boosts' },
+          { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, perm: 'algorithm.manage', description: 'Ranking, pins and catalogue boosts' },
           { group: 'Platform', title: 'Engagement', path: '/admin/settings/engagement', module: MODULES.EXTRAS, perm: 'engagement.settings', description: 'Who can review, comment, like, mark helpful and report' },
           { group: 'Platform', title: 'Vault', path: '/admin/vault', description: 'Stored documents and secrets' },
-          { group: 'Platform', title: 'Activity logs', path: '/admin/logs', description: 'Who changed what, and exports' },
-          { group: 'Platform', title: 'Appearance', path: '/admin/appearance', description: 'Colours, fonts, icons and layouts' },
+          { group: 'Platform', title: 'Activity logs', path: '/admin/logs', perm: 'system.logs', description: 'Who changed what, and exports' },
+          { group: 'Platform', title: 'Appearance', path: '/admin/appearance', perm: 'appearance.manage', description: 'Colours, fonts, icons and layouts' },
           { group: 'Platform', title: 'Branches', path: '/admin/settings/locations', perm: 'locations.manage', description: 'Locations, per-branch currency and tax, staff clearance' },
           { group: 'Platform', title: 'Navigation', path: '/admin/settings/navigation', perm: 'system.navigation', description: 'Storefront menu and links' },
           { group: 'Platform', title: 'Modules', path: '/admin/settings/modules', perm: 'system.modules', description: 'Module Center and license keys' },
@@ -386,9 +386,26 @@ export function visibleNav(user) {
       ...g,
       items: g.items
         .filter((i) => allowed(i, user))
-        .map((i) => (i.tabs ? { ...i, tabs: i.tabs.filter((t) => allowed(t, user, true)) } : i)),
+        .map((i) => (i.tabs ? withOpenTabs(i, user) : i))
+        .filter(Boolean),
     }))
     .filter((g) => g.items.length > 0);
+}
+
+/**
+ * An item's tabs cut down to the ones this person may open. When the item has no permission of its own but its tabs do (Purchases: the list needs
+ * the books, the stock tabs need stock), the item shows when any tab does, and its link goes to the first tab they may open.
+ * Returns null when the item should not show at all.
+ */
+function withOpenTabs(item, user) {
+  const tabs = item.tabs.filter((t) => allowed(t, user, true));
+  const byTabs = !item.perm && !item.account && item.tabs.some((t) => t.perm);
+  if (!byTabs) return { ...item, tabs };
+  const live = tabs.filter((t) => !t.soon);
+  if (!live.length) return null;
+  const opens = (path) => live.some((t) => t.path === path || (t.also ?? []).includes(path));
+
+  return { ...item, tabs, path: opens(item.path) ? item.path : live[0].path };
 }
 
 export const liveTabs = (item) => (item?.tabs ?? []).filter((t) => !t.soon);

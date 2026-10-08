@@ -74,7 +74,7 @@ class BoardApproval
     private function decidable(CampaignBoard $b, User $by): void
     {
         if (! CampaignAccess::canPublish($by)) {
-            throw new BooksException('Only an admin, super admin or manager can decide this.');
+            throw new BooksException('You do not have the permission to decide this.');
         }
         if ($b->approval_status !== 'pending') {
             throw new BooksException('That board is not waiting for approval.');

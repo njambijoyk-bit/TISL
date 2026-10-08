@@ -24,7 +24,7 @@ class CampaignMoodboardController extends Controller
 
     private function publisher(Request $r): void
     {
-        abort_unless(CampaignAccess::canPublish($r->user()), 403, 'Only an admin, super admin or manager can do that.');
+        abort_unless(CampaignAccess::canPublish($r->user()), 403, 'You do not have the permission to do that.');
     }
 
     private function find(Request $r, int $id, bool $forEdit = false): CampaignMoodboard
@@ -147,7 +147,7 @@ class CampaignMoodboardController extends Controller
     public function update(Request $request, int $id): JsonResponse
     {
         $m = $this->find($request, $id, true);
-        abort_if($m->is_template && ! CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can change a template.');
+        abort_if($m->is_template && ! CampaignAccess::canPublish($request->user()), 403, 'You do not have the permission to change a template.');
         $d = $request->validate(['title' => ['sometimes', 'string', 'max:160'], 'background' => ['sometimes', 'string', 'max:7'], 'pattern' => ['sometimes', 'string', 'max:10'], 'contents' => ['sometimes', 'array']]);
 
         return $this->guard(function () use ($request, $m, $d) {
@@ -220,7 +220,7 @@ class CampaignMoodboardController extends Controller
     public function destroy(Request $request, int $id): JsonResponse
     {
         $m = $this->find($request, $id);
-        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can delete a moodboard.');
+        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'You do not have the permission to delete a moodboard.');
         abort_if($m->isPrivateCustomer(), 403, 'This is a customer\'s private moodboard. Staff can look at it but not delete it.');
         $this->moods->destroy($m);
 

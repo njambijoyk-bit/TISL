@@ -364,7 +364,7 @@ class AttendanceService
     {
         $this->need();
         if (! self::isSuper($actor)) {
-            throw new BooksException('Only the super admin settles attendance disputes.');
+            throw new BooksException('You do not have the permission to settle attendance disputes.');
         }
         $x = AttendanceDispute::findOrFail($id);
         if ($x->status !== 'open') {

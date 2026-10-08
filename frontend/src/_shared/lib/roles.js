@@ -63,5 +63,6 @@ export const canReadFinance = (user) => hasPermission(user, 'books.view');
 export const canWriteFinance = (user) => hasPermission(user, 'books.post');
 export const canUsePayroll = (user) => hasPermission(user, 'payroll.run');
 export const canDeleteCatalogue = (user) => hasPermission(user, 'catalogue.delete');
+export const canEditCatalogue = (user) => hasPermission(user, 'catalogue.edit');
 /** Acting on a customer's credit: payments, adjustments, schedules, invoices, add credit / loyalty points. */
 export const canActOnCredit = (user) => hasPermission(user, 'credit.act');

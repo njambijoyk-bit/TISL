@@ -13,7 +13,7 @@ import CreditTab from './CreditTab';
 import CustomerTaxTab from '../../components/admin/tax/CustomerTaxTab';
 import AccountCurrencyCard from '../../components/admin/customers/AccountCurrencyCard';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canActOnCredit } from '../../../_shared/lib/roles';
+import { canReadFinance, canActOnCredit, hasPermission } from '../../../_shared/lib/roles';
 import customersAPI from '../../../_shared/api/customers';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import ordersAPI from '../../../_shared/api/orders';
@@ -398,6 +398,8 @@ export default function CustomerDetail() {
   const authUser = useAuthStore((st) => st.user);
   const showTaxTab = canReadFinance(authUser);
   const canAct = canActOnCredit(authUser);
+  const canManage = hasPermission(authUser, 'customers.manage');                                                   // change the customer, tags, sales rep
+  const canAddresses = canManage || hasPermission(authUser, 'delivery.manage');                                    // addresses are also the delivery team's work
 
   const [customer,    setCustomer]    = useState(null);
   const [loading,     setLoading]     = useState(true);
@@ -731,7 +733,7 @@ export default function CustomerDetail() {
                   <Save size={14} /> {saving ? 'Saving…' : 'Save changes'}
                 </button>
               </>
-            ) : (
+            ) : canManage ? (
               <button onClick={() => setEditing(true)} style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 600,
@@ -743,7 +745,7 @@ export default function CustomerDetail() {
                 onMouseLeave={e => { e.currentTarget.style.borderColor = 'color-mix(in srgb, var(--color-primary-500) 22%, transparent)'; e.currentTarget.style.color = '#9ca3af'; }}>
                 <Edit2 size={14} /> Edit
               </button>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -1471,7 +1473,7 @@ export default function CustomerDetail() {
               <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', margin: 0 }}>
                 {addresses.length} address{addresses.length !== 1 ? 'es' : ''}
               </p>
-              {!addingAddr && (
+              {!addingAddr && canAddresses && (
                 <button onClick={() => setAddingAddr(true)} style={{
                   display: 'flex', alignItems: 'center', gap: 6,
                   padding: '7px 14px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,
@@ -1548,7 +1550,7 @@ export default function CustomerDetail() {
                               </div>
 
                               {/* Actions */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                              {canAddresses && <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                                 {!addr.is_default_shipping && (
                                   <button onClick={() => handleSetDefault(addr.id, 'shipping')} style={{
                                     fontSize: '0.68rem', padding: '3px 8px', borderRadius: 6, fontWeight: 600,
@@ -1591,7 +1593,7 @@ export default function CustomerDetail() {
                                   onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}>
                                   <Trash2 size={13} />
                                 </button>
-                              </div>
+                              </div>}
                             </div>
                           </div>
                         )

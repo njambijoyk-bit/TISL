@@ -12,7 +12,7 @@ import {
   Package, TrendingUp, AlertCircle, CheckCircle, XCircle, Archive,
 } from 'lucide-react';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canDeleteCatalogue } from '../../../_shared/lib/roles';
+import { canDeleteCatalogue, canEditCatalogue } from '../../../_shared/lib/roles';
 
 // ─── Theme-agnostic style tokens ─────────────────────────────────────────────
 
@@ -248,6 +248,7 @@ export default function Products() {
 
   const { user } = useAuthStore();
   const canDelete = canDeleteCatalogue(user);
+  const canEdit = canEditCatalogue(user);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, product: null, loading: false });
   const [trashModal,  setTrashModal]  = useState({
     isOpen: false, loading: false, products: [], search: '', selectedIds: [],
@@ -347,9 +348,11 @@ export default function Products() {
             <Btn onClick={() => navigate('/admin/price-lists')} title="Price lists and brochures">
               <ListChecks size={15} /> Price lists
             </Btn>
-            <PrimaryBtn onClick={() => navigate('/admin/products/create')}>
-              <Plus size={15} /> Create Product
-            </PrimaryBtn>
+            {canEdit && (
+              <PrimaryBtn onClick={() => navigate('/admin/products/create')}>
+                <Plus size={15} /> Create Product
+              </PrimaryBtn>
+            )}
           </div>
         </div>
 
@@ -440,11 +443,11 @@ export default function Products() {
               <p style={{ margin: '0 0 20px', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
                 {hasFilters ? 'Try adjusting your search or filters' : 'Get started by creating your first product'}
               </p>
-              {!hasFilters && (
-                <PrimaryBtn onClick={() => navigate('/admin/products/create')}>
-                  <Plus size={15} /> Create First Product
-                </PrimaryBtn>
-              )}
+              {!hasFilters && canEdit && (
+                  <PrimaryBtn onClick={() => navigate('/admin/products/create')}>
+                    <Plus size={15} /> Create First Product
+                  </PrimaryBtn>
+                )}
             </div>
           ) : (
             <>
@@ -514,9 +517,11 @@ export default function Products() {
                             <IconBtn onClick={() => navigate(`/admin/products/${product.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
                               <Eye size={15} />
                             </IconBtn>
-                            <IconBtn onClick={() => navigate(`/admin/products/${product.id}/edit`)} title="Edit" color="var(--color-primary-600)">
-                              <Edit2 size={15} />
-                            </IconBtn>
+                            {canEdit && (
+                              <IconBtn onClick={() => navigate(`/admin/products/${product.id}/edit`)} title="Edit" color="var(--color-primary-600)">
+                                <Edit2 size={15} />
+                              </IconBtn>
+                            )}
                             {canDelete && (
                               <IconBtn onClick={() => setDeleteModal({ isOpen: true, product, loading: false })} title="Delete" color="var(--color-text-danger)">
                                 <Trash2 size={15} />

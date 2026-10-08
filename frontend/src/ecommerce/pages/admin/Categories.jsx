@@ -9,7 +9,7 @@ import {
   Layers, CheckCircle, XCircle, GitBranch, AlertTriangle,
 } from 'lucide-react';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canDeleteCatalogue } from '../../../_shared/lib/roles';
+import { canDeleteCatalogue, canEditCatalogue } from '../../../_shared/lib/roles';
 
 // ─── Style tokens ─────────────────────────────────────────────────────────────
 
@@ -190,6 +190,7 @@ export default function Categories() {
   const [searchTerm, setSearchTerm] = useState('');
   const { user } = useAuthStore();
   const canDelete = canDeleteCatalogue(user);
+  const canEdit = canEditCatalogue(user);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, category: null, loading: false });
 
   useEffect(() => { fetchCategories(); }, []);
@@ -243,9 +244,11 @@ export default function Categories() {
             </h1>
             <p style={{ margin: 0, fontSize: '0.82rem' }}>Manage product categories and subcategories</p>
           </div>
-          <PrimaryBtn onClick={() => navigate('/admin/categories/create')}>
-            <Plus size={15} /> New Category
-          </PrimaryBtn>
+          {canEdit && (
+            <PrimaryBtn onClick={() => navigate('/admin/categories/create')}>
+              <Plus size={15} /> New Category
+            </PrimaryBtn>
+          )}
         </div>
 
         {/* ── Stat cards ─────────────────────────────────────────────────── */}
@@ -292,11 +295,11 @@ export default function Categories() {
               <p style={{ margin: '0 0 20px', fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
                 {searchTerm ? 'Try a different search term' : 'Get started by creating your first category'}
               </p>
-              {!searchTerm && (
-                <PrimaryBtn onClick={() => navigate('/admin/categories/create')}>
-                  <Plus size={15} /> Create First Category
-                </PrimaryBtn>
-              )}
+              {!searchTerm && canEdit && (
+                  <PrimaryBtn onClick={() => navigate('/admin/categories/create')}>
+                    <Plus size={15} /> Create First Category
+                  </PrimaryBtn>
+                )}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -389,9 +392,11 @@ export default function Categories() {
                             <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit?mode=view`)} title="View" color="var(--color-text-info)">
                               <Eye size={15} />
                             </IconBtn>
-                            <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit`)} title="Edit" color="var(--color-primary-600)">
-                              <Edit2 size={15} />
-                            </IconBtn>
+                            {canEdit && (
+                              <IconBtn onClick={() => navigate(`/admin/categories/${category.id}/edit`)} title="Edit" color="var(--color-primary-600)">
+                                <Edit2 size={15} />
+                              </IconBtn>
+                            )}
                             {canDelete && (
                               <IconBtn
                                 onClick={() => setDeleteModal({ isOpen: true, category, loading: false })}

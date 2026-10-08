@@ -1,4 +1,4 @@
-# Identity and access: clearance levels, roles, permissions and scope (R1 to R3 and the no-role-names sweep built; R4 onwards planned)
+# Identity and access: clearance levels, roles, permissions and scope (R1 to R3, the no-role-names sweep and the area permissions built; R4 onwards planned)
 
 Why first: cost centres, branches, entities, payroll and every module (kitchen, school, library, pharmacy) ask the same question: **may this person do this, on this branch, at this moment?** One engine answers it, and the engine is data driven: Chef, Librarian or Foreman are rows in a table, never new code.
 
@@ -130,10 +130,45 @@ The owner's rule: **no hardcoding**. A role built in the role builder must contr
 7. **The assistant's payment summary** follows `books.view`; finance is no longer limited to payments they started.
 8. **The memo dock** shows for staff only (vendors used to see it by accident).
 
+## Area permissions (built): a permission for every staff area
+
+Before this, 421 staff routes (customers, the catalogue, shipping, content pages, tickets, bookings and more) only asked for `admin.access`, so any staff member could change anything there. Now every `api/admin` route asks for a permission, **except** the areas whose controller, policy or service already checks the person (vault, campaigns and pins, users, AI, verification, attendance, loyalty, engagement, petty cash, the calendar, and a few lookups such as currencies and a person's own payslips). `tests/Feature/AdminRoutesNeedAPermissionTest.php` keeps it that way: a new staff route fails the build unless it names a permission or its prefix is listed there with the reason.
+
+**Catalogue version 4: 12 permissions** (104 in all). Reading and writing are separate where people differ:
+
+| Permission | Who holds it by default |
+|---|---|
+| `customers.view` (customers, addresses, orders, notes, loyalty ledger) | owner, admin, senior accountant, manager, finance, logistics, sales rep, cashier |
+| `customers.manage` (add and change, tags, sales rep, import) | owner, admin, senior accountant, manager, finance, sales rep. Addresses are also open to `delivery.manage` |
+| `customers.tiers` (tiers and type discounts) | owner, admin |
+| `credit.view` | owner, admin, senior accountant, manager, finance, sales rep |
+| `quotes.view` | owner, admin, senior accountant, manager, finance, logistics, sales rep |
+| `catalogue.view` (products, services, categories, brands, units) | owner, admin, senior accountant, manager, finance, logistics, sales rep, cashier |
+| `catalogue.edit` | owner, admin, senior accountant, manager, finance |
+| `auctions.manage` | owner, admin, manager |
+| `shipping.manage` | owner, admin, manager, logistics |
+| `content.manage` (the storefront's about, contact, homepage, footer pages) | owner, admin |
+| `tickets.manage` | owner, admin, senior accountant, manager, finance, logistics, sales rep |
+| `bookings.manage` | owner, admin, manager, sales rep, cashier |
+
+`php artisan access:seed` gives them to the built-in roles once (the cashier and chef rows too) and never takes back a change you made. The sales rep also gets `projects.use` once (see below).
+
+The sidebar, tabs, routes and buttons follow the same permissions. **A menu entry with tabs shows when any of its tabs does and opens the first tab the person may use**, so a stock-only role now has Purchases leading to Vendors or the stock pages.
+
+### Behaviour changes in the area permissions to know about
+
+1. **Customers:** logistics can see customers but not change them (they can still fix an address). The chef sees none. The cashier sees customers.
+2. **Catalogue:** products, services, categories, brands, units and variants can be seen by everyone above but **changed only with `catalogue.edit`**: sales rep and logistics become view-only. A view-only person opens the product form read-only. Changing stock quantities from the product screen needs `stock.manage` (the manager does not hold it by default).
+3. **Auctions** (admin, manager), **shipping options** (admin, manager, logistics), **storefront content pages** (admin), **customer tier and discount changes** (admin) and **bookings** (admin, manager, sales rep, cashier) are no longer open to the other staff roles. Finance and sales rep lose the ones listed above for them.
+4. **Projects:** the project write routes (create, tasks, milestones, participants) now need `projects.use`, like the reads always did. The sales rep gets it by default (they manage milestones); logistics no longer reaches the projects API.
+5. **Referral code lists** need `promos.manage`; the **loyalty ledger** and a customer's credit need `customers.view` and `credit.view`; quotations can be read with `quotes.view`.
+6. Open on purpose: currency lookups, a person's own payslips and calendar, the activity feed (it shows each person only what their permissions open), and the first-time ownership setup.
+7. Error messages no longer name roles ("You do not have the permission to ...").
+
 ### Not done yet
 
-- Many `admin.access`-only staff routes (content pages, shipping options, referral codes and similar) still let any staff in; they never had a role check, so there was nothing to convert. A permission per area is the next sweep.
-- The Purchases menu entry needs `books.view`, so a stock-only role (stock.view without books.view) has no menu entry for the stock pages yet.
+- A few controllers check the person inside (campaigns, verification, attendance, petty cash). They are correct but not visible in the route list; the audit test names each with its reason. Bringing their checks up to route guards is optional tidying.
+- Other words in the product still say TISL (printed delivery manifests, storefront page titles, the careers site): the company profile has the real name and short code; the admin sidebar already shows the short code (else initials of the trading name, else of the legal name).
 - Branch limits do not cover customers' own statements and credit (a customer's balance is the whole business's), cash counts and petty cash (their tills are ledgers, not branches), held stock, the catalogue, delivery or HR. Those follow with cost centres, which give every ledger line and till a branch.
 - A branch-limited person's balance sheet and trial balance show opening balances for the whole business with only their branches' movements. They are labelled; company-wide totals need someone with every branch.
 

@@ -400,7 +400,7 @@ class VerificationService
     {
         $this->need();
         if (! self::isManager($manager)) {
-            throw new BooksException('Only finance or an admin picks what is verified.');
+            throw new BooksException('You do not have the permission to hand out verification work.');
         }
         $i = VerificationItem::findOrFail($id);
         if (! $selected && $i->status !== 'pending') {

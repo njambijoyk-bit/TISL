@@ -106,7 +106,7 @@ class CampaignPinController extends Controller
 
     public function hide(Request $request, int $id): JsonResponse
     {
-        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can hide a pin.');
+        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'You do not have the permission to hide a pin.');
         $request->validate(['reason' => ['nullable', 'string', 'max:255']]);
         $pin = CampaignPin::findOrFail($id);
         $this->pins->hide($pin, $request->input('reason'));
@@ -116,7 +116,7 @@ class CampaignPinController extends Controller
 
     public function unhide(Request $request, int $id): JsonResponse
     {
-        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can show a pin again.');
+        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'You do not have the permission to show a pin again.');
         $pin = CampaignPin::findOrFail($id);
         $this->pins->unhide($pin);
 
@@ -156,7 +156,7 @@ class CampaignPinController extends Controller
     /** GET /admin/pins/settings: whether customers may add pins, and the monthly cap. Admin, super admin and manager can read it. */
     public function settings(Request $request): JsonResponse
     {
-        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can see this.');
+        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'You do not have the permission to see this.');
 
         return response()->json(['data' => $this->rules->settings()]);
     }
@@ -178,7 +178,7 @@ class CampaignPinController extends Controller
     /** GET /admin/pins/customers?q=: the customers who have pins (and how many), for the library's customer filter. */
     public function customers(Request $request): JsonResponse
     {
-        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'Only an admin, super admin or manager can filter by customer.');
+        abort_unless(CampaignAccess::canPublish($request->user()), 403, 'You do not have the permission to filter by customer.');
         $rows = CampaignPin::where('source', 'customer')->join('users', 'users.id', '=', 'campaign_pins.owner_user_id')
             ->when($request->filled('q'), fn ($w) => $w->where(fn ($x) => $x->where('users.name', 'like', '%' . $request->query('q') . '%')->orWhere('users.email', 'like', '%' . $request->query('q') . '%')))
             ->groupBy('users.id', 'users.name', 'users.email')->orderBy('users.name')->limit(40)

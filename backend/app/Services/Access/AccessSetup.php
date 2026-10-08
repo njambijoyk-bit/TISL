@@ -84,6 +84,7 @@ class AccessSetup
             if ($stored < 3) {
                 self::carryOverStockRoles($done);
             }
+            self::grantExisting($stored, $done);
 
             DB::table('access_meta')->updateOrInsert(['id' => 1], ['catalog_version' => Catalog::VERSION, 'seeded_at' => $now]);
         });
@@ -93,6 +94,25 @@ class AccessSetup
         Authorizer::reset();
 
         return $done;
+    }
+
+    /** Permissions that existed already but that a built-in role holds by default since a later version (Catalog::GRANTED): given once. */
+    private static function grantExisting(int $stored, array &$done): void
+    {
+        foreach (Catalog::GRANTED as $version => $byRole) {
+            if ($version <= $stored) {
+                continue;
+            }
+            foreach ($byRole as $roleKey => $permissions) {
+                $role = DB::table('roles')->where('key', $roleKey)->where('is_system', 1)->first();
+                foreach ($role ? $permissions : [] as $p) {
+                    if (! DB::table('role_permissions')->where('role_id', $role->id)->where('permission_key', $p)->exists()) {
+                        DB::table('role_permissions')->insert(['role_id' => $role->id, 'permission_key' => $p]);
+                        $done['new_grants']++;
+                    }
+                }
+            }
+        }
     }
 
     /**
