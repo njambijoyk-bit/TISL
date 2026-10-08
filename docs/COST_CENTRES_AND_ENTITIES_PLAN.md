@@ -7,7 +7,7 @@ Direction (changed from v2): **one set of books, one website.** A branch is a co
 | # | Decision |
 |---|---|
 | 1 | Build cost centres inside the one company now. **No multi-entity books** (decided later; the legal-entity groundwork that was briefly built was removed). |
-| 2 | Every location automatically gets a branch cost centre. Departments are a **table**, not free text. A department belongs to **one location**, so "Sales" exists once per location. Each department has its own cost centre, nested under its location's. |
+| 2 | Every location automatically gets a branch cost centre. Departments are a **table**, not free text. A department belongs to **one location**, so the same department (Sales) can exist at several branches as separate rows, one per branch: Sales at A, Sales at B. A quick action adds a department to several branches at once, and a ready list of standard names can be added to a branch in one click. **Each department has its own cost centre**, nested under that branch. |
 | 3 | An employee is created with a **location and a department** (the department list is filtered by the chosen location). |
 | 4 | No "no cost centre" bucket. A **configuration page** sets defaults, so every entry always has a cost centre and no screen can fail for lack of one. |
 | 5 | A Head office location and cost centre exist for shared costs. |
@@ -15,9 +15,9 @@ Direction (changed from v2): **one set of books, one website.** A branch is a co
 | 7 | An employee can belong to **several cost centres** (their department's, plus for example a project for some dates, with a share). Payroll splits their cost by those shares. |
 | 8 | **One set of books, one base currency, one chart, one tax setup, one period lock and numbering.** No company switcher, no `X-Entity`, no entity columns. |
 | 9 | Location kinds gain Office and Depot (labels only). |
-| 10 | A branch can have **several** cost centres (for example Stock, Payroll, Utilities, Sales) besides its automatic one. Each cost centre has a free-text **purpose** tag (data, not code) used only to pick sensible defaults, such as which cost centre payroll lines or stock adjustments land in. |
+| 10 | **Cost centres nest to any depth.** A branch has a big cost centre ("Branch A") that covers smaller ones: Utilities, Stock, Payroll, Projects, and its departments' cost centres (Sales, Procurement...). "Utility cost centre for Branch A" is its own row under Branch A, and reports roll everything up into Branch A. Each cost centre has a free-text **purpose** tag (data, not code) used only to pick defaults, such as which cost centre payroll lines or stock adjustments land in. |
 | 11 | One storefront and one set of books. A company in another country has its own website and its own books. |
-| 12 | **Later, after cost centres:** a **view-only import** of another company's books (chart of accounts, vouchers) from an encrypted, password-protected file with extension **`.wnkjap`**, plus **our own API, protected by a password, for the sites we build** (they can produce and read the same format). Imported books live in their own read-only tables and screens and are **never mixed** with ours: no totals, no posting, no reports that add them up. |
+| 12 | **Later, after cost centres:** a **view-only import** of another company's books (chart of accounts, vouchers, **customers, suppliers and stock**) from an encrypted, password-protected file with extension **`.wnkjap`**, plus **our own API, protected by a password, for the sites we build** (they can produce and read the same format). Imported books live in their own read-only tables and screens and are **never mixed** with ours: no totals, no posting, no reports that add them up. |
 | 13 | Customers: one identity. Exchange rates: one table. Standard department names: a ready list that can be added to a branch in one click. |
 | 14 | Reports sort and filter per branch using the voucher's location (the voucher already carries it). |
 | 15 | **Identity and access comes first** (`docs/IDENTITY_AND_ACCESS_PLAN.md`): roles as data, several roles per person, default branch plus time-limited grants, admin and super admin never bound, a new Senior accountant role. |
@@ -67,9 +67,9 @@ Settings, "Cost centres": the General cost centre; defaults per kind of document
 
 ## Other companies' books: view-only import (later)
 
-- A **`.wnkjap` file** is an encrypted, password-protected exchange file holding a company's chart of accounts and vouchers (and the entries behind them). Format: a small header (version, company name, base currency, period, checksum) and an encrypted payload; the password is asked at upload and never stored.
+- A **`.wnkjap` file** is an encrypted, password-protected exchange file holding a company's chart of accounts, vouchers (and the entries behind them), **customers, suppliers and stock**. Format: a small header (version, company name, base currency, period, checksum) and an encrypted payload; the password is asked at upload and never stored.
 - **Our own API** (same format, password-protected) lets sites we build send or fetch an export without a person handling a file.
-- **Where it lands:** separate tables (`imported_books`, `imported_ledgers`, `imported_vouchers`, `imported_entries`), one set per import, labelled with the company and date. Screens: *Other companies* shows the imported chart and a voucher list, read-only. No posting, no edits, no reconciliation with our books, no combined totals.
+- **Where it lands:** separate tables (`imported_books`, `imported_ledgers`, `imported_vouchers`, `imported_entries`, `imported_customers`, `imported_suppliers`, `imported_stock`), one set per import, labelled with the company and date. Screens: *Other companies* shows the imported chart, voucher list, customers, suppliers and stock, read-only. No posting, no edits, no reconciliation with our books, no combined totals.
 - Each import can be replaced by a newer one or deleted; the original file is kept encrypted.
 - Permission: one new permission to import and one to view.
 
@@ -93,6 +93,4 @@ Dropped from v2: legal entities, per-entity chart, base currency, period lock, n
 
 ## Open questions
 
-1. Departments: do you also want a list of standard department names that can be added to a location in one click?
-2. Is it right that an employee's cost is split by shares only for payroll, and everything else they cause (expenses they claim, for example) takes the cost centre of the entry itself?
-3. For the `.wnkjap` import: should an import hold only the chart and vouchers, or also customers, suppliers and stock? (Suggested: chart and vouchers first.)
+1. Payroll: a person's pay is split between cost centres by shares (for example 60% Procurement, 40% Project X). Should *everything else* they cause (an expense they claim, a purchase they enter) also follow those shares, or take only the cost centre chosen on that entry? Suggested: only the one chosen on the entry; the shares are for payroll.
