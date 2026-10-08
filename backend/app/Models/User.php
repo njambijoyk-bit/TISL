@@ -389,10 +389,9 @@ class User extends Authenticatable
             return $this->employee->canLogin();
         }
 
-        // Vendors and drivers in pending_approval cannot log in
-        if ($this->isPortalOnly()) {
-            $profile = $this->isVendor() ? $this->vendor : null;
-            // drivers don't have a profile record yet — allow login by default
+        // A vendor whose account is still pending approval cannot log in (drivers have no profile record: they may)
+        if ($this->isVendor()) {
+            $profile = $this->vendor;
             if ($profile && $profile->status === 'pending_approval') {
                 return false;
             }
