@@ -129,4 +129,4 @@ Backorder as an offer without a campaign (same mechanism), mixed-cart checkout, 
 
 ## On hold because of
 
-The wish for each branch to carry its own profit and loss. Preorders are taken and filled per branch, so their money and cost should land in the right branch. See `docs/BRANCH_PROFIT_PLAN.md` once it is written.
+The wish to have each branch carry its own figures as a **cost centre** (and, later, separate legal entities for other companies or countries). Preorders are taken and filled per location, so their income and cost should land on the right cost centre from the first day. See `docs/COST_CENTRES_AND_ENTITIES_PLAN.md`. Preorders need only that plan's stage A, not the legal entity layer.
