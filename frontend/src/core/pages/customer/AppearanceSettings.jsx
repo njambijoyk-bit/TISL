@@ -1,7 +1,18 @@
 import { useTheme } from '../../../_shared/theme';
 import { MODE_OPTIONS } from '../../../_shared/theme/themeConstants';
 import useCurrencyStore from '../../../_shared/store/currencyStore';
+import Header from '../../../_shared/components/layout/Header';
+import Footer from '../../../_shared/components/layout/Footer';
 import { Sun, Moon, Monitor, Palette, Type, Layers, CheckCircle2 } from 'lucide-react';
+
+/** The customer site's top bar and footer around the page. */
+const Shell = ({ children }) => (
+  <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)' }}>
+    <Header />
+    <div style={{ flex: 1 }}>{children}</div>
+    <Footer />
+  </div>
+);
 
 const MODE_ICONS = { system: Monitor, light: Sun, dark: Moon };
 
@@ -77,16 +88,16 @@ export default function AppearanceSettings() {
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <Shell><div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {[0,1,2].map(i => (
           <div key={i} style={{ height: 120, borderRadius: 14, background: 'var(--bg-secondary)', animation: 'pulse 1.8s ease-in-out infinite' }} />
         ))}
-      </div>
+      </div></Shell>
     );
   }
 
   return (
-    <div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 20px 60px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <Shell><div style={{ maxWidth: 640, margin: '0 auto', padding: '32px 20px 60px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Header */}
       <div>
@@ -204,6 +215,6 @@ export default function AppearanceSettings() {
           </div>
         </Card>
       )}
-    </div>
+    </div></Shell>
   );
 }
