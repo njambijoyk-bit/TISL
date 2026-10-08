@@ -43,7 +43,7 @@ class StockTransferController extends Controller
         return $this->guard(function () use ($d, $request) {
             $t = $this->transfers->send((int) $d['from_location_id'], (int) $d['to_location_id'], $d['items'], $d['note'] ?? null, $request->user());
 
-            return response()->json(['message' => "Transfer {$t->number} is on its way.", 'id' => $t->id], 201);
+            return response()->json(['message' => "Transfer {$t->number} is on its way. Use Note in the list to print the transfer note that goes with the goods.", 'id' => $t->id], 201);
         });
     }
 
@@ -57,6 +57,25 @@ class StockTransferController extends Controller
 
             return response()->json(['message' => "Transfer {$t->number} received."]);
         });
+    }
+
+    /** GET /{id}/note?format=html|pdf: the transfer as a printable note that goes with the goods. */
+    public function note(Request $request, int $id)
+    {
+        $d = $request->validate(['format' => 'nullable|in:html,pdf']);
+        $t = StockTransfer::with(['from', 'to', 'lines'])->findOrFail($id);
+        $place = fn ($l) => ['name' => $l?->name, 'address' => implode(', ', array_filter([$l?->address_line1, $l?->address_line2, $l?->city, $l?->country])) ?: null];
+        $name = fn ($uid) => $uid ? DB::table('users')->where('id', $uid)->value('name') : null;
+        $row = $this->row($t, true);
+
+        try {
+            return app(\App\Services\Books\ExportService::class)->transferNote([
+                'number' => $t->number, 'status' => $t->status, 'note' => $t->note, 'sent_at' => $row['sent_at'], 'received_at' => $row['received_at'] ?? null,
+                'sent_by' => $name($t->sent_by), 'received_by' => $name($t->received_by), 'from' => $place($t->from), 'to' => $place($t->to), 'lines' => $row['lines']->all(),
+            ], $d['format'] ?? 'html');
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     public function cancel(int $id): JsonResponse

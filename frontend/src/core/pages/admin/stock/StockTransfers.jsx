@@ -118,6 +118,16 @@ export default function StockTransfers() {
     try { const res = await stockTransfersAPI.cancel(t.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not cancel')); }
   };
   const done = () => { setModal(null); load(); };
+  // the note opens in its own tab (with a Print button); the PDF is saved to this computer
+  const note = async (t, format) => {
+    const tab = format === 'html' ? window.open('about:blank', '_blank') : null;   // opened first so the browser does not block it
+    try {
+      const { blob, name } = await stockTransfersAPI.note(t.id, format);
+      const href = URL.createObjectURL(blob);
+      if (tab) { tab.location.href = href; } else { const a = document.createElement('a'); a.href = href; a.download = name; document.body.appendChild(a); a.click(); a.remove(); }
+      setTimeout(() => URL.revokeObjectURL(href), 60000);
+    } catch (x) { tab?.close(); toast.error(errMsg(x, 'Could not make the transfer note')); }
+  };
 
   if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="stock transfers" /></div></AdminLayout>;
 
@@ -147,6 +157,8 @@ export default function StockTransfers() {
                   <td style={{ ...td, textAlign: 'right' }}>{money(t.value)}</td>
                   <td style={td}>{String(t.sent_at).slice(0, 10)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                    <button type="button" style={small} onClick={() => note(t, 'html')}>Note</button>
+                    <button type="button" style={small} onClick={() => note(t, 'pdf')}>PDF</button>
                     {canWrite && t.status === 'in_transit' && <button type="button" style={small} onClick={() => setModal({ kind: 'receive', id: t.id })}>Receive</button>}
                     {canWrite && t.status === 'in_transit' && <button type="button" style={small} onClick={() => cancel(t)}>Cancel</button>}
                   </td>

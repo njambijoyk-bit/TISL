@@ -475,6 +475,7 @@ Route::middleware('auth:sanctum')->group(function () {
         $c = \App\Http\Controllers\Admin\StockTransferController::class;
         Route::get('/', [$c, 'index']);
         Route::get('/{id}', [$c, 'show'])->whereNumber('id');
+        Route::get('/{id}/note', [$c, 'note'])->whereNumber('id');
         Route::middleware('role:admin,super_admin,finance')->group(function () use ($c) {
             Route::post('/', [$c, 'store']);
             Route::post('/{id}/receive', [$c, 'receive'])->whereNumber('id');

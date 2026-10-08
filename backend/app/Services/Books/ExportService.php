@@ -49,6 +49,61 @@ class ExportService
         };
     }
 
+    /**
+     * A stock transfer as a printable note that travels with the goods: from, to, what is being moved (batch and expiry too),
+     * and boxes to sign for sending, carrying and receiving. It shows quantities only: cost is internal and does not belong on a page a driver carries.
+     * $d: number, status, note, sent_at, received_at, sent_by, received_by, from {name, address}, to {name, address}, lines [{product, variant, sku, batch_no, expiry_date, quantity, received_qty}].
+     */
+    public function transferNote(array $d, string $format): Response
+    {
+        $format = strtolower($format);
+        if (! in_array($format, ['html', 'pdf'], true)) {
+            throw new BooksException('A transfer note is an HTML page or a PDF.');
+        }
+        $name = preg_replace('/[^A-Za-z0-9_-]+/', '_', (string) $d['number']);
+        $html = $this->html($this->transferNoteBody($d), 'Stock transfer note ' . $d['number']);
+
+        return $format === 'pdf' ? $this->pdf($html, "$name.pdf") : $this->send($html, 'text/html; charset=UTF-8', "$name.html", false);
+    }
+
+    private function transferNoteBody(array $d): string
+    {
+        $e = fn ($s) => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+        $q = fn ($n) => rtrim(rtrim(number_format((float) $n, 4, '.', ''), '0'), '.') ?: '0';
+        $day = fn ($s) => $s ? substr((string) $s, 0, 10) : '';
+        $received = $d['status'] === 'received';
+        $cancelled = $d['status'] === 'cancelled';
+        $place = fn (array $p) => "<strong>{$e($p['name'] ?? '')}</strong>" . (! empty($p['address']) ? "<br>{$e($p['address'])}" : '');
+
+        $h = "<style>@media print{.noprint{display:none}}.sig td{vertical-align:bottom;border:none;padding:0;width:30%}.sp{height:44px;border-bottom:1px solid #111;margin-bottom:4px}.dt{margin-top:22px;color:#444}.sig{border-collapse:separate;border-spacing:18px 0;margin-top:34px}"
+            . ".box{display:inline-block;border:1px solid #111;width:70px;height:18px}.two{width:100%;border:none}.two td{border:none;padding:0 18px 0 0;vertical-align:top;width:50%}.stamp{font-weight:700;color:#555}</style>"
+            . "<div class='noprint' style='margin-bottom:14px'><button onclick='window.print()' style='padding:7px 16px;font-size:13px;cursor:pointer'>Print</button></div>"
+            . $this->companyHeader($this->company())
+            . "<h1>Stock transfer note {$e($d['number'])}</h1>"
+            . "<p class='meta'>Sent: {$e($day($d['sent_at']))}" . ($d['sent_by'] ? " by {$e($d['sent_by'])}" : '')
+            . ($received ? " · Received: {$e($day($d['received_at']))}" . ($d['received_by'] ? " by {$e($d['received_by'])}" : '') : '')
+            . ' · <span class="stamp">' . strtoupper($e(str_replace('_', ' ', $d['status']))) . '</span></p>'
+            . "<table class='two'><tr><td><div class='meta'>FROM</div>{$place($d['from'])}</td><td><div class='meta'>TO</div>{$place($d['to'])}</td></tr></table>"
+            . ($d['note'] ? "<p class='meta'>Note: {$e($d['note'])}</p>" : '')
+            . "<p class='meta'>These goods are moving between our own branches. This is not a sale.</p>";
+
+        $h .= '<table><thead><tr><th>#</th><th>Item</th><th>SKU</th><th>Batch</th><th>Expiry</th><th class="r">Sent</th><th class="r">' . ($received ? 'Received' : 'Received (write in)') . '</th></tr></thead><tbody>';
+        $total = 0.0;
+        foreach ($d['lines'] as $i => $l) {
+            $total += (float) $l['quantity'];
+            $item = $e($l['product']) . ($l['variant'] && $l['variant'] !== 'Standard' ? ' — ' . $e($l['variant']) : '');
+            $got = $received ? $e($q($l['received_qty'] ?? $l['quantity'])) : '<span class="box"></span>';
+            $h .= '<tr><td>' . ($i + 1) . "</td><td>{$item}</td><td>{$e($l['sku'])}</td><td>{$e($l['batch_no'])}</td><td>{$e($day($l['expiry_date']))}</td><td class='r'>{$e($q($l['quantity']))}</td><td class='r'>{$got}</td></tr>";
+        }
+        $h .= "<tr><td></td><td colspan='4'><strong>Total units</strong></td><td class='r'><strong>{$e($q($total))}</strong></td><td></td></tr></tbody></table>";
+
+        if ($cancelled) {
+            return $h . "<p class='stamp'>This transfer was cancelled. The goods stayed at {$e($d['from']['name'] ?? '')}.</p>";
+        }
+
+        return $h . "<table class='sig'><tr><td><div class='sp'></div>Sent by (name and signature)<div class='dt'>Date:</div></td><td><div class='sp'></div>Carried by (name, vehicle)<div class='dt'>Date:</div></td><td><div class='sp'></div>Received by (name and signature)<div class='dt'>Date:</div></td></tr></table>";
+    }
+
     /** The printable document as one HTML page (what the HTML export and the e-mail body show). */
     public function voucherHtml(Voucher $v): string
     {
