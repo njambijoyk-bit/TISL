@@ -65,26 +65,11 @@ const personUserId = (p) => {
   return null;
 };
 
-const fetchAllPages = async (fetcher, customerId) => {
-  let page = 1, all = [];
-  while (true) {
-    const res      = await fetcher({ customer_id: customerId, per_page: 100, page });
-    const items    = Array.isArray(res) ? res : (res.data || []);
-    const lastPage = res?.meta?.last_page ?? res?.last_page ?? 1;
-    all = [...all, ...items];
-    if (page >= lastPage) break;
-    page++;
-  }
-  return all.filter((d) =>
-    d.customer_id === undefined || Number(d.customer_id) === Number(customerId)
-  );
-};
-
 const fetchDocuments = async (relatedType, customerId) => {
   try {
     if (relatedType === 'order') {
-      const list = await fetchAllPages(ordersAPI.getAllOrders, customerId);
-      return list.map((d) => ({ id: d.id, label: d.order_number, sublabel: d.title ?? null, status: d.status }));
+      const list = (await ordersAPI.getOrderOptions({ customer_id: customerId })).data ?? [];
+      return list.map((d) => ({ id: d.id, label: d.number, sublabel: null, status: d.status }));
     }
   } catch { return []; }
   return [];

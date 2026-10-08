@@ -1668,6 +1668,8 @@ export default function CustomerDetail() {
 
                             // ── status badge colours ──
                             const ORDER_STATUS = {
+                              placed:     { bg: 'rgba(59,130,246,0.1)',  color: '#1d4ed8', dot: '#3b82f6'  },
+                              paid:       { bg: 'rgba(20,184,166,0.1)',  color: '#0f766e', dot: '#14b8a6'  },
                               pending:    { bg: 'rgba(234,179,8,0.1)',   color: '#b45309', dot: '#f59e0b'  },
                               confirmed:  { bg: 'rgba(59,130,246,0.1)',  color: '#1d4ed8', dot: '#3b82f6'  },
                               processing: { bg: 'rgba(99,102,241,0.1)',  color: '#4338ca', dot: '#6366f1'  },
@@ -1678,6 +1680,7 @@ export default function CustomerDetail() {
                             };
                             const PAYMENT_STATUS = {
                               unpaid:           { bg: 'rgba(239,68,68,0.08)',   color: '#b91c1c' },
+                              invoiced:         { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
                               partially_paid:   { bg: 'rgba(245,158,11,0.08)',  color: '#b45309' },
                               paid:             { bg: 'rgba(16,185,129,0.08)',  color: '#065f46' },
                               refunded:         { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' },
@@ -1685,7 +1688,7 @@ export default function CustomerDetail() {
                             };
 
                             const os = ORDER_STATUS[o.status]   ?? { bg: 'rgba(107,114,128,0.1)', color: 'var(--text-secondary)', dot: '#9ca3af' };
-                            const ps = PAYMENT_STATUS[o.payment_status] ?? { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' };
+                            const ps = PAYMENT_STATUS[o.payment] ?? { bg: 'rgba(107,114,128,0.08)', color: 'var(--text-secondary)' };
                             const cap = (s) => s?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? '—';
 
                             return (
@@ -1702,7 +1705,7 @@ export default function CustomerDetail() {
                                 {/* Order number */}
                                 <td style={{ padding: '11px 16px' }}>
                                   <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--color-primary-600)', margin: '0 0 1px', fontFamily: 'monospace' }}>
-                                    {o.order_number}
+                                    {o.number}
                                   </p>
                                   {o.title && (
                                     <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 180 }}>
@@ -1731,7 +1734,7 @@ export default function CustomerDetail() {
                                     padding: '3px 8px', borderRadius: 20, fontSize: '0.65rem', fontWeight: 700,
                                     background: ps.bg, color: ps.color,
                                   }}>
-                                    {cap(o.payment_status)}
+                                    {cap(o.payment)}
                                   </span>
                                 </td>
 
@@ -1745,9 +1748,9 @@ export default function CustomerDetail() {
                                 {/* Total */}
                                 <td style={{ padding: '11px 16px', textAlign: 'right' }}>
                                   <span style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' }}>
-                                    {o.currency === 'KES' 
+                                    {(o.currency?.code ?? 'KES') === 'KES' 
                                       ? fmt(o.total) 
-                                      : `${o.currency} ${Number(o.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                      : `${o.currency?.code} ${Number(o.total).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                                     }
                                   </span>
                                 </td>
@@ -1755,7 +1758,7 @@ export default function CustomerDetail() {
                                 {/* Date */}
                                 <td style={{ padding: '11px 16px' }}>
                                   <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                                    {fmtDate(o.created_at)}
+                                    {fmtDate(o.date)}
                                   </span>
                                 </td>
                               </tr>

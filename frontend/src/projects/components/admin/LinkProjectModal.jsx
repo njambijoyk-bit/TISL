@@ -54,24 +54,11 @@ const labelStyle = {
 
 const selKey = (linkType, id) => `${linkType}:${id}`;
 
-const fetchAllPages = async (fetcher, customerId) => {
-  let page = 1, all = [];
-  while (true) {
-    const res      = await fetcher({ customer_id: customerId, per_page: 100, page });
-    const items    = Array.isArray(res) ? res : (res.data || []);
-    const lastPage = res?.meta?.last_page ?? res?.last_page ?? 1;
-    all = [...all, ...items];
-    if (page >= lastPage) break;
-    page++;
-  }
-  return all.filter((d) => Number(d.customer_id) === Number(customerId));
-};
-
 const fetchDocuments = async (linkType, customerId) => {
   try {
     if (linkType === 'order') {
-      const list = await fetchAllPages(ordersAPI.getAllOrders, customerId);
-      return list.map((d) => ({ id: d.id, document_number: d.order_number, title: d.title ?? null, status: d.status, link_type: 'order' }));
+      const list = (await ordersAPI.getOrderOptions({ customer_id: customerId })).data ?? [];
+      return list.map((d) => ({ id: d.id, document_number: d.number, title: null, status: d.status, link_type: 'order' }));
     }
   } catch { return []; }
   return [];

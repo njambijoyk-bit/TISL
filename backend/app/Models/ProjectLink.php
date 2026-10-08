@@ -34,7 +34,7 @@ class ProjectLink extends Model
     public function getLinkedModelAttribute()
     {
         return match ($this->link_type) {
-            'order'         => Order::query()->find($this->link_id),
+            'order'         => \App\Models\Books\Voucher::query()->find($this->link_id),
             default         => null,
         };
     }

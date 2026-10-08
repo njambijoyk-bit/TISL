@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Api\Traits\LogsProjectActivity;
-use App\Models\Order;
+use App\Services\Books\OrderSummaryService;
 use App\Models\Project;
 use App\Models\ProjectLink;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -145,7 +145,7 @@ class ProjectLinkController extends Controller
     private function targetExists(string $type, int $id): bool
     {
         return match ($type) {
-            'order'         => Order::where('id', $id)->exists(),
+            'order'         => app(OrderSummaryService::class)->query()->where('id', $id)->exists(),
             default         => false,
         };
     }
@@ -156,7 +156,7 @@ class ProjectLinkController extends Controller
     private function targetBelongsToCustomer(string $type, int $id, int $customerId): bool
     {
         return match ($type) {
-            'order'         => Order::where('id', $id)->where('customer_id', $customerId)->exists(),
+            'order'         => app(OrderSummaryService::class)->query()->where('id', $id)->where('customer_id', $customerId)->exists(),
             default         => false,
         };
     }
@@ -171,35 +171,22 @@ class ProjectLinkController extends Controller
      */
     private function resolveSummary(string $type, int $id): ?array
     {
-        $model = match ($type) {
-            'order'  => Order::with('customer:id,first_name,last_name')
-                ->select('id', 'order_number', 'project_name', 'status', 'customer_id')
-                ->find($id),
-            default  => null,
+        $found = match ($type) {
+            'order' => app(OrderSummaryService::class)->summaries([$id])->get($id),
+            default => null,
         };
 
-        if (!$model) return null;
-
-        $documentNumber = match ($type) {
-            'order'         => $model->order_number,
-            default         => null,
-        };
-
-        // Derive a human-readable name from the fields that actually exist
-        $name = match ($type) {
-            'order'         => $model->project_name ?: $model->order_number,
-            default         => null,
-        };
+        if (! $found) {
+            return null;
+        }
 
         return [
-            'id'              => $model->id,
-            'document_number' => $documentNumber,
-            'name'            => $name,
-            'status'          => $model->status,
-            'customer_id'     => $model->customer_id,
-            'customer_name'   => $model->customer
-                ? trim($model->customer->first_name . ' ' . $model->customer->last_name)
-                : null,
+            'id'              => $id,
+            'document_number' => $found['number'],
+            'name'            => $found['number'],
+            'status'          => $found['status'],
+            'customer_id'     => $found['customer_id'],
+            'customer_name'   => $found['customer_name'],
         ];
     }
 
@@ -209,16 +196,9 @@ class ProjectLinkController extends Controller
      */
     private function resolveName(string $type, int $id): ?string
     {
-        $model = match ($type) {
-            'order'         => Order::select('id', 'order_number', 'project_name')->find($id),
-            default         => null,
-        };
-
-        if (!$model) return null;
-
         return match ($type) {
-            'order'         => $model->project_name ?: $model->order_number,
-            default         => null,
+            'order' => app(OrderSummaryService::class)->summaries([$id])->get($id)['number'] ?? null,
+            default => null,
         };
     }
 }

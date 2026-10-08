@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Traits;
 
-use App\Models\Order;
+use App\Services\Books\OrderSummaryService;
 use App\Models\ProjectItem;
 use App\Models\ProjectMilestone;
 use Illuminate\Support\Collection;
@@ -27,14 +27,12 @@ trait ResolvesTaskRelations
 
             $resolved[$type] = match ($type) {
 
-                'order' => Order::whereIn('id', $ids)
-                    ->get(['id', 'order_number', 'status'])
-                    ->keyBy('id')
+                'order' => app(OrderSummaryService::class)->summaries($ids)
                     ->map(fn($m) => [
-                        'name'            => $m->order_number,
+                        'name'            => $m['number'],
                         'title'           => null,
-                        'document_number' => $m->order_number,
-                        'status'          => $m->status,
+                        'document_number' => $m['number'],
+                        'status'          => $m['status'],
                     ]),
 
                 'project_item' => ProjectItem::whereIn('id', $ids)

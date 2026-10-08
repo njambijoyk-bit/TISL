@@ -208,10 +208,6 @@ const PromoCodeDetail    = lazy(() => import('./core/pages/admin/referrals/Promo
 const AdminTickets       = lazy(() => import('./core/pages/admin/Tickets'));
 const AdminTicketDetail  = lazy(() => import('./core/pages/admin/TicketDetail'));
 const ActivityLogs       = lazy(() => import('./core/pages/admin/ActivityLogs'));
-const PaymentsDashboard  = lazy(() => import('./core/pages/admin/finance/PaymentsDashboard'));
-const PaymentDetail      = lazy(() => import('./core/pages/admin/finance/PaymentDetail'));
-const OrderPaymentsPanel = lazy(() => import('./core/pages/admin/finance/OrderPaymentsPanel'));
-const InitiatePaymentModal = lazy(() => import('./core/pages/admin/finance/InitiatePaymentModal'));
 const LoyaltyLedger        = lazy(() => import('./core/pages/admin/LoyaltyLedger'));
 const LoyaltySettings      = lazy(() => import('./core/pages/admin/LoyaltySettings'));
 const LoyaltyLedgerDetail  = lazy(() => import('./core/pages/admin/LoyaltyLedgerDetail'));
@@ -1193,24 +1189,6 @@ function App() {
 
               {/* Payments Dashboard */}
               <Route path="/admin/finance/payments" element={<ProtectedRoute requireAdmin roles={FINANCE_READ}><OrdersRegister initial="receipt" /></ProtectedRoute>} />
-              {/* Payment Detail */}
-              <Route
-                path="/admin/finance/payments/:id"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <PaymentDetail />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Order Payment History (embedded panel) */}
-              <Route
-                path="/admin/orders/:id/payments"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <OrderPaymentsPanel />
-                  </ProtectedRoute>
-                }
-              />
 
               {/* Projects */}
               <Route

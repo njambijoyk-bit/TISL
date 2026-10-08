@@ -1012,7 +1012,9 @@ Route::middleware('auth:sanctum')->group(function () {
         
         Route::get('/users', [AuthController::class, 'getAdminUsers']);
       
-        Route::get('/customers/{customerId}/orders', [OrderController::class, 'adminCustomerOrders']);
+        Route::get('/customers/{customerId}/orders', [\App\Http\Controllers\Api\CustomerOrderController::class, 'index'])->whereNumber('customerId');
+        Route::get('/order-options', [\App\Http\Controllers\Api\CustomerOrderController::class, 'options']);
+        Route::get('/customers/{customerId}/order-statistics', [\App\Http\Controllers\Api\CustomerOrderController::class, 'statistics'])->whereNumber('customerId');
         // Products Management
         Route::prefix('products')->middleware('module:ecommerce')->group(function () {
             Route::post('/', [ProductController::class, 'store']);

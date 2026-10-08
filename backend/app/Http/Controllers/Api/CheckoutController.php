@@ -279,18 +279,6 @@ class CheckoutController extends Controller
 
     private function orderRow(Voucher $v): array
     {
-        $live = $v->children->where('status', Voucher::POSTED);
-        $paid = $live->contains(fn ($c) => $c->type?->base_type === VoucherType::CASH_SALE);
-        $invoice = $live->first(fn ($c) => $c->type?->base_type === VoucherType::SALES);
-        if ($invoice) {
-            $paid = $this->vouchers->outstanding($invoice) <= 0.005;
-        }
-        $delivered = $live->contains(fn ($c) => $c->type?->base_type === VoucherType::DELIVERY_NOTE) || ($v->fulfilment_status === 'closed');
-
-        return [
-            'id' => $v->id, 'number' => $v->voucher_number, 'date' => $v->date?->toDateString(), 'currency' => $v->currency?->only(['code', 'symbol']), 'total' => (float) $v->total_amount,
-            'status' => $v->status === Voucher::CANCELLED ? 'cancelled' : ($delivered ? 'delivered' : ($paid ? 'paid' : 'placed')),
-            'payment' => $paid ? 'paid' : ($invoice ? 'invoiced' : 'unpaid'), 'stock_pending' => (bool) ($v->meta['stock_pending'] ?? false),
-        ];
+        return app(\App\Services\Books\OrderSummaryService::class)->row($v);
     }
 }

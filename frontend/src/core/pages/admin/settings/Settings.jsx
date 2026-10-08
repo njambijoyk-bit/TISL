@@ -1125,11 +1125,9 @@ function RouteMapAppendix() {
       ]} />
 
       <RouteGroup title="5. Admin — Orders & Payments" routes={[
-        { path: '/admin/orders',                    comp: 'OrderController@index' },
-        { path: '/admin/orders/:id',                comp: 'OrderController@adminShow' },
-        { path: '/admin/orders/:id/payments',       comp: 'PaymentController@orderPayments' },
-        { path: '/admin/finance/payments',          comp: 'PaymentController@index' },
-        { path: '/admin/finance/payments/:id',      comp: 'PaymentController@show' },
+        { path: '/admin/orders',                    comp: 'OrdersRegister' },
+        { path: '/admin/orders/:id',                comp: 'VoucherView' },
+        { path: '/admin/finance/payments',          comp: 'OrdersRegister (receipts)' },
       ]} />
 
       <RouteGroup title="6. Admin — Products, Brands & Categories" routes={[
@@ -1264,8 +1262,6 @@ function RouteMapAppendix() {
       <RoleGroup role="FINANCE" description="Payment operations and financial audit only."
         pages={[
           { path: '/admin/finance/payments',         label: 'Finance Dashboard — M-Pesa logs' },
-          { path: '/admin/finance/payments/:id',     label: 'Payment Detail — dispute resolution' },
-          { path: '/admin/orders/:id/payments',      label: 'Order Payment History' },
           { path: '/admin/orders',                   label: 'Orders — view only for payment context' },
           { path: '/admin/products',                 label: 'Catalog — view only', gated: true },
           { path: '/admin/customers',                label: 'CRM — financial data view' },

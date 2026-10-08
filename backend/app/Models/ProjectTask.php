@@ -40,7 +40,7 @@ class ProjectTask extends Model
         return match ($this->related_type) {
             'project_item' => ProjectItem::query()->find($this->related_id),
             'milestone'    => ProjectMilestone::query()->find($this->related_id),
-            'order'        => Order::query()->find($this->related_id),
+            'order'        => \App\Models\Books\Voucher::query()->find($this->related_id),
             default        => null,
         };
     }

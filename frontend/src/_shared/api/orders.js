@@ -1,25 +1,15 @@
 import api from './axios';
 
 /**
- * Read-only views of the retired order tables that a few screens still use (customer history, activity feed,
- * report counts, project links, delivery). Orders are made, changed and paid as vouchers now (see booksAPI /
- * checkoutAPI); nothing here creates or edits an order.
+ * A customer's orders and the orders to pick from when linking projects. Orders are Sales Order vouchers (see booksAPI / checkoutAPI for
+ * making and paying them); nothing here creates or edits an order.
  */
 const ordersAPI = {
-  getAllOrders: async (params = {}) => {
-    const { data } = await api.get('/admin/orders', { params });
-    return data; // { data: [], meta: {} }
-  },
-
-  getOrderStatistics: async () => {
-    const { data } = await api.get('/admin/orders/statistics');
-    return data;
-  },
-
-  getAllOrderActivity: (params) => api.get('/admin/orders/activity', { params }).then((r) => r.data),
+  /** Orders to pick from: { data: [{ id, number, status, date, total, customer_id, customer }] }, narrowed to a customer when given. */
+  getOrderOptions: async (params = {}) => (await api.get('/admin/order-options', { params })).data,
 
   getCustomerOrderStatistics: async (customerId) => {
-    const { data } = await api.get(`/admin/orders/${customerId}/order-statistics`);
+    const { data } = await api.get(`/admin/customers/${customerId}/order-statistics`);
     return data;
   },
 

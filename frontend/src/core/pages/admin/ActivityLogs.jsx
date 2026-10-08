@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import api from '../../../_shared/api/axios';
-import ordersAPI from '../../../_shared/api/orders';
 import shippingAPI from '../../../_shared/api/shipping';
 import customerTiersAPI from '../../../_shared/api/customerTiers';
 import { format } from 'date-fns';
@@ -265,98 +264,6 @@ function MetadataExpander({ id, metadata, expanded, onToggle }) {
         </div>
       )}
     </>
-  );
-}
-
-
-// ══════════════════════════════════════════════════════════════════════════════
-//  ORDER LOGS TAB
-// ══════════════════════════════════════════════════════════════════════════════
-function OrderLogsTab() {
-  const navigate = useNavigate();
-  const [logs,     setLogs]     = useState([]);
-  const [meta,     setMeta]     = useState(null);
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
-  const [search,   setSearch]   = useState('');
-  const [severity, setSeverity] = useState('');
-  const [page,     setPage]     = useState(1);
-  const [expanded, setExpanded] = useState({});
-
-  const toggleExpand = (id) => setExpanded(p => ({ ...p, [id]: !p[id] }));
-
-  const fetchLogs = useCallback(async () => {
-    setLoading(true); setError('');
-    try {
-      const params = { page, per_page: 30 };
-      if (severity) params.severity = severity;
-      const data = await ordersAPI.getAllOrderActivity(params);
-      setLogs(data.data || []);
-      setMeta(data);
-    } catch { setError('Failed to load order activity logs.'); }
-    finally  { setLoading(false); }
-  }, [page, severity]);
-
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
-  useEffect(() => { setPage(1); }, [severity]);
-
-  const filtered = search
-    ? logs.filter(l =>
-        l.order?.order_number?.toLowerCase().includes(search.toLowerCase()) ||
-        l.action.toLowerCase().includes(search.toLowerCase()) ||
-        l.description.toLowerCase().includes(search.toLowerCase()) ||
-        (l.performed_by || '').toLowerCase().includes(search.toLowerCase())
-      )
-    : logs;
-
-  const GRID = '32px 120px 180px 1fr 140px 140px';
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'fadeUp 0.2s ease both' }}>
-      <Panel>
-        <div style={{ padding: '14px 18px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Filter size={14} color="#9ca3af" style={{ flexShrink: 0 }} />
-          <div style={{ position: 'relative', flex: '1 1 220px', minWidth: 180 }}>
-            <Search size={13} color="#9ca3af" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search order #, action, user…"
-              style={{ ...iStyle, width: '100%', paddingLeft: 30, boxSizing: 'border-box' }} onFocus={fIn} onBlur={fOut} />
-          </div>
-          <SeverityFilters severity={severity} setSeverity={setSeverity} />
-          <RefreshBtn onClick={fetchLogs} loading={loading} />
-        </div>
-      </Panel>
-
-      <Panel>
-        <TableHead cols={['', 'Severity', 'Order', 'Action / Description', 'Performed by', 'Timestamp']} gridCols={GRID} />
-        <StateDisplay loading={loading} error={error} empty={!loading && !error && filtered.length === 0} onRetry={fetchLogs} />
-        {!loading && !error && filtered.map((log, i) => (
-          <div key={log.id} className="al-row" style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border, #f3f4f6)' : 'none' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: GRID, gap: 12, padding: '12px 18px', alignItems: 'center', cursor: 'pointer' }}
-              onClick={() => log.order?.id && navigate(`/admin/orders/${log.order.id}`)}>
-              <SeverityCell sev={log.severity} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <Hash size={11} color="#9ca3af" />
-                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: purple }}>
-                  {log.order?.order_number || `Order ${log.order_id}`}
-                </span>
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text, #111827)', margin: '0 0 2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {log.action.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
-                </p>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {log.description}
-                </p>
-              </div>
-              <ActorCell name={log.performed_by} />
-              <TimeCell ts={log.created_at} />
-            </div>
-            <MetadataExpander id={log.id} metadata={log.metadata} expanded={expanded} onToggle={toggleExpand} />
-          </div>
-        ))}
-        <PaginationBar meta={meta} page={page} setPage={setPage} loading={loading} />
-      </Panel>
-    </div>
   );
 }
 
@@ -975,7 +882,6 @@ function TierLogsTab() {
 // ══════════════════════════════════════════════════════════════════════════════
 const TABS = [
   { id: 'all',       label: 'All activity', icon: Clock   },
-  { id: 'orders',    label: 'Orders',    icon: FileText  },
   { id: 'hampers',   label: 'Hampers',   icon: Package   },
   { id: 'auctions',  label: 'Auctions',  icon: Gavel     },
   { id: 'referrals', label: 'Referrals', icon: Gift      },
@@ -983,7 +889,7 @@ const TABS = [
   { id: 'tiers',     label: 'Tiers',     icon: Crown     },
 ];
 
-const TAB_SOURCE = { orders: 'order_activity', hampers: 'hamper_activity', auctions: 'auction_order_activity', referrals: 'referral_activity', shipping: 'shipping', tiers: 'customer_tier' };
+const TAB_SOURCE = { hampers: 'hamper_activity', auctions: 'auction_order_activity', referrals: 'referral_activity', shipping: 'shipping', tiers: 'customer_tier' };
 
 export default function ActivityLogs() {
   const navigate = useNavigate();
@@ -1059,7 +965,6 @@ export default function ActivityLogs() {
       </div>
 
       {activeTab === 'all'       && <ActivityFeed sources={sources} onSources={setSources} />}
-      {activeTab === 'orders'    && <OrderLogsTab />}
       {activeTab === 'hampers'   && <HamperLogsTab />}
       {activeTab === 'auctions'  && <AuctionLogsTab />}
       {activeTab === 'referrals' && <ReferralLogsTab />}
