@@ -40,7 +40,7 @@ class LoyaltyPolicy
      */
     public function grantPoints(User $user): bool
     {
-        return in_array($user->role, [
+        return $user->holdsAny([
             'super_admin', 'admin', 'manager', 'finance', 'sales_rep',
         ]);
     }
@@ -51,7 +51,7 @@ class LoyaltyPolicy
      */
     public function deductPoints(User $user): bool
     {
-        return in_array($user->role, [
+        return $user->holdsAny([
             'super_admin', 'admin', 'manager', 'finance',
         ]);
     }
@@ -61,7 +61,7 @@ class LoyaltyPolicy
      */
     public function grantCredit(User $user): bool
     {
-        return in_array($user->role, [
+        return $user->holdsAny([
             'super_admin', 'admin', 'manager', 'finance',
         ]);
     }
@@ -71,7 +71,7 @@ class LoyaltyPolicy
      */
     public function deductCredit(User $user): bool
     {
-        return in_array($user->role, [
+        return $user->holdsAny([
             'super_admin', 'admin', 'manager', 'finance',
         ]);
     }
@@ -83,7 +83,7 @@ class LoyaltyPolicy
     public function redeem(User $user, Customer $customer): bool
     {
         // Admin can redeem for any customer
-        if (in_array($user->role, ['super_admin', 'admin', 'manager', 'finance', 'sales_rep'])) {
+        if ($user->holdsAny(['super_admin', 'admin', 'manager', 'finance', 'sales_rep'])) {
             return true;
         }
 
@@ -97,7 +97,7 @@ class LoyaltyPolicy
      */
     public function configureSettings(User $user): bool
     {
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     /**
@@ -105,7 +105,7 @@ class LoyaltyPolicy
      */
     public function export(User $user): bool
     {
-        return in_array($user->role, [
+        return $user->holdsAny([
             'super_admin', 'admin', 'manager', 'finance',
         ]);
     }

@@ -35,7 +35,7 @@ class VendorPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->role, ['super_admin', 'admin', 'manager']);
+        return $user->holdsAny(['super_admin', 'admin', 'manager']);
     }
 
     /**
@@ -74,7 +74,7 @@ class VendorPolicy
      */
     public function approve(User $user, Vendor $vendor): bool
     {
-        return in_array($user->role, ['super_admin', 'admin', 'manager']);
+        return $user->holdsAny(['super_admin', 'admin', 'manager']);
     }
 
     /**

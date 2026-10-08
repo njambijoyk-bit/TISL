@@ -38,7 +38,7 @@ class StockSettingsController extends Controller
                 'name' => $names[$o->scope][$o->scope_id] ?? '(deleted)', 'settings' => $o->settings,
             ])->values(),
             'roles' => DB::table('users')->whereNotNull('role')->where('role', '!=', 'customer')->distinct()->pluck('role')
-                ->merge(['manager', 'admin', 'super_admin', 'finance'])->unique()->values(),
+                ->merge(['manager', 'admin', 'super_admin', 'finance'])->merge(app(\App\Services\Access\Authorizer::class)->staffRoleKeys())->unique()->values(),
         ]);
     }
 

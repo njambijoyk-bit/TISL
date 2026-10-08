@@ -18,7 +18,6 @@ use Illuminate\Validation\Rule;
  */
 class LocationController extends Controller
 {
-    private const STAFF_ROLES = ['admin', 'super_admin', 'manager', 'finance', 'logistics', 'sales_rep'];
 
     /** Admin list. */
     public function index()
@@ -41,7 +40,7 @@ class LocationController extends Controller
         return response()->json([
             'currencies'    => Currency::where('is_active', true)->get(['id', 'code', 'name', 'symbol', 'is_base']),
             'tax_districts' => TaxDistrict::where('is_active', true)->orderBy('name')->get(['id', 'name', 'level', 'locale']),
-            'staff'         => User::whereIn('role', self::STAFF_ROLES)->orderBy('name')->get(['id', 'name', 'email', 'role']),
+            'staff'         => User::staffAccounts(['driver'])->orderBy('name')->get(['id', 'name', 'email', 'role']),
             'kinds'         => Location::KINDS,
             'kind_defaults' => Location::KIND_DEFAULTS,
             'capabilities_ready' => Location::hasCapabilities(),
@@ -235,7 +234,7 @@ class LocationController extends Controller
 
     private function cleanStaffIds(array $ids): array
     {
-        return User::whereIn('id', $ids)->whereIn('role', self::STAFF_ROLES)->pluck('id')->all();
+        return User::whereIn('id', $ids)->staffAccounts(['driver'])->pluck('id')->all();
     }
 
     private function present(Location $l, bool $full = false): array

@@ -208,7 +208,7 @@ class DeliveryStatsController extends Controller
         $manifest = DeliveryManifest::findOrFail($manifestId);
         $user     = Auth::user();
 
-        $isAdmin      = $user->role === 'admin';
+        $isAdmin      = $user->holdsAny(['admin']);
         $isOwnDriver  = $manifest->driver_id === $user->id;
 
         if (! $isAdmin && ! $isOwnDriver)

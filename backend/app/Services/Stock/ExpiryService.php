@@ -124,7 +124,7 @@ class ExpiryService
         $byBatch = $batches->keyBy('id');
         $made = 0;
 
-        foreach (User::whereIn('role', $roles)->get() as $user) {
+        foreach (User::holding($roles)->get() as $user) {
             $cleared = DB::table('location_user')->where('user_id', $user->id)->pluck('location_id')->map(fn ($x) => (int) $x)->all();
             $mine = $rows->filter(fn ($r) => ! $cleared || in_array((int) $r->location_id, $cleared, true));   // no branch clearance = every branch
             if ($mine->isEmpty()) {

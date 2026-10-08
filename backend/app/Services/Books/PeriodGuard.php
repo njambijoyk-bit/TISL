@@ -37,14 +37,14 @@ class PeriodGuard
             return; // system actions (e.g. a customer's checkout) are not role-limited
         }
 
-        $limit = $this->limitFor($user->role, $voucherTypeId);
-        $maxDays = $limit ? $limit->max_days_back : $settings->edit_window_days;
+        $limit = $this->limitForUser($user, $voucherTypeId);
+        $maxDays = $limit ? $limit['max_days_back'] : $settings->edit_window_days;
 
         if ($limit) {
-            if ($action === 'cancel' && ! $limit->can_cancel) {
+            if ($action === 'cancel' && ! $limit['can_cancel']) {
                 throw new BooksException('Your role can not cancel vouchers.');
             }
-            if ($action === 'edit' && ! $limit->can_edit) {
+            if ($action === 'edit' && ! $limit['can_edit']) {
                 throw new BooksException('Your role can not edit vouchers.');
             }
         }
@@ -80,6 +80,34 @@ class PeriodGuard
     public function assertVoucher(string $action, Voucher $voucher, ?User $user): void
     {
         $this->assert($action, $voucher->date, $user, $voucher->voucher_type_id);
+    }
+
+    /**
+     * The edit window that applies to a person: the most generous of the limits set for the roles they hold (their main role and the extra
+     * roles in force). Roles with no limit set fall back to the default window, so they are left out. Null when none of their roles has one.
+     *
+     * @return array{max_days_back: ?int, can_edit: bool, can_cancel: bool}|null
+     */
+    private function limitForUser(User $user, ?int $typeId): ?array
+    {
+        $keys = collect(app(\App\Services\Access\Authorizer::class)->roles($user))->pluck('key')->prepend($user->role)->filter()->unique();
+        $best = null;
+        foreach ($keys as $key) {
+            $l = $this->limitFor($key, $typeId);
+            if (! $l) {
+                continue;
+            }
+            $row = ['max_days_back' => $l->max_days_back === null ? null : (int) $l->max_days_back, 'can_edit' => (bool) $l->can_edit, 'can_cancel' => (bool) $l->can_cancel];
+            if (! $best) {
+                $best = $row;
+                continue;
+            }
+            $best['max_days_back'] = ($best['max_days_back'] === null || $row['max_days_back'] === null) ? null : max($best['max_days_back'], $row['max_days_back']);
+            $best['can_edit'] = $best['can_edit'] || $row['can_edit'];
+            $best['can_cancel'] = $best['can_cancel'] || $row['can_cancel'];
+        }
+
+        return $best;
     }
 
     private function limitFor(?string $role, ?int $typeId): ?VoucherEditLimit

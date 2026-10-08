@@ -196,7 +196,7 @@ class UserController extends Controller
                 'password_changed_at'   => now(),
             ]);
 
-            if ($user->role === 'customer') {
+            if ($user->holdsAny(['customer'])) {
                 $nameParts = explode(' ', $user->name, 2);
                 Customer::create([
                     'user_id'         => $user->id,
@@ -208,7 +208,7 @@ class UserController extends Controller
                     'company_name'    => $user->company_name ?? '',
                 ]);
 
-            } elseif ($user->role === 'vendor') {                      // ← NEW branch
+            } elseif ($user->holdsAny(['vendor'])) {                      // ← NEW branch
                 $vendor = Vendor::create([
                     'user_id'            => $user->id,
                     'vendor_number'      => Vendor::generateVendorNumber(),
@@ -224,7 +224,7 @@ class UserController extends Controller
                 ]);
                 app(\App\Services\Books\LedgerService::class)->vendorLedger($vendor);   // every vendor is a Sundry Creditors ledger
 
-            } elseif ($user->role === 'driver') {
+            } elseif ($user->holdsAny(['driver'])) {
             // Driver is portal-only — no profile record until delivery system is built
             // User record alone is sufficient for now, and avoids cluttering.
 

@@ -576,7 +576,7 @@ class HamperController extends Controller
 
         // reactivating a blacklisted customer requires admin role
         if ($row->status === 'blacklisted' && $request->status === 'active') {
-            if (auth()->user()->role !== 'admin' && auth()->user()->role !== 'super_admin') {
+            if (! auth()->user()->holdsAny(['admin']) && ! auth()->user()->holdsAny(['super_admin'])) {
                 return response()->json(['message' => 'Only admin can reactivate a blacklisted customer'], 403);
             }
             $row->update([

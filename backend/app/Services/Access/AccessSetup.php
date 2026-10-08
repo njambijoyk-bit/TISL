@@ -22,10 +22,11 @@ class AccessSetup
                 throw new \RuntimeException("The table {$t} is missing. Run database/sql/98_access_engine.sql first.");
             }
         }
-        $done = ['levels' => 0, 'permissions' => 0, 'roles' => 0, 'users' => 0, 'grants' => 0, 'unknown_roles' => 0];
+        $done = ['levels' => 0, 'permissions' => 0, 'roles' => 0, 'users' => 0, 'grants' => 0, 'unknown_roles' => 0, 'new_grants' => 0];
         $now = now();
+        $stored = (int) DB::table('access_meta')->where('id', 1)->value('catalog_version');
 
-        DB::transaction(function () use (&$done, $now) {
+        DB::transaction(function () use (&$done, $now, $stored) {
             foreach (Catalog::LEVELS as $level => [$name, $desc]) {
                 if (! DB::table('clearance_levels')->where('level', $level)->exists()) {
                     DB::table('clearance_levels')->insert(['level' => $level, 'name' => $name, 'description' => $desc, 'created_at' => $now, 'updated_at' => $now]);
@@ -67,6 +68,15 @@ class AccessSetup
                     // the owner always holds every permission there is
                     foreach (array_keys(Catalog::PERMISSIONS) as $p) {
                         DB::table('role_permissions')->updateOrInsert(['role_id' => $existing->id, 'permission_key' => $p], []);
+                    }
+                } elseif ($existing->is_system) {
+                    // a permission added since the last load goes to the built-in roles that hold it by default, once; older ones are left as the admin set them
+                    $perms = $r['permissions'] === '*' ? array_keys(Catalog::PERMISSIONS) : $r['permissions'];
+                    foreach ($perms as $p) {
+                        if (Catalog::since($p) > $stored && ! DB::table('role_permissions')->where('role_id', $existing->id)->where('permission_key', $p)->exists()) {
+                            DB::table('role_permissions')->insert(['role_id' => $existing->id, 'permission_key' => $p]);
+                            $done['new_grants']++;
+                        }
                     }
                 }
             }

@@ -45,7 +45,7 @@ trait LogsReferralActivity
     {
         if (!$user) return 'system';
         $adminRoles = ['super_admin', 'admin', 'finance', 'logistics', 'driver'];
-        return in_array($user->role, $adminRoles) ? 'admin' : 'customer';
+        return $user->holdsAny($adminRoles) ? 'admin' : 'customer';
     }
 
     // ─────────────────────────────────────────────────────────────────────────

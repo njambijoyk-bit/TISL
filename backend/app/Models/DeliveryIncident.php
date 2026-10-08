@@ -117,13 +117,13 @@ class DeliveryIncident extends Model
             return $this->getRawOriginal('description');
         }
 
-        if ($user->role === 'driver' && $this->driver_can_see) {
+        if ($user->holdsAny(['driver']) && $this->driver_can_see) {
             return $this->is_redacted
                 ? $this->redacted_description
                 : $this->getRawOriginal('description');
         }
 
-        if ($user->role === 'customer' && $this->customer_can_see) {
+        if ($user->holdsAny(['customer']) && $this->customer_can_see) {
             return $this->is_redacted
                 ? $this->redacted_description
                 : $this->getRawOriginal('description');

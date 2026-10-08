@@ -37,7 +37,7 @@ class CustomerDiscountPack implements InsightPack
     {
         $c = Customer::findOrFail($context['id']);
         // a sales rep's customers only; everyone else not allowed is told "not found" by the registry's caller
-        if ($user->role === 'sales_rep' && (int) $c->assigned_sales_rep !== (int) $user->id) {
+        if ($user->dataScope() !== 'all' && (int) $c->assigned_sales_rep !== (int) $user->id) {
             throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found.');
         }
         $b = LoyaltyData::baseCode();
@@ -99,7 +99,7 @@ class CustomerDiscountPack implements InsightPack
         }
 
         // what they owe (not for sales reps)
-        if (in_array($user->role, ['super_admin', 'admin', 'manager', 'finance'], true)) {
+        if ($user->holdsAny(['super_admin', 'admin', 'manager', 'finance'])) {
             $ledger = \App\Models\Books\Ledger::where('customer_id', $c->id)->first();
             if ($ledger) {
                 $owed = app(\App\Services\Books\LedgerService::class)->balance($ledger->id);

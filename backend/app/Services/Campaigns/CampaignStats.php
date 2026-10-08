@@ -20,7 +20,7 @@ class CampaignStats
 
     public function record(Campaign $c, string $event, ?int $sectionId, ?User $user, Request $r): void
     {
-        if (! in_array($event, self::EVENTS, true) || ($user && ! in_array($user->role, ['customer', 'applicant'], true))) {
+        if (! in_array($event, self::EVENTS, true) || ($user && ! $user->holdsAny(['customer', 'applicant']))) {
             return;   // staff looking at their own campaign must not inflate it
         }
         $who = $user ? 'u' . $user->id : 'ip' . $r->ip() . substr((string) $r->userAgent(), 0, 80);

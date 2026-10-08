@@ -28,7 +28,7 @@ class InsightRegistry
 
     public function allowed(InsightPack $p, ?User $u): bool
     {
-        if (! $u || ! in_array($u->role, $p->roles(), true)) {
+        if (! $u || ! $u->holdsAny($p->roles())) {
             return false;
         }
 

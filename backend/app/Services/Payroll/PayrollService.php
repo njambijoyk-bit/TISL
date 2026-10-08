@@ -44,7 +44,7 @@ class PayrollService
 
     public static function isManager(?User $u): bool
     {
-        return $u && in_array($u->role, self::MANAGERS, true);
+        return $u && $u->holdsAny(self::MANAGERS);
     }
 
     private function need(): void

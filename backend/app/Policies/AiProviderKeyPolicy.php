@@ -10,13 +10,13 @@ class AiProviderKeyPolicy
     // Only super_admin can manage keys
     public function manage(User $user): bool
     {
-        return $user->role === 'super_admin';
+        return $user->holdsAny(['super_admin']);
     }
 
     // All admins can view which key is active (not the key itself)
     public function view(User $user): bool
     {
-        return in_array($user->role, [
+        return $user->holdsAny([
             'super_admin', 'admin', 'manager', 'sales_rep', 'driver', 'logistics', 'finance',
         ]);
     }

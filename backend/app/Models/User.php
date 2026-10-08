@@ -289,15 +289,21 @@ class User extends Authenticatable
     // ========================================
 
     /**
+     * Does this person hold any of these roles (by the older role names)? Counts the main role, the extra roles in force, and the names a role
+     * still stands for (a Senior accountant counts as Finance). Use hasPermission() for new checks.
+     */
+    public function holdsAny(array $roles): bool
+    {
+        return app(\App\Services\Access\Authorizer::class)->hasAnyRole($this, $roles);
+    }
+
+    /**
      * Check if user is an admin (any admin role).
+     * Means "may open the admin area": anyone holding admin.access, plus drivers (who have their own screens there).
      */
     public function isAdmin(): bool
     {
-        // Core admin roles that can access the admin panel generally
-        return in_array($this->role, [
-            'super_admin', 'admin', 'manager', 'sales_rep',
-            'finance', 'logistics', 'driver',
-        ]);
+        return $this->role === 'driver' || app(\App\Services\Access\Authorizer::class)->allows($this, 'admin.access');
     }
 
     /**
@@ -305,7 +311,7 @@ class User extends Authenticatable
      */
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'super_admin';
+        return $this->holdsAny(['super_admin']);
     }
 
     /**
@@ -321,7 +327,7 @@ class User extends Authenticatable
      */
     public function isSalesRep(): bool
     {
-        return $this->role === 'sales_rep';
+        return $this->holdsAny(['sales_rep']);
     }
 
     /**
@@ -329,7 +335,7 @@ class User extends Authenticatable
      */
     public function isManager(): bool
     {
-        return $this->role === 'manager';
+        return $this->holdsAny(['manager']);
     }
 
     /**
@@ -342,12 +348,12 @@ class User extends Authenticatable
 
     public function isFinance(): bool
     {
-        return $this->role === 'finance';
+        return $this->holdsAny(['finance']);
     }
 
     public function isLogistics(): bool
     {
-        return $this->role === 'logistics';
+        return $this->holdsAny(['logistics']);
     }
 
     public function isDriver(): bool
@@ -362,10 +368,7 @@ class User extends Authenticatable
      */
     public function isStaff(): bool
     {
-        return in_array($this->role, [
-            'super_admin', 'admin', 'manager', 'sales_rep',
-            'finance', 'logistics', 'driver',
-        ]);
+        return $this->isAdmin();
     }
 
     /**
@@ -373,7 +376,7 @@ class User extends Authenticatable
      */
     public function isOperational(): bool
     {
-        return in_array($this->role, ['finance', 'logistics']);
+        return $this->holdsAny(['finance', 'logistics']);
     }
 
     /**
@@ -388,15 +391,16 @@ class User extends Authenticatable
     // PERMISSION HELPERS
     // ========================================
 
+    /** Which records inside a branch they may see: 'all', 'assigned' (their own customers, for example) or 'own'. The widest of their roles. */
+    public function dataScope(): string
+    {
+        return app(\App\Services\Access\Authorizer::class)->dataScope($this);
+    }
+
+    /** May this person do this (for example 'books.post')? Answered by the authorization engine from the roles they hold. */
     public function hasPermission(string $permission): bool
     {
-        // Super admin has all permissions
-        if ($this->isSuperAdmin()) {
-            return true;
-        }
-
-        $permissions = $this->permissions ?? [];
-        return in_array($permission, $permissions);
+        return app(\App\Services\Access\Authorizer::class)->allows($this, $permission);
     }
 
     /**
@@ -404,22 +408,22 @@ class User extends Authenticatable
      */
     public function canProcessPayments(): bool
     {
-        return in_array($this->role, ['super_admin', 'admin', 'finance']);
+        return $this->holdsAny(['super_admin', 'admin', 'finance']);
     }
 
     public function canProcessRefunds(): bool
     {
-        return in_array($this->role, ['super_admin', 'finance']);
+        return $this->holdsAny(['super_admin', 'finance']);
     }
 
     public function canUpdateCurrencyRates(): bool
     {
-        return in_array($this->role, ['super_admin', 'finance']);
+        return $this->holdsAny(['super_admin', 'finance']);
     }
 
     public function canViewFinancialReports(): bool
     {
-        return in_array($this->role, ['super_admin', 'admin', 'finance']);
+        return $this->holdsAny(['super_admin', 'admin', 'finance']);
     }
 
     /**
@@ -427,12 +431,12 @@ class User extends Authenticatable
      */
     public function canManageDeliveries(): bool
     {
-        return in_array($this->role, ['super_admin', 'admin', 'logistics']);
+        return $this->holdsAny(['super_admin', 'admin', 'logistics']);
     }
 
     public function canAssignDrivers(): bool
     {
-        return in_array($this->role, ['super_admin', 'admin', 'logistics']);
+        return $this->holdsAny(['super_admin', 'admin', 'logistics']);
     }
 
     /**
@@ -640,14 +644,39 @@ class User extends Authenticatable
     // ========================================
 
     /**
-     * Scope to get only admin users.
+     * Scope to get only admin users: every staff account (the original staff roles and any role added since).
      */
     public function scopeAdmins($query)
     {
-        return $query->whereIn('role', [
-            'super_admin', 'admin', 'manager', 'sales_rep',
-            'finance', 'logistics', 'driver',
-        ]);
+        return $query->whereIn('role', app(\App\Services\Access\Authorizer::class)->staffRoleKeys());
+    }
+
+    /** Staff accounts whose main role is one of the staff roles in the roles table (all of them unless some are named in $except). */
+    public function scopeStaffAccounts($query, array $except = [])
+    {
+        return $query->whereIn('role', array_values(array_diff(app(\App\Services\Access\Authorizer::class)->staffRoleKeys(), $except)));
+    }
+
+    /**
+     * People who hold any of these roles (by the older role names): main role, extra roles in force, and roles that still stand for them
+     * (a Senior accountant counts as Finance). For "who do we notify / who can approve".
+     */
+    public function scopeHolding($query, array $roles)
+    {
+        $az = app(\App\Services\Access\Authorizer::class);
+        $keys = array_values(array_unique(array_merge($roles, $az->rolesActingAs($roles))));
+
+        return $query->where(function ($q) use ($keys) {
+            $q->whereIn('role', $keys);
+            if (\App\Services\Access\Authorizer::ready()) {
+                $q->orWhereIn('id', function ($s) use ($keys) {
+                    $s->select('ur.user_id')->from('user_roles as ur')->join('roles as r', 'r.id', '=', 'ur.role_id')
+                        ->whereIn('r.key', $keys)->where('r.is_active', 1)
+                        ->where(fn ($w) => $w->whereNull('ur.starts_at')->orWhere('ur.starts_at', '<=', now()))
+                        ->where(fn ($w) => $w->whereNull('ur.expires_at')->orWhere('ur.expires_at', '>', now()));
+                });
+            }
+        });
     }
 
     /**
@@ -729,8 +758,6 @@ class User extends Authenticatable
      */
     public function scopeMissingEmployee($query)
     {
-        return $query->whereIn('role', [
-            'admin', 'manager', 'sales_rep', 'finance', 'logistics',
-        ])->whereDoesntHave('employee');
+        return $query->staffAccounts(['super_admin', 'driver'])->whereDoesntHave('employee');
     }
 }

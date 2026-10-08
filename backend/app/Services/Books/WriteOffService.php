@@ -25,7 +25,7 @@ class WriteOffService
      */
     public function writeOff(array $items, string $kind, string $reason, ?User $user, ?string $date = null): Voucher
     {
-        if (! $user || ! in_array($user->role, self::ROLES, true)) {
+        if (! $user || ! $user->holdsAny(self::ROLES)) {
             throw new BooksException('Only finance or a super admin can write off a balance.');
         }
         if (! isset(self::KINDS[$kind])) {

@@ -597,7 +597,7 @@ class AuthController extends Controller
     public function getAdminUsers(Request $request)
     {
         // Simplified version for testing
-        $users = User::whereIn('role', ['super_admin', 'admin', 'manager', 'sales_rep'])
+        $users = User::holding(['super_admin', 'admin', 'manager', 'sales_rep'])
             ->select('id', 'name', 'email', 'role')
             ->get();
         

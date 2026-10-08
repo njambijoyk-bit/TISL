@@ -16,12 +16,12 @@ class CampaignAccess
 
     public static function canBuild(?User $u): bool
     {
-        return $u && in_array($u->role, self::BUILDERS, true);
+        return $u && $u->hasPermission('campaigns.build');
     }
 
     public static function canPublish(?User $u): bool
     {
-        return $u && in_array($u->role, self::PUBLISHERS, true);
+        return $u && $u->hasPermission('campaigns.publish');
     }
 
     public static function canEdit(?User $u, Campaign $c): bool

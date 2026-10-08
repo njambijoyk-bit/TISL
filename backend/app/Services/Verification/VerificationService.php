@@ -36,7 +36,7 @@ class VerificationService
 
     public static function isManager(?User $u): bool
     {
-        return $u && in_array($u->role, self::MANAGERS, true);
+        return $u && $u->holdsAny(self::MANAGERS);
     }
 
     private function need(): void
@@ -334,7 +334,7 @@ class VerificationService
         if ((int) $i->assigned_to !== $u->id) {
             return false;
         }
-        if ($u->role === 'super_admin') {
+        if ($u->holdsAny(['super_admin'])) {
             return true;
         }
         if ($i->subject_type === 'voucher') {

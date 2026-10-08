@@ -29,7 +29,7 @@ class CalendarService
 
     public static function isManager(?User $u): bool
     {
-        return $u && in_array($u->role, self::MANAGERS, true);
+        return $u && $u->holdsAny(self::MANAGERS);
     }
 
     /** Add or update the entry for a source (one per source, owner and resource). */

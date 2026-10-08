@@ -32,17 +32,17 @@ class PriceListService
 
     public static function canCreate(?User $u): bool
     {
-        return $u && in_array($u->role, self::CREATORS, true);
+        return $u && $u->hasPermission('catalogue.pricelists');
     }
 
     public static function canPublish(?User $u): bool
     {
-        return $u && in_array($u->role, self::PUBLISHERS, true);
+        return $u && $u->holdsAny(self::PUBLISHERS);
     }
 
     public static function canPurge(?User $u): bool
     {
-        return $u && in_array($u->role, self::PURGERS, true);
+        return $u && $u->holdsAny(self::PURGERS);
     }
 
     /** Publishers may change anything; anyone else only their own list while it is a draft. */
@@ -273,7 +273,7 @@ class PriceListService
             return [$manager];
         }
 
-        return User::whereIn('role', ['admin', 'super_admin'])->where('id', '!=', $authorId)->get()->all();
+        return User::holding(['admin', 'super_admin'])->where('id', '!=', $authorId)->get()->all();
     }
 
     /** Someone other than the author makes a waiting list live. */

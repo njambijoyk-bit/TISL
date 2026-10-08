@@ -14,7 +14,7 @@ class ProjectPolicy
      */
     private function isStaff(User $user): bool
     {
-        return in_array($user->role, ['super_admin', 'admin', 'manager', 'sales_rep', 'driver', 'logistics', 'finance',], true);
+        return $user->holdsAny(['super_admin', 'admin', 'manager', 'sales_rep', 'driver', 'logistics', 'finance',]);
     }
 
     /**
@@ -64,7 +64,7 @@ class ProjectPolicy
 
     private function isSuperAdmin(User $user): bool
     {
-        return $user->role === 'super_admin';
+        return $user->holdsAny(['super_admin']);
     }
 
     /**
@@ -103,7 +103,7 @@ class ProjectPolicy
      */
     public function create(User $user): bool
     {
-        return $this->isStaff($user) || in_array($user->role, ['customer'], true);
+        return $this->isStaff($user) || $user->holdsAny(['customer']);
     }
 
     /**
@@ -114,7 +114,7 @@ class ProjectPolicy
     public function update(User $user, Project $project): bool
     {
         if ($this->isStaff($user)) {
-            if (in_array($user->role, ['super_admin', 'admin'], true)) {
+            if ($user->holdsAny(['super_admin', 'admin'])) {
                 return true;
             }
 
@@ -143,11 +143,11 @@ class ProjectPolicy
      */
     public function delete(User $user, Project $project): bool
     {
-        if ($user->role === 'super_admin') {
+        if ($user->holdsAny(['super_admin'])) {
             return true;
         }
 
-        if ($user->role !== 'admin') {
+        if (! $user->holdsAny(['admin'])) {
             return false;
         }
 
@@ -166,7 +166,7 @@ class ProjectPolicy
      */
     public function viewTrashed(User $user): bool
     {
-        return in_array($user->role, ['super_admin', 'admin'], true);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     /**
@@ -176,7 +176,7 @@ class ProjectPolicy
      */
     public function restore(User $user, Project $project): bool
     {
-        return in_array($user->role, ['super_admin', 'admin'], true);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     /**
@@ -185,7 +185,7 @@ class ProjectPolicy
      */
     public function forceDelete(User $user, Project $project): bool
     {
-        return $user->role === 'super_admin';
+        return $user->holdsAny(['super_admin']);
     }
 
     // -----------------------------
@@ -247,7 +247,7 @@ class ProjectPolicy
     public function viewFinance(User $user, Project $project): bool
     {
         if ($this->isStaff($user)) {
-            if (in_array($user->role, ['super_admin', 'admin'], true)) {
+            if ($user->holdsAny(['super_admin', 'admin'])) {
                 return true;
             }
             $p = $this->participant($user, $project);

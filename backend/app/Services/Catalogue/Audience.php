@@ -45,7 +45,7 @@ class Audience
 
     public static function isStaff(?User $u): bool
     {
-        return $u && $u->role !== 'customer';
+        return $u && ! $u->holdsAny(['customer']);
     }
 
     /** May this viewer (null = a guest) see something set for this audience? Staff see everything. */

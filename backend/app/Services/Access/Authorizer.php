@@ -161,6 +161,28 @@ class Authorizer
         return array_values(array_unique($keys));
     }
 
+    /** The keys of roles that still stand for any of these older role names (Senior accountant for Finance). */
+    public function rolesActingAs(array $names): array
+    {
+        $found = [];
+        if (self::ready()) {
+            foreach (DB::table('roles')->whereNotNull('acts_as')->get(['key', 'acts_as']) as $r) {
+                if (array_intersect(json_decode($r->acts_as, true) ?: [], $names)) {
+                    $found[] = $r->key;
+                }
+            }
+
+            return $found;
+        }
+        foreach (Catalog::roles() as $key => $r) {
+            if (array_intersect($r['acts_as'], $names)) {
+                $found[] = $key;
+            }
+        }
+
+        return $found;
+    }
+
     public function hasAnyRole(User $u, array $keys): bool
     {
         return (bool) array_intersect($this->legacyKeys($u), $keys);

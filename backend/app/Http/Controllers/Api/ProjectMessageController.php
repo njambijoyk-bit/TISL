@@ -139,7 +139,7 @@ class ProjectMessageController extends Controller
         $user = auth()->user();
 
         // Permission check
-        $isSuperAdmin = $user->role === 'super_admin';
+        $isSuperAdmin = $user->holdsAny(['super_admin']);
         $isOwner      = $message->sender_user_id === $user->id;
 
         if (!$isSuperAdmin && !$isOwner) {
@@ -185,7 +185,7 @@ class ProjectMessageController extends Controller
         }
 
         $user         = auth()->user();
-        $isSuperAdmin = $user->role === 'super_admin';
+        $isSuperAdmin = $user->holdsAny(['super_admin']);
         $isStaff      = $this->isStaff();
         $isOwner      = $message->sender_user_id === $user->id;
 
@@ -230,7 +230,7 @@ class ProjectMessageController extends Controller
         ]);
 
         $user         = auth()->user();
-        $isSuperAdmin = $user->role === 'super_admin';
+        $isSuperAdmin = $user->holdsAny(['super_admin']);
         $isStaff      = $this->isStaff();
         $staffRoles   = ['super_admin', 'admin', 'manager', 'sales_rep'];
 
@@ -278,7 +278,7 @@ class ProjectMessageController extends Controller
     {
         $this->authorize('view', $project);
 
-        if (auth()->user()->role !== 'super_admin') {
+        if (! auth()->user()->holdsAny(['super_admin'])) {
             return response()->json(['message' => 'Only super admins can clear the chat.'], 403);
         }
 
@@ -298,7 +298,7 @@ class ProjectMessageController extends Controller
 
     private function isStaff(): bool
     {
-        return in_array(auth()->user()->role, ['super_admin', 'admin', 'manager', 'sales_rep'], true);
+        return auth()->user()->holdsAny(['super_admin', 'admin', 'manager', 'sales_rep']);
     }
 
     private function processAttachments(Request $request, array $validated): array

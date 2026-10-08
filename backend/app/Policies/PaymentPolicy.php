@@ -9,18 +9,18 @@ class PaymentPolicy
 {
     private function isSuperAdmin(User $user): bool
     {
-        return $user->role === 'super_admin';
+        return $user->holdsAny(['super_admin']);
     }
 
     private function isFinanceOrSuper(User $user): bool
     {
-        return in_array($user->role, ['finance', 'super_admin']);
+        return $user->holdsAny(['finance', 'super_admin']);
     }
 
     // ─── Who can see the payments list ───────────────────────────────────────
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, [
+        return $user->holdsAny([
             'super_admin', 'admin', 'manager', 'finance', 'sales_rep', 'logistics', 'driver'
         ]);
     }
@@ -28,19 +28,19 @@ class PaymentPolicy
     // ─── Who can see a single payment record ─────────────────────────────────
     public function view(User $user, Payment $payment): bool
     {
-        if (in_array($user->role, ['finance', 'admin', 'super_admin'])) {
+        if ($user->holdsAny(['finance', 'admin', 'super_admin'])) {
             // Super admin sees all, admin sees all, finance sees only their own
             return $this->isSuperAdmin($user) 
-                || $user->role === 'admin' 
+                || $user->holdsAny(['admin']) 
                 || $payment->initiated_by === $user->id;
         }
-        return in_array($user->role, ['manager']);
+        return $user->holdsAny(['manager']);
     }
 
     // ─── Who can initiate an STK push ────────────────────────────────────────
     public function create(User $user): bool
     {
-        return in_array($user->role, ['finance', 'admin', 'super_admin']);
+        return $user->holdsAny(['finance', 'admin', 'super_admin']);
     }
 
     // ─── Who can update pending/failed payments ───────────────────────────────
@@ -60,7 +60,7 @@ class PaymentPolicy
                 && in_array($payment->status, ['pending', 'failed', 'cancelled']);
         }
 
-        return $user->role === 'admin';
+        return $user->holdsAny(['admin']);
     }
 
     // ─── Who can cancel a pending push ───────────────────────────────────────
@@ -68,9 +68,9 @@ class PaymentPolicy
     {
         if ($payment->status !== 'pending') return false;
         
-        if (in_array($user->role, ['finance', 'admin', 'super_admin'])) {
+        if ($user->holdsAny(['finance', 'admin', 'super_admin'])) {
             return $this->isSuperAdmin($user) 
-                || $user->role === 'admin' 
+                || $user->holdsAny(['admin']) 
                 || $payment->initiated_by === $user->id;
         }
         return false;
@@ -80,7 +80,7 @@ class PaymentPolicy
     public function retry(User $user, Payment $payment): bool
     {
         if (!in_array($payment->status, ['failed', 'cancelled'])) return false;
-        return in_array($user->role, ['finance', 'admin', 'super_admin']);
+        return $user->holdsAny(['finance', 'admin', 'super_admin']);
     }
 
     // ─── Who can raise a dispute ──────────────────────────────────────────────
@@ -94,7 +94,7 @@ class PaymentPolicy
             return false;
         }
 
-        return in_array($user->role, ['finance', 'super_admin', 'admin']);
+        return $user->holdsAny(['finance', 'super_admin', 'admin']);
     }
 
     // ─── Who can resolve/reject a dispute ─────────────────────────────────────
@@ -106,17 +106,17 @@ class PaymentPolicy
 
         // Finance cannot resolve their own disputes — conflict of interest
         // Super admin is exempt from this restriction
-        if ($user->role === 'finance') {
+        if ($user->holdsAny(['finance'])) {
             return false;
         }
 
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     // ─── Who can append admin_notes ───────────────────────────────────────────
     public function addAdminNotes(User $user, Payment $payment): bool
     {
-        return in_array($user->role, ['super_admin', 'admin', 'manager']);
+        return $user->holdsAny(['super_admin', 'admin', 'manager']);
     }
 
     // ─── Nobody deletes payment records. Ever. ────────────────────────────────

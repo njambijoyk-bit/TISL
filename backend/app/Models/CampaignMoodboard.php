@@ -25,7 +25,7 @@ class CampaignMoodboard extends Model
     /** What staff may open: all staff moodboards, and a customer's once it is public. A customer's private one is only for admin and super admin (every look is logged). */
     public function scopeForStaff($q, ?User $by = null)
     {
-        if ($by && in_array($by->role, ['admin', 'super_admin'], true)) {
+        if ($by && $by->holdsAny(['admin', 'super_admin'])) {
             return $q;
         }
 

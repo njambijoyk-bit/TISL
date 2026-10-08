@@ -39,7 +39,7 @@ class CampaignAudience
         if (! $rule) {
             return true;
         }
-        if ($user && ! in_array($user->role, ['customer', 'applicant'], true)) {
+        if ($user && ! $user->holdsAny(['customer', 'applicant'])) {
             return true;
         }
         if (! empty($rule['signed_in']) && ! $user) {

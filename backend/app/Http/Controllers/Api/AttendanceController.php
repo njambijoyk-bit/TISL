@@ -34,7 +34,7 @@ class AttendanceController extends Controller
         $me = AttendanceService::ready() ? AttendanceDay::where('user_id', $u->id)->where('work_date', today()->toDateString())->first() : null;
         $s = AttendanceSetting::current();
 
-        return response()->json(['table_ready' => AttendanceService::ready(), 'is_super' => AttendanceService::isSuper($u), 'can_configure' => in_array($u->role, ['admin', 'super_admin'], true), 'kinds' => AttendanceDispute::KINDS,
+        return response()->json(['table_ready' => AttendanceService::ready(), 'is_super' => AttendanceService::isSuper($u), 'can_configure' => $u->holdsAny(['admin', 'super_admin']), 'kinds' => AttendanceDispute::KINDS,
             'me' => ['user_id' => $u->id, 'in' => $me?->sign_in_at?->format('H:i'), 'out' => $me?->sign_out_at?->format('H:i'), 'status' => $me?->status],
             'settings' => ['work_start' => substr($s->work_start, 0, 5), 'work_end' => substr($s->work_end, 0, 5), 'grace_minutes' => (int) $s->grace_minutes, 'workdays' => $s->days()],
             'calendar' => $this->svc->calendar($u, $ym), 'disputes' => $this->svc->disputes($u, $ym)]);
@@ -136,7 +136,7 @@ class AttendanceController extends Controller
 
     public function config(Request $request): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'super_admin'], true), 403);
+        abort_unless($request->user()->holdsAny(['admin', 'super_admin']), 403);
         $markers = AttendanceService::ready() && \Illuminate\Support\Facades\Schema::hasTable('attendance_markers') ? AttendanceMarker::all()->groupBy('staff_user_id')->map(fn ($g) => $g->pluck('marker_user_id')->values()) : collect();
 
         return response()->json(['staff' => $this->svc->staff()->map(fn ($p) => ['id' => $p->id, 'name' => $p->name, 'marker_ids' => $markers[$p->id] ?? []])->values(), 'candidates' => User::whereHas('employee')->orderBy('name')->get(['id', 'name'])]);
@@ -144,7 +144,7 @@ class AttendanceController extends Controller
 
     public function saveSettings(Request $request): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'super_admin'], true), 403);
+        abort_unless($request->user()->holdsAny(['admin', 'super_admin']), 403);
         $d = $request->validate(['work_start' => 'required|date_format:H:i', 'work_end' => 'required|date_format:H:i|after:work_start', 'grace_minutes' => 'required|integer|min:0|max:240', 'workdays' => 'required|array|min:1', 'workdays.*' => 'integer|between:0,6']);
         if (! \Illuminate\Support\Facades\Schema::hasTable('attendance_settings')) {
             return response()->json(['message' => 'Run script 63_attendance.sql first.'], 422);
@@ -156,7 +156,7 @@ class AttendanceController extends Controller
 
     public function saveMarkers(Request $request, int $staffId): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, ['admin', 'super_admin'], true), 403);
+        abort_unless($request->user()->holdsAny(['admin', 'super_admin']), 403);
         $d = $request->validate(['marker_ids' => 'present|array|max:20', 'marker_ids.*' => 'integer|exists:users,id']);
         if (! \Illuminate\Support\Facades\Schema::hasTable('attendance_markers')) {
             return response()->json(['message' => 'Run script 63_attendance.sql first.'], 422);

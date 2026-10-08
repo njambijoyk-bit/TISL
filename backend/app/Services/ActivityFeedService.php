@@ -51,7 +51,7 @@ class ActivityFeedService
     /** The sources this person may see (and that exist). */
     public function allowed(User $user): array
     {
-        return array_values(array_filter($this->sources(), fn ($s) => in_array($user->role, $s['roles'], true) && Schema::hasTable($s['table'])));
+        return array_values(array_filter($this->sources(), fn ($s) => $user->holdsAny($s['roles']) && Schema::hasTable($s['table'])));
     }
 
     public function feed(User $user, array $f): array

@@ -2130,7 +2130,7 @@ class VoucherService
             throw new BooksException('Give a reason for selling expired stock.');
         }
         $roles = app(\App\Services\Stock\StockPolicy::class)->global()['override_roles'];
-        if (! $user || ! in_array($user->role, $roles, true)) {
+        if (! $user || ! $user->holdsAny($roles)) {
             throw new BooksException('Your role can not override the expiry rules.');
         }
 

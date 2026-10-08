@@ -41,7 +41,7 @@ class VaultPolicyService
         }
 
         // 2. Super admin bypasses everything except global IP if enforce_ip_globally = true
-        if ($user->role === 'super_admin') {
+        if ($user->holdsAny(['super_admin'])) {
             $settings = VaultSetting::current();
             if ($settings->enforce_ip_globally) {
                 if (!$settings->isAllowedIp(Request::ip())) {
@@ -399,7 +399,7 @@ class VaultPolicyService
                     // assignee_value is a comma-separated list of user_ids or roles
                     $excluded = explode(',', $assignment->assignee_value ?? '');
                     if (in_array((string) $user->id, $excluded)) return false;
-                    if (in_array($user->role, $excluded))         return false;
+                    if ($user->holdsAny($excluded))         return false;
                     return true;
 
                 case 'role':

@@ -33,7 +33,7 @@ class QuoteIncomePack implements InsightPack
     public function answer(array $context, Lookback $lb, User $user, int $example = 0): array
     {
         $v = Voucher::with(['items', 'type', 'currency'])->findOrFail($context['id']);
-        if ($user->role === 'sales_rep') {
+        if ($user->dataScope() !== 'all') {
             $cust = $v->customer_id ? Customer::find($v->customer_id) : null;
             if (! $cust || (int) $cust->assigned_sales_rep !== (int) $user->id) {
                 throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Not found.');

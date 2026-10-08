@@ -13,7 +13,7 @@ class EmployeePolicy
     public function viewAny(User $user): bool
     {
         // Allow operational roles to view employees
-        return in_array($user->role, ['super_admin', 'admin', 'manager', 'finance', 'logistics']);
+        return $user->holdsAny(['super_admin', 'admin', 'manager', 'finance', 'logistics']);
     }
 
     /**
@@ -22,7 +22,7 @@ class EmployeePolicy
     public function view(User $user, Employee $employee = null): bool
     {
         // Admin, manager, and super_admin can view
-        if (in_array($user->role, ['super_admin', 'admin', 'manager'])) {
+        if ($user->holdsAny(['super_admin', 'admin', 'manager'])) {
             return true;
         }
 
@@ -40,7 +40,7 @@ class EmployeePolicy
     public function create(User $user): bool
     {
         // Only admin and super_admin can create employee records
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     /**
@@ -54,12 +54,12 @@ class EmployeePolicy
         }
 
         // Admin can update
-        if ($user->role === 'admin') {
+        if ($user->holdsAny(['admin'])) {
             return true;
         }
 
         // Managers can update their subordinates
-        if ($user->role === 'manager') {
+        if ($user->holdsAny(['manager'])) {
             // If we have an employee, check if it's their subordinate
             if ($employee) {
                 $managerEmployee = Employee::where('user_id', $user->id)->first();
@@ -84,7 +84,7 @@ class EmployeePolicy
     public function delete(User $user, Employee $employee = null): bool
     {
         // Only admin and super_admin can delete
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     /**
@@ -93,7 +93,7 @@ class EmployeePolicy
     public function restore(User $user, Employee $employee = null): bool
     {
         // Only admin and super_admin can restore
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     /**
@@ -112,7 +112,7 @@ class EmployeePolicy
     public function manageSensitiveData(User $user): bool
     {
         // Only super_admin and admin can manage sensitive data
-        return in_array($user->role, ['super_admin', 'admin']);
+        return $user->holdsAny(['super_admin', 'admin']);
     }
 
     /**
@@ -127,7 +127,7 @@ class EmployeePolicy
         }
 
         // Admin can manage
-        if ($user->role === 'admin') {
+        if ($user->holdsAny(['admin'])) {
             return true;
         }
 

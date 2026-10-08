@@ -44,7 +44,7 @@ class AttendanceService
 
     public static function isSuper(?User $u): bool
     {
-        return $u && $u->role === 'super_admin';
+        return $u && $u->holdsAny(['super_admin']);
     }
 
     // ── who may do what ────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ class AttendanceService
         if ($actor->id === $subjectId) {
             return self::isSuper($actor);
         }
-        if (in_array($actor->role, ['super_admin', 'admin'], true)) {
+        if ($actor->holdsAny(['super_admin', 'admin'])) {
             return true;
         }
         $mgr = Employee::where('user_id', $subjectId)->value('manager_id');

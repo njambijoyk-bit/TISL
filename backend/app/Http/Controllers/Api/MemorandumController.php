@@ -16,19 +16,18 @@ use Illuminate\Http\Request;
  */
 class MemorandumController extends Controller
 {
-    private const FINANCE = ['admin', 'super_admin', 'finance'];
     private const NOT_STAFF = ['customer', 'applicant'];
 
     public function __construct(private MemorandumService $memos) {}
 
     private function staff(Request $r): void
     {
-        abort_if(! $r->user() || in_array($r->user()->role, self::NOT_STAFF, true), 403, 'Memoranda are for staff.');
+        abort_if(! $r->user() || $r->user()->holdsAny(self::NOT_STAFF), 403, 'Memoranda are for staff.');
     }
 
     private function finance(Request $r): bool
     {
-        return in_array($r->user()?->role, self::FINANCE, true);
+        return (bool) $r->user()?->hasPermission('books.post');
     }
 
     private function mine(Request $r, int $id): Voucher

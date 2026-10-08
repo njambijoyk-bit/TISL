@@ -215,7 +215,7 @@ class DeliveryManifestController extends Controller
 
             $driver = User::findOrFail($request->driver_id);
 
-            if ($driver->role !== 'driver') {
+            if (! $driver->holdsAny(['driver'])) {
                 return response()->json([
                     'message' => 'Selected user is not a driver.',
                     'errors'  => ['driver_id' => ['The selected user does not have a driver role.']],
@@ -1254,7 +1254,7 @@ class DeliveryManifestController extends Controller
 
         $driver = User::findOrFail($request->driver_id);
 
-        if ($driver->role !== 'driver') {
+        if (! $driver->holdsAny(['driver'])) {
             return response()->json([
                 'message' => 'Selected user is not a driver.',
             ], 422);

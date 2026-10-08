@@ -18,7 +18,7 @@ class EngagementSettingsController extends Controller
 
     private function admin(Request $r): void
     {
-        abort_unless(in_array($r->user()->role, ['admin', 'super_admin'], true), 403, 'Only an admin or super admin can change the Engagement settings.');
+        abort_unless($r->user()->holdsAny(['admin', 'super_admin']), 403, 'Only an admin or super admin can change the Engagement settings.');
     }
 
     private function payload(): array

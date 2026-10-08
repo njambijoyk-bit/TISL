@@ -19,7 +19,7 @@ class EngagementModerationController extends Controller
 
     private function decider(Request $r): void
     {
-        abort_unless(in_array($r->user()->role, self::DECIDERS, true), 403, 'Only an admin, super admin or manager can do that.');
+        abort_unless($r->user()->holdsAny(self::DECIDERS), 403, 'Only an admin, super admin or manager can do that.');
     }
 
     private function row(EngagementPost $p): array
@@ -33,7 +33,7 @@ class EngagementModerationController extends Controller
     /** GET /admin/engagement/posts?status=held|published|hidden&type=&kind=&q= */
     public function index(Request $request): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, array_merge(self::DECIDERS, ['sales_rep', 'finance']), true), 403);
+        abort_unless($request->user()->holdsAny(array_merge(self::DECIDERS, ['sales_rep', 'finance'])), 403);
         $status = in_array($request->query('status'), ['held', 'published', 'hidden', 'removed'], true) ? $request->query('status') : 'held';
         $count = fn (string $kind) => DB::table('engagement_reactions')->selectRaw('COUNT(*)')->whereColumn('engagement_reactions.target_id', 'engagement_posts.id')->where('engagement_reactions.target_type', 'post')->where('engagement_reactions.kind', $kind);
         $sort = $request->query('sort');
@@ -46,7 +46,7 @@ class EngagementModerationController extends Controller
         $page = $q->paginate(30);
 
         return response()->json(['data' => collect($page->items())->map(fn ($p) => $this->row($p))->all(), 'current_page' => $page->currentPage(), 'last_page' => $page->lastPage(), 'total' => $page->total(),
-            'counts' => DB::table('engagement_posts')->whereNull('deleted_at')->selectRaw('status, COUNT(*) n')->groupBy('status')->pluck('n', 'status')->all(), 'can_decide' => in_array($request->user()->role, self::DECIDERS, true)]);
+            'counts' => DB::table('engagement_posts')->whereNull('deleted_at')->selectRaw('status, COUNT(*) n')->groupBy('status')->pluck('n', 'status')->all(), 'can_decide' => $request->user()->holdsAny(self::DECIDERS)]);
     }
 
     private function decide(Request $request, int $id, string $status, string $log): JsonResponse
@@ -93,10 +93,10 @@ class EngagementModerationController extends Controller
     /** GET /admin/engagement/reports?status=open|kept|removed|flagged: one row per thing reported. */
     public function reportCases(Request $request): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, array_merge(self::DECIDERS, ['sales_rep', 'finance']), true), 403);
+        abort_unless($request->user()->holdsAny(array_merge(self::DECIDERS, ['sales_rep', 'finance'])), 403);
         $status = in_array($request->query('status'), ['open', 'kept', 'removed', 'flagged'], true) ? $request->query('status') : 'open';
 
-        return response()->json(['data' => $this->reports->cases($status), 'policies' => $this->reports->policies(), 'can_decide' => in_array($request->user()->role, self::DECIDERS, true),
+        return response()->json(['data' => $this->reports->cases($status), 'policies' => $this->reports->policies(), 'can_decide' => $request->user()->holdsAny(self::DECIDERS),
             'counts' => DB::table('engagement_reports')->selectRaw('status, COUNT(DISTINCT CONCAT(target_type, \':\', target_id)) n')->groupBy('status')->pluck('n', 'status')->all()]);
     }
 
@@ -117,7 +117,7 @@ class EngagementModerationController extends Controller
     /** GET /admin/engagement/top?type=: the things people like most (counts only, never who). */
     public function top(Request $request): JsonResponse
     {
-        abort_unless(in_array($request->user()->role, array_merge(self::DECIDERS, ['sales_rep', 'finance']), true), 403);
+        abort_unless($request->user()->holdsAny(array_merge(self::DECIDERS, ['sales_rep', 'finance'])), 403);
         $types = ['post', 'pin', 'board', 'moodboard', 'campaign', 'product', 'service', 'hamper'];
         $rows = DB::table('engagement_reactions')->where('kind', 'like')->whereIn('target_type', $types)->when($request->filled('type') && in_array($request->query('type'), $types, true), fn ($w) => $w->where('target_type', $request->query('type')))
             ->selectRaw('target_type, target_id, COUNT(*) as likes')->groupBy('target_type', 'target_id')->orderByDesc('likes')->orderByDesc('target_id')->limit(30)->get();

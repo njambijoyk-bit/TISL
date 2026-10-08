@@ -21,7 +21,7 @@ class EngagementAccess
 
     private function isStaff(?User $u): bool
     {
-        return $u && in_array($u->role, self::STAFF, true);
+        return $u && $u->holdsAny(self::STAFF);
     }
 
     /** Does the "who" setting let this visitor in (before any purchase check)? */

@@ -131,7 +131,7 @@ class ChequeService
      */
     public function bounce(int $instrumentId, array $o, ?User $user): Voucher
     {
-        if (! $user || ! in_array($user->role, self::BOUNCE_ROLES, true)) {
+        if (! $user || ! $user->holdsAny(self::BOUNCE_ROLES)) {
             throw new BooksException('Only finance or a super admin can record a bounced cheque.');
         }
         $reason = trim((string) ($o['reason'] ?? ''));

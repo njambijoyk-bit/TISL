@@ -81,7 +81,7 @@ class CatalogueRankingService
 
         // Admins / staff / vendors get default (no personalisation, no pins)
         $excluded = ['admin', 'super_admin', 'staff', 'finance', 'vendor'];
-        if (in_array($user->role, $excluded)) return $nil;
+        if ($user->holdsAny($excluded)) return $nil;
 
         // Resolve customer record
         $customer = Customer::where('user_id', $user->id)

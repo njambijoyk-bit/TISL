@@ -30,7 +30,7 @@ class PettyCashService
 
     public static function isManager(?User $u): bool
     {
-        return $u && in_array($u->role, self::MANAGERS, true);
+        return $u && $u->holdsAny(self::MANAGERS);
     }
 
     /** Every petty cash ledger, with what it holds, its float and custodian, and what it takes to top it up. */
