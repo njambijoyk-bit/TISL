@@ -124,7 +124,7 @@ function inlineFormat(text) {
   });
 }
 
-function Message({ msg }) {
+function Message({ msg, onAsk }) {
   const isUser = msg.role === 'user';
   return (
     <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
@@ -148,6 +148,21 @@ function Message({ msg }) {
           ? <p style={{ margin: 0, fontSize: '0.83rem', lineHeight: 1.55, fontWeight: 500 }}>{msg.content}</p>
           : renderMarkdown(msg.content)
         }
+        {!isUser && msg.meta?.suggestions?.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
+            {msg.meta.suggestions.map(s => (
+              <button key={s.label} type="button" onClick={() => onAsk?.(s.question)} style={{
+                textAlign: 'left', fontSize: '0.78rem', padding: '6px 10px', borderRadius: 10, cursor: 'pointer',
+                border: '1px solid var(--line)', background: 'color-mix(in srgb, var(--color-primary-500) 10%, transparent)', color: 'var(--text-primary)',
+              }}>{s.label}</button>
+            ))}
+          </div>
+        )}
+        {!isUser && msg.meta?.answered_by && (
+          <p style={{ margin: '8px 0 0', fontSize: '0.66rem', opacity: 0.55 }}>
+            {msg.meta.answered_by === 'ai' ? 'AI-assisted' : msg.meta.answered_by === 'guard' ? 'Not answered' : 'Answered on our server'}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -268,7 +283,7 @@ export default function Mimi({ embedded = false }) {
       if (data.error) {
         setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${data.error}` }]);
       } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+        setMessages(prev => [...prev, { role: 'assistant', content: data.reply, meta: data.meta }]);
       }
 
     } catch (err) {
@@ -433,7 +448,7 @@ function ChatWindow({ messages, loading, input, setInput, sendMessage, handleKey
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', WebkitOverflowScrolling: 'touch' }}>
-        {messages.map((msg, i) => <Message key={i} msg={msg} />)}
+        {messages.map((msg, i) => <Message key={i} msg={msg} onAsk={sendMessage} />)}
         {loading && (
           <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: 10 }}>
             <div style={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, marginRight: 8, background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 900, color: 'white' }}>M</div>

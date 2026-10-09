@@ -18,6 +18,9 @@ use App\Models\User;
 use App\Models\Project;
 use App\Models\ReferralCode;
 use App\Models\Payment;
+use App\Services\Chat\Local\CallerContext;
+use App\Services\Chat\Local\LocalAnswer;
+use App\Services\Chat\Local\LocalLayer;
 
 class ChatController extends Controller
 {
@@ -25,6 +28,7 @@ class ChatController extends Controller
         private readonly MimiSessionService  $sessionService,
         private readonly MimiQueryLogService $queryLogService,
         private readonly MimiBlockService    $blockService,
+        private readonly LocalLayer          $local,
     ) {}
 
     public function chat(Request $request)
@@ -55,6 +59,11 @@ class ChatController extends Controller
             'message' => 'required|string|max:2000',
             'history' => 'array|max:20',
         ]);
+
+        // the local layer goes first: our own knowledge and data, under the caller's permissions (config/mimi.php; shadow mode only records)
+        if ($early = $this->localFirst($request, $session, $request->user())) {
+            return $early;
+        }
  
         $user       = $request->user();
         $role       = (string) $user->role;   // only a label for the assistant, never used to decide anything
@@ -746,6 +755,10 @@ LIVE DATA CONTEXT
             'message' => 'required|string|max:2000',
             'history' => 'array|max:20',
         ]);
+
+        if ($early = $this->localFirst($request, $session, null)) {
+            return $early;
+        }
  
         $context = [
             'products'          => $this->getProductsContext(false),
@@ -821,6 +834,115 @@ LIVE PUBLIC DATA
  
         return $this->withSessionHeader($response, $session->session_token);
         // ─────────────────────────────────────────────────────────────────────
+    }
+
+    // =========================================================================
+    // LOCAL LAYER  (docs/MIMI_LOCAL_LAYER_GUIDE.html)
+    // =========================================================================
+
+    /**
+     * Try to settle the message without the old prompt. Returns the reply to send, or null to carry on down the old path
+     * (mode off, mode shadow, the local layer failing, or a fallback that allows the old full prompt).
+     */
+    private function localFirst(Request $request, $session, ?User $user): ?\Illuminate\Http\JsonResponse
+    {
+        $mode = $this->local->mode();
+        if ($mode === 'off') {
+            return null;
+        }
+        try {
+            $ctx    = CallerContext::forUser($user);
+            $answer = $this->local->answer($ctx, (string) $request->message);
+        } catch (\Throwable $e) {
+            Log::warning('Mimi local layer failed, using the old path', ['error' => $e->getMessage()]);
+            return null;
+        }
+
+        // never the question or the answer: only how it went
+        Log::info('mimi.local', ['mode' => $mode, 'kind' => $ctx->kind, 'outcome' => $answer->outcome, 'entry' => $answer->entry?->id,
+            'confidence' => round($answer->confidence, 3), 'resolver' => $answer->resolver, 'ms' => round($answer->ms, 1), 'unknown' => round($answer->unknownShare, 2)]);
+        if ($mode === 'shadow') {
+            return null;
+        }
+
+        if ($answer->handled()) {
+            return $this->sendLocal($request, $session, $answer->text, $answer->loggableText(), $answer->meta(), $answer->ms);
+        }
+        $fallback = $this->local->fallbackFor($ctx);
+        if ($fallback === 'ai_scoped') {
+            return null;                                    // the old prompt, as the owner has chosen for this kind of account
+        }
+        if ($fallback === 'ai_public') {
+            return $this->askOutside($request, $session, $answer);
+        }
+
+        return $this->sendLocal($request, $session, $this->local->noAnswerText(), $this->local->noAnswerText(), ['answered_by' => 'local', 'outcome' => 'none'], $answer->ms);
+    }
+
+    private function sendLocal(Request $request, $session, string $reply, string $logged, array $meta, float $ms): \Illuminate\Http\JsonResponse
+    {
+        $this->queryLogService->logQuery(
+            session:    $session,
+            query:      (string) $request->message,
+            response:   response()->json(['reply' => $logged]),
+            geminiRaw:  [],
+            responseMs: (int) $ms,
+        );
+        $this->sessionService->touchActive($session);
+
+        return $this->withSessionHeader(response()->json(['reply' => $reply, 'meta' => $meta]), $session->session_token);
+    }
+
+    /**
+     * The outside AI as a fallback: the question with emails, phones and reference numbers swapped for tokens, plus public store information and
+     * the best public knowledge snippets. No account data, no business data, no history. The real values are put back into the reply here.
+     */
+    private function askOutside(Request $request, $session, LocalAnswer $answer): \Illuminate\Http\JsonResponse
+    {
+        $red      = $this->local->redactor()->redact((string) $request->message, $this->local->slots());
+        $snippets = collect($answer->snippets)->map(fn ($s) => "- [{$s['id']}] {$s['text']}")->join("\n") ?: '(none)';
+
+        $system = "
+You are Mimi, {$this->company()}'s assistant. You are warm, concise and professional. Respond in the same language the user uses.
+Use ONLY the public information below. If it does not cover the question, say you are not sure and suggest contacting support.
+Never ask for passwords, card details or PINs. Tokens such as [EMAIL_1] stand for private details: keep them exactly as written.
+
+STORE: {$this->company()}
+PRODUCTS:
+{$this->getProductsContext(false)}
+
+SERVICE CATEGORIES:
+{$this->getServiceCategoriesContext()}
+
+SERVICES:
+{$this->getServicesContext()}
+
+KNOWLEDGE:
+{$snippets}";
+
+        $contents = [
+            ['role' => 'user',  'parts' => [['text' => $system]]],
+            ['role' => 'model', 'parts' => [['text' => "Understood. I will use only the public information provided."]]],
+            ['role' => 'user',  'parts' => [['text' => $red['text']]]],
+        ];
+
+        $start    = (int) (microtime(true) * 1000);
+        $response = $this->callGemini($contents);
+        $elapsed  = (int) (microtime(true) * 1000) - $start;
+        [$raw, $httpStatus, $errorMessage] = $this->extractGeminiMeta($response);
+
+        $data = $response->getData(true);
+        if (isset($data['reply'])) {
+            $data['reply'] = $this->local->redactor()->restore((string) $data['reply'], $red['swaps']);
+            $data['meta']  = ['answered_by' => 'ai'];
+            $response->setData($data);
+        }
+
+        $this->queryLogService->logQuery(session: $session, query: (string) $request->message, response: $response, geminiRaw: $raw,
+            responseMs: $elapsed, errorMessage: $errorMessage, httpStatus: $httpStatus);
+        $errorMessage ? $this->sessionService->touchFailed($session) : $this->sessionService->touchActive($session);
+
+        return $this->withSessionHeader($response, $session->session_token);
     }
 
     // =========================================================================

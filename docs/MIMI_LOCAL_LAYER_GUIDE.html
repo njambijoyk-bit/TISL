@@ -328,7 +328,7 @@ footer.site{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;colo
   <ul class="chips" aria-label="Status">
     <li class="chip ok">Design: complete draft</li>
     <li class="chip info">Prototype: runs in this page, no network</li>
-    <li class="chip warn">Server code: not built yet</li>
+    <li class="chip warn">Server: engine built, runs in shadow mode</li>
     <li class="chip mono">9 Oct 2026 · code read at commit e15e726</li>
   </ul>
   <p style="margin-top:20px"><a class="btn primary" href="#try">Ask it something →</a> <a class="btn" href="#today">What's wrong with today's flow?</a></p>
@@ -859,7 +859,7 @@ footer.site{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;colo
 <!-- ═════════════════════════ 13 ═════════════════════════ -->
 <section class="chap" id="build" aria-labelledby="h-build">
   <h2 id="h-build"><span class="num">13</span>Building it in this codebase</h2>
-  <p>A sketch of where the pieces go, following the repo's conventions (SQL scripts run in Workbench, permissions in the catalogue, services under <code>app/Services</code>). <strong>None of this is built yet</strong>; the snippets show the shape.</p>
+  <p>A sketch of where the pieces go, following the repo's conventions (SQL scripts run in Workbench, permissions in the catalogue, services under <code>app/Services</code>). <strong>Status:</strong> the engine, the seven resolvers, the redactor, the controller hook (<code>MIMI_LOCAL_MODE=off|shadow|on</code>), the knowledge file <code>backend/resources/mimi/knowledge.html</code> and <code>backend/tests/Unit/MimiLocalLayerTest.php</code> are built, and it ships in <em>shadow</em> mode. <strong>Still to build:</strong> the database tables below (knowledge currently loads from the HTML file), the <code>mimi.knowledge</code> and <code>mimi.routing</code> permissions and their screens, the log columns and Gaps screen, and the new policy version. The snippets below show the shape of those.</p>
 
   <h3>1 · The hook in <code>ChatController::chat()</code></h3>
 <pre><code><span class="c">// after validation and the block check, before the prompt is built</span>

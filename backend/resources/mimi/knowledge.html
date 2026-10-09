@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Mimi knowledge entries</title></head>
+<body>
+<!--
+  Mimi's local knowledge. One <article class="kb"> per question. Format and rules: docs/MIMI_LOCAL_LAYER_GUIDE.html (chapter 6).
+  Placeholders {{company.name}} and {{support.email}} are filled from the company profile when an answer is given.
+  An entry without data-reviewed is a draft: it is served only while MIMI_LOCAL_ALLOW_DRAFTS is true.
+  entries describe behaviour not shipped yet and are never served in production.
+-->
+<article class="kb" id="mimi.hello" data-audience="any" data-sensitivity="public" data-keywords="hi hello hey greetings habari hujambo mambo morning afternoon" data-follow="mimi.about store.catalogue">
+  <h4 class="kb-title">Greeting</h4>
+  <ul class="kb-q"><li>Hi</li><li>Hello</li><li>Hey Mimi</li><li>Good morning</li><li>Good afternoon</li><li lang="sw">Habari</li><li lang="sw">Hujambo</li><li lang="sw">Mambo</li></ul>
+  <div class="kb-a"><p>Hi! I'm Mimi, {{company.name}}'s assistant. Ask me about our products and services, delivery and payment, or (when you're signed in) your own orders.</p></div>
+</article>
+
+<article class="kb" id="mimi.about" data-audience="any" data-sensitivity="public" data-keywords="mimi assistant bot help features capabilities" data-follow="mimi.data-access mimi.limits">
+  <h4 class="kb-title">What Mimi is and can do</h4>
+  <ul class="kb-q"><li>What is Mimi?</li><li>Who are you?</li><li>What can you do?</li><li>What can you help me with?</li><li>Help</li></ul>
+  <div class="kb-a"><p>I'm Mimi, {{company.name}}'s assistant. I can:</p><ul><li>tell you about our products, services, delivery, payment and returns;</li><li>show signed-in customers their own orders, payments and promo codes;</li><li>help our staff find things and understand how the system works, within what each person is allowed to see.</li></ul><p>For anything that needs a person, I'll point you to {{support.email}}.</p></div>
+</article>
+
+<article class="kb" id="mimi.privacy" data-audience="any" data-sensitivity="public" data-keywords="private privacy data share shared openai google gemini chatgpt claude anthropic ai company" data-follow="mimi.data-access">
+  <h4 class="kb-title">Is my question sent to an AI company?</h4>
+  <ul class="kb-q"><li>Is my question sent to an AI company?</li><li>Do you share my data with OpenAI or Google?</li><li>Is this chat private?</li><li>Where does my data go?</li><li>Do you use ChatGPT, Gemini or Claude?</li></ul>
+  <div class="kb-a"><p>Most questions are answered on {{company.name}}'s own server, from our own knowledge and, if you're signed in, from your own account. Those never leave.</p><p>If a question isn't something we've written down, we may ask an outside AI service for help. Only the question goes (emails, phone numbers and order numbers swapped out), together with public store information. Never your orders, payments or account details. Each reply says whether it was answered on our server or with AI help.</p></div>
+</article>
+
+<article class="kb" id="mimi.data-access" data-audience="any" data-sensitivity="public" data-keywords="data access see information account profile personal" data-follow="mimi.privacy">
+  <h4 class="kb-title">What Mimi can see about you</h4>
+  <ul class="kb-q"><li>What can Mimi see about me?</li><li>What data do you have on me?</li><li>What information can you access?</li><li>Can you see my account?</li></ul>
+  <div class="kb-a"><ul><li><strong>Guests:</strong> public store information only. No personal data.</li><li><strong>Signed-in customers:</strong> your own account: profile summary, recent orders and payment status, active quotes, projects, promo and referral codes. Nobody else's.</li><li><strong>Staff:</strong> whatever their permissions allow, and nothing more.</li></ul><p>I never have your password, full card details or M-Pesa PIN, and I will never ask for them.</p></div>
+</article>
+
+<article class="kb" id="mimi.limits" data-audience="any" data-sensitivity="public" data-keywords="rules refuse decline restrictions policy suspended banned" data-follow="mimi.human">
+  <h4 class="kb-title">What Mimi won't help with</h4>
+  <ul class="kb-q"><li>What won't you help with?</li><li>What can't Mimi do?</li><li>Why won't you answer?</li><li>What are the rules?</li></ul>
+  <div class="kb-a"><p>I stay within {{company.name}} topics. I won't help with harmful, violent or sexually explicit content, with information about other customers or staff, with phishing-style requests, with anything illegal, or with hate or harassment. Repeated harmful questions can lead to Mimi access being suspended.</p></div>
+</article>
+
+<article class="kb" id="mimi.others-data" data-audience="guest customer" data-sensitivity="public" data-keywords="other others another someone else customers staff private details email phone address" data-follow="mimi.data-access mimi.limits">
+  <h4 class="kb-title">Other people's information</h4>
+  <ul class="kb-q"><li>Give me another customer's details</li><li>Tell me about other customers</li><li>Show me someone else's orders</li><li>What is the email of another customer?</li><li>Can you look up a staff member?</li></ul>
+  <div class="kb-a"><p>I can't share information about other customers or staff. I can only show you your own account, and only once you're signed in.</p></div>
+</article>
+
+<article class="kb" id="mimi.human" data-audience="any" data-sensitivity="public" data-keywords="human person agent support contact complaint email talk speak care" data-follow="mimi.about">
+  <h4 class="kb-title">Reach a person</h4>
+  <ul class="kb-q"><li>How do I talk to a person?</li><li>Contact support</li><li>I want to speak to someone</li><li>Customer care</li><li>How do I make a complaint?</li><li>What is your email?</li></ul>
+  <div class="kb-a"><p>You can reach the team at <a href="mailto:{{support.email}}">{{support.email}}</a>. For disputed payments, account suspension, legal matters, or anything that needs a firm commitment from us, please contact support. I'm not a substitute for a person.</p></div>
+</article>
+
+<article class="kb" id="store.pay" data-audience="any" data-sensitivity="public" data-keywords="pay payment mpesa checkout card cash methods options" data-follow="acct.my-payments store.delivery">
+  <h4 class="kb-title">How to pay</h4>
+  <ul class="kb-q"><li>How can I pay?</li><li>What payment methods do you accept?</li><li>Do you accept M-Pesa?</li><li>Can I pay by M-Pesa?</li><li>Payment options</li><li lang="sw">Nawezaje kulipa?</li><li lang="sw">Njia za malipo</li></ul>
+  <div class="kb-a"><p>M-Pesa (STK Push) is supported. The payment options currently on offer are shown at checkout.</p></div>
+  <p class="kb-more">If a payment is pending or has failed, signed-in customers can ask me "Did my payment go through?"</p>
+</article>
+
+<article class="kb" id="store.delivery" data-audience="any" data-sensitivity="public" data-keywords="delivery deliver shipping ship courier cost charge" data-follow="store.pay store.returns">
+  <h4 class="kb-title">Delivery</h4>
+  <ul class="kb-q"><li>How does delivery work?</li><li>How much is delivery?</li><li>Do you deliver?</li><li>Shipping options</li><li>Delivery cost</li></ul>
+  <div class="kb-a"><p>Delivery options and their charges are listed at checkout, and on our <a href="/shipping" target="_blank" rel="noopener">Shipping page</a>.</p></div>
+</article>
+
+<article class="kb" id="store.returns" data-audience="any" data-sensitivity="public" data-keywords="return returns refund exchange replace money back policy" data-follow="mimi.human">
+  <h4 class="kb-title">Returns and refunds</h4>
+  <ul class="kb-q"><li>What is your return policy?</li><li>Can I return something?</li><li>How do I get a refund?</li><li>Exchange an item</li><li>Returns</li></ul>
+  <div class="kb-a"><p>Our returns policy is on the <a href="/returns" target="_blank" rel="noopener">Returns page</a>. For a specific order, contact <a href="mailto:{{support.email}}">{{support.email}}</a>.</p></div>
+</article>
+
+<article class="kb" id="store.catalogue" data-audience="any" data-sensitivity="public" data-resolver="catalogue.public" data-keywords="products services catalogue catalog sell offer browse items" data-follow="store.quote store.pay">
+  <h4 class="kb-title">What we sell</h4>
+  <ul class="kb-q"><li>What products do you have?</li><li>What services do you offer?</li><li>What do you sell?</li><li>Show me your products</li><li>Catalogue</li></ul>
+  <div class="kb-a"><p>Here's a taste of what's on offer. You can browse everything on the shop pages.</p></div>
+  <p class="kb-empty">I can't see any items to show right now.</p>
+</article>
+
+<article class="kb" id="store.quote" data-audience="any" data-sensitivity="public" data-keywords="quote quotation estimate proposal price" data-follow="store.catalogue mimi.human">
+  <h4 class="kb-title">Asking for a quotation</h4>
+  <ul class="kb-q"><li>Can I request a quote?</li><li>I need a quotation</li><li>How do I get a quote?</li><li>Price estimate</li></ul>
+  <div class="kb-a"><p>Yes. Tell the team what you need at <a href="mailto:{{support.email}}">{{support.email}}</a> and we'll send a quotation. Once one is issued, signed-in customers can see their active quotes on their account.</p></div>
+</article>
+
+<article class="kb" id="acct.my-orders" data-audience="customer" data-sensitivity="own" data-resolver="orders.mine" data-keywords="order orders parcel package delivery shipped track status where" data-follow="acct.my-payments">
+  <h4 class="kb-title">Where is my order?</h4>
+  <ul class="kb-q"><li>Where is my order?</li><li>Track my order</li><li>What is the status of my order?</li><li>Has my order shipped?</li><li>My orders</li><li>Where is order {order}?</li><li>Show me order {order}</li><li lang="sw">Oda yangu iko wapi?</li><li lang="sw">Oda zangu</li></ul>
+  <div class="kb-a"><p>Here are your latest orders:</p></div>
+  <p class="kb-denied">Order tracking is for signed-in customers. Sign in and ask me again.</p>
+  <p class="kb-empty">I can't find a matching order on your account.</p>
+</article>
+
+<article class="kb" id="acct.my-payments" data-audience="customer" data-sensitivity="own" data-resolver="payments.mine" data-keywords="payment payments paid receipt mpesa status pending failed" data-follow="acct.my-orders">
+  <h4 class="kb-title">Did my payment go through?</h4>
+  <ul class="kb-q"><li>Did my payment go through?</li><li>Payment status</li><li>Was my M-Pesa payment received?</li><li>My payments</li><li>Show my receipt</li></ul>
+  <div class="kb-a"><p>Here are your latest payments:</p></div>
+  <p class="kb-denied">Payment status is for signed-in customers. Sign in and ask me again.</p>
+  <p class="kb-empty">I can't find any payments on your account yet.</p>
+</article>
+
+<article class="kb" id="acct.my-codes" data-audience="customer" data-sensitivity="own" data-resolver="codes.mine" data-keywords="promo referral code codes discount coupon share reward" data-follow="acct.my-orders">
+  <h4 class="kb-title">My promo and referral codes</h4>
+  <ul class="kb-q"><li>What is my referral code?</li><li>Do I have any promo codes?</li><li>My discount codes</li><li>Share my referral code</li></ul>
+  <div class="kb-a"><p>Here are your codes:</p></div>
+  <p class="kb-denied">Promo and referral codes are for signed-in customers. Sign in and ask me again.</p>
+  <p class="kb-empty">You don't have any promo or referral codes yet.</p>
+</article>
+
+<article class="kb" id="staff.order-lookup" data-audience="staff" data-requires="customers.view" data-sensitivity="restricted" data-resolver="orders.lookup" data-keywords="order voucher invoice sale find lookup" data-follow="staff.customer-lookup">
+  <h4 class="kb-title">Look up an order</h4>
+  <ul class="kb-q"><li>Look up order {order}</li><li>Show me order {order}</li><li>Find order {order}</li><li>Status of order {order}</li><li>Order {order}</li></ul>
+  <div class="kb-a"><p>Here's what I found:</p></div>
+  <p class="kb-denied">You don't have the permission to look up customers' orders.</p>
+  <p class="kb-empty">I couldn't find an order with that number.</p>
+</article>
+
+<article class="kb" id="staff.customer-lookup" data-audience="staff" data-requires="customers.view" data-sensitivity="restricted" data-resolver="customers.lookup" data-keywords="customer client buyer find lookup tier" data-follow="staff.order-lookup">
+  <h4 class="kb-title">Look up a customer</h4>
+  <ul class="kb-q"><li>Look up customer {email}</li><li>Find customer {customer}</li><li>Who is {email}?</li><li>Customer {customer}</li><li>Show customer {email}</li></ul>
+  <div class="kb-a"><p>Here's what I found:</p></div>
+  <p class="kb-more">Contact details, credit and spend are deliberately not shown here. Open the customer's page for those.</p>
+  <p class="kb-denied">You don't have the permission to look up customers.</p>
+  <p class="kb-empty">I couldn't find a customer with those details.</p>
+</article>
+
+<article class="kb" id="staff.payment-summary" data-audience="staff" data-requires="books.view" data-sensitivity="restricted" data-resolver="payments.summary" data-keywords="payment payments summary collected today pending failed dispute disputes totals" data-follow="staff.books-basics">
+  <h4 class="kb-title">Payment summary</h4>
+  <ul class="kb-q"><li>Payment summary</li><li>How much did we collect today?</li><li>Pending payments</li><li>Failed payments</li><li>Any open disputes?</li></ul>
+  <div class="kb-a"><p>Here's the payment picture:</p></div>
+  <p class="kb-denied">You don't have the permission to see payment records.</p>
+  <p class="kb-empty">Payment records aren't available right now.</p>
+</article>
+
+<article class="kb" id="staff.clearance" data-audience="staff" data-sensitivity="restricted" data-keywords="clearance level levels rank seniority manage authority ceiling" data-follow="staff.give-role staff.branch-limits">
+  <h4 class="kb-title">Clearance levels</h4>
+  <ul class="kb-q"><li>What are the clearance levels?</li><li>What does clearance mean?</li><li>What is clearance level 3?</li><li>Who can manage whom?</li><li>What is a clearance?</li></ul>
+  <div class="kb-a"><p>Clearance is a number from 0 to 6. It is a <strong>ceiling and an authority, not a permission</strong>: it decides which roles someone may hold and whom they may manage (only people strictly below their own level). Roles are what actually grant permissions.</p><ul><li><strong>0</strong> No staff access: customers, vendors, applicants</li><li><strong>1</strong> Staff: a defined job at a branch</li><li><strong>2</strong> Officer: runs a function</li><li><strong>3</strong> Manager</li><li><strong>4</strong> Senior: sees across every branch for their field</li><li><strong>5</strong> Administrator</li><li><strong>6</strong> Owner</li></ul></div>
+  <p class="kb-more">The level names can be renamed under Settings, Roles &amp; access.</p>
+</article>
+
+<article class="kb" id="staff.branch-limits" data-audience="staff" data-sensitivity="restricted" data-keywords="branch branches limit limits scope location test mode hidden vouchers" data-follow="staff.clearance">
+  <h4 class="kb-title">Branch limits</h4>
+  <ul class="kb-q"><li>What are branch limits?</li><li>Why can't I see another branch's vouchers?</li><li>What is branch scope?</li><li>What does test mode do?</li><li>Why do I only see my branch?</li></ul>
+  <div class="kb-a"><p>Branch limits keep a person to the branches they've been given. For Books (vouchers, day book, reports) and Stock (transfers, counts, jobs, expiry) the owner sets each area to <strong>Off</strong>, <strong>Test</strong> or <strong>On</strong>.</p><ul><li><strong>Test</strong> allows everything but records what <em>would</em> have been hidden or refused.</li><li><strong>On</strong> enforces it: you see and post only for your branches. A view-only grant lets you look but not post.</li></ul><p>People whose role covers every branch are never limited, and records with no branch stay visible to everyone.</p></div>
+  <p class="kb-more">It is set under Settings, Roles &amp; access, Branch limits.</p>
+</article>
+
+<article class="kb" id="staff.give-role" data-audience="staff" data-requires="access.view" data-sensitivity="restricted" data-keywords="role roles assign give permission access admin owner promote" data-follow="staff.clearance">
+  <h4 class="kb-title">Giving someone a role</h4>
+  <ul class="kb-q"><li>How do I give someone a role?</li><li>Who can make an admin?</li><li>Can I change my own role?</li><li>Who can assign roles?</li></ul>
+  <div class="kb-a"><p>Roles are given on Settings, Roles &amp; access, People, by someone who holds <code>access.manage</code>. The rules:</p><ul><li>You can only give roles, and clearance, strictly <strong>below your own</strong> clearance.</li><li>Only the owner can make administrators or build new roles.</li><li>You can't change your own role (the owner is the exception), and the last owner can't be lowered or removed.</li><li>Every change is written to the access log.</li></ul></div>
+  <p class="kb-denied">You don't have the permission to see who holds which roles.</p>
+</article>
+
+<article class="kb" id="staff.books-basics" data-audience="staff" data-requires="books.view" data-sensitivity="restricted" data-keywords="voucher vouchers post posting balance ledger control reconcile reconciliation register journal books" data-follow="staff.payment-summary">
+  <h4 class="kb-title">How money moves in the books</h4>
+  <ul class="kb-q"><li>How does a voucher post?</li><li>Why must a voucher balance?</li><li>What is a control ledger?</li><li>How do I reconcile registers?</li><li>Where is reconciliation?</li></ul>
+  <div class="kb-a"><p>Money only moves through <strong>vouchers</strong> (sales, receipts, payments, journals…). Every voucher balances: total debits equal total credits, in the voucher's currency and in the base currency.</p><p><strong>Registers are detail, never money</strong>: gift voucher codes, loyalty point lots, withholding certificates and bill references explain a ledger balance but never replace it. Each register reconciles to a control ledger. See <strong>Books → Reports → Reconciliation</strong>.</p></div>
+  <p class="kb-more">The full explanation is the Ledger guide (docs/LEDGER_GUIDE.md).</p>
+  <p class="kb-denied">You don't have the permission to see the books.</p>
+</article>
+
+<article class="kb" id="staff.mimi-analytics" data-audience="staff" data-requires="insight.mimi" data-sensitivity="restricted" data-keywords="mimi analytics sessions queries flagged harmful block blocked abuse logs transcripts" data-follow="staff.ai-keys">
+  <h4 class="kb-title">Seeing what people ask Mimi</h4>
+  <ul class="kb-q"><li>Where can I see what people ask Mimi?</li><li>Mimi sessions</li><li>How do I block someone from Mimi?</li><li>Flagged questions</li><li>Harmful questions</li></ul>
+  <div class="kb-a"><p>Under <strong>AI analytics</strong> there are Mimi screens for sessions, queries (where you can flag one), harmful questions and blocks. You can block a customer, a staff member or a guest.</p></div>
+  <p class="kb-denied">You don't have the permission to see Mimi's analytics.</p>
+</article>
+
+<article class="kb" id="staff.ai-keys" data-audience="staff" data-requires="ai.keys" data-sensitivity="restricted" data-keywords="key keys api gemini openai anthropic claude qwen provider quota model failover" data-follow="staff.mimi-analytics">
+  <h4 class="kb-title">Adding or changing an AI key</h4>
+  <ul class="kb-q"><li>Where do I add an AI key?</li><li>How do I change the AI provider?</li><li>Add a Gemini key</li><li>OpenAI key</li><li>My key ran out of quota</li></ul>
+  <div class="kb-a"><p>Go to <strong>AI → Keys</strong>. Keys are stored encrypted. For each key you choose the provider and model, what it may be used for (analytics, Mimi, screening or all), and where it comes in the order. If one fails (busy, over quota, bad key) the next is tried, and the last error shows on the screen.</p></div>
+  <p class="kb-denied">You don't have the permission to manage AI keys.</p>
+</article>
+</body></html>
