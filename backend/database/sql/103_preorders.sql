@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS preorder_lines (
 
 -- the numbering: PRE-00001, one series for every branch, on the Sales Order type (copies the width and manual rule of its default series)
 INSERT INTO voucher_series (voucher_type_id, name, prefix, suffix, number_width, start_number, next_number, reset_period, last_reset_key, location_id, allow_manual, is_default, is_active, created_at, updated_at)
-SELECT t.id, 'Preorder', 'PRE-', NULL, COALESCE(ds.number_width, 5), 1, 1, 'never', NULL, NULL, 0, 0, 1, NOW(), NOW()
+SELECT t.id, 'Preorder', 'PRE-', '', COALESCE(ds.number_width, 5), 1, 1, 'never', NULL, NULL, 0, 0, 1, NOW(), NOW()
 FROM voucher_types t
 LEFT JOIN voucher_series ds ON ds.voucher_type_id = t.id AND ds.is_default = 1
 WHERE t.base_type = 'sales_order'
