@@ -160,4 +160,59 @@ class NotificationSettingsController extends Controller
             return response()->json(['message' => 'It will be tried again shortly.']);
         });
     }
+
+    /**
+     * GET /admin/notifications/whatsapp : WhatsApp messages for a person to send by hand (`status` to_send by default; sent, skipped or all). Each carries the wa.me link
+     * that opens WhatsApp with the message ready; the person presses Send there and then marks it sent.
+     */
+    public function whatsapp(Request $request): JsonResponse
+    {
+        $status = $request->input('status', 'to_send');
+        $q = NotificationDelivery::where('channel', 'whatsapp')->when($status !== 'all', fn ($w) => $w->where('status', $status))->orderBy('id', $status === 'to_send' ? 'asc' : 'desc');
+        $page = $q->paginate(min(max((int) $request->input('per_page', 25), 1), 100));
+        $names = $this->namesOf($page->getCollection());
+        $page->getCollection()->transform(fn ($d) => ['id' => $d->id, 'type' => $d->type, 'type_label' => NotificationTypes::label($d->type), 'status' => $d->status, 'to' => $d->to_address,
+            'name' => $names[$d->notifiable_type . ':' . $d->notifiable_id] ?? null, 'message' => $d->body, 'wa_url' => $d->wa_url, 'error' => $d->error, 'at' => $d->created_at?->toIso8601String(),
+            'sent_at' => $d->sent_at?->toIso8601String()]);
+
+        return response()->json($page->toArray() + ['waiting' => NotificationDelivery::where('channel', 'whatsapp')->where('status', 'to_send')->count()]);
+    }
+
+    /** "type:id" => the person's name, for a page of deliveries. */
+    private function namesOf($rows): array
+    {
+        $out = [];
+        foreach ($rows->groupBy('notifiable_type') as $type => $group) {
+            if (! $type || ! class_exists($type)) {
+                continue;
+            }
+            foreach ($type::whereIn('id', $group->pluck('notifiable_id')->unique())->get() as $m) {
+                $out[$type . ':' . $m->id] = trim(($m->first_name ?? '') . ' ' . ($m->last_name ?? '')) ?: ($m->name ?? null);
+            }
+        }
+
+        return $out;
+    }
+
+    /** POST /admin/notifications/deliveries/{id}/mark-sent */
+    public function markSent(Request $request, int $id, Notifier $notifier): JsonResponse
+    {
+        return $this->guard(function () use ($request, $id, $notifier) {
+            $notifier->markSent(NotificationDelivery::findOrFail($id), $request->user());
+
+            return response()->json(['message' => 'Marked as sent.']);
+        });
+    }
+
+    /** POST /admin/notifications/deliveries/{id}/skip {why?} */
+    public function skip(Request $request, int $id, Notifier $notifier): JsonResponse
+    {
+        $d = $request->validate(['why' => 'nullable|string|max:200']);
+
+        return $this->guard(function () use ($request, $id, $notifier, $d) {
+            $notifier->skip(NotificationDelivery::findOrFail($id), $request->user(), $d['why'] ?? null);
+
+            return response()->json(['message' => 'Skipped.']);
+        });
+    }
 }

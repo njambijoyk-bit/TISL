@@ -87,6 +87,8 @@ class Customer extends Model
      * The attributes that should be cast.
      */
     protected $casts = [
+        'notify_essential_only' => 'boolean',
+        'whatsapp_consent_at' => 'datetime',
         'birthday' => 'date',
         'is_withholding_agent' => 'boolean',
         'has_credit_account' => 'boolean',

@@ -471,6 +471,9 @@ class CheckoutService
                 app(\App\Services\Preorders\PreorderService::class)->record($order, $placeable, (int) $a['locationId']);
             }
             $this->logTermsAcceptance($order, $in, $customer, $user);
+            if ($customer && ! empty($in['customer_phone'])) {   // the phone given here can become their WhatsApp number (whether it counts is the company's setting)
+                app(\App\Services\Notify\NotificationPreferences::class)->noteCheckoutNumber($customer, (string) $in['customer_phone']);
+            }
             $total = (float) $order->total_amount;
 
             $giftApplied = 0.0;

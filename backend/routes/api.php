@@ -748,6 +748,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         Route::get('/gift-vouchers', [GiftVoucherController::class, 'mine']);
         Route::get('/wallet', [\App\Http\Controllers\Api\CustomerWalletController::class, 'show']);
+        Route::get('/notification-preferences', [\App\Http\Controllers\Api\CustomerNotificationPreferencesController::class, 'show']);
+        Route::put('/notification-preferences', [\App\Http\Controllers\Api\CustomerNotificationPreferencesController::class, 'update']);
         Route::prefix('sales-orders')->group(function () {
             Route::get('/', [CheckoutController::class, 'orders']);
             Route::get('/{id}', [CheckoutController::class, 'order']);
@@ -1064,6 +1066,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/log',                                         [$c, 'log'])->middleware('permission:notifications.view');
             Route::get('/deliveries',                                  [$c, 'deliveries'])->middleware('permission:notifications.view');
             Route::post('/deliveries/{id}/retry',                      [$c, 'retry'])->whereNumber('id')->middleware('permission:notifications.send');
+            Route::get('/whatsapp',                                    [$c, 'whatsapp'])->middleware('permission:notifications.view');
+            Route::post('/deliveries/{id}/mark-sent',                  [$c, 'markSent'])->whereNumber('id')->middleware('permission:notifications.send');
+            Route::post('/deliveries/{id}/skip',                       [$c, 'skip'])->whereNumber('id')->middleware('permission:notifications.send');
         });
 
         Route::prefix('preorders')->group(function () {

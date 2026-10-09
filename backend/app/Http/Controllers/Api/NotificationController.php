@@ -22,7 +22,10 @@ class NotificationController extends Controller
 
         $notifications = $query->paginate($request->input('per_page', 15));
 
-        return response()->json($notifications);
+        // "Chat with us on WhatsApp": the company's default phone, ready to open in WhatsApp
+        $digits = \App\Models\CompanyProfile::waDigits(\App\Models\CompanyProfile::defaultPhone());
+
+        return response()->json($notifications->toArray() + ['company_whatsapp' => $digits ? 'https://wa.me/' . $digits . '?text=' . rawurlencode('Hello ' . \App\Models\CompanyProfile::name()) : null]);
     }
 
     /** GET /notifications/unread-count */

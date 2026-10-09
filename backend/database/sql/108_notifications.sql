@@ -7,9 +7,9 @@
 --   notification_setting_logs       who did what, when, from where (never a secret value); the app cannot change or delete a row
 --   notification_deliveries         every message on every channel: sent, failed, waiting to be sent by hand ...; text blanked after 12 months
 --   customers.notify_mode           NULL = the company default; email | whatsapp | both
---   customers.notify_essential_only 1 = only the messages that matter (orders, payments, refunds, delays)
+--   customers.notify_essential_only 1 = only the messages that matter (orders, payments, refunds, delays); 0 = everything; NULL = the company default
 --   customers.whatsapp_consent_at / _source   when and from where (profile | checkout) the WhatsApp number was given for updates
--- Existing rows keep NULL / 0, so nothing changes until someone chooses. Safe to run twice.
+-- Existing rows keep NULL, so nothing changes until someone chooses. (If you ran an earlier copy of this script, also run 109_notify_essential_tristate.sql.) Safe to run twice.
 -- Run in Workbench. DDL commits on its own, so there is nothing to COMMIT.
 -- =====================================================================
 
@@ -104,7 +104,7 @@ BEGIN
 END$$
 DELIMITER ;
 CALL add_column_if_missing('customers', 'notify_mode', 'VARCHAR(10) NULL');
-CALL add_column_if_missing('customers', 'notify_essential_only', 'TINYINT(1) NOT NULL DEFAULT 0');
+CALL add_column_if_missing('customers', 'notify_essential_only', 'TINYINT(1) NULL DEFAULT NULL');
 CALL add_column_if_missing('customers', 'whatsapp_consent_at', 'DATETIME NULL');
 CALL add_column_if_missing('customers', 'whatsapp_consent_source', 'VARCHAR(10) NULL');
 DROP PROCEDURE IF EXISTS add_column_if_missing;

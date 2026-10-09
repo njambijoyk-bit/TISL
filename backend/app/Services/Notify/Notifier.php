@@ -124,4 +124,27 @@ class Notifier
         SendNotificationEmail::dispatch($d->id);
         NotificationSettingLog::write('message_retried', $by, null, null, "Email to {$d->to_address} tried again ({$d->type}).", ['delivery_id' => $d->id]);
     }
+
+    /** A person sent the WhatsApp message by hand (it opened in WhatsApp and they pressed Send): note it, and who. */
+    public function markSent(NotificationDelivery $d, ?User $by): void
+    {
+        $this->assertToSend($d);
+        $d->forceFill(['status' => 'sent', 'sent_at' => now(), 'handled_by' => $by?->id])->save();
+        NotificationSettingLog::write('whatsapp_marked_sent', $by, null, null, "WhatsApp to {$d->to_address} marked as sent ({$d->type}).", ['delivery_id' => $d->id]);
+    }
+
+    /** Nobody will send it (wrong number, no longer needed): leave it, with who decided. */
+    public function skip(NotificationDelivery $d, ?User $by, ?string $why = null): void
+    {
+        $this->assertToSend($d);
+        $d->forceFill(['status' => 'skipped', 'error' => 'skipped_by_staff', 'handled_by' => $by?->id])->save();
+        NotificationSettingLog::write('whatsapp_skipped', $by, null, null, "WhatsApp to {$d->to_address} skipped ({$d->type})" . ($why ? ": {$why}" : '.'), ['delivery_id' => $d->id]);
+    }
+
+    private function assertToSend(NotificationDelivery $d): void
+    {
+        if ($d->channel !== 'whatsapp' || $d->status !== 'to_send') {
+            throw new NotifyException('That message is not waiting to be sent by hand.');
+        }
+    }
 }
