@@ -35,6 +35,7 @@ class MimiQueryLogService
         bool          $wasBlocked   = false,
         ?string       $errorMessage = null,
         ?int          $httpStatus   = null,
+        array         $local        = [],   // answered_by, local_outcome, kb_entry, confidence, resolver (script 105)
     ): MimiQueryLog {
         try {
             // Determine response status
@@ -73,7 +74,7 @@ class MimiQueryLogService
                 'response_length'  => $replyText ? mb_strlen($replyText) : null,
                 'response_time_ms' => $responseMs,
                 'queried_at'       => now(),
-            ]);
+            ] + $this->localColumns($local));
 
             return $log;
 
@@ -87,6 +88,19 @@ class MimiQueryLogService
             // Return a minimal unsaved instance so callers don't need to null-check
             return new MimiQueryLog(['session_id' => $session->id]);
         }
+    }
+
+    /** The local layer's columns exist once script 105 has been run; until then they are left out rather than failing the log. */
+    private function localColumns(array $local): array
+    {
+        static $has = null;
+        try {
+            $has ??= \Illuminate\Support\Facades\Schema::hasColumn('mimi_query_logs', 'answered_by');
+        } catch (\Throwable) {
+            $has = false;
+        }
+
+        return $has ? array_intersect_key($local, array_flip(['answered_by', 'local_outcome', 'kb_entry', 'confidence', 'resolver'])) : [];
     }
 
     /**

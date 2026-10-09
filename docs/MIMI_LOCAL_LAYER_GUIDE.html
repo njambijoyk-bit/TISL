@@ -328,7 +328,7 @@ footer.site{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;colo
   <ul class="chips" aria-label="Status">
     <li class="chip ok">Design: complete draft</li>
     <li class="chip info">Prototype: runs in this page, no network</li>
-    <li class="chip warn">Server: engine built, runs in shadow mode</li>
+    <li class="chip warn">Server: built, ships in shadow mode</li>
     <li class="chip mono">9 Oct 2026 · code read at commit e15e726</li>
   </ul>
   <p style="margin-top:20px"><a class="btn primary" href="#try">Ask it something →</a> <a class="btn" href="#today">What's wrong with today's flow?</a></p>
@@ -859,7 +859,7 @@ footer.site{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;colo
 <!-- ═════════════════════════ 13 ═════════════════════════ -->
 <section class="chap" id="build" aria-labelledby="h-build">
   <h2 id="h-build"><span class="num">13</span>Building it in this codebase</h2>
-  <p>A sketch of where the pieces go, following the repo's conventions (SQL scripts run in Workbench, permissions in the catalogue, services under <code>app/Services</code>). <strong>Status:</strong> the engine, the seven resolvers, the redactor, the controller hook (<code>MIMI_LOCAL_MODE=off|shadow|on</code>), the knowledge file <code>backend/resources/mimi/knowledge.html</code> and <code>backend/tests/Unit/MimiLocalLayerTest.php</code> are built, and it ships in <em>shadow</em> mode. <strong>Still to build:</strong> the database tables below (knowledge currently loads from the HTML file), the <code>mimi.knowledge</code> and <code>mimi.routing</code> permissions and their screens, the log columns and Gaps screen, and the new policy version. The snippets below show the shape of those.</p>
+  <p>A sketch of where the pieces go, following the repo's conventions (SQL scripts run in Workbench, permissions in the catalogue, services under <code>app/Services</code>). <strong>Status:</strong> built and pushed: the engine, the seven resolvers, the redactor, the controller hook, the database tables (<code>database/sql/105_mimi_local_layer.sql</code>), the importer (<code>php artisan mimi:kb-import</code>), the permissions <code>mimi.knowledge</code> and <code>mimi.routing</code> (catalogue version 7), per-audience switches, the log columns, and the admin screen at <em>AI → Mimi knowledge</em> (entries with review, questions we couldn't answer, try it, settings). It ships in <em>shadow</em> mode. <strong>Still to build:</strong> the trained NLP (chapter 12) and the new Mimi usage policy version. The snippets below were the plan; where they differ from the repo (for example the answer is stored as markdown, <code>answer_md</code>), the repo is right.</p>
 
   <h3>1 · The hook in <code>ChatController::chat()</code></h3>
 <pre><code><span class="c">// after validation and the block check, before the prompt is built</span>
@@ -887,7 +887,7 @@ $response = $this-&gt;callGemini($payload-&gt;contents);            <span class=
 <span class="s">'mimi.routing'</span>   =&gt; [<span class="k">null</span>, <span class="s">'System'</span>,  <span class="s">'Choose what Mimi may send to an outside AI, per audience'</span>, <span class="k">true</span>],</code></pre>
   <p>Then <code>php artisan access:seed</code>, as with versions 2 to 6. New admin routes must name a permission or <code>AdminRoutesNeedAPermissionTest</code> fails.</p>
 
-  <h3>3 · A SQL script, <code>105_mimi_local_layer.sql</code> (shape only)</h3>
+  <h3>3 · The SQL script, <code>105_mimi_local_layer.sql</code> (the plan; the real script is in the repo)</h3>
 <pre><code><span class="c">-- PART A: read-only checks, run on their own first (as in 67_ai_provider_keys.sql)
 -- PART B: DDL, using the add_column_if_missing procedure pattern</span>
 <span class="k">CREATE TABLE IF NOT EXISTS</span> mimi_kb_entries (

@@ -83,7 +83,7 @@ final class ModuleTables
             // Themes / appearance
             'colourings', 'icon_styles', 'appearance_fonts', 'user_appearance_preferences',
             // Mimi AI
-            'mimi_sessions', 'mimi_query_logs', 'mimi_blocked_actors',
+            'mimi_sessions', 'mimi_query_logs', 'mimi_blocked_actors', 'mimi_kb_entries', 'mimi_kb_questions', 'mimi_routing',
             // Vault
             'vault_folders', 'vault_documents', 'vault_document_versions',
             'vault_policies', 'vault_policy_assignments', 'vault_policy_conditions',

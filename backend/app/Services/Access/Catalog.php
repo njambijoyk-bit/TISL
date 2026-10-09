@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 6;
+    public const VERSION = 7;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        7 => ['mimi.knowledge', 'mimi.routing'],
         6 => ['imports.view', 'imports.export', 'imports.manage'],
         5 => ['costcentres.view', 'costcentres.manage'],
         4 => ['customers.view', 'customers.manage', 'customers.tiers', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'auctions.manage', 'shipping.manage',
@@ -135,6 +136,8 @@ class Catalog
         'careers.manage'    => ['careers', 'People', 'Post jobs and manage applications', true],
         'analytics.view'    => ['extras', 'Insight', 'See search and customer analytics', false],
         'insight.mimi'      => [null, 'Insight', 'See the Mimi chat analytics and block abusers', true],
+        'mimi.knowledge'    => [null, 'Insight', 'Write and review the entries Mimi answers from, and see the questions she could not answer', true],
+        'mimi.routing'      => [null, 'System', 'Choose how Mimi answers and what she may send to an outside AI, per kind of account', true],
         'resources.manage'  => [null, 'Operations', 'Manage bookable staff, rooms, tables and equipment', true],
         // added in R4: one for each role-name check that was left in the code
         'books.writeoff'    => [null, 'Books', 'Write off what customers owe', true],
@@ -197,7 +200,7 @@ class Catalog
     public const OWNER_ONLY = ['system.modules', 'system.devtools', 'system.restore', 'access.roles', 'books.period', 'payroll.run', 'currency.base',
         'vault.settings', 'algorithm.run', 'projects.purge', 'tickets.purge', 'users.purge',
         'books.writeoff', 'books.bounce', 'verification.override', 'attendance.arbitrate', 'hr.purge', 'projects.moderate', 'campaigns.purge', 'driver.app',
-        'vault.bypass', 'ai.keys', 'settings.delete'];
+        'vault.bypass', 'ai.keys', 'settings.delete', 'mimi.routing'];
 
     /** Things a role can approve, optionally up to an amount. approval key => label. */
     public const APPROVALS = [

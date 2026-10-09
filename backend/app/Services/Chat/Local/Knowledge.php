@@ -29,6 +29,15 @@ final class Knowledge
         }
     }
 
+    /** @param  Entry[]  $entries */
+    public static function fromEntries(array $entries, array $placeholders = []): self
+    {
+        $k = new self('', $placeholders);
+        $k->entries = $entries;
+
+        return $k;
+    }
+
     public static function fromFile(string $path, array $placeholders = []): self
     {
         return new self((string) file_get_contents($path), $placeholders);

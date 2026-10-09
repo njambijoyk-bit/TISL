@@ -29,6 +29,11 @@ class MimiQueryLog extends Model
         'response_length',
         'response_time_ms',
         'queried_at',
+        'answered_by',
+        'local_outcome',
+        'kb_entry',
+        'confidence',
+        'resolver',
     ];
 
     protected $casts = [

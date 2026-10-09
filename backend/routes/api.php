@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\VaultController;
 use App\Http\Controllers\Admin\AiAnalyticsController;
 use App\Http\Controllers\Admin\MimiAnalyticsController;
+use App\Http\Controllers\Admin\MimiKnowledgeController;
 use App\Http\Controllers\Admin\LogExportController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\BackupController;
@@ -2138,6 +2139,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/blocks',                [MimiAnalyticsController::class, 'blocks']);
         });
         
+    // ── Mimi knowledge (what she answers from) and her switches ─────────────────────────
+    Route::middleware(['auth:sanctum', 'permission:mimi.knowledge'])
+        ->prefix('admin/mimi/kb')
+        ->group(function () {
+            Route::get('/meta',           [MimiKnowledgeController::class, 'meta']);
+            Route::get('/',               [MimiKnowledgeController::class, 'index']);
+            Route::post('/',              [MimiKnowledgeController::class, 'store']);
+            Route::post('/import',        [MimiKnowledgeController::class, 'import']);
+            Route::post('/try',           [MimiKnowledgeController::class, 'tryIt']);
+            Route::get('/gaps',           [MimiKnowledgeController::class, 'gaps']);
+            Route::put('/{id}',           [MimiKnowledgeController::class, 'update'])->whereNumber('id');
+            Route::post('/{id}/review',   [MimiKnowledgeController::class, 'review'])->whereNumber('id');
+            Route::delete('/{id}',        [MimiKnowledgeController::class, 'destroy'])->whereNumber('id');
+        });
+    Route::middleware(['auth:sanctum', 'permission:mimi.knowledge,mimi.routing'])->get('admin/mimi/routing', [MimiKnowledgeController::class, 'routing']);
+    Route::middleware(['auth:sanctum', 'permission:mimi.routing'])->put('admin/mimi/routing', [MimiKnowledgeController::class, 'updateRouting']);
+
     // CALCULATOR — every staff role; each insight pack inside checks the role of the pages its figures come from
     Route::middleware('permission:insight.view')->prefix('admin/insight')->group(function () {
         Route::get('/reference',  [InsightController::class, 'reference']);

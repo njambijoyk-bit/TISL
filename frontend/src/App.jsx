@@ -124,6 +124,7 @@ const MimiOverviewPage   = lazy(() => import('./extras/pages/admin/ai-analytics/
 const Mimisessionspage   = lazy(() => import('./extras/pages/admin/ai-analytics/MimiSessionsPage'));
 const Mimiblockspage     = lazy(() => import('./extras/pages/admin/ai-analytics/MimiBlocksPage'));
 const Mimiharmfulpage    = lazy(() => import('./extras/pages/admin/ai-analytics/MimiHarmfulPage'));
+const MimiKnowledgePage  = lazy(() => import('./extras/pages/admin/ai-analytics/MimiKnowledgePage'));
 
 const Dashboard          = lazy(() => import('./core/pages/admin/Dashboard'));
 const PolicySettings     = lazy(() => import('./core/pages/admin/settings/policies/PolicySettings'))
@@ -852,6 +853,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin>
                     <Mimiharmfulpage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics/mimi-knowledge"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <MimiKnowledgePage />
                   </ProtectedRoute>
                 }
               />

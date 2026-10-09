@@ -145,6 +145,8 @@ class NoRoleNamesInCodeTest extends TestCase
         'careers.manage' => ['super_admin', 'admin'],
         'analytics.view' => ['super_admin', 'admin', 'manager', 'finance'],
         'insight.mimi' => ['super_admin', 'admin', 'manager'],
+        'mimi.knowledge' => ['super_admin', 'admin'],
+        'mimi.routing' => ['super_admin'],
         'resources.manage' => ['super_admin', 'admin', 'manager'],
         'books.writeoff' => ['super_admin', 'finance'],
         'books.bounce' => ['super_admin', 'finance'],

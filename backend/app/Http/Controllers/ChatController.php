@@ -114,6 +114,7 @@ class ChatController extends Controller
             responseMs:   $elapsed,
             errorMessage: $errorMessage,
             httpStatus:   $httpStatus,
+            local:        (array) $request->attributes->get('mimi_local', []),
         );
  
         if ($errorMessage) {
@@ -824,6 +825,7 @@ LIVE PUBLIC DATA
             responseMs:   $elapsed,
             errorMessage: $errorMessage,
             httpStatus:   $httpStatus,
+            local:        (array) $request->attributes->get('mimi_local', []),
         );
  
         if ($errorMessage) {
@@ -846,12 +848,12 @@ LIVE PUBLIC DATA
      */
     private function localFirst(Request $request, $session, ?User $user): ?\Illuminate\Http\JsonResponse
     {
-        $mode = $this->local->mode();
-        if ($mode === 'off') {
-            return null;
-        }
         try {
             $ctx    = CallerContext::forUser($user);
+            $mode   = $this->local->modeFor($ctx);
+            if ($mode === 'off') {
+                return null;
+            }
             $answer = $this->local->answer($ctx, (string) $request->message);
         } catch (\Throwable $e) {
             Log::warning('Mimi local layer failed, using the old path', ['error' => $e->getMessage()]);
@@ -861,12 +863,14 @@ LIVE PUBLIC DATA
         // never the question or the answer: only how it went
         Log::info('mimi.local', ['mode' => $mode, 'kind' => $ctx->kind, 'outcome' => $answer->outcome, 'entry' => $answer->entry?->id,
             'confidence' => round($answer->confidence, 3), 'resolver' => $answer->resolver, 'ms' => round($answer->ms, 1), 'unknown' => round($answer->unknownShare, 2)]);
+        // what the local layer decided, kept for the log row the old path writes (so shadow mode can be compared with what was actually sent)
+        $request->attributes->set('mimi_local', $this->localColumns($answer, 'ai'));
         if ($mode === 'shadow') {
             return null;
         }
 
         if ($answer->handled()) {
-            return $this->sendLocal($request, $session, $answer->text, $answer->loggableText(), $answer->meta(), $answer->ms);
+            return $this->sendLocal($request, $session, $answer->text, $answer->loggableText(), $answer->meta(), $answer->ms, $this->localColumns($answer, $answer->outcome === 'guard' ? 'guard' : 'local'));
         }
         $fallback = $this->local->fallbackFor($ctx);
         if ($fallback === 'ai_scoped') {
@@ -876,10 +880,15 @@ LIVE PUBLIC DATA
             return $this->askOutside($request, $session, $answer);
         }
 
-        return $this->sendLocal($request, $session, $this->local->noAnswerText(), $this->local->noAnswerText(), ['answered_by' => 'local', 'outcome' => 'none'], $answer->ms);
+        return $this->sendLocal($request, $session, $this->local->noAnswerText(), $this->local->noAnswerText(), ['answered_by' => 'local', 'outcome' => 'none'], $answer->ms, $this->localColumns($answer, 'none'));
     }
 
-    private function sendLocal(Request $request, $session, string $reply, string $logged, array $meta, float $ms): \Illuminate\Http\JsonResponse
+    private function localColumns(LocalAnswer $a, string $answeredBy): array
+    {
+        return ['answered_by' => $answeredBy, 'local_outcome' => $a->outcome, 'kb_entry' => $a->entry?->id, 'confidence' => round($a->confidence, 3), 'resolver' => $a->resolver];
+    }
+
+    private function sendLocal(Request $request, $session, string $reply, string $logged, array $meta, float $ms, array $columns = []): \Illuminate\Http\JsonResponse
     {
         $this->queryLogService->logQuery(
             session:    $session,
@@ -887,6 +896,7 @@ LIVE PUBLIC DATA
             response:   response()->json(['reply' => $logged]),
             geminiRaw:  [],
             responseMs: (int) $ms,
+            local:      $columns,
         );
         $this->sessionService->touchActive($session);
 
@@ -939,7 +949,8 @@ KNOWLEDGE:
         }
 
         $this->queryLogService->logQuery(session: $session, query: (string) $request->message, response: $response, geminiRaw: $raw,
-            responseMs: $elapsed, errorMessage: $errorMessage, httpStatus: $httpStatus);
+            responseMs: $elapsed, errorMessage: $errorMessage, httpStatus: $httpStatus,
+            local: $this->localColumns($answer, 'ai'));
         $errorMessage ? $this->sessionService->touchFailed($session) : $this->sessionService->touchActive($session);
 
         return $this->withSessionHeader($response, $session->session_token);

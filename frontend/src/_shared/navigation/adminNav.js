@@ -199,6 +199,7 @@ export const ADMIN_NAV = [
           { title: 'Modules', path: '/admin/ai-analytics/modules' },
           { title: 'Sessions', path: '/admin/ai-analytics/sessions' },
           { title: 'Mimi', path: '/admin/ai-analytics/mimi', also: ['/admin/ai-analytics/mimi-sessions', '/admin/ai-analytics/mimi-eligibility', '/admin/ai-analytics/mimi-harmful'] },
+          { title: 'Mimi knowledge', path: '/admin/ai-analytics/mimi-knowledge', perm: ['mimi.knowledge', 'mimi.routing'] },
         ],
       },
     ],

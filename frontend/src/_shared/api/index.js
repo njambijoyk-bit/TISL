@@ -30,6 +30,7 @@ export { default as loyaltyAPI } from './loyalty';
 export { default as deliveryAPI } from './delivery';
 export { default as vaultAPI } from './vault';
 export { default as mimiAPI } from './mimiAPI';
+export { default as mimiKnowledgeAPI } from './mimiKnowledgeAPI';
 export { default as logExportAPI } from './logExport';
 export { default as ticketsAPI } from './tickets';
 export { adminCreditAPI, customerCreditAPI } from './customerCredit';
