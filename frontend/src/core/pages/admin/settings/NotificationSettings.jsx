@@ -1,30 +1,64 @@
-import Header from '../../../../_shared/components/layout/Header';
-import Footer from '../../../../_shared/components/layout/Footer';
-import Sidebar from '../../../../_shared/components/layout/Sidebar';
-import PageHeader from '../../../../_shared/components/layout/PageHeader';
-import Card from '../../../../_shared/components/common/Card';
-import { Bell } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
+import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
+import Tabs from '../../../components/admin/ui/Tabs';
+import notificationSettingsAPI from '../../../../_shared/api/notificationSettings';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import GeneralTab from '../../../components/admin/notifications/GeneralTab';
+import EmailTab from '../../../components/admin/notifications/EmailTab';
+import TypesTab from '../../../components/admin/notifications/TypesTab';
+import DeliveryTab from '../../../components/admin/notifications/DeliveryTab';
+import HistoryTab from '../../../components/admin/notifications/HistoryTab';
+import { colors } from '../../../../_shared/theme/tokens';
 
+const TABS = [
+  { id: 'email', label: 'Email' },
+  { id: 'general', label: 'General' },
+  { id: 'types', label: 'Messages' },
+  { id: 'log', label: 'Delivery log' },
+  { id: 'history', label: 'History & rollback' },
+];
+
+/**
+ * Settings → Notifications. How the system reaches people: the mail server (set here, not in .env), which messages go out, a log of every message,
+ * and the history of these settings with a way back. See docs/NOTIFICATIONS_PLAN.md.
+ */
 export default function NotificationSettings() {
+  const [params, setParams] = useSearchParams();
+  const [tab, setTab] = useState(TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'email');
+  const [data, setData] = useState(null);
+  const [denied, setDenied] = useState(false);
+
+  const load = useCallback(() => notificationSettingsAPI.show().then(setData).catch((e) => {
+    if (e?.response?.status === 403) setDenied(true); else toast.error(errMsg(e, 'Could not load the notification settings'));
+  }), []);
+  useEffect(() => { load(); }, [load]);
+
+  const body = () => {
+    if (denied) return <NoAccess what="the notification settings" />;
+    if (!data) return <p style={{ color: colors.textMuted }}>Loading…</p>;
+    if (!data.ready) return <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>The notification system is not set up yet. Run database script 108_notifications.sql, then reload this page.</p>;
+    const { can } = data;
+    return (
+      <>
+        <Tabs tabs={TABS} active={tab} onChange={(id) => { setTab(id); setParams({ tab: id }, { replace: true }); }} />
+        {tab === 'email' && <EmailTab key={`e${data.current_version.email?.id ?? 0}`} data={data} canEdit={can.settings} canSend={can.send || can.settings} onChanged={load} />}
+        {tab === 'general' && <GeneralTab key={`g${data.current_version.general?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
+        {tab === 'types' && <TypesTab key={`t${data.current_version.types?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
+        {tab === 'log' && <DeliveryTab canSend={can.send} />}
+        {tab === 'history' && <HistoryTab canEdit={can.settings} canPurge={can.purge} onChanged={load} />}
+      </>
+    );
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-      <Header />
-      <div className="flex flex-1">
-        <Sidebar />
-        <div className="flex-1 overflow-auto">
-          <div className="max-w-7xl mx-auto px-4 py-8">
-            <PageHeader title="Notification Settings" subtitle="Configure email and SMS notification preferences" />
-            <Card>
-              <div className="text-center py-12">
-                <Bell size={48} className="mx-auto text-gray-400 mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Notification Settings</h3>
-                <p className="text-gray-600 dark:text-gray-400">Coming soon</p>
-              </div>
-            </Card>
-          </div>
-        </div>
+    <SettingsLayout>
+      <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
+        <HubHeader title="Notifications" description="How we reach customers and staff: email, set up here instead of on the server, which messages go out, and a record of everything that was sent or changed." />
+        {body()}
       </div>
-      <Footer />
-    </div>
+    </SettingsLayout>
   );
 }

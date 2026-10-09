@@ -1674,7 +1674,7 @@ function App() {
               <Route
                 path="/admin/settings/notifications"
                 element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireAdmin permission="notifications.view,notifications.settings">
                     <NotificationSettings />
                   </ProtectedRoute>
                 }
@@ -1689,11 +1689,7 @@ function App() {
               />
               <Route
                 path="/admin/settings/email"
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <EmailSettings />
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/admin/settings/notifications?tab=email" replace />}
               />
               <Route
                 path="/admin/settings/backup"

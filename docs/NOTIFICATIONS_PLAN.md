@@ -1,6 +1,6 @@
 # Notifications: the plan (v2, decided)
 
-Status: PLAN, answers in (see "Decided answers" at the end). Phase 1 is being built. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
+Status: PLAN, answers in (see "Decided answers" at the end). **Phase 1 is BUILT** (see "As built, phase 1" at the end); phases 2 to 4 are not. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
 
 ## The rule
 
@@ -134,3 +134,14 @@ Phases 1 and 2 need no outside account. Phase 3 needs a Twilio or Meta account t
 4. **Existing `createFor` with `email`:** yes, they start sending real emails.
 5. **Log retention:** 12 months, then text blanked.
 6. **Queue worker and scheduler:** both are running.
+
+## As built, phase 1
+
+To switch it on: run `database/sql/108_notifications.sql` in Workbench, then `php artisan access:seed` (adds the four `notifications.*` permissions, Catalog version 8), then open **Settings → Notifications**. A queue worker must be running for emails to go out (decided: it is).
+
+- **Settings** (`App\Services\Notify\NotifySettings`): parts `general`, `types` (plain) and `email`, `whatsapp` (encrypted whole). Every save is a numbered version (`notification_setting_versions`) and a log line (`notification_setting_logs`, append-only, never a value). Secrets are write-only (`{set, hint}`); blank on save keeps the old one; `clear` empties one. **Rollback** restores an earlier version as a new one. **Owner purge** (`notifications.keys.purge`, owner only) blanks the keys inside old versions, never the live one; a version whose keys were deleted can not be restored. Saving email first sends a real test email to the saver through the new settings; a failed test refuses the change unless *Save anyway* (recorded as `saved_anyway`). *Back to the server's settings* is itself a version.
+- **Email in the screen**: host, port, security, username, password, sender, reply-to, copy-to. Applied by `MailConfigurator` at boot and before every queued job, so a worker needs no restart. Saved settings win over `.env`; with none saved `.env` keeps working. The screen warns when the server mailer is `log` (mail goes nowhere).
+- **Notifier** (`Notifier::send`): resolves channels with `ChannelResolver` (the rules above, checked against a plain oracle over 41,000 combinations), makes the bell row, queues the email (`SendNotificationEmail`: sends once, keeps the failure reason, 3 tries then `failed`, retry by a named person), and leaves a WhatsApp message `to_send` with a `wa.me` link for a person. A problem on any channel is recorded and never reaches the caller. `Notification::createFor(..., ['database','email'])` now really sends (respecting the company switch and per-type rules).
+- **Screens**: Settings → Notifications: Email, General (email on/off, essential-only default), Messages (turn a type off), Delivery log (filter, retry), History & rollback (versions, restore, owner's key deletion, the action log). `/admin/settings/email` redirects there.
+- **Not in phase 1**: the WhatsApp tab and API drivers (phase 3), the staff "WhatsApp to send" list screen, customer preferences and the default mode screen (phase 2), delay notices (phase 4). The rows for WhatsApp messages are already created in the delivery log with their link.
+- **Not testable here**: a real SMTP server and a running queue worker. Please send one test from the Email tab and place one real order to see the email arrive.
