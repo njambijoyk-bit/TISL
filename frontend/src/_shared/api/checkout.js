@@ -32,6 +32,8 @@ const checkoutAPI = {
   /** Download one invoice or receipt as pdf or html. */
   downloadDocument: async (id, params) => saveBlob(`/customer/account/documents/${id}/download`, params, `document.${params.format || 'pdf'}`),
   cancelOrder: async (id) => (await api.post(`/customer/sales-orders/${id}/cancel`)).data,
+  /** A PAID preorder: ask staff to cancel it (they decide, then refund). */
+  requestPreorderCancel: async (id, reason) => (await api.post(`/customer/sales-orders/${id}/cancel-request`, { reason })).data,
 };
 
 export default checkoutAPI;

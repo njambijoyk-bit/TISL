@@ -23,6 +23,7 @@ export default function CustomerOrderPage() {
   const [busy, setBusy] = useState(false);
   const [edit, setEdit] = useState(null);       // { qty: {lineId: n}, address, promo } while changing the order
   const [review, setReview] = useState(null);   // { id, note } while asking for a review
+  const [ask, setAsk] = useState(null);         // the reason being typed while asking to cancel a paid preorder
 
   const load = useCallback(() => (id ? checkoutAPI.order(id).then(setO).catch((e) => setError(errMsg(e, 'Could not load this order'))) : (failed ? setError('We could not find that order.') : undefined)), [id, failed]);
   useEffect(() => { if (o?.number && ref !== o.number) navigate(`/orders/${encodeURIComponent(o.number)}`, { replace: true }); }, [o]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -84,6 +85,11 @@ export default function CustomerOrderPage() {
     finally { setBusy(false); }
   };
 
+  const sendAsk = async (e) => {
+    e.preventDefault(); setBusy(true);
+    try { const r = await checkoutAPI.requestPreorderCancel(id, ask.trim()); toast.success(r.message, { duration: 8000 }); setAsk(null); load(); }
+    catch (err) { toast.error(errMsg(err, 'Could not send the request'), { duration: 8000 }); } finally { setBusy(false); }
+  };
   const cancel = async () => {
     if (!confirm('Cancel this order?')) return;
     try { await checkoutAPI.cancelOrder(id); toast.success('Order cancelled'); load(); } catch (e) { toast.error(errMsg(e, 'Could not cancel'), { duration: 8000 }); }
@@ -188,6 +194,26 @@ export default function CustomerOrderPage() {
             <p style={{ margin: '6px 0 0' }}>An invoice or sale can't be changed by you — if something looks wrong, ask for a review and we'll check it.</p>
           </div>
         )}
+
+        {o.preorder_cancel && o.status !== 'cancelled' && (
+          <div style={{ marginTop: 12, display: 'grid', gap: 8, maxWidth: 520 }}>
+            {o.preorder_cancel.state === 'requested' && <p role="status" style={{ margin: 0, padding: 10, borderRadius: 8, background: 'rgba(245,158,11,0.1)', fontSize: '0.82rem' }}>You asked to cancel this order. We will confirm once we have looked at it; nothing is refunded until then.</p>}
+            {o.preorder_cancel.state === 'declined' && o.preorder_cancel.note && <p role="status" style={{ margin: 0, padding: 10, borderRadius: 8, background: 'rgba(239,68,68,0.08)', fontSize: '0.82rem' }}><strong>We could not cancel it.</strong> {o.preorder_cancel.note}</p>}
+            {o.preorder_cancel.reason === 'delivered' && <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>Part of this order has already been delivered, so please contact us if you want to cancel the rest.</p>}
+            {o.preorder_cancel.can_request && ask === null && <div><button type="button" onClick={() => setAsk('')} className="ord-btn">Ask to cancel this preorder</button></div>}
+            {ask !== null && o.preorder_cancel.can_request && (
+              <form onSubmit={sendAsk} style={{ display: 'grid', gap: 8 }}>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280' }}>You have paid for this order and nothing has been delivered. Tell us why and we will look at it; if we cancel it we refund what you paid.</p>
+                <textarea aria-label="Why do you want to cancel?" required minLength={3} maxLength={500} placeholder="Why do you want to cancel?" value={ask} onChange={(e) => setAsk(e.target.value)} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="submit" disabled={busy || ask.trim().length < 3} className="ord-btn-danger">{busy ? 'Sending…' : 'Send request'}</button>
+                  <button type="button" onClick={() => setAsk(null)} className="ord-btn ord-btn-sm">Never mind</button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+        {o.preorder_cancel?.state === 'approved' && o.status === 'cancelled' && <p role="status" style={{ marginTop: 8, fontSize: '0.82rem', color: '#065f46' }}>We have cancelled this preorder at your request and will refund what you paid.</p>}
 
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
           {o.editable && !edit && <button type="button" onClick={startEdit} className="ord-btn">Change order</button>}

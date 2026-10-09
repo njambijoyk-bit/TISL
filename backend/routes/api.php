@@ -753,6 +753,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [CheckoutController::class, 'order']);
             Route::put('/{id}', [CheckoutController::class, 'updateOrder']);
             Route::post('/{id}/cancel', [CheckoutController::class, 'cancelOrder']);
+            Route::post('/{id}/cancel-request', [CheckoutController::class, 'requestPreorderCancel'])->whereNumber('id');
             Route::post('/documents/{id}/review', [CheckoutController::class, 'reviewDocument']);
         });
 
@@ -1061,6 +1062,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/open',          [$c, 'open'])->middleware('permission:books.post');
             Route::post('/counter',      [$c, 'counter'])->middleware('permission:books.post');
             Route::get('/customers',     [$c, 'customers'])->middleware('permission:books.post');
+            Route::get('/cancel-requests',                       [$c, 'cancelRequests'])->middleware('permission:books.view');
+            Route::post('/cancel-requests/{orderId}/approve',    [$c, 'approveCancel'])->whereNumber('orderId')->middleware('permission:books.post');
+            Route::post('/cancel-requests/{orderId}/decline',    [$c, 'declineCancel'])->whereNumber('orderId')->middleware('permission:books.post');
         });
 
         // The merged activity timeline: every log on the site, each only to the roles allowed to see it

@@ -18,6 +18,63 @@ const chip = { paid: ['Paid', '#16a34a'], invoiced: ['On account', '#d97706'], u
 
 const qty = (n) => (Math.round(Number(n) * 10000) / 10000).toString();
 
+/**
+ * Customers asking to cancel a paid preorder. Approving writes one credit note for everything still owed and, for a sale paid at the till, gives the money back
+ * from the chosen ledger (the one the sale was paid into is chosen for you). Declining needs a reason: the customer reads it.
+ */
+function CancelRequests({ rows, canAct, onChanged }) {
+  const [pick, setPick] = useState({});   // order id -> { ledger, note }
+  const [busy, setBusy] = useState(null);
+  const set = (id, patch) => setPick((p) => ({ ...p, [id]: { ...(p[id] ?? {}), ...patch } }));
+  const act = async (r, kind) => {
+    const v = pick[r.order_id] ?? {};
+    if (kind === 'decline' && !(v.note ?? '').trim()) { toast.error('Write the reason the customer will read.'); return; }
+    if (kind === 'approve' && !window.confirm(`Cancel ${r.number} and ${r.refund ? 'refund ' + money(r.total) : 'credit ' + money(r.total)}?`)) return;
+    setBusy(r.order_id);
+    try {
+      const res = kind === 'approve'
+        ? await preordersAPI.approveCancel(r.order_id, { refund_ledger_id: v.ledger ? Number(v.ledger) : undefined, note: v.note || undefined })
+        : await preordersAPI.declineCancel(r.order_id, v.note.trim());
+      toast.success(res.message, { duration: 7000 }); onChanged();
+    } catch (e) { toast.error(errMsg(e, 'Could not do that'), { duration: 8000 }); } finally { setBusy(null); }
+  };
+  return (
+    <div style={{ ...card, overflow: 'hidden' }}>
+      <div style={{ padding: '10px 14px', background: 'rgba(245,158,11,0.1)', fontSize: '0.84rem', fontWeight: 700 }}>Customers asking to cancel ({rows.length})</div>
+      {rows.map((r) => {
+        const v = pick[r.order_id] ?? {};
+        return (
+          <div key={r.order_id} style={{ padding: '12px 14px', borderTop: `1px solid ${colors.tint(0.05)}`, display: 'grid', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
+              <strong style={{ fontFamily: 'monospace' }}>{r.number}</strong>
+              <span style={{ fontSize: '0.82rem' }}>{r.customer}{r.email ? ` · ${r.email}` : ''}</span>
+              <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{money(r.total)}{r.sale ? ` · ${r.sale.kind === 'paid' ? 'paid' : 'on account'} (${r.sale.number})` : ''}</span>
+              {r.ticket && <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>{r.ticket}</span>}
+            </div>
+            {r.reason && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>“{r.reason}”</p>}
+            {r.blocked && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.warningText }}>{r.blocked}</p>}
+            {canAct && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                {r.refund && (
+                  <label style={{ fontSize: '0.76rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}>Refund from
+                    <select value={v.ledger ?? r.refund.default_id ?? ''} onChange={(e) => set(r.order_id, { ledger: e.target.value })} style={{ padding: '5px 8px', borderRadius: 8 }}>
+                      <option value="">Choose…</option>
+                      {r.refund.ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    </select>
+                  </label>
+                )}
+                <input aria-label="Note to the customer" placeholder="Note (required to decline)" value={v.note ?? ''} onChange={(e) => set(r.order_id, { note: e.target.value })} style={{ flex: 1, minWidth: 180, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--line)', fontFamily: 'inherit' }} />
+                <button type="button" style={btnPrimary} disabled={busy === r.order_id || !!r.blocked} onClick={() => act(r, 'approve')}>Cancel and refund</button>
+                <button type="button" style={btnGhost} disabled={busy === r.order_id} onClick={() => act(r, 'decline')}>Decline</button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /** A preorder taken at the counter: pick what is on offer, who it is for, and how it is paid (in full by cash sale, or an invoice on account). */
 function CounterModal({ branches, onClose, onDone }) {
   const [loc, setLoc] = useState(branches[0]?.id ?? '');
@@ -118,11 +175,14 @@ export default function PreordersWaiting() {
   const [data, setData] = useState(null);
   const [counter, setCounter] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [asks, setAsks] = useState([]);   // customers asking to cancel a paid preorder
   const canStock = hasPermission(null, 'stock.manage');
   const canPost = hasPermission(null, 'books.post');
 
   const load = useCallback(() => preordersAPI.waiting(loc).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the preorders'))), [loc]);
   useEffect(() => { load(); }, [load]);
+  const loadAsks = useCallback(() => preordersAPI.cancelRequests().then((r) => setAsks(r.data)).catch(() => setAsks([])), []);
+  useEffect(() => { loadAsks(); }, [loadAsks]);
 
   const groups = useMemo(() => {
     const m = new Map();
@@ -160,6 +220,8 @@ export default function PreordersWaiting() {
       <div style={{ ...card, padding: '10px 14px', fontSize: '0.8rem', color: colors.textMuted }}>
         <strong style={{ color: colors.text }}>Paid, not yet delivered: {money(data.paid_not_delivered.value)}</strong> across {data.paid_not_delivered.lines} line{data.paid_not_delivered.lines === 1 ? '' : 's'}. This income is already in the books; the cost of the goods is booked when they are delivered, so profit looks higher until then (before tax).
       </div>
+
+      {asks.length > 0 && <CancelRequests rows={asks} canAct={canPost} onChanged={() => { loadAsks(); load(); }} />}
 
       {groups.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>No preorders are waiting.</p>}
       {groups.map(([key, rows]) => {

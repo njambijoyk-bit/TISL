@@ -43,7 +43,7 @@ class OrderSummaryService
 
         return [
             'id' => $v->id, 'number' => $v->voucher_number, 'date' => $v->date?->toDateString(), 'currency' => $v->currency?->only(['code', 'symbol']), 'total' => (float) $v->total_amount,
-            'status' => $v->status === Voucher::CANCELLED ? 'cancelled' : ($delivered ? 'delivered' : ($paid ? 'paid' : 'placed')),
+            'status' => ($v->status === Voucher::CANCELLED || ($v->meta['cancel_request']['status'] ?? null) === 'approved') ? 'cancelled' : ($delivered ? 'delivered' : ($paid ? 'paid' : 'placed')),
             'payment' => $paid ? 'paid' : ($invoice ? 'invoiced' : 'unpaid'), 'stock_pending' => (bool) ($v->meta['stock_pending'] ?? false),
             'preorder' => $pre,
         ];

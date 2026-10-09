@@ -14,6 +14,7 @@ use App\Models\ProductVariant;
 use App\Models\VariantLocationStock;
 use App\Services\Books\BooksException;
 use App\Services\Campaigns\CampaignAccess;
+use App\Services\Preorders\PreorderCancellation;
 use App\Services\Preorders\PreorderService;
 use App\Services\Stock\StockTransferService;
 use Illuminate\Http\JsonResponse;
@@ -232,6 +233,43 @@ class PreorderController extends Controller
         }
 
         return response()->json(['location_id' => $loc, 'data' => (object) $out, 'products' => (object) $byProduct, 'hampers' => (object) $hampers]);
+    }
+
+    // -------------------------------------------------------------- customers asking to cancel a paid preorder
+
+    /** GET /admin/preorders/cancel-requests : requests waiting for a decision, with what approving refunds and where from. */
+    public function cancelRequests(): JsonResponse
+    {
+        return response()->json(['data' => app(PreorderCancellation::class)->pending()]);
+    }
+
+    private function preorderOrder(int $orderId): \App\Models\Books\Voucher
+    {
+        return \App\Models\Books\Voucher::whereNotNull('meta->preorder')->findOrFail($orderId);
+    }
+
+    /** POST /admin/preorders/cancel-requests/{orderId}/approve {refund_ledger_id?, note?} : one credit note for everything owed, money back when it was paid at the till. */
+    public function approveCancel(Request $request, int $orderId): JsonResponse
+    {
+        $d = $request->validate(['refund_ledger_id' => 'nullable|integer|exists:ledgers,id', 'note' => 'nullable|string|max:500']);
+
+        return $this->guard(function () use ($d, $request, $orderId) {
+            $credit = app(PreorderCancellation::class)->approve($this->preorderOrder($orderId), $d['refund_ledger_id'] ?? null, $d['note'] ?? null, $request->user());
+
+            return response()->json(['message' => "Cancelled. Credit note {$credit->voucher_number} written" . (($credit->meta['refunded_to'] ?? null) ? ", refunded from {$credit->meta['refunded_to']}" : '') . '.']);
+        });
+    }
+
+    /** POST /admin/preorders/cancel-requests/{orderId}/decline {note} : the customer reads the note and may ask again. */
+    public function declineCancel(Request $request, int $orderId): JsonResponse
+    {
+        $d = $request->validate(['note' => 'required|string|min:3|max:500']);
+
+        return $this->guard(function () use ($d, $request, $orderId) {
+            app(PreorderCancellation::class)->decline($this->preorderOrder($orderId), $d['note'], $request->user());
+
+            return response()->json(['message' => 'Declined. The customer will see your note.']);
+        });
     }
 
     // -------------------------------------------------------------- the counter

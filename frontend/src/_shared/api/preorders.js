@@ -25,6 +25,10 @@ const preordersAPI = {
   deliver: (d = {}) => api.post('/admin/preorders/deliver', d).then((r) => r.data),
   send: (d) => api.post('/admin/preorders/send', d).then((r) => r.data),
   open: (locationId) => api.get('/admin/preorders/open', { params: { location_id: locationId } }).then((r) => r.data),
+  // --- customers asking to cancel a paid preorder
+  cancelRequests: () => api.get('/admin/preorders/cancel-requests').then((r) => r.data),
+  approveCancel: (orderId, d = {}) => api.post(`/admin/preorders/cancel-requests/${orderId}/approve`, d).then((r) => r.data),
+  declineCancel: (orderId, note) => api.post(`/admin/preorders/cancel-requests/${orderId}/decline`, { note }).then((r) => r.data),
   counter: (d) => api.post('/admin/preorders/counter', d).then((r) => r.data),
   customers: (search) => api.get('/admin/preorders/customers', { params: { search } }).then((r) => r.data),
 };

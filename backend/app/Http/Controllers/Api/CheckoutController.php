@@ -195,7 +195,22 @@ class CheckoutController extends Controller
             'due' => ($inv = $v->children->where('status', Voucher::POSTED)->first(fn ($c) => $c->type?->base_type === VoucherType::SALES)) ? max(0.0, $this->vouchers->outstanding($inv)) : null,   // what is still owed on its invoice
             'registration' => ! empty($v->meta['auction_registration']),
             'editable' => $v->status === Voucher::POSTED && ! $v->children->where('status', Voucher::POSTED)->count(),
+            'preorder_cancel' => ! empty($v->meta['preorder']) ? app(\App\Services\Preorders\PreorderCancellation::class)->eligibility($v) : null,
         ]);
+    }
+
+    /** A paid preorder: the customer asks to cancel it (staff decide and refund). An unpaid order is cancelled directly with cancelOrder. */
+    public function requestPreorderCancel(Request $request, $id): JsonResponse
+    {
+        $data = $request->validate(['reason' => 'required|string|min:3|max:500']);
+
+        return $this->guard(function () use ($request, $id, $data) {
+            $customer = $request->user()?->customer;
+            $v = Voucher::whereHas('type', fn ($t) => $t->where('base_type', VoucherType::SALES_ORDER))->where('customer_id', $customer?->id)->findOrFail($id);
+            $ticket = app(\App\Services\Preorders\PreorderCancellation::class)->request($v, $data['reason'], (int) $customer->id);
+
+            return response()->json(['message' => "We have your request ({$ticket}). We will confirm once we have looked at it; nothing is refunded until then."], 201);
+        });
     }
 
     public function cancelOrder(Request $request, $id): JsonResponse
