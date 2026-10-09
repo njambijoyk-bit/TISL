@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import ChargedInBadge from '../../../_shared/components/common/ChargedInBadge';
 import { useParams, useNavigate } from 'react-router-dom';
+import preordersAPI from '../../../_shared/api/preorders';
+import useLocationStore from '../../../_shared/store/locationStore';
+import { isModuleActive, MODULES } from '../../../_shared/navigation/modules';
 import { Helmet } from 'react-helmet-async';
 import {
   ShoppingCart,
@@ -66,6 +69,19 @@ export default function ProductDetail() {
   const [activeTab, setActiveTab] = useState('description');
   
   const [addedToCart, setAddedToCart] = useState(false);
+  // out of stock: is there an open preorder (or is it coming soon) at the shopper's branch? { state, variant_id, offer }
+  const [pre, setPre] = useState(null);
+  const preVariantId = choice?.variant?.id ?? null;
+  useEffect(() => {
+    if (!product?.id || !isModuleActive(MODULES.CAMPAIGNS)) { setPre(null); return undefined; }
+    let live = true;
+    const branch = useLocationStore.getState().currentId;
+    const ask = preVariantId
+      ? preordersAPI.states([preVariantId], branch).then((r) => ({ ...(r.data?.[preVariantId] ?? { state: 'out' }), variant_id: preVariantId }))
+      : preordersAPI.productStates([product.id], branch).then((r) => r.products?.[product.id] ?? { state: 'out' });
+    ask.then((r) => live && setPre(r)).catch(() => live && setPre(null));
+    return () => { live = false; };
+  }, [product?.id, preVariantId]);
   const [imageErrors, setImageErrors] = useState({});
 
   const [qtyDir, setQtyDir] = useState(1);
@@ -212,6 +228,17 @@ export default function ProductDetail() {
     };
   };
 
+  /** A preorder is its own cart line (flagged), checked out on its own and paid in full; the books decide the places left. */
+  const handlePreorder = () => {
+    if (hasStructured && !choice) { toast.error('Please choose from the available options'); return; }
+    const left = pre?.offer?.places_left;
+    if (left != null && quantity > left) { toast.error(`Only ${left} place${left === 1 ? '' : 's'} left`); return; }
+    const line = cartLine();
+    addItem({ ...line, preorder: true, line_key: `${line.line_key ?? product.id}#preorder`, variant_id: line.variant_id ?? pre?.variant_id, preorder_expected: pre?.offer?.expected_until ?? null }, quantity);
+    setAddedToCart(true);
+    setTimeout(() => setAddedToCart(false), 2000);
+    toast.success(`${product?.name} added to your cart as a preorder`);
+  };
   const handleBuyNow = () => { handleAddToCart(); navigate('/cart'); };
   const addToRequest = useRequestListStore((s) => s.add);
   const handleRequestQuote = () => {
@@ -264,6 +291,8 @@ export default function ProductDetail() {
   const inStock = choice
     ? choice.variant.in_stock && choice.unit.available_quantity >= 1
     : (product?.in_stock ?? product?.instock ?? false);
+  const preorderOn = !inStock && pre?.state === 'preorder';
+  const comingSoon = !inStock && pre?.state === 'coming_soon';
   const variantLabel = choice ? (choice.variant.name || choice.label) : null;
   const negotiableValue = product?.price_is_negotiable ?? product?.priceisnegotiable ?? product?.priceIsNegotiable ?? 0;
   const isPriceNegotiable = negotiableValue === true || Number(negotiableValue) === 1;
@@ -598,11 +627,20 @@ export default function ProductDetail() {
 
                 {/* Stock status row */}
                 <div style={{ padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: inStock ? '#10b981' : '#ef4444', boxShadow: inStock ? '0 0 0 3px rgba(16,185,129,0.2)' : '0 0 0 3px rgba(239,68,68,0.2)', flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: inStock ? '#059669' : '#dc2626' }}>
-                    {inStock ? 'In Stock — Ready to Ship' : 'Out of Stock'}
+                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: inStock ? '#10b981' : preorderOn ? 'var(--color-primary-500)' : comingSoon ? '#3b82f6' : '#ef4444', boxShadow: inStock ? '0 0 0 3px rgba(16,185,129,0.2)' : '0 0 0 3px rgba(239,68,68,0.2)', flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: inStock ? '#059669' : preorderOn ? 'var(--color-primary-600)' : comingSoon ? '#2563eb' : '#dc2626' }}>
+                    {inStock ? 'In Stock — Ready to Ship' : preorderOn ? 'Available to preorder' : comingSoon ? 'Coming soon' : 'Out of Stock'}
                   </span>
                 </div>
+                {preorderOn && (
+                  <div style={{ padding: '0 20px 12px', fontSize: '0.8rem', color: '#374151', display: 'grid', gap: 3 }}>
+                    <span>Pay in full now; we deliver as soon as it arrives.</span>
+                    {(pre.offer?.expected_from || pre.offer?.expected_until) && <span>Expected {pre.offer.expected_from && pre.offer.expected_until && pre.offer.expected_from !== pre.offer.expected_until ? `${pre.offer.expected_from} to ${pre.offer.expected_until}` : (pre.offer.expected_until || pre.offer.expected_from)}.</span>}
+                    {pre.offer?.places_left != null && <span>{pre.offer.places_left} place{pre.offer.places_left === 1 ? '' : 's'} left.</span>}
+                    {pre.offer?.closes_at && <span>Preorders close {new Date(pre.offer.closes_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}.</span>}
+                    {pre.offer?.terms && <span style={{ color: '#6b7280' }}>{pre.offer.terms}</span>}
+                  </div>
+                )}
                 {product.expiry_badge && inStock && (
                   <div style={{ padding: '0 20px 12px', fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>
                     {product.clearance_percent ? `Clearance −${Math.round(product.clearance_percent)}% · ` : ''}Expires {new Date(product.expiry_badge).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
@@ -815,6 +853,17 @@ export default function ProductDetail() {
                   }
                   return (
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      {preorderOn ? (
+                        <button onClick={handlePreorder} type="button"
+                          style={{
+                            flex: '2 1 260px', height: 50, borderRadius: 12, border: 'none', cursor: 'pointer',
+                            background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', color: 'white', fontSize: '0.85rem', fontWeight: 700,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, letterSpacing: '0.04em',
+                            boxShadow: '0 4px 15px color-mix(in srgb, var(--color-primary-500) 35%, transparent)',
+                          }}>
+                          {addedToCart ? <><Check size={16} /> Added!</> : <><ShoppingBag size={16} /> Preorder now</>}
+                        </button>
+                      ) : (<>
                       <button onClick={handleAddToCart} disabled={!inStock} type="button"
                         style={{
                           flex: '1 1 130px', height: 50, borderRadius: 12, border: '0.5px solid var(--color-primary-500)',
@@ -841,6 +890,8 @@ export default function ProductDetail() {
                           <ShoppingBag size={16} /> Buy Now
                         </button>
                       )}
+
+                      </>)}
 
                       <button onClick={handleRequestQuote} type="button" title="Add to your quote request"
                         style={{

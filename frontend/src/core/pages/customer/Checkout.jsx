@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import useCartVariantCheck from '../../components/cart/useCartVariantCheck';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Package, Truck, CreditCard, Tag, Loader2, Gift } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import { useCartStore, useAuthStore } from '../../../_shared/store/index';
+import { lineKey } from '../../../_shared/store/cartStore';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { toApiItem } from '../../../_shared/lib/cartItems';
 import OrderBreakdown from '../../../_shared/components/common/OrderBreakdown';
@@ -37,7 +38,14 @@ function Choice({ active, onClick, label: text, sub, disabled }) {
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const { items, clearCart } = useCartStore();
+  const { items: allItems, removeItem } = useCartStore();
+  const [params] = useSearchParams();
+  const isPre = params.get('preorder') === '1';   // preorders are checked out on their own, paid in full
+  const items = useMemo(() => allItems.filter((i) => Boolean(i.preorder) === isPre), [allItems, isPre]);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  /** The order is placed: take just these lines out of the cart (a preorder checkout leaves the ready-now lines, and the other way round). */
+  const clearCart = useCallback(() => { itemsRef.current.map(lineKey).forEach((k) => removeItem(k)); }, [removeItem]);
   const variantCheck = useCartVariantCheck();
   const { user, fetchCustomer } = useAuthStore();
   const [opts, setOpts] = useState(null);
@@ -91,10 +99,10 @@ export default function Checkout() {
   }, []);
 
   const payload = useCallback(() => ({
-    items: items.map(toApiItem), delivery_method: prefs.delivery_method || undefined,
+    items: items.map(toApiItem), preorder: isPre || undefined, delivery_method: prefs.delivery_method || undefined,
     promo_code: prefs.promo_code.trim() || undefined, gift_voucher_code: form.gift_voucher_code.trim() || undefined,
     gift_voucher_codes: giftPicked ?? undefined,
-  }), [items, prefs.delivery_method, prefs.promo_code, form.gift_voucher_code, giftPicked]);
+  }), [items, isPre, prefs.delivery_method, prefs.promo_code, form.gift_voucher_code, giftPicked]);
 
   // the books price the cart — refresh whenever anything that changes the price changes
   useEffect(() => {
@@ -166,7 +174,8 @@ export default function Checkout() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
       <div style={{ flex: 1, maxWidth: 1000, margin: '0 auto', padding: '32px 16px', width: '100%', boxSizing: 'border-box' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px' }}>Confirm your order</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px' }}>{isPre ? 'Confirm your preorder' : 'Confirm your order'}</h1>
+        {isPre && <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>These items are not in stock yet. You pay in full now and we deliver as soon as they arrive.</p>}
         <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Check everything below, choose how you will pay, and place the order. <Link to="/cart" style={{ color: 'var(--color-primary-500)' }}>Back to cart</Link></p>
 
         {pending && (
@@ -228,7 +237,7 @@ export default function Checkout() {
                     sub={covers ? `Uses ${money(Math.min(held, Number(quote.total)))} of the ${money(held)} you paid us — nothing more to pay` : `The ticked ${money(held)} does not cover this order (${money(quote?.total ?? 0)})`} />;
                 })()}
                 <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll agree how you pay" />
-                {opts?.account && (
+                {opts?.account && !isPre && (
                   <Choice active={mode === 'account'} onClick={() => setMode('account')} disabled={opts.account.available_base <= 0}
                     label="Charge to my account" sub={opts.account.available_base > 0 ? `Invoiced now · due in ${opts.account.terms_days} days · ${formatMoney(opts.account.available_base, opts.base_currency.code)} available` : 'No credit available'} />
                 )}

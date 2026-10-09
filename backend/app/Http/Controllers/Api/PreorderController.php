@@ -65,6 +65,15 @@ class PreorderController extends Controller
             'expected_until' => 'nullable|date', 'terms' => 'nullable|string|max:500', 'is_active' => 'nullable|boolean'];
     }
 
+    /** GET /admin/campaigns/preorder-variants?product_id= : the variants of a product an offer can be made on. */
+    public function variants(Request $request): JsonResponse
+    {
+        abort_unless(CampaignAccess::canBuild($request->user()), 403, 'You cannot work on campaigns.');
+        $d = $request->validate(['product_id' => 'required|integer|exists:products,id']);
+
+        return response()->json(['data' => ProductVariant::where('product_id', $d['product_id'])->where('status', ProductVariant::STATUS_ACTIVE)->orderByDesc('is_default')->orderBy('id')->get(['id', 'name', 'sku', 'is_default'])]);
+    }
+
     /** POST /admin/campaigns/{id}/preorder-offers */
     public function saveOffer(Request $request, int $id): JsonResponse
     {
@@ -144,7 +153,7 @@ class PreorderController extends Controller
         $w = $this->preorders->waiting($loc);
 
         return response()->json(['ready' => true, 'lines' => $w['lines'], 'supply' => (object) $w['supply'], 'paid_not_delivered' => $w['paid_not_delivered'],
-            'branches' => Location::orderBy('name')->get(['id', 'name'])]);
+            'branches' => Location::query()->sellsToCustomers()->orderBy('name')->get(['id', 'name'])]);
     }
 
     /** POST /admin/preorders/deliver {location_id?, variant_id?}: delivery notes for what stock allows. */
@@ -181,15 +190,26 @@ class PreorderController extends Controller
      */
     public function states(Request $request): JsonResponse
     {
-        $d = $request->validate(['variant_ids' => 'required|array|min:1|max:60', 'variant_ids.*' => 'integer', 'location_id' => 'nullable|integer']);
+        $d = $request->validate(['variant_ids' => 'nullable|array|max:60', 'variant_ids.*' => 'integer', 'product_ids' => 'nullable|array|max:60', 'product_ids.*' => 'integer', 'location_id' => 'nullable|integer']);
         $loc = ! empty($d['location_id']) ? (int) $d['location_id'] : (Location::defaultSelling()?->id ?? Location::default()?->id);
         $user = $request->user('sanctum');
         $out = [];
-        foreach (array_unique($d['variant_ids']) as $vid) {
+        foreach (array_unique($d['variant_ids'] ?? []) as $vid) {
             $out[$vid] = $loc ? $this->preorders->stateFor((int) $vid, (int) $loc, $user) : ['state' => 'out', 'buyable' => 0, 'offer' => null];
         }
+        $byProduct = [];
+        if ($loc && ! empty($d['product_ids'])) {
+            // a product card: the best its options can offer (preorder, then coming soon), for products with no stock to sell
+            $rank = ['preorder' => 3, 'buy' => 4, 'coming_soon' => 2, 'out' => 1];
+            foreach (ProductVariant::whereIn('product_id', array_unique($d['product_ids']))->where('status', ProductVariant::STATUS_ACTIVE)->get(['id', 'product_id']) as $v) {
+                $st = $this->preorders->stateFor((int) $v->id, (int) $loc, $user) + ['variant_id' => (int) $v->id];
+                if (! isset($byProduct[$v->product_id]) || $rank[$st['state']] > $rank[$byProduct[$v->product_id]['state']]) {
+                    $byProduct[$v->product_id] = $st;
+                }
+            }
+        }
 
-        return response()->json(['location_id' => $loc, 'data' => (object) $out]);
+        return response()->json(['location_id' => $loc, 'data' => (object) $out, 'products' => (object) $byProduct]);
     }
 
     // -------------------------------------------------------------- the counter
@@ -209,6 +229,14 @@ class PreorderController extends Controller
 
             return response()->json(['message' => 'Preorder ' . $v['order']->voucher_number . ' taken.', 'data' => ['order_id' => $v['order']->id, 'order_number' => $v['order']->voucher_number, 'sale_id' => $v['sale']?->id, 'sale_number' => $v['sale']?->voucher_number]], 201);
         });
+    }
+
+    /** GET /admin/preorders/open?location_id= : what could be preordered at the counter right now. */
+    public function open(Request $request): JsonResponse
+    {
+        $d = $request->validate(['location_id' => 'required|integer|exists:locations,id']);
+
+        return response()->json(['ready' => PreorderService::ready(), 'data' => $this->preorders->openAt((int) $d['location_id'], $request->user())]);
     }
 
     /** GET /admin/preorders/customers?search= : a few customers for the counter form. */

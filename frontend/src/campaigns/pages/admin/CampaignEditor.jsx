@@ -14,6 +14,7 @@ import StatusChip from '../../components/StatusChip';
 import PageBuilder from '../../components/PageBuilder';
 import AudienceRule from '../../components/AudienceRule';
 import CampaignNumbers from '../../components/CampaignNumbers';
+import PreorderOffers from '../../components/PreorderOffers';
 
 const GOAL_LABEL = { reach: 'Reach (people seeing it)', sales: 'Sales' };
 const label = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
@@ -225,6 +226,14 @@ export default function CampaignEditor() {
             <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Build what people see: add sections, drag them into order, and give any of them its own dates. Details above and the page below are saved separately.</p>
             <PageBuilder campaign={c} audience={f.audience_rule} sections={pg.sections} items={pg.items} resolved={pg.resolved} ecommerce={pg.ecommerce} itemTypes={pg.itemTypes} maxVideoMb={pg.maxVideoMb} canEdit={perm.can_edit}
               onSaved={(r) => setPg((p) => ({ ...p, sections: r.data.sections, items: r.data.items, resolved: r.resolved }))} />
+          </div>
+        )}
+
+        {c && pg?.ecommerce && (
+          <div style={{ marginTop: 30 }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>Preorders</h2>
+            <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Sell an item before it is here while this campaign is live. Customers pay in full when they order; you deliver as stock arrives (Orders, Preorders waiting). Offers save themselves.</p>
+            <PreorderOffers campaignId={c.id} canEdit={perm.can_edit} />
           </div>
         )}
       </div>

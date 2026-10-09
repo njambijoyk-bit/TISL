@@ -1,3 +1,4 @@
+import usePreorderState from '../../../../_shared/hooks/usePreorderState';
 import { useMemo, useState } from 'react';
 import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
@@ -62,6 +63,7 @@ export default function ProductCard({ product }) {
     return Boolean(product?.in_stock ?? product?.instock);
   }, [stockQuantity, product?.in_stock, product?.instock]);
 
+  const pre = usePreorderState(product?.id, !inStock);   // out of stock: is it on preorder, or coming soon?
   const price = Number(product?.price ?? 0);
   const originalPrice = product?.original_price ?? product?.originalprice ?? null;
   const originalPriceNum = originalPrice != null ? Number(originalPrice) : null;
@@ -143,7 +145,7 @@ export default function ProductCard({ product }) {
           {isNew        && <div className="pointer-events-auto"><Badge variant="success" size="sm" className="shadow-lg gap-1.5"><Sparkles size={10} />New Arrival</Badge></div>}
           {onSale       && <div className="pointer-events-auto"><Badge variant="danger"  size="sm" className="shadow-lg gap-1.5"><Tag size={10} />On Sale</Badge></div>}
           {isFeatured   && <div className="pointer-events-auto"><Badge variant="primary" size="sm" className="shadow-lg gap-1.5"><Star size={10} />Featured</Badge></div>}
-          {!inStock && !hasAuction && <div className="pointer-events-auto"><Badge variant="danger" size="sm" className="shadow-lg">Out of Stock</Badge></div>}
+          {!inStock && !hasAuction && <div className="pointer-events-auto">{pre?.state === 'preorder' ? <Badge variant="primary" size="sm" className="shadow-lg">Preorder</Badge> : pre?.state === 'coming_soon' ? <Badge variant="info" size="sm" className="shadow-lg">Coming soon</Badge> : <Badge variant="danger" size="sm" className="shadow-lg">Out of Stock</Badge>}</div>}
         </div>
         {/* Boost strip — bottom of image */}
         {product.boost_message && product.boost_badge_type && (() => {
@@ -315,7 +317,9 @@ export default function ProductCard({ product }) {
               {stockQuantity == null || stockQuantity > 10 ? '✓ In Stock' : `⚠ Only ${stockQuantity} left`}
             </span>
           ) : (
-            <span style={{ color: '#dc2626' }}>✕ Out of Stock</span>
+            pre?.state === 'preorder' ? <span style={{ color: 'var(--color-primary-600)' }}>Available to preorder{pre.offer?.expected_until ? ` · expected by ${pre.offer.expected_until}` : ''}</span>
+              : pre?.state === 'coming_soon' ? <span style={{ color: '#2563eb' }}>Coming soon</span>
+              : <span style={{ color: '#dc2626' }}>✕ Out of Stock</span>
           )}
         </div>
 

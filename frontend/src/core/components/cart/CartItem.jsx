@@ -43,6 +43,7 @@ export default function CartItem({ item }) {
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: '0.875rem', fontWeight: 600, margin: '0 0 4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {item.name}
+          {item.preorder && <span style={{ marginLeft: 8, fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'color-mix(in srgb, var(--color-primary-500) 12%, transparent)', color: 'var(--color-primary-600)', verticalAlign: 2 }}>Preorder{item.preorder_expected ? ` · expected by ${item.preorder_expected}` : ''}</span>}
         </p>
 
         {/* Chosen variant / unit */}

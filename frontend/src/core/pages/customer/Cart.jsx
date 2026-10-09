@@ -14,6 +14,8 @@ import useCartVariantCheck from '../../components/cart/useCartVariantCheck';
 export default function Cart() {
   const { items, clearCart } = useCartStore();
   const variants = useCartVariantCheck();
+  const ready = items.filter((i) => !i.preorder);
+  const pre = items.filter((i) => i.preorder);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -58,19 +60,37 @@ export default function Cart() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Cart Items */}
-              <div className="lg:col-span-2 space-y-4">
-                {items.map((item) => (
-                  <CartItem key={item.line_key ?? item.id} item={item} />
-                ))}
-              </div>
+            {ready.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Cart Items */}
+                <div className="lg:col-span-2 space-y-4">
+                  {pre.length > 0 && <h2 className="text-xl font-bold text-gray-900 dark:text-white">Ready now</h2>}
+                  {ready.map((item) => (
+                    <CartItem key={item.line_key ?? item.id} item={item} />
+                  ))}
+                </div>
 
-              {/* Cart Summary */}
-              <div className="lg:col-span-3">
-                <CartSummary blocked={variants.blocked} />
+                {/* Cart Summary */}
+                <div className="lg:col-span-3">
+                  <CartSummary blocked={variants.blocked} />
+                </div>
               </div>
-            </div>
+            )}
+
+            {pre.length > 0 && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8" style={{ marginTop: ready.length > 0 ? 40 : 0 }}>
+                <div className="lg:col-span-2 space-y-4">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Preorder</h2>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>These are not in stock yet. You pay in full when you order and we deliver as soon as they arrive. Preorders are checked out on their own.</p>
+                  {pre.map((item) => (
+                    <CartItem key={item.line_key ?? item.id} item={item} />
+                  ))}
+                </div>
+                <div className="lg:col-span-3">
+                  <CartSummary blocked={variants.blocked} preorder />
+                </div>
+              </div>
+            )}
 
           </>
         )}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Package, FileText, Heart, Gavel } from 'lucide-react';
+import usePreorderState from '../../../../_shared/hooks/usePreorderState';
 import useCartAdder from '../useCartAdder';
 import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
@@ -42,6 +43,8 @@ export default function CollapsedProductCard({ product }) {
       ? stockQuantity > 0
       : Boolean(product?.in_stock ?? product?.instock);
 
+  const pre = usePreorderState(product?.id, !inStock);   // out of stock: on preorder, or coming soon?
+  const outLabel = pre?.state === 'preorder' ? 'Preorder' : pre?.state === 'coming_soon' ? 'Coming soon' : 'Out of Stock';
   const imageUrl = product?.main_image_url ?? null;
   const description =
     product?.short_description ?? product?.shortdescription ?? product?.description ?? '';
@@ -66,7 +69,7 @@ export default function CollapsedProductCard({ product }) {
 
   // ---------- Price label ----------
   const PriceLabel = () => {
-    if (!inStock && !isPriceNegotiable) return <span className="collapsed-price out-of-stock">Out of Stock</span>;
+    if (!inStock && !isPriceNegotiable) return <span className="collapsed-price out-of-stock">{outLabel}</span>;
     return (
       <div className="collapsed-price-group">
         {money.originalPrice({ ...product, original_price: originalPrice }) && (
@@ -78,7 +81,7 @@ export default function CollapsedProductCard({ product }) {
 <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#3b82f6' }}>Negotiable</span>
 )}
         </div>
-        {!inStock && <span className="collapsed-price out-of-stock">Out of Stock</span>}
+        {!inStock && <span className="collapsed-price out-of-stock">{outLabel}</span>}
       </div>
     );
   };

@@ -1,6 +1,6 @@
 # Preorders: the plan (v2, decided)
 
-Status: building (step 7 of `docs/COST_CENTRES_AND_ENTITIES_PLAN.md`). v1 of this plan (a separate Preorder voucher type, deposits, advances) is dropped: see "What changed from v1".
+Status: BUILT (step 7 of `docs/COST_CENTRES_AND_ENTITIES_PLAN.md`; run `database/sql/103_preorders.sql`). See "As built" at the end. v1 of this plan (a separate Preorder voucher type, deposits, advances) is dropped: see "What changed from v1".
 
 ## The rule
 
@@ -93,3 +93,14 @@ Lists open preorder lines by item, oldest first, with a supply panel for the ord
 2. Admin screens: offers on a campaign's products, branch flag, Preorders waiting, counter-staff switch.
 3. Storefront: Preorder and Coming soon states, separate preorder checkout.
 4. Later: link an offer to a purchase order, delay notices, a preorder dashboard, customer self-cancel, hampers, mixed-cart checkout, per-customer maximum, shipping for preorders arriving on different days.
+
+## As built
+
+- **Script 103**: `variant_location_stock.preorder_enabled`, `preorder_offers`, `preorder_lines`, the *Preorder* (`PRE-`) series on the Sales Order type. Both tables are in the Campaigns module's backup map.
+- **PreorderService** (`app/Services/Preorders`): offers, the branch switch, `taken` / `committed` / `buyable` (always worked out), `stateFor` (buy, preorder, coming soon, out), `assertPlaceable` (licence, open offer, not in stock, places with the offer rows locked), the waiting list with its supply panel, `deliverReady` (shares branch stock over paid preorders, oldest first, one delivery note per order), `paidNotDelivered`. `CounterPreorder` takes one in the shop.
+- **The rules in the books**: `VoucherService::convert` makes the Sales Order a Cash Sale/Invoice **without stock** when the order is a preorder (`meta.preorder`, inherited by what is made from it); delivery notes made from the order tick `delivered_quantity` and move the stock and the cost. A credit note on an undelivered preorder line puts nothing back in stock (only delivered goods return). What is owed on a line = ordered − delivered − credited; the shop's buyable figure (`sellable_quantity`) is now stock minus what is owed, refreshed whenever a preorder or its sale/delivery/credit is made, changed or cancelled.
+- **Checkout**: `POST /checkout/place` and `/quote` take `preorder: true` (only preorder items; no account mode); the order is numbered `PRE-…`, the offers are locked and the places counted again inside the transaction.
+- **Staff**: Campaign editor → *Preorders* (offers, limits, dates, terms, which branches take them), Orders → *Preorders waiting* (supply panel, deliver what stock allows, send stock from another branch, take a preorder at the counter, paid-not-delivered figure). The same figure shows on Profit & loss.
+- **Storefront**: cards and the product page show *Preorder* / *Coming soon* instead of *Out of Stock* (one batched request per page, remembered per branch); a preorder is its own cart line, the cart has *Ready now* and *Preorder* sections each with its own checkout, `/checkout?preorder=1`; My Orders shows delivery progress and the expected date.
+- Uses existing permissions: `campaigns.build` (offers), `stock.manage` (branch switch, deliver, send), `stock.view,books.view` (waiting), `books.post` (counter).
+- Not done (later): customer self-cancel, hampers, mixed cart, per-customer maximum, linking an offer to a purchase order, delay notices, preorder dashboard.

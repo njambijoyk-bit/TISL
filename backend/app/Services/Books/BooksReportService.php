@@ -254,7 +254,9 @@ class BooksReportService
         $gross = round($sum('income_direct') - $sum('expense_direct'), 2);
         $net = round($gross + $sum('income_indirect') - $sum('expense_indirect'), 2);
 
-        return ['from' => $from, 'to' => $to, 'branch_limited' => $this->limited(), 'restated_vouchers' => RestatedBase::restatedCount(), 'sections' => $sec,
+        $pre = \App\Services\Preorders\PreorderService::ready() && ! $this->dimensional() ? app(\App\Services\Preorders\PreorderService::class)->paidNotDelivered() : null;
+
+        return ['from' => $from, 'to' => $to, 'branch_limited' => $this->limited(), 'paid_not_delivered' => $pre && $pre['lines'] > 0 ? $pre : null, 'restated_vouchers' => RestatedBase::restatedCount(), 'sections' => $sec,
             'totals' => ['direct_income' => $sum('income_direct'), 'direct_expense' => $sum('expense_direct'), 'gross_profit' => $gross,
                 'indirect_income' => $sum('income_indirect'), 'indirect_expense' => $sum('expense_indirect'), 'net_profit' => $net]];
     }

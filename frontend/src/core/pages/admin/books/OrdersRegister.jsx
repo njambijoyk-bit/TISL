@@ -4,11 +4,13 @@ import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../components/admin/ui/HubHeader';
 import Tabs from '../../../components/admin/ui/Tabs';
 import VouchersTab from '../../../components/admin/books/VouchersTab';
+import PreordersWaiting from '../../../components/admin/books/PreordersWaiting';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
 
 const TABS = [
   { id: 'sales_order', label: 'Orders' },
+  { id: 'preorders', label: 'Preorders waiting' },
   { id: 'delivery_note', label: 'Deliveries' },
   { id: 'sales', label: 'Invoices' },
   { id: 'cash_sale', label: 'Cash sales' },
@@ -29,7 +31,7 @@ export default function OrdersRegister({ initial = 'sales_order' }) {
           <>
             <HubHeader title="Orders & payments" description="Orders placed at checkout or by staff, the deliveries and invoices made from them, and the payments received." />
             <Tabs tabs={TABS} active={tab} onChange={(id) => { setTab(id); setParams({ tab: id }, { replace: true }); }} />
-            <VouchersTab key={tab} canWrite={canWriteFinance(user)} baseType={tab} />
+            {tab === 'preorders' ? <PreordersWaiting /> : <VouchersTab key={tab} canWrite={canWriteFinance(user)} baseType={tab} />}
           </>
         )}
       </div>

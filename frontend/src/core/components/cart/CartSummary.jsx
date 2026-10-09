@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, ShoppingBag, Tag, Truck } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -26,9 +26,10 @@ function Pick({ active, onClick, name, detail, amount, tone }) {
 }
 
 /** The cart's money: the summary ledger, the promos on offer, and the delivery methods to choose from. */
-export default function CartSummary({ blocked = false }) {
+export default function CartSummary({ blocked = false, preorder = false }) {
   const navigate = useNavigate();
-  const { items } = useCartStore();
+  const { items: all } = useCartStore();
+  const items = useMemo(() => all.filter((i) => Boolean(i.preorder) === preorder), [all, preorder]);   // ready-now lines and preorder lines are checked out separately
   const { isAuthenticated } = useAuthStore();
   const prefs = useCheckoutPrefs();
   const [opts, setOpts] = useState(null);
@@ -45,7 +46,7 @@ export default function CartSummary({ blocked = false }) {
   useEffect(() => {
     if (!items.length) { setQuote(null); return undefined; }
     const t = setTimeout(() => {
-      checkoutAPI.quote({ items: items.map(toApiItem), delivery_method: prefs.delivery_method || undefined, promo_code: prefs.promo_code || undefined })
+      checkoutAPI.quote({ items: items.map(toApiItem), preorder: preorder || undefined, delivery_method: prefs.delivery_method || undefined, promo_code: prefs.promo_code || undefined })
         .then(setQuote)
         .catch((e) => {
           setQuote(null);
@@ -99,12 +100,12 @@ export default function CartSummary({ blocked = false }) {
         </div>}
       </div>
 
-      <button onClick={() => { if (blocked) { toast.error('Choose an option for the items marked above first'); return; } navigate(isAuthenticated ? '/checkout' : '/login?redirect=/checkout'); }} disabled={blocked} style={{ opacity: blocked ? 0.6 : 1,
+      <button onClick={() => { if (blocked) { toast.error('Choose an option for the items marked above first'); return; } navigate(isAuthenticated ? `/checkout${preorder ? '?preorder=1' : ''}` : `/login?redirect=/checkout${preorder ? '%3Fpreorder%3D1' : ''}`); }} disabled={blocked} style={{ opacity: blocked ? 0.6 : 1,
         width: '100%', padding: '13px', borderRadius: 10, fontSize: '0.9rem', fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
         background: 'linear-gradient(135deg,var(--color-primary-500),var(--color-primary-600))', color: 'white',
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
       }}>
-        <Lock size={14} /> Proceed to checkout
+        <Lock size={14} /> {preorder ? 'Checkout preorder' : 'Proceed to checkout'}
       </button>
       <button onClick={() => navigate('/products')} style={{
         width: '100%', padding: '11px', borderRadius: 10, fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',

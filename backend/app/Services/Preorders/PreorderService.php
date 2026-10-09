@@ -332,6 +332,25 @@ class PreorderService
         return ['state' => 'out', 'buyable' => 0.0, 'offer' => null];
     }
 
+    /** Offers a person could take a preorder under right now at a branch (the counter form's list). */
+    public function openAt(int $locationId, ?User $user): array
+    {
+        if (! self::ready() || ! $this->licensed()) {
+            return [];
+        }
+        $out = [];
+        foreach (PreorderOffer::with(['campaign', 'variant.product:id,name'])->where('is_active', true)->get() as $o) {
+            if (! $this->enabledAt($o->variant_id, $locationId) || ! $this->isOpen($o, $user)) {
+                continue;
+            }
+            $v = $o->variant;
+            $out[] = ['offer_id' => $o->id, 'variant_id' => $o->variant_id, 'item' => $v?->product?->name, 'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null,
+                'sku' => $v?->sku, 'buyable' => $this->buyable($o->variant_id, $locationId)] + $this->describe($o);
+        }
+
+        return $out;
+    }
+
     public function describe(PreorderOffer $o): array
     {
         $left = $this->remaining($o);

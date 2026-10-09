@@ -136,12 +136,19 @@ function ViewBody({ id, data, nav, onRefresh }) {
     );
     const t = data.totals;
     return (
+      <>
+      {data.paid_not_delivered && (
+        <div style={{ ...card, padding: '8px 12px', marginBottom: 10, fontSize: '0.76rem', color: colors.warningText }}>
+          Preorders worth {money(data.paid_not_delivered.value)} (before tax, {data.paid_not_delivered.lines} line{data.paid_not_delivered.lines === 1 ? '' : 's'}) are paid for and not yet delivered. Their income is in these figures; the cost of the goods is booked when they are delivered, so profit looks higher until then.
+        </div>
+      )}
       <Table head={[['Particulars'], ['Amount', true]]}>
         {sec('Direct income', data.sections.income_direct)}{sec('Direct expenses', data.sections.expense_direct)}
         <Total><td style={td}>Gross profit</td><td style={{ ...td, ...num }}>{money(t.gross_profit)}</td></Total>
         {sec('Indirect income', data.sections.income_indirect)}{sec('Indirect expenses', data.sections.expense_indirect)}
         <Total><td style={td}>Net profit</td><td style={{ ...td, ...num, color: t.net_profit < 0 ? colors.danger : colors.successText }}>{money(t.net_profit)}</td></Total>
       </Table>
+      </>
     );
   }
   if (id === 'profit-loss-by-cost-centre') {

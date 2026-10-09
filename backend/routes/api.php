@@ -1025,6 +1025,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/pause',      [$c, 'pause'])->whereNumber('id');
             Route::post('/{id}/archive',    [$c, 'archive'])->whereNumber('id');
             $po = \App\Http\Controllers\Api\PreorderController::class;   // a campaign's preorder offers (CampaignAccess is checked inside)
+            Route::get('/preorder-variants',                     [$po, 'variants']);
             Route::get('/{id}/preorder-offers',                  [$po, 'offers'])->whereNumber('id');
             Route::post('/{id}/preorder-offers',                 [$po, 'saveOffer'])->whereNumber('id');
             Route::put('/{id}/preorder-offers/{offerId}',        [$po, 'updateOffer'])->whereNumber('id')->whereNumber('offerId');
@@ -1039,6 +1040,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/send',         [$c, 'send'])->middleware('permission:stock.manage');
             Route::get('/branches',      [$c, 'branches'])->middleware('permission:stock.view');
             Route::put('/branch-flag',   [$c, 'setBranchFlag'])->middleware('permission:stock.manage');
+            Route::get('/open',          [$c, 'open'])->middleware('permission:books.post');
             Route::post('/counter',      [$c, 'counter'])->middleware('permission:books.post');
             Route::get('/customers',     [$c, 'customers'])->middleware('permission:books.post');
         });
