@@ -28,12 +28,12 @@ class Recipients
             }
 
             return ['bell' => $user ?? $customer, 'customer' => $customer, 'person' => [
-                'kind' => 'customer', 'has_account' => (bool) ($user ?? $customer), 'email' => $override['email'] ?? ($customer->email ?: $user?->email),
+                'kind' => 'customer', 'name' => trim((string) $customer->first_name) ?: trim((string) ($user->name ?? '')), 'has_account' => (bool) ($user ?? $customer), 'email' => $override['email'] ?? ($customer->email ?: $user?->email),
                 'whatsapp' => $number, 'whatsapp_source' => $source, 'mode' => $customer->notify_mode ?? null, 'essential_only' => $customer->notify_essential_only === null ? null : (bool) $customer->notify_essential_only,
             ]];
         }
         $isStaff = $to instanceof User && rescue(fn () => $to->isStaff(), false, false);
 
-        return ['bell' => $to, 'customer' => null, 'person' => ['kind' => $isStaff ? 'staff' : 'other', 'has_account' => true, 'email' => $override['email'] ?? ($to->email ?? null), 'whatsapp' => null]];
+        return ['bell' => $to, 'customer' => null, 'person' => ['kind' => $isStaff ? 'staff' : 'other', 'name' => trim((string) ($to->name ?? '')), 'has_account' => true, 'email' => $override['email'] ?? ($to->email ?? null), 'whatsapp' => null]];
     }
 }

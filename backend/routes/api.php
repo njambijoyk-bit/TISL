@@ -306,6 +306,10 @@ Route::get('/email/verify/{id}/{hash}', [VerificationController::class, 'verifyE
     ->name('api.verify.email');
 
 // Daraja hits this directly — must not be behind any middleware
+// WhatsApp delivery statuses from Meta and Twilio: public, but every call is checked against the saved keys before it changes anything
+Route::get('/webhooks/whatsapp/meta', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'metaVerify'])->middleware('throttle:60,1');
+Route::post('/webhooks/whatsapp/meta', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'meta'])->middleware('throttle:600,1');
+Route::post('/webhooks/whatsapp/twilio', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'twilio'])->middleware('throttle:600,1');
 Route::post('/payments/callback', [PaymentController::class, 'callback'])
     ->name('payments.callback');
 
@@ -1059,6 +1063,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/settings',                                    [$c, 'show'])->middleware('permission:notifications.view,notifications.settings');
             Route::put('/settings/{part}',                             [$c, 'update'])->middleware('permission:notifications.settings');
             Route::post('/settings/email/test',                        [$c, 'testEmail'])->middleware('permission:notifications.send,notifications.settings')->middleware('throttle:10,1');
+            Route::post('/settings/whatsapp/test',                     [$c, 'testWhatsApp'])->middleware('permission:notifications.send,notifications.settings')->middleware('throttle:10,1');
             Route::post('/settings/purge-keys',                        [$c, 'purgeKeys'])->middleware('permission:notifications.keys.purge');
             Route::post('/settings/{part}/reset',                      [$c, 'reset'])->middleware('permission:notifications.settings');
             Route::get('/settings/{part}/versions',                    [$c, 'versions'])->middleware('permission:notifications.view,notifications.settings');

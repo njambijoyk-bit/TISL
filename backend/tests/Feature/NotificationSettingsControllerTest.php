@@ -66,10 +66,10 @@ class NotificationSettingsControllerTest extends NotifyTestCase
         $this->assertSame('email', app(NotifySettings::class)->get('general')['default_mode']);
     }
 
-    public function test_a_part_that_does_not_exist_yet_is_not_found(): void
+    public function test_a_part_that_does_not_exist_is_not_found(): void
     {
         $this->expectException(HttpException::class);
-        $this->c()->update($this->as(['notifications.settings'], 'PUT', ['provider' => 'meta']), 'whatsapp');
+        $this->c()->update($this->as(['notifications.settings'], 'PUT', ['provider' => 'meta']), 'sms');
     }
 
     public function test_history_and_rollback_through_the_api(): void

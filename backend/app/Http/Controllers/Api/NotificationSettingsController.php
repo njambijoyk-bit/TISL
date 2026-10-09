@@ -10,6 +10,7 @@ use App\Services\Notify\Notifier;
 use App\Services\Notify\NotificationTypes;
 use App\Services\Notify\NotifyException;
 use App\Services\Notify\NotifySettings;
+use App\Services\Notify\WhatsApp\WhatsAppProviders;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -20,7 +21,7 @@ use Illuminate\Http\Request;
 class NotificationSettingsController extends Controller
 {
     /** The parts the screens work with now. */
-    private const PARTS = ['general', 'types', 'email'];
+    private const PARTS = ['general', 'types', 'email', 'whatsapp'];
 
     public function __construct(private NotifySettings $settings, private ConnectionTester $tester) {}
 
@@ -58,6 +59,9 @@ class NotificationSettingsController extends Controller
             'ready' => NotifySettings::ready(),
             'whatsapp_waiting' => NotifySettings::ready() ? NotificationDelivery::where('channel', 'whatsapp')->where('status', 'to_send')->count() : 0,
             'types' => collect(NotificationTypes::ALL)->map(fn ($t, $k) => ['key' => $k, 'label' => $t[0], 'essential' => $t[1], 'audience' => $t[2]])->values(),
+            'whatsapp_api' => ['providers' => WhatsAppProviders::ALL, 'automatic' => app(WhatsAppProviders::class)->automatic(),
+                'webhooks' => ['meta' => WhatsAppProviders::callbackUrl('meta'), 'twilio' => WhatsAppProviders::callbackUrl('twilio')],
+                'types_ready' => collect($this->settings->get('types')['rules'] ?? [])->filter(fn ($r) => ! empty($r['template']) && ($r['enabled'] ?? true))->count()],
             'server' => ['mailer' => config('mail.default'), 'queue' => config('queue.default'), 'from' => config('mail.from.address')],
             'can' => ['settings' => $user->hasPermission('notifications.settings'), 'send' => $user->hasPermission('notifications.send'), 'purge' => $user->hasPermission('notifications.keys.purge')],
         ]);
@@ -70,7 +74,11 @@ class NotificationSettingsController extends Controller
 
         return $this->guard(function () use ($request, $part) {
             $input = $request->except(['clear', 'anyway', 'test_to']);
-            $tester = $part === 'email' ? fn (array $candidate) => $this->tester->email($candidate, $request->user(), $request->input('test_to')) : null;
+            $tester = match ($part) {
+                'email' => fn (array $candidate) => $this->tester->email($candidate, $request->user(), $request->input('test_to')),
+                'whatsapp' => fn (array $candidate) => $this->tester->whatsapp($candidate),
+                default => null,
+            };
             $r = $this->settings->save($part, $input, $request->user(), $tester, $request->boolean('anyway'), (array) $request->input('clear', []));
 
             return response()->json(['message' => $r['unchanged'] ? 'Nothing was different, so nothing was saved.' : 'Saved as version ' . $r['version']->version_no . '.' . ($r['test'] ? ' ' . $r['test']['message'] : ''),
@@ -84,6 +92,16 @@ class NotificationSettingsController extends Controller
         $request->validate(['to' => 'nullable|email']);
         $r = $this->tester->email($this->settings->get('email'), $request->user(), $request->input('to'));
         NotificationSettingLog::write('tested', $request->user(), 'email', $this->settings->currentVersion('email')?->id, $r['ok'] ? 'Test email sent.' : 'Test email failed: ' . $r['message']);
+
+        return response()->json($r, $r['ok'] ? 200 : 422);
+    }
+
+    /** POST /admin/notifications/settings/whatsapp/test {to, template, vars?[]} : send one real template message through the saved settings. */
+    public function testWhatsApp(Request $request): JsonResponse
+    {
+        $d = $request->validate(['to' => 'required|string|max:40', 'template' => 'required|string|max:120', 'vars' => 'nullable|array|max:10', 'vars.*' => 'string|max:200']);
+        $r = $this->tester->whatsappMessage($d['to'], $d['template'], $d['vars'] ?? []);
+        NotificationSettingLog::write('tested', $request->user(), 'whatsapp', $this->settings->currentVersion('whatsapp')?->id, $r['ok'] ? 'WhatsApp test message sent.' : 'WhatsApp test failed: ' . $r['message']);
 
         return response()->json($r, $r['ok'] ? 200 : 422);
     }

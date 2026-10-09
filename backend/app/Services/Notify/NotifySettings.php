@@ -184,7 +184,7 @@ class NotifySettings
     /** Is there anything to test: email needs a host; whatsapp needs a provider and its keys. */
     private function worthTesting(string $part, array $c): bool
     {
-        return $part === 'email' ? ($c['host'] ?? '') !== '' : (($c['provider'] ?? null) !== null);
+        return $part === 'email' ? ($c['host'] ?? '') !== '' : (($c['provider'] ?? null) !== null);   // whatsapp: only once a provider is chosen
     }
 
     /** Back to the server's own settings (.env) for email, or to nothing for whatsapp. A version like any other, so it can be rolled back. */
@@ -204,7 +204,7 @@ class NotifySettings
         $rules = match ($part) {
             'general' => ['default_mode' => 'sometimes|in:email,whatsapp,both', 'email_enabled' => 'sometimes|boolean', 'whatsapp_enabled' => 'sometimes|boolean',
                 'whatsapp_number_sources' => 'sometimes|in:profile,checkout,both', 'essential_only_default' => 'sometimes|boolean'],
-            'types' => ['rules' => 'sometimes|array', 'rules.*.enabled' => 'sometimes|boolean', 'rules.*.channels' => 'nullable|array', 'rules.*.channels.*' => 'in:email,whatsapp', 'rules.*.template' => 'nullable|string|max:120'],
+            'types' => ['rules' => 'sometimes|array', 'rules.*.enabled' => 'sometimes|boolean', 'rules.*.channels' => 'nullable|array', 'rules.*.channels.*' => 'in:email,whatsapp', 'rules.*.template' => 'nullable|string|max:120', 'rules.*.variables' => 'nullable|array|max:10', 'rules.*.variables.*' => 'in:name,title,message,company,link'],
             'email' => ['driver' => 'sometimes|in:smtp', 'host' => 'sometimes|nullable|string|max:190', 'port' => 'sometimes|integer|between:1,65535', 'encryption' => 'sometimes|in:tls,ssl,none',
                 'username' => 'sometimes|nullable|string|max:190', 'password' => 'sometimes|nullable|string|max:300', 'from_name' => 'sometimes|nullable|string|max:120',
                 'from_address' => 'sometimes|nullable|email|max:190', 'reply_to' => 'sometimes|nullable|email|max:190', 'copy_to' => 'sometimes|nullable|email|max:190'],
