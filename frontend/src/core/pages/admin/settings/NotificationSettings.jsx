@@ -9,11 +9,13 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import GeneralTab from '../../../components/admin/notifications/GeneralTab';
 import EmailTab from '../../../components/admin/notifications/EmailTab';
 import TypesTab from '../../../components/admin/notifications/TypesTab';
+import WhatsAppQueueTab from '../../../components/admin/notifications/WhatsAppQueueTab';
 import DeliveryTab from '../../../components/admin/notifications/DeliveryTab';
 import HistoryTab from '../../../components/admin/notifications/HistoryTab';
 import { colors } from '../../../../_shared/theme/tokens';
 
 const TABS = [
+  { id: 'whatsapp', label: 'WhatsApp to send' },
   { id: 'email', label: 'Email' },
   { id: 'general', label: 'General' },
   { id: 'types', label: 'Messages' },
@@ -43,7 +45,8 @@ export default function NotificationSettings() {
     const { can } = data;
     return (
       <>
-        <Tabs tabs={TABS} active={tab} onChange={(id) => { setTab(id); setParams({ tab: id }, { replace: true }); }} />
+        <Tabs tabs={TABS.map((t) => (t.id === 'whatsapp' ? { ...t, count: data.whatsapp_waiting || undefined } : t))} active={tab} onChange={(id) => { setTab(id); setParams({ tab: id }, { replace: true }); }} />
+        {tab === 'whatsapp' && <WhatsAppQueueTab canSend={can.send} onChanged={load} />}
         {tab === 'email' && <EmailTab key={`e${data.current_version.email?.id ?? 0}`} data={data} canEdit={can.settings} canSend={can.send || can.settings} onChanged={load} />}
         {tab === 'general' && <GeneralTab key={`g${data.current_version.general?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
         {tab === 'types' && <TypesTab key={`t${data.current_version.types?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
@@ -56,7 +59,7 @@ export default function NotificationSettings() {
   return (
     <SettingsLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <HubHeader title="Notifications" description="How we reach customers and staff: email, set up here instead of on the server, which messages go out, and a record of everything that was sent or changed." />
+        <HubHeader title="Notifications" description="How we reach customers and staff: email (set up here instead of on the server), WhatsApp messages for staff to send, which messages go out, and a record of everything that was sent or changed." />
         {body()}
       </div>
     </SettingsLayout>

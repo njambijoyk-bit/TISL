@@ -13,6 +13,10 @@ const notificationSettingsAPI = {
   purgeKeys: (versionIds) => api.post('/admin/notifications/settings/purge-keys', { version_ids: versionIds }).then((r) => r.data),
   log: (params = {}) => api.get('/admin/notifications/log', { params }).then((r) => r.data),
   deliveries: (params = {}) => api.get('/admin/notifications/deliveries', { params }).then((r) => r.data),
+  /** WhatsApp messages for a person to send by hand: status to_send (default) | sent | skipped | all */
+  whatsapp: (params = {}) => api.get('/admin/notifications/whatsapp', { params }).then((r) => r.data),
+  markSent: (id) => api.post(`/admin/notifications/deliveries/${id}/mark-sent`).then((r) => r.data),
+  skip: (id, why) => api.post(`/admin/notifications/deliveries/${id}/skip`, { why: why || undefined }).then((r) => r.data),
   retry: (id) => api.post(`/admin/notifications/deliveries/${id}/retry`).then((r) => r.data),
 };
 

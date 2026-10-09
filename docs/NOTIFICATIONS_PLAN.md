@@ -1,6 +1,6 @@
 # Notifications: the plan (v2, decided)
 
-Status: PLAN, answers in (see "Decided answers" at the end). **Phase 1 is BUILT** (see "As built, phase 1" at the end); phases 2 to 4 are not. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
+Status: PLAN, answers in (see "Decided answers" at the end). **Phases 1 and 2 are BUILT** (see "As built" at the end); phases 3 and 4 are not. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
 
 ## The rule
 
@@ -145,3 +145,16 @@ To switch it on: run `database/sql/108_notifications.sql` in Workbench, then `ph
 - **Screens**: Settings → Notifications: Email, General (email on/off, essential-only default), Messages (turn a type off), Delivery log (filter, retry), History & rollback (versions, restore, owner's key deletion, the action log). `/admin/settings/email` redirects there.
 - **Not in phase 1**: the WhatsApp tab and API drivers (phase 3), the staff "WhatsApp to send" list screen, customer preferences and the default mode screen (phase 2), delay notices (phase 4). The rows for WhatsApp messages are already created in the delivery log with their link.
 - **Not testable here**: a real SMTP server and a running queue worker. Please send one test from the Email tab and place one real order to see the email arrive.
+
+## As built, phase 2
+
+To switch it on: run `database/sql/109_notify_essential_tristate.sql` (makes "essential messages only" yes / no / follow the company; harmless if you ran the updated 108), then use **Settings → Notifications**.
+
+- **Company defaults** (General tab): email on/off, WhatsApp on/off, the **default way** (email / WhatsApp / both), **which numbers count** (profile / checkout / both, default both), essential-only default. Each change is a version and can be rolled back.
+- **Customer's own say** (`NotificationPreferences`, Profile → *How we contact you*): follow the shop / email only / WhatsApp / both; essentials only / everything / follow the shop; their WhatsApp number (checked with the country code). The screen says in one line what an order update would use right now. "Email only" always wins. A number from a source the company accepts counts as willingness; its time and source (`profile` or `checkout`) are stored, and kept when the same number is saved again.
+- **Checkout**: the phone given at checkout becomes the WhatsApp number (source `checkout`) only when the customer has none and has not chosen "email only". Whether that source counts is the company's setting.
+- **WhatsApp to send** (staff list, first tab of Settings → Notifications, with a count): each waiting message shows the person, the text and **Send in WhatsApp** (opens `wa.me` with the number and message ready); after pressing Send there, **I sent it** marks it sent, **Skip** (with an optional reason) leaves it. Both record who (`handled_by`) and write `whatsapp_marked_sent` / `whatsapp_skipped` to the action log. Needs `notifications.send`; seeing the list needs `notifications.view`.
+- **Messages tab**: each type can now also be limited to email or to WhatsApp.
+- **Bell and emails**: the bell has a *Chat with us on WhatsApp* link to the company default number; emails already carried it.
+- **Retention**: `notifications:prune` (daily 03:30) blanks the subject, text and link of delivery-log rows older than 12 months; status, time and type stay, and one `log_pruned` line is written. The action log is never pruned.
+- **Not in phase 2**: the WhatsApp API (Twilio / Meta) and its settings tab (phase 3), guests without an account (phase 4), who sends order and delay messages (phase 4: nothing yet calls `Notifier::send` for orders).

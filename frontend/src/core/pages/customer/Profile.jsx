@@ -9,6 +9,7 @@ import {
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import NotificationsModal from '../../../_shared/components/common/NotificationsModal';
+import NotificationPreferencesModal from './NotificationPreferencesModal';
 import LoyaltyRedemptionModal from '../../components/customer/LoyaltyRedemptionModal';
 import CustomerCreditTab from './CustomerCreditTab';
 import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../../_shared/api/index';
@@ -153,6 +154,7 @@ export default function Profile() {
   const [redeemLoading, setRedeemLoading] = useState(false);
   const [redeemSuccess, setRedeemSuccess] = useState(null); // { message, rule, new_points, new_credit }
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showNotifyPrefs, setShowNotifyPrefs] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
@@ -557,6 +559,21 @@ export default function Profile() {
                   {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
+            </button>
+
+            <button
+              onClick={() => setShowNotifyPrefs(true)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 7,
+                padding: '8px 14px', borderRadius: 10, fontSize: '0.8rem', fontWeight: 700,
+                fontFamily: 'inherit', cursor: 'pointer',
+                border: '1.5px solid color-mix(in srgb, var(--color-primary-500) 20%, transparent)',
+                background: 'var(--surface-card, #fff)', color: 'var(--color-primary-600)',
+                boxShadow: '0 1px 6px color-mix(in srgb, var(--color-primary-500) 8%, transparent)',
+              }}
+            >
+              <MessageCircle size={13} />
+              How we contact you
             </button>
           </div>
         </div>
@@ -1648,6 +1665,7 @@ export default function Profile() {
             </div>
           </div>
         </div>
+        <NotificationPreferencesModal open={showNotifyPrefs} onClose={() => setShowNotifyPrefs(false)} />
         <NotificationsModal
           open={showNotifications}
           onClose={() => {

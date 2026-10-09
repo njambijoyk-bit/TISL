@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, X, Check, Loader2, Trash2 } from 'lucide-react';
+import { Bell, X, Check, Loader2, Trash2, MessageCircle } from 'lucide-react';
 import notificationsAPI from '../../api/notifications';
 import toast from 'react-hot-toast';
 
@@ -21,6 +21,7 @@ export default function NotificationsModal({ open, onClose }) {
   const [unreadCount,   setUnreadCount]   = useState(0);
   const [loading,       setLoading]       = useState(false);
   const [filter,        setFilter]        = useState('all'); // 'all' | 'unread'
+  const [whatsapp,      setWhatsapp]      = useState(null);  // the company's WhatsApp chat link, when it has a number
 
   useEffect(() => {
     if (!open) return;
@@ -39,6 +40,7 @@ export default function NotificationsModal({ open, onClose }) {
     try {
       const res = await notificationsAPI.list({ per_page: 50 });
       const items = res.data.data;
+      setWhatsapp(res.data.company_whatsapp ?? null);
       setNotifications(items);
       setUnreadCount(items.filter(n => !n.is_read).length);
     } catch {
@@ -244,6 +246,14 @@ export default function NotificationsModal({ open, onClose }) {
             );
           })}
         </div>
+
+        {whatsapp && (
+          <div style={{ padding: '10px 20px', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)', flexShrink: 0 }}>
+            <a href={whatsapp} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.78rem', fontWeight: 700, color: '#047857', textDecoration: 'none' }}>
+              <MessageCircle size={14} /> Chat with us on WhatsApp
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

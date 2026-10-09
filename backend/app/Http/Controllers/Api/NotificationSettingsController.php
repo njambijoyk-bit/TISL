@@ -56,6 +56,7 @@ class NotificationSettingsController extends Controller
 
         return response()->json($out + [
             'ready' => NotifySettings::ready(),
+            'whatsapp_waiting' => NotifySettings::ready() ? NotificationDelivery::where('channel', 'whatsapp')->where('status', 'to_send')->count() : 0,
             'types' => collect(NotificationTypes::ALL)->map(fn ($t, $k) => ['key' => $k, 'label' => $t[0], 'essential' => $t[1], 'audience' => $t[2]])->values(),
             'server' => ['mailer' => config('mail.default'), 'queue' => config('queue.default'), 'from' => config('mail.from.address')],
             'can' => ['settings' => $user->hasPermission('notifications.settings'), 'send' => $user->hasPermission('notifications.send'), 'purge' => $user->hasPermission('notifications.keys.purge')],
