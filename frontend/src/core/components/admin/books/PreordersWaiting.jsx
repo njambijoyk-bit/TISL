@@ -29,7 +29,7 @@ function CancelRequests({ rows, canAct, onChanged }) {
   const act = async (r, kind) => {
     const v = pick[r.order_id] ?? {};
     if (kind === 'decline' && !(v.note ?? '').trim()) { toast.error('Write the reason the customer will read.'); return; }
-    if (kind === 'approve' && !window.confirm(`Cancel ${r.number} and ${r.refund ? 'refund ' + money(r.total) : 'credit ' + money(r.total)}?`)) return;
+    if (kind === 'approve' && !window.confirm(`Cancel ${r.number} and ${r.refund ? 'refund ' + money(r.total) : r.paid_so_far ? 'credit ' + money(r.total) + ' (the ' + money(r.paid_so_far) + ' paid then needs paying back)' : 'credit ' + money(r.total)}?`)) return;
     setBusy(r.order_id);
     try {
       const res = kind === 'approve'
@@ -48,11 +48,12 @@ function CancelRequests({ rows, canAct, onChanged }) {
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
               <strong style={{ fontFamily: 'monospace' }}>{r.number}</strong>
               <span style={{ fontSize: '0.82rem' }}>{r.customer}{r.email ? ` · ${r.email}` : ''}</span>
-              <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{money(r.total)}{r.sale ? ` · ${r.sale.kind === 'paid' ? 'paid' : 'on account'} (${r.sale.number})` : ''}</span>
+              <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{money(r.total)}{r.sale ? ` · ${r.sale.kind === 'paid' ? 'paid' : r.paid_so_far ? 'part paid' : 'on account'} (${r.sale.number})` : ''}</span>
               {r.ticket && <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>{r.ticket}</span>}
             </div>
             {r.reason && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>“{r.reason}”</p>}
-            {r.blocked && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.warningText }}>{r.blocked}</p>}
+            {r.paid_so_far && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.warningText }}>The customer has paid {money(r.paid_so_far)} so far (a deposit). Approving credits the whole order; that money then sits as credit on their account, and you pay it back with a Payment voucher to the customer.</p>}
+{r.blocked && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.warningText }}>{r.blocked}</p>}
             {canAct && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 {r.refund && (
@@ -255,7 +256,7 @@ export default function PreordersWaiting() {
                     <tr key={`${r.order_id}-${r.item_id}`}>
                       <td style={td}><Link to={`/admin/orders/${r.order_id}`}>{r.order_number}</Link>{r.sale_number && <span style={{ marginLeft: 8, color: colors.textFaint }}>{r.sale_number}</span>}<div style={{ fontSize: '0.68rem', color: colors.textFaint }}>{r.date}</div></td>
                       <td style={td}>{r.customer || '—'}</td>
-                      <td style={td}><span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, color: chip[r.payment][1], background: `${chip[r.payment][1]}1a` }}>{chip[r.payment][0]}</span></td>
+                      <td style={td}><span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, color: chip[r.payment][1], background: `${chip[r.payment][1]}1a` }}>{r.balance_due ? 'Deposit paid' : chip[r.payment][0]}</span>{r.balance_due ? <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#b45309' }}>Collect {money(r.balance_due)} on delivery</div> : null}</td>
                       <td style={{ ...td, ...num }}>{qty(r.ordered)}</td>
                       <td style={{ ...td, ...num, fontWeight: 700 }}>{qty(r.owed)}</td>
                       <td style={td}>{r.promised || '—'}{r.overdue_days != null && <span style={{ marginLeft: 8, fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, color: '#b91c1c', background: '#b91c1c1a' }}>{r.overdue_days} day{r.overdue_days === 1 ? '' : 's'} late</span>}</td>

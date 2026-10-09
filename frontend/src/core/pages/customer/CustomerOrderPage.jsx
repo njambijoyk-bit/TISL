@@ -38,6 +38,8 @@ export default function CustomerOrderPage() {
   // the order in the same shape the checkout priced it, so it reads the same as the confirmation page and the admin's voucher
   const q = { currency: o.currency, lines: o.lines, subtotal: o.subtotal, tax_total: o.tax_total, total: o.total, due_now: o.total, discounts: o.discounts ?? [], tax_breakdown: o.tax_breakdown ?? [], gift: null, customer: null };
   // owed: not paid yet, or charged to the account (an auction registration) with something still outstanding
+  const dep = o.deposit;   // a preorder paid with a deposit: what was paid, what is next
+  const payAmount = dep && !pay.full ? dep.due_next : (o.due != null ? o.due : o.total);
   const owed = o.payment === 'unpaid' || (o.payment === 'invoiced' && Number(o.due) > 0.005);
   const canPay = owed && o.status !== 'cancelled' && (opts?.payment_methods?.length ?? 0) > 0;
   const registrationUnpaid = o.registration && o.payment === 'invoiced' && Number(o.due) >= Number(o.total) - 0.005;
@@ -46,7 +48,7 @@ export default function CustomerOrderPage() {
   const startPay = async (e) => {
     e.preventDefault(); setBusy(true);
     try {
-      const res = await checkoutAPI.payOrder(id, { payment_method_id: Number(pay.methodId || opts.payment_methods[0].id), phone: pay.phone, gift_voucher_code: pay.gift || undefined });
+      const res = await checkoutAPI.payOrder(id, { payment_method_id: Number(pay.methodId || opts.payment_methods[0].id), phone: pay.phone, gift_voucher_code: pay.gift || undefined, full: (dep && pay.full) || undefined });
       toast.success(res.message);
       setPay((p) => ({ ...p, open: false }));
       // poll for the confirmation
@@ -121,7 +123,7 @@ export default function CustomerOrderPage() {
         {/* where the order is: placed, then paid, then delivered */}
         {o.status !== 'cancelled' ? (
           <div aria-label="Order progress" style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '14px 0', flexWrap: 'wrap', fontSize: '0.78rem' }}>
-            {[['Placed', true], [o.payment === 'invoiced' ? 'Invoiced' : 'Paid', o.payment === 'paid' || o.payment === 'invoiced' || o.status === 'paid' || o.status === 'delivered'], ['Delivered', o.status === 'delivered']].map(([step, done], i) => (
+            {[['Placed', true], [dep ? (dep.stage === 'done' ? 'Paid' : dep.paid > 0 ? 'Deposit paid' : 'Deposit due') : o.payment === 'invoiced' ? 'Invoiced' : 'Paid', dep ? dep.paid > 0 : o.payment === 'paid' || o.payment === 'invoiced' || o.status === 'paid' || o.status === 'delivered'], ['Delivered', o.status === 'delivered']].map(([step, done], i) => (
               <span key={step} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 {i > 0 && <span aria-hidden style={{ width: 28, height: 2, background: done ? '#10b981' : '#e5e7eb' }} />}
                 <span style={{ width: 18, height: 18, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 800, color: 'white', background: done ? '#10b981' : '#d1d5db' }}>{done ? '✓' : i + 1}</span>
@@ -135,7 +137,8 @@ export default function CustomerOrderPage() {
           <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>PLACED</span>{o.date}{o.branch && <span style={{ color: '#6b7280' }}> · {o.branch}</span>}</div>
           {o.contact?.shipping_address && <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>DELIVERING TO</span>{o.contact.shipping_address}</div>}
           {(o.contact?.phone || o.contact?.email) && <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>CONTACT</span>{[o.contact.phone, o.contact.email].filter(Boolean).join(' · ')}</div>}
-          <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>PAYMENT</span>{o.payment === 'paid' ? 'Paid' : o.payment === 'invoiced' ? 'Invoiced — payment due' : 'Not paid yet'}</div>
+          <div><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>PAYMENT</span>{dep ? (dep.stage === 'done' ? 'Paid in full' : dep.stage === 'deposit' ? `Deposit of ${m(dep.amount)} due (${dep.percent}%)` : `Deposit of ${m(dep.amount)} paid · balance ${m(dep.outstanding)} due on delivery or online`)
+            : o.payment === 'paid' ? 'Paid' : o.payment === 'invoiced' ? 'Invoiced — payment due' : 'Not paid yet'}</div>
           {o.narration && <div style={{ gridColumn: '1 / -1' }}><span style={{ display: 'block', fontSize: '0.68rem', color: '#9ca3af', fontWeight: 700 }}>YOUR NOTES</span>{o.narration}</div>}
         </div>
 
@@ -250,7 +253,12 @@ export default function CustomerOrderPage() {
 
         {canPay && (
           <form onSubmit={startPay} style={{ display: 'grid', gap: 10, maxWidth: 420, marginTop: 16 }}>
-            <p style={{ margin: 0, fontWeight: 800 }}>Pay {o.due != null ? m(o.due) : m(o.total)}</p>
+            <p style={{ margin: 0, fontWeight: 800 }}>Pay {m(payAmount)}{dep && !pay.full ? (dep.stage === 'deposit' ? ' (the deposit)' : ' (the balance)') : ''}</p>
+            {dep && dep.stage === 'deposit' && (
+              <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.8rem' }}>
+                <input type="checkbox" checked={!!pay.full} onChange={(e) => setPay((p) => ({ ...p, full: e.target.checked }))} /> Pay everything now instead ({m(dep.outstanding)})
+              </label>
+            )}
             <div role="radiogroup" aria-label="Payment method" style={{ display: 'grid', gap: 6 }}>
               {opts.payment_methods.map((mm) => {
                 const on = String(pay.methodId || opts.payment_methods[0].id) === String(mm.id);

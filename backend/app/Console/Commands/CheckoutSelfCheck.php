@@ -28,6 +28,7 @@ class CheckoutSelfCheck extends Command
         {--preorder= : product id of an item with an open preorder offer}
         {--ready-variant= : variant id, when the ready item has several}
         {--preorder-variant= : variant id, when the preorder item has several}
+        {--deposit : check a preorder DEPOSIT instead (needs only --preorder, on an offer that takes a deposit): deposit paid, then the balance, then a second order cancelled}
         {--method= : payment method id (an automatic M-Pesa method); the first one offered at checkout when left out}';
 
     protected $description = 'Place a mixed ready-now + preorder checkout through the real books, pay it with a pretend M-Pesa, check both orders, then undo it all';
@@ -47,8 +48,8 @@ class CheckoutSelfCheck extends Command
     {
         $customer = $this->option('customer') ? Customer::find((int) $this->option('customer')) : null;
         $user = $customer?->user;
-        if (! $customer || ! $user || ! $this->option('ready') || ! $this->option('preorder')) {
-            $this->error('Give --customer (a customer with a login), --ready (an in-stock product id) and --preorder (a product id with an open preorder offer).');
+        if (! $customer || ! $user || (! $this->option('ready') && ! $this->option('deposit')) || ! $this->option('preorder')) {
+            $this->error('Give --customer (a customer with a login), --ready (an in-stock product id) and --preorder (a product id with an open preorder offer). For --deposit only --customer and --preorder.');
 
             return self::INVALID;
         }
@@ -70,7 +71,7 @@ class CheckoutSelfCheck extends Command
         $level = DB::transactionLevel();
         DB::beginTransaction();
         try {
-            $this->runCheckout($customer, $user, $method);
+            $this->option('deposit') ? $this->runDeposit($customer, $user, $method) : $this->runCheckout($customer, $user, $method);
         } catch (\Throwable $e) {
             $this->check(false, 'the checkout ran without an error: ' . $e->getMessage() . ' (' . basename($e->getFile()) . ':' . $e->getLine() . ')');
         } finally {
@@ -132,5 +133,75 @@ class CheckoutSelfCheck extends Command
             }
         }
         $this->check(abs($paid - (float) $attempt->amount) < 0.01, 'the two sales together equal the one payment (nothing left unallocated)');
+    }
+
+    /** A preorder deposit, on the real books: deposit prompt and receipt, then the balance, then a second order cancelled with its deposit. */
+    private function runDeposit(Customer $customer, $user, PaymentMethod $method): void
+    {
+        $variant = $this->option('preorder-variant');
+        $cart = [
+            'items' => [array_filter(['product_id' => (int) $this->option('preorder'), 'variant_id' => $variant ? (int) $variant : null, 'quantity' => 1], fn ($v) => $v !== null)],
+            'preorder' => true, 'deposit' => true, 'customer_email' => $customer->email ?? $user->email, 'customer_phone' => '0700000000', 'phone' => '0700000000',
+            'shipping_address' => 'Self-check, Nairobi', 'payment_mode' => 'online', 'payment_method_id' => $method->id,
+            'policy_acceptances' => [['key' => 'standard_order_policy', 'response' => 'accepted']],
+        ];
+        $checkout = app(CheckoutService::class);
+        $vouchers = app(\App\Services\Books\VoucherService::class);
+        $gateway = app(GatewayPaymentService::class);
+        $daraja = app(DarajaService::class);
+        $pay = function (PaymentAttempt $a) use ($gateway, $daraja) {
+            $raw = ['Body' => ['stkCallback' => ['MerchantRequestID' => $a->merchant_request_id, 'CheckoutRequestID' => $a->checkout_request_id, 'ResultCode' => 0, 'ResultDesc' => 'ok',
+                'CallbackMetadata' => ['Item' => [['Name' => 'Amount', 'Value' => (float) $a->gateway_amount], ['Name' => 'MpesaReceiptNumber', 'Value' => 'SELFCHK' . $a->id], ['Name' => 'PhoneNumber', 'Value' => 254700000000]]]]]];
+
+            return $gateway->handleCallback($daraja->parseCallback($raw), $raw);
+        };
+
+        $this->line('Pricing the preorder with a deposit');
+        $q = $checkout->quote($cart, $user);
+        if (! $this->check(! empty($q['deposit']), 'the quote offers a deposit (the offer needs a deposit percentage, script 115)')) {
+            return;
+        }
+        $this->check(abs((float) $q['due_now'] - (float) $q['deposit']['amount']) < 0.01, "what is due now is the deposit ({$q['deposit']['amount']} of {$q['total']}, {$q['deposit']['percent']}%)");
+
+        $this->line('Placing it and paying the deposit');
+        $res = $checkout->place($cart, $user);
+        $order = Voucher::find($res['order']['id']);
+        $invoice = Voucher::find($res['sale']['id'] ?? 0);
+        $this->check(($res['status'] ?? null) === 'awaiting_payment' && $invoice, "placed {$order->voucher_number}, an invoice " . ($invoice->voucher_number ?? '?') . ' made at once, waiting for the deposit');
+        $attempt = PaymentAttempt::findOrFail($res['attempt']['id']);
+        $this->check($attempt->voucher_id === $invoice->id && abs((float) $attempt->amount - (float) $q['deposit']['amount']) < 0.01, 'the M-Pesa prompt is on the invoice and for the deposit alone');
+        $this->check($pay($attempt) === true, 'M-Pesa confirms the deposit');
+        $st = $vouchers->depositState($order->fresh(), $invoice->fresh());
+        $this->check($st['stage'] === 'balance' && abs($st['paid'] - (float) $q['deposit']['amount']) < 0.01, "the invoice shows the deposit received and the balance still to pay ({$st['outstanding']})");
+
+        $this->line('Paying the balance online');
+        $next = $checkout->payableNow($invoice->fresh());
+        $this->check($next['stage'] === 'balance' && abs($next['due'] - $st['outstanding']) < 0.01, 'the next payment asked for is the balance');
+        $a2 = $gateway->initiateMpesa($invoice->fresh(), $method, '0700000000', [], $next['due'], $user);
+        $this->check($a2->checkout_request_id !== $attempt->checkout_request_id && $pay($a2) === true, 'M-Pesa confirms the balance (a second prompt on the same invoice)');
+        $done = $vouchers->depositState($order->fresh(), $invoice->fresh());
+        $this->check($done['stage'] === 'done' && $done['outstanding'] < 0.01, 'the invoice is now paid in full');
+
+        $this->line('A second deposit order, cancelled by the customer');
+        try {
+            $res2 = $checkout->place($cart, $user);
+        } catch (\Throwable $e) {
+            $this->warn('  (could not place a second order for the cancel check: ' . $e->getMessage() . ')');
+
+            return;
+        }
+        $o2 = Voucher::find($res2['order']['id']);
+        $this->check($pay(PaymentAttempt::findOrFail($res2['attempt']['id'])) === true, "the second deposit is paid ({$o2->voucher_number})");
+        $cancel = app(\App\Services\Preorders\PreorderCancellation::class);
+        $this->check($cancel->eligibility($o2->fresh())['can_request'] === true, 'the customer may ask to cancel it');
+        $cancel->request($o2->fresh(), 'Self-check', (int) $customer->id);
+        $pending = collect($cancel->pending())->firstWhere('order_id', $o2->id);
+        $this->check(($pending['paid_so_far'] ?? 0) > 0, 'staff are shown what the customer has already paid (' . ($pending['paid_so_far'] ?? 0) . ')');
+        $credit = $cancel->approve($o2->fresh(), null, null, null);
+        $inv2 = Voucher::find($res2['sale']['id']);
+        $this->check(abs((float) $credit->total_amount - (float) $inv2->total_amount) < 0.01, "one credit note ({$credit->voucher_number}) reverses the whole invoice");
+        $this->check((float) ($o2->fresh()->meta['cancel_request']['deposit_refund'] ?? 0) > 0, 'the deposit paid is remembered as money to pay back');
+        $ledger = \App\Models\Books\Ledger::where('customer_id', $customer->id)->first();
+        $this->line('  info: ' . ($ledger ? "the customer's account now shows " . number_format(app(\App\Services\Books\LedgerService::class)->balance($ledger->id), 2) . ' (a negative figure is credit owed to them: pay it back with a Payment voucher)' : 'the customer has no ledger to read'));
     }
 }

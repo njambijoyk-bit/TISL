@@ -107,11 +107,12 @@ class PreorderCancellation
         foreach (Voucher::where('meta->cancel_request->status', 'requested')->with(['customer:id,first_name,last_name,email', 'children.type'])->orderBy('id')->get() as $o) {
             $sale = $o->children->where('status', Voucher::POSTED)->first(fn ($c) => in_array($c->type?->base_type, [VoucherType::CASH_SALE, VoucherType::SALES], true));
             $paidAtOnce = $sale ? $this->vouchers->paidAtOnce($sale) : false;
+            $deposit = $sale && ! $paidAtOnce ? $this->paidOn($sale) : 0.0;   // what an invoice has received so far (a deposit): it has to go back too
             $ret = $sale ? $this->vouchers->returnable($sale) : null;
             $out[] = [
                 'order_id' => $o->id, 'number' => $o->voucher_number, 'customer' => trim(($o->customer?->first_name ?? '') . ' ' . ($o->customer?->last_name ?? '')) ?: ($o->party_name ?? '—'),
                 'email' => $o->customer?->email, 'total' => (float) $o->total_amount, 'requested_at' => $o->meta['cancel_request']['at'] ?? null, 'reason' => $o->meta['cancel_request']['reason'] ?? null,
-                'ticket' => $o->meta['cancel_request']['ticket'] ?? null,
+                'ticket' => $o->meta['cancel_request']['ticket'] ?? null, 'paid_so_far' => $deposit > 0.005 ? $deposit : null,
                 'sale' => $sale ? ['id' => $sale->id, 'number' => $sale->voucher_number, 'kind' => $paidAtOnce ? 'paid' : 'invoiced'] : null,
                 'refund' => $paidAtOnce && $ret ? $ret['refund'] : null,   // {ledgers, default_id}: where the money can go back from
                 'blocked' => ! $sale ? 'There is no paid sale behind this order any more.' : ($this->delivered($o) > 0.00005 ? 'Part of it has been delivered since: settle it by hand with a credit note.' : null),
@@ -154,11 +155,12 @@ class PreorderCancellation
             if ($this->vouchers->paidAtOnce($sale)) {
                 $opts['refund_ledger_id'] = $refundLedgerId ?: ($ret['refund']['default_id'] ?? null) ?: throw new BooksException('Choose where the refund is paid from.');
             }
+            $held = $this->vouchers->paidAtOnce($sale) ? 0.0 : $this->paidOn($sale);   // money an invoice has received (a deposit), before the note reduces what it asks for
             $credit = $this->vouchers->createReturn($sale, $opts, $by);
 
             $req = $order->meta['cancel_request'];
             $this->remember($order, ['status' => 'approved', 'decided_at' => now()->toDateTimeString(), 'decided_by' => $by?->id, 'note' => $note ?: null, 'credit_note' => $credit->voucher_number,
-                'refunded_to' => $credit->meta['refunded_to'] ?? null] + $req);
+                'refunded_to' => $credit->meta['refunded_to'] ?? null, 'deposit_refund' => $held > 0.005 ? $held : null] + $req);
             $this->resolveTicket($req['ticket'] ?? null);
             $this->preorders->touched($order);
             $fresh = $order->fresh();
@@ -182,6 +184,12 @@ class PreorderCancellation
             $fresh = $order->fresh();
             DB::afterCommit(fn () => app(\App\Services\Notify\OrderNotices::class)->cancelDecision($fresh, false, $note, null));
         });
+    }
+
+    /** What an invoice has received so far (its total less what it still asks). */
+    private function paidOn(Voucher $invoice): float
+    {
+        return max(0.0, round((float) $invoice->total_amount - max(0.0, $this->vouchers->outstanding($invoice)), 2));
     }
 
     private function remember(Voucher $order, array $request): void

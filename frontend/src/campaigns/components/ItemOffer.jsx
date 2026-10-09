@@ -38,7 +38,7 @@ export default function ItemOffer({ campaignId, it, r, saved, offers, hampers, c
           ? <button type="button" style={{ ...btnGhost, padding: '3px 10px', fontSize: '0.74rem' }} onClick={open}>Offer as pre-order</button>
           : <span style={{ fontSize: '0.72rem', color: colors.textFaint }}>Save the page to offer it as a pre-order.</span>)}
       </div>
-      {form && <OfferFields campaignId={campaignId} variants={form} taken={taken} hasMax={offers.has_max} onSaved={() => { setForm(null); onChanged(); }} onCancel={() => setForm(null)} />}
+      {form && <OfferFields campaignId={campaignId} variants={form} taken={taken} hasMax={offers.has_max} hasDeposit={offers.has_deposit} onSaved={() => { setForm(null); onChanged(); }} onCancel={() => setForm(null)} />}
     </div>
   );
 }
@@ -75,7 +75,7 @@ function HamperParts({ campaignId, it, saved, offers, hampers, canEdit, onChange
         <div><button type="button" style={{ ...btnGhost, padding: '3px 10px', fontSize: '0.74rem' }}
           onClick={() => setForm(uncovered.map((c) => ({ id: c.variant_id, name: `${c.item}${c.option ? ` · ${c.option}` : ''}` })))}>Offer the uncovered parts as pre-order</button></div>
       )}
-      {form && <OfferFields campaignId={campaignId} variants={form} taken={taken} hasMax={offers.has_max} onSaved={() => { setForm(null); onChanged(); }} onCancel={() => setForm(null)} />}
+      {form && <OfferFields campaignId={campaignId} variants={form} taken={taken} hasMax={offers.has_max} hasDeposit={offers.has_deposit} onSaved={() => { setForm(null); onChanged(); }} onCancel={() => setForm(null)} />}
     </div>
   );
 }

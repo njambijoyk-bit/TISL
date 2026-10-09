@@ -301,10 +301,12 @@ class CheckoutService
         $gift = $gifts ? ['code' => implode(', ', array_column($gifts, 'code')), 'applied' => $applied, 'vouchers' => $gifts,
             'note' => $held > 0 ? 'A hamper in your order does not accept gift vouchers, so they cover the rest only.' : null] : null;
 
+        $deposit = $this->depositQuote($a, (float) $p['total']);
+
         return [
             'currency' => $a['currency']->only(['id', 'code', 'symbol']), 'lines' => $p['lines'], 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'tax_breakdown' => $p['tax_breakdown'],
             'total' => $p['total'], 'discounts' => $a['discounts'], 'gift' => $gift, 'customer' => $this->customerCard($a['customer']),
-            'due_now' => round($p['total'] - $applied, 2), 'promo_accepted' => $a['promoAccepted'],
+            'due_now' => ! empty($in['deposit']) && $deposit ? $deposit['amount'] : round($p['total'] - $applied, 2), 'deposit' => $deposit, 'promo_accepted' => $a['promoAccepted'],
             'available' => $this->entitlements($a['customer'], (float) $p['total'], $a['promoNet'], $a['promoReferral'], $a['currency'], ! empty($in['promo_code']) ? (string) $in['promo_code'] : null),
         ];
     }
@@ -407,6 +409,9 @@ class CheckoutService
         if (! empty($in['together'])) {
             return $this->placeTogether($in, $user);
         }
+        if (! empty($in['deposit'])) {
+            $in['use_credit'] = null;   // money they already hold is not quietly used up by the invoice a deposit order becomes
+        }
         $a = $this->assemble($in, $user);
         $customer = $a['customer'];
         $mode = $in['payment_mode'] ?? 'pay_later';   // online | pay_later | account
@@ -439,6 +444,22 @@ class CheckoutService
             if ($this->giftCodes($in)) {
                 throw new BooksException('A gift voucher can\'t be paid for with another gift voucher.');
             }
+        }
+        $depositPct = null;
+        if (! empty($in['deposit'])) {   // a deposit: a preorder, a signed-in customer, paid now by M-Pesa; the rest is on the invoice it becomes
+            if (empty($in['preorder']) || $a['placeable'] === null) {
+                throw new BooksException('A deposit is only for preorders.');
+            }
+            if (! $customer) {
+                throw new BooksException('Sign in to pay a deposit.');
+            }
+            if ($mode !== 'online' || ! $method || $method->gateway !== 'mpesa_stk') {
+                throw new BooksException('A deposit is paid now with M-Pesa.');
+            }
+            if ($this->giftCodes($in)) {
+                throw new BooksException('A gift voucher cannot be used with a deposit. Pay in full, or leave the voucher out.');
+            }
+            $depositPct = app(\App\Services\Preorders\PreorderService::class)->depositFor($a['placeable']) ?? throw new BooksException('This preorder does not take a deposit. Pay in full.');
         }
         $this->assertTermsAccepted($in);
         if (! $customer && (empty($in['customer_email']) || empty($in['customer_phone']))) {
@@ -482,6 +503,9 @@ class CheckoutService
                 app(\App\Services\Notify\NotificationPreferences::class)->noteCheckoutNumber($customer, (string) $in['customer_phone']);
             }
             $total = (float) $order->total_amount;
+            if ($depositPct) {
+                return $this->placeDeposit($order, $a, $in, $user, $method, $depositPct, $total);
+            }
 
             $giftApplied = 0.0;
             $tenders = [];
@@ -543,6 +567,28 @@ class CheckoutService
 
             return ['order' => $this->orderSummary($order), 'status' => 'placed', 'message' => ($giftApplied > 0 ? 'Order placed. Your gift voucher will be applied when the order is paid.' : 'Order placed. We will confirm payment and delivery with you.')];
         });
+    }
+
+    /**
+     * A preorder with a deposit: the order becomes an Invoice at once (a preorder takes no stock, so this only records what is owed), and the M-Pesa prompt is for the
+     * deposit alone. The deposit is received against that invoice when M-Pesa confirms (GatewayPaymentService::settle), so the invoice then shows the balance still
+     * to pay: on delivery (staff collect it) or online from My orders (payOrder). The balance falls due on the latest date the customer was promised, or in 30 days.
+     */
+    private function placeDeposit(Voucher $order, array $a, array $in, ?User $user, PaymentMethod $method, int $percent, float $total): array
+    {
+        $amount = round($total * $percent / 100, 2);
+        if ($amount <= 0) {
+            throw new BooksException('There is nothing to take as a deposit.');
+        }
+        $order->meta = array_merge($order->meta ?? [], ['deposit' => ['percent' => $percent, 'amount' => $amount, 'balance' => round($total - $amount, 2)]]);
+        $order->save();
+        $due = collect($a['placeable'])->map(fn ($p) => $p['offer']?->expected_until)->filter()->max() ?? today()->addDays(30);
+        $invoice = $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => \Illuminate\Support\Carbon::parse($due)->toDateString()], null);
+        $attempt = $this->gateway->initiateMpesa($invoice, $method, (string) ($in['phone'] ?? $order->meta['contact']['phone'] ?? ''), [], $amount, $user);
+        $cur = $a['currency']->code;
+
+        return ['order' => $this->orderSummary($order), 'sale' => $this->orderSummary($invoice), 'attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'status' => 'awaiting_payment',
+            'message' => "Check your phone and enter your M-Pesa PIN to pay the deposit of {$cur} " . number_format($amount, 2) . '. The balance of ' . $cur . ' ' . number_format($total - $amount, 2) . ' is paid on delivery or online from My orders.'];
     }
 
     /**
@@ -619,6 +665,44 @@ class CheckoutService
     // ── a cart with ready-now AND preorder items, checked out in one go ─────────────────────────────────
 
     /**
+     * The deposit a preorder cart may pay now, or null: only a signed-in customer and only a preorder every offer of which takes a deposit. A gift voucher can not go with a deposit (the page leaves it
+     * out when the customer chooses one; placing refuses it). The percentage is the highest the offers allow, taken of the whole order (delivery included).
+     *
+     * @return ?array{percent: int, amount: float, balance: float}
+     */
+    private function depositQuote(array $a, float $total): ?array
+    {
+        if ($a['placeable'] === null || ! $a['customer'] || $total <= 0) {
+            return null;
+        }
+        $pct = app(\App\Services\Preorders\PreorderService::class)->depositFor($a['placeable']);
+        if (! $pct) {
+            return null;
+        }
+        $amount = round($total * $pct / 100, 2);
+
+        return ['percent' => $pct, 'amount' => $amount, 'balance' => round($total - $amount, 2)];
+    }
+
+    /**
+     * What a customer pays next on an invoice made from a deposit order, and for what: the deposit until it is in, then the balance. `$full` pays everything that is
+     * still owed in one go. An invoice that is not a deposit one is simply paid in full, as before.
+     *
+     * @return array{due: float, stage: string}
+     */
+    public function payableNow(Voucher $invoice, bool $full = false): array
+    {
+        $outstanding = max(0.0, round($this->vouchers->outstanding($invoice), 2));
+        $order = $invoice->source_voucher_id ? Voucher::find($invoice->source_voucher_id) : null;
+        if ($full || ! $order || empty($order->meta['deposit'])) {
+            return ['due' => $outstanding, 'stage' => 'full'];
+        }
+        $st = $this->vouchers->depositState($order, $invoice);
+
+        return ['due' => $st['due_next'], 'stage' => $st['stage']];
+    }
+
+    /**
      * The cart's items split by their own `preorder` flag: [ready-now request, preorder request]. The preorder part never carries the promo code (a code is used
      * once, on the ready-now order); each part is priced, delivered and numbered exactly as if it were checked out alone.
      *
@@ -680,6 +764,9 @@ class CheckoutService
     {
         [$readyIn, $preIn] = $this->splitTogether($in);
         $mode = $in['payment_mode'] ?? 'pay_later';
+        if (! empty($in['deposit'])) {
+            throw new BooksException('A deposit is for a preorder checked out on its own: check out the ready-now items and the preorder separately.');
+        }
         if (in_array($mode, ['account', 'credit'], true)) {
             throw new BooksException('Paying on account or from your credit works on one order at a time: check out the ready-now items and the preorder separately.');
         }

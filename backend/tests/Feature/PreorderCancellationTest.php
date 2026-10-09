@@ -156,6 +156,7 @@ class PreorderCancellationTest extends PreorderTestCase
         app(PreorderCancellation::class)->request($o, 'No longer needed', 7);
         $this->partialMock(VoucherService::class, function ($m) {
             $m->shouldReceive('paidAtOnce')->andReturn(false);
+            $m->shouldReceive('outstanding')->andReturn(0.0);
             $m->shouldReceive('returnable')->andReturn(['lines' => [$this->line(31, 2, 900)], 'refund' => null]);
             $m->shouldReceive('createReturn')->once()->withArgs(fn ($s, $opts) => ! array_key_exists('refund_ledger_id', $opts))->andReturn((new Voucher)->forceFill(['voucher_number' => 'CN-2', 'meta' => []]));
         });
@@ -223,5 +224,38 @@ class PreorderCancellationTest extends PreorderTestCase
         $o = $this->preorder(2, 0, true, ['status' => 'approved']);
         $o->setRelation('children', collect())->setRelation('currency', null);
         $this->assertSame('cancelled', app(OrderSummaryService::class)->row($o)['status']);
+    }
+
+    public function test_a_deposit_that_was_paid_is_shown_to_staff_and_remembered_so_it_can_be_paid_back(): void
+    {
+        $o = $this->preorder(3);
+        DB::table('vouchers')->where('source_voucher_id', $o->id)->update(['total_amount' => 1000]);   // the invoice: 1,000 asked, 300 deposit paid, 700 outstanding
+        app(PreorderCancellation::class)->request($o, 'No longer needed', 7);
+        $this->partialMock(VoucherService::class, function ($m) {
+            $m->shouldReceive('paidAtOnce')->andReturn(false);
+            $m->shouldReceive('outstanding')->andReturn(700.0);
+            $m->shouldReceive('returnable')->andReturn(['lines' => [$this->line(31, 2, 1000)], 'refund' => null]);
+            $m->shouldReceive('createReturn')->once()->andReturn((new Voucher)->forceFill(['voucher_number' => 'CN-3', 'meta' => []]));
+        });
+        $pending = app(PreorderCancellation::class)->pending();
+        $this->assertSame(300.0, $pending[0]['paid_so_far']);
+        app(PreorderCancellation::class)->approve($o->fresh(), null, null, null);
+        $this->assertSame(300.0, (float) $o->fresh()->meta['cancel_request']['deposit_refund'], 'what the customer paid is remembered: it is theirs to get back');
+    }
+
+    public function test_an_order_nobody_paid_anything_on_has_no_deposit_to_pay_back(): void
+    {
+        $o = $this->preorder(3);
+        DB::table('vouchers')->where('source_voucher_id', $o->id)->update(['total_amount' => 1000]);
+        app(PreorderCancellation::class)->request($o, 'No longer needed', 7);
+        $this->partialMock(VoucherService::class, function ($m) {
+            $m->shouldReceive('paidAtOnce')->andReturn(false);
+            $m->shouldReceive('outstanding')->andReturn(1000.0);
+            $m->shouldReceive('returnable')->andReturn(['lines' => [$this->line(31, 2, 1000)], 'refund' => null]);
+            $m->shouldReceive('createReturn')->once()->andReturn((new Voucher)->forceFill(['voucher_number' => 'CN-4', 'meta' => []]));
+        });
+        $this->assertNull(app(PreorderCancellation::class)->pending()[0]['paid_so_far']);
+        app(PreorderCancellation::class)->approve($o->fresh(), null, null, null);
+        $this->assertNull($o->fresh()->meta['cancel_request']['deposit_refund']);
     }
 }

@@ -27,6 +27,7 @@ class OrderNotices
             $due = $pre ? $this->expected($order) : null;
             $this->tell($order, 'order_placed', ($pre ? 'Preorder ' : 'Order ') . $order->voucher_number . ' received',
                 'Thank you! We have received ' . ($pre ? 'your preorder ' : 'your order ') . $order->voucher_number . ' for ' . $this->money($order, $order->total_amount) . '.'
+                . (! empty($order->meta['deposit']) ? ' You are paying a deposit of ' . $this->money($order, $order->meta['deposit']['amount']) . ' now; the balance of ' . $this->money($order, $order->meta['deposit']['balance']) . ' is paid on delivery or online from your order page.' : '')
                 . ($pre ? ' We will deliver it as soon as the stock arrives' . ($due ? " (expected by {$due})" : '') . '.' : ''));
         });
     }
@@ -82,7 +83,7 @@ class OrderNotices
             }
             $this->tell($order, 'preorder_cancel_decided', $approved ? 'Preorder ' . $order->voucher_number . ' cancelled' : 'About your request to cancel ' . $order->voucher_number,
                 $approved
-                    ? 'We have cancelled preorder ' . $order->voucher_number . ' as you asked and will refund ' . $this->money($order, $order->total_amount) . ($refundedTo ? " ({$refundedTo})" : '') . '.' . ($note ? " {$note}" : '')
+                    ? 'We have cancelled preorder ' . $order->voucher_number . ' as you asked and will refund ' . (($d = $order->meta['cancel_request']['deposit_refund'] ?? null) ? 'your deposit of ' . $this->money($order, $d) : $this->money($order, $order->total_amount)) . ($refundedTo ? " ({$refundedTo})" : '') . '.' . ($note ? " {$note}" : '')
                     : 'We could not cancel preorder ' . $order->voucher_number . '.' . ($note ? " {$note}" : '') . ' It is still on its way to you. You can ask again from your order page, or contact us.');
         });
     }
@@ -105,6 +106,13 @@ class OrderNotices
     {
         $pre = ! empty($order->meta['preorder']);
         $due = $pre ? $this->expected($order) : null;
+        if (! empty($order->meta['deposit']) && ($left = $this->balanceLeft($order)) > 0.005) {   // a deposit came in, not the whole price
+            $this->tell($order, 'payment_received', 'Deposit received for ' . $order->voucher_number,
+                'We have received your payment of ' . $this->money($order, $payment->total_amount) . ' for preorder ' . $order->voucher_number . '. Thank you! The balance of ' . $this->money($order, $left)
+                . ' is paid on delivery, or online any time from your order page. We will deliver it as soon as the stock arrives' . ($due ? " (expected by {$due})" : '') . '.');
+
+            return;
+        }
         $this->tell($order, 'payment_received', 'Payment received for ' . $order->voucher_number,
             'We have received your payment of ' . $this->money($order, $payment->total_amount ?: $order->total_amount) . ' for ' . ($pre ? 'preorder ' : 'order ') . $order->voucher_number . '. Thank you!'
             . ($pre ? ' We will deliver it as soon as the stock arrives' . ($due ? " (expected by {$due})" : '') . '.' : ''));
@@ -116,9 +124,12 @@ class OrderNotices
             ->selectRaw('COALESCE(SUM(quantity), 0) AS q, COALESCE(SUM(delivered_quantity), 0) AS d')->first();
         $all = (float) $t->q > 0 && (float) $t->d + 0.00005 >= (float) $t->q;
         $n = $order->voucher_number;
-        $this->tell($order, $all ? 'order_delivered' : 'order_shipped', $all ? "Order {$n} delivered" : "Order {$n} is on its way",
-            $all ? "Everything in order {$n} has been delivered. Thank you for shopping with us!"
-                : "Part of order {$n} is on its way to you (" . $this->plain((float) $t->d) . ' of ' . $this->plain((float) $t->q) . ' items). The rest follows as soon as it is ready.');
+        $text = $all ? "Everything in order {$n} has been delivered. Thank you for shopping with us!"
+            : "Part of order {$n} is on its way to you (" . $this->plain((float) $t->d) . ' of ' . $this->plain((float) $t->q) . ' items). The rest follows as soon as it is ready.';
+        if (! empty($order->meta['deposit']) && ($left = $this->balanceLeft($order)) > 0.005) {   // a deposit order: say what is still to pay
+            $text .= ' The balance of ' . $this->money($order, $left) . ' is due on delivery, or you can pay it online from your order page.';
+        }
+        $this->tell($order, $all ? 'order_delivered' : 'order_shipped', $all ? "Order {$n} delivered" : "Order {$n} is on its way", $text);
     }
 
     // ------------------------------------------------------------ plumbing
@@ -135,6 +146,14 @@ class OrderNotices
         }
         $c = $order->meta['contact'] ?? [];
         $this->notifier->sendToContact(['name' => $c['name'] ?? $order->party_name, 'email' => $c['email'] ?? null, 'phone' => $c['phone'] ?? $order->party_phone], $type, $title, $message, $o);
+    }
+
+    /** What the invoice made from a deposit order still asks for (0 when it is not one, or nothing is left). */
+    private function balanceLeft(Voucher $order): float
+    {
+        $invoice = $order->children()->with('type')->where('status', Voucher::POSTED)->get()->first(fn ($c) => $c->type?->base_type === VoucherType::SALES);
+
+        return $invoice ? max(0.0, round(app(\App\Services\Books\VoucherService::class)->outstanding($invoice), 2)) : 0.0;
     }
 
     private function who(Voucher $order): ?string

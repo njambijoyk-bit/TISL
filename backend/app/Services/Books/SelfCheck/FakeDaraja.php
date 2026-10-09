@@ -12,9 +12,13 @@ class FakeDaraja extends DarajaService
         // no keys needed: nothing here talks to Safaricom
     }
 
+    private int $n = 0;
+
     public function stkPush(string $phone, float $amount, string $paymentNumber, string $orderId): array
     {
-        return ['MerchantRequestID' => 'SELFCHECK-M-' . $orderId, 'CheckoutRequestID' => 'SELFCHECK-C-' . $orderId, 'ResponseCode' => '0'];
+        $this->n++;   // each prompt has its own id, as the real thing has (a deposit and then its balance are two prompts on one invoice)
+
+        return ['MerchantRequestID' => 'SELFCHECK-M-' . $orderId . '-' . $this->n, 'CheckoutRequestID' => 'SELFCHECK-C-' . $orderId . '-' . $this->n, 'ResponseCode' => '0'];
     }
 
     public function verifyPaid(string $checkoutRequestId): ?bool

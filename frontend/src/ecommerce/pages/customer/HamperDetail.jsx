@@ -236,6 +236,7 @@ export default function HamperDetail() {
                   {expectedText(pre.offer) && <span>{expectedText(pre.offer)}.</span>}
                   {pre.offer?.places_left != null && <span>{pre.offer.places_left} place{pre.offer.places_left === 1 ? '' : 's'} left.</span>}
                   {pre.offer?.max_per_customer ? <span>Limit {pre.offer.max_per_customer} per customer.</span> : null}
+                  {pre.offer?.deposit_percent ? <span>Signed in, you can pay a {pre.offer.deposit_percent}% deposit now and the rest on delivery.</span> : null}
                   {pre.offer?.closes_at && <span>Preorders close {new Date(pre.offer.closes_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}.</span>}
                   {pre.offer?.terms && <span style={{ color: '#6b7280' }}>{pre.offer.terms}</span>}
                 </div>

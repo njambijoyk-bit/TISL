@@ -648,6 +648,25 @@ class VoucherService
     }
 
     /** What is still owed on a sales invoice / purchase (new bill minus receipts / payments against it). */
+    /**
+     * Where a deposit order stands, read from its invoice (nothing about it is stored beyond the order's `meta.deposit` {percent, amount, balance}):
+     * `paid` is what the invoice has received so far, `outstanding` what it still asks, and `stage` what the customer pays next: `deposit` while less than the deposit has
+     * come in, `balance` once it has, `done` when nothing is owed. `due_next` is the amount that next payment is for.
+     *
+     * @return array{percent: int, amount: float, balance: float, paid: float, outstanding: float, stage: string, due_next: float}
+     */
+    public function depositState(Voucher $order, Voucher $invoice): array
+    {
+        $d = $order->meta['deposit'] ?? [];
+        $outstanding = max(0.0, round($this->outstanding($invoice), 2));
+        $paid = max(0.0, round((float) $invoice->total_amount - $outstanding, 2));
+        $amount = (float) ($d['amount'] ?? 0);
+        $stage = $outstanding <= 0.005 ? 'done' : ($paid + 0.005 < $amount ? 'deposit' : 'balance');
+
+        return ['percent' => (int) ($d['percent'] ?? 0), 'amount' => $amount, 'balance' => (float) ($d['balance'] ?? 0), 'paid' => $paid, 'outstanding' => $outstanding, 'stage' => $stage,
+            'due_next' => $stage === 'deposit' ? min($outstanding, round($amount - $paid, 2)) : ($stage === 'balance' ? $outstanding : 0.0)];
+    }
+
     public function outstanding(Voucher $invoice, ?int $exceptVoucherId = null): float
     {
         $new = (float) VoucherBillRef::where('voucher_id', $invoice->id)->where('ref_type', 'new')->sum('amount');

@@ -58,6 +58,7 @@ export default function Checkout() {
   const [mode, setMode] = useState('online');       // online | pay_later | account | ledger | credit
   const [methodId, setMethodId] = useState(null);
   const [ledgerId, setLedgerId] = useState(null);      // an offered bank / till / cash-on-delivery ledger chosen as how they will pay
+  const [plan, setPlan] = useState('full');          // a preorder that takes a deposit: pay it all now ('full') or a share now and the rest on delivery ('deposit')
   const [quote, setQuote] = useState(null);
   const [quoteError, setQuoteError] = useState(null);
   const [quoting, setQuoting] = useState(false);
@@ -100,10 +101,10 @@ export default function Checkout() {
   }, []);
 
   const payload = useCallback(() => ({
-    items: items.map(together ? toApiItemWithKind : toApiItem), preorder: isPre || undefined, together: together || undefined, delivery_method: prefs.delivery_method || undefined,
-    promo_code: prefs.promo_code.trim() || undefined, gift_voucher_code: together ? undefined : form.gift_voucher_code.trim() || undefined,
-    gift_voucher_codes: together ? undefined : giftPicked ?? undefined,
-  }), [items, isPre, together, prefs.delivery_method, prefs.promo_code, form.gift_voucher_code, giftPicked]);
+    items: items.map(together ? toApiItemWithKind : toApiItem), preorder: isPre || undefined, together: together || undefined, deposit: (isPre && !together && plan === 'deposit') || undefined, delivery_method: prefs.delivery_method || undefined,
+    promo_code: prefs.promo_code.trim() || undefined, gift_voucher_code: together || plan === 'deposit' ? undefined : form.gift_voucher_code.trim() || undefined,
+    gift_voucher_codes: together || plan === 'deposit' ? undefined : giftPicked ?? undefined,
+  }), [items, isPre, together, plan, prefs.delivery_method, prefs.promo_code, form.gift_voucher_code, giftPicked]);
 
   // the books price the cart — refresh whenever anything that changes the price changes
   useEffect(() => {
@@ -113,6 +114,7 @@ export default function Checkout() {
       try {
         const q = await checkoutAPI.quote(payload());
         setQuote(q); setQuoteError(null);
+        if (!q.deposit) setPlan('full');   // no deposit on this order (a guest, a gift voucher, an offer that wants full payment)
         if (giftPicked === null && q.available?.gift_vouchers?.length) setGiftPicked(q.available.gift_vouchers.map((g) => g.code));   // ticked for them; they can untick
       }
       catch (e) { setQuote(null); setQuoteError(errMsg(e, 'Could not price your cart')); }
@@ -153,7 +155,7 @@ export default function Checkout() {
         ...payload(), customer_email: form.customer_email, customer_phone: form.customer_phone, shipping_address: form.shipping_address,
         customer_notes: form.customer_notes || undefined, payment_mode: mode === 'ledger' ? 'pay_later' : mode, payment_method_id: mode === 'online' ? methodId : undefined, payment_ledger_id: mode === 'ledger' ? ledgerId : undefined, phone: form.phone || form.customer_phone,
         ...(policies.length ? { policy_acceptances: policies } : {}),
-        ...(credits.length && !together ? { use_credit: credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id) } : {}),
+        ...(credits.length && !together && plan !== 'deposit' ? { use_credit: credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id) } : {}),
       });
       if (res.status === 'awaiting_payment') { toast.success(res.message); setPending({ attemptId: res.attempt.id, orderId: res.order.id, together: together || undefined }); return; }
       toast.success(res.message, { duration: together ? 8000 : undefined });
@@ -177,7 +179,7 @@ export default function Checkout() {
       <div style={{ flex: 1, maxWidth: 1000, margin: '0 auto', padding: '32px 16px', width: '100%', boxSizing: 'border-box' }}>
         <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px' }}>{together ? 'Confirm your order and preorder' : isPre ? 'Confirm your preorder' : 'Confirm your order'}</h1>
         {together && <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>You get two orders from this checkout, paid with one payment: the items that are ready now, and the preorder, which is delivered as soon as it arrives (you pay for it in full now).</p>}
-        {isPre && <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>These items are not in stock yet. You pay in full now and we deliver as soon as they arrive.</p>}
+        {isPre && <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>These items are not in stock yet. {quote?.deposit ? 'You can pay in full now, or pay a deposit now and the rest on delivery. We deliver as soon as they arrive.' : 'You pay in full now and we deliver as soon as they arrive.'}</p>}
         <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Check everything below, choose how you will pay, and place the order. <Link to="/cart" style={{ color: 'var(--color-primary-500)' }}>Back to cart</Link></p>
 
         {pending && (
@@ -200,6 +202,12 @@ export default function Checkout() {
               <div style={{ opacity: quoting ? 0.6 : 1, display: 'grid', gap: 14 }}>
                 <OrderBreakdown quote={quote} linesOnly />
                 <div style={{ maxWidth: 460, marginLeft: 'auto', width: '100%' }}><SummaryLedger quote={quote} /></div>
+                {quote.deposit && plan === 'deposit' && (
+                  <div role="note" style={{ maxWidth: 460, marginLeft: 'auto', width: '100%', fontSize: '0.82rem', display: 'grid', gap: 3, padding: '10px 12px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)' }}>
+                    <span style={{ display: 'flex', justifyContent: 'space-between' }}><span>Pay now ({quote.deposit.percent}% deposit)</span><strong>{money(quote.deposit.amount)}</strong></span>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-secondary)' }}><span>Balance, on delivery or online later</span><strong style={{ color: 'var(--text-primary)' }}>{money(quote.deposit.balance)}</strong></span>
+                  </div>
+                )}
                 {quote.parts && (
                   <div style={{ maxWidth: 460, marginLeft: 'auto', width: '100%', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'grid', gap: 3 }}>
                     <span>Of this total:</span>
@@ -229,22 +237,30 @@ export default function Checkout() {
             </div>
 
             <div style={card}>
-              <p style={title}><CreditCard size={14} /> How will you pay?</p>
+              {isPre && !together && quote?.deposit && (
+                <div style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+                  <p style={title}><Package size={14} /> How much now?</p>
+                  <Choice active={plan === 'full'} onClick={() => setPlan('full')} label={`Pay in full: ${money(quote.total)}`} sub="Nothing more to pay" />
+                  <Choice active={plan === 'deposit'} onClick={() => { setPlan('deposit'); setMode('online'); }} label={`Pay a ${quote.deposit.percent}% deposit: ${money(quote.deposit.amount)}`}
+                    sub={`The balance of ${money(quote.deposit.balance)} is paid on delivery or online from My orders. Paid with M-Pesa now.`} />
+                </div>
+              )}
+              <p style={title}><CreditCard size={14} /> How will you pay{plan === 'deposit' ? ' the deposit' : ''}?</p>
               <div style={{ display: 'grid', gap: 8 }}>
                 {(opts?.payment_methods ?? []).map((m) => (
                   <Choice key={m.id} active={mode === 'online' && methodId === m.id} onClick={() => { setMode('online'); setMethodId(m.id); }} label={m.name} sub={m.instructions || 'Pay now'} />
                 ))}
-                {(opts?.ledger_modes ?? []).map((m) => (
+                {plan !== 'deposit' && (opts?.ledger_modes ?? []).map((m) => (
                   <Choice key={m.ledger_id} active={mode === 'ledger' && ledgerId === m.ledger_id} onClick={() => { setMode('ledger'); setLedgerId(m.ledger_id); }} label={m.label}
                     sub={m.kind === 'cod' ? 'Pay the driver when it arrives' : m.kind === 'bank' ? 'Pay by bank transfer — details below' : m.kind === 'mobile' ? 'Pay to our number — details below' : 'Pay in cash'} />
                 ))}
-                {credits.length > 0 && !together && (() => {
+                {credits.length > 0 && !together && plan !== 'deposit' && (() => {
                   const held = credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).reduce((t, c) => t + c.amount, 0);
                   const covers = quote && held + 0.005 >= Number(quote.total);
                   return <Choice active={mode === 'credit'} onClick={() => setMode('credit')} disabled={!covers} label="Pay from money I have already paid"
                     sub={covers ? `Uses ${money(Math.min(held, Number(quote.total)))} of the ${money(held)} you paid us — nothing more to pay` : `The ticked ${money(held)} does not cover this order (${money(quote?.total ?? 0)})`} />;
                 })()}
-                <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll agree how you pay" />
+                {plan !== 'deposit' && <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll agree how you pay" />}
                 {opts?.account && !isPre && !together && (
                   <Choice active={mode === 'account'} onClick={() => setMode('account')} disabled={opts.account.available_base <= 0}
                     label="Charge to my account" sub={opts.account.available_base > 0 ? `Invoiced now · due in ${opts.account.terms_days} days · ${formatMoney(opts.account.available_base, opts.base_currency.code)} available` : 'No credit available'} />
@@ -266,7 +282,7 @@ export default function Checkout() {
                   <input value={form.phone} onChange={set('phone')} placeholder="07XX XXX XXX" style={input} />
                 </div>
               )}
-              {gifts.length > 0 && !together && (
+              {gifts.length > 0 && !together && plan !== 'deposit' && (
                 <div style={{ marginTop: 14 }}>
                   <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Your gift vouchers{mode === 'pay_later' && <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}> — nothing is spent now; applied when your order is paid</span>}</label>
                   <div style={{ display: 'grid', gap: 6 }}>
@@ -299,7 +315,7 @@ export default function Checkout() {
                   <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Nothing is used now; it is taken off when your order becomes an invoice.</p>
                 </div>
               )}
-              {opts?.gift_vouchers_enabled && !together && (
+              {opts?.gift_vouchers_enabled && !together && plan !== 'deposit' && (
                 <div style={{ marginTop: 14 }}>
                   <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> {gifts.length ? 'Another gift voucher code' : 'Gift voucher code'}</label>
                   <input value={form.gift_voucher_code} onChange={set('gift_voucher_code')} placeholder="Optional" style={input} />

@@ -32,13 +32,14 @@ class OrderAndDelayNoticesTest extends NotifyTestCase
     private const SO = 1;
     private const CASH = 2;
     private const DN = 3;
+    private const INV = 4;
 
     protected function setUp(): void
     {
         parent::setUp();
         $this->createPreorderTables();
         Schema::table('vouchers', function ($t) { $t->string('channel')->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); $t->string('party_name')->nullable(); $t->string('party_phone')->nullable(); $t->string('cancel_reason')->nullable(); $t->decimal('total_amount', 12, 2)->default(0); $t->timestamps(); });
-        DB::table('voucher_types')->insert([['id' => self::SO, 'base_type' => 'sales_order'], ['id' => self::CASH, 'base_type' => 'cash_sale'], ['id' => self::DN, 'base_type' => 'delivery_note']]);
+        DB::table('voucher_types')->insert([['id' => self::SO, 'base_type' => 'sales_order'], ['id' => self::CASH, 'base_type' => 'cash_sale'], ['id' => self::DN, 'base_type' => 'delivery_note'], ['id' => self::INV, 'base_type' => 'sales']]);
         Queue::fake();
         Cache::flush();
         $this->app->instance(Staff::class, new class extends Staff {
@@ -308,5 +309,74 @@ class OrderAndDelayNoticesTest extends NotifyTestCase
         $no = Notification::where('type', 'preorder_cancel_decided')->orderByDesc('id')->first();
         $this->assertStringContainsString('could not cancel', $no->message);
         $this->assertStringContainsString('It ships tomorrow.', $no->message);
+    }
+
+    // ------------------------------------------------------------ preorders with a deposit
+
+    /** A deposit preorder: the order, the invoice made from it, and (when asked) a receipt for what came in. */
+    private function depositOrder(float $outstanding): array
+    {
+        $order = $this->order(['paid' => false]);
+        $order->meta = array_merge($order->meta, ['deposit' => ['percent' => 30, 'amount' => 300.0, 'balance' => 700.0]]);
+        $order->save();
+        $invoice = Voucher::findOrFail(DB::table('vouchers')->insertGetId(['voucher_type_id' => self::INV, 'status' => 'posted', 'source_voucher_id' => $order->id, 'voucher_number' => 'INV-7', 'channel' => 'storefront', 'total_amount' => 1000, 'created_at' => now(), 'updated_at' => now()]));
+        $receipt = Voucher::findOrFail(DB::table('vouchers')->insertGetId(['voucher_type_id' => self::INV, 'status' => 'posted', 'voucher_number' => 'RCT-' . random_int(1, 9999), 'total_amount' => 300, 'created_at' => now(), 'updated_at' => now()]));
+        $this->partialMock(\App\Services\Books\VoucherService::class, fn ($m) => $m->shouldReceive('outstanding')->andReturn($outstanding));
+
+        return [$order, $invoice, $receipt];
+    }
+
+    private function lastBody(string $type): string
+    {
+        return (string) NotificationDelivery::where('type', $type)->where('channel', 'email')->latest('id')->value('body');
+    }
+
+    public function test_placing_a_deposit_preorder_says_what_is_due_now_and_what_later(): void
+    {
+        [$order] = $this->depositOrder(1000.0);
+        app(OrderNotices::class)->placed($order->fresh());
+        $body = $this->lastBody('order_placed');
+        $this->assertStringContainsString('paying a deposit of', $body);
+        $this->assertStringContainsString('300.00', $body);
+        $this->assertStringContainsString('700.00', $body);
+        $this->assertStringContainsString('on delivery or online', $body);
+    }
+
+    public function test_the_deposit_payment_says_deposit_with_the_balance_and_the_final_payment_says_paid(): void
+    {
+        [$order, $invoice, $receipt] = $this->depositOrder(700.0);
+        app(OrderNotices::class)->invoicePaid($invoice, $receipt);
+        $first = $this->lastBody('payment_received');
+        $this->assertStringContainsString('The balance of', $first);
+        $this->assertStringContainsString('700.00', $first);
+        $this->assertStringContainsString('on delivery, or online', $first);
+        $this->assertSame('Deposit received for PRE-00007', NotificationDelivery::where('type', 'payment_received')->latest('id')->value('subject'));
+
+        $this->partialMock(\App\Services\Books\VoucherService::class, fn ($m) => $m->shouldReceive('outstanding')->andReturn(0.0));
+        $second = Voucher::findOrFail(DB::table('vouchers')->insertGetId(['voucher_type_id' => self::INV, 'status' => 'posted', 'voucher_number' => 'RCT-LAST', 'total_amount' => 700, 'created_at' => now(), 'updated_at' => now()]));
+        app(OrderNotices::class)->invoicePaid($invoice->fresh(), $second);
+        $this->assertSame('Payment received for PRE-00007', NotificationDelivery::where('type', 'payment_received')->latest('id')->value('subject'));
+        $this->assertStringNotContainsString('The balance of', $this->lastBody('payment_received'));
+    }
+
+    public function test_the_delivery_message_reminds_of_the_balance_to_collect(): void
+    {
+        [$order] = $this->depositOrder(700.0);
+        $dn = Voucher::findOrFail(DB::table('vouchers')->insertGetId(['voucher_type_id' => self::DN, 'status' => 'posted', 'source_voucher_id' => $order->id, 'voucher_number' => 'DN-1', 'channel' => 'storefront', 'total_amount' => 0, 'created_at' => now(), 'updated_at' => now()]));
+        app(OrderNotices::class)->converted($order->fresh(), $dn);
+        $this->assertStringContainsString('The balance of', $this->lastBody('order_shipped'));
+        $this->assertStringContainsString('700.00', $this->lastBody('order_shipped'));
+    }
+
+    public function test_a_cancelled_deposit_preorder_says_the_deposit_is_refunded_not_the_whole_price(): void
+    {
+        [$order] = $this->depositOrder(700.0);
+        $order->meta = array_merge($order->meta, ['cancel_request' => ['status' => 'approved', 'at' => 'x', 'deposit_refund' => 300.0]]);
+        $order->save();
+        app(OrderNotices::class)->cancelDecision($order->fresh(), true, null, null);
+        $body = $this->lastBody('preorder_cancel_decided');
+        $this->assertStringContainsString('refund your deposit of', $body);
+        $this->assertStringContainsString('300.00', $body);
+        $this->assertStringNotContainsString('1,000.00', $body);
     }
 }

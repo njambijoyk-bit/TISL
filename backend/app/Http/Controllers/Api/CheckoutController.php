@@ -46,7 +46,7 @@ class CheckoutController extends Controller
             'gift_vouchers.*.recipient_email' => 'nullable|email', 'gift_vouchers.*.message' => 'nullable|string|max:300',
             'items.*.product_id' => 'nullable|integer|exists:products,id', 'items.*.hamper_id' => 'nullable|integer|exists:hampers,id',
             'items.*.variant_id' => 'nullable|integer', 'items.*.variant_unit_id' => 'nullable|integer',
-            'preorder' => 'nullable|boolean', 'together' => 'nullable|boolean', 'items.*.preorder' => 'nullable|boolean', 'currency' => 'nullable|string|max:8', 'location_id' => 'nullable|integer|exists:locations,id',
+            'preorder' => 'nullable|boolean', 'deposit' => 'nullable|boolean', 'together' => 'nullable|boolean', 'items.*.preorder' => 'nullable|boolean', 'currency' => 'nullable|string|max:8', 'location_id' => 'nullable|integer|exists:locations,id',
             'delivery_method' => ['nullable', Rule::in(ShippingOption::where('is_active', true)->pluck('code'))],
             'attribution' => 'nullable|array', 'attribution.campaign' => 'nullable|string|max:120', 'attribution.at' => 'nullable|string|max:40',
             'promo_code' => 'nullable|string|max:40', 'use_credit' => 'nullable|array', 'use_credit.*' => 'integer', 'gift_voucher_code' => 'nullable|string|max:60', 'gift_voucher_codes' => 'nullable|array', 'gift_voucher_codes.*' => 'string|max:60',
@@ -121,7 +121,7 @@ class CheckoutController extends Controller
     /** Pay an unpaid order later (M-Pesa prompt, optionally with a gift voucher). */
     public function payOrder(Request $request, $id): JsonResponse
     {
-        $request->validate(['payment_method_id' => 'required|integer|exists:payment_methods,id', 'phone' => 'required|string', 'gift_voucher_code' => 'nullable|string']);
+        $request->validate(['payment_method_id' => 'required|integer|exists:payment_methods,id', 'phone' => 'required|string', 'gift_voucher_code' => 'nullable|string', 'full' => 'nullable|boolean']);
 
         return $this->guard(function () use ($request, $id) {
             $customerId = $request->user()?->customer?->id;
@@ -135,7 +135,12 @@ class CheckoutController extends Controller
             if (! in_array($base, [VoucherType::SALES_ORDER, VoucherType::SALES], true) || $order->status !== Voucher::POSTED) {
                 throw new BooksException('That order can not be paid now.');
             }
-            $due = $base === VoucherType::SALES ? $this->vouchers->outstanding($order) : (float) $order->total_amount;
+            $stage = 'full';
+            if ($base === VoucherType::SALES) {   // an invoice from a deposit order is paid deposit first, then balance (or all at once when asked)
+                ['due' => $due, 'stage' => $stage] = $this->checkout->payableNow($order, $request->boolean('full'));
+            } else {
+                $due = (float) $order->total_amount;
+            }
             if ($base === VoucherType::SALES_ORDER && $order->children()->where('status', Voucher::POSTED)->exists()) {
                 throw new BooksException('This order has already moved on — see its invoice.');
             }
@@ -152,7 +157,7 @@ class CheckoutController extends Controller
             $method = PaymentMethod::offeredAtCheckout()->findOrFail($request->payment_method_id);
             $attempt = $this->gateway->initiateMpesa($order, $method, $request->phone, $tenders, $due, $request->user());
 
-            return response()->json(['attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'message' => 'Check your phone and enter your M-Pesa PIN.']);
+            return response()->json(['attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'stage' => $stage, 'message' => 'Check your phone and enter your M-Pesa PIN.']);
         });
     }
 

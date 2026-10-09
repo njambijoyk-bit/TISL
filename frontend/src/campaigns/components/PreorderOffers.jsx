@@ -14,14 +14,14 @@ import { Field, TextInput, SelectInput, CheckboxRow } from '../../core/component
  * The offer's terms. `variants` is what the offer can be made on: one option (fixed) or several (a dropdown). `taken` is a Set of variant ids that already have an offer.
  * Used here (from the campaign's featured items) and inside an item's row in the page builder.
  */
-export function OfferFields({ campaignId, variants, taken, onSaved, onCancel, hasMax = true }) {
+export function OfferFields({ campaignId, variants, taken, onSaved, onCancel, hasMax = true, hasDeposit = false }) {
   const open = variants.filter((v) => !taken.has(v.id));
-  const [f, setF] = useState({ variant_id: open[0]?.id ?? '', limit_total: '', max_per_customer: '', closes_at: '', expected_from: '', expected_until: '', terms: '' });
+  const [f, setF] = useState({ variant_id: open[0]?.id ?? '', limit_total: '', max_per_customer: '', deposit_percent: '', closes_at: '', expected_from: '', expected_until: '', terms: '' });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target?.value ?? e }));
   const save = async () => {
     setBusy(true);
-    try { await preordersAPI.saveOffer(campaignId, { ...f, limit_total: f.limit_total || null, max_per_customer: hasMax ? (f.max_per_customer || null) : undefined, closes_at: f.closes_at || null, expected_from: f.expected_from || null, expected_until: f.expected_until || null }); toast.success('Offer added.'); onSaved(); }
+    try { await preordersAPI.saveOffer(campaignId, { ...f, limit_total: f.limit_total || null, max_per_customer: hasMax ? (f.max_per_customer || null) : undefined, deposit_percent: hasDeposit ? (f.deposit_percent || null) : undefined, closes_at: f.closes_at || null, expected_from: f.expected_from || null, expected_until: f.expected_until || null }); toast.success('Offer added.'); onSaved(); }
     catch (e) { toast.error(errMsg(e, 'Could not save the offer'), { duration: 7000 }); } finally { setBusy(false); }
   };
   if (open.length === 0) return <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Every option here already has an offer.</p>;
@@ -33,6 +33,7 @@ export function OfferFields({ campaignId, variants, taken, onSaved, onCancel, ha
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10 }}>
         <Field label="Places (all branches)" hint="Leave empty for no limit."><TextInput type="number" min="1" value={f.limit_total} onChange={set('limit_total')} /></Field>
         {hasMax && <Field label="Most per customer" hint="Leave empty for no limit. A guest is matched by email."><TextInput type="number" min="1" value={f.max_per_customer} onChange={set('max_per_customer')} /></Field>}
+        {hasDeposit && <Field label="Deposit % (optional)" hint="Empty = full payment. Otherwise a signed-in customer may pay this share now (1 to 90) and the rest on delivery or online."><TextInput type="number" min="1" max="90" value={f.deposit_percent} onChange={set('deposit_percent')} /></Field>}
         <Field label="Closes (optional)" hint="Empty = when the campaign ends."><TextInput type="datetime-local" value={f.closes_at} onChange={set('closes_at')} /></Field>
         <Field label="Expected from"><TextInput type="date" value={f.expected_from} onChange={set('expected_from')} /></Field>
         <Field label="Expected by"><TextInput type="date" value={f.expected_until} onChange={set('expected_until')} /></Field>
@@ -47,7 +48,7 @@ export function OfferFields({ campaignId, variants, taken, onSaved, onCancel, ha
 }
 
 /** A new offer starts from what this campaign features: an option on its own, or one option of a product featured whole. (Feature the item on the page first.) */
-function NewOffer({ campaignId, featured, taken, onSaved, onCancel, hasMax }) {
+function NewOffer({ campaignId, featured, taken, onSaved, onCancel, hasMax, hasDeposit }) {
   const [pick, setPick] = useState(null);       // { label, variants: [{ id, name }] }
   const choose = async (f) => {
     const label = f.variant ? `${f.name} · ${f.variant}` : f.name;
@@ -71,7 +72,7 @@ function NewOffer({ campaignId, featured, taken, onSaved, onCancel, hasMax }) {
       ) : (
         <>
           <strong style={{ fontSize: '0.85rem' }}>{pick.label}</strong>
-          <OfferFields campaignId={campaignId} variants={pick.variants} taken={taken} onSaved={onSaved} onCancel={onCancel} hasMax={hasMax} />
+          <OfferFields campaignId={campaignId} variants={pick.variants} taken={taken} onSaved={onSaved} onCancel={onCancel} hasMax={hasMax} hasDeposit={hasDeposit} />
         </>
       )}
     </div>
@@ -133,9 +134,14 @@ function SupplyLine({ campaignId, o, canEdit, onChanged }) {
   );
 }
 
-function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage, hasMax, hasSupply }) {
+function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage, hasMax, hasDeposit, hasSupply }) {
   const [on, setOn] = useState(new Set(o.branches ?? []));
   const [max, setMax] = useState(null);   // the per-customer maximum while it is being changed
+  const [dep, setDep] = useState(null);   // the deposit percentage while it is being changed
+  const saveDep = async () => {
+    try { await preordersAPI.updateOffer(campaignId, o.id, { deposit_percent: dep === '' ? null : Number(dep) }); setDep(null); onChanged(); }
+    catch (e) { toast.error(errMsg(e, 'Could not change it'), { duration: 7000 }); }
+  };
   const saveMax = async () => {
     try { await preordersAPI.updateOffer(campaignId, o.id, { max_per_customer: max === '' ? null : Number(max) }); setMax(null); onChanged(); }
     catch (e) { toast.error(errMsg(e, 'Could not change it'), { duration: 7000 }); }
@@ -166,6 +172,23 @@ function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage, hasMax,
       </div>
       {o.terms && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>{o.terms}</p>}
       {hasSupply && o.supply && <SupplyLine campaignId={campaignId} o={o} canEdit={canEdit} onChanged={onChanged} />}
+      {hasDeposit && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textMuted }}>
+          {dep === null ? (
+            <>
+              <span>{o.deposit_percent ? `Deposit of ${o.deposit_percent}% allowed (signed-in customers).` : 'Full payment only.'}</span>
+              {canEdit && <button type="button" style={{ ...btnGhost, padding: '2px 9px', fontSize: '0.74rem' }} onClick={() => setDep(o.deposit_percent ?? '')}>Change</button>}
+            </>
+          ) : (
+            <>
+              <label htmlFor={`dep-${o.id}`}>Deposit %</label>
+              <input id={`dep-${o.id}`} type="number" min="1" max="90" value={dep} onChange={(e) => setDep(e.target.value)} placeholder="Full payment" style={{ width: 100, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--line)', fontFamily: 'inherit' }} />
+              <button type="button" style={{ ...btnPrimary, padding: '3px 12px', fontSize: '0.74rem' }} onClick={saveDep}>Save</button>
+              <button type="button" style={{ ...btnGhost, padding: '2px 9px', fontSize: '0.74rem' }} onClick={() => setDep(null)}>Cancel</button>
+            </>
+          )}
+        </div>
+      )}
       {hasMax && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textMuted }}>
           {max === null ? (
@@ -210,8 +233,8 @@ export default function PreorderOffers({ campaignId, canEdit, featured = [], ref
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {data.data.length === 0 && !adding && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>No preorder offers. Feature an option on the page, then offer it here (or from its row in the page builder).</p>}
-      {data.data.map((o) => <OfferRow key={o.id} campaignId={campaignId} o={o} branches={data.branches} canEdit={canEdit} onChanged={load} onPage={onPage(o)} hasMax={data.has_max} hasSupply={data.has_supply} />)}
-      {adding && <NewOffer campaignId={campaignId} featured={featured} taken={taken} hasMax={data.has_max} onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} />}
+      {data.data.map((o) => <OfferRow key={o.id} campaignId={campaignId} o={o} branches={data.branches} canEdit={canEdit} onChanged={load} onPage={onPage(o)} hasDeposit={data.has_deposit} hasMax={data.has_max} hasSupply={data.has_supply} />)}
+      {adding && <NewOffer campaignId={campaignId} featured={featured} taken={taken} hasMax={data.has_max} hasDeposit={data.has_deposit} onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} />}
       {canEdit && !adding && <div><button type="button" style={btnGhost} onClick={() => setAdding(true)}><Plus size={13} /> Add a preorder offer</button></div>}
     </div>
   );

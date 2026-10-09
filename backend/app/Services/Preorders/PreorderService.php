@@ -97,6 +97,16 @@ class PreorderService
         if (PreorderOffer::hasMax() && (array_key_exists('max_per_customer', $d) || ! $offer)) {
             $fields['max_per_customer'] = $max;   // left alone when an update does not mention it
         }
+        $dep = isset($d['deposit_percent']) && $d['deposit_percent'] !== '' ? (int) $d['deposit_percent'] : null;
+        if ($dep !== null && ($dep < 1 || $dep > 90)) {
+            throw new BooksException('A deposit is between 1% and 90% of the order.');
+        }
+        if ($dep !== null && ! PreorderOffer::hasDeposit()) {
+            throw new BooksException('Run database script 115_preorder_deposits.sql first.');
+        }
+        if (PreorderOffer::hasDeposit() && (array_key_exists('deposit_percent', $d) || ! $offer)) {
+            $fields['deposit_percent'] = $dep;
+        }
         if ($fields['limit_total'] !== null && $offer && $fields['limit_total'] < $this->taken($offer->id)) {
             throw new BooksException('Places already taken (' . rtrim(rtrim(number_format($this->taken($offer->id), 4, '.', ''), '0'), '.') . ') are more than that limit.');
         }
@@ -316,6 +326,18 @@ class PreorderService
         return $out;
     }
 
+    /** What an invoice (a credit-terms order or a deposit order) has received so far, and what it still asks. @return array{paid: float, outstanding: float, total: float} */
+    private function invoiceState(int $invoiceId): array
+    {
+        $inv = Voucher::find($invoiceId);
+        if (! $inv) {
+            return ['paid' => 0.0, 'outstanding' => 0.0, 'total' => 0.0];
+        }
+        $out = max(0.0, round(app(\App\Services\Books\VoucherService::class)->outstanding($inv), 2));
+
+        return ['paid' => max(0.0, round((float) $inv->total_amount - $out, 2)), 'outstanding' => $out, 'total' => (float) $inv->total_amount];
+    }
+
     /** What is promised and not delivered of a variant, per branch (base units). @return array<int, float> */
     public function committedByLocation(int $variantId): array
     {
@@ -343,13 +365,23 @@ class PreorderService
         $items = DB::table('voucher_items')->whereIn('id', array_column($owed, 'item_id'))->get(['id', 'quantity', 'unit_factor', 'amount'])->keyBy('id');
         $lines = 0;
         $value = 0.0;
+        $received = [];   // invoice id => the share of its total that has been paid (a deposit order counts what the customer has paid, not what they still owe)
         foreach ($owed as $r) {
             $i = $items[$r['item_id']] ?? null;
-            if (! $i || (float) $i->quantity <= 0 || ($sales[$r['order_id']]['kind'] ?? null) !== 'paid') {
+            $sale = $sales[$r['order_id']] ?? null;
+            if (! $i || (float) $i->quantity <= 0 || ! $sale) {
                 continue;
             }
+            $paidShare = 1.0;
+            if ($sale['kind'] !== 'paid') {
+                $st = $received[$sale['id']] ??= $this->invoiceState($sale['id']);
+                $paidShare = $st['total'] > 0 ? min(1.0, $st['paid'] / $st['total']) : 0.0;
+                if ($paidShare <= 0.00005) {
+                    continue;
+                }
+            }
             $share = min(1.0, $r['qty'] / max(0.0001, (float) $i->quantity * (float) $i->unit_factor));
-            $value += (float) $i->amount * $share;
+            $value += (float) $i->amount * $share * $paidShare;
             $lines++;
         }
 
@@ -426,12 +458,35 @@ class PreorderService
         return $out;
     }
 
+    /** The deposit a set of offers allows: the highest percentage, and only when EVERY one of them takes a deposit (otherwise none). @param iterable<PreorderOffer> $offers */
+    public function depositOf(iterable $offers): ?int
+    {
+        if (! PreorderOffer::hasDeposit()) {
+            return null;
+        }
+        $pct = null;
+        foreach ($offers as $o) {
+            if (! $o || ! (int) $o->deposit_percent) {
+                return null;
+            }
+            $pct = max((int) $pct, (int) $o->deposit_percent);
+        }
+
+        return $pct;
+    }
+
+    /** The deposit percentage for a cart that `assertPlaceable` accepted: every offer it is taken through must allow one; lines only set aside from stock (no offer) do not count. */
+    public function depositFor(array $placeable): ?int
+    {
+        return $this->depositOf(array_filter(array_column($placeable, 'offer')));
+    }
+
     public function describe(PreorderOffer $o): array
     {
         $left = $this->remaining($o);
         $supply = app(PreorderSupply::class)->forOffer($o);   // linked purchase orders still to arrive: their due date is the promise
 
-        return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'campaign' => $o->campaign?->title, 'from_supply' => $supply['date'] !== null, 'limit_total' => $o->limit_total, 'max_per_customer' => PreorderOffer::hasMax() ? $o->max_per_customer : null, 'places_left' => $left === null ? null : (int) floor($left),
+        return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'campaign' => $o->campaign?->title, 'from_supply' => $supply['date'] !== null, 'limit_total' => $o->limit_total, 'max_per_customer' => PreorderOffer::hasMax() ? $o->max_per_customer : null, 'deposit_percent' => PreorderOffer::hasDeposit() ? $o->deposit_percent : null, 'places_left' => $left === null ? null : (int) floor($left),
             'closes_at' => $o->closes_at?->toIso8601String(), 'expected_from' => $supply['date'] ? null : $o->expected_from?->toDateString(), 'expected_until' => $supply['date'] ?? $o->expected_until?->toDateString(), 'terms' => $o->terms];
     }
 
@@ -540,7 +595,7 @@ class PreorderService
         }
         $first = $open[0][0];
 
-        return ['id' => $first->id, 'campaign_id' => $first->campaign_id, 'campaign' => $first->campaign?->title, 'limit_total' => null, 'max_per_customer' => $cap, 'places_left' => $places,
+        return ['id' => $first->id, 'campaign_id' => $first->campaign_id, 'campaign' => $first->campaign?->title, 'limit_total' => null, 'max_per_customer' => $cap, 'deposit_percent' => $this->depositOf(array_map(fn ($x) => $x[0], $open)), 'places_left' => $places,
             'closes_at' => $closes?->toIso8601String(), 'expected_from' => $from, 'expected_until' => $until, 'terms' => $terms ? implode(' ', array_keys($terms)) : null];
     }
 
@@ -763,6 +818,12 @@ class PreorderService
         $branch = Location::pluck('name', 'id');
         $items = DB::table('voucher_items')->whereIn('id', array_column($owed, 'item_id'))->get(['id', 'quantity', 'unit_factor'])->keyBy('id');
 
+        $balance = [];   // order id => what its invoice still asks (a deposit order's balance to collect on delivery)
+        foreach ($sales as $orderId => $sale) {
+            if ($sale['kind'] === 'invoiced' && ! empty($orders[$orderId]?->meta['deposit'])) {
+                $balance[$orderId] = $this->invoiceState($sale['id'])['outstanding'];
+            }
+        }
         $lines = [];
         foreach ($owed as $r) {
             $o = $orders[$r['order_id']] ?? null;
@@ -771,7 +832,7 @@ class PreorderService
             $c = $o?->customer;
             $lines[] = [
                 'order_id' => $r['order_id'], 'order_number' => $o?->voucher_number, 'sale_id' => $sales[$r['order_id']]['id'] ?? null, 'sale_number' => $sales[$r['order_id']]['number'] ?? null,
-                'payment' => $sales[$r['order_id']]['kind'] ?? 'unpaid', 'date' => $o?->date?->toDateString(), 'customer' => $c ? trim($c->first_name . ' ' . $c->last_name) : ($o?->party_name ?: null),
+                'payment' => $sales[$r['order_id']]['kind'] ?? 'unpaid', 'balance_due' => ($balance[$r['order_id']] ?? 0.0) > 0.005 ? $balance[$r['order_id']] : null, 'date' => $o?->date?->toDateString(), 'customer' => $c ? trim($c->first_name . ' ' . $c->last_name) : ($o?->party_name ?: null),
                 'variant_id' => $r['variant_id'], 'item' => $v?->product?->name, 'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null, 'sku' => $v?->sku,
                 'location_id' => $r['location_id'], 'branch' => $branch[$r['location_id']] ?? null, 'ordered' => round((float) ($items[$r['item_id']]->quantity ?? 0) * (float) ($items[$r['item_id']]->unit_factor ?? 1), 4),
                 'owed' => $r['qty'], 'promised' => $line?->promised_date?->toDateString(), 'item_id' => $r['item_id'],
