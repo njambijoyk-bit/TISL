@@ -39,7 +39,7 @@ class PreorderController extends Controller
         $left = $o->limit_total === null ? null : max(0, (int) floor($o->limit_total - ($taken[$o->id] ?? 0)));
 
         return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'product_id' => $o->product_id, 'variant_id' => $o->variant_id, 'item' => $v?->product?->name ?? Product::whereKey($o->product_id)->value('name'),
-            'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null, 'sku' => $v?->sku, 'limit_total' => $o->limit_total, 'taken' => round($taken[$o->id] ?? 0, 4), 'places_left' => $left,
+            'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null, 'sku' => $v?->sku, 'limit_total' => $o->limit_total, 'max_per_customer' => PreorderOffer::hasMax() ? $o->max_per_customer : null, 'taken' => round($taken[$o->id] ?? 0, 4), 'places_left' => $left,
             'closes_at' => $o->closes_at?->format('Y-m-d\TH:i'), 'expected_from' => $o->expected_from?->toDateString(), 'expected_until' => $o->expected_until?->toDateString(), 'terms' => $o->terms, 'is_active' => $o->is_active,
             'branches' => VariantLocationStock::where('product_variant_id', $o->variant_id)->where('preorder_enabled', true)->pluck('location_id')];
     }
@@ -57,13 +57,13 @@ class PreorderController extends Controller
         $offers = PreorderOffer::with('variant.product:id,name')->where('campaign_id', $id)->orderBy('id')->get();
         $taken = $this->preorders->takenByOffer($offers->pluck('id')->all());
 
-        return response()->json(['ready' => true, 'data' => $offers->map(fn ($o) => $this->offerRow($o, $taken))->values(),
+        return response()->json(['ready' => true, 'has_max' => PreorderOffer::hasMax(), 'data' => $offers->map(fn ($o) => $this->offerRow($o, $taken))->values(),
             'branches' => Location::query()->sellsToCustomers()->orderBy('name')->get(['id', 'name'])]);
     }
 
     private function offerRules(): array
     {
-        return ['variant_id' => 'required|integer|exists:product_variants,id', 'limit_total' => 'nullable|integer|min:1', 'closes_at' => 'nullable|date', 'expected_from' => 'nullable|date',
+        return ['variant_id' => 'required|integer|exists:product_variants,id', 'limit_total' => 'nullable|integer|min:1', 'max_per_customer' => 'nullable|integer|min:1', 'closes_at' => 'nullable|date', 'expected_from' => 'nullable|date',
             'expected_until' => 'nullable|date', 'terms' => 'nullable|string|max:500', 'is_active' => 'nullable|boolean'];
     }
 

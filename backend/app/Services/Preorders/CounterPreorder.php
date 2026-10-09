@@ -34,7 +34,7 @@ class CounterPreorder
 
         return DB::transaction(function () use ($d, $staff, $locationId, $customer, $type) {
             $lines = array_map(fn ($i) => ['variant_id' => (int) $i['variant_id'], 'quantity' => (float) $i['quantity']], $d['items']);
-            $placeable = $this->preorders->assertPlaceable($lines, $locationId, $staff, true);
+            $placeable = $this->preorders->assertPlaceable($lines, $locationId, $staff, true, null, false);   // staff may go over a per-customer maximum
 
             $data = ['voucher_type_id' => $type->id, 'series_id' => $this->preorders->seriesId(), 'date' => today()->toDateString(), 'location_id' => $locationId, 'channel' => 'admin',
                 'customer_id' => $customer?->id, 'party_name' => $customer ? null : ($d['party_name'] ?? null), 'party_phone' => $d['party_phone'] ?? null, 'narration' => $d['narration'] ?? null,

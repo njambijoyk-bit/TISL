@@ -87,6 +87,16 @@ class PreorderService
         if ($fields['expected_from'] && $fields['expected_until'] && $fields['expected_until'] < $fields['expected_from']) {
             throw new BooksException('The expected end date is before the start date.');
         }
+        $max = isset($d['max_per_customer']) && $d['max_per_customer'] !== '' ? max(1, (int) $d['max_per_customer']) : null;
+        if ($max !== null && ! PreorderOffer::hasMax()) {
+            throw new BooksException('Run database script 107_preorder_max_per_customer.sql first.');
+        }
+        if ($max !== null && $fields['limit_total'] !== null && $max > $fields['limit_total']) {
+            throw new BooksException('The most one customer can take is more than the places in the offer.');
+        }
+        if (PreorderOffer::hasMax() && (array_key_exists('max_per_customer', $d) || ! $offer)) {
+            $fields['max_per_customer'] = $max;   // left alone when an update does not mention it
+        }
         if ($fields['limit_total'] !== null && $offer && $fields['limit_total'] < $this->taken($offer->id)) {
             throw new BooksException('Places already taken (' . rtrim(rtrim(number_format($this->taken($offer->id), 4, '.', ''), '0'), '.') . ') are more than that limit.');
         }
@@ -203,6 +213,49 @@ class PreorderService
     public function taken(int $offerId): float
     {
         return $this->takenByOffer([$offerId])[$offerId] ?? 0.0;
+    }
+
+    /**
+     * What one buyer already holds under an offer (base units): their orders' lines for it, less what was credited back. A signed-in customer is matched
+     * by account, a guest by the email on the order. Cancelled orders hold nothing. @param array{customer_id?: ?int, email?: ?string}|null $buyer
+     */
+    public function heldBy(int $offerId, ?array $buyer): float
+    {
+        $customerId = (int) ($buyer['customer_id'] ?? 0);
+        $email = strtolower(trim((string) ($buyer['email'] ?? '')));
+        if (! self::ready() || (! $customerId && $email === '')) {
+            return 0.0;
+        }
+        $orders = DB::table('preorder_lines as p')->join('vouchers as so', 'so.id', '=', 'p.voucher_id')
+            ->join('voucher_items as i', function ($j) {
+                $j->on('i.voucher_id', '=', 'so.id')->on('i.variant_id', '=', 'p.variant_id');
+            })
+            ->where('so.status', Voucher::POSTED)->where('i.is_header', 0)->where('p.offer_id', $offerId)
+            ->selectRaw('so.id AS order_id, so.customer_id, so.meta, SUM(i.quantity * i.unit_factor) AS qty')->groupBy('so.id', 'so.customer_id', 'so.meta')->get();
+        $mine = [];
+        foreach ($orders as $o) {
+            $theirs = $customerId && (int) $o->customer_id === $customerId;
+            if (! $theirs && $email !== '') {
+                $contact = json_decode((string) $o->meta, true)['contact']['email'] ?? '';
+                $theirs = ! $o->customer_id && strtolower(trim((string) $contact)) === $email;
+            }
+            if ($theirs) {
+                $mine[(int) $o->order_id] = (float) $o->qty;
+            }
+        }
+        if (! $mine) {
+            return 0.0;
+        }
+        $returned = DB::table('voucher_items as r')->join('vouchers as cn', 'cn.id', '=', 'r.voucher_id')->join('voucher_types as ct', 'ct.id', '=', 'cn.voucher_type_id')
+            ->join('voucher_items as inv', 'inv.id', '=', 'r.source_item_id')->join('vouchers as c', 'c.id', '=', 'inv.voucher_id')
+            ->join('preorder_lines as p', function ($j) {
+                $j->on('p.voucher_id', '=', 'c.source_voucher_id')->on('p.variant_id', '=', 'inv.variant_id');
+            })
+            ->where('ct.base_type', VoucherType::CREDIT_NOTE)->where('cn.status', Voucher::POSTED)->where('c.status', Voucher::POSTED)
+            ->where('p.offer_id', $offerId)->whereIn('c.source_voucher_id', array_keys($mine))
+            ->selectRaw('SUM(r.quantity * r.unit_factor) AS qty')->value('qty');
+
+        return max(0.0, round(array_sum($mine) - (float) $returned, 4));
     }
 
     /** Places left under the offer's limit, or null when it has no limit. */
@@ -377,7 +430,7 @@ class PreorderService
     {
         $left = $this->remaining($o);
 
-        return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'campaign' => $o->campaign?->title, 'limit_total' => $o->limit_total, 'places_left' => $left === null ? null : (int) floor($left),
+        return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'campaign' => $o->campaign?->title, 'limit_total' => $o->limit_total, 'max_per_customer' => PreorderOffer::hasMax() ? $o->max_per_customer : null, 'places_left' => $left === null ? null : (int) floor($left),
             'closes_at' => $o->closes_at?->toIso8601String(), 'expected_from' => $o->expected_from?->toDateString(), 'expected_until' => $o->expected_until?->toDateString(), 'terms' => $o->terms];
     }
 
@@ -462,6 +515,7 @@ class PreorderService
     private function hamperOffer(array $open): array
     {
         $places = null;
+        $cap = null;
         $from = null;
         $until = null;
         $closes = null;
@@ -472,6 +526,10 @@ class PreorderService
                 $n = (int) floor($left / max(0.0001, $per));
                 $places = $places === null ? $n : min($places, $n);
             }
+            if (PreorderOffer::hasMax() && $o->max_per_customer) {
+                $n = (int) floor($o->max_per_customer / max(0.0001, $per));
+                $cap = $cap === null ? $n : min($cap, $n);
+            }
             $from = max($from ?? '', (string) $o->expected_from?->toDateString()) ?: null;
             $until = max($until ?? '', (string) $o->expected_until?->toDateString()) ?: null;
             $closes = $o->closes_at && (! $closes || $o->closes_at->lt($closes)) ? $o->closes_at : $closes;
@@ -481,7 +539,7 @@ class PreorderService
         }
         $first = $open[0][0];
 
-        return ['id' => $first->id, 'campaign_id' => $first->campaign_id, 'campaign' => $first->campaign?->title, 'limit_total' => null, 'places_left' => $places,
+        return ['id' => $first->id, 'campaign_id' => $first->campaign_id, 'campaign' => $first->campaign?->title, 'limit_total' => null, 'max_per_customer' => $cap, 'places_left' => $places,
             'closes_at' => $closes?->toIso8601String(), 'expected_from' => $from, 'expected_until' => $until, 'terms' => $terms ? implode(' ', array_keys($terms)) : null];
     }
 
@@ -546,10 +604,12 @@ class PreorderService
      * A line may carry its own `location_id` (a hamper's components come from the hamper's branch) and, for a hamper's component, `lenient` + `hamper_ids`:
      * what is already in stock is then set aside without an offer, and an offer is only needed (and only counts) when a live campaign features that hamper.
      *
+     * An offer's per-customer maximum is checked against what `$buyer` ({customer_id, email}) already holds, unless `$enforceMax` is off (counter staff may go over it).
+     *
      * @param  array<int, array{product_id?: int, variant_id?: int, quantity: float, variant_unit_id?: mixed, location_id?: int, lenient?: bool, hamper_ids?: int[]}>  $lines
      * @return array<string, array{variant_id: int, location_id: int, quantity: float, offer: ?PreorderOffer, lenient: bool, hamper_ids: int[]}> by "variant@branch"
      */
-    public function assertPlaceable(array $lines, int $locationId, ?User $user, bool $lock = false): array
+    public function assertPlaceable(array $lines, int $locationId, ?User $user, bool $lock = false, ?array $buyer = null, bool $enforceMax = true): array
     {
         if (! self::ready()) {
             throw new BooksException('Preorders are not set up yet.');
@@ -610,6 +670,17 @@ class PreorderService
             if ($left !== null && $w['quantity'] - $left > 0.00005) {
                 $n = (int) floor($left);
                 throw new BooksException($left > 0 ? "Only {$n} place" . ($n === 1 ? '' : 's') . " left for {$name($w['variant_id'])}." : "No places are left for {$name($w['variant_id'])}.");
+            }
+            $cap = PreorderOffer::hasMax() ? $offer->max_per_customer : null;
+            if ($enforceMax && $cap !== null) {
+                $held = $this->heldBy($offer->id, $buyer);
+                if ($held + $w['quantity'] - $cap > 0.00005) {
+                    $room = max(0, (int) floor($cap - $held + 0.00005));
+                    $what = $w['hamper_ids'] ? (Hamper::whereIn('id', $w['hamper_ids'])->value('name') ?? 'That hamper') . ' (' . $name($w['variant_id']) . ')' : $name($w['variant_id']);
+                    throw new BooksException($room > 0
+                        ? "One customer can take at most {$cap} of {$what}" . ($held > 0 ? ' (you already have ' . rtrim(rtrim(number_format($held, 4, '.', ''), '0'), '.') . ')' : '') . ". You can add {$room} more."
+                        : "You have already taken the most one customer can ({$cap}) of {$what}.");
+                }
             }
         }
 

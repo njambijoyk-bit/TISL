@@ -14,14 +14,14 @@ import { Field, TextInput, SelectInput, CheckboxRow } from '../../core/component
  * The offer's terms. `variants` is what the offer can be made on: one option (fixed) or several (a dropdown). `taken` is a Set of variant ids that already have an offer.
  * Used here (from the campaign's featured items) and inside an item's row in the page builder.
  */
-export function OfferFields({ campaignId, variants, taken, onSaved, onCancel }) {
+export function OfferFields({ campaignId, variants, taken, onSaved, onCancel, hasMax = true }) {
   const open = variants.filter((v) => !taken.has(v.id));
-  const [f, setF] = useState({ variant_id: open[0]?.id ?? '', limit_total: '', closes_at: '', expected_from: '', expected_until: '', terms: '' });
+  const [f, setF] = useState({ variant_id: open[0]?.id ?? '', limit_total: '', max_per_customer: '', closes_at: '', expected_from: '', expected_until: '', terms: '' });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target?.value ?? e }));
   const save = async () => {
     setBusy(true);
-    try { await preordersAPI.saveOffer(campaignId, { ...f, limit_total: f.limit_total || null, closes_at: f.closes_at || null, expected_from: f.expected_from || null, expected_until: f.expected_until || null }); toast.success('Offer added.'); onSaved(); }
+    try { await preordersAPI.saveOffer(campaignId, { ...f, limit_total: f.limit_total || null, max_per_customer: hasMax ? (f.max_per_customer || null) : undefined, closes_at: f.closes_at || null, expected_from: f.expected_from || null, expected_until: f.expected_until || null }); toast.success('Offer added.'); onSaved(); }
     catch (e) { toast.error(errMsg(e, 'Could not save the offer'), { duration: 7000 }); } finally { setBusy(false); }
   };
   if (open.length === 0) return <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Every option here already has an offer.</p>;
@@ -32,6 +32,7 @@ export function OfferFields({ campaignId, variants, taken, onSaved, onCancel }) 
       )}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10 }}>
         <Field label="Places (all branches)" hint="Leave empty for no limit."><TextInput type="number" min="1" value={f.limit_total} onChange={set('limit_total')} /></Field>
+        {hasMax && <Field label="Most per customer" hint="Leave empty for no limit. A guest is matched by email."><TextInput type="number" min="1" value={f.max_per_customer} onChange={set('max_per_customer')} /></Field>}
         <Field label="Closes (optional)" hint="Empty = when the campaign ends."><TextInput type="datetime-local" value={f.closes_at} onChange={set('closes_at')} /></Field>
         <Field label="Expected from"><TextInput type="date" value={f.expected_from} onChange={set('expected_from')} /></Field>
         <Field label="Expected by"><TextInput type="date" value={f.expected_until} onChange={set('expected_until')} /></Field>
@@ -46,7 +47,7 @@ export function OfferFields({ campaignId, variants, taken, onSaved, onCancel }) 
 }
 
 /** A new offer starts from what this campaign features: an option on its own, or one option of a product featured whole. (Feature the item on the page first.) */
-function NewOffer({ campaignId, featured, taken, onSaved, onCancel }) {
+function NewOffer({ campaignId, featured, taken, onSaved, onCancel, hasMax }) {
   const [pick, setPick] = useState(null);       // { label, variants: [{ id, name }] }
   const choose = async (f) => {
     const label = f.variant ? `${f.name} · ${f.variant}` : f.name;
@@ -70,15 +71,20 @@ function NewOffer({ campaignId, featured, taken, onSaved, onCancel }) {
       ) : (
         <>
           <strong style={{ fontSize: '0.85rem' }}>{pick.label}</strong>
-          <OfferFields campaignId={campaignId} variants={pick.variants} taken={taken} onSaved={onSaved} onCancel={onCancel} />
+          <OfferFields campaignId={campaignId} variants={pick.variants} taken={taken} onSaved={onSaved} onCancel={onCancel} hasMax={hasMax} />
         </>
       )}
     </div>
   );
 }
 
-function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage }) {
+function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage, hasMax }) {
   const [on, setOn] = useState(new Set(o.branches ?? []));
+  const [max, setMax] = useState(null);   // the per-customer maximum while it is being changed
+  const saveMax = async () => {
+    try { await preordersAPI.updateOffer(campaignId, o.id, { max_per_customer: max === '' ? null : Number(max) }); setMax(null); onChanged(); }
+    catch (e) { toast.error(errMsg(e, 'Could not change it'), { duration: 7000 }); }
+  };
   useEffect(() => setOn(new Set(o.branches ?? [])), [o.branches]);
 
   const flag = async (loc, v) => {
@@ -104,6 +110,23 @@ function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage }) {
         {canEdit && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={remove} aria-label="Remove offer"><Trash2 size={13} /></button>}
       </div>
       {o.terms && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>{o.terms}</p>}
+      {hasMax && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textMuted }}>
+          {max === null ? (
+            <>
+              <span>{o.max_per_customer ? `Most ${o.max_per_customer} per customer.` : 'No limit per customer.'}</span>
+              {canEdit && <button type="button" style={{ ...btnGhost, padding: '2px 9px', fontSize: '0.74rem' }} onClick={() => setMax(o.max_per_customer ?? '')}>Change</button>}
+            </>
+          ) : (
+            <>
+              <label htmlFor={`max-${o.id}`}>Most per customer</label>
+              <input id={`max-${o.id}`} type="number" min="1" value={max} onChange={(e) => setMax(e.target.value)} placeholder="No limit" style={{ width: 90, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--line)', fontFamily: 'inherit' }} />
+              <button type="button" style={{ ...btnPrimary, padding: '3px 12px', fontSize: '0.74rem' }} onClick={saveMax}>Save</button>
+              <button type="button" style={{ ...btnGhost, padding: '2px 9px', fontSize: '0.74rem' }} onClick={() => setMax(null)}>Cancel</button>
+            </>
+          )}
+        </div>
+      )}
       {!onPage && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.warningText }}>This option is not featured on the campaign page. It still works from its product page; feature it above so the campaign shows it.</p>}
       {branches.length > 0 && (
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -131,8 +154,8 @@ export default function PreorderOffers({ campaignId, canEdit, featured = [], ref
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {data.data.length === 0 && !adding && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>No preorder offers. Feature an option on the page, then offer it here (or from its row in the page builder).</p>}
-      {data.data.map((o) => <OfferRow key={o.id} campaignId={campaignId} o={o} branches={data.branches} canEdit={canEdit} onChanged={load} onPage={onPage(o)} />)}
-      {adding && <NewOffer campaignId={campaignId} featured={featured} taken={taken} onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} />}
+      {data.data.map((o) => <OfferRow key={o.id} campaignId={campaignId} o={o} branches={data.branches} canEdit={canEdit} onChanged={load} onPage={onPage(o)} hasMax={data.has_max} />)}
+      {adding && <NewOffer campaignId={campaignId} featured={featured} taken={taken} hasMax={data.has_max} onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} />}
       {canEdit && !adding && <div><button type="button" style={btnGhost} onClick={() => setAdding(true)}><Plus size={13} /> Add a preorder offer</button></div>}
     </div>
   );

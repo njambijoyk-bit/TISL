@@ -188,6 +188,7 @@ class CheckoutService
 
         // a preorder cart: products with an open offer at this branch and hampers whose short components have one, taken on their own (never mixed with gift vouchers)
         $placeable = null;
+        $buyer = null;
         if (! empty($in['preorder'])) {
             $pre = app(\App\Services\Preorders\PreorderService::class);
             $items = array_values(array_filter($final, fn ($l) => in_array($l['type'], ['product', 'hamper'], true)));
@@ -206,12 +207,13 @@ class CheckoutService
                     $checks[] = $l;
                 }
             }
-            $placeable = $pre->assertPlaceable($checks, (int) $locationId, $user);
+            $buyer = ['customer_id' => $customer?->id, 'email' => $contact['email'] ?? null];
+            $placeable = $pre->assertPlaceable($checks, (int) $locationId, $user, false, $buyer);
             $data['series_id'] = $pre->seriesId();
             $data['meta'] = array_merge($data['meta'] ?? [], $pre->orderMeta($placeable));
         }
 
-        return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral', 'promoAccepted', 'placeable') + ['option' => $option, 'locationId' => $locationId];
+        return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral', 'promoAccepted', 'placeable', 'buyer') + ['option' => $option, 'locationId' => $locationId];
     }
 
     /**
@@ -462,7 +464,7 @@ class CheckoutService
             }
             $placeable = null;
             if ($a['placeable'] !== null) {   // the offers are locked, then the places counted again, so two customers can not take the last one
-                $placeable = app(\App\Services\Preorders\PreorderService::class)->assertPlaceable(array_map(fn ($p) => ['variant_id' => $p['variant_id'], 'quantity' => $p['quantity'], 'location_id' => $p['location_id'], 'lenient' => $p['lenient'], 'hamper_ids' => $p['hamper_ids']], array_values($a['placeable'])), (int) $a['locationId'], $user, true);
+                $placeable = app(\App\Services\Preorders\PreorderService::class)->assertPlaceable(array_map(fn ($p) => ['variant_id' => $p['variant_id'], 'quantity' => $p['quantity'], 'location_id' => $p['location_id'], 'lenient' => $p['lenient'], 'hamper_ids' => $p['hamper_ids']], array_values($a['placeable'])), (int) $a['locationId'], $user, true, $a['buyer']);
             }
             $order = $this->vouchers->placeOrder($a['data'], null);
             if ($placeable !== null) {
