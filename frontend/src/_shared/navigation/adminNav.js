@@ -323,6 +323,7 @@ export const ADMIN_NAV = [
           { group: 'System', title: 'Cost centres', path: '/admin/settings/cost-centres', perm: 'costcentres.view', description: 'Branches, utilities, payroll, projects and the defaults' },
           { group: 'System', title: 'Departments', path: '/admin/settings/departments', perm: 'hr.view', description: 'Each branch\'s departments and their cost centres' },
           { group: 'System', title: 'Stock & expiry', path: '/admin/settings/stock', perm: 'stock.settings', description: 'Expired goods, warnings and which batch is used first' },
+          { group: 'System', title: 'Payment keys', path: '/admin/settings/payments', perm: 'payments.keys', description: 'M-Pesa keys set here instead of on the server (owner only), their history and rollback' },
           { group: 'System', title: 'Notifications', path: '/admin/settings/notifications', perm: ['notifications.view', 'notifications.settings'], description: 'Email, which messages go out, the delivery log and the history of these settings' },
           { group: 'Content', title: 'About', path: '/admin/settings/content/about', perm: 'content.manage' },
           { group: 'Content', title: 'Contact', path: '/admin/settings/content/contact', perm: 'content.manage' },

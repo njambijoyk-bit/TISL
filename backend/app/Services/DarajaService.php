@@ -52,7 +52,7 @@ class DarajaService
 
     public function getAccessToken(): string
     {
-        return Cache::remember('daraja_access_token', 55 * 60, function () {
+        return Cache::remember('daraja_access_token_' . md5($this->baseUrl . '|' . $this->consumerKey), 55 * 60, function () {   // keyed by environment and key: a changed key never reuses the old one's token
             $response = Http::withBasicAuth($this->consumerKey, $this->consumerSecret)
                 ->withOptions($this->tls())
                 ->timeout(30)

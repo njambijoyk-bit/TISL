@@ -1084,6 +1084,7 @@ function RouteMapAppendix() {
         { path: '/admin/settings/customer-tiers',           comp: 'CustomerTierController' },
         { path: '/admin/settings/shipping',                 comp: 'ShippingOptionController' },
         { path: '/admin/settings/notifications',            comp: 'Notification Settings' },
+        { path: '/admin/settings/payments',                 comp: 'Payment Settings' },
         { path: '/admin/settings/security',                 comp: 'Security Settings' },
         { path: '/admin/settings/email',                    comp: 'Email Settings' },
         { path: '/admin/settings/backup',                   comp: 'Backup Settings' },

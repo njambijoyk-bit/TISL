@@ -22,8 +22,7 @@ class PaymentController extends Controller
         $accepted = response()->json(['ResultCode' => 0, 'ResultDesc' => 'Accepted']);
         $rawBody  = $request->all();
 
-        $expectedToken = (string) config('daraja.callback_token');
-        if ($expectedToken !== '' && ! hash_equals($expectedToken, (string) $request->query('token', ''))) {
+        if (! \App\Services\Payments\PaymentSettings::callbackTokenValid((string) $request->query('token', ''))) {   // the current token, or the one before it for two hours after a change
             Log::warning('Daraja: Callback rejected — missing or wrong token', ['ip' => $request->ip()]);
 
             return $accepted;

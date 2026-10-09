@@ -25,6 +25,7 @@ class NotificationTypes
         'quote_accepted' => ['Quotation accepted', true, 'customer'],
         'quotation_requested' => ['New quotation request', false, 'staff'],
         'back_in_stock' => ['Back in stock (asked for)', true, 'customer'],   // essential: the customer asked for exactly this, so "essential messages only" must not silence it
+        'payment_settings_changed' => ['Payment keys were changed', true, 'staff'],
         'cart_reminder' => ['Reminder: items left in the cart', false, 'customer'],
         'price_drop' => ['Price drop on a saved item', false, 'customer'],
         'stock_recall' => ['Product recall', true, 'customer'],

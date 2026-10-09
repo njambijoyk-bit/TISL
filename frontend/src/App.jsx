@@ -286,6 +286,7 @@ const CustomerTierSettings = lazy(() => import('./core/pages/admin/settings/Cust
 
 const GeneralSettings      = lazy(() => import('./core/pages/admin/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('./core/pages/admin/settings/NotificationSettings'));
+const PaymentSettings = lazy(() => import('./core/pages/admin/settings/PaymentSettings'));
 const SecuritySettings     = lazy(() => import('./core/pages/admin/settings/SecuritySettings'));
 const EmailSettings        = lazy(() => import('./core/pages/admin/settings/EmailSettings'));
 const BackupSettings       = lazy(() => import('./core/pages/admin/settings/BackupSettings'));
@@ -1680,6 +1681,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin permission="notifications.view,notifications.settings">
                     <NotificationSettings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings/payments"
+                element={
+                  <ProtectedRoute requireAdmin permission="payments.keys">
+                    <PaymentSettings />
                   </ProtectedRoute>
                 }
               />

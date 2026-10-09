@@ -151,6 +151,7 @@ class NoRoleNamesInCodeTest extends TestCase
         'notifications.send' => ['super_admin', 'admin'],
         'notifications.settings' => ['super_admin', 'admin'],
         'notifications.keys.purge' => ['super_admin'],
+        'payments.keys' => ['super_admin'],
         'resources.manage' => ['super_admin', 'admin', 'manager'],
         'books.writeoff' => ['super_admin', 'finance'],
         'books.bounce' => ['super_admin', 'finance'],

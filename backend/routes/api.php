@@ -1073,6 +1073,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/connections/{id}',         [$c, 'deleteConnection'])->whereNumber('id')->middleware('permission:imports.manage');
             Route::post('/connections/{id}/fetch',     [$c, 'fetch'])->whereNumber('id')->middleware('permission:imports.view');
         });
+        Route::prefix('payments')->middleware('permission:payments.keys')->group(function () {   // the payment keys: the owner only; every change asks for the password again, is logged and emailed to the owners
+            $c = \App\Http\Controllers\Api\PaymentSettingsController::class;
+            Route::get('/settings',                                [$c, 'show']);
+            Route::put('/settings/{part}',                         [$c, 'update'])->middleware('throttle:10,1');
+            Route::post('/settings/mpesa/test',                    [$c, 'test'])->middleware('throttle:10,1');
+            Route::post('/settings/mpesa/test-prompt',             [$c, 'testPrompt'])->middleware('throttle:5,1');
+            Route::post('/settings/purge-keys',                    [$c, 'purgeKeys'])->middleware('throttle:10,1');
+            Route::post('/settings/{part}/rotate-token',           [$c, 'rotateToken'])->middleware('throttle:10,1');
+            Route::post('/settings/{part}/reset',                  [$c, 'reset'])->middleware('throttle:10,1');
+            Route::get('/settings/{part}/versions',                [$c, 'versions']);
+            Route::post('/settings/{part}/versions/{id}/rollback', [$c, 'rollback'])->whereNumber('id')->middleware('throttle:10,1');
+            Route::get('/log',                                     [$c, 'log']);
+        });
+
         Route::prefix('notifications')->group(function () {   // the notification system: settings (email, later WhatsApp), their history, the log of every action, the delivery log
             $c = \App\Http\Controllers\Api\NotificationSettingsController::class;
             Route::get('/settings',                                    [$c, 'show'])->middleware('permission:notifications.view,notifications.settings');

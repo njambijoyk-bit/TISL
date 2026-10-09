@@ -122,6 +122,18 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
+        // M-Pesa keys saved on the Payment keys screen win over .env (blank fields and nothing saved leave .env in force); a worker re-reads them before every job.
+        if (! $this->app->runningUnitTests()) {
+            try {
+                if (\App\Services\Payments\PaymentSettings::ready()) {
+                    $this->app->make(\App\Services\Payments\DarajaConfigurator::class)->apply();
+                    \Illuminate\Support\Facades\Queue::before(fn () => $this->app->make(\App\Services\Payments\DarajaConfigurator::class)->apply());
+                }
+            } catch (\Throwable) {
+                // script 116 not run yet: the .env keys stay
+            }
+        }
+
         // Seed new variants across branches + keep the product stock total auto-calculated.
         \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
         \App\Models\User::observe(\App\Observers\UserAccessObserver::class);
