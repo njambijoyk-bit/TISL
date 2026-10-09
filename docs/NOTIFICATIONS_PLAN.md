@@ -1,6 +1,6 @@
 # Notifications: the plan (v2, decided)
 
-Status: PLAN, answers in (see "Decided answers" at the end). **Phases 1 and 2 are BUILT** (see "As built" at the end); phases 3 and 4 are not. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
+Status: PLAN, answers in (see "Decided answers" at the end). **Phases 1, 2 and 3 are BUILT** (see "As built" at the end); phase 4 is not. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
 
 ## The rule
 
@@ -158,3 +158,15 @@ To switch it on: run `database/sql/109_notify_essential_tristate.sql` (makes "es
 - **Bell and emails**: the bell has a *Chat with us on WhatsApp* link to the company default number; emails already carried it.
 - **Retention**: `notifications:prune` (daily 03:30) blanks the subject, text and link of delivery-log rows older than 12 months; status, time and type stay, and one `log_pruned` line is written. The action log is never pruned.
 - **Not in phase 2**: the WhatsApp API (Twilio / Meta) and its settings tab (phase 3), guests without an account (phase 4), who sends order and delay messages (phase 4: nothing yet calls `Notifier::send` for orders).
+
+## As built, phase 3
+
+To switch it on: run `database/sql/110_notification_delivery_payload.sql` (one JSON column and an index on `notification_deliveries`). Until it is run, WhatsApp messages simply keep waiting for a person, as in phase 2. Then open **Settings → Notifications → WhatsApp API**.
+
+- **Two providers, one interface** (`App\Services\Notify\WhatsApp\WhatsAppProvider`): **Meta WhatsApp Cloud API** (`MetaCloud`: phone number ID, business account ID, access token, app secret, webhook verify token) and **Twilio** (`Twilio`: account SID, auth token, WhatsApp sender or messaging service SID). A third is one class plus one line in `WhatsAppProviders`. All secrets are write-only and encrypted like the email password; they are versioned, logged and rolled back the same way, and only the owner can delete old ones.
+- **Check before it goes live**: saving first asks the provider whether the keys work (Meta: reads the phone number record; Twilio: reads the account); a "no" refuses the change with the provider's own words unless *Save anyway*.
+- **Automatic or by hand, per message type.** A customer message goes out by itself only when (a) WhatsApp is on in General, (b) the provider's *Send automatically* switch is on with its keys filled in, **and** (c) the type has an approved **template** (Messages tab: template name, or the Twilio Content SID `HX…`, plus the values for {{1}}, {{2}} … in order, chosen from `name, title, message, company, link`; line breaks are removed because WhatsApp refuses them). Anything else waits in *WhatsApp to send*, as in phase 2. `name` is the customer's first name.
+- **Never lost**: the send is queued (3 tries, then 30 s and 3 min apart). If it still fails, or the provider later reports the message **failed**, it moves to *WhatsApp to send* with its wa.me link and the reason (`api_failed: …`). A delivered or read message is never moved back by a late failure.
+- **Delivery reports**: public callbacks `/api/webhooks/whatsapp/meta` (GET to verify the address with the verify token; POST for statuses, checked with `X-Hub-Signature-256` and the app secret) and `/api/webhooks/whatsapp/twilio` (checked with `X-Twilio-Signature` and the auth token; the address is sent with every message, nothing to paste). A call that does not check out is answered 403 and changes nothing. Statuses only move forward: sent, delivered, read; `delivered_at` and `read_at` are filled in. The screen shows the Meta address to paste into Meta's webhook setup.
+- **Send a test message**: one real approved template through the saved keys to a number you type (Meta accounts have `hello_world`); it is rate-limited and written to the history.
+- **Verified**: both drivers against faked HTTP (what is sent, in which order, with which auth), Twilio's signature against the example in Twilio's own documentation, the signed/unsigned webhook cases, and the fallback. **Not verified**: a real Meta or Twilio account, template approval, and the live callbacks; those need one real try by the owner (send a test, then place an order for a customer with a WhatsApp number and a template).

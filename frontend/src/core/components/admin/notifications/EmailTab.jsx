@@ -81,22 +81,22 @@ export default function EmailTab({ data, canEdit, canSend, onChanged }) {
 
       <div style={{ ...card, padding: 20, display: 'grid', gap: 14 }}>
         {canEdit && (
-          <Field label="Start from"><SelectInput value="" onChange={(ev) => preset(ev.target.value)}>{PRESETS.map(([val, lab]) => <option key={val} value={val}>{lab}</option>)}</SelectInput></Field>
+          <Field label="Start from"><SelectInput aria-label="Start from" value="" onChange={(ev) => preset(ev.target.value)}>{PRESETS.map(([val, lab]) => <option key={val} value={val}>{lab}</option>)}</SelectInput></Field>
         )}
         <FormGrid min={220}>
-          <Field label="Mail server (host)" error={fieldErrors.host}><TextInput value={f.host} onChange={set('host')} disabled={ro} placeholder="smtp.example.com" /></Field>
-          <Field label="Port" error={fieldErrors.port}><TextInput type="number" value={f.port} onChange={set('port')} disabled={ro} /></Field>
-          <Field label="Security"><SelectInput value={f.encryption} onChange={set('encryption')} disabled={ro}>
+          <Field label="Mail server (host)" error={fieldErrors.host}><TextInput aria-label="Mail server (host)" value={f.host} onChange={set('host')} disabled={ro} placeholder="smtp.example.com" /></Field>
+          <Field label="Port" error={fieldErrors.port}><TextInput aria-label="Port" type="number" value={f.port} onChange={set('port')} disabled={ro} /></Field>
+          <Field label="Security"><SelectInput aria-label="Security" value={f.encryption} onChange={set('encryption')} disabled={ro}>
             <option value="tls">STARTTLS (usually port 587)</option><option value="ssl">SSL/TLS (usually port 465)</option><option value="none">None (not recommended)</option></SelectInput></Field>
-          <Field label="Username" error={fieldErrors.username}><TextInput value={f.username} onChange={set('username')} disabled={ro} autoComplete="off" /></Field>
+          <Field label="Username" error={fieldErrors.username}><TextInput aria-label="Username" value={f.username} onChange={set('username')} disabled={ro} autoComplete="off" /></Field>
         </FormGrid>
         <SecretField label="Password" saved={e.password} value={password} onChange={(val) => { setRefused(null); setPassword(val); }} clearing={clearPw} onClear={setClearPw}
           hint="Saved encrypted. It is never shown again, not even to you." />
         <FormGrid min={220}>
-          <Field label="Sent from (name)" hint="Blank = the company name." error={fieldErrors.from_name}><TextInput value={f.from_name} onChange={set('from_name')} disabled={ro} /></Field>
-          <Field label="Sent from (address)" hint="Blank = the company's default email (Books → Settings → Company)." error={fieldErrors.from_address}><TextInput type="email" value={f.from_address} onChange={set('from_address')} disabled={ro} /></Field>
-          <Field label="Replies go to" error={fieldErrors.reply_to}><TextInput type="email" value={f.reply_to} onChange={set('reply_to')} disabled={ro} /></Field>
-          <Field label="Copy every email to" hint="Optional. Use it only if you need a record." error={fieldErrors.copy_to}><TextInput type="email" value={f.copy_to} onChange={set('copy_to')} disabled={ro} /></Field>
+          <Field label="Sent from (name)" hint="Blank = the company name." error={fieldErrors.from_name}><TextInput aria-label="Sent from (name)" value={f.from_name} onChange={set('from_name')} disabled={ro} /></Field>
+          <Field label="Sent from (address)" hint="Blank = the company's default email (Books → Settings → Company)." error={fieldErrors.from_address}><TextInput aria-label="Sent from (address)" type="email" value={f.from_address} onChange={set('from_address')} disabled={ro} /></Field>
+          <Field label="Replies go to" error={fieldErrors.reply_to}><TextInput aria-label="Replies go to" type="email" value={f.reply_to} onChange={set('reply_to')} disabled={ro} /></Field>
+          <Field label="Copy every email to" hint="Optional. Use it only if you need a record." error={fieldErrors.copy_to}><TextInput aria-label="Copy every email to" type="email" value={f.copy_to} onChange={set('copy_to')} disabled={ro} /></Field>
         </FormGrid>
 
         {refused && (

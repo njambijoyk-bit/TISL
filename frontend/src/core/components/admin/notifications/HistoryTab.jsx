@@ -6,7 +6,7 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import SimpleTable from '../ui/SimpleTable';
 import { btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
-const PARTS = [['email', 'Email'], ['general', 'General'], ['types', 'Messages']];
+const PARTS = [['email', 'Email'], ['whatsapp', 'WhatsApp API'], ['general', 'General'], ['types', 'Messages']];
 const EVENTS = { saved: 'Saved', saved_anyway: 'Saved without a passing test', save_refused: 'Refused (failed test)', rolled_back: 'Rolled back', reset: 'Cleared', tested: 'Test email', keys_purged: 'Keys deleted', message_retried: 'Message tried again' };
 const when = (s) => (s ? s.replace('T', ' ').slice(0, 16) : '');
 

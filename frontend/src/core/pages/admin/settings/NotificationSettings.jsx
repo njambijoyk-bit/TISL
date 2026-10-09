@@ -10,6 +10,7 @@ import GeneralTab from '../../../components/admin/notifications/GeneralTab';
 import EmailTab from '../../../components/admin/notifications/EmailTab';
 import TypesTab from '../../../components/admin/notifications/TypesTab';
 import WhatsAppQueueTab from '../../../components/admin/notifications/WhatsAppQueueTab';
+import WhatsAppApiTab from '../../../components/admin/notifications/WhatsAppApiTab';
 import DeliveryTab from '../../../components/admin/notifications/DeliveryTab';
 import HistoryTab from '../../../components/admin/notifications/HistoryTab';
 import { colors } from '../../../../_shared/theme/tokens';
@@ -17,6 +18,7 @@ import { colors } from '../../../../_shared/theme/tokens';
 const TABS = [
   { id: 'whatsapp', label: 'WhatsApp to send' },
   { id: 'email', label: 'Email' },
+  { id: 'whatsappapi', label: 'WhatsApp API' },
   { id: 'general', label: 'General' },
   { id: 'types', label: 'Messages' },
   { id: 'log', label: 'Delivery log' },
@@ -48,6 +50,7 @@ export default function NotificationSettings() {
         <Tabs tabs={TABS.map((t) => (t.id === 'whatsapp' ? { ...t, count: data.whatsapp_waiting || undefined } : t))} active={tab} onChange={(id) => { setTab(id); setParams({ tab: id }, { replace: true }); }} />
         {tab === 'whatsapp' && <WhatsAppQueueTab canSend={can.send} onChanged={load} />}
         {tab === 'email' && <EmailTab key={`e${data.current_version.email?.id ?? 0}`} data={data} canEdit={can.settings} canSend={can.send || can.settings} onChanged={load} />}
+        {tab === 'whatsappapi' && <WhatsAppApiTab key={`w${data.current_version.whatsapp?.id ?? 0}`} data={data} canEdit={can.settings} canSend={can.send || can.settings} onChanged={load} />}
         {tab === 'general' && <GeneralTab key={`g${data.current_version.general?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
         {tab === 'types' && <TypesTab key={`t${data.current_version.types?.id ?? 0}`} data={data} canEdit={can.settings} onChanged={load} />}
         {tab === 'log' && <DeliveryTab canSend={can.send} />}
