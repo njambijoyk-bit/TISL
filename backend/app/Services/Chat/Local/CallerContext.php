@@ -42,9 +42,9 @@ final class CallerContext
     }
 
     /** For tests: a caller with a fixed set of permissions ('*' means all). */
-    public static function fake(string $kind, array $permissions = [], string $dataScope = 'own'): self
+    public static function fake(string $kind, array $permissions = [], string $dataScope = 'own', ?User $user = null, ?array $locationIds = null): self
     {
-        return new self($kind, fn (string $p) => in_array('*', $permissions, true) || in_array($p, $permissions, true), $dataScope);
+        return new self($kind, fn (string $p) => in_array('*', $permissions, true) || in_array($p, $permissions, true), $dataScope, $locationIds, $user);
     }
 
     public function can(string $permission): bool

@@ -22,7 +22,7 @@ final class CustomersLookup extends BaseResolver
 
     public function needs(): array
     {
-        return ['email|custref'];
+        return ['email|custref|custid'];
     }
 
     public function run(CallerContext $c, array $slots): ResolverResult
@@ -32,10 +32,12 @@ final class CustomersLookup extends BaseResolver
                 return ResolverResult::denied();
             }
             $q = Customer::query()->select('id', 'first_name', 'last_name', 'customer_number', 'tier');
-            if (! empty($slots['custref'])) {
+            if (! empty($slots['custid'])) {
+                $q->where('id', (int) $slots['custid']);
+            } elseif (! empty($slots['custref'])) {
                 $q->where('customer_number', strtoupper($slots['custref']));
             } else {
-                $q->where('email', strtolower($slots['email']));
+                $q->where('email', strtolower((string) ($slots['email'] ?? '')));
             }
             if ($c->dataScope === 'assigned') {
                 $q->where('assigned_sales_rep', $c->user->id);

@@ -362,42 +362,33 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
         // ── Intent-specific data ───────────────────────────────────────────────
         switch ($intent['type']) {
 
+            // Every lookup below goes through the same permissioned resolvers the local layer uses (customers.view, data scope, branch limits, allowlisted
+            // fields), and the permission is checked BEFORE anything is read, so "no access" and "not found" cannot be told apart.
             case 'order_lookup':
                 $ident = $intent['identifier'];
-                $order = $this->salesDocs()->with(['customer:id,first_name,last_name,email', 'items', 'type:id,name'])
-                    ->where(fn($q) => $q->where('voucher_number', $ident)->orWhere('id', is_numeric($ident) ? $ident : 0))
-                    ->first();
-                $parts['lookup'] = $order
-                    ? $this->formatOrderDetail($order)
-                    : "Order '{$ident}' not found.";
+                $parts['lookup'] = $this->viaResolver('orders.lookup', $user, is_numeric($ident) ? ['ordnum' => $ident] : ['ordref' => $ident],
+                    "You don't have the permission to look up customers' orders.", "I couldn't find an order with that number.");
                 break;
 
             case 'payment_lookup':
+                $ctx = $this->callerFor($user);
+                if (! $ctx->can('books.view') || $ctx->locationIds !== null) {      // payment records are company-wide: for people who see the books, and every branch
+                    $parts['lookup'] = "You don't have access to payment records.";
+                    break;
+                }
                 $payment = $this->safe(fn() => Payment::with(['customer:id,first_name,last_name,email'])
                     ->where('payment_number', $intent['identifier'])
                     ->orWhere('mpesa_receipt_number', $intent['identifier'])
                     ->orWhere('id', is_numeric($intent['identifier']) ? $intent['identifier'] : 0)
                     ->first(), null);
-
-                // payment records are for people who see the books
-                if ($payment && ! $user->hasPermission('books.view')) {
-                    $parts['lookup'] = "You don't have access to that payment record.";
-                } else {
-                    $parts['lookup'] = $payment
-                        ? $this->formatPaymentDetail($payment)
-                        : "Payment '{$intent['identifier']}' not found.";
-                }
+                $parts['lookup'] = $payment ? $this->formatPaymentDetail($payment) : "Payment '{$intent['identifier']}' not found.";
                 break;
 
             case 'customer_lookup':
-                $customer = Customer::with(['user:id,name,email,phone'])
-                    ->where('email', $intent['identifier'])
-                    ->orWhere('customer_number', $intent['identifier'])
-                    ->orWhere('id', is_numeric($intent['identifier']) ? $intent['identifier'] : 0)
-                    ->first();
-                $parts['lookup'] = $customer
-                    ? $this->formatCustomerDetail($customer)
-                    : "Customer '{$intent['identifier']}' not found.";
+                $ident = $intent['identifier'];
+                $slots = str_contains($ident, '@') ? ['email' => $ident] : (is_numeric($ident) ? ['custid' => $ident] : ['custref' => $ident]);
+                $parts['lookup'] = $this->viaResolver('customers.lookup', $user, $slots,
+                    "You don't have the permission to look up customers.", "I couldn't find a customer with those details.");
                 break;
 
             case 'recent_activity':
@@ -423,6 +414,12 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
         // Payment number: PAY-2025-42-001
         if (preg_match('/(pay-\d{4}-\d+-\d+)/i', $message, $m)) {
             return ['type' => 'payment_lookup', 'identifier' => strtoupper($m[1])];
+        }
+
+        // Order number as the books write it (WNKJ-SO-00001): the pattern comes from the voucher series, because the old year-style one never matched these
+        $found = $this->local->slots()->extract($message)['slots'];
+        if (! empty($found['ordref'])) {
+            return ['type' => 'order_lookup', 'identifier' => strtoupper($found['ordref'])];
         }
 
         // M-Pesa receipt: alphanumeric ~10 chars like QJK8QX1234
@@ -470,27 +467,6 @@ Store Credit: KSh " . number_format($customer->store_credit ?? 0, 2) . " | Loyal
     // FORMATTERS
     // =========================================================================
 
-    private function formatOrderDetail(Voucher $order): string
-    {
-        $customer = $order->customer;
-        $name     = $customer
-            ? trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? ''))
-            : ($order->party_name ?: 'Unknown');
-
-        $items = $order->items->where('is_header', false)->map(fn($i) =>
-            "  • {$i->description} × " . (float) $i->quantity . " @ KSh " . number_format($i->rate, 2)
-        )->join("\n") ?: '  No items';
-
-        return "
-📦 {$order->type?->name} #{$order->voucher_number}
-Customer: {$name} ({$customer?->email})
-Status: {$order->status}" . ($order->fulfilment_status ? " | Fulfilment: {$order->fulfilment_status}" : '') . "
-Total: KSh " . number_format($order->base_total ?? $order->total_amount, 2) . "
-Date: {$order->date?->format('M d, Y')}
-ITEMS:
-{$items}";
-    }
-
     private function formatPaymentDetail(Payment $payment): string
     {
         $customer = $payment->customer;
@@ -529,42 +505,33 @@ Expected: KSh " . number_format($payment->amount_expected, 2) .
         }
     }
 
-    private function formatCustomerDetail(Customer $customer): string
-    {
-        $orderCount = $this->salesDocs()->where('customer_id', $customer->id)->count();
-        $totalSpent = $this->salesDocs([VoucherType::SALES, VoucherType::CASH_SALE])->where('customer_id', $customer->id)->sum('base_total');
-        $openDisputes = $this->safe(fn() => Payment::where('customer_id', $customer->id)->whereIn('dispute_status', ['raised', 'investigating'])->count(), 0);
-
-        return "
-👤 CUSTOMER: {$customer->first_name} {$customer->last_name}
-Email: {$customer->email} | Phone: {$customer->phone}
-Customer #: {$customer->customer_number} | Tier: " . strtoupper($customer->tier ?? 'bronze') . "
-Member Since: {$customer->created_at->format('M d, Y')}
-Orders: {$orderCount}
-Total Spent: KSh " . number_format($totalSpent, 2) .
-($customer->company_name ? "\nCompany: {$customer->company_name}" : "") .
-($openDisputes > 0 ? "\n⚠️ Open payment disputes: {$openDisputes}" : "") .
-($customer->store_credit > 0 ? "\nStore Credit: KSh " . number_format($customer->store_credit, 2) : "");
-    }
-
     // =========================================================================
     // STATS — always injected for staff
     // =========================================================================
 
     private function getAdminStats(User $user): array
     {
-        $stats = [
-            'orders' => [
-                'total'   => $this->salesDocs()->count(),
-                'pending' => $this->salesDocs()->where('status', Voucher::DRAFT)->count(),
-                'today'   => $this->salesDocs()->whereDate('created_at', today())->count(),
-            ],
-            'customers' => Customer::count(),
-            'products'  => Product::where('status', 'active')->count(),
-        ];
+        $ctx   = $this->callerFor($user);
+        $stats = ['products' => Product::where('status', 'active')->count()];
 
-        // whoever sees the books gets payment stats too
-        if ($user->hasPermission('books.view')) {
+        // orders and customers belong to customers.view, narrowed to the person's data scope and branches
+        if ($ctx->can('customers.view')) {
+            $stats['orders'] = [
+                'total'   => $this->limitSales($this->salesDocs(), $ctx)->count(),
+                'pending' => $this->limitSales($this->salesDocs(), $ctx)->where('status', Voucher::DRAFT)->count(),
+                'today'   => $this->limitSales($this->salesDocs(), $ctx)->whereDate('created_at', today())->count(),
+            ];
+            $customers = Customer::query();
+            if ($ctx->dataScope === 'assigned') {
+                $customers->where('assigned_sales_rep', $user->id);
+            } elseif ($ctx->dataScope === 'own') {
+                $customers->where('created_by', $user->id);
+            }
+            $stats['customers'] = $customers->count();
+        }
+
+        // payment figures are company-wide: books.view, and not for someone limited to some branches
+        if ($ctx->can('books.view') && $ctx->locationIds === null) {
             $stats['payments'] = $this->safe(function () {
                 $paymentQuery = Payment::query();
                 return [
@@ -581,14 +548,45 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
             }
         }
 
-        // someone whose data scope is "assigned" sees only the customers assigned to them
-        if ($user->dataScope() === 'assigned') {
-            $assigned = Customer::where('assigned_sales_rep', $user->id)->pluck('id');
-            $stats['orders']['total'] = $this->salesDocs()->whereIn('customer_id', $assigned)->count();
-            $stats['customers']       = $assigned->count();
+        return $stats;
+    }
+
+    /** Narrow a sales query to what this person may see: their branches, and their data scope (assigned customers, or what they created). */
+    private function limitSales($query, CallerContext $ctx)
+    {
+        if ($ctx->locationIds !== null) {
+            $query->where(fn($w) => $w->whereIn('location_id', $ctx->locationIds)->orWhereNull('location_id'));
+        }
+        if ($ctx->dataScope === 'assigned' && $ctx->user) {
+            $query->whereIn('customer_id', Customer::where('assigned_sales_rep', $ctx->user->id)->select('id'));
+        } elseif ($ctx->dataScope === 'own' && $ctx->user) {
+            $query->where('created_by', $ctx->user->id);
         }
 
-        return $stats;
+        return $query;
+    }
+
+    /** Run a local-layer resolver for this person and turn its answer into text for the prompt: the permission is checked first. */
+    private function viaResolver(string $name, User $user, array $slots, string $denied, string $notFound): string
+    {
+        $ctx = $this->callerFor($user);
+        $r   = \App\Services\Chat\Local\ResolverRegistry::all()[$name];
+        if (! $ctx->canAll($r->requires())) {
+            return $denied;
+        }
+        $res = $r->run($ctx, $slots);
+
+        return match ($res->status) {
+            'ok'     => implode("\n", $res->lines),
+            'denied' => $denied,
+            default  => $notFound,      // nothing there, or nothing there for this person: the same words
+        };
+    }
+
+    /** The caller as the local layer sees them. A seam, so tests can supply one without a database. */
+    protected function callerFor(User $user): CallerContext
+    {
+        return CallerContext::forUser($user);
     }
 
     // =========================================================================
@@ -597,7 +595,11 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
 
     private function getRecentActivity(User $user, ?string $filter): string
     {
-        $query = $this->salesDocs()->with(['customer:id,first_name,last_name', 'type:id,name']);
+        $ctx = $this->callerFor($user);
+        if (! $ctx->can('customers.view')) {
+            return "You don't have the permission to see customers' orders.";
+        }
+        $query = $this->limitSales($this->salesDocs()->with(['customer:id,first_name,last_name', 'type:id,name']), $ctx);
 
         if ($filter === 'cancelled') {
             $query->where('status', Voucher::CANCELLED);
@@ -605,11 +607,6 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
             $query->where('status', Voucher::DRAFT);
         } elseif ($filter && in_array($filter, ['confirmed', 'processing', 'shipped', 'delivered'])) {
             $query->where('status', Voucher::POSTED);
-        }
-
-        if ($user->dataScope() === 'assigned') {
-            $assigned = Customer::where('assigned_sales_rep', $user->id)->pluck('id');
-            $query->whereIn('customer_id', $assigned);
         }
 
         return $query->latest('date')->latest('id')->limit(10)->get()->map(function ($o) {
@@ -626,43 +623,7 @@ Total Spent: KSh " . number_format($totalSpent, 2) .
 
     private function getPaymentSummary(User $user): string
     {
-        if (! $user->hasPermission('books.view')) {
-            return 'Payment records are not available to you.';
-        }
-
-        return $this->safe(fn() => $this->paymentSummary(), 'Payment records are not available right now.');
-    }
-
-    private function paymentSummary(): string
-    {
-        $query = Payment::query();
-
-        $pending  = (clone $query)->where('status', 'pending')->count();
-        $failed   = (clone $query)->where('status', 'failed')->count();
-        $disputes = (clone $query)->whereIn('dispute_status', ['raised', 'investigating'])->count();
-        $todayKes = (clone $query)->whereDate('confirmed_at', today())->sum('mpesa_amount_confirmed');
-        $monthKes = (clone $query)->whereMonth('confirmed_at', now()->month)->whereYear('confirmed_at', now()->year)->sum('mpesa_amount_confirmed');
-
-        $recentPending = (clone $query)->where('status', 'pending')
-            ->with(['customer:id,first_name,last_name'])
-            ->latest()
-            ->limit(5)
-            ->get()
-            ->map(function ($p) {
-                $name = $p->customer ? trim(($p->customer->first_name ?? '') . ' ' . ($p->customer->last_name ?? '')) : '—';
-                return "  {$p->payment_number} | {$name} | KSh " . number_format($p->amount_expected, 2) . " | {$p->initiated_at?->format('M d H:i')}";
-            })->join("\n");
-
-        return "
-💳 PAYMENT SUMMARY
-Today Collected: KSh " . number_format($todayKes, 2) . "
-This Month: KSh " . number_format($monthKes, 2) . "
-Pending pushes: {$pending}
-Failed payments: {$failed}
-Open disputes: {$disputes}
-
-Pending (latest 5):
-{$recentPending}";
+        return $this->viaResolver('payments.summary', $user, [], 'Payment records are not available to you.', 'Payment records are not available right now.');
     }
 
     // =========================================================================
@@ -672,13 +633,11 @@ Pending (latest 5):
     private function buildSystemPrompt(array $context, bool $isStaff, bool $isCustomer): string
     {
         $roleBlock = $isStaff
-            ? "🔐 YOU ARE STAFF (Role: {$context['userRole']})
-You have access to admin data below. You can:
-• Look up orders, customers, payments by number or identifier
-• Summarise stats and recent activity
-• For finance role: view payment status, pending pushes, disputes for your own payments
-• For admin/super_admin: full visibility across all records
-Always verify sensitive lookups from the data context provided — never invent data."
+            ? "🔐 YOU ARE HELPING A STAFF MEMBER
+The staff data below is already limited to what this person's permissions, data scope and branches allow. You can:
+• Report the orders, customers and payments that appear in the data below
+• Summarise the stats and recent activity that appear below
+If something is not in the data below, say it is not available to this person. Never guess, never invent data."
             : ($isCustomer
                 ? "👤 YOU ARE HELPING A LOGGED-IN CUSTOMER
 Use ONLY their personal data below — never reference other customers.
