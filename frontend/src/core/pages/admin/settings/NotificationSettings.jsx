@@ -12,6 +12,7 @@ import TypesTab from '../../../components/admin/notifications/TypesTab';
 import WhatsAppQueueTab from '../../../components/admin/notifications/WhatsAppQueueTab';
 import WhatsAppApiTab from '../../../components/admin/notifications/WhatsAppApiTab';
 import DeliveryTab from '../../../components/admin/notifications/DeliveryTab';
+import HealthBanner from '../../../components/admin/notifications/HealthBanner';
 import HistoryTab from '../../../components/admin/notifications/HistoryTab';
 import { colors } from '../../../../_shared/theme/tokens';
 
@@ -47,6 +48,7 @@ export default function NotificationSettings() {
     const { can } = data;
     return (
       <>
+        <HealthBanner health={data.health} />
         <Tabs tabs={TABS.map((t) => (t.id === 'whatsapp' ? { ...t, count: data.whatsapp_waiting || undefined } : t))} active={tab} onChange={(id) => { setTab(id); setParams({ tab: id }, { replace: true }); }} />
         {tab === 'whatsapp' && <WhatsAppQueueTab canSend={can.send} onChanged={load} />}
         {tab === 'email' && <EmailTab key={`e${data.current_version.email?.id ?? 0}`} data={data} canEdit={can.settings} canSend={can.send || can.settings} onChanged={load} />}

@@ -47,6 +47,8 @@ class NotificationSettingsControllerTest extends NotifyTestCase
         $this->assertTrue($d['saved']['email']);
         $this->assertSame(['settings' => true, 'send' => false, 'purge' => false], $d['can']);
         $this->assertContains('order_placed', array_column($d['types'], 'key'));
+        $this->assertArrayHasKey('state', $d['health']['scheduler']);
+        $this->assertArrayHasKey('message', $d['health']['queue']);
     }
 
     public function test_a_failed_test_returns_a_422_with_the_reason_and_changes_nothing(): void

@@ -203,7 +203,7 @@ class MixedCartCheckoutTest extends NotifyTestCase
 
     // ------------------------------------------------------------ one payment, two orders
 
-    private function pay(float $amount, array $primaryMeta, ?array $paired): array
+    private function pay(float $amount, array $primaryMeta, ?array $paired, ?int $failFor = null): array
     {
         DB::table('vouchers')->insert(['id' => 10, 'voucher_type_id' => 1, 'status' => 'posted', 'voucher_number' => 'ORD-1', 'total_amount' => 928.0, 'meta' => json_encode($primaryMeta), 'created_at' => now(), 'updated_at' => now()]);
         if ($paired) {
@@ -212,7 +212,10 @@ class MixedCartCheckoutTest extends NotifyTestCase
         $attempt = PaymentAttempt::forceCreate(['voucher_id' => 10, 'status' => 'confirmed', 'amount' => $amount, 'payment_method_id' => 3, 'receipt_number' => 'QWE123', 'tenders' => []]);
         $settled = [];
         $checkout = \Mockery::mock(CheckoutService::class);
-        $checkout->shouldReceive('settle')->andReturnUsing(function ($order, $tenders) use (&$settled) {
+        $checkout->shouldReceive('settle')->andReturnUsing(function ($order, $tenders) use (&$settled, $failFor) {
+            if ($order->id === $failFor) {
+                throw new BooksException('Ledger is closed');
+            }
             $settled[$order->id] = $tenders;
 
             return (new Voucher)->forceFill(['id' => 100 + $order->id]);
@@ -247,5 +250,14 @@ class MixedCartCheckoutTest extends NotifyTestCase
         $this->assertSame([10], array_keys($settled), 'the cancelled order is not settled');
         $this->assertStringContainsString('PRE-1 could not be settled', $attempt->notes);
         $this->assertStringContainsString('unallocated', $attempt->notes);
+    }
+
+    public function test_a_failure_settling_the_second_order_does_not_undo_the_first(): void
+    {
+        [$settled, $attempt] = $this->pay(2088.0, ['paired_order_id' => 11], ['status' => 'posted'], 11);
+        $this->assertSame([10], array_keys($settled), 'the first order is settled');
+        $this->assertSame(110, $attempt->settled_voucher_id, 'and recorded on the payment');
+        $this->assertStringContainsString('PRE-1 could not be settled', $attempt->notes);
+        $this->assertStringContainsString('Ledger is closed', $attempt->notes);
     }
 }

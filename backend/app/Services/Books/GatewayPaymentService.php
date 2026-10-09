@@ -135,7 +135,13 @@ class GatewayPaymentService
         $sale = app(CheckoutService::class)->settle($voucher, $tenders, null);
         $attempt->update(['settled_voucher_id' => $sale->id]);
         if ($paired) {
-            app(CheckoutService::class)->settle($paired, [['payment_method_id' => $attempt->payment_method_id, 'amount' => (float) $paired->total_amount, 'reference' => $attempt->receipt_number]], null);
+            // The money has arrived and the first order is settled: a problem with the second must not undo that (the whole callback would roll back and the payment be lost). Staff finish it by hand.
+            try {
+                DB::transaction(fn () => app(CheckoutService::class)->settle($paired, [['payment_method_id' => $attempt->payment_method_id, 'amount' => (float) $paired->total_amount, 'reference' => $attempt->receipt_number]], null));
+            } catch (\Throwable $e) {
+                Log::error('Gateway: the paired order could not be settled', ['attempt' => $attempt->id, 'paired' => $paired->id, 'error' => $e->getMessage()]);
+                $attempt->update(['notes' => trim(($attempt->notes ? $attempt->notes . ' · ' : '') . "The paired order {$paired->voucher_number} could not be settled with this payment ({$e->getMessage()}): its part is unallocated, please settle it by hand.")]);
+            }
         }
     }
 }

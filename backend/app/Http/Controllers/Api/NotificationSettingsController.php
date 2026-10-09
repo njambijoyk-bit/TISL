@@ -62,6 +62,7 @@ class NotificationSettingsController extends Controller
             'whatsapp_api' => ['providers' => WhatsAppProviders::ALL, 'automatic' => app(WhatsAppProviders::class)->automatic(),
                 'webhooks' => ['meta' => WhatsAppProviders::callbackUrl('meta'), 'twilio' => WhatsAppProviders::callbackUrl('twilio')],
                 'types_ready' => collect($this->settings->get('types')['rules'] ?? [])->filter(fn ($r) => ! empty($r['template']) && ($r['enabled'] ?? true))->count()],
+            'health' => app(\App\Services\Notify\SystemHealth::class)->status(),
             'server' => ['mailer' => config('mail.default'), 'queue' => config('queue.default'), 'from' => config('mail.from.address')],
             'can' => ['settings' => $user->hasPermission('notifications.settings'), 'send' => $user->hasPermission('notifications.send'), 'purge' => $user->hasPermission('notifications.keys.purge')],
         ]);
