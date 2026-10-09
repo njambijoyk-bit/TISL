@@ -203,4 +203,44 @@ class DepartmentService
             EmployeeCostCentre::create(['employee_id' => $e->id, 'cost_centre_id' => $ccId, 'kind' => 'home', 'share_percent' => 100]);
         }
     }
+
+    /**
+     * How an employee's cost is split on a date: [[cost_centre_id, percent, location_id], ...] totalling 100. From their cost centre shares valid
+     * that day; with none, the payroll default for their branch (one row, 100). Empty when cost centres are not set up.
+     */
+    public function splitFor(Employee $e, string $date): array
+    {
+        if (! CostCentre::ready()) {
+            return [];
+        }
+        $rows = \Illuminate\Support\Facades\Schema::hasTable('employee_cost_centres')
+            ? EmployeeCostCentre::where('employee_id', $e->id)
+                ->where(fn ($q) => $q->whereNull('valid_from')->orWhere('valid_from', '<=', $date))
+                ->where(fn ($q) => $q->whereNull('valid_to')->orWhere('valid_to', '>=', $date))->get()
+            : collect();
+        $total = (float) $rows->sum('share_percent');
+        $loc = fn ($id) => CostCentre::whereKey($id)->value('location_id');
+        if ($rows->isEmpty() || abs($total - 100) > 0.01) {
+            $id = app(CostCentreService::class)->resolve('payroll', $e->location_id ? (int) $e->location_id : null);
+
+            return $id ? [[(int) $id, 100.0, $loc($id)]] : [];
+        }
+
+        return $rows->map(fn ($r) => [(int) $r->cost_centre_id, (float) $r->share_percent, $loc($r->cost_centre_id)])->all();
+    }
+
+    /** Split an amount by percentages into cents that add back to the amount exactly (the last share takes the rounding). */
+    public static function allocate(float $amount, array $split): array
+    {
+        $out = [];
+        $left = round($amount, 2);
+        $n = count($split);
+        foreach ($split as $i => $row) {
+            $part = $i === $n - 1 ? $left : round($amount * $row[1] / 100, 2);
+            $left = round($left - $part, 2);
+            $out[] = [$row[0], $part, $row[2] ?? null];
+        }
+
+        return $out;
+    }
 }

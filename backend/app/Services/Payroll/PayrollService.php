@@ -17,6 +17,8 @@ use App\Models\User;
 use App\Services\Books\BooksException;
 use App\Services\Books\LedgerService;
 use App\Services\Books\VoucherService;
+use App\Services\CostCentres\CostCentreService;
+use App\Services\Departments\DepartmentService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -348,12 +350,30 @@ class PayrollService
             throw new BooksException('Choose the Salaries & Wages and Salaries Payable ledgers in Payroll settings.');
         }
         $credit = [];   // ledger => amount
-        $debit = [];
+        $debit = [];    // ledger => amount (what the run cost, for the balance check)
+        $costs = [];    // "ledger|cost centre" => [ledger, cost centre, branch, amount]: the same cost, split by each person's cost centre shares
         $bump = function (array &$a, int $id, float $amt) {
             $a[$id] = round(($a[$id] ?? 0) + $amt, 2);
         };
+        $splitting = app(CostCentreService::class)->booksReady();
+        $depts = app(DepartmentService::class);
+        $onDate = $run->period_end->toDateString();
+        $splits = [];
+        $cost = function (int $ledger, float $amt, $userId) use (&$costs, &$debit, $bump, $splitting, $depts, $onDate, &$splits) {
+            $bump($debit, $ledger, $amt);
+            $split = [];
+            if ($splitting) {
+                $splits[$userId] ??= ($emp = Employee::where('user_id', $userId)->first()) ? $depts->splitFor($emp, $onDate) : [];
+                $split = $splits[$userId];
+            }
+            foreach ($split ? DepartmentService::allocate($amt, $split) : [[null, $amt, null]] as [$cc, $part, $loc]) {
+                $k = $ledger . '|' . ($cc ?? 0);
+                $costs[$k] ??= ['ledger' => $ledger, 'cc' => $cc, 'loc' => $loc, 'amount' => 0.0];
+                $costs[$k]['amount'] = round($costs[$k]['amount'] + $part, 2);
+            }
+        };
         foreach ($lines as $l) {
-            $bump($debit, (int) $s->salaries_expense_ledger_id, $l->gross);
+            $cost((int) $s->salaries_expense_ledger_id, (float) $l->gross, $l->user_id);
             $bump($credit, (int) $s->salaries_payable_ledger_id, $l->net);
             foreach ($l->breakdown ?? [] as $b) {
                 if ($b['amount'] <= 0 || $b['kind'] === 'earning') {
@@ -367,7 +387,7 @@ class PayrollService
                     if (empty($b['expense_ledger_id'])) {
                         throw new BooksException("Choose the expense ledger for {$b['name']} (Payroll settings).");
                     }
-                    $bump($debit, (int) $b['expense_ledger_id'], $b['amount']);
+                    $cost((int) $b['expense_ledger_id'], (float) $b['amount'], $l->user_id);
                 }
             }
             foreach ($l->adjustments ?? [] as $x) {
@@ -378,8 +398,11 @@ class PayrollService
         }
         $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
         $entries = [];
-        foreach ($debit as $id => $amt) {
-            $entries[] = ['ledger_id' => $id, 'side' => 'D', 'amount' => $amt];
+        foreach ($costs as $c) {
+            if (abs($c['amount']) < 0.005) {
+                continue;
+            }
+            $entries[] = ['ledger_id' => $c['ledger'], 'side' => 'D', 'amount' => $c['amount']] + ($c['cc'] ? ['cost_centre_id' => $c['cc'], 'location_id' => $c['loc']] : []);
         }
         foreach ($credit as $id => $amt) {
             $entries[] = ['ledger_id' => $id, 'side' => 'C', 'amount' => $amt];
@@ -388,9 +411,10 @@ class PayrollService
             throw new BooksException('The payroll does not balance — check the components and their ledgers.');
         }
 
-        return DB::transaction(function () use ($run, $type, $entries, $by) {
+        return DB::transaction(function () use ($run, $type, $entries, $by, $splitting) {
             $v = $this->vouchers->create(['voucher_type_id' => $type->id, 'date' => $run->period_end->toDateString(), 'reference_no' => $run->number, 'narration' => "Payroll {$run->number}",
-                'entries' => $entries, 'meta' => ['payroll_run_id' => $run->id]], $by);
+                'entries' => $entries, 'meta' => ['payroll_run_id' => $run->id, 'lines_own_cost_centre' => true]]
+                + ($splitting && ($pcc = app(CostCentreService::class)->resolve('payroll', null)) ? ['cost_centre_id' => $pcc] : []), $by);
             $run->update(['status' => 'approved', 'journal_voucher_id' => $v->id, 'approved_by' => $by?->id, 'approved_at' => now()]);
 
             return $run->fresh();

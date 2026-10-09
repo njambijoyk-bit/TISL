@@ -37,11 +37,13 @@ class VoucherDimensionsObserver
             return;
         }
 
-        $voucher = Voucher::query()->select(['id', 'cost_centre_id', 'location_id'])->find($model->voucher_id);
+        $voucher = Voucher::query()->select(['id', 'cost_centre_id', 'location_id', 'meta'])->find($model->voucher_id);
         if (! $model->location_id) {
             $model->location_id = $voucher?->location_id;
         }
-        if (! $model->cost_centre_id || ! $this->cc->lineOverride()) {
+        // lines may keep their own cost centre when the settings allow it, or when the system split the voucher itself (payroll)
+        $own = $this->cc->lineOverride() || ! empty($voucher?->meta['lines_own_cost_centre']);
+        if (! $model->cost_centre_id || ! $own) {
             $model->cost_centre_id = $voucher?->cost_centre_id;
         }
     }
