@@ -114,8 +114,15 @@ class GatewayPaymentService
     private function settle(PaymentAttempt $attempt): void
     {
         $voucher = Voucher::with('type')->findOrFail($attempt->voucher_id);
+        // a ready-now order and a preorder checked out together share ONE payment: the order paid here takes its own part, the other order the rest
+        $paired = ! empty($voucher->meta['paired_order_id']) ? Voucher::with('type')->find($voucher->meta['paired_order_id']) : null;
+        if ($paired && ($paired->status !== Voucher::POSTED || $paired->type?->base_type !== 'sales_order' || $paired->children()->where('status', Voucher::POSTED)->exists())) {
+            $attempt->update(['notes' => trim(($attempt->notes ? $attempt->notes . ' · ' : '') . "The paired order {$paired->voucher_number} could not be settled with this payment (cancelled, or already paid): the rest of it is unallocated, please check.")]);
+            $paired = null;
+        }
+        $own = $paired ? round((float) $attempt->amount - (float) $paired->total_amount, 2) : (float) $attempt->amount;
         $tenders = array_merge($attempt->tenders ?? [], [[
-            'payment_method_id' => $attempt->payment_method_id, 'amount' => (float) $attempt->amount, 'reference' => $attempt->receipt_number,
+            'payment_method_id' => $attempt->payment_method_id, 'amount' => $own, 'reference' => $attempt->receipt_number,
         ]]);
         $vouchers = app(VoucherService::class);
         if ($voucher->type->base_type === 'sales') {
@@ -127,5 +134,8 @@ class GatewayPaymentService
         }
         $sale = app(CheckoutService::class)->settle($voucher, $tenders, null);
         $attempt->update(['settled_voucher_id' => $sale->id]);
+        if ($paired) {
+            app(CheckoutService::class)->settle($paired, [['payment_method_id' => $attempt->payment_method_id, 'amount' => (float) $paired->total_amount, 'reference' => $attempt->receipt_number]], null);
+        }
     }
 }

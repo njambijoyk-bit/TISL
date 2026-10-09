@@ -289,6 +289,9 @@ class CheckoutService
     /** What the customer will be charged, worked out by the engine — nothing is saved. */
     public function quote(array $in, ?User $user): array
     {
+        if (! empty($in['together'])) {
+            return $this->quoteTogether($in, $user);
+        }
         $a = $this->assemble($in, $user);
         $p = $this->vouchers->preview($a['data'], null);
 
@@ -401,6 +404,9 @@ class CheckoutService
      */
     public function place(array $in, ?User $user): array
     {
+        if (! empty($in['together'])) {
+            return $this->placeTogether($in, $user);
+        }
         $a = $this->assemble($in, $user);
         $customer = $a['customer'];
         $mode = $in['payment_mode'] ?? 'pay_later';   // online | pay_later | account
@@ -513,6 +519,9 @@ class CheckoutService
             }
             // 2. pay online
             if ($mode === 'online') {
+                if ($method->gateway === 'mpesa_stk' && ! empty($in['_defer_online'])) {   // checked out together with another order: one prompt for both is made by placeTogether
+                    return ['order' => $this->orderSummary($order), 'status' => 'awaiting_payment', 'due' => $due, 'message' => ''];
+                }
                 if ($method->gateway === 'mpesa_stk') {
                     $attempt = $this->gateway->initiateMpesa($order, $method, (string) ($in['phone'] ?? $order->meta['contact']['phone'] ?? ''), $tenders, $due, $user);
 
@@ -605,6 +614,108 @@ class CheckoutService
         $days = (int) ($customer->credit_terms_days ?: 30);
         $invoice = $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => today()->addDays($days)->toDateString()], null);
         return $invoice;
+    }
+
+    // ── a cart with ready-now AND preorder items, checked out in one go ─────────────────────────────────
+
+    /**
+     * The cart's items split by their own `preorder` flag: [ready-now request, preorder request]. The preorder part never carries the promo code (a code is used
+     * once, on the ready-now order); each part is priced, delivered and numbered exactly as if it were checked out alone.
+     *
+     * @return array{0: array, 1: array}
+     */
+    private function splitTogether(array $in): array
+    {
+        $ready = [];
+        $pre = [];
+        foreach ($in['items'] ?? [] as $it) {
+            if (! empty($it['preorder'])) {
+                $pre[] = $it;
+            } else {
+                $ready[] = $it;
+            }
+        }
+        if (! $ready || ! $pre) {
+            throw new BooksException('Checking out together needs both ready-now items and preorder items in the cart.');
+        }
+        if (! empty($in['gift_vouchers'])) {
+            throw new BooksException('A gift voucher is bought on its own: check it out separately.');
+        }
+        $base = array_merge($in, ['together' => false, '_together' => true, 'gift_voucher_code' => null, 'gift_voucher_codes' => [], 'use_credit' => null]);
+
+        return [array_merge($base, ['items' => $ready, 'preorder' => false]), array_merge($base, ['items' => $pre, 'preorder' => true, 'promo_code' => null])];
+    }
+
+    /** What the two orders will cost, as one summary with a line per part. Nothing is saved. */
+    private function quoteTogether(array $in, ?User $user): array
+    {
+        [$readyIn, $preIn] = $this->splitTogether($in);
+        $a = $this->quote($readyIn, $user);
+        $b = $this->quote($preIn, $user);
+        $tax = [];
+        foreach (array_merge($a['tax_breakdown'] ?? [], $b['tax_breakdown'] ?? []) as $t) {
+            $k = ($t['label'] ?? '') . '|' . ($t['percent'] ?? '');
+            $tax[$k] ??= ['label' => $t['label'] ?? 'Tax', 'percent' => $t['percent'] ?? null, 'amount' => 0.0];
+            $tax[$k]['amount'] = round($tax[$k]['amount'] + (float) $t['amount'], 2);
+        }
+        $available = ($a['available'] ?? []);
+        $available['gift_vouchers'] = [];   // not on a combined checkout
+
+        return [
+            'currency' => $a['currency'], 'lines' => array_merge($a['lines'], array_map(fn ($l) => $l + ['preorder' => true], $b['lines'])),
+            'subtotal' => round($a['subtotal'] + $b['subtotal'], 2), 'tax_total' => round($a['tax_total'] + $b['tax_total'], 2), 'tax_breakdown' => array_values($tax),
+            'total' => round($a['total'] + $b['total'], 2), 'discounts' => array_merge($a['discounts'], $b['discounts']), 'gift' => null, 'customer' => $a['customer'],
+            'due_now' => round($a['due_now'] + $b['due_now'], 2), 'promo_accepted' => $a['promo_accepted'], 'available' => $available,
+            'parts' => [['kind' => 'ready', 'total' => $a['total']], ['kind' => 'preorder', 'total' => $b['total']]],
+        ];
+    }
+
+    /**
+     * Two orders from one checkout: the ready-now order and the preorder (PRE-), placed together or not at all, and paid with ONE payment. Online (M-Pesa) there is a
+     * single prompt for both totals; when it is confirmed each order becomes its own Cash Sale (GatewayPaymentService::settle). Otherwise each order is placed the way it
+     * would be alone. Gift vouchers and paying from credit or on account are not offered on a combined checkout: they are worked out per order, so those carts are checked
+     * out separately.
+     */
+    private function placeTogether(array $in, ?User $user): array
+    {
+        [$readyIn, $preIn] = $this->splitTogether($in);
+        $mode = $in['payment_mode'] ?? 'pay_later';
+        if (in_array($mode, ['account', 'credit'], true)) {
+            throw new BooksException('Paying on account or from your credit works on one order at a time: check out the ready-now items and the preorder separately.');
+        }
+        if ($this->giftCodes($in)) {
+            throw new BooksException('Gift vouchers work on one order at a time: check out the ready-now items and the preorder separately.');
+        }
+        $defer = $mode === 'online';
+
+        return DB::transaction(function () use ($readyIn, $preIn, $in, $user, $defer) {
+            $a = $this->place($readyIn + ['_defer_online' => $defer], $user);
+            $b = $this->place($preIn + ['_defer_online' => $defer], $user);
+            $this->pair((int) $a['order']['id'], (int) $b['order']['id']);
+            $orders = [$a['order'], $b['order']];
+
+            if ($defer && ($a['status'] ?? null) === 'awaiting_payment') {
+                $method = PaymentMethod::find($in['payment_method_id']);
+                $primary = Voucher::findOrFail($a['order']['id']);
+                $attempt = $this->gateway->initiateMpesa($primary, $method, (string) ($in['phone'] ?? $primary->meta['contact']['phone'] ?? ''), [], round((float) $a['due'] + (float) $b['due'], 2), $user);
+
+                return ['order' => $a['order'], 'orders' => $orders, 'attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'status' => 'awaiting_payment',
+                    'message' => 'Check your phone and enter your M-Pesa PIN to pay for both orders.'];
+            }
+
+            return ['order' => $a['order'], 'orders' => $orders, 'status' => 'placed',
+                'message' => 'Both orders are placed: ' . $a['order']['number'] . ' (ready now) and ' . $b['order']['number'] . ' (preorder). We will confirm payment and delivery with you.'];
+        });
+    }
+
+    /** Each of the two orders remembers the other, so one payment can settle both. */
+    private function pair(int $a, int $b): void
+    {
+        foreach ([[$a, $b], [$b, $a]] as [$id, $other]) {
+            $v = Voucher::findOrFail($id);
+            $v->meta = array_merge($v->meta ?? [], ['paired_order_id' => $other]);
+            $v->save();
+        }
     }
 
     private function orderSummary(Voucher $v): array
