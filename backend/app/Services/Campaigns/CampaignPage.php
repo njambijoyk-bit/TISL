@@ -133,23 +133,45 @@ class CampaignPage
     public function save(Campaign $c, array $sections): void
     {
         $featured = [];
+        $whole = [];       // product ids featured as a whole
+        $byOption = [];    // product ids featured by chosen options
         foreach ($sections as $s) {
             foreach (($s['type'] === 'products' ? ($s['items'] ?? []) : []) as $it) {
-                $k = "{$it['item_type']}:{$it['item_id']}";
+                $variant = (int) ($it['variant_id'] ?? 0);
+                if ($variant < 0 || ($variant > 0 && ($it['item_type'] !== 'product' || ! CampaignItem::hasVariants()))) {
+                    throw ValidationException::withMessages(['sections' => ['Only a product can be featured by one of its options' . (CampaignItem::hasVariants() ? '.' : ' (run database script 106_campaign_item_variants.sql first).')]]);
+                }
+                $k = CampaignItem::keyOf($it['item_type'], (int) $it['item_id'], $variant);
                 if (isset($featured[$k])) {
                     throw ValidationException::withMessages(['sections' => ['The same item is featured twice in this campaign.']]);
                 }
-                $featured[$k] = $it;
+                $featured[$k] = ['item_type' => $it['item_type'], 'item_id' => (int) $it['item_id'], 'variant_id' => $variant];
+                if ($it['item_type'] === 'product') {
+                    $variant > 0 ? $byOption[(int) $it['item_id']] = true : $whole[(int) $it['item_id']] = true;
+                }
             }
+        }
+        if ($both = array_intersect_key($whole, $byOption)) {
+            $name = \App\Models\Product::whereKey(array_key_first($both))->value('name') ?? 'A product';
+            throw ValidationException::withMessages(['sections' => ["{$name} is featured as a whole and by option. Choose one: the whole product, or the options you want."]]);
         }
         if ($featured) {
             if (! $this->catalogue->active()) {
                 throw ValidationException::withMessages(['sections' => ['Featuring products and services needs E-commerce, which is switched off.']]);
             }
+            $variantIds = array_filter(array_column($featured, 'variant_id'));
+            if ($variantIds) {   // an option must belong to the product it is featured under
+                $owners = \App\Models\ProductVariant::whereIn('id', $variantIds)->pluck('product_id', 'id');
+                foreach ($featured as $f) {
+                    if ($f['variant_id'] > 0 && (int) ($owners[$f['variant_id']] ?? 0) !== $f['item_id']) {
+                        throw ValidationException::withMessages(['sections' => ['One of the options does not belong to the product it is listed under.']]);
+                    }
+                }
+            }
             $found = $this->catalogue->describe(array_values($featured));
             foreach ($found as $row) {
                 if (! $row['available']) {
-                    throw ValidationException::withMessages(['sections' => ['One of the featured items no longer exists. Remove it and save again.']]);
+                    throw ValidationException::withMessages(['sections' => ['One of the featured items or options no longer exists, or is switched off. Remove it and save again.']]);
                 }
             }
         }
@@ -164,7 +186,11 @@ class CampaignPage
 
                 $kept = [];
                 foreach (($s['type'] === 'products' ? ($s['items'] ?? []) : []) as $ip => $it) {
-                    $item = CampaignItem::updateOrCreate(['campaign_id' => $c->id, 'item_type' => $it['item_type'], 'item_id' => $it['item_id']],
+                    $key = ['campaign_id' => $c->id, 'item_type' => $it['item_type'], 'item_id' => $it['item_id']];
+                    if (CampaignItem::hasVariants()) {
+                        $key['variant_id'] = (int) ($it['variant_id'] ?? 0);
+                    }
+                    $item = CampaignItem::updateOrCreate($key,
                         ['section_id' => $row->id, 'position' => $ip + 1, 'available_from' => $it['available_from'] ?? null, 'label_override' => ($it['label_override'] ?? null) ?: null]);
                     $kept[] = $item->id;
                 }

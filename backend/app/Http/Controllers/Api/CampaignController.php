@@ -85,7 +85,7 @@ class CampaignController extends Controller
 
         return response()->json(['data' => $c, 'can_edit' => CampaignAccess::canEdit($request->user(), $c), 'can_publish' => CampaignAccess::canPublish($request->user()), 'can_decide' => CampaignAccess::canPublish($request->user()) && $c->approval_status === 'pending' && (int) $c->created_by !== (int) $request->user()->id,
             'can_submit' => ! CampaignAccess::canPublish($request->user()) && CampaignAccess::canEdit($request->user(), $c), 'can_withdraw' => $c->approval_status === 'pending' && (int) $c->created_by === (int) $request->user()->id,
-            'resolved' => $this->catalogue->describe($c->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all()),
+            'resolved' => $this->catalogue->describe($c->items->map(fn ($i) => $i->ref())->all()),
             'ecommerce' => $this->catalogue->active(), 'item_types' => $this->catalogue->types(), 'section_types' => CampaignSection::TYPES, 'max_video_mb' => self::MAX_VIDEO_KB / 1024]);
     }
 
@@ -243,6 +243,7 @@ class CampaignController extends Controller
             'sections.*.items' => ['nullable', 'array', 'max:200'],
             'sections.*.items.*.item_type' => ['required', Rule::in(\App\Models\CampaignItem::TYPES)],
             'sections.*.items.*.item_id' => ['required', 'integer'],
+            'sections.*.items.*.variant_id' => ['nullable', 'integer', 'min:0'],
             'sections.*.items.*.available_from' => ['nullable', 'date'],
             'sections.*.items.*.label_override' => ['nullable', 'string', 'max:160'],
         ]);
@@ -251,7 +252,16 @@ class CampaignController extends Controller
         $fresh = Campaign::with(['sections', 'items'])->find($c->id);
 
         return response()->json(['message' => 'Page saved.', 'data' => $fresh,
-            'resolved' => $this->catalogue->describe($fresh->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all())]);
+            'resolved' => $this->catalogue->describe($fresh->items->map(fn ($i) => $i->ref())->all())]);
+    }
+
+    /** GET /admin/campaigns/catalogue-variants?product_id=: the options of a product that can be featured on their own (needs E-commerce and script 106). */
+    public function catalogueVariants(Request $request): JsonResponse
+    {
+        $this->builder($request);
+        $d = $request->validate(['product_id' => ['required', 'integer']]);
+
+        return response()->json(['data' => $this->catalogue->variants((int) $d['product_id']), 'can_feature_options' => \App\Models\CampaignItem::hasVariants()]);
     }
 
     /** GET /admin/campaigns/catalogue?type=&q=: find products, services, hampers or auctions to feature (needs E-commerce). */
@@ -287,10 +297,14 @@ class CampaignController extends Controller
         $this->builder($request);
         $c = Campaign::with(['items', 'sections'])->findOrFail($id);
         abort_unless(CampaignAccess::canPublish($request->user()) || (int) $c->created_by === (int) $request->user()->id, 403);
-        $resolved = $this->catalogue->describe($c->items->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id])->all());
+        $resolved = $this->catalogue->describe($c->items->map(fn ($i) => $i->ref())->all());
         $sales = $this->stats->sales($c);
         if ($sales) {
-            $sales['items'] = array_map(fn ($r) => $r + ['name' => $resolved["{$r['type']}:{$r['id']}"]['name'] ?? null], $sales['items']);
+            $sales['items'] = array_map(function ($r) use ($resolved) {
+                $d = $resolved[\App\Models\CampaignItem::keyOf($r['type'], (int) $r['id'], (int) ($r['variant_id'] ?? 0))] ?? [];
+
+                return $r + ['name' => $d['name'] ?? null, 'variant' => $d['variant'] ?? null];
+            }, $sales['items']);
         }
 
         return response()->json(['visits' => $this->stats->visits($c), 'sales' => $sales, 'community' => $this->stats->community($c), 'engagement' => $this->stats->engagement($c), 'goal' => $c->goal]);

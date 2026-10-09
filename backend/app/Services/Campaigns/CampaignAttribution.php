@@ -17,7 +17,7 @@ class CampaignAttribution
 
     /**
      * @param  array{campaign?:string,at?:string}|null  $claim  what the browser remembered
-     * @param  array<int,array>  $cartItems  the cart's lines (product_id / hamper_id)
+     * @param  array<int,array>  $cartItems  the cart's lines (product_id / variant_id / hamper_id)
      * @return array<string,mixed>|null  the attribution to store, or null
      */
     public function resolve(?array $claim, array $cartItems): ?array
@@ -38,11 +38,14 @@ class CampaignAttribution
         if (! $c) {
             return null;
         }
-        $featured = $c->items()->get(['item_type', 'item_id']);
+        $featured = $c->items()->get();
         foreach ($cartItems as $line) {
             [$type, $id] = ! empty($line['hamper_id']) ? ['hamper', (int) $line['hamper_id']] : (! empty($line['product_id']) ? ['product', (int) $line['product_id']] : [null, 0]);
-            if ($type && $featured->contains(fn ($f) => $f->item_type === $type && (int) $f->item_id === $id)) {
-                return ['campaign_id' => $c->id, 'item_type' => $type, 'item_id' => $id, 'clicked_at' => $at->toIso8601String(), 'source' => 'campaign_item_click', 'recorded_at' => now()->toIso8601String()];
+            $variant = $type === 'product' ? (int) ($line['variant_id'] ?? 0) : 0;
+            // a featured product counts for any of its options; a featured option counts only for that option
+            $hit = $type ? $featured->first(fn ($f) => $f->item_type === $type && (int) $f->item_id === $id && ((int) $f->variant_id === 0 || (int) $f->variant_id === $variant)) : null;
+            if ($hit) {
+                return ['campaign_id' => $c->id, 'item_type' => $type, 'item_id' => $id, 'variant_id' => (int) $hit->variant_id, 'clicked_at' => $at->toIso8601String(), 'source' => 'campaign_item_click', 'recorded_at' => now()->toIso8601String()];
             }
         }
 

@@ -72,6 +72,9 @@ class PreorderService
         if ($exists) {
             throw new BooksException('This campaign already has an offer on that item.');
         }
+        if (! $offer && ! $this->featured($campaign, $variant)) {
+            throw new BooksException('Feature this option on the campaign page first (Page, Products), then offer it as a preorder. A product featured whole covers all of its options.');
+        }
         $fields = [
             'campaign_id' => $campaign->id, 'product_id' => $variant->product_id, 'variant_id' => $variant->id,
             'limit_total' => isset($d['limit_total']) && $d['limit_total'] !== '' ? max(1, (int) $d['limit_total']) : null,
@@ -93,6 +96,17 @@ class PreorderService
         }
 
         return PreorderOffer::create($fields + ['created_by' => $by?->id]);
+    }
+
+    /** Is this option on the campaign's page: featured on its own, or inside a product featured whole? Offers made before options could be featured keep working. */
+    public function featured(Campaign $campaign, ProductVariant $variant): bool
+    {
+        $q = \App\Models\CampaignItem::where('campaign_id', $campaign->id)->where('item_type', 'product')->where('item_id', $variant->product_id);
+        if (\App\Models\CampaignItem::hasVariants()) {
+            $q->whereIn('variant_id', [0, $variant->id]);
+        }
+
+        return $q->exists();
     }
 
     public function deleteOffer(PreorderOffer $offer): void

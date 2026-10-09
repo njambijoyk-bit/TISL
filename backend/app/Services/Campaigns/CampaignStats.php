@@ -63,7 +63,7 @@ class CampaignStats
                 continue;
             }
             $rows = DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
-                ->where($col, $it->item_id)->where('v.status', 'posted')->whereIn('t.base_type', ['sales', 'cash_sale', 'credit_note'])->whereBetween('v.date', [$from, $to])
+                ->where($col, $it->item_id)->when((int) $it->variant_id > 0, fn ($w) => $w->where('i.variant_id', (int) $it->variant_id))->where('v.status', 'posted')->whereIn('t.base_type', ['sales', 'cash_sale', 'credit_note'])->whereBetween('v.date', [$from, $to])
                 ->where('i.item_type', '!=', 'charge')->when($it->item_type === 'hamper', fn ($w) => $w->where('i.is_header', true), fn ($w) => $w->where('i.is_header', false)->whereNull('i.parent_item_id'))
                 ->get(['i.amount', 'i.quantity', 'v.exchange_rate', 'v.id as voucher_id', 't.base_type']);
             $amount = 0.0;
@@ -76,7 +76,7 @@ class CampaignStats
                     $orders[$r->voucher_id] = true;
                 }
             }
-            $out['items'][] = ['type' => $it->item_type, 'id' => $it->item_id, 'amount' => round($amount, 2), 'units' => $units];
+            $out['items'][] = ['type' => $it->item_type, 'id' => $it->item_id, 'variant_id' => (int) $it->variant_id, 'amount' => round($amount, 2), 'units' => $units];
             $out['total'] += $amount;
             $out['units'] += $units;
         }
@@ -109,7 +109,7 @@ class CampaignStats
                 continue;
             }
             $rows = DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
-                ->where($col, $it->item_id)->where('v.status', 'posted')->whereIn('t.base_type', ['sales', 'cash_sale', 'credit_note'])->where('v.date', '>=', $since)
+                ->where($col, $it->item_id)->when((int) $it->variant_id > 0, fn ($w) => $w->where('i.variant_id', (int) $it->variant_id))->where('v.status', 'posted')->whereIn('t.base_type', ['sales', 'cash_sale', 'credit_note'])->where('v.date', '>=', $since)
                 ->where('i.item_type', '!=', 'charge')->when($it->item_type === 'hamper', fn ($w) => $w->where('i.is_header', true), fn ($w) => $w->where('i.is_header', false)->whereNull('i.parent_item_id'))
                 ->get(['i.amount', 'i.quantity', 'v.exchange_rate', 'v.id as voucher_id', 'v.meta', 'v.source_voucher_id', 't.base_type']);
             $originals = DB::table('vouchers')->whereIn('id', $rows->where('base_type', 'credit_note')->pluck('source_voucher_id')->filter()->unique()->all())->pluck('meta', 'id');

@@ -125,10 +125,10 @@ class PublicCampaignController extends Controller
         foreach ($sections as $s) {
             $list = $s->type === 'products' ? $items->get($s->id, collect()) : collect();
             foreach ($list as $i) {
-                $want[] = ['item_type' => $i->item_type, 'item_id' => $i->item_id];
+                $want[] = $i->ref();
             }
             $shown[] = ['id' => $s->id, 'type' => $s->type, 'settings' => $s->settings, 'show_from' => $this->iso($s->show_from), 'show_until' => $this->iso($s->show_until),
-                'items' => $list->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id, 'available_from' => $this->iso($i->available_from), 'label_override' => $i->label_override])->values()];
+                'items' => $list->map(fn ($i) => ['item_type' => $i->item_type, 'item_id' => $i->item_id, 'variant_id' => (int) ($i->variant_id ?? 0), 'available_from' => $this->iso($i->available_from), 'label_override' => $i->label_override])->values()];
         }
         $resolved = $this->catalogue->describe($want);
 
