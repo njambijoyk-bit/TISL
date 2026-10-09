@@ -9,7 +9,7 @@ import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/Poli
 import { useCartStore, useAuthStore } from '../../../_shared/store/index';
 import { lineKey } from '../../../_shared/store/cartStore';
 import checkoutAPI from '../../../_shared/api/checkout';
-import { toApiItem } from '../../../_shared/lib/cartItems';
+import { toApiItem, toApiItemWithKind } from '../../../_shared/lib/cartItems';
 import OrderBreakdown from '../../../_shared/components/common/OrderBreakdown';
 import SummaryLedger from '../../../_shared/components/common/SummaryLedger';
 import { creditSentence } from '../../components/admin/books/creditText';
@@ -41,7 +41,8 @@ export default function Checkout() {
   const { items: allItems, removeItem } = useCartStore();
   const [params] = useSearchParams();
   const isPre = params.get('preorder') === '1';   // preorders are checked out on their own, paid in full
-  const items = useMemo(() => allItems.filter((i) => Boolean(i.preorder) === isPre), [allItems, isPre]);
+  const together = params.get('together') === '1';   // ready-now items and preorder items in one go: two orders, one payment
+  const items = useMemo(() => (together ? allItems : allItems.filter((i) => Boolean(i.preorder) === isPre)), [allItems, isPre, together]);
   const itemsRef = useRef(items);
   itemsRef.current = items;
   /** The order is placed: take just these lines out of the cart (a preorder checkout leaves the ready-now lines, and the other way round). */
@@ -99,10 +100,10 @@ export default function Checkout() {
   }, []);
 
   const payload = useCallback(() => ({
-    items: items.map(toApiItem), preorder: isPre || undefined, delivery_method: prefs.delivery_method || undefined,
-    promo_code: prefs.promo_code.trim() || undefined, gift_voucher_code: form.gift_voucher_code.trim() || undefined,
-    gift_voucher_codes: giftPicked ?? undefined,
-  }), [items, isPre, prefs.delivery_method, prefs.promo_code, form.gift_voucher_code, giftPicked]);
+    items: items.map(together ? toApiItemWithKind : toApiItem), preorder: isPre || undefined, together: together || undefined, delivery_method: prefs.delivery_method || undefined,
+    promo_code: prefs.promo_code.trim() || undefined, gift_voucher_code: together ? undefined : form.gift_voucher_code.trim() || undefined,
+    gift_voucher_codes: together ? undefined : giftPicked ?? undefined,
+  }), [items, isPre, together, prefs.delivery_method, prefs.promo_code, form.gift_voucher_code, giftPicked]);
 
   // the books price the cart — refresh whenever anything that changes the price changes
   useEffect(() => {
@@ -130,10 +131,10 @@ export default function Checkout() {
         const a = await checkoutAPI.attempt(pending.attemptId, n % 3 === 0);
         if (a.status === 'confirmed') {
           clearInterval(iv); done.current = true; clearCart(); prefs.reset();
-          toast.success('Payment received — thank you!'); navigate(`/orders/${pending.orderId}`);
+          toast.success('Payment received — thank you!'); navigate(pending.together ? '/orders' : `/orders/${pending.orderId}`);
         } else if (a.status === 'failed' || a.status === 'cancelled') {
           clearInterval(iv); setPending(null); toast.error(a.failure_reason || 'The payment did not go through. Your order is saved — you can pay it from My orders.', { duration: 8000 });
-          done.current = true; clearCart(); prefs.reset(); navigate(`/orders/${pending.orderId}`);
+          done.current = true; clearCart(); prefs.reset(); navigate(pending.together ? '/orders' : `/orders/${pending.orderId}`);
         }
       } catch { /* keep polling */ }
       if (n > 40) clearInterval(iv);
@@ -152,11 +153,11 @@ export default function Checkout() {
         ...payload(), customer_email: form.customer_email, customer_phone: form.customer_phone, shipping_address: form.shipping_address,
         customer_notes: form.customer_notes || undefined, payment_mode: mode === 'ledger' ? 'pay_later' : mode, payment_method_id: mode === 'online' ? methodId : undefined, payment_ledger_id: mode === 'ledger' ? ledgerId : undefined, phone: form.phone || form.customer_phone,
         ...(policies.length ? { policy_acceptances: policies } : {}),
-        ...(credits.length ? { use_credit: credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id) } : {}),
+        ...(credits.length && !together ? { use_credit: credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id) } : {}),
       });
-      if (res.status === 'awaiting_payment') { toast.success(res.message); setPending({ attemptId: res.attempt.id, orderId: res.order.id }); return; }
-      toast.success(res.message);
-      done.current = true; clearCart(); prefs.reset(); navigate(`/orders/${encodeURIComponent(res.order.number ?? res.order.id)}`);
+      if (res.status === 'awaiting_payment') { toast.success(res.message); setPending({ attemptId: res.attempt.id, orderId: res.order.id, together: together || undefined }); return; }
+      toast.success(res.message, { duration: together ? 8000 : undefined });
+      done.current = true; clearCart(); prefs.reset(); navigate(together ? '/orders' : `/orders/${encodeURIComponent(res.order.number ?? res.order.id)}`);
     } catch (err) {
       toast.error(errMsg(err, 'Could not place your order'), { duration: 8000 });
     } finally { setBusy(false); }
@@ -174,7 +175,8 @@ export default function Checkout() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       <Header />
       <div style={{ flex: 1, maxWidth: 1000, margin: '0 auto', padding: '32px 16px', width: '100%', boxSizing: 'border-box' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px' }}>{isPre ? 'Confirm your preorder' : 'Confirm your order'}</h1>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary-500)', margin: '0 0 4px' }}>{together ? 'Confirm your order and preorder' : isPre ? 'Confirm your preorder' : 'Confirm your order'}</h1>
+        {together && <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>You get two orders from this checkout, paid with one payment: the items that are ready now, and the preorder, which is delivered as soon as it arrives (you pay for it in full now).</p>}
         {isPre && <p style={{ margin: '0 0 12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>These items are not in stock yet. You pay in full now and we deliver as soon as they arrive.</p>}
         <p style={{ margin: '0 0 24px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Check everything below, choose how you will pay, and place the order. <Link to="/cart" style={{ color: 'var(--color-primary-500)' }}>Back to cart</Link></p>
 
@@ -198,6 +200,12 @@ export default function Checkout() {
               <div style={{ opacity: quoting ? 0.6 : 1, display: 'grid', gap: 14 }}>
                 <OrderBreakdown quote={quote} linesOnly />
                 <div style={{ maxWidth: 460, marginLeft: 'auto', width: '100%' }}><SummaryLedger quote={quote} /></div>
+                {quote.parts && (
+                  <div style={{ maxWidth: 460, marginLeft: 'auto', width: '100%', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'grid', gap: 3 }}>
+                    <span>Of this total:</span>
+                    {quote.parts.map((p) => <span key={p.kind} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{p.kind === 'ready' ? 'Ready now' : 'Preorder'}</span><strong style={{ color: 'var(--text-primary)' }}>{money(p.total)}</strong></span>)}
+                  </div>
+                )}
               </div>
             )}
             <p style={{ margin: '12px 0 0', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
@@ -230,14 +238,14 @@ export default function Checkout() {
                   <Choice key={m.ledger_id} active={mode === 'ledger' && ledgerId === m.ledger_id} onClick={() => { setMode('ledger'); setLedgerId(m.ledger_id); }} label={m.label}
                     sub={m.kind === 'cod' ? 'Pay the driver when it arrives' : m.kind === 'bank' ? 'Pay by bank transfer — details below' : m.kind === 'mobile' ? 'Pay to our number — details below' : 'Pay in cash'} />
                 ))}
-                {credits.length > 0 && (() => {
+                {credits.length > 0 && !together && (() => {
                   const held = credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).reduce((t, c) => t + c.amount, 0);
                   const covers = quote && held + 0.005 >= Number(quote.total);
                   return <Choice active={mode === 'credit'} onClick={() => setMode('credit')} disabled={!covers} label="Pay from money I have already paid"
                     sub={covers ? `Uses ${money(Math.min(held, Number(quote.total)))} of the ${money(held)} you paid us — nothing more to pay` : `The ticked ${money(held)} does not cover this order (${money(quote?.total ?? 0)})`} />;
                 })()}
                 <Choice active={mode === 'pay_later'} onClick={() => setMode('pay_later')} label="Pay later" sub="Place the order; we'll agree how you pay" />
-                {opts?.account && !isPre && (
+                {opts?.account && !isPre && !together && (
                   <Choice active={mode === 'account'} onClick={() => setMode('account')} disabled={opts.account.available_base <= 0}
                     label="Charge to my account" sub={opts.account.available_base > 0 ? `Invoiced now · due in ${opts.account.terms_days} days · ${formatMoney(opts.account.available_base, opts.base_currency.code)} available` : 'No credit available'} />
                 )}
@@ -258,7 +266,7 @@ export default function Checkout() {
                   <input value={form.phone} onChange={set('phone')} placeholder="07XX XXX XXX" style={input} />
                 </div>
               )}
-              {gifts.length > 0 && (
+              {gifts.length > 0 && !together && (
                 <div style={{ marginTop: 14 }}>
                   <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> Your gift vouchers{mode === 'pay_later' && <span style={{ fontWeight: 400, color: 'var(--text-secondary)' }}> — nothing is spent now; applied when your order is paid</span>}</label>
                   <div style={{ display: 'grid', gap: 6 }}>
@@ -276,7 +284,7 @@ export default function Checkout() {
                   </div>
                 </div>
               )}
-              {credits.length > 0 && (
+              {credits.length > 0 && !together && (
                 <div style={{ marginTop: 14 }}>
                   <label style={label}>Money you have paid us</label>
                   <div style={{ display: 'grid', gap: 6 }}>
@@ -291,7 +299,7 @@ export default function Checkout() {
                   <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'var(--text-secondary)' }}>Nothing is used now; it is taken off when your order becomes an invoice.</p>
                 </div>
               )}
-              {opts?.gift_vouchers_enabled && (
+              {opts?.gift_vouchers_enabled && !together && (
                 <div style={{ marginTop: 14 }}>
                   <label style={label}><Gift size={12} style={{ verticalAlign: -2 }} /> {gifts.length ? 'Another gift voucher code' : 'Gift voucher code'}</label>
                   <input value={form.gift_voucher_code} onChange={set('gift_voucher_code')} placeholder="Optional" style={input} />
