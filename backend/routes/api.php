@@ -146,6 +146,8 @@ Route::post('/bug-reports/screenshot', [BugReportController::class, 'uploadScree
 Route::post('/search-events', [SearchEventController::class, 'store']);
 
 // Campaigns, public: the list, the homepage one, and a campaign by its address (the Campaigns module; a signed-in visitor, if any, is read for audience rules)
+// The pull door: another company's viewer fetches a sealed export with a key made in Other companies > Keys
+Route::get('/exchange/export', [\App\Http\Controllers\Api\ExchangeController::class, 'pull'])->middleware(['exchange.key', 'throttle:10,1']);
 Route::get('/preorders/states', [\App\Http\Controllers\Api\PreorderController::class, 'states'])->middleware('module:campaigns')->middleware('throttle:120,1');
 Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
     $c = \App\Http\Controllers\Api\PublicCampaignController::class;
@@ -1033,6 +1035,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}',          [$c, 'destroy'])->whereNumber('id');
         });
 
+        Route::prefix('exchange')->group(function () {   // books exchange: .wnkjap files out, other companies' files opened in the browser (nothing of theirs is stored)
+            $c = \App\Http\Controllers\Api\ExchangeController::class;
+            Route::get('/options',                     [$c, 'options'])->middleware('permission:imports.view,imports.export');
+            Route::post('/export',                     [$c, 'exportFile'])->middleware('permission:imports.export');
+            Route::get('/keys',                        [$c, 'keys'])->middleware('permission:imports.export');
+            Route::post('/keys',                       [$c, 'makeKey'])->middleware('permission:imports.export');
+            Route::delete('/keys/{id}',                [$c, 'revokeKey'])->whereNumber('id')->middleware('permission:imports.export');
+            Route::get('/connections',                 [$c, 'connections'])->middleware('permission:imports.view');
+            Route::post('/connections',                [$c, 'saveConnection'])->middleware('permission:imports.manage');
+            Route::put('/connections/{id}',            [$c, 'saveConnection'])->whereNumber('id')->middleware('permission:imports.manage');
+            Route::delete('/connections/{id}',         [$c, 'deleteConnection'])->whereNumber('id')->middleware('permission:imports.manage');
+            Route::post('/connections/{id}/fetch',     [$c, 'fetch'])->whereNumber('id')->middleware('permission:imports.view');
+        });
         Route::prefix('preorders')->group(function () {
             $c = \App\Http\Controllers\Api\PreorderController::class;
             Route::get('/waiting',       [$c, 'waiting'])->middleware('permission:stock.view,books.view');

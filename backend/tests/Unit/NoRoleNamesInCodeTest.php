@@ -194,6 +194,9 @@ class NoRoleNamesInCodeTest extends TestCase
         'bookings.manage' => ['super_admin', 'admin', 'manager', 'sales_rep'],
         'costcentres.view' => ['super_admin', 'admin', 'manager', 'finance'],
         'costcentres.manage' => ['super_admin', 'admin', 'finance'],
+        'imports.view' => ['super_admin', 'admin', 'finance'],
+        'imports.export' => ['super_admin', 'admin'],
+        'imports.manage' => ['super_admin', 'admin'],
     ];
 
     public function test_the_original_roles_hold_what_the_old_lists_gave_them(): void

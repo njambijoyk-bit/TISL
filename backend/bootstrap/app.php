@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'applicant' => \App\Http\Middleware\EnsureApplicant::class,
             'module' => \App\Http\Middleware\EnsureModuleActive::class,
+            'exchange.key' => \App\Http\Middleware\ExchangeKeyAuth::class,
         ]);
 
         // ?currency=USD / X-Currency header -> display currency for every API response

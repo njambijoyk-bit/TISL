@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 5;
+    public const VERSION = 6;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        6 => ['imports.view', 'imports.export', 'imports.manage'],
         5 => ['costcentres.view', 'costcentres.manage'],
         4 => ['customers.view', 'customers.manage', 'customers.tiers', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'auctions.manage', 'shipping.manage',
             'content.manage', 'tickets.manage', 'bookings.manage'],
@@ -186,6 +187,10 @@ class Catalog
         // cost centres (version 5)
         'costcentres.view'  => [null, 'Books', 'See the cost centres and their defaults', false],
         'costcentres.manage' => [null, 'Books', 'Add, change and nest cost centres and set their defaults', true],
+        // other companies' books (version 6): opened from a file or a fetch, never stored
+        'imports.view'      => [null, 'Books', 'Open another company\'s books from a .wnkjap file or a connection (view only, nothing is stored)', false],
+        'imports.export'    => [null, 'Books', 'Make .wnkjap exports of these books and the keys other companies fetch them with', true],
+        'imports.manage'    => [null, 'Books', 'Keep the connections to other companies\' sites', true],
     ];
 
     /** What the admin role does not hold by default (the owner holds everything, and builds roles that hold these). Admin gets everything else. */
@@ -226,7 +231,7 @@ class Catalog
                 'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'books.review', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage', 'credit.act',
                     'campaigns.build', 'catalogue.pricelists', 'menus.view', 'menus.manage', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
                     'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
-                    'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage']),
+                    'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage', 'imports.view']),
                 'approvals' => ['journal.approve' => null, 'purchase.approve' => null, 'refund.approve' => null], 'sort' => 30],
             'manager' => ['name' => 'Manager', 'kind' => 'staff', 'min_clearance' => 3, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Manages a branch: the default one plus any granted.', 'modules' => ['*'],
@@ -240,7 +245,7 @@ class Catalog
                 'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage',
                     'menus.view', 'menus.manage', 'campaigns.build', 'catalogue.pricelists', 'credit.act', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
                     'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
-                    'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage']),
+                    'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage', 'imports.view']),
                 'approvals' => [], 'sort' => 50],
             'logistics' => ['name' => 'Logistics', 'kind' => 'staff', 'min_clearance' => 2, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Runs deliveries.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['delivery.manage', 'hr.view', 'customers.view', 'quotes.view', 'catalogue.view', 'shipping.manage', 'tickets.manage']), 'approvals' => [], 'sort' => 60],
