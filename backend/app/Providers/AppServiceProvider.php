@@ -110,6 +110,18 @@ class AppServiceProvider extends ServiceProvider
             }
         }
 
+        // Email settings saved on the Notifications screen win over .env; a queue worker re-reads them before every job so a change needs no restart.
+        if (! $this->app->runningUnitTests()) {
+            try {
+                if (\App\Services\Notify\NotifySettings::ready()) {
+                    $this->app->make(\App\Services\Notify\MailConfigurator::class)->apply();
+                    \Illuminate\Support\Facades\Queue::before(fn () => $this->app->make(\App\Services\Notify\MailConfigurator::class)->apply());
+                }
+            } catch (\Throwable) {
+                // script 108 not run yet: the .env mail settings stay
+            }
+        }
+
         // Seed new variants across branches + keep the product stock total auto-calculated.
         \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
         \App\Models\User::observe(\App\Observers\UserAccessObserver::class);

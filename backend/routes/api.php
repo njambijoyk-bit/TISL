@@ -1052,6 +1052,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/connections/{id}',         [$c, 'deleteConnection'])->whereNumber('id')->middleware('permission:imports.manage');
             Route::post('/connections/{id}/fetch',     [$c, 'fetch'])->whereNumber('id')->middleware('permission:imports.view');
         });
+        Route::prefix('notifications')->group(function () {   // the notification system: settings (email, later WhatsApp), their history, the log of every action, the delivery log
+            $c = \App\Http\Controllers\Api\NotificationSettingsController::class;
+            Route::get('/settings',                                    [$c, 'show'])->middleware('permission:notifications.view,notifications.settings');
+            Route::put('/settings/{part}',                             [$c, 'update'])->middleware('permission:notifications.settings');
+            Route::post('/settings/email/test',                        [$c, 'testEmail'])->middleware('permission:notifications.send,notifications.settings')->middleware('throttle:10,1');
+            Route::post('/settings/purge-keys',                        [$c, 'purgeKeys'])->middleware('permission:notifications.keys.purge');
+            Route::post('/settings/{part}/reset',                      [$c, 'reset'])->middleware('permission:notifications.settings');
+            Route::get('/settings/{part}/versions',                    [$c, 'versions'])->middleware('permission:notifications.view,notifications.settings');
+            Route::post('/settings/{part}/versions/{id}/rollback',     [$c, 'rollback'])->whereNumber('id')->middleware('permission:notifications.settings');
+            Route::get('/log',                                         [$c, 'log'])->middleware('permission:notifications.view');
+            Route::get('/deliveries',                                  [$c, 'deliveries'])->middleware('permission:notifications.view');
+            Route::post('/deliveries/{id}/retry',                      [$c, 'retry'])->whereNumber('id')->middleware('permission:notifications.send');
+        });
+
         Route::prefix('preorders')->group(function () {
             $c = \App\Http\Controllers\Api\PreorderController::class;
             Route::get('/waiting',       [$c, 'waiting'])->middleware('permission:stock.view,books.view');

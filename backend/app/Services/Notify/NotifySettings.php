@@ -7,6 +7,7 @@ use App\Models\NotificationSettingLog;
 use App\Models\NotificationSettingVersion;
 use App\Models\User;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -46,16 +47,18 @@ class NotifySettings
 
     private static ?array $cache = null;
 
+    /** Has script 108 been run? Remembered for a few minutes so a request does not ask the database every time (not in tests, which build their own tables). */
     public static function ready(): bool
     {
-        static $ready;
+        $check = fn () => Schema::hasTable('notification_settings') && Schema::hasTable('notification_setting_versions') && Schema::hasTable('notification_setting_logs');
 
-        return $ready ??= Schema::hasTable('notification_settings') && Schema::hasTable('notification_setting_versions') && Schema::hasTable('notification_setting_logs');
+        return app()->runningUnitTests() ? $check() : (bool) Cache::remember('notify_settings_ready', 300, $check);
     }
 
     public static function forget(): void
     {
         self::$cache = null;
+        Cache::forget('notify_settings_ready');
     }
 
     private function row(): ?NotificationSetting

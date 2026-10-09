@@ -307,7 +307,7 @@ class Notification extends Model
         array $channels = ['database'],
         string $priority = 'normal'
     ): self {
-        return self::create([
+        $n = self::create([
             'notifiable_type' => get_class($notifiable),
             'notifiable_id' => $notifiable->id,
             'type' => $type,
@@ -319,6 +319,13 @@ class Notification extends Model
             'channels' => $channels,
             'priority' => $priority,
         ]);
+
+        // a caller that names the email channel now really gets it sent (queued, through the mail settings saved on the screen)
+        if (in_array('email', $channels, true)) {
+            app(\App\Services\Notify\Notifier::class)->deliverExisting($n);
+        }
+
+        return $n;
     }
 
     /**
