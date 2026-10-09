@@ -40,7 +40,7 @@ Staff may take a preorder in the shop from the voucher form: a "Preorder (don't 
 | 7 | Reservation is **per branch**: the order's branch is the branch whose stock fills it. |
 | 8 | Customers outside the offer's audience see **"Coming soon"** (the campaign item's `available_from`). With no offer: plain "Out of Stock". |
 | 9 | The offer inherits the campaign's dates, audience and early access. |
-| 10 | Hampers need no flag: a hamper offer is allowed only when every component is in stock at the branch or preorderable there. (After v1: hampers wait.) |
+| 10 | Hampers need no flag: a hamper offer is allowed only when every component is in stock at the branch or preorderable there. (Built after v1: see "As built".) |
 | 11 | Single-branch shops stay simple: no branch choices shown anywhere in this feature. |
 | 12 | Limit per offer: one total for all branches. |
 
@@ -92,7 +92,7 @@ Lists open preorder lines by item, oldest first, with a supply panel for the ord
 1. Database script 103; backend service; the convert rule; admin and public APIs.
 2. Admin screens: offers on a campaign's products, branch flag, Preorders waiting, counter-staff switch.
 3. Storefront: Preorder and Coming soon states, separate preorder checkout.
-4. Later: link an offer to a purchase order, delay notices, a preorder dashboard, customer self-cancel, hampers, mixed-cart checkout, per-customer maximum, shipping for preorders arriving on different days.
+4. Later: link an offer to a purchase order, delay notices, a preorder dashboard, customer self-cancel, mixed-cart checkout, per-customer maximum, shipping for preorders arriving on different days.
 
 ## As built
 
@@ -103,4 +103,5 @@ Lists open preorder lines by item, oldest first, with a supply panel for the ord
 - **Staff**: Campaign editor → *Preorders* (offers, limits, dates, terms, which branches take them), Orders → *Preorders waiting* (supply panel, deliver what stock allows, send stock from another branch, take a preorder at the counter, paid-not-delivered figure). The same figure shows on Profit & loss.
 - **Storefront**: cards and the product page show *Preorder* / *Coming soon* instead of *Out of Stock* (one batched request per page, remembered per branch); a preorder is its own cart line, the cart has *Ready now* and *Preorder* sections each with its own checkout, `/checkout?preorder=1`; My Orders shows delivery progress and the expected date.
 - Uses existing permissions: `campaigns.build` (offers), `stock.manage` (branch switch, deliver, send), `stock.view,books.view` (waiting), `books.post` (counter).
-- Not done (later): customer self-cancel, hampers, mixed cart, per-customer maximum, linking an offer to a purchase order, delay notices, preorder dashboard.
+- **Hampers** (no new script; works through the components' own offers). A hamper is judged at its own branch from its components: **buy** when every component is in stock; **preorder** when each short component has an open offer, with the branch switch on, in a live campaign that features the hamper; **coming soon** when such an offer opens later; otherwise **out of stock** (`PreorderService::hamperState`). Places left = the fewest of (component places ÷ quantity per hamper); the expected date is the latest of the components'. A new offer may be made on a component of a hamper the campaign features (`featured`). Placing: `assertPlaceable` takes per-line branches; a hamper's components that are already in stock are **set aside with no offer** (`preorder_lines.offer_id = 0`) so nobody else can buy them while the rest arrives; the checkout preorder cart takes products and hampers (not gift vouchers). Delivery notes, Preorders waiting, credit notes and paid-not-delivered work on the component lines as before. Storefront: *Preorder* / *Coming soon* / *Out of stock* on the hamper list and page; campaign editor: each featured hamper lists its parts (in stock / offer / nothing covers it) and offers the form for the uncovered ones (`GET /admin/campaigns/{id}/hamper-readiness`). Not enforced: the normal (non-preorder) checkout does not re-check component stock on the server, the same as plain products.
+- Not done (later): customer self-cancel, mixed cart, per-customer maximum, linking an offer to a purchase order, delay notices, preorder dashboard.

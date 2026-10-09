@@ -13,6 +13,7 @@ import { formatMoney } from '../../../_shared/lib/money';
 import Discussion from '../../../extras/components/engagement/Discussion';
 import useEngagement from '../../../_shared/lib/engagementConfig';
 import ItemBrochureButton from '../../components/catalogue/ItemBrochureButton';
+import useHamperPreorder, { expectedText } from '../../../_shared/hooks/useHamperPreorder';
 
 // Amount in a given currency (object or ISO code); nothing → KSh, as before
 const fmt = (n, cur) => formatMoney(n ?? 0, cur?.symbol || cur?.code || cur || 'KSh', { decimals: 'auto' });
@@ -27,6 +28,7 @@ export default function HamperDetail() {
   const [loading, setLoading] = useState(true);
   const [blocked, setBlocked] = useState(null);
   const reviewsOn = useEngagement().on('hamper', 'review');
+  const pre = useHamperPreorder(hamper?.id ? [hamper.id] : [])[hamper?.id];   // when a part of the hamper is out of stock
 
   useEffect(() => {
     if (!isAuthenticated) { navigate(`/login?redirect=/hampers/${slug}`); return; }
@@ -82,6 +84,8 @@ export default function HamperDetail() {
   const soldOut     = hamper.is_sold_out;
   const atLimit     = hamper.at_purchase_limit;
   const canPurchase = hamper.can_purchase;
+  const preorderOn  = canPurchase && pre?.state === 'preorder';
+  const shortOfStock = canPurchase && (pre?.state === 'coming_soon' || pre?.state === 'out');
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
@@ -223,8 +227,42 @@ export default function HamperDetail() {
                 ))}
               </div>
 
+              {/* Stock of the parts: a hamper with a part out of stock is a preorder, coming soon, or out of stock */}
+              {preorderOn && (
+                <div style={{ marginBottom: 14, padding: '10px 12px', borderRadius: 8, background: 'color-mix(in srgb, var(--color-primary-500) 7%, transparent)', fontSize: '0.78rem', color: '#374151', display: 'grid', gap: 3 }}>
+                  <strong style={{ color: 'var(--color-primary-600)' }}>Available to preorder</strong>
+                  <span>Pay in full now; we deliver as soon as everything in it has arrived.</span>
+                  {expectedText(pre.offer) && <span>{expectedText(pre.offer)}.</span>}
+                  {pre.offer?.places_left != null && <span>{pre.offer.places_left} place{pre.offer.places_left === 1 ? '' : 's'} left.</span>}
+                  {pre.offer?.closes_at && <span>Preorders close {new Date(pre.offer.closes_at).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}.</span>}
+                  {pre.offer?.terms && <span style={{ color: '#6b7280' }}>{pre.offer.terms}</span>}
+                </div>
+              )}
+
               {/* CTA */}
-              {canPurchase ? (
+              {preorderOn ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const left = pre.offer?.places_left;
+                    if (left != null && left < 1) { toast.error('No places left'); return; }
+                    addItem({
+                      id: `hamper-${hamper.id}`, hamper_id: hamper.id, line_key: `h:${hamper.id}#preorder`, name: hamper.name,
+                      price: hamper.display_price ?? hamper.price, image_url: hamper.cover_image, is_hamper: true, currency: hamper.currency,
+                      preorder: true, preorder_expected: pre.offer?.expected_until ?? null,
+                    }, 1);
+                    toast.success(`${hamper.name} added to your cart as a preorder`);
+                    navigate('/cart');
+                  }}
+                  style={{
+                    width: '100%', padding: '14px', borderRadius: 12, fontSize: '0.9rem', fontWeight: 800,
+                    border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: accent, color: 'white',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  }}
+                >
+                  <ShoppingBag size={16} /> Preorder now
+                </button>
+              ) : canPurchase && !shortOfStock ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -246,7 +284,7 @@ export default function HamperDetail() {
               ) : (
                 <div style={{ padding: '14px', borderRadius: 12, background: '#f3f4f6', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#6b7280' }}>
-                    {soldOut ? 'Sold Out' : atLimit ? 'Max reached — you have redeemed this hamper as many times as allowed' : 'Unavailable'}
+                    {soldOut ? 'Sold Out' : atLimit ? 'Max reached — you have redeemed this hamper as many times as allowed' : pre?.state === 'coming_soon' ? 'Coming soon' : shortOfStock ? 'Out of stock' : 'Unavailable'}
                   </p>
                 </div>
               )}

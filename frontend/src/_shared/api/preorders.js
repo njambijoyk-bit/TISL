@@ -7,8 +7,12 @@ const preordersAPI = {
   /** { products: { [productId]: { state, variant_id, offer } } } for product cards */
   productStates: (productIds, locationId) => api.get('/preorders/states', { params: { product_ids: productIds, location_id: locationId || undefined } }).then((r) => r.data),
 
+  /** { [hamperId]: { state: buy|preorder|coming_soon|out, offer, blocked } } judged from the hamper's components at the hamper's own branch */
+  hamperStates: (hamperIds) => api.get('/preorders/states', { params: { hamper_ids: hamperIds } }).then((r) => r.data.hampers ?? {}),
+
   // --- a campaign's offers
   variants: (productId) => api.get('/admin/campaigns/preorder-variants', { params: { product_id: productId } }).then((r) => r.data),
+  hamperReadiness: (campaignId) => api.get(`/admin/campaigns/${campaignId}/hamper-readiness`).then((r) => r.data),
   offers: (campaignId) => api.get(`/admin/campaigns/${campaignId}/preorder-offers`).then((r) => r.data),
   saveOffer: (campaignId, d) => api.post(`/admin/campaigns/${campaignId}/preorder-offers`, d).then((r) => r.data),
   updateOffer: (campaignId, id, d) => api.put(`/admin/campaigns/${campaignId}/preorder-offers/${id}`, d).then((r) => r.data),

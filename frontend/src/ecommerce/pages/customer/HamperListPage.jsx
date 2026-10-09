@@ -8,8 +8,9 @@ import { useAuthStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import BranchBadge from '../../components/storefront/BranchBadge';
+import useHamperPreorder, { expectedText } from '../../../_shared/hooks/useHamperPreorder';
 
-function HamperCard({ hamper, onClick }) {
+function HamperCard({ hamper, onClick, pre }) {
   const money = useMoney();   // hamper price in the shopper's chosen currency
   const accent     = hamper.accent_color || 'var(--color-primary-500)';
   const accentFade = `${accent}18`;
@@ -52,6 +53,12 @@ function HamperCard({ hamper, onClick }) {
             <span style={{ background: '#111827', color: 'white', padding: '6px 16px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.08em' }}>SOLD OUT</span>
           </div>
         )}
+        {!soldOut && pre && pre.state !== 'buy' && (
+          <span style={{ position: 'absolute', top: 10, right: 10, padding: '4px 12px', borderRadius: 99, fontSize: '0.7rem', fontWeight: 800, color: 'white',
+            background: pre.state === 'preorder' ? 'var(--color-primary-500)' : pre.state === 'coming_soon' ? '#3b82f6' : '#ef4444' }}>
+            {pre.state === 'preorder' ? 'Preorder' : pre.state === 'coming_soon' ? 'Coming soon' : 'Out of stock'}
+          </span>
+        )}
         {atLimit && !soldOut && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <span style={{ background: '#6b7280', color: 'white', padding: '6px 16px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 800 }}>MAX REDEMPTIONS MET</span>
@@ -78,6 +85,10 @@ function HamperCard({ hamper, onClick }) {
           <ShoppingBag size={12} />
           {hamper.items?.length ?? 0} item{(hamper.items?.length ?? 0) !== 1 ? 's' : ''} included
         </div>
+
+        {pre?.state === 'preorder' && !soldOut && (
+          <div style={{ fontSize: '0.72rem', color: 'var(--color-primary-600)', fontWeight: 600 }}>Available to preorder{expectedText(pre.offer) ? ` · ${expectedText(pre.offer).toLowerCase()}` : ''}</div>
+        )}
 
         {/* Validity */}
         {hamper.valid_until && (
@@ -118,6 +129,7 @@ export default function HamperListPage() {
   const { isAuthenticated } = useAuthStore();
   const [hampers, setHampers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const preStates = useHamperPreorder(hampers.map((h) => h.id));
 
   useEffect(() => {
     if (!isAuthenticated) { navigate('/login?redirect=/hampers'); return; }
@@ -160,6 +172,7 @@ export default function HamperListPage() {
               <HamperCard
                 key={hamper.id}
                 hamper={hamper}
+                pre={preStates[hamper.id]}
                 onClick={() => navigate(`/hampers/${hamper.slug}`)}
               />
             ))}

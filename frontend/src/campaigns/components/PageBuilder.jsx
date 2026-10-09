@@ -27,7 +27,7 @@ const rows = (sections, items) => sections.map((s) => ({
   items: items.filter((i) => i.section_id === s.id).map((i) => ({ item_type: i.item_type, item_id: i.item_id, variant_id: i.variant_id ?? 0, available_from: toLocal(i.available_from), label_override: i.label_override ?? '' })),
 }));
 
-function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, resolved, setResolved, world, offers, savedKeys, canEdit, onOffersChanged }) {
+function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, resolved, setResolved, world, offers, hampers, savedKeys, canEdit, onOffersChanged }) {
   const st = s.settings;
   const put = (k) => (e) => set({ settings: { ...st, [k]: e?.target ? e.target.value : e } });
   const [uploading, setUploading] = useState(false);
@@ -142,7 +142,7 @@ function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, res
             <Field label="Coming soon until"><TextInput type="datetime-local" value={it.available_from} onChange={(e) => setItems(s.items.map((x, k) => (k === i ? { ...x, available_from: e.target.value } : x)))} /></Field>
             <Field label="Own label"><TextInput value={it.label_override} onChange={(e) => setItems(s.items.map((x, k) => (k === i ? { ...x, label_override: e.target.value } : x)))} placeholder="Optional" /></Field>
             <button type="button" aria-label="Remove" style={{ ...btnGhost, padding: 8 }} onClick={() => setItems(s.items.filter((_, k) => k !== i))}><Trash2 size={14} /></button>
-            {ecommerce && <ItemOffer campaignId={campaignId} it={it} r={r} saved={savedKeys.has(ik)} offers={offers} canEdit={canEdit} onChanged={onOffersChanged} />}
+            {ecommerce && <ItemOffer campaignId={campaignId} it={it} r={r} saved={savedKeys.has(ik)} offers={offers} hampers={hampers} canEdit={canEdit} onChanged={onOffersChanged} />}
           </div>
         );
       })}
@@ -160,7 +160,9 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
   const [adding, setAdding] = useState(false);
   const [world, setWorld] = useState({ boards: [], moodboards: [] });
   const [offers, setOffers] = useState(null);
+  const [hampers, setHampers] = useState(null);   // for each saved hamper: which parts are in stock, covered by an offer, or not covered
   useEffect(() => { if (ecommerce) preordersAPI.offers(campaign.id).then(setOffers).catch(() => setOffers(null)); }, [campaign.id, ecommerce, offersTick]);
+  useEffect(() => { if (ecommerce) preordersAPI.hamperReadiness(campaign.id).then(setHampers).catch(() => setHampers(null)); }, [campaign.id, ecommerce, offersTick, initialItems]);
   const savedKeys = useMemo(() => new Set(initialItems.map((i) => itemKey(i.item_type, i.item_id, i.variant_id))), [initialItems]);
   useEffect(() => { campaignsAPI.worldOptions().then(setWorld).catch(() => {}); }, []);
   const dragFrom = useRef(null);
@@ -209,7 +211,7 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
             {s.open && (
               <div style={{ padding: '4px 14px 14px', display: 'grid', gap: 14, borderTop: '1px solid var(--line)' }}>
                 <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: '12px 0 0', minWidth: 0 }}>
-                  <SectionForm s={s} set={(p) => patch(s.key, p)} campaignId={campaign.id} maxVideoMb={maxVideoMb} ecommerce={ecommerce} itemTypes={itemTypes} resolved={resolved} setResolved={setResolved} world={world} offers={offers} savedKeys={savedKeys} canEdit={canEdit} onOffersChanged={onOffersChanged} />
+                  <SectionForm s={s} set={(p) => patch(s.key, p)} campaignId={campaign.id} maxVideoMb={maxVideoMb} ecommerce={ecommerce} itemTypes={itemTypes} resolved={resolved} setResolved={setResolved} world={world} offers={offers} hampers={hampers} savedKeys={savedKeys} canEdit={canEdit} onOffersChanged={onOffersChanged} />
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--line)' }}>
                     <Field label="Show from" hint="Empty = from the start. A teaser can reveal a section a day."><TextInput type="datetime-local" value={s.show_from} onChange={(e) => patch(s.key, { show_from: e.target.value })} /></Field>
                     <Field label="Show until" hint="Empty = for as long as the campaign shows."><TextInput type="datetime-local" value={s.show_until} onChange={(e) => patch(s.key, { show_until: e.target.value })} /></Field>
