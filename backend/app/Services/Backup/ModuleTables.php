@@ -79,7 +79,7 @@ final class ModuleTables
             'tickets', 'ticket_replies',
             'content_pages', 'content_sections', 'component_layouts',
             'policies', 'policy_acceptances', 'policy_change_logs',
-            'notifications',
+            'notifications', 'notification_settings', 'notification_setting_versions', 'notification_setting_logs', 'notification_deliveries',
             // Themes / appearance
             'colourings', 'icon_styles', 'appearance_fonts', 'user_appearance_preferences',
             // Mimi AI
