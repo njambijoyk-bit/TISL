@@ -24,6 +24,7 @@ class NotificationTypes
         'quote_received' => ['Quotation ready', true, 'customer'],
         'quote_accepted' => ['Quotation accepted', true, 'customer'],
         'quotation_requested' => ['New quotation request', false, 'staff'],
+        'back_in_stock' => ['Back in stock (asked for)', true, 'customer'],   // essential: the customer asked for exactly this, so "essential messages only" must not silence it
         'stock_recall' => ['Product recall', true, 'customer'],
         'referral_earned' => ['Referral reward', false, 'customer'],
         'account_created' => ['Account created', true, 'customer'],

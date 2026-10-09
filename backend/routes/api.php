@@ -246,6 +246,14 @@ Route::prefix('checkout')->group(function () {
     Route::post('/place', [CheckoutController::class, 'place']);
 });
 
+// "Tell me when it is back" — open to guests; throttled; the link in the email stops the alerts
+Route::prefix('stock-watches')->group(function () {
+    Route::post('/', [\App\Http\Controllers\Api\StockWatchController::class, 'store'])->middleware('throttle:10,1');
+    Route::get('/enabled', [\App\Http\Controllers\Api\StockWatchController::class, 'enabled']);
+    Route::get('/{token}', [\App\Http\Controllers\Api\StockWatchController::class, 'show'])->middleware('throttle:30,1');
+    Route::post('/{token}/stop', [\App\Http\Controllers\Api\StockWatchController::class, 'stop'])->middleware('throttle:30,1');
+});
+
 // Public shipping options (for checkout)
 Route::get('/shipping-options', [ShippingOptionController::class, 'publicIndex']);
 
@@ -1075,6 +1083,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/deliveries',                                  [$c, 'deliveries'])->middleware('permission:notifications.view');
             Route::post('/deliveries/{id}/retry',                      [$c, 'retry'])->whereNumber('id')->middleware('permission:notifications.send');
             Route::get('/whatsapp',                                    [$c, 'whatsapp'])->middleware('permission:notifications.view');
+            Route::get('/stock-alerts',                                [\App\Http\Controllers\Api\StockWatchController::class, 'overview'])->middleware('permission:notifications.view');
+            Route::post('/stock-alerts/{variant}/tell',                [\App\Http\Controllers\Api\StockWatchController::class, 'tell'])->whereNumber('variant')->middleware('permission:notifications.send');
             Route::post('/deliveries/{id}/mark-sent',                  [$c, 'markSent'])->whereNumber('id')->middleware('permission:notifications.send');
             Route::post('/deliveries/{id}/skip',                       [$c, 'skip'])->whereNumber('id')->middleware('permission:notifications.send');
         });

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ChargedInBadge from '../../../_shared/components/common/ChargedInBadge';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import preordersAPI from '../../../_shared/api/preorders';
+import StockAlertForm from '../../components/storefront/products/StockAlertForm';
 import useLocationStore from '../../../_shared/store/locationStore';
 import { isModuleActive, MODULES } from '../../../_shared/navigation/modules';
 import { Helmet } from 'react-helmet-async';
@@ -643,6 +644,7 @@ export default function ProductDetail() {
                     {pre.offer?.terms && <span style={{ color: '#6b7280' }}>{pre.offer.terms}</span>}
                   </div>
                 )}
+                {!inStock && !preorderOn && !(hasStructured && !choice) && <StockAlertForm productId={product.id} variantId={choice?.variant?.id} />}
                 {product.expiry_badge && inStock && (
                   <div style={{ padding: '0 20px 12px', fontSize: '0.8rem', color: '#92400e', fontWeight: 600 }}>
                     {product.clearance_percent ? `Clearance −${Math.round(product.clearance_percent)}% · ` : ''}Expires {new Date(product.expiry_badge).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}

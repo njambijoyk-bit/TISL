@@ -33,7 +33,8 @@ class NotifySettings
         'whatsapp' => ['meta.access_token', 'meta.app_secret', 'meta.verify_token', 'twilio.auth_token'],
     ];
     public const DEFAULTS = [
-        'general' => ['default_mode' => 'both', 'email_enabled' => true, 'whatsapp_enabled' => false, 'whatsapp_number_sources' => 'both', 'essential_only_default' => false],
+        'general' => ['default_mode' => 'both', 'email_enabled' => true, 'whatsapp_enabled' => false, 'whatsapp_number_sources' => 'both', 'essential_only_default' => false,
+            'back_in_stock_enabled' => true, 'back_in_stock_mode' => 'stock', 'back_in_stock_hold_hours' => 24],
         'types' => ['rules' => []],
         'email' => ['driver' => 'smtp', 'host' => '', 'port' => 587, 'encryption' => 'tls', 'username' => '', 'password' => '', 'from_name' => '', 'from_address' => '', 'reply_to' => '', 'copy_to' => ''],
         'whatsapp' => ['provider' => null, 'auto' => false, 'language' => 'en',
@@ -42,7 +43,7 @@ class NotifySettings
     ];
     /** What a field is called on screen, for the history in words. */
     private const LABELS = ['default_mode' => 'default mode', 'email_enabled' => 'email on/off', 'whatsapp_enabled' => 'WhatsApp on/off', 'whatsapp_number_sources' => 'which numbers count',
-        'essential_only_default' => 'essential only (default)', 'from_name' => 'sender name', 'from_address' => 'sender address', 'reply_to' => 'reply-to', 'copy_to' => 'copy-to',
+        'essential_only_default' => 'essential only (default)', 'back_in_stock_enabled' => 'back-in-stock alerts on/off', 'back_in_stock_mode' => 'back-in-stock who is told', 'back_in_stock_hold_hours' => 'back-in-stock hold (hours)', 'from_name' => 'sender name', 'from_address' => 'sender address', 'reply_to' => 'reply-to', 'copy_to' => 'copy-to',
         'rules' => 'type rules', 'phone_number_id' => 'phone number ID', 'business_account_id' => 'business account ID', 'account_sid' => 'account SID', 'messaging_service_sid' => 'messaging service'];
 
     private static ?array $cache = null;
@@ -203,7 +204,8 @@ class NotifySettings
     {
         $rules = match ($part) {
             'general' => ['default_mode' => 'sometimes|in:email,whatsapp,both', 'email_enabled' => 'sometimes|boolean', 'whatsapp_enabled' => 'sometimes|boolean',
-                'whatsapp_number_sources' => 'sometimes|in:profile,checkout,both', 'essential_only_default' => 'sometimes|boolean'],
+                'whatsapp_number_sources' => 'sometimes|in:profile,checkout,both', 'essential_only_default' => 'sometimes|boolean',
+                'back_in_stock_enabled' => 'sometimes|boolean', 'back_in_stock_mode' => 'sometimes|in:stock,all,manual', 'back_in_stock_hold_hours' => 'sometimes|integer|between:1,168'],
             'types' => ['rules' => 'sometimes|array', 'rules.*.enabled' => 'sometimes|boolean', 'rules.*.channels' => 'nullable|array', 'rules.*.channels.*' => 'in:email,whatsapp', 'rules.*.template' => 'nullable|string|max:120', 'rules.*.variables' => 'nullable|array|max:10', 'rules.*.variables.*' => 'in:name,title,message,company,link'],
             'email' => ['driver' => 'sometimes|in:smtp', 'host' => 'sometimes|nullable|string|max:190', 'port' => 'sometimes|integer|between:1,65535', 'encryption' => 'sometimes|in:tls,ssl,none',
                 'username' => 'sometimes|nullable|string|max:190', 'password' => 'sometimes|nullable|string|max:300', 'from_name' => 'sometimes|nullable|string|max:120',

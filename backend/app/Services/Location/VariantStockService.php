@@ -254,7 +254,11 @@ class VariantStockService
                     $changes['sellable_quantity'] = $buyable;
                 }
                 if ($changes) {
+                    $oldBuyable = (float) ($sellable ? $variant->sellable_quantity : $variant->stock_quantity);
                     $variant->forceFill($changes)->saveQuietly();
+                    if ($buyable > $oldBuyable) {
+                        $this->stockWentUp((int) $variant->id);
+                    }
                 }
                 $productTotal += $sum;
                 $productSellable += $buyable;
@@ -271,6 +275,14 @@ class VariantStockService
             'stock_quantity' => $productTotal,
             'in_stock'       => ($sellable ? $productSellable : $productTotal) > 0,
         ] + ($sellable ? ['sellable_quantity' => $productSellable] : []))->saveQuietly();
+    }
+
+    /** What can be bought of a variant went up: if people asked to be told, tell them once the save is final (never inside a half-finished posting). */
+    private function stockWentUp(int $variantId): void
+    {
+        if (\App\Services\Stock\BackInStock::ready() && \App\Models\StockWatch::where('variant_id', $variantId)->where('status', 'waiting')->exists()) {
+            DB::afterCommit(fn () => \App\Jobs\TellBackInStock::dispatch($variantId));
+        }
     }
 
     /** What customers can buy of a variant: the stock at selling branches minus what is promised there to preorders and not yet delivered. */
