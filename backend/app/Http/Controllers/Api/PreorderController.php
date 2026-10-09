@@ -15,6 +15,7 @@ use App\Models\VariantLocationStock;
 use App\Services\Books\BooksException;
 use App\Services\Campaigns\CampaignAccess;
 use App\Services\Preorders\PreorderCancellation;
+use App\Services\Preorders\PreorderSupply;
 use App\Services\Preorders\PreorderService;
 use App\Services\Stock\StockTransferService;
 use Illuminate\Http\JsonResponse;
@@ -34,15 +35,19 @@ class PreorderController extends Controller
         }
     }
 
-    private function offerRow(PreorderOffer $o, array $taken): array
+    private function offerRow(PreorderOffer $o, array $taken, ?array $supply = null): array
     {
+        $supply ??= app(PreorderSupply::class)->forOffer($o);
+        $owed = round(array_sum($this->preorders->committedByLocation((int) $o->variant_id)), 4);
         $v = $o->variant;
         $left = $o->limit_total === null ? null : max(0, (int) floor($o->limit_total - ($taken[$o->id] ?? 0)));
 
         return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'product_id' => $o->product_id, 'variant_id' => $o->variant_id, 'item' => $v?->product?->name ?? Product::whereKey($o->product_id)->value('name'),
             'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null, 'sku' => $v?->sku, 'limit_total' => $o->limit_total, 'max_per_customer' => PreorderOffer::hasMax() ? $o->max_per_customer : null, 'taken' => round($taken[$o->id] ?? 0, 4), 'places_left' => $left,
             'closes_at' => $o->closes_at?->format('Y-m-d\TH:i'), 'expected_from' => $o->expected_from?->toDateString(), 'expected_until' => $o->expected_until?->toDateString(), 'terms' => $o->terms, 'is_active' => $o->is_active,
-            'branches' => VariantLocationStock::where('product_variant_id', $o->variant_id)->where('preorder_enabled', true)->pluck('location_id')];
+            'branches' => VariantLocationStock::where('product_variant_id', $o->variant_id)->where('preorder_enabled', true)->pluck('location_id'),
+            'supply' => $supply + ['stock' => round((float) VariantLocationStock::where('product_variant_id', $o->variant_id)->sum('quantity'), 4), 'owed' => $owed,
+                'short' => max(0.0, round($owed - (float) VariantLocationStock::where('product_variant_id', $o->variant_id)->sum('quantity') - $supply['incoming'], 4))]];
     }
 
     // -------------------------------------------------------------- offers (a campaign's)
@@ -58,7 +63,9 @@ class PreorderController extends Controller
         $offers = PreorderOffer::with('variant.product:id,name')->where('campaign_id', $id)->orderBy('id')->get();
         $taken = $this->preorders->takenByOffer($offers->pluck('id')->all());
 
-        return response()->json(['ready' => true, 'has_max' => PreorderOffer::hasMax(), 'data' => $offers->map(fn ($o) => $this->offerRow($o, $taken))->values(),
+        $supply = app(PreorderSupply::class)->forOffers($offers->pluck('id')->all());
+
+        return response()->json(['ready' => true, 'has_max' => PreorderOffer::hasMax(), 'has_supply' => PreorderSupply::ready(), 'data' => $offers->map(fn ($o) => $this->offerRow($o, $taken, $supply[$o->id]))->values(),
             'branches' => Location::query()->sellsToCustomers()->orderBy('name')->get(['id', 'name'])]);
     }
 
@@ -66,6 +73,43 @@ class PreorderController extends Controller
     {
         return ['variant_id' => 'required|integer|exists:product_variants,id', 'limit_total' => 'nullable|integer|min:1', 'max_per_customer' => 'nullable|integer|min:1', 'closes_at' => 'nullable|date', 'expected_from' => 'nullable|date',
             'expected_until' => 'nullable|date', 'terms' => 'nullable|string|max:500', 'is_active' => 'nullable|boolean'];
+    }
+
+    /** GET /admin/campaigns/{id}/preorder-offers/{offerId}/supply : the purchase orders linked to an offer, and the ones it could be linked to. */
+    public function supply(Request $request, int $id, int $offerId): JsonResponse
+    {
+        abort_unless(CampaignAccess::canBuild($request->user()), 403, 'You cannot work on campaigns.');
+        $offer = PreorderOffer::where('campaign_id', $id)->findOrFail($offerId);
+        $svc = app(PreorderSupply::class);
+        $linked = $svc->forOffer($offer);
+
+        return response()->json(['ready' => PreorderSupply::ready(), 'linked' => $linked, 'candidates' => collect($svc->candidates((int) $offer->variant_id))->reject(fn ($c) => in_array($c['voucher_id'], array_column($linked['orders'], 'voucher_id'), true))->values()]);
+    }
+
+    /** POST /admin/campaigns/{id}/preorder-offers/{offerId}/supply {voucher_id} */
+    public function linkSupply(Request $request, int $id, int $offerId): JsonResponse
+    {
+        $c = Campaign::findOrFail($id);
+        abort_unless(CampaignAccess::canEdit($request->user(), $c), 403, 'You cannot change this campaign.');
+        $d = $request->validate(['voucher_id' => 'required|integer']);
+        $offer = PreorderOffer::where('campaign_id', $id)->findOrFail($offerId);
+
+        return $this->guard(function () use ($offer, $d, $request) {
+            app(PreorderSupply::class)->link($offer, (int) $d['voucher_id'], $request->user());
+
+            return response()->json(['message' => 'Linked. Customers are now given that purchase order\'s due date.', 'data' => $this->offerRow($offer->load('variant.product:id,name'), $this->preorders->takenByOffer([$offer->id]))]);
+        });
+    }
+
+    /** DELETE /admin/campaigns/{id}/preorder-offers/{offerId}/supply/{voucherId} */
+    public function unlinkSupply(Request $request, int $id, int $offerId, int $voucherId): JsonResponse
+    {
+        $c = Campaign::findOrFail($id);
+        abort_unless(CampaignAccess::canEdit($request->user(), $c), 403, 'You cannot change this campaign.');
+        $offer = PreorderOffer::where('campaign_id', $id)->findOrFail($offerId);
+        app(PreorderSupply::class)->unlink($offer, $voucherId);
+
+        return response()->json(['message' => 'Unlinked.', 'data' => $this->offerRow($offer->load('variant.product:id,name'), $this->preorders->takenByOffer([$offer->id]))]);
     }
 
     /** GET /admin/campaigns/{id}/hamper-readiness : for each hamper the campaign features, which components are in stock, covered by an offer, or not covered. */

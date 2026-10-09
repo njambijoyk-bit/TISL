@@ -15,7 +15,7 @@ class PreordersNotifyDelays extends Command
     public function handle(PreorderDelayNotices $delays): int
     {
         $r = $delays->run(today(), (bool) $this->option('dry-run'));
-        $this->info("{$r['late']} late preorder(s); {$r['told']} customer(s) " . ($this->option('dry-run') ? 'would be ' : '') . "told; {$r['staff_told']} staff told.");
+        $this->info("{$r['late']} late preorder(s); {$r['told']} customer(s) " . ($this->option('dry-run') ? 'would be ' : '') . "told; {$r['moved']} told of a new date; {$r['staff_told']} staff told.");
 
         return self::SUCCESS;
     }

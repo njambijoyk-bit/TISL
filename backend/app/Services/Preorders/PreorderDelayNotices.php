@@ -20,9 +20,10 @@ class PreorderDelayNotices
 
     public function __construct(private PreorderService $preorders, private OrderNotices $notices, private Notifier $notifier, private Staff $staff) {}
 
-    /** @return array{late: int, told: int, staff_told: int} */
+    /** @return array{late: int, told: int, moved: int, staff_told: int} */
     public function run(CarbonInterface $today, bool $dryRun = false): array
     {
+        $moved = $this->tellMoved($today, $dryRun);
         $late = $this->preorders->overdue($today);
         $told = 0;
         foreach ($late as $row) {
@@ -45,7 +46,37 @@ class PreorderDelayNotices
                 . ($order->customer_id ? ' If you would rather cancel and be refunded, you can ask from your order page.' : ' If you would rather cancel and be refunded, please contact us.'));
         }
 
-        return ['late' => count($late), 'told' => $told, 'staff_told' => $dryRun ? 0 : $this->tellStaff(count($late), $today)];
+        return ['late' => count($late), 'told' => $told, 'moved' => $moved, 'staff_told' => $dryRun ? 0 : $this->tellStaff(count($late), $today)];
+    }
+
+    public const MAX_DATE_NOTICES = 3;
+
+    /**
+     * The promise moved LATER (a supplier delay on a linked purchase order): say so once per new date, before anyone is late. At most 3 such notes per order.
+     */
+    private function tellMoved(CarbonInterface $today, bool $dryRun): int
+    {
+        $n = 0;
+        foreach ($this->preorders->dateChanges() as $row) {
+            $order = $row['order'];
+            $told = $order->meta['date_notices'] ?? [];
+            if (isset($told[$row['to']]) || count($told) >= self::MAX_DATE_NOTICES) {
+                continue;
+            }
+            $n++;
+            if ($dryRun) {
+                continue;
+            }
+            $meta = $order->meta ?? [];
+            $meta['date_notices'][$row['to']] = $today->toDateString();
+            $order->meta = $meta;
+            $order->save();
+            $this->notices->tell($order, 'preorder_delayed', 'New expected date for preorder ' . $order->voucher_number,
+                'Your preorder ' . $order->voucher_number . ' is now expected by ' . $row['to'] . ' (we first said ' . $row['from'] . '). We are sorry for the change; our supplier has told us the stock will arrive later than planned.'
+                . ($order->customer_id ? ' If you would rather cancel and be refunded, you can ask from your order page.' : ' If you would rather cancel and be refunded, please contact us.'));
+        }
+
+        return $n;
     }
 
     /** One note a day to everyone who delivers preorders, only when something is late. */

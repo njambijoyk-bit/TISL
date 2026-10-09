@@ -1038,6 +1038,9 @@ Route::middleware('auth:sanctum')->group(function () {
             $po = \App\Http\Controllers\Api\PreorderController::class;   // a campaign's preorder offers (CampaignAccess is checked inside)
             Route::get('/preorder-variants',                     [$po, 'variants']);
             Route::get('/{id}/preorder-offers',                  [$po, 'offers'])->whereNumber('id');
+            Route::get('/{id}/preorder-offers/{offerId}/supply',                 [$po, 'supply'])->whereNumber('id')->whereNumber('offerId');
+            Route::post('/{id}/preorder-offers/{offerId}/supply',                [$po, 'linkSupply'])->whereNumber('id')->whereNumber('offerId');
+            Route::delete('/{id}/preorder-offers/{offerId}/supply/{voucherId}',  [$po, 'unlinkSupply'])->whereNumber('id')->whereNumber('offerId')->whereNumber('voucherId');
             Route::get('/{id}/hamper-readiness',                 [$po, 'hamperReadiness'])->whereNumber('id');
             Route::post('/{id}/preorder-offers',                 [$po, 'saveOffer'])->whereNumber('id');
             Route::put('/{id}/preorder-offers/{offerId}',        [$po, 'updateOffer'])->whereNumber('id')->whereNumber('offerId');

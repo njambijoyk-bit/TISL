@@ -36,7 +36,7 @@ class OrderSummaryService
             // paid in full and invoiced does not mean delivered: a preorder is delivered when every line has gone out
             $t = \Illuminate\Support\Facades\DB::table('voucher_items')->where('voucher_id', $v->id)->where('is_header', 0)->whereNotNull('variant_id')
                 ->selectRaw('COALESCE(SUM(quantity), 0) AS q, COALESCE(SUM(delivered_quantity), 0) AS d')->first();
-            $promised = \Illuminate\Support\Facades\Schema::hasTable('preorder_lines') ? \Illuminate\Support\Facades\DB::table('preorder_lines')->where('voucher_id', $v->id)->max('promised_date') : null;
+            $promised = \Illuminate\Support\Facades\Schema::hasTable('preorder_lines') ? app(\App\Services\Preorders\PreorderService::class)->promisedFor((int) $v->id) : null;   // the purchase orders' date when the stock is on order, else the date it was taken under
             $pre = ['ordered' => (float) $t->q, 'delivered' => (float) $t->d, 'promised' => $promised];
             $delivered = $pre['ordered'] > 0 && $pre['delivered'] + 0.00005 >= $pre['ordered'];
         }

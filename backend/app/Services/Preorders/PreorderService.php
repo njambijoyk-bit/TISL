@@ -429,9 +429,10 @@ class PreorderService
     public function describe(PreorderOffer $o): array
     {
         $left = $this->remaining($o);
+        $supply = app(PreorderSupply::class)->forOffer($o);   // linked purchase orders still to arrive: their due date is the promise
 
-        return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'campaign' => $o->campaign?->title, 'limit_total' => $o->limit_total, 'max_per_customer' => PreorderOffer::hasMax() ? $o->max_per_customer : null, 'places_left' => $left === null ? null : (int) floor($left),
-            'closes_at' => $o->closes_at?->toIso8601String(), 'expected_from' => $o->expected_from?->toDateString(), 'expected_until' => $o->expected_until?->toDateString(), 'terms' => $o->terms];
+        return ['id' => $o->id, 'campaign_id' => $o->campaign_id, 'campaign' => $o->campaign?->title, 'from_supply' => $supply['date'] !== null, 'limit_total' => $o->limit_total, 'max_per_customer' => PreorderOffer::hasMax() ? $o->max_per_customer : null, 'places_left' => $left === null ? null : (int) floor($left),
+            'closes_at' => $o->closes_at?->toIso8601String(), 'expected_from' => $supply['date'] ? null : $o->expected_from?->toDateString(), 'expected_until' => $supply['date'] ?? $o->expected_until?->toDateString(), 'terms' => $o->terms];
     }
 
     // ------------------------------------------------------------ hampers
@@ -802,15 +803,16 @@ class PreorderService
         }
         $ids = array_unique(array_column($owed, 'order_id'));
         $sales = $this->salesOf($ids);
-        $promised = PreorderLine::whereIn('voucher_id', $ids)->whereNotNull('promised_date')->get()->groupBy('voucher_id');
+        $dates = $this->effectiveLines($ids);
         $orders = Voucher::whereIn('id', $ids)->get()->keyBy('id');
         $out = [];
         foreach ($owed as $r) {
             $o = $orders[$r['order_id']] ?? null;
-            $date = $promised[$r['order_id']]?->firstWhere('variant_id', $r['variant_id'])?->promised_date;
+            $date = $dates[$r['order_id']][$r['variant_id']]['effective'] ?? null;
             if (! $o || ! $date || ! isset($sales[$r['order_id']]) || in_array($o->meta['cancel_request']['status'] ?? null, ['requested', 'approved'], true)) {
                 continue;
             }
+            $date = \Carbon\Carbon::parse($date);
             if ($date->copy()->startOfDay()->gte($today->copy()->startOfDay())) {
                 continue;   // not late yet (the day itself is still on time)
             }
@@ -823,6 +825,65 @@ class PreorderService
             $row['days'] = (int) \Carbon\Carbon::parse($row['promised'])->startOfDay()->diffInDays($today->copy()->startOfDay());
         }
         unset($row);
+
+        return $out;
+    }
+
+    /**
+     * For each preorder line of these orders: the date promised when it was taken (`snapshot`) and the date that holds now (`effective`): the due date of the
+     * purchase orders linked to its offer while they still have something to arrive, otherwise the snapshot.
+     *
+     * @param  int[]  $orderIds
+     * @return array<int, array<int, array{snapshot: ?string, effective: ?string, offer_id: int}>> by order id, then variant id
+     */
+    public function effectiveLines(array $orderIds): array
+    {
+        $lines = PreorderLine::whereIn('voucher_id', $orderIds)->get();
+        $supply = app(PreorderSupply::class)->forOffers($lines->pluck('offer_id')->filter()->unique()->values()->all());
+        $out = [];
+        foreach ($lines as $l) {
+            $snap = $l->promised_date?->toDateString();
+            $out[(int) $l->voucher_id][(int) $l->variant_id] = ['snapshot' => $snap, 'effective' => $supply[(int) $l->offer_id]['date'] ?? $snap, 'offer_id' => (int) $l->offer_id];
+        }
+
+        return $out;
+    }
+
+    /** The date to show a customer for one order: the latest effective date over its lines. */
+    public function promisedFor(int $orderId): ?string
+    {
+        $dates = array_filter(array_column($this->effectiveLines([$orderId])[$orderId] ?? [], 'effective'));
+
+        return $dates ? max($dates) : null;
+    }
+
+    /**
+     * Paid preorders still owed whose promise has moved LATER than what the customer was first told (a supplier delay on a linked purchase order).
+     * @return array<int, array{order: Voucher, from: string, to: string}> by order id
+     */
+    public function dateChanges(): array
+    {
+        $owed = $this->owed();
+        if (! $owed) {
+            return [];
+        }
+        $ids = array_unique(array_column($owed, 'order_id'));
+        $sales = $this->salesOf($ids);
+        $dates = $this->effectiveLines($ids);
+        $orders = Voucher::whereIn('id', $ids)->get()->keyBy('id');
+        $out = [];
+        foreach ($owed as $r) {
+            $o = $orders[$r['order_id']] ?? null;
+            $d = $dates[$r['order_id']][$r['variant_id']] ?? null;
+            if (! $o || ! $d || ! $d['snapshot'] || ! $d['effective'] || $d['effective'] <= $d['snapshot'] || ! isset($sales[$r['order_id']])
+                || in_array($o->meta['cancel_request']['status'] ?? null, ['requested', 'approved'], true)) {
+                continue;
+            }
+            $row = $out[$o->id] ?? ['order' => $o, 'from' => $d['snapshot'], 'to' => $d['effective']];
+            $row['from'] = min($row['from'], $d['snapshot']);
+            $row['to'] = max($row['to'], $d['effective']);
+            $out[$o->id] = $row;
+        }
 
         return $out;
     }
