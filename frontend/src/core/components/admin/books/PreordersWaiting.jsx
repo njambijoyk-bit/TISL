@@ -184,6 +184,7 @@ export default function PreordersWaiting() {
   const loadAsks = useCallback(() => preordersAPI.cancelRequests().then((r) => setAsks(r.data)).catch(() => setAsks([])), []);
   useEffect(() => { loadAsks(); }, [loadAsks]);
 
+  const late = useMemo(() => (data?.lines ?? []).filter((l) => l.overdue_days != null).length, [data]);
   const groups = useMemo(() => {
     const m = new Map();
     (data?.lines ?? []).forEach((l) => { const k = `${l.variant_id}:${l.location_id}`; if (!m.has(k)) m.set(k, []); m.get(k).push(l); });
@@ -223,6 +224,8 @@ export default function PreordersWaiting() {
 
       {asks.length > 0 && <CancelRequests rows={asks} canAct={canPost} onChanged={() => { loadAsks(); load(); }} />}
 
+      {late > 0 && <div role="status" style={{ ...card, padding: '10px 14px', fontSize: '0.8rem', borderColor: '#b91c1c55', color: colors.text }}><strong style={{ color: '#b91c1c' }}>{late} line{late === 1 ? ' is' : 's are'} past the promised date.</strong> Customers with paid orders are told automatically (first the day after, then every 14 days, up to 3 times).</div>}
+
       {groups.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>No preorders are waiting.</p>}
       {groups.map(([key, rows]) => {
         const first = rows[0];
@@ -255,7 +258,7 @@ export default function PreordersWaiting() {
                       <td style={td}><span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, color: chip[r.payment][1], background: `${chip[r.payment][1]}1a` }}>{chip[r.payment][0]}</span></td>
                       <td style={{ ...td, ...num }}>{qty(r.ordered)}</td>
                       <td style={{ ...td, ...num, fontWeight: 700 }}>{qty(r.owed)}</td>
-                      <td style={td}>{r.promised || '—'}</td>
+                      <td style={td}>{r.promised || '—'}{r.overdue_days != null && <span style={{ marginLeft: 8, fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 99, color: '#b91c1c', background: '#b91c1c1a' }}>{r.overdue_days} day{r.overdue_days === 1 ? '' : 's'} late</span>}</td>
                     </tr>
                   ))}
                 </tbody>

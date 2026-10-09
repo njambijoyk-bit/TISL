@@ -1,6 +1,6 @@
 # Notifications: the plan (v2, decided)
 
-Status: PLAN, answers in (see "Decided answers" at the end). **Phases 1, 2 and 3 are BUILT** (see "As built" at the end); phase 4 is not. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
+Status: PLAN, answers in (see "Decided answers" at the end). **All four phases are BUILT** (see "As built" at the end). Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
 
 ## The rule
 
@@ -170,3 +170,14 @@ To switch it on: run `database/sql/110_notification_delivery_payload.sql` (one J
 - **Delivery reports**: public callbacks `/api/webhooks/whatsapp/meta` (GET to verify the address with the verify token; POST for statuses, checked with `X-Hub-Signature-256` and the app secret) and `/api/webhooks/whatsapp/twilio` (checked with `X-Twilio-Signature` and the auth token; the address is sent with every message, nothing to paste). A call that does not check out is answered 403 and changes nothing. Statuses only move forward: sent, delivered, read; `delivered_at` and `read_at` are filled in. The screen shows the Meta address to paste into Meta's webhook setup.
 - **Send a test message**: one real approved template through the saved keys to a number you type (Meta accounts have `hello_world`); it is rate-limited and written to the history.
 - **Verified**: both drivers against faked HTTP (what is sent, in which order, with which auth), Twilio's signature against the example in Twilio's own documentation, the signed/unsigned webhook cases, and the fallback. **Not verified**: a real Meta or Twilio account, template approval, and the live callbacks; those need one real try by the owner (send a test, then place an order for a customer with a WhatsApp number and a template).
+
+## As built, phase 4
+
+No new script. Needs the queue worker and the scheduler (both run, decided). The new daily command is `preorders:notify-delays` (09:20).
+
+- **Order messages** (`OrderNotices`, storefront orders only, each sent once and remembered on the order in `meta.notices`): *received* (a preorder also says when it is expected), *payment received* (when the order becomes a Cash Sale, or an online payment settles its invoice), *on its way* / *delivered* (a delivery note; "1 of 4 items" for a part delivery, "everything delivered" when complete), *cancelled* (with the reason). Hooked into checkout, `VoucherService::convert` and `cancel`, and `GatewayPaymentService::settle`, all after the database commit, and none can fail the sale: a problem telling someone is reported and swallowed.
+- **Guests** (no account) are reached at the email and phone they gave at checkout (`Notifier::sendToContact`): the email, and a WhatsApp message by hand or by API when the company's rules and the "checkout number counts" setting allow it. No bell, no link to the order page.
+- **Delay notices** (`PreorderDelayNotices`): a **paid** preorder whose promised date has passed with goods still owed (`PreorderService::overdue`; the day itself is on time; unpaid, fully delivered and being-cancelled orders are left out). The customer is told the day after the date, again every 14 days, at most 3 times, with the date and the way to ask for a refund (the order page; guests are told to contact us). Staff who hold `stock.manage` get **one note a day** when anything is late. `--dry-run` only counts. The *Preorders waiting* list shows "N days late" on each line and a banner with the count.
+- **Cancellation requests**: staff who hold `books.post` are told when a customer asks; the customer is told when it is approved (with the refund and where from) or declined (with the reason).
+- **Everything is switchable**: every type is in Settings → Notifications → Messages (turn off, limit to email or WhatsApp, give a WhatsApp template); essential ones (orders, payments, delays, cancellations) respect "email only", the company default and the customer's choices as described above. New type: `preorder_delays_staff`.
+- **Verified here** against in-memory tables with the queue faked; mutation checks on dates, repeat limits, once-only and error swallowing. **Not verified**: the hooks inside a real checkout, payment and delivery (they run in the books' own transactions, so please place one test order, pay it, deliver part of it, and watch the bell, the delivery log and the email).

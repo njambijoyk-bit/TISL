@@ -28,38 +28,61 @@ class Notifier
     public function send(Model $to, string $type, string $title, string $message, array $o = []): array
     {
         try {
-            $r = $this->recipients->for($to, array_intersect_key($o, array_flip(['email', 'whatsapp', 'whatsapp_source'])));
-            $rule = $this->settings->get('types')['rules'][$type] ?? [];
-            $plan = $this->resolver->resolve($this->settings->get('general'), $rule, NotificationTypes::isEssential($type), $r['person']);
-
-            $bell = null;
-            if (in_array('database', $plan['channels'], true) && $r['bell']) {
-                $bell = Notification::create(['notifiable_type' => get_class($r['bell']), 'notifiable_id' => $r['bell']->id, 'type' => $type, 'title' => $title, 'message' => $message,
-                    'action_url' => $o['action_url'] ?? null, 'action_text' => $o['action_text'] ?? null, 'data' => $o['data'] ?? null, 'channels' => $plan['channels'],
-                    'priority' => $o['priority'] ?? (NotificationTypes::isEssential($type) ? 'high' : 'normal'), 'sent_at' => now()]);
-            }
-            $subject = $o['subject'] ?? $title;
-            if (in_array('email', $plan['channels'], true)) {
-                $this->queueEmail($bell, $r['bell'] ?? $to, $type, (string) $r['person']['email'], $subject, $message);
-            }
-            if (in_array('whatsapp', $plan['channels'], true)) {
-                $this->prepareWhatsApp($bell, $r['bell'] ?? $to, $type, (string) $r['person']['whatsapp'], $message, $title, $o['action_url'] ?? null, $r['person']);
-            }
-            foreach ($plan['skipped'] as $channel => $why) {
-                if (in_array($why, ['no_email', 'no_number', 'number_source'], true)) {   // worth knowing; a channel the company has switched off is not
-                    $this->record($bell, $r['bell'] ?? $to, $type, $channel, 'skipped', null, $subject, $message, $why);
-                }
-            }
-            if ($plan['staff_list']) {
-                $this->record($bell, $r['bell'] ?? $to, $type, 'email', 'skipped', null, $subject, $message, 'nobody_reachable');
-            }
-
-            return ['notification' => $bell, 'channels' => $plan['channels'], 'skipped' => $plan['skipped'], 'staff_list' => $plan['staff_list']];
+            return $this->run($this->recipients->for($to, array_intersect_key($o, array_flip(['email', 'whatsapp', 'whatsapp_source']))), $to, $type, $title, $message, $o);
         } catch (\Throwable $e) {
             report($e);
 
             return ['notification' => null, 'channels' => [], 'skipped' => [], 'staff_list' => false];
         }
+    }
+
+    /**
+     * Someone with no account: a guest who checked out with an email address and a phone. No bell; email and WhatsApp as the company default says, and the phone given
+     * at checkout counts as a "checkout" number. @param array{name?: ?string, email?: ?string, phone?: ?string} $contact
+     */
+    public function sendToContact(array $contact, string $type, string $title, string $message, array $o = []): array
+    {
+        try {
+            $r = ['bell' => null, 'customer' => null, 'person' => ['kind' => 'customer', 'name' => trim((string) ($contact['name'] ?? '')), 'has_account' => false, 'email' => $contact['email'] ?? null,
+                'whatsapp' => $contact['phone'] ?? null, 'whatsapp_source' => 'checkout', 'mode' => null, 'essential_only' => null]];
+
+            return $this->run($r, null, $type, $title, $message, $o);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return ['notification' => null, 'channels' => [], 'skipped' => [], 'staff_list' => false];
+        }
+    }
+
+    /** @return array{notification: ?Notification, channels: string[], skipped: array<string,string>, staff_list: bool} */
+    private function run(array $r, ?Model $to, string $type, string $title, string $message, array $o): array
+    {
+        $rule = $this->settings->get('types')['rules'][$type] ?? [];
+        $plan = $this->resolver->resolve($this->settings->get('general'), $rule, NotificationTypes::isEssential($type), $r['person']);
+
+        $bell = null;
+        if (in_array('database', $plan['channels'], true) && $r['bell']) {
+            $bell = Notification::create(['notifiable_type' => get_class($r['bell']), 'notifiable_id' => $r['bell']->id, 'type' => $type, 'title' => $title, 'message' => $message,
+                'action_url' => $o['action_url'] ?? null, 'action_text' => $o['action_text'] ?? null, 'data' => $o['data'] ?? null, 'channels' => $plan['channels'],
+                'priority' => $o['priority'] ?? (NotificationTypes::isEssential($type) ? 'high' : 'normal'), 'sent_at' => now()]);
+        }
+        $subject = $o['subject'] ?? $title;
+        if (in_array('email', $plan['channels'], true)) {
+            $this->queueEmail($bell, $r['bell'] ?? $to, $type, (string) $r['person']['email'], $subject, $message);
+        }
+        if (in_array('whatsapp', $plan['channels'], true)) {
+            $this->prepareWhatsApp($bell, $r['bell'] ?? $to, $type, (string) $r['person']['whatsapp'], $message, $title, $o['action_url'] ?? null, $r['person']);
+        }
+        foreach ($plan['skipped'] as $channel => $why) {
+            if (in_array($why, ['no_email', 'no_number', 'number_source'], true)) {   // worth knowing; a channel the company has switched off is not
+                $this->record($bell, $r['bell'] ?? $to, $type, $channel, 'skipped', null, $subject, $message, $why);
+            }
+        }
+        if ($plan['staff_list']) {
+            $this->record($bell, $r['bell'] ?? $to, $type, 'email', 'skipped', null, $subject, $message, 'nobody_reachable');
+        }
+
+        return ['notification' => $bell, 'channels' => $plan['channels'], 'skipped' => $plan['skipped'], 'staff_list' => $plan['staff_list']];
     }
 
     /**

@@ -121,6 +121,7 @@ class GatewayPaymentService
         if ($voucher->type->base_type === 'sales') {
             $receipt = $vouchers->receive($voucher, ['tenders' => $tenders, 'amount' => (float) $attempt->amount + array_sum(array_column($attempt->tenders ?? [], 'amount')), 'reference_no' => $attempt->receipt_number, 'channel' => 'storefront'], null);
             $attempt->update(['settled_voucher_id' => $receipt->id]);
+            app(\App\Services\Notify\OrderNotices::class)->invoicePaid($voucher, $receipt);
 
             return;
         }

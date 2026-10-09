@@ -774,6 +774,7 @@ class PreorderService
                 'variant_id' => $r['variant_id'], 'item' => $v?->product?->name, 'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null, 'sku' => $v?->sku,
                 'location_id' => $r['location_id'], 'branch' => $branch[$r['location_id']] ?? null, 'ordered' => round((float) ($items[$r['item_id']]->quantity ?? 0) * (float) ($items[$r['item_id']]->unit_factor ?? 1), 4),
                 'owed' => $r['qty'], 'promised' => $line?->promised_date?->toDateString(), 'item_id' => $r['item_id'],
+                'overdue_days' => $line?->promised_date && $line->promised_date->copy()->startOfDay()->lt(today()) ? (int) $line->promised_date->copy()->startOfDay()->diffInDays(today()) : null,
             ];
         }
         usort($lines, fn ($a, $b) => [$a['date'], $a['order_id']] <=> [$b['date'], $b['order_id']]);
@@ -785,6 +786,45 @@ class PreorderService
         }
 
         return ['lines' => $lines, 'supply' => $supply, 'paid_not_delivered' => $this->paidNotDelivered($locationId)];
+    }
+
+    /**
+     * Paid preorders whose promised date has passed with something still owed. One entry per order: the oldest date missed, how many days ago, how much is still owed.
+     * Orders nobody has paid for, and orders the customer has asked (or been allowed) to cancel, are left out.
+     *
+     * @return array<int, array{order: Voucher, promised: string, days: int, owed: float}> by order id
+     */
+    public function overdue(\Carbon\CarbonInterface $today): array
+    {
+        $owed = $this->owed();
+        if (! $owed) {
+            return [];
+        }
+        $ids = array_unique(array_column($owed, 'order_id'));
+        $sales = $this->salesOf($ids);
+        $promised = PreorderLine::whereIn('voucher_id', $ids)->whereNotNull('promised_date')->get()->groupBy('voucher_id');
+        $orders = Voucher::whereIn('id', $ids)->get()->keyBy('id');
+        $out = [];
+        foreach ($owed as $r) {
+            $o = $orders[$r['order_id']] ?? null;
+            $date = $promised[$r['order_id']]?->firstWhere('variant_id', $r['variant_id'])?->promised_date;
+            if (! $o || ! $date || ! isset($sales[$r['order_id']]) || in_array($o->meta['cancel_request']['status'] ?? null, ['requested', 'approved'], true)) {
+                continue;
+            }
+            if ($date->copy()->startOfDay()->gte($today->copy()->startOfDay())) {
+                continue;   // not late yet (the day itself is still on time)
+            }
+            $row = $out[$o->id] ?? ['order' => $o, 'promised' => $date->toDateString(), 'days' => 0, 'owed' => 0.0];
+            $row['promised'] = min($row['promised'], $date->toDateString());
+            $row['owed'] = round($row['owed'] + $r['qty'], 4);
+            $out[$o->id] = $row;
+        }
+        foreach ($out as &$row) {
+            $row['days'] = (int) \Carbon\Carbon::parse($row['promised'])->startOfDay()->diffInDays($today->copy()->startOfDay());
+        }
+        unset($row);
+
+        return $out;
     }
 
     /** What could fill a branch's preorders for a variant. */

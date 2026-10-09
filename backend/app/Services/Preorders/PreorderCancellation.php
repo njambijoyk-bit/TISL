@@ -94,6 +94,7 @@ class PreorderCancellation
                 'subject' => "Cancel preorder {$order->voucher_number}", 'description' => $reason, 'priority' => 'medium', 'category' => 'billing', 'status' => 'open',
             ]);
             $this->remember($order, ['status' => 'requested', 'at' => now()->toDateTimeString(), 'reason' => $reason, 'ticket' => $ticket->ticket_number]);
+            DB::afterCommit(fn () => app(\App\Services\Notify\OrderNotices::class)->cancelRequested($order, $reason));
 
             return $ticket->ticket_number;
         });
@@ -160,6 +161,8 @@ class PreorderCancellation
                 'refunded_to' => $credit->meta['refunded_to'] ?? null] + $req);
             $this->resolveTicket($req['ticket'] ?? null);
             $this->preorders->touched($order);
+            $fresh = $order->fresh();
+            DB::afterCommit(fn () => app(\App\Services\Notify\OrderNotices::class)->cancelDecision($fresh, true, $note ?: null, $credit->meta['refunded_to'] ?? null));
 
             return $credit;
         });
@@ -176,6 +179,8 @@ class PreorderCancellation
             $req = $order->meta['cancel_request'];
             $this->remember($order, ['status' => 'declined', 'decided_at' => now()->toDateTimeString(), 'decided_by' => $by?->id, 'note' => $note] + $req);
             $this->resolveTicket($req['ticket'] ?? null);
+            $fresh = $order->fresh();
+            DB::afterCommit(fn () => app(\App\Services\Notify\OrderNotices::class)->cancelDecision($fresh, false, $note, null));
         });
     }
 

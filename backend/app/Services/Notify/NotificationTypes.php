@@ -19,6 +19,7 @@ class NotificationTypes
         'payment_received' => ['Payment received', true, 'customer'],
         'preorder_delayed' => ['Preorder delayed', true, 'customer'],
         'preorder_cancel_decided' => ['Preorder cancellation decided', true, 'customer'],
+        'preorder_delays_staff' => ['Preorders past their date (daily)', false, 'staff'],
         'preorder_cancel_requested' => ['Customer asked to cancel a preorder', false, 'staff'],
         'quote_received' => ['Quotation ready', true, 'customer'],
         'quote_accepted' => ['Quotation accepted', true, 'customer'],

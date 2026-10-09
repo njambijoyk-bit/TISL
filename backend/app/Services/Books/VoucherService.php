@@ -200,6 +200,7 @@ class VoucherService
             $this->undoRewards($voucher);
             app(HamperEditionService::class)->sync(app(HamperEditionService::class)->idsOn($voucher));   // the edition is given back
             app(\App\Services\Preorders\PreorderService::class)->touched($voucher);
+            DB::afterCommit(fn () => app(\App\Services\Notify\OrderNotices::class)->cancelled($voucher));
 
             return $voucher->load($this->relations());
         });
@@ -548,6 +549,7 @@ class VoucherService
                 $source->update(['doc_status' => 'accepted', 'responded_at' => now()]);
             }
             $this->audit($source, 'converted', $user, ['to' => $child->voucher_number, 'type' => $target->name]);
+            DB::afterCommit(fn () => app(\App\Services\Notify\OrderNotices::class)->converted($source, $child));   // paid / on its way, once it is really saved
 
             return $child->load($this->relations());
         });
