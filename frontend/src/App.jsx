@@ -192,6 +192,7 @@ const EditLog            = lazy(() => import('./core/pages/admin/books/EditLog')
 const VoucherView        = lazy(() => import('./core/pages/admin/books/VoucherView'));
 const ReturnFromInvoice  = lazy(() => import('./core/pages/admin/books/ReturnFromInvoice'));
 const OrdersRegister     = lazy(() => import('./core/pages/admin/books/OrdersRegister'));
+const OtherCompanies     = lazy(() => import('./core/pages/admin/books/OtherCompanies'));
 const ProjectDashboard   = lazy(() => import('./projects/pages/admin/ProjectDashboard'));
 const Projects           = lazy(() => import('./projects/pages/admin/Projects'));
 const ProjectCreate      = lazy(() => import('./projects/pages/admin/ProjectCreate'));
@@ -1159,6 +1160,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/admin/books/other-companies" element={<ProtectedRoute requireAdmin permission="imports.view,imports.export"><OtherCompanies /></ProtectedRoute>} />
               <Route path="/admin/orders" element={<ProtectedRoute requireAdmin permission="books.view"><OrdersRegister /></ProtectedRoute>} />
               <Route path="/admin/orders/:id" element={<ProtectedRoute requireAdmin permission="books.view"><VoucherView /></ProtectedRoute>} />
 
