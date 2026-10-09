@@ -58,7 +58,7 @@ class CounterPreorder
             } elseif (($d['pay'] ?? 'none') === 'invoice') {
                 $sale = $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => today()->addDays((int) ($customer->credit_terms_days ?: 30))->toDateString(), 'reference_no' => $order->voucher_number], $staff);
             }
-            $this->preorders->refresh(array_keys($placeable));
+            $this->preorders->refresh(\App\Services\Preorders\PreorderService::variantsOf($placeable));
 
             return ['order' => $order, 'sale' => $sale];
         });

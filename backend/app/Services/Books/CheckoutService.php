@@ -186,15 +186,27 @@ class CheckoutService
             ], fn ($v) => $v !== null),
         ];
 
-        // a preorder cart: only items with an open offer at this branch, taken on their own (never mixed with gift vouchers or hampers)
+        // a preorder cart: products with an open offer at this branch and hampers whose short components have one, taken on their own (never mixed with gift vouchers)
         $placeable = null;
         if (! empty($in['preorder'])) {
             $pre = app(\App\Services\Preorders\PreorderService::class);
-            $product = array_values(array_filter($final, fn ($l) => $l['type'] === 'product'));
-            if ($hasGift || count($product) !== count(array_filter($final, fn ($l) => ($l['kind'] ?? null) !== 'shipping'))) {
+            $items = array_values(array_filter($final, fn ($l) => in_array($l['type'], ['product', 'hamper'], true)));
+            if ($hasGift || count($items) !== count(array_filter($final, fn ($l) => ($l['kind'] ?? null) !== 'shipping'))) {
                 throw new BooksException('A preorder is checked out on its own: only preorder items in the cart.');
             }
-            $placeable = $pre->assertPlaceable($product, (int) $locationId, $user);
+            $checks = [];
+            foreach ($items as $l) {
+                if ($l['type'] === 'hamper') {
+                    $h = \App\Models\Hamper::findOrFail((int) $l['hamper_id']);
+                    if ($pre->hamperState($h, $user)['state'] === 'buy') {
+                        throw new BooksException("{$h->name} is in stock now. Order it in the normal cart.");
+                    }
+                    array_push($checks, ...$pre->hamperLines($h, (float) $l['quantity']));
+                } else {
+                    $checks[] = $l;
+                }
+            }
+            $placeable = $pre->assertPlaceable($checks, (int) $locationId, $user);
             $data['series_id'] = $pre->seriesId();
             $data['meta'] = array_merge($data['meta'] ?? [], $pre->orderMeta($placeable));
         }
@@ -450,7 +462,7 @@ class CheckoutService
             }
             $placeable = null;
             if ($a['placeable'] !== null) {   // the offers are locked, then the places counted again, so two customers can not take the last one
-                $placeable = app(\App\Services\Preorders\PreorderService::class)->assertPlaceable(array_map(fn ($p) => ['variant_id' => $p['offer']->variant_id, 'quantity' => $p['quantity']], array_values($a['placeable'])), (int) $a['locationId'], $user, true);
+                $placeable = app(\App\Services\Preorders\PreorderService::class)->assertPlaceable(array_map(fn ($p) => ['variant_id' => $p['variant_id'], 'quantity' => $p['quantity'], 'location_id' => $p['location_id'], 'lenient' => $p['lenient'], 'hamper_ids' => $p['hamper_ids']], array_values($a['placeable'])), (int) $a['locationId'], $user, true);
             }
             $order = $this->vouchers->placeOrder($a['data'], null);
             if ($placeable !== null) {

@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
+use App\Models\CampaignItem;
 use App\Models\Customer;
+use App\Models\Hamper;
 use App\Models\Location;
 use App\Models\PreorderOffer;
 use App\Models\Product;
@@ -63,6 +65,20 @@ class PreorderController extends Controller
     {
         return ['variant_id' => 'required|integer|exists:product_variants,id', 'limit_total' => 'nullable|integer|min:1', 'closes_at' => 'nullable|date', 'expected_from' => 'nullable|date',
             'expected_until' => 'nullable|date', 'terms' => 'nullable|string|max:500', 'is_active' => 'nullable|boolean'];
+    }
+
+    /** GET /admin/campaigns/{id}/hamper-readiness : for each hamper the campaign features, which components are in stock, covered by an offer, or not covered. */
+    public function hamperReadiness(Request $request, int $id): JsonResponse
+    {
+        abort_unless(CampaignAccess::canBuild($request->user()), 403, 'You cannot work on campaigns.');
+        $c = Campaign::findOrFail($id);
+        $ids = CampaignItem::where('campaign_id', $id)->where('item_type', 'hamper')->pluck('item_id');
+        $out = [];
+        foreach (Hamper::with('location:id,name')->whereIn('id', $ids)->get() as $h) {
+            $out[] = ['hamper_id' => $h->id, 'name' => $h->name, 'branch' => $h->location?->name] + $this->preorders->hamperReadiness($c, $h);
+        }
+
+        return response()->json(['ready' => PreorderService::ready(), 'data' => $out]);
     }
 
     /** GET /admin/campaigns/preorder-variants?product_id= : the variants of a product an offer can be made on. */
@@ -190,7 +206,7 @@ class PreorderController extends Controller
      */
     public function states(Request $request): JsonResponse
     {
-        $d = $request->validate(['variant_ids' => 'nullable|array|max:60', 'variant_ids.*' => 'integer', 'product_ids' => 'nullable|array|max:60', 'product_ids.*' => 'integer', 'location_id' => 'nullable|integer']);
+        $d = $request->validate(['variant_ids' => 'nullable|array|max:60', 'variant_ids.*' => 'integer', 'product_ids' => 'nullable|array|max:60', 'product_ids.*' => 'integer', 'hamper_ids' => 'nullable|array|max:60', 'hamper_ids.*' => 'integer', 'location_id' => 'nullable|integer']);
         $loc = ! empty($d['location_id']) ? (int) $d['location_id'] : (Location::defaultSelling()?->id ?? Location::default()?->id);
         $user = $request->user('sanctum');
         $out = [];
@@ -209,7 +225,13 @@ class PreorderController extends Controller
             }
         }
 
-        return response()->json(['location_id' => $loc, 'data' => (object) $out, 'products' => (object) $byProduct]);
+        // a hamper is judged at its own branch, from its components
+        $hampers = [];
+        foreach (Hamper::available()->whereIn('id', array_unique($d['hamper_ids'] ?? []))->get() as $h) {
+            $hampers[$h->id] = $this->preorders->hamperState($h, $user);
+        }
+
+        return response()->json(['location_id' => $loc, 'data' => (object) $out, 'products' => (object) $byProduct, 'hampers' => (object) $hampers]);
     }
 
     // -------------------------------------------------------------- the counter

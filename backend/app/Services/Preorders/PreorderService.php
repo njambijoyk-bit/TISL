@@ -6,6 +6,8 @@ use App\Models\Books\Voucher;
 use App\Models\Books\VoucherSeries;
 use App\Models\Books\VoucherType;
 use App\Models\Campaign;
+use App\Models\CampaignItem;
+use App\Models\Hamper;
 use App\Models\Location;
 use App\Models\PreorderLine;
 use App\Models\PreorderOffer;
@@ -98,15 +100,21 @@ class PreorderService
         return PreorderOffer::create($fields + ['created_by' => $by?->id]);
     }
 
-    /** Is this option on the campaign's page: featured on its own, or inside a product featured whole? Offers made before options could be featured keep working. */
+    /** Is this option on the campaign's page: featured on its own, inside a product featured whole, or a component of a featured hamper? Offers made before options could be featured keep working. */
     public function featured(Campaign $campaign, ProductVariant $variant): bool
     {
-        $q = \App\Models\CampaignItem::where('campaign_id', $campaign->id)->where('item_type', 'product')->where('item_id', $variant->product_id);
-        if (\App\Models\CampaignItem::hasVariants()) {
+        $q = CampaignItem::where('campaign_id', $campaign->id)->where('item_type', 'product')->where('item_id', $variant->product_id);
+        if (CampaignItem::hasVariants()) {
             $q->whereIn('variant_id', [0, $variant->id]);
         }
+        if ($q->exists()) {
+            return true;
+        }
 
-        return $q->exists();
+        // or a component of a hamper the campaign features (a hamper is preordered through its components' offers)
+        $hampers = CampaignItem::where('campaign_id', $campaign->id)->where('item_type', 'hamper')->pluck('item_id');
+
+        return $hampers->isNotEmpty() && collect($hampers)->contains(fn ($id) => isset($this->hamperNeeds((int) $id)[$variant->id]));
     }
 
     public function deleteOffer(PreorderOffer $offer): void
@@ -373,6 +381,148 @@ class PreorderService
             'closes_at' => $o->closes_at?->toIso8601String(), 'expected_from' => $o->expected_from?->toDateString(), 'expected_until' => $o->expected_until?->toDateString(), 'terms' => $o->terms];
     }
 
+    // ------------------------------------------------------------ hampers
+
+    /** What one hamper holds, as variant id => quantity (a component with no option named is its product's default option). @return array<int, float> */
+    public function hamperNeeds(int $hamperId): array
+    {
+        $out = [];
+        foreach (\App\Models\HamperItem::where('hamper_id', $hamperId)->get(['product_id', 'variant_id', 'quantity']) as $it) {
+            $vid = $it->variant_id ?: app(\App\Services\Location\VariantStockService::class)->defaultVariantId((int) $it->product_id);
+            if ($vid) {
+                $out[(int) $vid] = ($out[(int) $vid] ?? 0.0) + (float) $it->quantity;
+            }
+        }
+
+        return $out;
+    }
+
+    /** The lines to check when `$quantity` of a hamper is preordered: its components, from the hamper's own branch. @return array<int, array> */
+    public function hamperLines(Hamper $h, float $quantity): array
+    {
+        $out = [];
+        foreach ($this->hamperNeeds((int) $h->id) as $vid => $per) {
+            $out[] = ['variant_id' => $vid, 'quantity' => round($per * $quantity, 4), 'location_id' => (int) $h->location_id, 'lenient' => true, 'hamper_ids' => [(int) $h->id]];
+        }
+
+        return $out;
+    }
+
+    /**
+     * What a hamper looks like to this visitor, from the stock of its components at the hamper's branch:
+     * buy (every component is in stock), preorder (what is short has an open offer in a live campaign that features the hamper), coming_soon, or out.
+     * `blocked` names the components that stop a preorder (no offer, switched off at the branch, closed or full).
+     *
+     * @return array{state: string, offer: ?array, blocked: string[]}
+     */
+    public function hamperState(Hamper $h, ?User $user): array
+    {
+        $loc = (int) $h->location_id;
+        $needs = $this->hamperNeeds((int) $h->id);
+        $short = [];
+        foreach ($needs as $vid => $q) {
+            if ($loc && $this->buyable($vid, $loc) + 0.00005 < $q) {
+                $short[$vid] = $q;
+            }
+        }
+        if (! $short) {
+            return ['state' => 'buy', 'offer' => null, 'blocked' => []];
+        }
+        if (! self::ready() || ! $this->licensed()) {
+            return ['state' => 'out', 'offer' => null, 'blocked' => $this->componentNames(array_keys($short))];
+        }
+        $campaigns = CampaignItem::where('item_type', 'hamper')->where('item_id', $h->id)->pluck('campaign_id')->all();
+        $offers = PreorderOffer::with('campaign')->whereIn('campaign_id', $campaigns)->whereIn('variant_id', array_keys($short))->where('is_active', true)->get()->groupBy('variant_id');
+
+        $open = [];
+        $soon = false;
+        $blocked = [];
+        foreach ($short as $vid => $q) {
+            $mine = $offers->get($vid, collect());
+            $on = $this->enabledAt($vid, $loc);
+            if ($on && ($o = $mine->first(fn ($o) => $this->isOpen($o, $user)))) {
+                $open[] = [$o, $q];
+            } elseif ($on && $mine->first(fn ($o) => $this->comingSoon($o, $user))) {
+                $soon = true;
+            } else {
+                $blocked[] = $vid;
+            }
+        }
+        if ($blocked) {
+            return ['state' => 'out', 'offer' => null, 'blocked' => $this->componentNames($blocked)];
+        }
+        if ($soon) {
+            return ['state' => 'coming_soon', 'offer' => null, 'blocked' => []];
+        }
+
+        return ['state' => 'preorder', 'offer' => $this->hamperOffer($open), 'blocked' => []];
+    }
+
+    /** The offers behind a hamper preorder, as one: the fewest places left, the latest expected date, the earliest closing. @param array<int, array{0: PreorderOffer, 1: float}> $open */
+    private function hamperOffer(array $open): array
+    {
+        $places = null;
+        $from = null;
+        $until = null;
+        $closes = null;
+        $terms = [];
+        foreach ($open as [$o, $per]) {
+            $left = $this->remaining($o);
+            if ($left !== null) {
+                $n = (int) floor($left / max(0.0001, $per));
+                $places = $places === null ? $n : min($places, $n);
+            }
+            $from = max($from ?? '', (string) $o->expected_from?->toDateString()) ?: null;
+            $until = max($until ?? '', (string) $o->expected_until?->toDateString()) ?: null;
+            $closes = $o->closes_at && (! $closes || $o->closes_at->lt($closes)) ? $o->closes_at : $closes;
+            if ($o->terms) {
+                $terms[$o->terms] = true;
+            }
+        }
+        $first = $open[0][0];
+
+        return ['id' => $first->id, 'campaign_id' => $first->campaign_id, 'campaign' => $first->campaign?->title, 'limit_total' => null, 'places_left' => $places,
+            'closes_at' => $closes?->toIso8601String(), 'expected_from' => $from, 'expected_until' => $until, 'terms' => $terms ? implode(' ', array_keys($terms)) : null];
+    }
+
+    /** Is the offer's campaign still to open for this person (so the item is "coming soon" rather than out)? */
+    private function comingSoon(PreorderOffer $o, ?User $user): bool
+    {
+        $c = $o->campaign;
+        if (! $o->is_active || ! $c || ! CampaignAudience::allows($user, $c->audience_rule) || ($o->closes_at && now()->gte($o->closes_at))) {
+            return false;
+        }
+
+        return in_array($this->campaignStatus($c, $user)[0], ['scheduled', 'teaser'], true);
+    }
+
+    private function componentNames(array $variantIds): array
+    {
+        return ProductVariant::with('product:id,name')->whereIn('id', $variantIds)->get()->map(fn ($v) => $v->product?->name . ($v->name && $v->name !== $v->product?->name ? " ({$v->name})" : ''))->values()->all();
+    }
+
+    /**
+     * For the campaign editor: every component of a hamper the campaign features, with what is in stock at the hamper's branch and what covers a shortfall.
+     * @return array{components: array<int, array>, state: string}
+     */
+    public function hamperReadiness(Campaign $c, Hamper $h): array
+    {
+        $loc = (int) $h->location_id;
+        $needs = $this->hamperNeeds((int) $h->id);
+        $variants = ProductVariant::with('product:id,name')->whereIn('id', array_keys($needs))->get()->keyBy('id');
+        $offers = self::ready() ? PreorderOffer::where('campaign_id', $c->id)->whereIn('variant_id', array_keys($needs))->get()->keyBy('variant_id') : collect();
+        $rows = [];
+        foreach ($needs as $vid => $q) {
+            $v = $variants[$vid] ?? null;
+            $buyable = $loc ? $this->buyable($vid, $loc) : 0.0;
+            $o = $offers[$vid] ?? null;
+            $rows[] = ['variant_id' => $vid, 'item' => $v?->product?->name, 'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null, 'per_hamper' => $q, 'buyable' => $buyable,
+                'covered' => $buyable + 0.00005 >= $q ? 'stock' : ($o && $o->is_active && $this->enabledAt($vid, $loc) ? 'offer' : 'none'), 'offer_id' => $o?->id];
+        }
+
+        return ['components' => $rows, 'state' => in_array('none', array_column($rows, 'covered'), true) ? 'out' : (in_array('offer', array_column($rows, 'covered'), true) ? 'preorder' : 'buy')];
+    }
+
     // ------------------------------------------------------------ placing
 
     /** The one active variant of a product when the cart did not say which. */
@@ -393,8 +543,11 @@ class PreorderService
      * Check a cart of preorder lines can be taken: the Campaigns module is on, every item has an offer open to this person at this branch,
      * it is not in stock now, and the places are there. With $lock (inside a transaction) the offers are locked first so two customers can not take the last place.
      *
-     * @param  array<int, array{product_id?: int, variant_id?: int, quantity: float, variant_unit_id?: mixed}>  $lines
-     * @return array<int, array{offer: PreorderOffer, quantity: float}> by variant id
+     * A line may carry its own `location_id` (a hamper's components come from the hamper's branch) and, for a hamper's component, `lenient` + `hamper_ids`:
+     * what is already in stock is then set aside without an offer, and an offer is only needed (and only counts) when a live campaign features that hamper.
+     *
+     * @param  array<int, array{product_id?: int, variant_id?: int, quantity: float, variant_unit_id?: mixed, location_id?: int, lenient?: bool, hamper_ids?: int[]}>  $lines
+     * @return array<string, array{variant_id: int, location_id: int, quantity: float, offer: ?PreorderOffer, lenient: bool, hamper_ids: int[]}> by "variant@branch"
      */
     public function assertPlaceable(array $lines, int $locationId, ?User $user, bool $lock = false): array
     {
@@ -413,36 +566,54 @@ class PreorderService
                 throw new BooksException('Preorders are taken in the item\'s main unit.');
             }
             $v = $this->variantOf($l);
-            $want[$v->id] = ($want[$v->id] ?? 0) + (float) ($l['quantity'] ?? 1);
+            $loc = (int) ($l['location_id'] ?? $locationId);
+            $k = $v->id . '@' . $loc;
+            $w = $want[$k] ?? ['variant_id' => (int) $v->id, 'location_id' => $loc, 'quantity' => 0.0, 'offer' => null, 'lenient' => true, 'hamper_ids' => []];
+            $w['quantity'] += (float) ($l['quantity'] ?? 1);
+            $w['lenient'] = $w['lenient'] && ! empty($l['lenient']);
+            $w['hamper_ids'] = array_values(array_unique(array_merge($w['hamper_ids'], array_map('intval', $l['hamper_ids'] ?? []))));
+            $want[$k] = $w;
         }
-        $pick = [];
-        foreach ($want as $variantId => $qty) {
-            $offers = PreorderOffer::with('campaign')->where('variant_id', $variantId)->get();
-            $offer = $this->enabledAt($variantId, $locationId) ? $offers->first(fn ($o) => $this->isOpen($o, $user)) : null;
-            $name = Product::whereKey(ProductVariant::whereKey($variantId)->value('product_id'))->value('name') ?? 'That item';
-            if (! $offer) {
-                throw new BooksException("{$name} can't be preordered here right now.");
+        $name = fn (int $variantId) => Product::whereKey(ProductVariant::whereKey($variantId)->value('product_id'))->value('name') ?? 'That item';
+        $why = fn (array $w, string $what) => $w['hamper_ids']
+            ? (Hamper::whereIn('id', $w['hamper_ids'])->value('name') ?? 'That hamper') . " can't be preordered right now: {$name($w['variant_id'])} {$what}"
+            : "{$name($w['variant_id'])} can't be preordered here right now.";
+
+        foreach ($want as $k => $w) {
+            // a line that is all hamper components and already in stock needs no offer: it is only set aside
+            if ($w['lenient'] && $this->buyable($w['variant_id'], $w['location_id']) + 0.00005 >= $w['quantity']) {
+                continue;
             }
-            $pick[$variantId] = $offer;
+            $offers = PreorderOffer::with('campaign')->where('variant_id', $w['variant_id'])->get();
+            if ($w['lenient']) {
+                $featuring = CampaignItem::whereIn('item_id', $w['hamper_ids'])->where('item_type', 'hamper')->pluck('campaign_id')->all();
+                $offers = $offers->filter(fn ($o) => in_array($o->campaign_id, $featuring, true));
+            }
+            $offer = $this->enabledAt($w['variant_id'], $w['location_id']) ? $offers->first(fn ($o) => $this->isOpen($o, $user)) : null;
+            if (! $offer) {
+                throw new BooksException($why($w, 'has no open preorder offer in a campaign that features it.'));
+            }
+            $want[$k]['offer'] = $offer;
         }
         if ($lock) {
-            PreorderOffer::whereIn('id', collect($pick)->pluck('id'))->lockForUpdate()->get();
+            PreorderOffer::whereIn('id', collect($want)->pluck('offer.id')->filter())->lockForUpdate()->get();
         }
-        $out = [];
-        foreach ($want as $variantId => $qty) {
-            $offer = $pick[$variantId];
-            $name = Product::whereKey($offer->product_id)->value('name') ?? 'That item';
-            if ($this->buyable($variantId, $locationId) + 0.00005 >= $qty) {
-                throw new BooksException("{$name} is in stock now. Order it in the normal cart.");
+        foreach ($want as $w) {
+            $offer = $w['offer'];
+            if (! $offer) {
+                continue;
+            }
+            if (! $w['lenient'] && $this->buyable($w['variant_id'], $w['location_id']) + 0.00005 >= $w['quantity']) {
+                throw new BooksException("{$name($w['variant_id'])} is in stock now. Order it in the normal cart.");
             }
             $left = $this->remaining($offer);
-            if ($left !== null && $qty - $left > 0.00005) {
-                throw new BooksException($left > 0 ? "Only " . (int) floor($left) . " place" . ((int) floor($left) === 1 ? '' : 's') . " left for {$name}." : "No places are left for {$name}.");
+            if ($left !== null && $w['quantity'] - $left > 0.00005) {
+                $n = (int) floor($left);
+                throw new BooksException($left > 0 ? "Only {$n} place" . ($n === 1 ? '' : 's') . " left for {$name($w['variant_id'])}." : "No places are left for {$name($w['variant_id'])}.");
             }
-            $out[$variantId] = ['offer' => $offer, 'quantity' => $qty];
         }
 
-        return $out;
+        return $want;
     }
 
     /** The Sales Order numbering series for preorders (PRE-), or null before script 103. */
@@ -459,19 +630,26 @@ class PreorderService
     /** What the Sales Order is told so it is a preorder: its series and the flag its sale inherits. */
     public function orderMeta(array $placeable): array
     {
-        $campaigns = collect($placeable)->map(fn ($p) => $p['offer']->campaign_id)->unique()->values()->all();
+        $campaigns = collect($placeable)->map(fn ($p) => $p['offer']?->campaign_id)->filter()->unique()->values()->all();
 
         return ['preorder' => ['campaign_ids' => $campaigns]];
     }
 
-    /** After the order is made: remember which offer and promised date each variant was taken under, and refresh the figures the shop reads. */
+    /** The variants an order's placeable lines touch (their buyable figures move). */
+    public static function variantsOf(array $placeable): array
+    {
+        return array_values(array_unique(array_map(fn ($p) => (int) $p['variant_id'], $placeable)));
+    }
+
+    /** After the order is made: remember which offer and promised date each variant was taken under (offer 0: stock set aside inside a hamper, no offer), and refresh the figures the shop reads. */
     public function record(Voucher $order, array $placeable, int $locationId): void
     {
-        foreach ($placeable as $variantId => $p) {
-            PreorderLine::create(['voucher_id' => $order->id, 'offer_id' => $p['offer']->id, 'variant_id' => $variantId, 'location_id' => $locationId,
-                'promised_date' => $p['offer']->expected_until ?? $p['offer']->expected_from, 'created_at' => now()]);
+        foreach ($placeable as $p) {
+            $o = $p['offer'];
+            PreorderLine::create(['voucher_id' => $order->id, 'offer_id' => $o?->id ?? 0, 'variant_id' => $p['variant_id'], 'location_id' => $p['location_id'] ?? $locationId,
+                'promised_date' => $o ? ($o->expected_until ?? $o->expected_from) : null, 'created_at' => now()]);
         }
-        $this->refresh(array_keys($placeable));
+        $this->refresh(self::variantsOf($placeable));
     }
 
     /** A voucher in a preorder's family was made, changed or cancelled: the buyable figures of its items move. */
