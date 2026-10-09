@@ -18,13 +18,14 @@ export default function NotificationPreferencesModal({ open, onClose }) {
   const [mode, setMode] = useState('default');
   const [essential, setEssential] = useState('default');   // 'default' | 'yes' | 'no'
   const [number, setNumber] = useState('');
+  const [remind, setRemind] = useState({ cart: true, price: true });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState({});
 
   useEffect(() => {
     if (!open) return;
     notificationPreferencesAPI.show().then((r) => {
-      setP(r); setMode(r.mode ?? 'default'); setNumber(r.whatsapp ?? '');
+      setP(r); setMode(r.mode ?? 'default'); setNumber(r.whatsapp ?? ''); setRemind({ cart: r.reminders?.cart ?? true, price: r.reminders?.price ?? true });
       setEssential(r.essential_only === null ? 'default' : r.essential_only ? 'yes' : 'no');
     }).catch((e) => toast.error(errMsg(e, 'Could not load your notification settings')));
   }, [open]);
@@ -41,7 +42,7 @@ export default function NotificationPreferencesModal({ open, onClose }) {
   const save = async (e) => {
     e.preventDefault(); setBusy(true); setErr({});
     try {
-      const r = await notificationPreferencesAPI.save({ mode, essential_only: essential === 'default' ? null : essential === 'yes', whatsapp: number });
+      const r = await notificationPreferencesAPI.save({ mode, essential_only: essential === 'default' ? null : essential === 'yes', whatsapp: number, ...(p?.reminders ? { remind_cart: remind.cart, remind_price: remind.price } : {}) });
       setP(r.data); toast.success('Saved'); onClose();
     } catch (ex) {
       const v = ex?.response?.data?.errors;
@@ -91,6 +92,23 @@ export default function NotificationPreferencesModal({ open, onClose }) {
                 </label>
               ))}
             </fieldset>
+
+            {p.reminders && (p.reminders.company.cart || p.reminders.company.price) && (
+              <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
+                <legend style={{ fontWeight: 700, fontSize: '0.85rem', marginBottom: 6 }}>Reminders from the shop</legend>
+                {p.reminders.company.cart && (
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.84rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={remind.cart} onChange={(e) => setRemind((r) => ({ ...r, cart: e.target.checked }))} style={{ accentColor: 'var(--color-primary-500)' }} /> Remind me about items I left in my cart
+                  </label>
+                )}
+                {p.reminders.company.price && (
+                  <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.84rem', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={remind.price} onChange={(e) => setRemind((r) => ({ ...r, price: e.target.checked }))} style={{ accentColor: 'var(--color-primary-500)' }} /> Tell me when something I saved gets cheaper
+                  </label>
+                )}
+                <span style={{ fontSize: '0.74rem', color: '#6b7280' }}>Sent by email. If you chose “only the essentials” above, these stay in your notifications here instead.</span>
+              </fieldset>
+            )}
 
             <p style={{ margin: 0, fontSize: '0.78rem', color: '#374151', background: 'color-mix(in srgb, var(--color-primary-500) 6%, transparent)', padding: '9px 12px', borderRadius: 10, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               <Mail size={13} /> An order update would reach you by {[p.now.email && 'email', p.now.whatsapp && 'WhatsApp'].filter(Boolean).join(' and ') || 'the bell here only'}

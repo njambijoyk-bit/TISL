@@ -5,13 +5,14 @@ import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { CheckboxRow, Field, NumberInput, SelectInput } from '../ui/Form';
 import { btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
-const FIELDS = ['email_enabled', 'whatsapp_enabled', 'essential_only_default', 'default_mode', 'whatsapp_number_sources', 'back_in_stock_enabled', 'back_in_stock_mode', 'back_in_stock_hold_hours'];
+const FIELDS = ['email_enabled', 'whatsapp_enabled', 'essential_only_default', 'default_mode', 'whatsapp_number_sources', 'back_in_stock_enabled', 'back_in_stock_mode', 'back_in_stock_hold_hours', 'cart_reminders_enabled', 'cart_reminder_after_hours', 'cart_reminder_count', 'price_drop_enabled', 'price_drop_min_percent'];
 
 /** The company's defaults: how customers are reached unless they choose otherwise, the switches, and which WhatsApp numbers count. Each change is a version in the history. */
 export default function GeneralTab({ data, canEdit, onChanged }) {
   const g = data.parts.general;
   const start = { email_enabled: !!g.email_enabled, whatsapp_enabled: !!g.whatsapp_enabled, essential_only_default: !!g.essential_only_default, default_mode: g.default_mode, whatsapp_number_sources: g.whatsapp_number_sources,
-    back_in_stock_enabled: !!g.back_in_stock_enabled, back_in_stock_mode: g.back_in_stock_mode, back_in_stock_hold_hours: Number(g.back_in_stock_hold_hours) || 24 };
+    back_in_stock_enabled: !!g.back_in_stock_enabled, back_in_stock_mode: g.back_in_stock_mode, back_in_stock_hold_hours: Number(g.back_in_stock_hold_hours) || 24,
+    cart_reminders_enabled: !!g.cart_reminders_enabled, cart_reminder_after_hours: Number(g.cart_reminder_after_hours) || 24, cart_reminder_count: Number(g.cart_reminder_count) || 1, price_drop_enabled: !!g.price_drop_enabled, price_drop_min_percent: Number(g.price_drop_min_percent) || 5 };
   const [f, setF] = useState(start);
   const [busy, setBusy] = useState(false);
   const dirty = FIELDS.some((k) => f[k] !== start[k]);
@@ -65,6 +66,31 @@ export default function GeneralTab({ data, canEdit, onChanged }) {
         {f.back_in_stock_mode === 'stock' && (
           <Field label="Hours people told count against the stock" hint="Someone told this recently is assumed to be about to buy, so a stray return or a small top-up does not tell another batch while the first is still deciding.">
             <NumberInput min={1} max={168} value={f.back_in_stock_hold_hours} onChange={(e) => set('back_in_stock_hold_hours')(Math.max(1, Math.min(168, Number(e.target.value) || 24)))} disabled={!canEdit} style={{ width: 120 }} />
+          </Field>
+        )}
+      </div>
+      <div style={{ ...card, padding: 20, display: 'grid', gap: 16 }}>
+        <h2 style={{ margin: 0, fontSize: '1rem' }}>Reminders</h2>
+        <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Sent only to signed-in customers, by email (WhatsApp only when the automatic WhatsApp API is on, so staff are never given a hand-sent list of reminders). Customers who chose “essential messages only” get them in their notifications here, not by email. Every reminder has a link to stop it, and customers can also switch them off in their profile. Nothing is sent at night (8am to 8pm). Both are off until you switch them on.</p>
+        <CheckboxRow checked={f.cart_reminders_enabled} disabled={!canEdit} onChange={set('cart_reminders_enabled')}
+          label="Remind customers about items left in their cart" description="Once the cart has been untouched for the time below, and never after they have ordered, never when nothing in it can be bought, and never for a cart older than 14 days." />
+        {f.cart_reminders_enabled && (
+          <>
+            <Field label="Remind after (hours without changing the cart)">
+              <NumberInput min={1} max={168} value={f.cart_reminder_after_hours} onChange={(e) => set('cart_reminder_after_hours')(Math.max(1, Math.min(168, Number(e.target.value) || 24)))} disabled={!canEdit} style={{ width: 120 }} />
+            </Field>
+            <Field label="How many reminders per cart" hint="The second one is sent 3 days after the first. A cart that changes counts as a new cart.">
+              <SelectInput value={f.cart_reminder_count} onChange={(e) => set('cart_reminder_count')(Number(e.target.value))} disabled={!canEdit} style={{ width: 160 }}>
+                <option value={1}>One</option><option value={2}>Up to two</option>
+              </SelectInput>
+            </Field>
+          </>
+        )}
+        <CheckboxRow checked={f.price_drop_enabled} disabled={!canEdit} onChange={set('price_drop_enabled')}
+          label="Tell customers when something they saved gets cheaper" description="Compares each saved product's own price with the last price seen (not personal or tier discounts). Only for products that can be bought. Nobody is told twice for the same price." />
+        {f.price_drop_enabled && (
+          <Field label="Smallest drop worth telling them about (%)" hint="Smaller cuts are not told one by one, but they add up: a run of small cuts is told once it passes this.">
+            <NumberInput min={1} max={90} value={f.price_drop_min_percent} onChange={(e) => set('price_drop_min_percent')(Math.max(1, Math.min(90, Number(e.target.value) || 5)))} disabled={!canEdit} style={{ width: 120 }} />
           </Field>
         )}
       </div>

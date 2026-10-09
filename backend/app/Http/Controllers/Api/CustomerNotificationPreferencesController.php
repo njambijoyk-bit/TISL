@@ -22,12 +22,12 @@ class CustomerNotificationPreferencesController extends Controller
         return response()->json($this->prefs->show($customer));
     }
 
-    /** PUT /customer/notification-preferences {mode?, essential_only?, whatsapp?} */
+    /** PUT /customer/notification-preferences {mode?, essential_only?, whatsapp?, remind_cart?, remind_price?} */
     public function update(Request $request): JsonResponse
     {
         $customer = $request->user()?->customer;
         abort_unless($customer, 404, 'There is no customer account for you.');
-        $in = $request->validate(['mode' => 'sometimes|nullable|in:default,email,whatsapp,both', 'essential_only' => 'sometimes|nullable|boolean', 'whatsapp' => 'sometimes|nullable|string|max:40']);
+        $in = $request->validate(['mode' => 'sometimes|nullable|in:default,email,whatsapp,both', 'essential_only' => 'sometimes|nullable|boolean', 'whatsapp' => 'sometimes|nullable|string|max:40', 'remind_cart' => 'sometimes|boolean', 'remind_price' => 'sometimes|boolean']);
         try {
             return response()->json(['message' => 'Saved.', 'data' => $this->prefs->save($customer, $in)]);
         } catch (NotifyException $e) {

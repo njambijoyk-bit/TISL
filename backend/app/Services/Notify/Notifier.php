@@ -136,6 +136,9 @@ class Notifier
         }
         $rule = $this->settings->get('types')['rules'][$type] ?? [];
         $cfg = $this->settings->get('whatsapp');
+        if (in_array($type, NotificationTypes::WHATSAPP_ONLY_AUTOMATIC, true) && (empty($rule['template']) || ! $this->providers->automatic() || ! NotificationDelivery::hasPayload())) {
+            return $this->record($bell, $to, $type, 'whatsapp', 'skipped', '+' . $digits, null, $text, 'manual_not_used');   // not worth a person's tap each: email only until the API is on
+        }
         if (! empty($rule['template']) && $this->providers->automatic() && NotificationDelivery::hasPayload()) {
             $vars = $this->variables($rule['variables'] ?? ['name', 'message'], $person, $to, $title, $body, $link);
             $d = $this->record($bell, $to, $type, 'whatsapp', 'queued', '+' . $digits, null, $text);

@@ -24,6 +24,7 @@ const OAuthCallback       = lazy(() => import('./core/pages/auth/OAuthCallback')
 const ForceChangePassword = lazy(() => import('./core/pages/auth/ForceChangePassword.jsx'));
 const ForgotPassword      = lazy(() => import('./core/pages/auth/ForgotPassword'));
 const StockAlertStop      = lazy(() => import('./core/pages/customer/StockAlertStop'));
+const ReminderStop        = lazy(() => import('./core/pages/customer/ReminderStop'));
 const ResetPassword       = lazy(() => import('./core/pages/auth/ResetPassword'));
 
 // ── Customer Pages ────────────────────────────────────────────────────────────
@@ -502,6 +503,7 @@ function App() {
             <Route path="/force-change-password" element={<ForceChangePassword />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/stock-alerts/stop/:token" element={<StockAlertStop />} />
+            <Route path="/reminders/stop/:token" element={<ReminderStop />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
             <Route element={<CareersLayout />}>

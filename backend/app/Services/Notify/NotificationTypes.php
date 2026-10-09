@@ -25,12 +25,20 @@ class NotificationTypes
         'quote_accepted' => ['Quotation accepted', true, 'customer'],
         'quotation_requested' => ['New quotation request', false, 'staff'],
         'back_in_stock' => ['Back in stock (asked for)', true, 'customer'],   // essential: the customer asked for exactly this, so "essential messages only" must not silence it
+        'cart_reminder' => ['Reminder: items left in the cart', false, 'customer'],
+        'price_drop' => ['Price drop on a saved item', false, 'customer'],
         'stock_recall' => ['Product recall', true, 'customer'],
         'referral_earned' => ['Referral reward', false, 'customer'],
         'account_created' => ['Account created', true, 'customer'],
         'password_reset' => ['Password reset', true, 'customer'],
         'engagement_taken_down' => ['Post taken down', false, 'customer'],
     ];
+
+    /**
+     * Messages nobody has to send by hand: they go out by WhatsApp only through the automatic API. A reminder is sent to many people at once, so with tap-to-send each
+     * one would become a job for staff to do; they are email (and the bell) unless the API is on.
+     */
+    public const WHATSAPP_ONLY_AUTOMATIC = ['cart_reminder', 'price_drop'];
 
     /** @return string[] */
     public static function keys(): array

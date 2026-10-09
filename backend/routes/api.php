@@ -254,6 +254,10 @@ Route::prefix('stock-watches')->group(function () {
     Route::post('/{token}/stop', [\App\Http\Controllers\Api\StockWatchController::class, 'stop'])->middleware('throttle:30,1');
 });
 
+// The "stop these reminders" link in cart reminders and price alerts — the token in the link is the key
+Route::get('/reminder-prefs/{token}', [\App\Http\Controllers\Api\ReminderPrefsController::class, 'show'])->middleware('throttle:30,1');
+Route::post('/reminder-prefs/{token}/stop', [\App\Http\Controllers\Api\ReminderPrefsController::class, 'stop'])->middleware('throttle:30,1');
+
 // Public shipping options (for checkout)
 Route::get('/shipping-options', [ShippingOptionController::class, 'publicIndex']);
 

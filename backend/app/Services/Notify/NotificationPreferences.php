@@ -39,6 +39,8 @@ class NotificationPreferences
             'company' => ['default_mode' => $g['default_mode'], 'email_enabled' => (bool) $g['email_enabled'], 'whatsapp_enabled' => (bool) $g['whatsapp_enabled'],
                 'number_sources' => $g['whatsapp_number_sources'], 'essential_only_default' => (bool) $g['essential_only_default']],
             // what an order update would use right now, so the choice can be checked at a glance
+            // the two reminders the shop starts itself (null until script 114 is run)
+            'reminders' => ReminderPrefs::ready() ? app(ReminderPrefs::class)->show((int) $c->id) + ['company' => ['cart' => (bool) ($g['cart_reminders_enabled'] ?? false), 'price' => (bool) ($g['price_drop_enabled'] ?? false)]] : null,
             'now' => ['email' => in_array('email', $plan['channels'], true), 'whatsapp' => in_array('whatsapp', $plan['channels'], true), 'skipped' => $plan['skipped']],
         ];
     }
@@ -80,6 +82,10 @@ class NotificationPreferences
             }
         }
         $c->save();
+        $remind = array_filter(['cart' => $in['remind_cart'] ?? null, 'price' => $in['remind_price'] ?? null], fn ($v) => $v !== null);
+        if ($remind && ReminderPrefs::ready()) {
+            app(ReminderPrefs::class)->save((int) $c->id, $remind);
+        }
 
         return $this->show($c->fresh());
     }
