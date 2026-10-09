@@ -25,7 +25,7 @@ class PreorderDashboard
     /** @return array<string,mixed> */
     public function summary(CarbonInterface $today): array
     {
-        $offers = $this->offers($today);
+        $offers = $this->offers();
         $late = $this->preorders->overdue($today);
         $paid = $this->preorders->paidNotDelivered();
 
@@ -51,7 +51,7 @@ class PreorderDashboard
     }
 
     /** Every offer with how full it is and whether what is owed on it is covered. @return array<int, array<string,mixed>> */
-    private function offers(CarbonInterface $today): array
+    private function offers(): array
     {
         $offers = PreorderOffer::with(['campaign', 'variant.product:id,name'])->orderByDesc('id')->get();
         $ids = $offers->pluck('id')->all();
@@ -66,7 +66,7 @@ class PreorderDashboard
             $v = $o->variant;
             $out[] = [
                 'id' => $o->id, 'campaign_id' => $o->campaign_id, 'campaign' => $o->campaign?->title, 'item' => $v?->product?->name, 'option' => $v && $v->name && $v->name !== $v->product?->name ? $v->name : null,
-                'status' => $this->status($o, $left, $today), 'limit_total' => $o->limit_total, 'taken' => round($taken[$o->id] ?? 0, 4), 'places_left' => $left === null ? null : (int) floor($left),
+                'status' => $this->status($o, $left), 'limit_total' => $o->limit_total, 'taken' => round($taken[$o->id] ?? 0, 4), 'places_left' => $left === null ? null : (int) floor($left),
                 'closes_at' => $o->closes_at?->toIso8601String(), 'expected' => $supply[$o->id]['date'] ?? ($o->expected_until ?? $o->expected_from)?->toDateString(), 'from_supply' => $supply[$o->id]['date'] !== null,
                 'owed' => $owed, 'stock' => $stock, 'incoming' => $incoming, 'short' => max(0.0, round($owed - $stock - $incoming, 4)),
             ];
@@ -76,19 +76,19 @@ class PreorderDashboard
     }
 
     /** open | full | stopped | closed | scheduled | ended */
-    private function status(PreorderOffer $o, ?float $left, CarbonInterface $today): string
+    private function status(PreorderOffer $o, ?float $left): string
     {
         if (! $o->is_active) {
             return 'stopped';
         }
-        $c = $o->campaign ? CampaignStatus::of($o->campaign, $today) : 'ended';
+        $c = $o->campaign ? CampaignStatus::of($o->campaign) : 'ended';   // "now" is the moment, not midnight: an offer that closed at 9 this morning is closed
         if (in_array($c, ['scheduled', 'teaser'], true)) {
             return 'scheduled';
         }
         if ($c !== 'live') {
             return 'ended';
         }
-        if ($o->closes_at && $today->gte($o->closes_at)) {
+        if ($o->closes_at && now()->gte($o->closes_at)) {
             return 'closed';
         }
 
