@@ -10,6 +10,7 @@ import InvoiceFinder from '../../../components/admin/books/InvoiceFinder';
 import { creditSentence } from '../../../components/admin/books/creditText';
 import booksAPI from '../../../../_shared/api/books';
 import locationsAPI from '../../../../_shared/api/locations';
+import costCentresAPI from '../../../../_shared/api/costCentres';
 import useAuthStore from '../../../../_shared/store/authStore';
 import useModuleStore from '../../../../_shared/store/moduleStore';
 import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
@@ -183,9 +184,11 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(editing);
 
-  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', currency_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '' });
+  const [h, setH] = useState({ date: today(), location_id: '', party_ledger_id: '', customer: null, payment_method_id: '', reference_no: '', party_name: '', party_phone: '', party_address: '', party_tax_id: '', narration: '', due_date: '', paid_ledger_id: '', currency_id: '', series_id: '', voucher_number: '', amount: '', ledger_id: '', valid_until: '', cost_centre_id: '' });
   const [lines, setLines] = useState([]);
   const [entries, setEntries] = useState([{ ledger_id: '', side: 'D', amount: '' }, { ledger_id: '', side: 'C', amount: '' }]);
+  const [cc, setCc] = useState({ ready: false, line_override: false, data: [] });
+  useEffect(() => { costCentresAPI.options().then(setCc).catch(() => {}); }, []);
   const [manual, setManual] = useState(false);
   const [shipOptions, setShipOptions] = useState([]);
   const [tenders, setTenders] = useState([]);
@@ -270,7 +273,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       const SHARE_SRC = ['tier', 'customer_type', 'promo', 'referral', 'personal'];
       setDiscountPick(Array.isArray(savedChoices) ? savedChoices : []);
       setLegacyDiscounts(legacy);
-      setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
+      setH((x) => ({ ...x, ledger_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 ? ((v.entries ?? []).find((e) => !e.is_party && !e.is_tax)?.ledger_id ?? x.ledger_id) : x.ledger_id, date: v.date, location_id: v.location_id ?? '', cost_centre_id: v.cost_centre_id ?? '', party_ledger_id: v.party_ledger_id ?? '', customer: v.customer_id ? { customer_id: v.customer_id, name: v.party_ledger?.name } : null,
         payment_method_id: ['receipt', 'payment'].includes(v.type?.base_type) && (v.tenders ?? []).length <= 1 && v.payment_method?.ledger_id ? '' : (v.payment_method_id ?? ''), currency_id: (origCurrency.current = v.currency_id ?? null) ?? '', reference_no: v.reference_no ?? '', party_name: v.party_name ?? '', party_phone: v.party_phone ?? '', party_address: v.party_address ?? '', party_tax_id: v.party_tax_id ?? '', narration: v.narration ?? '', due_date: v.due_date ?? '', valid_until: v.valid_until ?? '', series_id: v.series_id ?? '', voucher_number: v.voucher_number, amount: v.total_amount }));
       if (v.type?.base_type === 'purchase') {
         const paidEntry = (v.entries ?? []).find((e) => e.is_party);
@@ -296,7 +299,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
           return { ...b, type: 'custom', rate: Number(i.rate), ledger_id: i.ledger_id ?? '' };
         }));
       } else if (v.entries?.length) {
-        setEntries(v.entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) })));
+        setEntries(v.entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount), cost_centre_id: e.cost_centre_id && String(e.cost_centre_id) !== String(v.cost_centre_id) ? e.cost_centre_id : '' })));
       }
     }).catch((e) => toast.error(errMsg(e, 'Could not load the voucher'))).finally(() => setLoading(false));
   }, [id, editing]);
@@ -411,7 +414,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
 
   const payload = useMemo(() => {
     const p = {
-      voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, reference_no: h.reference_no || null, narration: h.narration || null,
+      voucher_type_id: Number(typeId), date: h.date, location_id: h.location_id || null, cost_centre_id: h.cost_centre_id || undefined, reference_no: h.reference_no || null, narration: h.narration || null,
       party_name: h.party_name || null, party_phone: h.party_phone || null, party_address: h.party_address || null, party_tax_id: h.party_tax_id || null,
       party_ledger_id: h.party_ledger_id || null, customer_id: h.customer?.customer_id ?? null, payment_method_id: h.payment_method_id || null, due_date: h.due_date || null,
       paid_ledger_id: base === 'purchase' && cashPurchase ? (h.paid_ledger_id || null) : undefined,
@@ -438,7 +441,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       if (moneyBank && ins.type) p.instrument = { type: ins.type, number: ins.number.trim() || undefined, date: ins.date || undefined, bank_name: ins.bank_name.trim() || undefined };
       if (wh.tax_rate_id) p.withholding = { tax_rate_id: Number(wh.tax_rate_id), amount: wh.amount === '' ? undefined : Number(wh.amount), certificate_no: wh.certificate_no || undefined };
     } else if (isEntries) {
-      p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0 }));
+      p.entries = entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount) || 0, cost_centre_id: cc.line_override && e.cost_centre_id ? e.cost_centre_id : undefined }));
       if (contraBankIn || contraBankOut) p.slip = { number: slip.number.trim() || undefined, date: slip.date || undefined, by: slip.by.trim() || undefined };
     }
     if (expiredOverride.on && expiredOverride.reason.trim()) p.expired_override = { reason: expiredOverride.reason.trim() };
@@ -462,7 +465,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
       else if (h.series_id) p.series_id = h.series_id;
     }
     return p;
-  }, [typeId, h, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
+  }, [typeId, h, cc.line_override, lines, entries, tenders, wh, alloc, ins, slip, moneyBank, contraBankIn, contraBankOut, refund, isAdvance, advanceFor, custCredits, creditPick, hasItems, isMoney, isEntries, manual, editing, expiredOverride, discountPick, giftPlan, giftPick, base, methods, preview?.total, rounding, cashPurchase]);
 
   // live preview (business errors show inline, not as toasts)
   useEffect(() => {
@@ -566,6 +569,15 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   {limitBranches(branches, 'books', h.location_id).filter((b) => branchAllowed(base, b) || String(b.id) === String(h.location_id)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
               </div>
+              {cc.ready && (
+                <div>
+                  <label style={label}>Cost centre</label>
+                  <select value={h.cost_centre_id} onChange={(e) => setH((x) => ({ ...x, cost_centre_id: e.target.value }))} style={small} aria-label="Cost centre">
+                    <option value="">Automatic</option>
+                    {cc.data.map((c) => <option key={c.id} value={c.id}>{'— '.repeat(c.depth)}{c.name}</option>)}
+                  </select>
+                </div>
+              )}
               {!editing && series.length > 0 && (
                 <div>
                   <label style={label}>Numbering</label>
@@ -832,12 +844,18 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
               <div style={{ ...card, padding: 18 }}>
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>Entries</p>
                 {entries.map((e, i) => (
-                  <div key={i} style={{ display: 'grid', gridTemplateColumns: '90px minmax(200px,1fr) 140px auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <div key={i} style={{ display: 'grid', gridTemplateColumns: cc.ready && cc.line_override ? '90px minmax(200px,1fr) minmax(140px,200px) 140px auto' : '90px minmax(200px,1fr) 140px auto', gap: 8, marginBottom: 8, alignItems: 'center' }}>
                     <select value={e.side} onChange={(ev) => setEntry(i, { side: ev.target.value })} style={small}><option value="D">Dr</option><option value="C">Cr</option></select>
                     <select value={e.ledger_id} onChange={(ev) => setEntry(i, { ledger_id: ev.target.value })} style={small}>
                       <option value="">Choose a ledger…</option>
                       {(base === 'contra' ? moneyLedgers : ledgers).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
                     </select>
+                    {cc.ready && cc.line_override && (
+                      <select value={e.cost_centre_id ?? ''} onChange={(ev) => setEntry(i, { cost_centre_id: ev.target.value })} style={small} aria-label="Cost centre of this line">
+                        <option value="">Same as voucher</option>
+                        {cc.data.map((c) => <option key={c.id} value={c.id}>{'— '.repeat(c.depth)}{c.name}</option>)}
+                      </select>
+                    )}
                     <input type="number" step="0.01" min="0" value={e.amount} onChange={(ev) => setEntry(i, { amount: ev.target.value })} style={small} placeholder="Amount" />
                     <button type="button" aria-label="Remove entry" onClick={() => setEntries((es) => es.filter((_, j) => j !== i))} disabled={entries.length <= 2} style={{ ...btnGhost, padding: '6px 8px' }}><Trash2 size={14} /></button>
                   </div>

@@ -16,7 +16,7 @@ class Voucher extends Model
 
     protected $fillable = [
         'voucher_type_id', 'series_id', 'voucher_number', 'sequence_number', 'date', 'effective_date', 'due_date',
-        'status', 'fulfilment_status', 'location_id', 'party_ledger_id', 'customer_id', 'payment_method_id',
+        'status', 'fulfilment_status', 'location_id', 'cost_centre_id', 'party_ledger_id', 'customer_id', 'payment_method_id',
         'currency_id', 'exchange_rate', 'reference_no', 'supplier_invoice_no', 'party_name', 'party_phone', 'party_address', 'party_tax_id', 'narration', 'subtotal', 'tax_total', 'total_amount',
         'base_total', 'source_voucher_id', 'moves_stock', 'channel', 'meta', 'created_by', 'posted_at',
         'cancelled_at', 'cancelled_by', 'cancel_reason', 'doc_status', 'valid_until', 'sent_at', 'responded_at', 'response_note',
@@ -67,6 +67,11 @@ class Voucher extends Model
     public function location(): BelongsTo
     {
         return $this->belongsTo(Location::class);
+    }
+
+    public function costCentre(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\CostCentre::class);
     }
 
     public function currency(): BelongsTo

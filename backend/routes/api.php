@@ -1030,6 +1030,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('cost-centres')->group(function () {
             $c = \App\Http\Controllers\Api\CostCentreController::class;
             Route::get('/',                [$c, 'index'])->middleware('permission:costcentres.view');
+            Route::get('/options',         [$c, 'options'])->middleware('permission:costcentres.view,books.view,books.post');
             Route::put('/settings',        [$c, 'saveSettings'])->middleware('permission:costcentres.manage');
             Route::post('/',               [$c, 'store'])->middleware('permission:costcentres.manage');
             Route::put('/{id}',            [$c, 'update'])->whereNumber('id')->middleware('permission:costcentres.manage');

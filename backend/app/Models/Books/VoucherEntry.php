@@ -11,7 +11,7 @@ class VoucherEntry extends Model
 
     protected $table = 'voucher_entries';
 
-    protected $fillable = ['voucher_id', 'line_no', 'ledger_id', 'side', 'amount', 'base_amount', 'is_party', 'is_tax', 'narration', 'created_at'];
+    protected $fillable = ['voucher_id', 'line_no', 'ledger_id', 'side', 'amount', 'base_amount', 'is_party', 'is_tax', 'narration', 'cost_centre_id', 'location_id', 'created_at'];
 
     protected $casts = [
         'amount'      => 'decimal:2',

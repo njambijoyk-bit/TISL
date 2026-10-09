@@ -22,6 +22,18 @@ class CostCentreController extends Controller
         return response()->json(['ready' => true, 'data' => $this->svc->tree(), 'settings' => $this->svc->settings(), 'default_keys' => CostCentreService::DEFAULT_KEYS, 'types' => CostCentre::TYPES]);
     }
 
+    /** What a voucher form needs to pick a cost centre: the active ones in tree order, and whether a line may differ from its voucher. */
+    public function options(): JsonResponse
+    {
+        if (! CostCentre::ready() || ! $this->svc->booksReady()) {
+            return response()->json(['ready' => false, 'data' => [], 'line_override' => false]);
+        }
+        $rows = array_values(array_filter($this->svc->tree(false), fn ($r) => $r['is_active']));
+
+        return response()->json(['ready' => true, 'line_override' => $this->svc->lineOverride(),
+            'data' => array_map(fn ($r) => ['id' => $r['id'], 'name' => $r['name'], 'path' => $r['path'], 'depth' => $r['depth'], 'location_id' => $r['location_id'] ?? null], $rows)]);
+    }
+
     private function rules(): array
     {
         return [

@@ -1658,7 +1658,10 @@ class VoucherService
             if (! in_array($side, ['D', 'C'], true) || $amt <= 0 || empty($e['ledger_id'])) {
                 throw new BooksException('Every entry needs a ledger, a debit/credit side and an amount.');
             }
-            $entries[] = $mk((int) $e['ledger_id'], $side, $amt, ['narration' => $e['narration'] ?? null, 'is_party' => ! empty($e['is_party'])]);
+            if (! empty($e['cost_centre_id']) && app(\App\Services\CostCentres\CostCentreService::class)->booksReady()) {
+                app(\App\Services\CostCentres\CostCentreService::class)->assertActive($e['cost_centre_id'], 'entries.' . count($entries) . '.cost_centre_id');
+            }
+            $entries[] = $mk((int) $e['ledger_id'], $side, $amt, ['narration' => $e['narration'] ?? null, 'is_party' => ! empty($e['is_party']), 'cost_centre_id' => $e['cost_centre_id'] ?? null, 'location_id' => $e['location_id'] ?? null]);
             $debit += $side === 'D' ? $amt : 0;
         }
         if (count($entries) < 2) {
@@ -2380,6 +2383,10 @@ class VoucherService
             'meta' => ($data['meta'] ?? null) || ! empty($plan['meta_extra']) ? array_merge($data['meta'] ?? [], $plan['meta_extra'] ?? []) : null,
         ];
 
+        if (! empty($data['cost_centre_id']) && app(\App\Services\CostCentres\CostCentreService::class)->booksReady()) {
+            $fields['cost_centre_id'] = app(\App\Services\CostCentres\CostCentreService::class)->assertActive($data['cost_centre_id']);   // otherwise the default for its kind is filled in on creation and an edit leaves it as it was
+        }
+
         if ($existing) {
             $existing->update($fields);
             $voucher = $existing;
@@ -2824,7 +2831,7 @@ class VoucherService
 
     public function relations(): array
     {
-        return ['type', 'series', 'partyLedger', 'customer:id,first_name,last_name,email', 'location:id,name,code', 'currency:id,code,symbol',
+        return ['type', 'series', 'partyLedger', 'customer:id,first_name,last_name,email', 'location:id,name,code', 'costCentre:id,name,code', 'currency:id,code,symbol',
                 'paymentMethod', 'source:id,voucher_number,voucher_type_id', 'children:id,voucher_number,voucher_type_id,source_voucher_id,status,total_amount',
                 'items.taxes', 'entries.ledger:id,name', 'billRefs', 'audit.user:id,name'];
     }

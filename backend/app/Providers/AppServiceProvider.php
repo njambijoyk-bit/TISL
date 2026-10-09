@@ -114,6 +114,8 @@ class AppServiceProvider extends ServiceProvider
         \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
         \App\Models\User::observe(\App\Observers\UserAccessObserver::class);
         \App\Models\Location::observe(\App\Observers\LocationCostCentreObserver::class);
+        \App\Models\Books\Voucher::observe(\App\Observers\VoucherDimensionsObserver::class);
+        \App\Models\Books\VoucherEntry::observe(\App\Observers\VoucherDimensionsObserver::class);
 
         ResetPassword::createUrlUsing(function ($user, string $token) {
             return env('FRONTEND_URL', 'http://localhost:5173')

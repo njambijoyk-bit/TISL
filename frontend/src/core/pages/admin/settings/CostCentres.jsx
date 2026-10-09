@@ -126,7 +126,7 @@ export default function CostCentres() {
 
         <div style={{ ...card, padding: 20 }}>
           <h2 style={{ margin: '0 0 4px', fontSize: '0.95rem', fontWeight: 800 }}>Defaults</h2>
-          <p style={{ margin: '0 0 14px', fontSize: '0.78rem', color: colors.textMuted }}>When an entry is given no cost centre, the one for its kind of document is used (else the branch's own, else General), so nothing is ever left without one.</p>
+          <p style={{ margin: '0 0 14px', fontSize: '0.78rem', color: colors.textMuted }}>When an entry is given no cost centre, the one for its kind of document is used. A default left on General means "none chosen": the branch's own cost centre is used when the branch is known, else General. Nothing is ever left without one.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14 }}>
             <Field label="General (the last resort)">{pick('general')}</Field>
             <Field label="Head office (shared costs)">{pick('head_office')}</Field>
@@ -134,7 +134,7 @@ export default function CostCentres() {
           </div>
           <div style={{ marginTop: 12 }}>
             <CheckboxRow checked={settings.line_override === '1' || settings.line_override === true} disabled={!canManage}
-              onChange={(v) => setSettings((s) => ({ ...s, line_override: v ? '1' : '0' }))} label="A line may take a different cost centre from its voucher" description="Applies once the books carry cost centres." />
+              onChange={(v) => setSettings((s) => ({ ...s, line_override: v ? '1' : '0' }))} label="A line may take a different cost centre from its voucher" description="Journals and other voucher entries get a cost centre picker on each line." />
           </div>
           {canManage && <div style={{ marginTop: 14 }}><button type="button" style={btnPrimary} onClick={saveSettings}>Save defaults</button></div>}
         </div>

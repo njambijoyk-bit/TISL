@@ -206,9 +206,53 @@ class CostCentreService
         $s = $this->settings();
         $active = fn ($id) => $id && CostCentre::active()->whereKey((int) $id)->exists() ? (int) $id : null;
 
-        return ($kind ? $active($s['default_' . $kind] ?? null) : null)
+        // a default left on General means "none chosen": the branch's own cost centre is the better answer when the branch is known
+        $pick = $kind ? ($s['default_' . $kind] ?? null) : null;
+        if ($pick && $locationId && (string) $pick === (string) ($s['general'] ?? '')) {
+            $pick = null;
+        }
+
+        return $active($pick)
             ?? ($locationId ? $active(Location::whereKey($locationId)->value('cost_centre_id')) : null)
             ?? $active($s['general'] ?? null)
             ?? CostCentre::where('type', 'general')->value('id');
+    }
+
+    /** Which default a kind of voucher uses (null: the branch's own cost centre). */
+    public const KIND_BY_VOUCHER = [
+        'quotation' => 'sales', 'sales_order' => 'sales', 'delivery_note' => 'sales', 'sales' => 'sales', 'cash_sale' => 'sales', 'credit_note' => 'sales',
+        'purchase_order' => 'purchases', 'receipt_note' => 'purchases', 'purchase' => 'purchases', 'debit_note' => 'purchases',
+        'receipt' => 'expenses', 'payment' => 'expenses', 'journal' => 'expenses', 'contra' => 'expenses', 'memorandum' => 'expenses',
+        'opening_stock' => 'stock',
+    ];
+
+    /** Have the books been given their cost centre columns (script 102)? Until then nothing is written to them. */
+    public function booksReady(): bool
+    {
+        static $ready;
+
+        return $ready ??= CostCentre::ready() && \Illuminate\Support\Facades\Schema::hasColumn('voucher_entries', 'cost_centre_id') && \Illuminate\Support\Facades\Schema::hasColumn('vouchers', 'cost_centre_id');
+    }
+
+    /** The cost centre for a voucher of this base type at this branch when the person chose none. */
+    public function forVoucher(?string $baseType, ?int $locationId): ?int
+    {
+        return $this->resolve(self::KIND_BY_VOUCHER[$baseType ?? ''] ?? null, $locationId);
+    }
+
+    /** May a line take a cost centre different from its voucher's? */
+    public function lineOverride(): bool
+    {
+        return (string) ($this->settings()['line_override'] ?? '0') === '1';
+    }
+
+    /** An active cost centre id, or a validation error naming the field. */
+    public function assertActive(mixed $id, string $field = 'cost_centre_id'): int
+    {
+        if (! CostCentre::active()->whereKey((int) $id)->exists()) {
+            throw ValidationException::withMessages([$field => 'Pick an active cost centre.']);
+        }
+
+        return (int) $id;
     }
 }
