@@ -68,8 +68,8 @@ export default function CampaignNumbers({ id }) {
           <div style={{ fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: colors.textFaint, marginBottom: 8 }}>Sales by item · {day(s.window.from)} to {day(s.window.to)}</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
             <tbody>{s.items.map((i) => (
-              <tr key={`${i.type}:${i.id}`} style={{ borderTop: '1px solid var(--line)' }}>
-                <td style={{ padding: '6px 0' }}>{i.name ?? `${i.type} #${i.id}`} <span style={{ fontSize: '0.66rem', color: colors.textFaint, textTransform: 'uppercase' }}>{i.type}</span></td>
+              <tr key={`${i.type}:${i.id}:${i.variant_id ?? 0}`} style={{ borderTop: '1px solid var(--line)' }}>
+                <td style={{ padding: '6px 0' }}>{i.name ?? `${i.type} #${i.id}`}{i.variant ? ` · ${i.variant}` : ''} <span style={{ fontSize: '0.66rem', color: colors.textFaint, textTransform: 'uppercase' }}>{i.type}</span></td>
                 <td style={{ textAlign: 'right', color: colors.textMuted }}>{n(i.units)} sold</td>
                 <td style={{ textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{money(i.amount, s.currency)}</td>
               </tr>))}</tbody>

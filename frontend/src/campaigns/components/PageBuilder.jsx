@@ -9,6 +9,9 @@ import { Field, TextInput, TextArea, SelectInput } from '../../core/components/a
 import CampaignView from './CampaignView';
 import AudienceRule from './AudienceRule';
 import ItemPicker from './ItemPicker';
+import ItemOffer from './ItemOffer';
+import preordersAPI from '../../_shared/api/preorders';
+import { itemKey } from '../lib/itemKey';
 import posterFrom from '../lib/videoPoster';
 
 const TYPE_LABEL = { hero: 'Hero', story: 'Story', countdown: 'Countdown', video: 'Video', products: 'Products', cta: 'Call to action', pins: 'Pin grid', moodboard: 'Moodboard', gallery: 'Community gallery' };
@@ -21,10 +24,10 @@ const keyOf = () => `n${++counter}`;
 /** Turn what the server sends (sections, items) into the builder's rows: each section carries its own items. */
 const rows = (sections, items) => sections.map((s) => ({
   key: `s${s.id}`, id: s.id, type: s.type, settings: s.settings ?? {}, show_from: toLocal(s.show_from), show_until: toLocal(s.show_until), audience_rule: s.audience_rule ?? null, open: false,
-  items: items.filter((i) => i.section_id === s.id).map((i) => ({ item_type: i.item_type, item_id: i.item_id, available_from: toLocal(i.available_from), label_override: i.label_override ?? '' })),
+  items: items.filter((i) => i.section_id === s.id).map((i) => ({ item_type: i.item_type, item_id: i.item_id, variant_id: i.variant_id ?? 0, available_from: toLocal(i.available_from), label_override: i.label_override ?? '' })),
 }));
 
-function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, resolved, setResolved, world }) {
+function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, resolved, setResolved, world, offers, savedKeys, canEdit, onOffersChanged }) {
   const st = s.settings;
   const put = (k) => (e) => set({ settings: { ...st, [k]: e?.target ? e.target.value : e } });
   const [uploading, setUploading] = useState(false);
@@ -121,7 +124,7 @@ function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, res
     </div>
   );
   // products
-  const taken = new Set(s.items.map((i) => `${i.item_type}:${i.item_id}`));
+  const taken = new Set(s.items.map((i) => itemKey(i.item_type, i.item_id, i.variant_id)));
   const setItems = (items) => set({ items });
   return (
     <div style={{ display: 'grid', gap: 12 }}>
@@ -131,29 +134,34 @@ function SectionForm({ s, set, campaignId, maxVideoMb, ecommerce, itemTypes, res
       </div>
       {!ecommerce && <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--status-warning, #b45309)' }}>Featuring products and services needs E-commerce, which is switched off.</p>}
       {s.items.map((it, i) => {
-        const r = resolved[`${it.item_type}:${it.item_id}`];
+        const ik = itemKey(it.item_type, it.item_id, it.variant_id);
+        const r = resolved[ik];
         return (
-          <div key={`${it.item_type}:${it.item_id}`} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.4fr) minmax(150px,1fr) minmax(120px,1fr) auto', gap: 8, alignItems: 'end', padding: 8, border: '1px solid var(--line)', borderRadius: 10 }}>
-            <div><div style={{ fontWeight: 700, fontSize: '0.84rem' }}>{r?.name ?? 'No longer available'}</div><div style={{ fontSize: '0.68rem', color: colors.textFaint, textTransform: 'uppercase' }}>{it.item_type}{r?.sku ? ` · ${r.sku}` : ''}</div></div>
+          <div key={ik} style={{ display: 'grid', gridTemplateColumns: 'minmax(140px,1.4fr) minmax(150px,1fr) minmax(120px,1fr) auto', gap: 8, alignItems: 'end', padding: 8, border: '1px solid var(--line)', borderRadius: 10 }}>
+            <div><div style={{ fontWeight: 700, fontSize: '0.84rem' }}>{r?.name ?? 'No longer available'}{r?.variant && <span style={{ fontWeight: 500, color: colors.textMuted }}> · {r.variant}</span>}</div><div style={{ fontSize: '0.68rem', color: colors.textFaint, textTransform: 'uppercase' }}>{it.item_type}{it.variant_id > 0 ? ' option' : ''}{r?.sku ? ` · ${r.sku}` : ''}</div></div>
             <Field label="Coming soon until"><TextInput type="datetime-local" value={it.available_from} onChange={(e) => setItems(s.items.map((x, k) => (k === i ? { ...x, available_from: e.target.value } : x)))} /></Field>
             <Field label="Own label"><TextInput value={it.label_override} onChange={(e) => setItems(s.items.map((x, k) => (k === i ? { ...x, label_override: e.target.value } : x)))} placeholder="Optional" /></Field>
             <button type="button" aria-label="Remove" style={{ ...btnGhost, padding: 8 }} onClick={() => setItems(s.items.filter((_, k) => k !== i))}><Trash2 size={14} /></button>
+            {ecommerce && <ItemOffer campaignId={campaignId} it={it} r={r} saved={savedKeys.has(ik)} offers={offers} canEdit={canEdit} onChanged={onOffersChanged} />}
           </div>
         );
       })}
-      {ecommerce && <ItemPicker allowed={itemTypes} taken={taken} onAdd={(r) => { setResolved((m) => ({ ...m, [r.key]: r })); setItems([...s.items, { item_type: r.type, item_id: r.id, available_from: '', label_override: '' }]); }} />}
+      {ecommerce && <ItemPicker allowed={itemTypes} taken={taken} onAdd={(rows) => { setResolved((m) => ({ ...m, ...Object.fromEntries(rows.map((r) => [r.key, r])) })); setItems([...s.items, ...rows.map((r) => ({ item_type: r.type, item_id: r.id, variant_id: r.variant_id ?? 0, available_from: '', label_override: '' }))]); }} />}
     </div>
   );
 }
 
 /** The page of a campaign: add, order, schedule and fill in its sections, with a live preview beside them. Saved in one go. */
-export default function PageBuilder({ campaign, sections: initial, items: initialItems, resolved: initialResolved, ecommerce, itemTypes, maxVideoMb, canEdit, onSaved, audience }) {
+export default function PageBuilder({ campaign, sections: initial, items: initialItems, resolved: initialResolved, ecommerce, itemTypes, maxVideoMb, canEdit, onSaved, audience, offersTick = 0, onOffersChanged = () => {} }) {
   const [list, setList] = useState(() => rows(initial, initialItems));
   const [resolved, setResolved] = useState(initialResolved);
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState(false);
   const [adding, setAdding] = useState(false);
   const [world, setWorld] = useState({ boards: [], moodboards: [] });
+  const [offers, setOffers] = useState(null);
+  useEffect(() => { if (ecommerce) preordersAPI.offers(campaign.id).then(setOffers).catch(() => setOffers(null)); }, [campaign.id, ecommerce, offersTick]);
+  const savedKeys = useMemo(() => new Set(initialItems.map((i) => itemKey(i.item_type, i.item_id, i.variant_id))), [initialItems]);
   useEffect(() => { campaignsAPI.worldOptions().then(setWorld).catch(() => {}); }, []);
   const dragFrom = useRef(null);
   const first = useRef(true);
@@ -201,7 +209,7 @@ export default function PageBuilder({ campaign, sections: initial, items: initia
             {s.open && (
               <div style={{ padding: '4px 14px 14px', display: 'grid', gap: 14, borderTop: '1px solid var(--line)' }}>
                 <fieldset disabled={!canEdit} style={{ border: 'none', padding: 0, margin: '12px 0 0', minWidth: 0 }}>
-                  <SectionForm s={s} set={(p) => patch(s.key, p)} campaignId={campaign.id} maxVideoMb={maxVideoMb} ecommerce={ecommerce} itemTypes={itemTypes} resolved={resolved} setResolved={setResolved} world={world} />
+                  <SectionForm s={s} set={(p) => patch(s.key, p)} campaignId={campaign.id} maxVideoMb={maxVideoMb} ecommerce={ecommerce} itemTypes={itemTypes} resolved={resolved} setResolved={setResolved} world={world} offers={offers} savedKeys={savedKeys} canEdit={canEdit} onOffersChanged={onOffersChanged} />
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12, marginTop: 14, paddingTop: 12, borderTop: '1px dashed var(--line)' }}>
                     <Field label="Show from" hint="Empty = from the start. A teaser can reveal a section a day."><TextInput type="datetime-local" value={s.show_from} onChange={(e) => patch(s.key, { show_from: e.target.value })} /></Field>
                     <Field label="Show until" hint="Empty = for as long as the campaign shows."><TextInput type="datetime-local" value={s.show_until} onChange={(e) => patch(s.key, { show_until: e.target.value })} /></Field>

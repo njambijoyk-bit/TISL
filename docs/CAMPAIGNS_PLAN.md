@@ -92,3 +92,12 @@ Still to decide: the campaign lifecycle and scheduling rules in detail, the sect
 **Goals and numbers, without touching checkout.** Each campaign has a goal (sales, sign-ups, reach, donations later). Sales are worked out by Campaigns from vouchers of the attached items during the campaign window; checkout is not changed. Views and clicks go in a small events table. Likes, comments and reports come from the Engagement Engine. A tracked source (which visit led to which order) is optional later.
 
 **Tables for the first slice (M0):** campaigns, campaign_sections, campaign_items (the catalogue references), campaign_events. Pins, boards and moodboards arrive in the next slice.
+
+## Items by option (built; run `database/sql/106_campaign_item_variants.sql`)
+A campaign can feature **one option (variant) of a product**, not only the whole product.
+- `campaign_items.variant_id` (0 = the whole item). The unique key is `(campaign, type, item, variant)`, so several options of one product can sit on a page, each with its own "coming soon until" date and label.
+- **A product is featured whole or by option, never both** (the page refuses it). An option must belong to its product and be active. Only products have options here; service packages can follow the same pattern.
+- The picker asks, for a product with more than one option: add the whole product, or tick the options. A card for an option shows that option's label, price and photo, and links to `/products/<id>?variant=<id>`, which opens the product with that option chosen.
+- Keys are `product:12` (whole) and `product:12:v34` (an option) everywhere (`CampaignItem::keyOf`, `campaigns/lib/itemKey.js`).
+- **Numbers and attribution**: for an option, sales and attribution match on `voucher_items.variant_id`; a product featured whole counts every option. Checkout is not touched.
+- **Pre-orders**: each featured option has an "Offer as pre-order" panel in its row (needs the page saved first). A **new** offer must be on a featured option, or on an option of a product featured whole (`PreorderService::featured`); offers made earlier keep working and show a note when they are not on the page. The Preorders list below the page now starts a new offer from what the page features.

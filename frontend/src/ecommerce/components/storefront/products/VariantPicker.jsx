@@ -14,8 +14,9 @@ import useMoney from '../../../../_shared/hooks/useMoney';
  * @param {object}   product    the product payload (for its currency)
  * @param {function} onChange   ({ variant, unit, image, label } | null) — current choice
  * @param {function} onLoaded   (hasVariants: boolean)
+ * @param {number|string} initialVariantId  open with this option chosen (a campaign links to one option with ?variant=ID); else the default one
  */
-export default function VariantPicker({ product, onChange, onLoaded }) {
+export default function VariantPicker({ product, onChange, onLoaded, initialVariantId }) {
   const money = useMoney();
   const [data, setData] = useState(null);           // { options, variants, images }
   const [selection, setSelection] = useState({});   // { [option_id]: value_id }
@@ -30,7 +31,7 @@ export default function VariantPicker({ product, onChange, onLoaded }) {
       .then(({ data: res }) => {
         if (cancelled) return;
         setData(res);
-        const start = res.variants.find((v) => v.is_default) ?? res.variants[0];
+        const start = (initialVariantId && res.variants.find((v) => String(v.id) === String(initialVariantId))) || res.variants.find((v) => v.is_default) || res.variants[0];
         setSelection(start ? { ...start.selection } : {});
         setUnitId(defaultUnit(start)?.id ?? null);
         onLoaded?.(res.variants.length > 0);

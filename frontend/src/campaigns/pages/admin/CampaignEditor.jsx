@@ -15,6 +15,7 @@ import PageBuilder from '../../components/PageBuilder';
 import AudienceRule from '../../components/AudienceRule';
 import CampaignNumbers from '../../components/CampaignNumbers';
 import PreorderOffers from '../../components/PreorderOffers';
+import { itemKey } from '../../lib/itemKey';
 
 const GOAL_LABEL = { reach: 'Reach (people seeing it)', sales: 'Sales' };
 const label = { fontSize: '0.68rem', fontWeight: 700, color: colors.textFaint, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 6px' };
@@ -34,6 +35,7 @@ export default function CampaignEditor() {
   const [perm, setPerm] = useState({ can_edit: true, can_publish: false, can_decide: false, can_submit: false, can_withdraw: false });
   const [rejecting, setRejecting] = useState(null);   // the note being written when an approver says no
   const [busy, setBusy] = useState(false);
+  const [offersTick, setOffersTick] = useState(0);   // bumped when an offer is made from an item's row, so the Preorders list below reloads
   const [err, setErr] = useState(null);
   const set = (k) => (v) => setF((x) => ({ ...x, [k]: v }));
 
@@ -83,6 +85,11 @@ export default function CampaignEditor() {
   };
 
   const grouped = types.reduce((m, t) => { (m[t.family] ??= []).push(t); return m; }, {});
+
+  const featured = (pg?.items ?? []).filter((i) => i.item_type === 'product').map((i) => {
+    const r = pg.resolved?.[itemKey('product', i.item_id, i.variant_id)];
+    return { product_id: i.item_id, variant_id: i.variant_id ?? 0, name: r?.name, variant: r?.variant ?? null };
+  });
 
   return (
     <AdminLayout>
@@ -225,6 +232,7 @@ export default function CampaignEditor() {
             <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>The page</h2>
             <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Build what people see: add sections, drag them into order, and give any of them its own dates. Details above and the page below are saved separately.</p>
             <PageBuilder campaign={c} audience={f.audience_rule} sections={pg.sections} items={pg.items} resolved={pg.resolved} ecommerce={pg.ecommerce} itemTypes={pg.itemTypes} maxVideoMb={pg.maxVideoMb} canEdit={perm.can_edit}
+              offersTick={offersTick} onOffersChanged={() => setOffersTick((n) => n + 1)}
               onSaved={(r) => setPg((p) => ({ ...p, sections: r.data.sections, items: r.data.items, resolved: r.resolved }))} />
           </div>
         )}
@@ -233,7 +241,7 @@ export default function CampaignEditor() {
           <div style={{ marginTop: 30 }}>
             <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800, color: colors.primary }}>Preorders</h2>
             <p style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Sell an item before it is here while this campaign is live. Customers pay in full when they order; you deliver as stock arrives (Orders, Preorders waiting). Offers save themselves.</p>
-            <PreorderOffers campaignId={c.id} canEdit={perm.can_edit} />
+            <PreorderOffers campaignId={c.id} canEdit={perm.can_edit} refreshKey={offersTick} featured={featured} />
           </div>
         )}
       </div>

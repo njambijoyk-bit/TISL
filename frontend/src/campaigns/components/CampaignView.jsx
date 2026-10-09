@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Play } from 'lucide-react';
 import { storageUrl } from '../../_shared/lib/storageUrl';
+import { itemKey } from '../lib/itemKey';
 import { PinsSection, MoodboardSection, GallerySection } from './WorldSections';
 
 const money = (n, code) => (n == null ? '' : `${code ?? ''} ${Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 })}`.trim());
@@ -101,19 +102,20 @@ function Products({ s, items, resolved }) {
       {items.length === 0 ? <p style={{ color: 'var(--text-tertiary)' }}>No items chosen yet.</p> : (
         <div style={{ display: 'grid', gridTemplateColumns: list ? '1fr' : 'repeat(auto-fill, minmax(190px, 1fr))', gap: 14 }}>
           {items.map((it) => {
-            const r = resolved[`${it.item_type}:${it.item_id}`];
+            const r = resolved[itemKey(it.item_type, it.item_id, it.variant_id)];
             const soon = it.available_from && new Date(it.available_from).getTime() > now;
             const live = r?.link && !soon;
             const Tag = live ? A : 'div';
 
             return (
-              <Tag key={`${it.item_type}:${it.item_id}`} {...(live ? { href: r.link, 'data-item': '1' } : {})} style={{ display: 'flex', flexDirection: list ? 'row' : 'column', gap: 12, textDecoration: 'none', color: 'inherit', background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', opacity: r?.available === false ? 0.5 : 1 }}>
+              <Tag key={itemKey(it.item_type, it.item_id, it.variant_id)} {...(live ? { href: r.link, 'data-item': '1' } : {})} style={{ display: 'flex', flexDirection: list ? 'row' : 'column', gap: 12, textDecoration: 'none', color: 'inherit', background: 'var(--surface-card)', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', opacity: r?.available === false ? 0.5 : 1 }}>
                 <div style={{ position: 'relative', width: list ? 120 : '100%', aspectRatio: list ? '1 / 1' : '4 / 5', background: 'var(--surface-input, rgba(148,163,184,0.15))', flexShrink: 0 }}>
                   {r?.image && <img src={storageUrl(r.image)} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                   {soon && <span style={{ position: 'absolute', top: 8, left: 8, padding: '3px 9px', borderRadius: 999, background: 'var(--campaign-accent)', color: '#fff', fontSize: '0.66rem', fontWeight: 800 }}>COMING {when(it.available_from).toUpperCase()}</span>}
                 </div>
                 <div style={{ padding: list ? '10px 14px 10px 0' : '0 12px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
                   <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)' }}>{it.label_override || r?.name || 'No longer available'}</div>
+                  {!it.label_override && r?.variant && <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{r.variant}</div>}
                   {r?.price != null && <div style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>{money(r.price, r.currency)}</div>}
                   <div style={{ fontSize: '0.66rem', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>{it.item_type}</div>
                 </div>

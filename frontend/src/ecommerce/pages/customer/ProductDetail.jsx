@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import ChargedInBadge from '../../../_shared/components/common/ChargedInBadge';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import preordersAPI from '../../../_shared/api/preorders';
 import useLocationStore from '../../../_shared/store/locationStore';
 import { isModuleActive, MODULES } from '../../../_shared/navigation/modules';
@@ -52,6 +52,7 @@ export default function ProductDetail() {
   const money = useMoney();   // before any early return (hooks rule)
   const reviewsOn = useEngagement().on('product', 'review');
   const { id: idParam } = useParams();
+  const [searchParams] = useSearchParams();
   const id = idFromParam(idParam);   // the address is id-SKU (12-ANG-001); the id is what is looked up
   const navigate = useNavigate();
 
@@ -651,6 +652,7 @@ export default function ProductDetail() {
               {/* ── Variant & unit choice (renders nothing without structured variants) ── */}
               <VariantPicker
                 product={product}
+                initialVariantId={searchParams.get('variant')}
                 onLoaded={setHasStructured}
                 onChange={(c) => { setChoice(c); if (c?.image) setSelectedImage(0); }}
               />
