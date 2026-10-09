@@ -245,9 +245,7 @@ class VariantStockService
             $hasRows = VariantLocationStock::where('product_variant_id', $variant->id)->exists();
             if ($hasRows) {
                 $sum = (float) VariantLocationStock::where('product_variant_id', $variant->id)->sum('quantity');
-                $buyable = $sellable
-                    ? (float) VariantLocationStock::where('product_variant_id', $variant->id)->whereIn('location_id', $sellingIds)->sum('quantity')
-                    : $sum;
+                $buyable = $sellable ? $this->buyableOf($variant->id, $sellingIds) : $sum;
                 $changes = [];
                 if ((float) $variant->stock_quantity !== $sum) {
                     $changes['stock_quantity'] = $sum;
@@ -273,6 +271,18 @@ class VariantStockService
             'stock_quantity' => $productTotal,
             'in_stock'       => ($sellable ? $productSellable : $productTotal) > 0,
         ] + ($sellable ? ['sellable_quantity' => $productSellable] : []))->saveQuietly();
+    }
+
+    /** What customers can buy of a variant: the stock at selling branches minus what is promised there to preorders and not yet delivered. */
+    private function buyableOf(int $variantId, array $sellingIds): float
+    {
+        $committed = \App\Services\Preorders\PreorderService::ready() ? app(\App\Services\Preorders\PreorderService::class)->committedByLocation($variantId) : [];
+        $total = 0.0;
+        foreach (VariantLocationStock::where('product_variant_id', $variantId)->whereIn('location_id', $sellingIds)->get(['location_id', 'quantity']) as $row) {
+            $total += max(0.0, (float) $row->quantity - ($committed[$row->location_id] ?? 0.0));
+        }
+
+        return round($total, 4);
     }
 
     /** After a branch starts or stops selling to customers (or is switched on or off): redo the figures of every product it holds. */

@@ -31,11 +31,21 @@ class OrderSummaryService
             $paid = $this->vouchers->outstanding($invoice) <= 0.005;
         }
         $delivered = $live->contains(fn ($c) => $c->type?->base_type === VoucherType::DELIVERY_NOTE) || ($v->fulfilment_status === 'closed');
+        $pre = null;
+        if (! empty($v->meta['preorder'])) {
+            // paid in full and invoiced does not mean delivered: a preorder is delivered when every line has gone out
+            $t = \Illuminate\Support\Facades\DB::table('voucher_items')->where('voucher_id', $v->id)->where('is_header', 0)->whereNotNull('variant_id')
+                ->selectRaw('COALESCE(SUM(quantity), 0) AS q, COALESCE(SUM(delivered_quantity), 0) AS d')->first();
+            $promised = \Illuminate\Support\Facades\Schema::hasTable('preorder_lines') ? \Illuminate\Support\Facades\DB::table('preorder_lines')->where('voucher_id', $v->id)->max('promised_date') : null;
+            $pre = ['ordered' => (float) $t->q, 'delivered' => (float) $t->d, 'promised' => $promised];
+            $delivered = $pre['ordered'] > 0 && $pre['delivered'] + 0.00005 >= $pre['ordered'];
+        }
 
         return [
             'id' => $v->id, 'number' => $v->voucher_number, 'date' => $v->date?->toDateString(), 'currency' => $v->currency?->only(['code', 'symbol']), 'total' => (float) $v->total_amount,
             'status' => $v->status === Voucher::CANCELLED ? 'cancelled' : ($delivered ? 'delivered' : ($paid ? 'paid' : 'placed')),
             'payment' => $paid ? 'paid' : ($invoice ? 'invoiced' : 'unpaid'), 'stock_pending' => (bool) ($v->meta['stock_pending'] ?? false),
+            'preorder' => $pre,
         ];
     }
 

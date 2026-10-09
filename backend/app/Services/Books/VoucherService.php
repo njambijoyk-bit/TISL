@@ -91,6 +91,7 @@ class VoucherService
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
             app(InstrumentService::class)->sync($voucher, $data);   // the cheque / transfer reference or the slip
+            app(\App\Services\Preorders\PreorderService::class)->touched($voucher);   // a preorder's family: what the shop may sell moves
             if (! empty($data['apply_credit'])) {   // the customer's / supplier's overpayment or advance, ticked on the form or remembered on the order
                 app(CreditService::class)->applyIfAny($voucher, is_array($data['apply_credit']) ? array_map('intval', $data['apply_credit']) : null, $user);
             }
@@ -157,6 +158,7 @@ class VoucherService
             app(WithholdingRegisterService::class)->sync($voucher);
             app(GiftVoucherService::class)->activateFromSale($voucher, $user);
             app(InstrumentService::class)->sync($voucher, $data);
+            app(\App\Services\Preorders\PreorderService::class)->touched($voucher);
 
             return $voucher->load($this->relations());
         });
@@ -197,6 +199,7 @@ class VoucherService
             $this->versionHook($voucher, 'deleted', $user);
             $this->undoRewards($voucher);
             app(HamperEditionService::class)->sync(app(HamperEditionService::class)->idsOn($voucher));   // the edition is given back
+            app(\App\Services\Preorders\PreorderService::class)->touched($voucher);
 
             return $voucher->load($this->relations());
         });
@@ -369,7 +372,14 @@ class VoucherService
                     $lines[] = $line;
                     continue;
                 }
-                $line = $this->cloneLine($it, $cq, $ratio, $goods ? $cq : 0.0);
+                // goods of a preorder not yet delivered never left the shelf, so crediting them puts nothing back: only what was delivered returns to stock
+                $stockBack = $cq;
+                if ($goods && $sale && ! empty($source->meta['preorder']) && ! $source->moves_stock && $it->source_item_id) {
+                    $delivered = (float) VoucherItem::whereKey($it->source_item_id)->value('delivered_quantity');
+                    $stockBack = max(0.0, round($cq - max(0.0, $maxQty - $delivered), 4));
+                }
+                $goods = $goods && $stockBack > 0.00005;
+                $line = $this->cloneLine($it, $cq, $ratio, $goods ? $stockBack : 0.0);
                 if ($goods) {
                     $stockLines = true;
                     if (! $sale) {
@@ -503,6 +513,10 @@ class VoucherService
             // Stock moves for a delivery note; for an invoice/cash sale only when made straight from an order (and only the undelivered part).
             $moves = in_array($targetBase, [VoucherType::DELIVERY_NOTE, VoucherType::RECEIPT_NOTE], true)
                 || (in_array($sourceBase, [VoucherType::SALES_ORDER, VoucherType::PURCHASE_ORDER], true) && $target->stock_effect !== 'none');
+            // a preorder is paid for before the goods exist: its sale takes the money and no stock; delivery notes made from the order move the stock later
+            if (! empty($source->meta['preorder']) && $sourceBase === VoucherType::SALES_ORDER && in_array($targetBase, [VoucherType::SALES, VoucherType::CASH_SALE], true)) {
+                $moves = false;
+            }
 
             $data = [
                 'voucher_type_id'   => $target->id,

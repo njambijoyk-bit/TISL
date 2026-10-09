@@ -186,7 +186,20 @@ class CheckoutService
             ], fn ($v) => $v !== null),
         ];
 
-        return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral', 'promoAccepted') + ['option' => $option];
+        // a preorder cart: only items with an open offer at this branch, taken on their own (never mixed with gift vouchers or hampers)
+        $placeable = null;
+        if (! empty($in['preorder'])) {
+            $pre = app(\App\Services\Preorders\PreorderService::class);
+            $product = array_values(array_filter($final, fn ($l) => $l['type'] === 'product'));
+            if ($hasGift || count($product) !== count(array_filter($final, fn ($l) => ($l['kind'] ?? null) !== 'shipping'))) {
+                throw new BooksException('A preorder is checked out on its own: only preorder items in the cart.');
+            }
+            $placeable = $pre->assertPlaceable($product, (int) $locationId, $user);
+            $data['series_id'] = $pre->seriesId();
+            $data['meta'] = array_merge($data['meta'] ?? [], $pre->orderMeta($placeable));
+        }
+
+        return compact('data', 'customer', 'currency', 'discounts', 'hasGift', 'promoNet', 'promoReferral', 'promoAccepted', 'placeable') + ['option' => $option, 'locationId' => $locationId];
     }
 
     /**
@@ -396,6 +409,9 @@ class CheckoutService
         if ($mode === 'account' && ! $customer) {
             throw new BooksException('Sign in to pay on account.');
         }
+        if (! empty($in['preorder']) && $mode === 'account') {
+            throw new BooksException('A preorder is paid in full when you order it. Choose how to pay.');
+        }
         if ($a['hasGift']) {
             if ($mode === 'account') {
                 throw new BooksException('A gift voucher can\'t be put on account — pay for it online; the code is issued when the payment arrives.');
@@ -432,7 +448,14 @@ class CheckoutService
             if ($mode === 'pay_later' && ($codes = $this->giftCodes($in)) && $customer) {
                 $a['data']['gift_codes'] = $codes;
             }
+            $placeable = null;
+            if ($a['placeable'] !== null) {   // the offers are locked, then the places counted again, so two customers can not take the last one
+                $placeable = app(\App\Services\Preorders\PreorderService::class)->assertPlaceable(array_map(fn ($p) => ['variant_id' => $p['offer']->variant_id, 'quantity' => $p['quantity']], array_values($a['placeable'])), (int) $a['locationId'], $user, true);
+            }
             $order = $this->vouchers->placeOrder($a['data'], null);
+            if ($placeable !== null) {
+                app(\App\Services\Preorders\PreorderService::class)->record($order, $placeable, (int) $a['locationId']);
+            }
             $this->logTermsAcceptance($order, $in, $customer, $user);
             $total = (float) $order->total_amount;
 

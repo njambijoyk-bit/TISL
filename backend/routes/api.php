@@ -146,6 +146,7 @@ Route::post('/bug-reports/screenshot', [BugReportController::class, 'uploadScree
 Route::post('/search-events', [SearchEventController::class, 'store']);
 
 // Campaigns, public: the list, the homepage one, and a campaign by its address (the Campaigns module; a signed-in visitor, if any, is read for audience rules)
+Route::get('/preorders/states', [\App\Http\Controllers\Api\PreorderController::class, 'states'])->middleware('module:campaigns')->middleware('throttle:120,1');
 Route::prefix('campaigns')->middleware('module:campaigns')->group(function () {
     $c = \App\Http\Controllers\Api\PublicCampaignController::class;
     Route::get('/',         [$c, 'index']);
@@ -1023,7 +1024,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/unpublish',  [$c, 'unpublish'])->whereNumber('id');
             Route::post('/{id}/pause',      [$c, 'pause'])->whereNumber('id');
             Route::post('/{id}/archive',    [$c, 'archive'])->whereNumber('id');
+            $po = \App\Http\Controllers\Api\PreorderController::class;   // a campaign's preorder offers (CampaignAccess is checked inside)
+            Route::get('/{id}/preorder-offers',                  [$po, 'offers'])->whereNumber('id');
+            Route::post('/{id}/preorder-offers',                 [$po, 'saveOffer'])->whereNumber('id');
+            Route::put('/{id}/preorder-offers/{offerId}',        [$po, 'updateOffer'])->whereNumber('id')->whereNumber('offerId');
+            Route::delete('/{id}/preorder-offers/{offerId}',     [$po, 'deleteOffer'])->whereNumber('id')->whereNumber('offerId');
             Route::delete('/{id}',          [$c, 'destroy'])->whereNumber('id');
+        });
+
+        Route::prefix('preorders')->group(function () {
+            $c = \App\Http\Controllers\Api\PreorderController::class;
+            Route::get('/waiting',       [$c, 'waiting'])->middleware('permission:stock.view,books.view');
+            Route::post('/deliver',      [$c, 'deliver'])->middleware('permission:stock.manage');
+            Route::post('/send',         [$c, 'send'])->middleware('permission:stock.manage');
+            Route::get('/branches',      [$c, 'branches'])->middleware('permission:stock.view');
+            Route::put('/branch-flag',   [$c, 'setBranchFlag'])->middleware('permission:stock.manage');
+            Route::post('/counter',      [$c, 'counter'])->middleware('permission:books.post');
+            Route::get('/customers',     [$c, 'customers'])->middleware('permission:books.post');
         });
 
         // The merged activity timeline: every log on the site, each only to the roles allowed to see it
