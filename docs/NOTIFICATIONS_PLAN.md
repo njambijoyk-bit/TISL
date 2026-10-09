@@ -1,6 +1,6 @@
-# Notifications: the plan (v1, decided; open questions at the end)
+# Notifications: the plan (v2, decided)
 
-Status: PLAN. Nothing is built yet. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
+Status: PLAN, answers in (see "Decided answers" at the end). Phase 1 is being built. Written from the owner's answers on 2026-10-09. First user of it afterwards: preorder delay notices (`docs/PREORDER_PLAN.md`, "Not done").
 
 ## The rule
 
@@ -24,7 +24,8 @@ Status: PLAN. Nothing is built yet. Written from the owner's answers on 2026-10-
    - **Automatic API:** set up on a settings screen (provider, keys, templates). The browser never calls WhatsApp (that would expose the secret); the server does.
    - When the API is configured and switched on, **automatic is the default** and `wa.me` stays on every row as the manual alternative and as the fallback when the API fails or has no approved template. With no API, `wa.me` is the default.
 2. **Company default mode, customer override.** Settings → Notifications holds the company's default mode: **email**, **WhatsApp** or **both**. A customer may override it in Profile → Notification settings. In-app always happens too.
-3. **Email is set up on the screen too, not in `.env`.** SMTP host, port, encryption, username, password, from name and address, reply-to, with a *Send a test* button. What is saved there wins; if nothing is saved the `.env` values keep working, so nothing breaks on upgrade.
+3. **Two WhatsApp providers: Twilio and Meta WhatsApp Cloud API.** Both can be configured; one is *active*. Same driver interface, so a third can be added.
+4. **Email is set up on the screen too, not in `.env`.** SMTP host, port, encryption, username, password, from name and address, reply-to, with a *Send a test* button. What is saved there wins; if nothing is saved the `.env` values keep working, so nothing breaks on upgrade.
 
 "Coded on the frontend" is read as *configured from the frontend* (a screen), with the secrets kept server-side. If something else was meant, say so.
 
@@ -41,7 +42,7 @@ For a message of a given **type** to a given **person**:
 
 Staff: bell, plus email when the type says so. No personal preferences in v1.
 
-**WhatsApp consent:** the customer chooses WhatsApp or both in their profile (or ticks it at checkout beside their number); the time is stored. The company default only applies to WhatsApp once consent exists. Until then those messages go by email. *Open question 2.*
+**WhatsApp numbers and consent (decided):** the number can come from the customer's **profile** or from **checkout**, and an admin setting says which count: *profile only*, *checkout only*, or *both* (default **both**). A number from a source that counts is taken as willingness to get order updates by WhatsApp, and the time and source are stored (`whatsapp_consent_at`, `whatsapp_consent_source`). The customer can turn WhatsApp off in their profile at any time, and that always wins. When the mode is *both*, a customer gets the email **and** the WhatsApp message.
 
 ## Email in the screen
 
@@ -52,8 +53,8 @@ Staff: bell, plus email when the type says so. No personal preferences in v1.
 
 ## WhatsApp API in the screen
 
-- Settings → Notifications → **WhatsApp**: switch *Automatic sending* on/off, **provider** (first: **Meta WhatsApp Cloud API**; the code is a driver interface so Twilio, 360dialog and others can be added), phone number ID, business account ID, access token, app secret (all write-only, masked), webhook verify token, language, *Send a test* to a number.
-- Shows the **webhook address** to paste into Meta so delivered / read / failed statuses come back. The webhook checks Meta's signature.
+- Settings → Notifications → **WhatsApp**: switch *Automatic sending* on/off, **active provider** (**Meta WhatsApp Cloud API** or **Twilio**; one driver interface, so another can be added). Meta: phone number ID, business account ID, access token, app secret, webhook verify token. Twilio: account SID, auth token, the WhatsApp sender (or messaging service SID); a template there is a *Content SID*. All secrets write-only and masked. Language and *Send a test* to a number.
+- Shows the **webhook address** to paste into Meta so delivered / read / failed statuses come back. The webhook checks the provider's signature (Meta: `X-Hub-Signature-256` with the app secret; Twilio: `X-Twilio-Signature` with the auth token).
 - **Templates:** WhatsApp only lets a business start a conversation with an *approved template*. The Types tab maps each notification type to a template name and the order of its variables (`{{1}}` customer name, `{{2}}` order number, …). A type with no template is not sent automatically: it goes to the tap-to-send list. The screen shows which types are ready.
 - The company number shown to customers ("Chat with us on WhatsApp", `wa.me/<number>`) is the **company default phone** (Books → Settings → Company). It is the same number the API sends from if that account is registered to it.
 
@@ -69,16 +70,28 @@ Notifications → **WhatsApp to send**: one row per message waiting (customer, t
 ## Data (database script 108 and backup map)
 
 - `notification_settings` (one row): `default_mode`, `email_enabled`, `whatsapp_enabled`, `whatsapp_auto_enabled`, `whatsapp_provider`, `essential_only_default`, `type_rules` (JSON: per type enabled / channels / template), `checkout_number_is_consent` (see question 2); **encrypted:** `mail_config` (host, port, encryption, username, password), `whatsapp_config` (ids, tokens, secrets); `mail_from_name`, `mail_from_address`, `mail_reply_to`, `mail_copy_to`; `mail_tested_at`, `mail_test_result`, `whatsapp_tested_at`, `whatsapp_test_result`.
-- `notification_deliveries`: `notification_id`, `channel` (database | email | whatsapp), `via` (link | api), `status` (queued | sent | delivered | read | failed | to_send | skipped), `to_address`, `subject`, `body`, `wa_url`, `external_id`, `error`, `attempts`, `sent_at`, `delivered_at`, `read_at`, `handled_by`, timestamps. Kept for a stated period (question 5).
-- `customers`: `notify_mode` (null = company default), `notify_essential_only`, `whatsapp_consent_at`.
+- `notification_deliveries`: `notification_id`, `channel` (database | email | whatsapp), `via` (link | api), `status` (queued | sent | delivered | read | failed | to_send | skipped), `to_address`, `subject`, `body`, `wa_url`, `external_id`, `error`, `attempts`, `sent_at`, `delivered_at`, `read_at`, `handled_by`, timestamps. Kept 12 months, then the message text is blanked and the status kept (a daily scheduled command).
+- `customers`: `notify_mode` (null = company default), `notify_essential_only`, `whatsapp_consent_at`, `whatsapp_consent_source` (profile | checkout).
+- `notification_setting_versions`, `notification_setting_logs` as described under *Safety*.
+- Settings are stored per **part** as one document (`general`, `types` plain; `email`, `whatsapp` encrypted as a whole), plus `whatsapp_number_sources` (profile | checkout | both) in *general*.
 - Both new tables go in `ModuleTables` (backup map); the script follows the repo's read / change / check layout and is safe to run twice.
 
 ## Permissions (access engine, Catalog VERSION 8)
 
-- `notifications.view`: see the delivery log and the tap-to-send list.
-- `notifications.send`: work the tap-to-send list, retry failed sends, send a test message.
-- `notifications.settings`: **owner only** (like `mimi.routing`): open and change the email and WhatsApp settings and the type rules, because they hold secrets.
+- `notifications.view`: see the delivery log, the tap-to-send list and the history. Admin and owner.
+- `notifications.send`: work the tap-to-send list, retry failed sends, send a test message. Admin and owner.
+- `notifications.settings`: open and change the email and WhatsApp settings, the type rules, and **roll back** to an earlier version. **Admin and owner** (decided).
+- `notifications.keys.purge`: **delete old keys** (blank the secrets kept in earlier versions). **Owner only** (in `OWNER_ONLY`); an admin can replace a key but can never delete an old one (decided).
 - New keys also go in the frozen holder snapshot of `NoRoleNamesInCodeTest`; no role names in code.
+
+## Safety: every action logged, every change reversible (decided)
+
+- **Audit log** `notification_setting_logs`, append-only (cannot be updated or deleted through the app): who, when, from which address, what (`saved`, `tested`, `rolled_back`, `keys_purged`, `switched_on/off`, `message_retried`, `whatsapp_marked_sent`, `whatsapp_skipped`, `rule_changed`), which part, which version, and a plain-words summary of the fields that changed. **Never a secret value**, old or new.
+- **Versions** `notification_setting_versions`: every save of a part (*general*, *email*, *whatsapp*, *types*) writes a numbered version holding the whole part, secrets included, encrypted. The live settings are always the current version. Old versions are kept, so **replacing a key never loses the old one**.
+- **Rollback:** pick an earlier version of a part and restore it. It becomes a *new* current version ("Rolled back to v7"), so nothing is overwritten and the rollback itself can be rolled back. If that version's keys were purged by the owner, the screen says so and asks for the keys again.
+- **Test before it goes live:** saving the *email* or *WhatsApp* part first checks the connection (SMTP handshake / provider credentials). If the check fails, the change is **not applied** and the reason is shown; an admin may choose *Save anyway*, which is recorded as such.
+- **Owner purge:** the owner may blank the secrets in chosen old versions (never the current one). The version and its log line stay, marked *keys deleted*, so history is complete even when the keys are gone.
+- Switching a channel off is itself a version, so it can be reversed the same way.
 
 ## Security rules
 
@@ -99,12 +112,12 @@ Notifications → **WhatsApp to send**: one row per message waiting (customer, t
 
 ## Phases
 
-1. **Foundation + email in the screen.** Script 108, settings model with encrypted casts, Email tab with test send, `Notifier` with in-app and email drivers, delivery log (read-only list, retry), permissions, tests.
-2. **WhatsApp tap-to-send + preferences.** Link driver and the staff list, company default mode and switches, customer Profile → Notification settings with consent, WhatsApp link in emails and the bell.
-3. **WhatsApp API.** Provider interface and Meta Cloud driver, WhatsApp tab (keys, test, webhook address), template mapping per type, delivered/read statuses, automatic-by-default with `wa.me` fallback.
-4. **Users of it.** Route existing `createFor` email channels through it; **preorder delay notices** (daily command: orders past their expected date, customers told, staff list); notices for preorder cancel decisions; order status messages.
+1. **Foundation, email in the screen, safety net.** Script 108, settings parts with versions, audit log and rollback, owner purge, permissions, Email tab with test-before-save and *Send a test*, the `Notifier` with in-app and email drivers (queued), delivery log with retry, mail settings applied at run time (including in the queue worker), existing `createFor(..., ['database','email'])` now really sends. History tab (versions, log, rollback).
+2. **WhatsApp tap-to-send + preferences.** Link driver and the staff list, company default mode and number sources, customer Profile → Notification settings, WhatsApp link in emails and the bell, retention command.
+3. **WhatsApp API.** Provider interface with **Meta Cloud** and **Twilio** drivers, WhatsApp tab (keys, test, webhook address), template mapping per type, delivered/read statuses, automatic-by-default with `wa.me` fallback.
+4. **Users of it.** **Preorder delay notices** (daily command: orders past their expected date, customers told, staff list); notices for preorder cancel decisions; order status messages.
 
-Phases 1 and 2 stand on their own and need no outside account. Phase 3 needs a WhatsApp Business account to try for real.
+Phases 1 and 2 need no outside account. Phase 3 needs a Twilio or Meta account to try for real. Both a queue worker and the scheduler run on the server (decided), so sends are queued and the daily commands are scheduled.
 
 ## Testing
 
@@ -113,11 +126,11 @@ Phases 1 and 2 stand on their own and need no outside account. Phase 3 needs a W
 - Browser harness for the settings screens, the staff list and the profile page.
 - **Not testable from here:** a real SMTP server, a real Meta account and template approval. These need one live try by the owner before relying on them.
 
-## Open questions
+## Decided answers (2026-10-09)
 
-1. **Provider.** Is Meta's WhatsApp Cloud API right (assumed)? Or Twilio, 360dialog, Africa's Talking?
-2. **Consent.** Should a number given at checkout count as consent for *order updates* by WhatsApp (a switch, off by default), or only an explicit tick in the profile?
-3. **Who may see and change the keys?** Owner only (assumed), or also a named permission?
-4. **Existing `createFor` with `email`.** Start sending real emails for referral and order notifications once this is in (assumed yes)?
-5. **Log retention.** How long to keep the delivery log (suggest 12 months, then message text blanked, status kept)?
-6. **Queue worker.** Is `php artisan queue:work` (or a scheduler entry) running on the server? If not, sends happen at once and slow requests slightly.
+1. **Providers:** Twilio and Meta WhatsApp Cloud API, both.
+2. **Numbers / consent:** the profile number and the checkout number both count; an admin setting chooses profile, checkout or both (default both). Send to email and WhatsApp when the mode is both.
+3. **Keys:** admin and owner may change them and roll back; only the owner may delete old keys; every action is logged; rollback as described under *Safety*.
+4. **Existing `createFor` with `email`:** yes, they start sending real emails.
+5. **Log retention:** 12 months, then text blanked.
+6. **Queue worker and scheduler:** both are running.
