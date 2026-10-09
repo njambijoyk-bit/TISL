@@ -20,19 +20,21 @@ class StockWatchController extends Controller
         try {
             return $fn();
         } catch (BackInStockException $e) {
-            return response()->json(['message' => $e->getMessage()], 422);
+            return response()->json(['message' => $e->getMessage()] + ($e->options ? ['options' => $e->options] : []), 422);
         }
     }
 
     /** POST /stock-watches — open to guests; a signed-in customer's token (if sent) links the request to them. */
     public function store(Request $request): JsonResponse
     {
-        $d = $request->validate(['product_id' => 'required|integer|min:1', 'variant_id' => 'nullable|integer|min:1', 'email' => 'nullable|email|max:190', 'name' => 'nullable|string|max:120']);
+        $d = $request->validate(['product_id' => 'required_without:hamper_id|nullable|integer|min:1', 'variant_id' => 'nullable|integer|min:1', 'hamper_id' => 'nullable|integer|min:1', 'email' => 'nullable|email|max:190', 'name' => 'nullable|string|max:120']);
 
         return $this->guard(function () use ($d, $request) {
             $r = $this->alerts->watch($d, $request->user('sanctum'));
 
-            return response()->json(['message' => $r['already'] ? 'You are already on the list. We will email you when it is back.' : 'Done. We will email you as soon as it is back in stock.', 'already' => $r['already']], $r['already'] ? 200 : 201);
+            $what = $r['option'] ? " ({$r['option']})" : '';
+
+            return response()->json(['message' => $r['already'] ? "You are already on the list{$what}. We will email you when it is back." : "Done. We will email you as soon as it is back in stock{$what}.", 'already' => $r['already']], $r['already'] ? 200 : 201);
         });
     }
 
@@ -73,11 +75,29 @@ class StockWatchController extends Controller
             if (! BackInStock::ready()) {
                 throw new BackInStockException('Stock alerts are not set up yet (run database script 112).');
             }
-            $r = $this->alerts->tell($variant, $d['mode'], $request->user());
-            $msg = $r['stock'] <= 0 ? 'Nobody was told: it is not in stock yet.' : ($r['told'] === 0 ? 'Nobody new could be told: the people already told in the last hours are counted against the stock.'
-                : "Told {$r['told']} " . ($r['told'] === 1 ? 'person' : 'people') . ($r['left'] ? ", {$r['left']} still waiting." : '.'));
-
-            return response()->json($r + ['message' => $msg]);
+            return $this->told($this->alerts->tell($variant, $d['mode'], $request->user()));
         });
+    }
+
+    /** POST /admin/notifications/stock-alerts/hampers/{hamper}/tell */
+    public function tellHamper(Request $request, int $hamper): JsonResponse
+    {
+        $d = $request->validate(['mode' => 'required|in:stock,all']);
+
+        return $this->guard(function () use ($d, $hamper, $request) {
+            if (! BackInStock::hampersReady()) {
+                throw new BackInStockException('Stock alerts for hampers are not set up yet (run database script 113).');
+            }
+
+            return $this->told($this->alerts->tellHamper($hamper, $d['mode'], $request->user()));
+        });
+    }
+
+    private function told(array $r): JsonResponse
+    {
+        $msg = $r['stock'] <= 0 ? 'Nobody was told: it is not in stock yet.' : ($r['told'] === 0 ? 'Nobody new could be told: the people already told in the last hours are counted against the stock.'
+            : "Told {$r['told']} " . ($r['told'] === 1 ? 'person' : 'people') . ($r['left'] ? ", {$r['left']} still waiting." : '.'));
+
+        return response()->json($r + ['message' => $msg]);
     }
 }

@@ -32,6 +32,11 @@ class StockWatch extends Model
         return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
 
+    public function hamper(): BelongsTo
+    {
+        return $this->belongsTo(Hamper::class);
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

@@ -8,6 +8,7 @@ import { useAuthStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import BranchBadge from '../../components/storefront/BranchBadge';
+import NotifyMeButton from '../../components/storefront/products/NotifyMeButton';
 import useHamperPreorder, { expectedText } from '../../../_shared/hooks/useHamperPreorder';
 
 function HamperCard({ hamper, onClick, pre }) {
@@ -118,6 +119,7 @@ function HamperCard({ hamper, onClick, pre }) {
             </button>
           )}
           {atLimit && !soldOut && <span style={{ fontSize: '0.74rem', fontWeight: 800, color: '#6b7280' }}>Max reached</span>}
+          {!soldOut && !atLimit && (pre?.state === 'out' || pre?.state === 'coming_soon') && <NotifyMeButton hamperId={hamper.id} name={hamper.name} />}
         </div>
       </div>
     </div>

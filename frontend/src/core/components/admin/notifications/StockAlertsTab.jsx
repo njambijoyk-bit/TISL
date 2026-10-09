@@ -18,10 +18,11 @@ export default function StockAlertsTab({ canSend }) {
   const load = useCallback(() => stockAlertsAPI.overview().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the stock alerts'))), []);
   useEffect(() => { load(); }, [load]);
 
+  const keyOf = (p) => (p.hamper_id ? `h${p.hamper_id}` : `v${p.variant_id}`);
   const tell = async (p, mode) => {
-    if (mode === 'all' && !window.confirm(`Tell all ${p.waiting} people waiting for ${p.product}? There is ${p.stock} in stock.`)) return;
-    setBusy(`${p.variant_id}${mode}`);
-    try { const r = await stockAlertsAPI.tell(p.variant_id, mode); toast.success(r.message, { duration: 6000 }); load(); }
+    if (mode === 'all' && !window.confirm(`Tell all ${p.waiting} people waiting for ${p.product}? ${p.hamper_id ? `${p.stock} can be made up now` : `There is ${p.stock} in stock`}.`)) return;
+    setBusy(`${keyOf(p)}${mode}`);
+    try { const r = p.hamper_id ? await stockAlertsAPI.tellHamper(p.hamper_id, mode) : await stockAlertsAPI.tell(p.variant_id, mode); toast.success(r.message, { duration: 6000 }); load(); }
     catch (e) { toast.error(errMsg(e, 'Could not tell them'), { duration: 8000 }); } finally { setBusy(null); }
   };
 
@@ -33,19 +34,19 @@ export default function StockAlertsTab({ canSend }) {
         <h2 style={{ margin: 0, fontSize: '1rem' }}>Waiting for stock</h2>
         {data.products.length === 0 && <p style={{ margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>Nobody is waiting for anything. Customers can ask on an out-of-stock product page.</p>}
         {data.products.map((p) => (
-          <div key={p.variant_id} style={{ ...card, padding: 14, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+          <div key={keyOf(p)} style={{ ...card, padding: 14, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
             <Bell size={16} aria-hidden="true" style={{ color: colors.textFaint }} />
             <div style={{ flex: '1 1 220px', minWidth: 0 }}>
-              <strong>{p.product}</strong>{p.option && p.option !== 'Default' ? <span style={{ color: colors.textMuted }}> · {p.option}</span> : null}
+              <strong>{p.product}</strong>{p.hamper_id ? <span style={{ color: colors.textMuted }}> · hamper</span> : null}{p.option && p.option !== 'Default' ? <span style={{ color: colors.textMuted }}> · {p.option}</span> : null}
               <div style={{ fontSize: '0.78rem', color: colors.textMuted }}>
-                {p.waiting} waiting · {p.stock > 0 ? <strong style={{ color: '#047857' }}>{p.stock} in stock now</strong> : 'out of stock'}
+                {p.waiting} waiting · {p.stock > 0 ? <strong style={{ color: '#047857' }}>{p.hamper_id ? `${p.stock} can be made up now` : `${p.stock} in stock now`}</strong> : 'out of stock'}
                 {p.last_run && <> · last told {p.last_run.told} on {when(p.last_run.at)} ({p.last_run.by === 'staff' ? 'by staff' : 'automatically'})</>}
               </div>
             </div>
             {canSend && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button type="button" style={btnPrimary} disabled={p.stock <= 0 || busy !== null} onClick={() => tell(p, 'stock')}>{busy === `${p.variant_id}stock` ? 'Telling…' : 'Tell as many as stock'}</button>
-                <button type="button" style={btnGhost} disabled={p.stock <= 0 || busy !== null} onClick={() => tell(p, 'all')}>{busy === `${p.variant_id}all` ? 'Telling…' : `Tell all ${p.waiting}`}</button>
+                <button type="button" style={btnPrimary} disabled={p.stock <= 0 || busy !== null} onClick={() => tell(p, 'stock')}>{busy === `${keyOf(p)}stock` ? 'Telling…' : 'Tell as many as stock'}</button>
+                <button type="button" style={btnGhost} disabled={p.stock <= 0 || busy !== null} onClick={() => tell(p, 'all')}>{busy === `${keyOf(p)}all` ? 'Telling…' : `Tell all ${p.waiting}`}</button>
               </div>
             )}
           </div>

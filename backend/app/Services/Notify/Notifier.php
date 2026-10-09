@@ -68,7 +68,7 @@ class Notifier
         }
         $subject = $o['subject'] ?? $title;
         if (in_array('email', $plan['channels'], true)) {
-            $this->queueEmail($bell, $r['bell'] ?? $to, $type, (string) $r['person']['email'], $subject, $message);
+            $this->queueEmail($bell, $r['bell'] ?? $to, $type, (string) $r['person']['email'], $subject, $message, $o);
         }
         if (in_array('whatsapp', $plan['channels'], true)) {
             $this->prepareWhatsApp($bell, $r['bell'] ?? $to, $type, (string) $r['person']['whatsapp'], $message, $title, $o['action_url'] ?? null, $r['person']);
@@ -112,9 +112,12 @@ class Notifier
         }
     }
 
-    private function queueEmail(?Notification $bell, ?Model $to, string $type, string $address, string $subject, string $body): NotificationDelivery
+    private function queueEmail(?Notification $bell, ?Model $to, string $type, string $address, string $subject, string $body, array $o = []): NotificationDelivery
     {
         $d = $this->record($bell, $to, $type, 'email', 'queued', $address, $subject, $body);
+        if (! $bell && ! empty($o['action_url']) && NotificationDelivery::hasPayload()) {   // no bell row to carry the button (a guest, or the bell switched off): the delivery keeps it
+            $d->forceFill(['payload' => ['action_url' => $o['action_url'], 'action_text' => $o['action_text'] ?? null]])->save();
+        }
         SendNotificationEmail::dispatch($d->id);
 
         return $d;

@@ -8,6 +8,7 @@ import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
 import { auctionPath, productPath } from '../../../../_shared/lib/itemPath';
+import NotifyMeButton from './NotifyMeButton';
 
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
@@ -156,6 +157,7 @@ export default function CollapsedProductCard({ product }) {
             <button type="button" onClick={handleAddToCart} disabled={!inStock} className="collapsed-action-btn primary">
               <ShoppingCart size={13} /> {inStock ? 'Add' : 'N/A'}
             </button>
+            {!inStock && pre?.state !== 'preorder' && <NotifyMeButton productId={product.id} name={product.name} style={{ padding: '4px 10px', fontSize: '0.7rem', marginTop: 4 }} />}
           </>
         )}
       </div>

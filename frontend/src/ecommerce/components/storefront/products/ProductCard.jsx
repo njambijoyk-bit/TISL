@@ -23,6 +23,7 @@ import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
 import Badge from '../../../../_shared/components/common/Badge';
 import { auctionPath, productPath } from '../../../../_shared/lib/itemPath';
+import NotifyMeButton from './NotifyMeButton';
 
 const BOOST_BADGE = {
   promo:        { label: 'Promo',        bg: '#f97316', text: '#fff' },
@@ -346,6 +347,7 @@ export default function ProductCard({ product }) {
                   Buy Now
                 </button>
               )}
+              {!inStock && pre?.state !== 'preorder' && <NotifyMeButton productId={product.id} name={product.name} style={{ flex: 1, padding: '8px 14px' }} />}
             </>
           )}
         </div>

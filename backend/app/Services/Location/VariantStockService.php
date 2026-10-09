@@ -280,7 +280,11 @@ class VariantStockService
     /** What can be bought of a variant went up: if people asked to be told, tell them once the save is final (never inside a half-finished posting). */
     private function stockWentUp(int $variantId): void
     {
-        if (\App\Services\Stock\BackInStock::ready() && \App\Models\StockWatch::where('variant_id', $variantId)->where('status', 'waiting')->exists()) {
+        if (! \App\Services\Stock\BackInStock::ready()) {
+            return;
+        }
+        $waitingForIt = \App\Models\StockWatch::where('variant_id', $variantId)->where('status', 'waiting')->exists();
+        if ($waitingForIt || (\App\Services\Stock\BackInStock::hampersReady() && \App\Models\StockWatch::where('status', 'waiting')->whereNotNull('hamper_id')->exists())) {   // (a hamper waited for may be made of this)
             DB::afterCommit(fn () => \App\Jobs\TellBackInStock::dispatch($variantId));
         }
     }

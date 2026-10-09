@@ -12,6 +12,7 @@ import useMoney from '../../../_shared/hooks/useMoney';
 import { formatMoney } from '../../../_shared/lib/money';
 import Discussion from '../../../extras/components/engagement/Discussion';
 import useEngagement from '../../../_shared/lib/engagementConfig';
+import StockAlertForm from '../../components/storefront/products/StockAlertForm';
 import ItemBrochureButton from '../../components/catalogue/ItemBrochureButton';
 import useHamperPreorder, { expectedText } from '../../../_shared/hooks/useHamperPreorder';
 
@@ -289,6 +290,8 @@ export default function HamperDetail() {
                   </p>
                 </div>
               )}
+
+              {shortOfStock && <div style={{ marginTop: 12 }}><StockAlertForm hamperId={hamper.id} bare /></div>}
 
               <ItemBrochureButton type="hamper" id={hamper.id} style={{ width: '100%', marginTop: 10 }} />
 

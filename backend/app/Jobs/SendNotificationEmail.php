@@ -38,7 +38,7 @@ class SendNotificationEmail implements ShouldQueue
         $mail->apply();
         $d->increment('attempts');
         $n = $d->notification_id ? Notification::find($d->notification_id) : null;
-        $message = new NotificationMail((string) $d->subject, (string) $d->body, $n?->action_url, $n?->action_text, $this->greeting($d));
+        $message = new NotificationMail((string) $d->subject, (string) $d->body, $n?->action_url ?? (($d->payload['action_url'] ?? null)), $n?->action_text ?? ($d->payload['action_text'] ?? null), $this->greeting($d));
         $pending = Mail::to($d->to_address);
         if ($copy = config('mail.copy_to_address')) {
             $pending->bcc($copy);

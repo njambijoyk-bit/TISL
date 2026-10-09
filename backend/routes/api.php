@@ -1084,6 +1084,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/deliveries/{id}/retry',                      [$c, 'retry'])->whereNumber('id')->middleware('permission:notifications.send');
             Route::get('/whatsapp',                                    [$c, 'whatsapp'])->middleware('permission:notifications.view');
             Route::get('/stock-alerts',                                [\App\Http\Controllers\Api\StockWatchController::class, 'overview'])->middleware('permission:notifications.view');
+            Route::post('/stock-alerts/hampers/{hamper}/tell',         [\App\Http\Controllers\Api\StockWatchController::class, 'tellHamper'])->whereNumber('hamper')->middleware('permission:notifications.send');
             Route::post('/stock-alerts/{variant}/tell',                [\App\Http\Controllers\Api\StockWatchController::class, 'tell'])->whereNumber('variant')->middleware('permission:notifications.send');
             Route::post('/deliveries/{id}/mark-sent',                  [$c, 'markSent'])->whereNumber('id')->middleware('permission:notifications.send');
             Route::post('/deliveries/{id}/skip',                       [$c, 'skip'])->whereNumber('id')->middleware('permission:notifications.send');

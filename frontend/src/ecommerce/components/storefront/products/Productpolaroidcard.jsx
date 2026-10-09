@@ -7,6 +7,8 @@ import useMoney from '../../../../_shared/hooks/useMoney';
 import useWishlistStore from '../../../../_shared/store/wishlistStore';
 import toast from 'react-hot-toast';
 import { auctionPath, productPath } from '../../../../_shared/lib/itemPath';
+import NotifyMeButton from './NotifyMeButton';
+import usePreorderState from '../../../../_shared/hooks/usePreorderState';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProductPolaroidCard
@@ -98,6 +100,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
   const stockQty  = (product?.sellable_quantity ?? product?.stock_quantity) != null ? Number(product?.sellable_quantity ?? product.stock_quantity) : null;
   const inStock   = stockQty != null ? stockQty > 0 : Boolean(product?.in_stock ?? product?.instock);
   const lowStock  = stockQty != null && stockQty > 0 && stockQty <= 10;
+  const pre       = usePreorderState(product?.id, !inStock);
 
   const rating      = Number(product?.average_rating ?? product?.rating ?? 0);
   const hasAuction  = product?.active_auction?.status === 'active';
@@ -450,6 +453,7 @@ export default function ProductPolaroidCard({ product, index = 0 }) {
                 >
                   <ShoppingCart size={11} /> {inStock ? 'Add' : 'N/A'}
                 </button>
+                {!inStock && pre?.state !== 'preorder' && <NotifyMeButton productId={product.id} name={product.name} style={{ padding: '4px 10px', fontSize: '11px', borderRadius: 20 }} />}
                               </>
             )}
           </div>

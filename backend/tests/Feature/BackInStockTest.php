@@ -29,8 +29,8 @@ class BackInStockTest extends NotifyTestCase
         Schema::table('products', function ($t) { $t->decimal('stock_quantity', 12, 4)->default(0); $t->boolean('in_stock')->default(false); $t->decimal('sellable_quantity', 12, 4)->default(0); });
         Schema::table('product_variants', function ($t) { $t->decimal('stock_quantity', 12, 4)->default(0); $t->decimal('sellable_quantity', 12, 4)->default(0); });
         Schema::create('locations', function ($t) { $t->id(); $t->string('name')->nullable(); $t->string('code')->nullable(); $t->boolean('is_active')->default(true); $t->boolean('sells_to_customers')->default(true); $t->boolean('is_default')->default(false); $t->timestamps(); });
-        Schema::create('stock_watches', function ($t) { $t->id(); $t->unsignedBigInteger('product_id'); $t->unsignedBigInteger('variant_id'); $t->unsignedBigInteger('customer_id')->nullable(); $t->string('email', 190); $t->string('name', 120)->nullable(); $t->char('token', 40)->unique(); $t->string('status', 10)->default('waiting'); $t->dateTime('notified_at')->nullable(); $t->dateTime('stopped_at')->nullable(); $t->timestamps(); });
-        Schema::create('stock_watch_runs', function ($t) { $t->id(); $t->unsignedBigInteger('variant_id'); $t->string('trigger_by', 10); $t->string('mode', 10); $t->decimal('stock', 14, 4)->default(0); $t->unsignedInteger('told')->default(0); $t->unsignedInteger('left_waiting')->default(0); $t->unsignedBigInteger('user_id')->nullable(); $t->timestamp('created_at')->nullable(); });
+        Schema::create('stock_watches', function ($t) { $t->id(); $t->unsignedBigInteger('product_id'); $t->unsignedBigInteger('variant_id'); $t->unsignedBigInteger('hamper_id')->nullable(); $t->unsignedBigInteger('customer_id')->nullable(); $t->string('email', 190); $t->string('name', 120)->nullable(); $t->char('token', 40)->unique(); $t->string('status', 10)->default('waiting'); $t->dateTime('notified_at')->nullable(); $t->dateTime('stopped_at')->nullable(); $t->timestamps(); });
+        Schema::create('stock_watch_runs', function ($t) { $t->id(); $t->unsignedBigInteger('variant_id'); $t->unsignedBigInteger('hamper_id')->nullable(); $t->string('trigger_by', 10); $t->string('mode', 10); $t->decimal('stock', 14, 4)->default(0); $t->unsignedInteger('told')->default(0); $t->unsignedInteger('left_waiting')->default(0); $t->unsignedBigInteger('user_id')->nullable(); $t->timestamp('created_at')->nullable(); });
         DB::table('locations')->insert(['id' => 1, 'name' => 'Main', 'is_default' => true, 'created_at' => now(), 'updated_at' => now()]);
         DB::table('products')->insert(['id' => 1, 'name' => 'Teak Table', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('product_variants')->insert(['id' => 1, 'product_id' => 1, 'name' => 'Default', 'is_default' => true, 'created_at' => now(), 'updated_at' => now()]);
@@ -129,6 +129,7 @@ class BackInStockTest extends NotifyTestCase
         $body = NotificationDelivery::where('to_address', 'person1@example.com')->value('body');
         $this->assertStringContainsString('Teak Table is back in stock', $body);
         $this->assertStringContainsString('first come, first served', $body);
+        $this->assertSame(['action_url' => '/products/1?variant=1', 'action_text' => 'Order now'], NotificationDelivery::where('to_address', 'person1@example.com')->first()->payload);
         $this->assertStringContainsString('https://shop.example.com/stock-alerts/stop/' . StockWatch::first()->token, $body);
     }
 
@@ -259,5 +260,117 @@ class BackInStockTest extends NotifyTestCase
         $this->assertSame([1, 2], [$r['told'], $r['left']]);
         $this->assertSame('Told 1 person, 2 still waiting.', $r['message']);
         $this->assertSame('Admin 5', $c->overview()->getData(true)['runs'][0]['by']);
+    }
+
+    // ------------------------------------------------------------ products with several options
+
+    public function test_a_product_with_several_options_asks_which_unless_only_one_is_out(): void
+    {
+        DB::table('product_variants')->insert(['id' => 2, 'product_id' => 1, 'name' => 'Large', 'is_default' => false, 'stock_quantity' => 0, 'sellable_quantity' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('product_variants')->where('id', 1)->update(['name' => 'Small']);
+        try {
+            $this->ask('a@example.com');
+            $this->fail('should have asked which option');
+        } catch (BackInStockException $e) {
+            $this->assertSame([['id' => 1, 'name' => 'Small'], ['id' => 2, 'name' => 'Large']], $e->options);
+        }
+        $r = $this->ask('a@example.com', ['variant_id' => 2]);
+        $this->assertSame(['Large', 2], [$r['option'], $r['watch']->variant_id]);
+
+        DB::table('product_variants')->where('id', 1)->update(['stock_quantity' => 5, 'sellable_quantity' => 5]);
+        $only = $this->ask('b@example.com');
+        $this->assertSame([2, 'Large'], [$only['watch']->variant_id, $only['option']], 'the one option that is out is taken without asking');
+        $this->assertThrowsMessage('in stock now', fn () => $this->ask('c@example.com', ['variant_id' => 1]));
+
+        $this->postJson('/api/stock-watches', ['product_id' => 1, 'email' => 'z@example.com'])->assertStatus(201)->assertJsonPath('message', 'Done. We will email you as soon as it is back in stock (Large).');
+    }
+
+    public function test_the_api_lists_the_options_when_it_has_to_ask(): void
+    {
+        DB::table('product_variants')->insert(['id' => 2, 'product_id' => 1, 'name' => 'Large', 'stock_quantity' => 0, 'sellable_quantity' => 0, 'created_at' => now(), 'updated_at' => now()]);
+        $this->postJson('/api/stock-watches', ['product_id' => 1, 'email' => 'z@example.com'])->assertStatus(422)->assertJsonCount(2, 'options');
+    }
+
+    // ------------------------------------------------------------ hampers
+
+    private function hamper(): void
+    {
+        DB::table('hampers')->insert(['id' => 1, 'name' => 'Teak Gift Set', 'slug' => 'teak-gift-set', 'status' => 'active', 'is_visible' => true, 'location_id' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('hamper_items')->insert(['hamper_id' => 1, 'product_id' => 1, 'variant_id' => 1, 'quantity' => 2]);
+    }
+
+    private function partsStock(float $q): void
+    {
+        DB::table('variant_location_stock')->updateOrInsert(['product_variant_id' => 1, 'location_id' => 1], ['quantity' => $q, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    private function askHamper(string $email): array
+    {
+        return app(BackInStock::class)->watch(['hamper_id' => 1, 'email' => $email], null);
+    }
+
+    public function test_a_hamper_can_be_waited_for_only_while_it_can_not_be_made_up(): void
+    {
+        $this->hamper();
+        $this->partsStock(1);   // the hamper needs 2 of the part
+        $w = $this->askHamper('h@example.com');
+        $this->assertSame([1, 0, 0], [$w['watch']->hamper_id, $w['watch']->variant_id, $w['watch']->product_id]);
+        $this->assertTrue($this->askHamper('h@example.com')['already']);
+
+        $this->partsStock(2);
+        $this->assertThrowsMessage('in stock now', fn () => $this->askHamper('other@example.com'));
+        DB::table('hampers')->where('id', 1)->update(['status' => 'draft']);
+        $this->assertThrowsMessage('not available', fn () => $this->askHamper('other@example.com'));
+    }
+
+    public function test_hamper_people_are_told_as_many_as_hampers_can_be_made_first_come_first_served(): void
+    {
+        $this->hamper();
+        $this->partsStock(0);
+        foreach (['h1', 'h2', 'h3'] as $n) {
+            $this->askHamper("{$n}@example.com");
+        }
+        $this->partsStock(5);   // 2 hampers (2 of the part each)
+        $r = app(BackInStock::class)->tellHamper(1, 'stock', null);
+        $this->assertSame([2, 1, 2.0], [$r['told'], $r['left'], (float) $r['stock']]);
+        $this->assertSame(['h1@example.com', 'h2@example.com'], $this->emailsTo());
+        $body = NotificationDelivery::where('to_address', 'h1@example.com')->value('body');
+        $this->assertStringContainsString('Teak Gift Set is back in stock', $body);
+        $this->assertSame('/hampers/teak-gift-set', NotificationDelivery::where('to_address', 'h1@example.com')->first()->payload['action_url'], 'a guest has no bell row: the button is kept on the delivery');
+        $this->assertSame(2, (int) DB::table('stock_watch_runs')->where('hamper_id', 1)->value('told'));
+    }
+
+    public function test_a_part_going_up_tells_the_hamper_people_and_a_part_of_another_hamper_does_not(): void
+    {
+        $this->hamper();
+        DB::table('hamper_items')->insert(['hamper_id' => 2, 'product_id' => 1, 'variant_id' => 9, 'quantity' => 1]);
+        DB::table('hampers')->insert(['id' => 2, 'name' => 'Other', 'status' => 'active', 'is_visible' => true, 'location_id' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $this->partsStock(0);
+        $this->askHamper('h@example.com');
+        $this->partsStock(4);
+        app(BackInStock::class)->restockedPart(7);   // a part nobody's hamper is made of
+        $this->assertSame([], $this->emailsTo());
+        app(BackInStock::class)->restockedPart(1);
+        $this->assertSame(['h@example.com'], $this->emailsTo());
+    }
+
+    public function test_staff_see_hampers_in_the_overview_and_can_tell_them(): void
+    {
+        $this->hamper();
+        $this->partsStock(0);
+        $this->askHamper('h@example.com');
+        $this->waiting(1);
+        $this->partsStock(2);
+        $c = new \App\Http\Controllers\Api\StockWatchController(app(BackInStock::class));
+        $rows = collect($c->overview()->getData(true)['products']);
+        $h = $rows->firstWhere('kind', 'hamper');
+        $this->assertSame(['Teak Gift Set', 1, 1], [$h['product'], $h['waiting'], $h['stock']]);
+        $this->assertSame('product', $rows->firstWhere('kind', 'product')['kind']);
+
+        $req = \Illuminate\Http\Request::create('/x', 'POST', ['mode' => 'all']);
+        $user = $this->admin();
+        $req->setUserResolver(fn () => $user);
+        $this->assertSame(1, $c->tellHamper($req, 1)->getData(true)['told']);
+        $this->assertSame('Teak Gift Set', $c->overview()->getData(true)['runs'][0]['product']);
     }
 }
