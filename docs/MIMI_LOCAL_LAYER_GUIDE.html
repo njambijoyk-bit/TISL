@@ -1,0 +1,1786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="How Mimi answers locally and role-aware before any outside AI is asked: the design, the structured HTML knowledge format, a working playground, and the road to a trained NLP.">
+<title>Mimi's Local Layer</title>
+<style>
+:root{
+  --bg:#faf9fc; --surface:#ffffff; --surface-2:#f3f0f9; --line:#e4dff0; --line-strong:#cfc7e4;
+  --text:#1d1830; --muted:#5d5675; --faint:#7a7492;
+  --primary:#6d28d9; --primary-ink:#ffffff; --primary-soft:#efe7fd; --primary-line:#cdb8f6;
+  --ok:#0f7a4d; --ok-soft:#e1f5ea; --ok-line:#a9dcc2;
+  --warn:#8a5200; --warn-soft:#fdf0d8; --warn-line:#efce8e;
+  --bad:#b42318; --bad-soft:#fde8e6; --bad-line:#f2b4ae;
+  --info:#0b6481; --info-soft:#e0f2f8; --info-line:#a6d4e2;
+  --code-bg:#1e1a2e; --code-ink:#ece8f7; --code-dim:#9b93b8;
+  --radius:12px; --shadow:0 1px 2px rgba(29,24,48,.06),0 10px 28px rgba(29,24,48,.07);
+  --font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141120; --surface:#1c1830; --surface-2:#251f3d; --line:#322a50; --line-strong:#463c6b;
+    --text:#ece8f7; --muted:#b4acce; --faint:#8f87ab;
+    --primary:#a78bfa; --primary-ink:#140f24; --primary-soft:#2b2250; --primary-line:#4b3d86;
+    --ok:#5fd6a0; --ok-soft:#10301f; --ok-line:#1f5a3c;
+    --warn:#f0bd62; --warn-soft:#33260c; --warn-line:#6b4e14;
+    --bad:#ff9a8f; --bad-soft:#3a1512; --bad-line:#7a2c25;
+    --info:#6fcbe6; --info-soft:#0e2a35; --info-line:#1f566a;
+    --code-bg:#0e0b1a; --code-ink:#ece8f7; --code-dim:#8f87ab;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141120; --surface:#1c1830; --surface-2:#251f3d; --line:#322a50; --line-strong:#463c6b;
+  --text:#ece8f7; --muted:#b4acce; --faint:#8f87ab;
+  --primary:#a78bfa; --primary-ink:#140f24; --primary-soft:#2b2250; --primary-line:#4b3d86;
+  --ok:#5fd6a0; --ok-soft:#10301f; --ok-line:#1f5a3c;
+  --warn:#f0bd62; --warn-soft:#33260c; --warn-line:#6b4e14;
+  --bad:#ff9a8f; --bad-soft:#3a1512; --bad-line:#7a2c25;
+  --info:#6fcbe6; --info-soft:#0e2a35; --info-line:#1f566a;
+  --code-bg:#0e0b1a; --code-ink:#ece8f7; --code-dim:#8f87ab;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 28px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);font-size:16px;line-height:1.65}
+img,svg{max-width:100%}
+a{color:var(--primary);text-underline-offset:2px}
+a:hover{text-decoration-thickness:2px}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:12px;top:-60px;background:var(--primary);color:var(--primary-ink);padding:8px 14px;border-radius:8px;z-index:100;font-weight:600}
+.skip:focus{top:12px}
+
+/* ── top bar ───────────────────────────────────────────── */
+.top{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1240px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:14px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em;color:var(--text);text-decoration:none}
+.brand .dot{width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,var(--primary),#c084fc);display:grid;place-items:center;color:#fff;font-size:15px}
+.brand small{font-weight:500;color:var(--muted)}
+.top-links{margin-left:auto;display:flex;gap:6px;align-items:center}
+.top-links a.btn,.top-links button{font:inherit}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);padding:7px 14px;border-radius:999px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;min-height:38px}
+.btn:hover{border-color:var(--primary)}
+.btn.primary{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.small{padding:4px 10px;font-size:13px;min-height:30px}
+
+/* ── layout ────────────────────────────────────────────── */
+.shell{max-width:1240px;margin:0 auto;padding:0 16px;display:grid;grid-template-columns:1fr;gap:36px}
+@media (min-width:1024px){.shell{grid-template-columns:250px minmax(0,1fr)}}
+.toc{font-size:14px}
+.toc summary{cursor:pointer;font-weight:700;padding:10px 0}
+@media (min-width:1024px){
+  .toc{position:sticky;top:72px;align-self:start;max-height:calc(100vh - 90px);overflow:auto;padding:24px 0}
+  .toc summary{display:none}
+}
+.toc ol{list-style:none;margin:0;padding:0;counter-reset:t}
+.toc li{counter-increment:t}
+.toc a{display:flex;gap:10px;padding:6px 10px;border-radius:8px;color:var(--muted);text-decoration:none;line-height:1.35}
+.toc a::before{content:counter(t);color:var(--faint);font-variant-numeric:tabular-nums;min-width:1.4em}
+.toc a:hover{background:var(--surface-2);color:var(--text)}
+.toc a[aria-current="true"]{background:var(--primary-soft);color:var(--text);font-weight:600}
+main{min-width:0;padding-bottom:80px}
+
+/* ── hero ──────────────────────────────────────────────── */
+.hero{padding:44px 0 12px}
+.eyebrow{font-size:13px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--primary)}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.1;letter-spacing:-.025em;margin:10px 0 16px;font-weight:800}
+.lede{font-size:clamp(1.05rem,2vw,1.25rem);color:var(--muted);max-width:62ch;margin:0 0 20px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;list-style:none}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-strong);background:var(--surface);border-radius:999px;padding:3px 11px;font-size:13px;font-weight:600;color:var(--muted)}
+.chip.ok{background:var(--ok-soft);border-color:var(--ok-line);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);border-color:var(--warn-line);color:var(--warn)}
+.chip.bad{background:var(--bad-soft);border-color:var(--bad-line);color:var(--bad)}
+.chip.info{background:var(--info-soft);border-color:var(--info-line);color:var(--info)}
+.chip.pri{background:var(--primary-soft);border-color:var(--primary-line);color:var(--primary)}
+.chip.mono{font-family:var(--mono);font-size:12px;font-weight:500}
+
+/* ── chapters ──────────────────────────────────────────── */
+.chap{padding-top:56px;scroll-margin-top:60px}
+.chap>h2{font-size:clamp(1.5rem,3vw,2rem);line-height:1.2;letter-spacing:-.02em;margin:0 0 14px;display:flex;gap:14px;align-items:baseline}
+.chap>h2 .num{font-size:.62em;font-weight:700;color:var(--primary);background:var(--primary-soft);border-radius:8px;padding:2px 9px;font-variant-numeric:tabular-nums}
+h3{font-size:1.18rem;margin:30px 0 8px;letter-spacing:-.01em}
+h4{font-size:1rem;margin:20px 0 6px}
+p{margin:0 0 14px}
+.chap>p,.chap>ul,.chap>ol{max-width:72ch}
+ul,ol{padding-left:1.35em;margin:0 0 14px}
+li{margin:4px 0}
+li::marker{color:var(--faint)}
+strong{font-weight:650}
+hr{border:0;border-top:1px solid var(--line);margin:32px 0}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:1px 6px;overflow-wrap:anywhere}
+pre{background:var(--code-bg);color:var(--code-ink);border-radius:var(--radius);padding:16px 18px;overflow:auto;font-size:13.5px;line-height:1.6;margin:0 0 18px;position:relative;border:1px solid var(--line)}
+pre code{background:none;border:0;padding:0;color:inherit;font-size:inherit;overflow-wrap:normal}
+pre .c{color:var(--code-dim)} pre .k{color:#c4a8ff} pre .s{color:#8fe3b5} pre .a{color:#f6c177}
+.copy{position:absolute;top:8px;right:8px;opacity:.0;transition:opacity .15s}
+pre:hover .copy,pre:focus-within .copy,.copy:focus-visible{opacity:1}
+.copy{font:600 12px var(--font);background:#ffffff1c;color:var(--code-ink);border:1px solid #ffffff33;border-radius:6px;padding:3px 9px;cursor:pointer}
+.fine{font-size:13.5px;color:var(--muted)}
+.tw{overflow-x:auto;margin:0 0 20px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+caption{text-align:left;padding:12px 14px;font-weight:650;color:var(--text)}
+th,td{padding:10px 14px;text-align:left;vertical-align:top;border-top:1px solid var(--line)}
+thead th{background:var(--surface-2);font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-top:0;white-space:nowrap}
+tbody th{font-weight:650}
+td code,th code{white-space:normal}
+td.y{color:var(--ok);font-weight:700;text-align:center}
+td.n{color:var(--faint);text-align:center}
+td.p{color:var(--warn);font-weight:700;text-align:center}
+
+/* ── callouts + cards ──────────────────────────────────── */
+.callout{border:1px solid var(--line-strong);border-left-width:5px;border-radius:var(--radius);padding:14px 18px;margin:0 0 20px;background:var(--surface);max-width:78ch}
+.callout>:last-child{margin-bottom:0}
+.callout .t{font-weight:700;display:block;margin-bottom:4px}
+.callout.note{border-left-color:var(--info);background:var(--info-soft)}
+.callout.good{border-left-color:var(--ok);background:var(--ok-soft)}
+.callout.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.callout.bad{border-left-color:var(--bad);background:var(--bad-soft)}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:0 0 22px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.card h3,.card h4{margin:0 0 6px;font-size:1.02rem}
+.card p{margin:0;color:var(--muted);font-size:15px}
+.card .ico{font-size:22px;display:block;margin-bottom:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 22px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px}
+.stat b{display:block;font-size:1.7rem;letter-spacing:-.02em;line-height:1.1}
+.stat span{font-size:13px;color:var(--muted)}
+
+/* ── flow diagram ──────────────────────────────────────── */
+.fig{margin:0 0 24px}
+.fig figcaption{font-size:13.5px;color:var(--muted);margin-top:8px}
+.zone{position:relative;border:2px dashed var(--line-strong);border-radius:16px;padding:34px 16px 16px;background:var(--surface)}
+.zone-in{border-color:var(--ok-line);background:color-mix(in srgb,var(--ok-soft) 35%,var(--surface))}
+.zone-out{border-color:var(--warn-line);background:color-mix(in srgb,var(--warn-soft) 40%,var(--surface))}
+.zone-label{position:absolute;top:-1px;left:16px;transform:translateY(-50%);background:var(--bg);padding:2px 12px;border-radius:999px;font-size:12.5px;font-weight:700;letter-spacing:.03em;border:1px solid currentColor}
+.zone-in .zone-label{color:var(--ok)} .zone-out .zone-label{color:var(--warn)}
+.flow{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:760px){.flow{grid-template-columns:repeat(4,1fr)}}
+.flow>li{margin:0;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;padding:12px 14px;position:relative;font-size:14px}
+.flow>li b{display:block;font-size:14.5px;margin-bottom:2px}
+.flow>li b i{font-style:normal;display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--primary);color:var(--primary-ink);font-size:12px;margin-right:7px}
+.flow>li span{color:var(--muted)}
+.flow>li.new{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.flow>li.moved{border-style:dashed}
+.split{display:grid;gap:10px;grid-template-columns:1fr}
+@media (min-width:760px){.split{grid-template-columns:1fr 1fr}}
+.branch{border:1px solid var(--line-strong);border-radius:12px;padding:12px 14px;background:var(--surface);font-size:14px}
+.branch.ok{border-color:var(--ok-line)} .branch.warn{border-color:var(--warn-line)}
+.branch h4{margin:0 0 4px;font-size:14.5px}
+.branch ul{margin:6px 0 0;padding-left:1.2em;color:var(--muted)}
+.bridge{display:flex;align-items:center;justify-content:center;gap:10px;padding:10px;font-size:13.5px;font-weight:600;color:var(--warn)}
+.bridge::before,.bridge::after{content:"";height:26px;border-left:2px dashed var(--warn-line)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:10px 0 0;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;margin-right:6px;vertical-align:-2px;border:1px solid var(--primary)}
+
+/* ── data-class pills ──────────────────────────────────── */
+.cls{display:inline-block;border-radius:6px;padding:0 8px;font-weight:700;font-size:12.5px;font-family:var(--mono)}
+.cls.p0{background:var(--ok-soft);color:var(--ok)} .cls.p1{background:var(--info-soft);color:var(--info)}
+.cls.p2{background:var(--warn-soft);color:var(--warn)} .cls.p3{background:var(--bad-soft);color:var(--bad)}
+
+/* ── playground ────────────────────────────────────────── */
+.pg{display:grid;gap:16px;grid-template-columns:1fr;margin:0 0 20px}
+@media (min-width:980px){.pg{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}}
+.pg-chat,.pg-trace{background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);min-width:0}
+.pg-chat{padding:14px;display:flex;flex-direction:column;gap:10px}
+.pg-controls{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.pg-controls label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+select,input[type=text]{font:inherit;font-size:15px;color:var(--text);background:var(--bg);border:1px solid var(--line-strong);border-radius:10px;padding:9px 12px;width:100%;min-height:42px;text-transform:none;letter-spacing:0;font-weight:500}
+select:focus,input[type=text]:focus{outline:3px solid var(--primary-soft);border-color:var(--primary)}
+details.perm{font-size:13.5px}
+details.perm summary{cursor:pointer;color:var(--muted);font-weight:600}
+details.perm .chips{margin-top:8px}
+.log{height:430px;resize:vertical;overflow:auto;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:10px 14px;border-radius:16px;font-size:15px;line-height:1.55;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--primary);color:var(--primary-ink);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.bot p{margin:0 0 8px} .msg.bot p:last-child{margin:0}
+.msg.bot ul{margin:4px 0 8px}
+.msg.sys{align-self:center;background:none;color:var(--muted);font-size:13px;text-align:center;max-width:100%}
+.msg .src{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.msg .res{margin:6px 0 4px;padding:0;list-style:none;display:grid;gap:6px}
+.msg .res li{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;margin:0}
+.msg details{margin-top:8px;font-size:14px}
+.msg details summary{cursor:pointer;color:var(--primary);font-weight:600}
+.msg .sugg{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.msg .sugg button{font:inherit;font-size:14px;text-align:left;border:1px solid var(--primary-line);background:var(--primary-soft);color:var(--text);padding:6px 10px;border-radius:8px;cursor:pointer}
+.examples{display:flex;flex-wrap:wrap;gap:6px}
+.examples button{font:inherit;font-size:13px;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);padding:4px 10px;border-radius:999px;cursor:pointer}
+.examples button:hover{border-color:var(--primary);background:var(--primary-soft)}
+.ask{display:flex;gap:8px}
+.ask input{flex:1}
+.pg-trace{padding:16px}
+.pg-trace h3{margin:0 0 10px;font-size:1rem}
+#trace{margin:0;display:grid;gap:8px}
+#trace .row{display:grid;grid-template-columns:104px 1fr;gap:10px;font-size:13.5px;padding-bottom:8px;border-bottom:1px dashed var(--line)}
+#trace .row:last-child{border:0}
+#trace dt{color:var(--muted);font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding-top:2px}
+#trace dd{margin:0;min-width:0;overflow-wrap:anywhere}
+#trace pre{margin:6px 0 0;padding:10px;font-size:12px;max-height:240px;white-space:pre-wrap;word-break:break-word}
+code.nw{white-space:nowrap}
+.bar{height:8px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;margin-top:5px;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--primary);display:block}
+.bar b{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--text);opacity:.55}
+.meter{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--ok-soft);border:1px solid var(--ok-line);color:var(--ok);font-weight:700;font-size:14px;display:flex;justify-content:space-between;gap:10px}
+
+/* ── self test ─────────────────────────────────────────── */
+.st-out{display:grid;gap:8px;margin-top:14px}
+.st-row{display:flex;gap:10px;align-items:flex-start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 14px;font-size:14.5px}
+.st-row .badge{flex:none;font-family:var(--mono);font-size:12px;font-weight:700;padding:2px 9px;border-radius:6px}
+.st-row.pass .badge{background:var(--ok-soft);color:var(--ok)} .st-row.fail .badge{background:var(--bad-soft);color:var(--bad)}
+.st-row ul{margin:6px 0 0;font-size:13.5px;color:var(--muted)}
+
+/* ── knowledge-entry cards ─────────────────────────────── */
+.kbfilter{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.kbfilter button{font:inherit;font-size:13.5px;font-weight:600;border:1px solid var(--line-strong);background:var(--surface);color:var(--text);padding:5px 14px;border-radius:999px;cursor:pointer}
+.kbfilter button[aria-pressed="true"]{background:var(--primary);color:var(--primary-ink);border-color:var(--primary)}
+article.kb{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;margin:0 0 12px;scroll-margin-top:72px}
+article.kb[hidden]{display:none}
+article.kb .kb-title{margin:0 0 8px;font-size:1.05rem}
+article.kb .meta{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;padding:0;list-style:none}
+article.kb .meta li{margin:0}
+.kb-q{margin:0 0 10px;padding-left:1.2em;color:var(--muted);font-size:14.5px}
+.kb-q li[lang]::after{content:" (" attr(lang) ")";color:var(--faint);font-size:12px}
+.kb-a{margin:0 0 10px;padding:10px 14px;border-left:4px solid var(--primary-line);background:var(--surface-2);border-radius:0 8px 8px 0;font-size:15px}
+.kb-a>:last-child{margin-bottom:0}
+.kb-more,.kb-denied,.kb-empty{font-size:14px;color:var(--muted);margin:0 0 6px}
+.kb-denied::before{content:"When not allowed: ";font-weight:650;color:var(--text)}
+.kb-empty::before{content:"When nothing is found: ";font-weight:650;color:var(--text)}
+.kb-more::before{content:"More detail: ";font-weight:650;color:var(--text)}
+
+/* ── misc ──────────────────────────────────────────────── */
+dl.def{display:grid;grid-template-columns:minmax(120px,max-content) 1fr;gap:6px 18px;margin:0 0 18px}
+dl.def dt{font-weight:650} dl.def dd{margin:0;color:var(--muted)}
+@media (max-width:600px){dl.def{grid-template-columns:1fr} dl.def dd{margin-bottom:8px}}
+.phases{display:grid;gap:14px;margin:0 0 20px;padding:0;list-style:none}
+.phase{display:grid;grid-template-columns:auto 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+.phase .n{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:var(--primary-soft);color:var(--primary);border:1px solid var(--primary-line)}
+.phase.now .n{background:var(--primary);color:var(--primary-ink)}
+.phase h3{margin:0 0 4px;font-size:1.05rem}
+.phase p{margin:0 0 6px;color:var(--muted);font-size:15px}
+.phase .exit{font-size:14px;margin:6px 0 0}
+details.q{border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);margin:0 0 10px;padding:0 16px}
+details.q summary{cursor:pointer;font-weight:650;padding:12px 0;list-style:none}
+details.q summary::-webkit-details-marker{display:none}
+details.q summary::before{content:"+";display:inline-block;width:1.4em;color:var(--primary);font-weight:800}
+details.q[open] summary::before{content:"–"}
+details.q>div{padding:0 0 12px;color:var(--muted)}
+footer.site{border-top:1px solid var(--line);margin-top:60px;padding:24px 0;color:var(--muted);font-size:14px}
+
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+@media print{
+  .top,.toc,.pg,#try .fine,.copy,.kbfilter,.examples,.ask,.skip,.noprint{display:none!important}
+  body{background:#fff;color:#000;font-size:11pt} .chap{padding-top:22px;break-inside:auto}
+  pre{white-space:pre-wrap;border:1px solid #999} details>*{display:block!important} a{color:inherit}
+  .shell{display:block}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#top"><span class="dot" aria-hidden="true">✦</span><span>Mimi <small>Local Layer guide</small></span></a>
+    <div class="top-links">
+      <a class="btn small" href="#try">Try it</a>
+      <button class="btn small" id="themeBtn" type="button" aria-pressed="false" title="Switch light / dark">Theme</button>
+    </div>
+  </div>
+</header>
+
+<div class="shell" id="top">
+<details class="toc" open>
+  <summary>Contents</summary>
+  <nav aria-label="Contents">
+  <ol>
+    <li><a href="#short">The short version</a></li>
+    <li><a href="#try">Try it: ask the local layer</a></li>
+    <li><a href="#today">Where Mimi stands today</a></li>
+    <li><a href="#layers">The three layers</a></li>
+    <li><a href="#roles">Who is asking? Role awareness</a></li>
+    <li><a href="#format">The structured HTML format</a></li>
+    <li><a href="#engine">How the local engine answers</a></li>
+    <li><a href="#resolvers">Live data: resolvers</a></li>
+    <li><a href="#privacy">When the outside AI is still used</a></li>
+    <li><a href="#guard">Guardrails, logs and learning</a></li>
+    <li><a href="#testing">Testing: keep it honest</a></li>
+    <li><a href="#roadmap">Roadmap to a trained NLP</a></li>
+    <li><a href="#build">Building it in this codebase</a></li>
+    <li><a href="#kb">The knowledge entries</a></li>
+    <li><a href="#faq">FAQ and glossary</a></li>
+  </ol>
+  </nav>
+</details>
+
+<main id="main">
+
+<!-- ═════════════════════════ HERO ═════════════════════════ -->
+<header class="hero">
+  <div class="eyebrow">TISL platform · Mimi · Guide, draft 0.1</div>
+  <h1>A private brain for Mimi</h1>
+  <p class="lede">Today Mimi sends each question, plus a slice of store data, to an outside AI. This guide designs the layer that should come <em>first</em>: a local, role-aware brain that answers from our own structured knowledge and our own database, on our own server, and only asks Gemini, Claude or OpenAI when we have said it may.</p>
+  <ul class="chips" aria-label="Status">
+    <li class="chip ok">Design: complete draft</li>
+    <li class="chip info">Prototype: runs in this page, no network</li>
+    <li class="chip warn">Server code: not built yet</li>
+    <li class="chip mono">9 Oct 2026 · code read at commit e15e726</li>
+  </ul>
+  <p style="margin-top:20px"><a class="btn primary" href="#try">Ask it something →</a> <a class="btn" href="#today">What's wrong with today's flow?</a></p>
+</header>
+
+<!-- ═════════════════════════ 1 ═════════════════════════ -->
+<section class="chap" id="short" aria-labelledby="h-short">
+  <h2 id="h-short"><span class="num">1</span>The short version</h2>
+  <div class="cards">
+    <div class="card"><span class="ico" aria-hidden="true">🏠</span><h3>Answer locally first</h3><p>Where's my order, how do I pay, what does clearance 3 mean: these have known answers in our own knowledge or our own database. No outside AI needed, no tokens spent, and it still works when a provider is down.</p></div>
+    <div class="card"><span class="ico" aria-hidden="true">🔐</span><h3>Role-aware by construction</h3><p>Every knowledge entry and every data lookup names the <strong>permission</strong> it needs. The caller's permissions are applied <em>before</em> matching, so a restricted entry can't be scored, quoted or leaked.</p></div>
+    <div class="card"><span class="ico" aria-hidden="true">🧱</span><h3>Structured HTML now, NLP later</h3><p>Knowledge is written as plain <code>&lt;article class="kb"&gt;</code> entries. A transparent matcher answers from them today. Every logged question becomes the labelled data we train the NLP on later.</p></div>
+    <div class="card"><span class="ico" aria-hidden="true">🚪</span><h3>The outside AI gets a leash</h3><p>Gemini, Claude, OpenAI and Qwen stay available through the existing <code>AiGateway</code>, but the owner chooses, per audience: never, public context only, or redacted and scoped.</p></div>
+    <div class="card"><span class="ico" aria-hidden="true">🧩</span><h3>Fits what we already built</h3><p>It reuses <code>hasPermission()</code>, the block, consent and harm services, the Mimi logs and analytics screens, and the "no role names in code" rule. Nothing parallel is invented.</p></div>
+  </div>
+
+  <div class="callout warn">
+    <span class="t">Why now: three things found while reading the current code</span>
+    <ol>
+      <li><strong>Personal data leaves with every message.</strong> A customer's name, email, phone, spend, store credit, orders and payments are placed in the prompt that goes to the provider.</li>
+      <li><strong>Staff lookups skip the permission engine.</strong> "Look up order…" and "look up customer…" check only that you can open the admin area, not <code>customers.view</code>, your data scope or your branch limits.</li>
+      <li><strong>The harm scan runs after the outside call</strong>, inside the logger, so a harmful question has already left by the time it is scanned.</li>
+    </ol>
+    <p class="fine" style="margin-top:8px">Evidence with file and line numbers is in <a href="#today">chapter 3</a>. I read the code and tested the two regexes; I have not exercised these paths against a running instance.</p>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 2 ═════════════════════════ -->
+<section class="chap" id="try" aria-labelledby="h-try">
+  <h2 id="h-try"><span class="num">2</span>Try it: ask the local layer</h2>
+  <p>This is the real matching logic, running in your browser against the knowledge entries in <a href="#kb">chapter 14</a>. Pick who is asking, then ask. <strong>This page makes no network requests</strong>; the meter counts them, and all names, orders and amounts are sample data.</p>
+
+  <div class="pg">
+    <div class="pg-chat">
+      <div class="pg-controls">
+        <label>Who is asking?
+          <select id="persona" aria-describedby="personaNote"></select>
+        </label>
+        <label>If the layer doesn't know…
+          <select id="fallback">
+            <option value="local_only">Stay local</option>
+            <option value="ai_public">Outside AI, public only (simulated)</option>
+          </select>
+        </label>
+      </div>
+      <p class="fine" id="personaNote" style="margin:0"></p>
+      <details class="perm"><summary>Permissions this person holds <span id="permCount"></span></summary><div id="permList" class="chips"></div></details>
+      <div id="log" class="log" role="log" aria-live="polite" aria-label="Conversation"></div>
+      <div class="examples" id="examples" aria-label="Example questions"></div>
+      <form id="askForm" class="ask" autocomplete="off">
+        <label class="sr" for="q">Your question</label>
+        <input id="q" type="text" maxlength="2000" placeholder="Ask Mimi something…" enterkeyhint="send">
+        <button class="btn primary" type="submit">Send</button>
+      </form>
+    </div>
+
+    <aside class="pg-trace" aria-label="What the local layer just did">
+      <h3>What just happened</h3>
+      <dl id="trace"><div class="row"><dt>Waiting</dt><dd>Ask a question and the steps appear here: who was asking, what they were allowed to see, which entry matched and how confident it was.</dd></div></dl>
+      <div class="meter" role="status"><span>Network calls made by this page</span><span id="netCount">0</span></div>
+    </aside>
+  </div>
+  <p class="fine">The trace shows the names of entries hidden from the person because this is a demo. In production that debug view is for people with <code>insight.mimi</code> only and is never shown in the chat.</p>
+</section>
+
+<!-- ═════════════════════════ 3 ═════════════════════════ -->
+<section class="chap" id="today" aria-labelledby="h-today">
+  <h2 id="h-today"><span class="num">3</span>Where Mimi stands today</h2>
+  <p>Mimi already has a lot worth keeping. To design the new layer properly, here is what happens to a message now, read from the code at commit <code>e15e726</code>.</p>
+
+  <h3>One message, as it is handled now</h3>
+  <ol>
+    <li><strong>Arrives</strong> at <code>POST /api/chat</code> (signed in, throttled 30 a minute) or <code>POST /api/chat/guest</code> (10 a minute). <span class="fine">api.php:111, 386</span></li>
+    <li><strong>Session and block check</strong> (<code>MimiSessionService</code>, <code>MimiBlockService</code>). Message limited to 2,000 characters, history to 20 turns. <span class="fine">ChatController.php:33–57</span></li>
+    <li><strong>A prompt is built.</strong> Store info, up to 30 products (50 for staff), 30 services, 15 categories. For a customer: name, email, phone, customer number, tier, total spent, store credit, loyalty points, last 8 orders, last 5 payments, 3 projects, promo and referral codes. For staff: stats plus whatever the intent detector finds (an order, a payment, a customer, recent activity). <span class="fine">ChatController.php:62–73, 138–335, 344–403</span></li>
+    <li><strong>The whole prompt goes to a provider</strong> through <code>AiGateway::run('mimi', …)</code>, trying the keys in order across Anthropic, OpenAI, Gemini and Qwen and moving on when one fails. <span class="fine">ChatController.php:835–870; AiGateway.php:163–186</span></li>
+    <li><strong>Logged</strong> to <code>mimi_query_logs</code>, and <em>only then</em> is the keyword harm scan run on the question. <span class="fine">ChatController.php:95–108; MimiQueryLogService.php:52–55</span></li>
+  </ol>
+
+  <h3>What is good and should stay</h3>
+  <div class="cards">
+    <div class="card"><h4>Consent</h4><p><code>MimiPolicyService</code> asks for agreement the first time, and again only on a new major version.</p></div>
+    <div class="card"><h4>Blocks and sessions</h4><p>Staff can block a customer, staff member or guest, and see sessions, queries and harmful questions.</p></div>
+    <div class="card"><h4>Key failover</h4><p>Several provider keys, ordered by purpose, with the last error shown on the AI → Keys screen.</p></div>
+    <div class="card"><h4>Own-data scoping for customers</h4><p>Customer context is fetched by <code>user_id</code>, so one customer's data isn't mixed with another's.</p></div>
+  </div>
+
+  <h3>Gaps the local layer closes</h3>
+  <div class="tw"><table>
+    <thead><tr><th>#</th><th>What the code does</th><th>Why it matters</th><th>How the local layer fixes it</th></tr></thead>
+    <tbody>
+      <tr><th>G1</th><td>Customer profile, orders, payments and (for staff) customer details are interpolated into the prompt sent to the provider. <code>ChatController.php:204–335, 522–538</code></td><td>Personal and financial data leaves our server on every message, whether or not the question needed it.</td><td>Answer from the database locally. If an outside model is ever asked, it gets the question (redacted) and public snippets only. <a href="#privacy">Ch. 9</a></td></tr>
+      <tr><th>G2</th><td><code>order_lookup</code> and <code>customer_lookup</code> run for anyone who passes <code>isStaff()</code>, which is just <code>admin.access</code> (<code>User.php:319</code>). Only <code>payment_lookup</code> and the payment summary check <code>books.view</code>. The <code>assigned</code> data scope is applied to stats and recent activity but not to lookups, and no branch limit applies (no global scope does it either). <code>ChatController.php:355–391, 575, 600</code></td><td>An account that merely opens the admin area (the chef, for example) can ask Mimi for any customer's email, phone, spend and store credit, defeating the <code>customers.view</code> work. And that answer is in a prompt sent outside.</td><td>Every resolver declares its permission and scope and re-checks at run time. Same reply for "not found" and "not yours". <a href="#resolvers">Ch. 8</a></td></tr>
+      <tr><th>G3</th><td>The keyword harm scan lives in <code>logQuery()</code>, which runs after <code>callGemini()</code>. The scan is also handed an empty provider payload (<code>extractGeminiMeta</code> returns <code>[]</code>), so its provider-block branch never fires. <code>ChatController.php:95–108, 901–916</code></td><td>A harmful or abusive prompt has already been sent out before we notice it.</td><td>The guard step runs first, locally, and can refuse before anything else happens. <a href="#guard">Ch. 10</a></td></tr>
+      <tr><th>G4</th><td>The prompt text names roles ("For finance role…", "admin/super_admin"). <code>ChatController.php:669–670</code></td><td>The platform rule is "roles are data, never names in code". A role built tomorrow would be invisible to this wording.</td><td>The caller context is a set of permissions and a data scope. No role word appears anywhere. <a href="#roles">Ch. 5</a></td></tr>
+      <tr><th>G5</th><td>Staff intent regexes: order <code>[A-Z]+-\d{4}-\d+</code> and receipt <code>[A-Z]{2,3}\d{7,10}</code>. Run against their own comment examples, neither matches <code>WNKJ-SO-00001</code> or <code>QJK8QX1234</code>. Voucher numbers come from configurable series (<code>NumberingService</code>). <code>ChatController.php:414–425</code></td><td>Looking up an order by its normal number silently falls through to a vague answer.</td><td>Slot patterns are built from the voucher series prefixes, not hardcoded. <a href="#engine">Ch. 7</a></td></tr>
+      <tr><th>G6</th><td>Every question costs tokens, and a provider quota error becomes "I'm temporarily at capacity". <code>ChatController.php:873</code></td><td>Cost and availability depend on someone else.</td><td>Local answers cost nothing and work when providers are down.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout note">
+    <span class="t">One caveat on G2</span>
+    <p>It follows from reading <code>getAdminContext()</code> and the catalogue; I did not run it. A quick way to confirm: sign in as an account that holds <code>admin.access</code> but not <code>customers.view</code>, ask Mimi "look up customer someone@example.com", and see whether details come back.</p>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 4 ═════════════════════════ -->
+<section class="chap" id="layers" aria-labelledby="h-layers">
+  <h2 id="h-layers"><span class="num">4</span>The three layers</h2>
+  <p>The new layer slots between the guard that already exists and the outside model that already exists. It changes the <em>order</em>, and it gives the outside model a smaller, safer job.</p>
+
+  <figure class="fig">
+    <div class="zone zone-in"><span class="zone-label">Inside our server: nothing leaves</span>
+      <ol class="flow">
+        <li class="moved"><b><i>1</i>Guard</b><span>throttle · block · consent · harm scan. Exists today; <strong>moves to the front</strong>.</span></li>
+        <li class="new"><b><i>2</i>Who is asking?</b><span>Account kind, permissions, data scope, branch scope, language.</span></li>
+        <li class="new"><b><i>3</i>Local brain</b><span>Only the entries this person may see are matched. Live data comes from resolvers.</span></li>
+        <li class="new"><b><i>4</i>Confident?</b><span>Answer, suggest "did you mean…", or decline politely.</span></li>
+      </ol>
+      <div class="split">
+        <div class="branch ok"><h4>✔ Confident → local answer</h4><span class="fine">Source shown to the person: <em>knowledge</em> or <em>your account data</em>. Logged with entry id and confidence.</span></div>
+        <div class="branch warn"><h4>✖ Not confident → fallback policy</h4>
+          <ul><li><strong>Local only:</strong> "That isn't written down yet", and the question is logged as a gap to fill.</li><li><strong>Outside AI allowed:</strong> go to the bridge below.</li></ul></div>
+      </div>
+    </div>
+    <div class="bridge">redact · minimise · public context only · owner's switch</div>
+    <div class="zone zone-out"><span class="zone-label">Outside: only when the owner allows</span>
+      <p style="margin:0"><strong>Gemini · Claude · OpenAI · Qwen</strong> through the existing <code>AiGateway</code>, with its key order and failover. It sees a redacted question and public snippets. It never sees orders, payments or account data.</p>
+    </div>
+    <figcaption>Request flow. <span class="legend"><span><i style="background:var(--primary-soft)"></i>new</span><span><i style="border-style:dashed;background:transparent"></i>exists today, moves earlier</span></span></figcaption>
+  </figure>
+
+  <div class="tw"><table>
+    <caption>What exists, what is new, what changes</caption>
+    <thead><tr><th>Piece</th><th>Today</th><th>After</th></tr></thead>
+    <tbody>
+      <tr><th>Guard</th><td>Block check first; harm scan after the model call</td><td>Block, consent and harm scan all before anything is matched or sent</td></tr>
+      <tr><th>Caller context</th><td>A role label pasted into the prompt</td><td>Account kind + permissions + scope, built from <code>Authorizer</code></td></tr>
+      <tr><th>Knowledge</th><td>Whatever the model already knows, plus the prompt dump</td><td>Reviewed, versioned entries, each tagged with who may see it</td></tr>
+      <tr><th>Live data</th><td>Raw rows interpolated into the prompt</td><td>Resolvers: permissioned, scoped, field-allowlisted functions that return only what was asked</td></tr>
+      <tr><th>Outside model</th><td>The only brain</td><td>A fallback, with a per-audience switch and a redactor</td></tr>
+      <tr><th>Logs</th><td>Question, answer, harm flag</td><td>Plus <em>answered_by</em> (local, AI, none), entry id, confidence, resolver: the learning loop's raw material</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═════════════════════════ 5 ═════════════════════════ -->
+<section class="chap" id="roles" aria-labelledby="h-roles">
+  <h2 id="h-roles"><span class="num">5</span>Who is asking? Role awareness</h2>
+  <p>"Role-aware" here does not mean the chatbot knows job titles. It means every decision is made from what the platform's access engine says this person <strong>may do</strong>, which is how the rest of the platform already works (<code>docs/IDENTITY_AND_ACCESS_PLAN.md</code>).</p>
+
+  <h3>The caller context</h3>
+  <p>Built once per message, on the server, from the signed-in user (or an anonymous guest). The browser never supplies it.</p>
+  <div class="tw"><table>
+    <thead><tr><th>Field</th><th>Comes from</th><th>Used for</th></tr></thead>
+    <tbody>
+      <tr><th><code>kind</code></th><td><code>guest</code> · <code>customer</code> · <code>vendor</code> · <code>applicant</code> · <code>driver</code> · <code>staff</code>, from <code>portalType()</code>, <code>isDriver()</code>, <code>isStaff()</code></td><td>Which entries are even candidates</td></tr>
+      <tr><th><code>permissions</code></th><td><code>Authorizer</code> (<code>hasPermission()</code>)</td><td>The <code>data-requires</code> check on entries and resolvers</td></tr>
+      <tr><th><code>dataScope</code></th><td><code>User::dataScope()</code>: <code>all</code> · <code>assigned</code> · <code>own</code></td><td>Which records inside a branch a resolver may touch</td></tr>
+      <tr><th><code>locationIds</code></th><td><code>Authorizer::locationIds()</code> and the Books/Stock branch-limit mode</td><td>Which branches a resolver may read</td></tr>
+      <tr><th><code>language</code></th><td>The question (detected) and the account's language</td><td>Which question variants are compared; English and Swahili first</td></tr>
+      <tr><th><code>sessionId</code></th><td><code>MimiSessionService</code></td><td>Block checks, logging, short follow-up memory</td></tr>
+    </tbody>
+  </table></div>
+<pre><code><span class="c">// what the engine receives, never the role name</span>
+{
+  <span class="a">"kind"</span>: <span class="s">"staff"</span>,
+  <span class="a">"permissions"</span>: [<span class="s">"admin.access"</span>, <span class="s">"customers.view"</span>, <span class="s">"quotes.view"</span>, <span class="s">"catalogue.view"</span>],
+  <span class="a">"dataScope"</span>: <span class="s">"assigned"</span>,
+  <span class="a">"locationIds"</span>: [3],
+  <span class="a">"language"</span>: <span class="s">"en"</span>
+}</code></pre>
+
+  <h3>Six rules that keep it safe</h3>
+  <ol>
+    <li><strong>Permissions, never role names.</strong> Entries say <code>data-requires="customers.view"</code>, not "managers only". This is the platform's own rule (the ESLint <code>no-restricted-syntax</code> rule and <code>NoRoleNamesInCodeTest</code> fail the build on role names in code), so a role you build tomorrow works without a code change.</li>
+    <li><strong>Filter first, match second.</strong> Entries the caller can't see are removed <em>before</em> scoring. A hidden entry can't win, can't be quoted in a suggestion, and can't influence a score.</li>
+    <li><strong>A refusal never contains the hidden content.</strong> Each entry carries its own public "when not allowed" sentence. A record that exists but is outside your scope gets the <em>same</em> reply as one that doesn't exist.</li>
+    <li><strong>Check twice.</strong> The entry-level check is a pre-filter. The resolver that fetches live data checks again at run time, with its own declared permission and scope. If the two ever disagree, the stricter wins.</li>
+    <li><strong>One path for everyone.</strong> There is no "admin mode". The owner holds every permission, so the owner simply sees more entries.</li>
+    <li><strong>Clearance is not a permission.</strong> It decides whom you may manage; it grants nothing. So entries never key on a clearance number.</li>
+  </ol>
+
+  <h3>What each audience can get from the local layer</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Audience</th><th>Public store info</th><th>Their own account data</th><th>How-to knowledge for staff</th><th>Business data (orders, customers, payments)</th></tr></thead>
+    <tbody>
+      <tr><th>Guest</th><td class="y">✔</td><td class="n">sign in</td><td class="n">–</td><td class="n">–</td></tr>
+      <tr><th>Customer</th><td class="y">✔</td><td class="y">✔ own only</td><td class="n">–</td><td class="n">–</td></tr>
+      <tr><th>Vendor / applicant</th><td class="y">✔</td><td class="p">later: own records</td><td class="n">–</td><td class="n">–</td></tr>
+      <tr><th>Driver</th><td class="y">✔</td><td class="p">later: own manifests (<code>driver.app</code>)</td><td class="n">–</td><td class="n">–</td></tr>
+      <tr><th>Staff</th><td class="y">✔</td><td class="n">n/a</td><td class="y">✔ per permission</td><td class="y">✔ per permission, scope and branch</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>"Hidden" versus "refused"</h3>
+  <p>If hidden entries were simply invisible, a chef asking "look up customer jo@example.com" would get a confused "I don't know", which is a poor answer and teaches them nothing. So the engine does a second, <em>shadow</em> pass over the entries the person can't see <em>but whose topic their kind of account could reach</em>: the same kind of account missing a permission (a chef and the order lookup), or a guest who could sign in to see an own-account entry. It uses that pass only to decide <strong>whether a restricted topic was asked about</strong>, and only when that hidden entry is clearly a better match than anything visible. It then replies with that entry's own public sentence ("You don't have the permission to look up customers' orders") and nothing else.</p>
+  <p>Topics that belong to a <em>different</em> kind of account are not advertised at all. A customer who types a staff question simply hears "that isn't written down yet", and never learns a lookup screen exists.</p>
+  <div class="callout note"><span class="t">The trade-off, stated plainly</span>
+    <p>A person with the right kind of account learns that a topic exists and that they lack access, never any content. That is what the admin menu already reveals by greying items out. If even that is too much for a topic, give its entry no <code>.kb-denied</code> text and the shadow pass will skip it.</p></div>
+
+  <h3>The same question, five people</h3>
+  <p>Ask <em>"Show me order WNKJ-SO-00012"</em> in the <a href="#try">playground</a> as each of these. Same words in, five different and appropriate answers out:</p>
+  <div class="tw"><table>
+    <thead><tr><th>Who</th><th>What they get</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><th>Guest</th><td>"Order tracking is for signed-in customers. Sign in and ask me again."</td><td>The only entry that fits is the customer's own-orders entry, which a guest could reach by signing in</td></tr>
+      <tr><th>Customer</th><td>Their own order; or, for someone else's number, "I can't find a matching order on your account."</td><td><code>orders.mine</code> is scoped to their customer record, and "not theirs" reads the same as "doesn't exist"</td></tr>
+      <tr><th>Chef</th><td>"You don't have the permission to look up customers' orders."</td><td>A staff account, but no <code>customers.view</code></td></tr>
+      <tr><th>Sales rep</th><td>The order if its customer is assigned to them; otherwise "I couldn't find an order with that number."</td><td>Data scope <code>assigned</code></td></tr>
+      <tr><th>Finance, Owner</th><td>The order's details</td><td>Hold <code>customers.view</code>; scope <code>all</code></td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ═════════════════════════ 6 ═════════════════════════ -->
+<section class="chap" id="format" aria-labelledby="h-format">
+  <h2 id="h-format"><span class="num">6</span>The structured HTML format</h2>
+  <p>This is the "structured HTML before we train an NLP" step. One entry answers one question. It is plain HTML, so it reads well to a person, diffs well in git, and a machine can read it without training anything.</p>
+
+  <h3>Anatomy of an entry</h3>
+<pre><code><span class="c">&lt;!-- chapter 14 holds the live ones; this is the shape --&gt;</span>
+&lt;<span class="k">article</span> class="kb" <span class="a">id</span>="<span class="s">staff.order-lookup</span>"
+  <span class="a">data-audience</span>="<span class="s">staff</span>"
+  <span class="a">data-requires</span>="<span class="s">customers.view</span>"
+  <span class="a">data-sensitivity</span>="<span class="s">restricted</span>"
+  <span class="a">data-resolver</span>="<span class="s">orders.lookup</span>"
+  <span class="a">data-keywords</span>="<span class="s">order voucher invoice sale find lookup</span>"
+  <span class="a">data-follow</span>="<span class="s">staff.customer-lookup</span>"
+  <span class="a">data-reviewed</span>="<span class="s">2026-10-09</span>"&gt;
+
+  &lt;h4 class="kb-title"&gt;Look up an order&lt;/h4&gt;
+
+  &lt;ul class="kb-q"&gt;                       <span class="c">&lt;!-- 3 to 8 ways people ask it --&gt;</span>
+    &lt;li&gt;Look up order {order}&lt;/li&gt;         <span class="c">&lt;!-- {order} = a slot, filled from the question --&gt;</span>
+    &lt;li&gt;Show me order {order}&lt;/li&gt;
+    &lt;li lang="sw"&gt;Nionyeshe oda {order}&lt;/li&gt;
+  &lt;/ul&gt;
+
+  &lt;div class="kb-a"&gt;Here is what I found:&lt;/div&gt;                 <span class="c">&lt;!-- lead-in; the resolver adds the rows --&gt;</span>
+  &lt;p class="kb-denied"&gt;You don't have the permission to look up customers' orders.&lt;/p&gt;
+  &lt;p class="kb-empty"&gt;I couldn't find an order with that number.&lt;/p&gt;
+&lt;/<span class="k">article</span>&gt;</code></pre>
+
+  <h3>The attributes</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Attribute</th><th>Required</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><th><code>id</code></th><td>yes</td><td>Unique, <code>area.topic</code>, never reused. It is the label the NLP is trained to predict later, so renaming one is a breaking change.</td></tr>
+      <tr><th><code>data-audience</code></th><td>yes</td><td>One or more of <code>guest customer vendor applicant driver staff</code>, or <code>any</code>. Account <em>kinds</em>, not roles.</td></tr>
+      <tr><th><code>data-requires</code></th><td>no</td><td>Permission keys from the catalogue, <strong>all</strong> required. Empty means no permission needed. The lint checks every key exists in <code>Catalog::PERMISSIONS</code>.</td></tr>
+      <tr><th><code>data-sensitivity</code></th><td>yes</td><td><code>public</code> (anyone may read the text), <code>own</code> (about the caller's own account), <code>restricted</code> (needs a permission). Decides whether the text may ever be offered to an outside model (<a href="#privacy">chapter 9</a>).</td></tr>
+      <tr><th><code>data-resolver</code></th><td>no</td><td>Name of a server function that fetches live data (<a href="#resolvers">chapter 8</a>). The entry's own text is the lead-in.</td></tr>
+      <tr><th><code>data-keywords</code></th><td>no</td><td>Extra words that should lift this entry. A nudge, never a substitute for good question variants.</td></tr>
+      <tr><th><code>data-follow</code></th><td>no</td><td>Entry ids to offer as "you might also ask".</td></tr>
+      <tr><th><code>data-status</code></th><td>no</td><td><code>planned</code> marks text that describes behaviour not shipped yet. The importer refuses planned entries in production.</td></tr>
+      <tr><th><code>data-reviewed</code></th><td>no</td><td>Date a named person checked the text. <strong>Empty means draft:</strong> the production importer refuses it. Every entry in this guide is a draft until the owner signs it off.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The parts inside an entry</h3>
+  <dl class="def">
+    <dt><code>.kb-title</code></dt><dd>Short name. Also used as a matching variant and as the "did you mean…" label.</dd>
+    <dt><code>.kb-q</code> items</dt><dd>The ways people ask. Real phrasings beat clever ones. Mark other languages with <code>lang="sw"</code>. Use <code>{order}</code>, <code>{payment}</code>, <code>{customer}</code>, <code>{email}</code> where a reference belongs.</dd>
+    <dt><code>.kb-a</code></dt><dd>The answer, short enough to read in one glance. Placeholders like <code>{{company.name}}</code> and <code>{{support.email}}</code> are filled from settings at answer time, so nothing is hardcoded.</dd>
+    <dt><code>.kb-more</code></dt><dd>Optional longer explanation, shown behind "More".</dd>
+    <dt><code>.kb-denied</code></dt><dd>What to say when the person isn't allowed. Must be safe for anyone to read: it never contains restricted content. Required whenever someone could reach the topic but not see it: an entry with a <code>data-requires</code>, or a customer-only entry a guest might ask about.</dd>
+    <dt><code>.kb-empty</code></dt><dd>What to say when a resolver finds nothing (or finds something outside the caller's scope: same words either way).</dd>
+  </dl>
+
+  <h3>Authoring rules</h3>
+  <ol>
+    <li><strong>One question per entry.</strong> If an answer starts "it depends", it is two entries.</li>
+    <li><strong>Write the questions the way people type them</strong>, typos aside (the matcher forgives those). Pull real ones from the Mimi query log.</li>
+    <li><strong>State only what is true for everyone allowed to see the entry.</strong> Anything that differs by person, branch or day comes from a resolver, not from prose.</li>
+    <li><strong>Don't use role names to decide anything.</strong> Put the permission in <code>data-requires</code>. Plain-language mentions of a level name such as "administrator" inside an answer are fine; keep them out of the <code>data-*</code> attributes.</li>
+    <li><strong>No secrets, ever.</strong> Entries are readable by design. Keys, passwords and vault contents never live in an entry.</li>
+    <li><strong>Date it.</strong> Setting <code>data-reviewed</code> is the act of taking responsibility for the wording.</li>
+  </ol>
+
+  <h3>Who reads this file</h3>
+  <div class="cards">
+    <div class="card"><h4>1 · People</h4><p>A new colleague can read chapter 14 and know exactly what Mimi will say, and to whom.</p></div>
+    <div class="card"><h4>2 · This page</h4><p>The playground loads <code>article.kb</code> straight from the document. No build step, no server.</p></div>
+    <div class="card"><h4>3 · The server (planned)</h4><p><code>php artisan mimi:kb-import</code> reads the same HTML into the database, after lint. Later, a screen edits the rows and can still export this format.</p></div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 7 ═════════════════════════ -->
+<section class="chap" id="engine" aria-labelledby="h-engine">
+  <h2 id="h-engine"><span class="num">7</span>How the local engine answers</h2>
+  <p>No training, no model file, nothing a person can't read. That is deliberate for phase one: when an answer is wrong you can see exactly why.</p>
+
+  <ol>
+    <li><strong>Normalise.</strong> Lower-case, strip accents and punctuation; <code>m-pesa</code> becomes <code>mpesa</code>.</li>
+    <li><strong>Pull out slots.</strong> Order numbers, payment numbers, customer numbers and emails are cut out and replaced by placeholder words (<code>ordref</code>, <code>payref</code>, <code>custref</code>, <code>emailaddr</code>), so "show me order WNKJ-SO-00012" is compared as "show order <em>ordref</em>". The order-number pattern is <strong>built from the voucher series prefixes</strong> in Books, not hardcoded; that is the fix for gap G5.</li>
+    <li><strong>Tokenise.</strong> Drop filler words; reduce tracking→track, deliveries→delivery; map synonyms to one canonical word (<em>pay, payment, M-Pesa, checkout, lipa</em> all become <code>pay</code>). The synonym list is data, below.</li>
+    <li><strong>Candidates.</strong> Keep only entries visible to this caller (<a href="#roles">chapter 5</a>).</li>
+    <li><strong>Score</strong> each candidate against each of its question variants and keep the best.</li>
+    <li><strong>Decide</strong> using the thresholds below.</li>
+    <li><strong>Resolve.</strong> If the entry has a resolver, run it. If it needs a slot the question lacked, ask for it ("Which order? Send the number, like WNKJ-SO-00012").</li>
+    <li><strong>Log</strong> the entry id, confidence and who answered.</li>
+  </ol>
+
+  <h3>The scoring, in plain words</h3>
+  <div class="callout note">
+    <p><strong>coverage</strong> = how much of your question this variant explains. <strong>precision</strong> = how much of the variant your question explains. <strong>score</strong> = the harmonic mean of the two (so both have to be good), plus up to <strong>0.15</strong> for hitting the entry's keywords.</p>
+    <p>Each word is weighted by rarity across the entries you may see (IDF), so "the order" counts for less than "refund". A word nobody has written about lowers confidence, which is the right behaviour: the layer should hesitate when it doesn't recognise what you said. A word within one typo (5–7 letters) or two (8+) of a known word counts at 0.7, so <em>"paymnt"</em> still works.</p>
+  </div>
+
+  <div class="tw"><table>
+    <caption>Starting thresholds (to be tuned on the golden set and in shadow mode, not treated as constants)</caption>
+    <thead><tr><th>Score</th><th>Outcome</th></tr></thead>
+    <tbody>
+      <tr><th>0.60 and up</th><td><strong>Answer.</strong> Run the resolver if there is one.</td></tr>
+      <tr><th>0.45 to 0.60</th><td><strong>"Did you mean…"</strong> with up to three of the person's own visible options as buttons.</td></tr>
+      <tr><th>Below 0.45</th><td><strong>No match.</strong> Shadow pass for a restricted topic; otherwise the fallback policy.</td></tr>
+    </tbody>
+  </table></div>
+
+  <p>Two more rules sit on top of the table. <strong>Restricted wins when it is clearly better:</strong> if an entry the person can't see scores 0.60 or more and beats the best visible one by 0.10 (or nothing visible reaches 0.60), they get that entry's refusal line instead of a weaker visible answer. <strong>Near-ties ask instead of guess:</strong> if the top two are within 0.04, both are offered as buttons.</p>
+
+  <p><strong>Known limit:</strong> long, rambling messages score lower, because the extra words are unexplained. That is deliberate (the layer should hesitate rather than guess), and it is the first thing the trained NLP in phase 3 improves. Try pasting a long message as the sales rep in <a href="#try">chapter 2</a>.</p>
+
+  <h3>Slots</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Slot</th><th>Pattern in this guide</th><th>In the server version</th></tr></thead>
+    <tbody>
+      <tr><th><code>{order}</code></th><td>A series prefix then digits, e.g. <code>WNKJ-SO-00012</code>; or "order 42"</td><td>Built from <code>voucher_series.prefix</code> at runtime; also matches the year-style numbers the old regex handled</td></tr>
+      <tr><th><code>{payment}</code></th><td><code>PAY-2026-1-001</code>, or a 10-character M-Pesa receipt with letters and digits</td><td>Same, from the payment number format</td></tr>
+      <tr><th><code>{customer}</code></th><td><code>CUST-2026-0001</code></td><td>From the customer number format</td></tr>
+      <tr><th><code>{email}</code></th><td>Any email address</td><td>Same</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Languages</h3>
+  <p>Kenyan customers write in English, Swahili and a mix. The first release handles English and Swahili by listing question variants in both (the entries marked <code>lang="sw"</code> are starters for a fluent speaker to review). If most of a question's words are unknown, the engine treats the language as unsupported and hands the question to the fallback, because an outside model is still the better reader of an unfamiliar language.</p>
+
+  <h3>Synonyms are data</h3>
+  <p>The groups live in one list at the top of the script in this page, and in a database table on the server. Adding "lipa" to the <em>pay</em> group is a data change reviewed like an entry, not a deployment.</p>
+  <p class="fine">Follow-ups ("and the payment?") will use the last matched entry in the session. That is phase 4; the first release treats each message on its own.</p>
+</section>
+
+<!-- ═════════════════════════ 8 ═════════════════════════ -->
+<section class="chap" id="resolvers" aria-labelledby="h-resolvers">
+  <h2 id="h-resolvers"><span class="num">8</span>Live data: resolvers</h2>
+  <p>Knowledge entries are text someone wrote. Orders, balances and stock are facts that change. A <strong>resolver</strong> is a small server function that fetches exactly those facts, for one caller, and hands back a few formatted lines. This is how "where is my order?" is answered locally, with real data, without that data going anywhere.</p>
+
+  <h3>The contract</h3>
+<pre><code><span class="c">// every resolver implements this</span>
+<span class="k">interface</span> Resolver {
+    <span class="k">public function</span> requires(): array;        <span class="c">// permission keys, re-checked here even if the entry was visible</span>
+    <span class="k">public function</span> kinds(): array;           <span class="c">// account kinds allowed: ['customer'] | ['staff'] ...</span>
+    <span class="k">public function</span> needs(): array;           <span class="c">// slots it cannot run without: ['ordref'] ...</span>
+    <span class="k">public function</span> run(CallerContext $c, array $slots): Result;   <span class="c">// ok(lines, rows) | empty | denied | ask(slot)</span>
+}</code></pre>
+
+  <div class="tw"><table>
+    <caption>Planned resolvers</caption>
+    <thead><tr><th>Resolver</th><th>Needs</th><th>Scope it applies</th><th>Fields it may return (allowlist)</th><th>Class</th></tr></thead>
+    <tbody>
+      <tr><th><code>catalogue.public</code></th><td>nothing</td><td>visible, active items only</td><td>name, price, category, in stock yes/no</td><td><span class="cls p0">P0</span></td></tr>
+      <tr><th><code>orders.mine</code></th><td>customer</td><td>the caller's own customer record</td><td>number, type, status, fulfilment, total, date</td><td><span class="cls p1">P1</span></td></tr>
+      <tr><th><code>payments.mine</code></th><td>customer</td><td>own</td><td>payment number, status, amount, receipt, date</td><td><span class="cls p1">P1</span></td></tr>
+      <tr><th><code>codes.mine</code></th><td>customer</td><td>own</td><td>code, reward, uses, status, expiry</td><td><span class="cls p1">P1</span></td></tr>
+      <tr><th><code>orders.lookup</code></th><td><code>customers.view</code></td><td>data scope (<code>all</code>/<code>assigned</code>/<code>own</code>) and branch limits</td><td>number, type, status, fulfilment, total, date, customer name and number</td><td><span class="cls p2">P2</span></td></tr>
+      <tr><th><code>customers.lookup</code></th><td><code>customers.view</code></td><td>data scope and branch limits</td><td>name, number, tier, order count. <strong>Not</strong> email, phone, credit or spend; those stay on the customer's page</td><td><span class="cls p2">P2</span></td></tr>
+      <tr><th><code>payments.summary</code></th><td><code>books.view</code></td><td>branch limits for Books</td><td>counts and totals; latest pending with initials only</td><td><span class="cls p2">P2</span></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Rules</h3>
+  <ol>
+    <li><strong>Call the same code the screens call.</strong> A resolver for orders goes through the same query path, data scope and branch limit as the Orders screen. It does not write its own <code>Voucher::query()</code>; that is how G2 happened.</li>
+    <li><strong>Allowlist fields.</strong> A resolver names the fields it returns. It never serialises a model. If a new column is added to customers tomorrow, nothing leaks until someone deliberately lists it.</li>
+    <li><strong>Same words for "not found" and "not yours".</strong> Otherwise the difference tells a curious person which order numbers exist.</li>
+    <li><strong>Small answers.</strong> At most eight rows. A resolver that returns a table is a report, and reports live on report screens.</li>
+    <li><strong>Format on the server.</strong> The resolver returns finished lines. Nothing downstream ever sees the raw rows.</li>
+    <li><strong>Log the call, not the content.</strong> Store the resolver name and the row count. For <em>own</em> and <em>restricted</em> answers, store the reply with the values blanked, not the values themselves.</li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════ 9 ═════════════════════════ -->
+<section class="chap" id="privacy" aria-labelledby="h-privacy">
+  <h2 id="h-privacy"><span class="num">9</span>When the outside AI is still used</h2>
+  <p>The local layer won't know everything. Free-form questions, unfamiliar languages and odd phrasings will still need a language model. The point is that using one becomes <strong>a decision with rules</strong> rather than the default.</p>
+
+  <h3>Four classes of data</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Class</th><th>Meaning</th><th>Examples here</th><th>Local answer</th><th>May reach an outside AI</th></tr></thead>
+    <tbody>
+      <tr><th><span class="cls p0">P0</span> public</th><td>Anyone may read it</td><td>Product names and prices, services, categories, store info, published policies, public entries</td><td class="y">✔</td><td class="y">✔ as context</td></tr>
+      <tr><th><span class="cls p1">P1</span> own</th><td>About the signed-in person only</td><td>Their orders, payments, promo and referral codes, profile</td><td class="y">✔</td><td class="p">only in the owner's "scoped" mode, redacted</td></tr>
+      <tr><th><span class="cls p2">P2</span> restricted</th><td>Needs a permission</td><td>Other people's data, finance totals, stats, staff records, anything behind <code>customers.view</code> or <code>books.view</code></td><td class="y">✔ with permission</td><td class="n">never in version 1</td></tr>
+      <tr><th><span class="cls p3">P3</span> never</th><td>Must not leave the system or even be stored</td><td>Passwords, tokens, AI keys, exchange keys, vault contents, card numbers, M-Pesa PIN, full ID numbers</td><td class="n">not even locally</td><td class="n">never</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>The owner's switch, per audience</h3>
+  <p>Stored in a small settings table and changed by people who hold <code>mimi.routing</code> (owner only by default, like building roles).</p>
+  <div class="tw"><table>
+    <thead><tr><th>Mode</th><th>What the outside AI receives</th><th>Suggested start</th></tr></thead>
+    <tbody>
+      <tr><th><code>local_only</code></th><td>Nothing. Unanswered questions get an honest "not written down yet" and are logged as gaps.</td><td>Staff</td></tr>
+      <tr><th><code>ai_public</code></th><td>The redacted question plus P0 snippets (the top public entries). No account data, no history beyond the last turn.</td><td>Guests, customers</td></tr>
+      <tr><th><code>ai_scoped</code></th><td>As above, plus P1 facts for that person, tokenised. Staff can never be set above <code>ai_public</code> in version 1.</td><td>Off until shadow results say it's worth it</td></tr>
+    </tbody>
+  </table></div>
+  <p>Rollout uses the same <strong>Off · Shadow · On</strong> pattern as Branch limits: in <em>Shadow</em> the local layer computes its answer and logs it, but the person still gets today's reply, so you can compare before anyone is affected.</p>
+
+  <h3>Redaction, in one example</h3>
+<pre><code><span class="c">// the person types</span>
+<span class="s">"My email is wanjiru@example.com and order WNKJ-SO-00012 hasn't arrived, call 0712 345 678"</span>
+
+<span class="c">// what could leave the server (ai_public)</span>
+{
+  <span class="a">"system"</span>: <span class="s">"You are Mimi, a shop assistant. Use only the snippets. Never ask for passwords or card details."</span>,
+  <span class="a">"snippets"</span>: [<span class="s">"store.delivery"</span>, <span class="s">"mimi.human"</span>],            <span class="c">// P0 entry text only</span>
+  <span class="a">"question"</span>: <span class="s">"My email is [EMAIL_1] and order [ORDER_1] hasn't arrived, call [PHONE_1]"</span>
+}
+<span class="c">// the swap table [EMAIL_1] → wanjiru@… never leaves; the reply is re-hydrated here</span></code></pre>
+  <div class="callout warn"><span class="t">Redaction is a seatbelt, not the brakes</span>
+    <p>Patterns catch emails, phones, reference numbers and long digit runs. They cannot catch every name in free text. The primary control is the <strong>class gate</strong>: P1, P2 and P3 values are never put into the payload in the first place. The redactor is there for what a person types themselves.</p></div>
+
+  <h3>Telling people</h3>
+  <ul>
+    <li>Each reply carries a small label: <em>Answered on our server</em> or <em>AI-assisted</em>. A person should always be able to tell.</li>
+    <li>The Mimi usage policy needs a <strong>new major version</strong> when this ships. It currently says Mimi is "powered by a large language model" and lists what is logged; the new wording must say common questions are answered locally and when an outside service may be asked. A major version makes everyone re-accept, which is exactly what we want here.</li>
+    <li>Provider choice stays on the AI → Keys screen. If a provider's region matters to you (Qwen's default endpoint is Alibaba's), set <code>used_for</code> and key order accordingly; only fallback traffic reaches them now.</li>
+  </ul>
+</section>
+
+<!-- ═════════════════════════ 10 ═════════════════════════ -->
+<section class="chap" id="guard" aria-labelledby="h-guard">
+  <h2 id="h-guard"><span class="num">10</span>Guardrails, logs and learning</h2>
+
+  <h3>Guards, in the order they run</h3>
+  <ol>
+    <li><strong>Throttle</strong> (exists: 10 a minute for guests, 30 for signed-in).</li>
+    <li><strong>Block check</strong> (<code>MimiBlockService</code>, exists).</li>
+    <li><strong>Consent</strong> (<code>MimiPolicyService</code>, exists).</li>
+    <li><strong>Input limits</strong> (exists: 2,000 characters, 20 turns).</li>
+    <li><strong>Harm scan, now first.</strong> <code>MimiHarmScannerService::scan($query, [])</code> is already public and works with an empty provider payload, so the guard can call it before anything else happens. A harmful question is refused, logged with its category, and never reaches matching or an outside model.</li>
+  </ol>
+  <div class="callout good"><span class="t">A useful side effect</span>
+    <p>The local layer is not a language model, so it cannot be talked into doing something. Entries and resolvers are code and reviewed text, and "ignore your instructions" matches nothing. Prompt injection only matters on the fallback path, where the user's text is untrusted input and P2 data is never present to be exfiltrated.</p></div>
+
+  <h3>What gets logged</h3>
+  <p>The existing <code>mimi_query_logs</code> row gains these columns (sketch in <a href="#build">chapter 13</a>):</p>
+  <dl class="def">
+    <dt><code>answered_by</code></dt><dd><code>local</code> · <code>ai</code> · <code>none</code> · <code>guard</code></dd>
+    <dt><code>kb_entry</code>, <code>confidence</code></dt><dd>Which entry answered and how sure the matcher was.</dd>
+    <dt><code>resolver</code></dt><dd>Which resolver ran, if any.</dd>
+    <dt><code>fallback</code>, <code>redacted</code></dt><dd>Which mode applied and whether the redactor changed anything.</dd>
+  </dl>
+  <p>Replies that came from <em>own</em> or <em>restricted</em> resolvers are stored with the values blanked ("2 orders listed"). The people who review flagged questions need the question and the verdict, not another copy of someone's order list.</p>
+
+  <h3>The learning loop</h3>
+  <ol>
+    <li>Every message logs how it was answered.</li>
+    <li>A <strong>Gaps</strong> screen (in AI analytics, next to the Mimi screens) lists questions answered by <code>ai</code> or <code>none</code>, grouped by similarity, most frequent first.</li>
+    <li>Someone holding <code>mimi.knowledge</code> adds the question as a new variant of an existing entry, or writes a new entry.</li>
+    <li>Saving runs the lint, the leak matrix and the golden set (<a href="#testing">chapter 11</a>). A failing save is refused.</li>
+    <li>A second person sets <code>data-reviewed</code>; the entry goes live and its version goes up.</li>
+    <li>Weekly numbers on the existing Mimi overview: share answered locally, share unanswered, lowest-confidence answers, estimated saving (tokens × <code>AiGateway::RATES</code>).</li>
+  </ol>
+  <p>The same log is, with the redactor applied, the training set for the NLP in <a href="#roadmap">chapter 12</a>. Nothing new needs collecting.</p>
+</section>
+
+<!-- ═════════════════════════ 11 ═════════════════════════ -->
+<section class="chap" id="testing" aria-labelledby="h-testing">
+  <h2 id="h-testing"><span class="num">11</span>Testing: keep it honest</h2>
+  <p>A role-aware chatbot is only as trustworthy as its leak tests. The platform already tests this way for routes (<code>AdminRoutesNeedAPermissionTest</code>) and role names (<code>NoRoleNamesInCodeTest</code>); the local layer copies the habit.</p>
+
+  <div class="tw"><table>
+    <thead><tr><th>Test</th><th>What it proves</th><th>Mirrors</th><th>Runs here</th></tr></thead>
+    <tbody>
+      <tr><th>KB lint</th><td>Ids unique; audiences valid; every <code>data-requires</code> key exists in the catalogue; no role names; every entry someone could reach but not see has a "when not allowed" line</td><td><code class="nw">NoRoleNamesInCodeTest</code></td><td class="y">✔</td></tr>
+      <tr><th>Leak matrix</th><td>For every entry × every kind of caller: someone without access never receives the entry's answer; someone with access does</td><td><code class="nw">AdminRoutesNeedAPermissionTest</code></td><td class="y">✔</td></tr>
+      <tr><th>Golden questions</th><td>Paraphrases a person might type land on the right entry for each caller</td><td>Branch-limit "Test mode" review</td><td class="y">✔ sample set</td></tr>
+      <tr><th>Resolver guard</th><td>Calling a resolver directly as an ineligible caller is refused, even though the entry check was bypassed</td><td>Policy tests</td><td class="y">✔</td></tr>
+      <tr><th>Network</th><td>This page made no outside calls</td><td><code>Http::fake()</code> + assertNothingSent</td><td class="y">✔</td></tr>
+      <tr><th>Fallback egress</th><td>The outside payload contains no P1/P2/P3 value, for a seeded customer</td><td><code>Http::fake()</code></td><td class="p">server</td></tr>
+      <tr><th>Branch scope</th><td>A branch-limited caller's resolver results match the screen's</td><td>Branch limits R3</td><td class="p">server</td></tr>
+      <tr><th>Shadow compare</th><td>Local vs today's reply on live traffic, before switching on</td><td>Off · Test · On</td><td class="p">server</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Run the checks on this page</h3>
+  <p>These run against the entries in chapter 14, right now, in your browser.</p>
+  <p><button class="btn primary" id="runTests" type="button">Run self-test</button> <span class="fine" id="testNote"></span></p>
+  <div class="st-out" id="testOut" aria-live="polite"></div>
+  <div class="callout note"><span class="t">What this does and doesn't show</span>
+    <p>The golden questions were written by the same person who wrote the entries, so they check that the machinery works, not that it is good. A real golden set comes from the Mimi query log and is labelled by someone who didn't write the entries.</p></div>
+</section>
+
+<!-- ═════════════════════════ 12 ═════════════════════════ -->
+<section class="chap" id="roadmap" aria-labelledby="h-roadmap">
+  <h2 id="h-roadmap"><span class="num">12</span>Roadmap to a trained NLP</h2>
+  <ol class="phases">
+    <li class="phase now"><span class="n">0</span><div><h3>Structured knowledge <span class="chip pri">this guide</span></h3><p>Entry format, caller context, resolver contract, fallback policy and a working prototype.</p><p class="exit"><strong>Done when:</strong> the owner has read chapters 3, 5 and 9 and decided the fallback defaults; the entries have been reviewed.</p></div></li>
+    <li class="phase"><span class="n">1</span><div><h3>Server engine v1: no training</h3><p>Importer, caller context, guard-first, matcher, three public resolvers, <code>answered_by</code> logging, Off · Shadow · On.</p><p class="exit"><strong>Done when (suggested):</strong> in Shadow mode, the layer answers a clear majority of the questions people actually ask, and where it and today's reply disagree, a reviewer sides with the local one.</p></div></li>
+    <li class="phase"><span class="n">2</span><div><h3>Roles, resolvers and the leash</h3><p>Permissioned resolvers for orders, customers and payments; fallback modes with the redactor; the policy's new major version; the entry editor and Gaps screens.</p><p class="exit"><strong>Done when:</strong> the leak matrix and the fallback egress test run in CI, and G2 is closed.</p></div></li>
+    <li class="phase"><span class="n">3</span><div><h3>Train the NLP</h3><p>Learn from the log what keywords can't see. See the options below.</p><p class="exit"><strong>Done when:</strong> the model beats phase 1's matcher on a held-out set <em>and</em> the golden set, and the leak matrix still passes.</p></div></li>
+    <li class="phase"><span class="n">4</span><div><h3>Conversation and language</h3><p>Follow-ups ("and the payment?"), better Swahili and mixed-language questions, vendor, applicant and driver audiences, optional thumbs up/down.</p></div></li>
+  </ol>
+
+  <h3>Options for phase 3</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Option</th><th>What it is</th><th>Needs</th><th>Strength</th><th>Weakness</th><th>Take it when</th></tr></thead>
+    <tbody>
+      <tr><th>A. Keywords + synonyms</th><td>Phase 1's matcher</td><td>Entries</td><td>Transparent, instant, debuggable</td><td>Misses paraphrases that share no words</td><td>Start here</td></tr>
+      <tr><th>B. Intent classifier</th><td>TF-IDF on words and character n-grams, plus logistic regression. Trained offline; weights exported as a JSON file the PHP code scores with</td><td>Around 30+ labelled questions per entry; no new server software</td><td>Typos, paraphrase, millisecond cost, still explainable</td><td>A new entry needs examples before it can win</td><td>Default for phase 3</td></tr>
+      <tr><th>C. Sentence embeddings</th><td>A small multilingual model plus nearest-neighbour lookup</td><td>A model file and a small local service (e.g. ONNX runtime)</td><td>Strong on paraphrase, Swahili–English mixes</td><td>Heavier to host; harder to explain a mismatch</td><td>Only if B's recall stalls</td></tr>
+      <tr><th>D. Local generative model</th><td>Host and prompt a small LLM ourselves</td><td>Serious CPU/GPU</td><td>Fluent free text</td><td>Cost, operations, can still invent facts</td><td>Not now</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Rules for whatever is chosen</h3>
+  <ol>
+    <li><strong>The model proposes; the permission filter disposes.</strong> The classifier only ever scores entries the caller may see (mask them before the argmax), so no model can resurrect a hidden entry.</li>
+    <li><strong>Train on redacted text only,</strong> from the log, excluding flagged-harmful questions. Labels come from the entry a person confirmed on the Gaps screen.</li>
+    <li><strong>Version the model with the entries.</strong> Entry ids are the class names, which is why ids are never reused.</li>
+    <li><strong>Ship only if it wins.</strong> Hold out 20%, compare against the phase 1 matcher, and re-run the leak matrix.</li>
+    <li><strong>Training is offline.</strong> A script on a developer machine produces a file; the live server never trains.</li>
+  </ol>
+</section>
+
+<!-- ═════════════════════════ 13 ═════════════════════════ -->
+<section class="chap" id="build" aria-labelledby="h-build">
+  <h2 id="h-build"><span class="num">13</span>Building it in this codebase</h2>
+  <p>A sketch of where the pieces go, following the repo's conventions (SQL scripts run in Workbench, permissions in the catalogue, services under <code>app/Services</code>). <strong>None of this is built yet</strong>; the snippets show the shape.</p>
+
+  <h3>1 · The hook in <code>ChatController::chat()</code></h3>
+<pre><code><span class="c">// after validation and the block check, before the prompt is built</span>
+$ctx   = $this->callers-&gt;for($request-&gt;user());            <span class="c">// kind, permissions, dataScope, locationIds, language</span>
+$guard = $this->guard-&gt;check($request-&gt;message, $ctx);     <span class="c">// harm scan etc., all local, all first</span>
+<span class="k">if</span> ($guard-&gt;refuse) { <span class="k">return</span> $this-&gt;reply($session, $guard-&gt;message, <span class="s">'guard'</span>); }
+
+$answer = $this-&gt;local-&gt;answer($request-&gt;message, $ctx, $request-&gt;history ?? []);
+<span class="k">if</span> ($answer-&gt;confident || $answer-&gt;restricted || $answer-&gt;suggestions) {
+    $this-&gt;queryLogService-&gt;logLocal($session, $request-&gt;message, $answer);
+    <span class="k">return</span> $this-&gt;withSessionHeader(response()-&gt;json($answer-&gt;toResponse()), $session-&gt;session_token);
+}
+
+$mode = $this-&gt;routing-&gt;fallbackFor($ctx);                    <span class="c">// local_only | ai_public | ai_scoped</span>
+<span class="k">if</span> ($mode === <span class="s">'local_only'</span>) { <span class="k">return</span> $this-&gt;noAnswer($session, $request, $answer); }
+
+$payload  = $this-&gt;redactor-&gt;prepare($request-&gt;message, $answer-&gt;publicSnippets, $mode, $ctx);
+$response = $this-&gt;callGemini($payload-&gt;contents);            <span class="c">// the existing path, now with a small prompt</span></code></pre>
+
+  <h3>2 · A new permission pair, catalogue version 7</h3>
+<pre><code><span class="c">// App\Services\Access\Catalog</span>
+<span class="k">public const</span> VERSION = <span class="a">7</span>;
+<span class="c">// ADDED[7] = ['mimi.knowledge', 'mimi.routing'];</span>
+<span class="s">'mimi.knowledge'</span> =&gt; [<span class="k">null</span>, <span class="s">'Insight'</span>, <span class="s">'Write and review the entries Mimi answers from'</span>, <span class="k">true</span>],
+<span class="s">'mimi.routing'</span>   =&gt; [<span class="k">null</span>, <span class="s">'System'</span>,  <span class="s">'Choose what Mimi may send to an outside AI, per audience'</span>, <span class="k">true</span>],</code></pre>
+  <p>Then <code>php artisan access:seed</code>, as with versions 2 to 6. New admin routes must name a permission or <code>AdminRoutesNeedAPermissionTest</code> fails.</p>
+
+  <h3>3 · A SQL script, <code>105_mimi_local_layer.sql</code> (shape only)</h3>
+<pre><code><span class="c">-- PART A: read-only checks, run on their own first (as in 67_ai_provider_keys.sql)
+-- PART B: DDL, using the add_column_if_missing procedure pattern</span>
+<span class="k">CREATE TABLE IF NOT EXISTS</span> mimi_kb_entries (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  entry_key    VARCHAR(80)  NOT NULL UNIQUE,            <span class="c">-- the article id, e.g. staff.order-lookup</span>
+  audience     VARCHAR(120) NOT NULL,                   <span class="c">-- 'guest customer' | 'any' ...</span>
+  requires     VARCHAR(400) NULL,                       <span class="c">-- permission keys, all required</span>
+  sensitivity  VARCHAR(12)  NOT NULL DEFAULT 'public',  <span class="c">-- public | own | restricted</span>
+  resolver     VARCHAR(60)  NULL,
+  keywords     TEXT NULL,   title VARCHAR(200) NOT NULL,
+  answer_html  MEDIUMTEXT NOT NULL,  more_html MEDIUMTEXT NULL,
+  denied_text  VARCHAR(400) NULL,    empty_text VARCHAR(400) NULL,
+  follow       VARCHAR(400) NULL,
+  status       VARCHAR(12) NOT NULL DEFAULT 'draft',    <span class="c">-- draft | live | retired</span>
+  reviewed_at  DATE NULL,  reviewed_by BIGINT UNSIGNED NULL,
+  version      INT NOT NULL DEFAULT 1,  created_at DATETIME NULL,  updated_at DATETIME NULL
+);
+<span class="k">CREATE TABLE IF NOT EXISTS</span> mimi_kb_questions (entry_id BIGINT UNSIGNED NOT NULL, lang CHAR(2) NOT NULL DEFAULT 'en', question VARCHAR(300) NOT NULL, KEY (entry_id));
+<span class="k">CREATE TABLE IF NOT EXISTS</span> mimi_synonyms   (canonical VARCHAR(40) NOT NULL, word VARCHAR(40) NOT NULL, UNIQUE KEY (word));
+<span class="k">CREATE TABLE IF NOT EXISTS</span> mimi_routing    (audience VARCHAR(12) PRIMARY KEY, mode VARCHAR(8) NOT NULL DEFAULT 'shadow',
+                                  fallback VARCHAR(12) NOT NULL DEFAULT 'local_only', updated_by BIGINT UNSIGNED NULL, updated_at DATETIME NULL);
+<span class="c">-- mimi_query_logs: answered_by VARCHAR(8), kb_entry VARCHAR(80), confidence DECIMAL(4,3), resolver VARCHAR(60), fallback VARCHAR(12), redacted TINYINT(1)
+-- PART C: result check</span></code></pre>
+  <p class="fine">Remember the backup map: the repo has a test (<code>BackupMapCoversSqlScriptsTest</code>) that wants new tables listed in <code>ModuleTables</code>.</p>
+
+  <h3>4 · Files to add</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Path</th><th>Job</th></tr></thead>
+    <tbody>
+      <tr><td><code>app/Services/Chat/Local/CallerContext.php</code></td><td>Builds kind, permissions, scope and language from the user</td></tr>
+      <tr><td><code>…/Local/Knowledge.php</code></td><td>Loads live entries, cached per version</td></tr>
+      <tr><td><code>…/Local/Matcher.php</code>, <code>Slots.php</code></td><td>Tokenise, synonyms, score; slot patterns from <code>voucher_series</code></td></tr>
+      <tr><td><code>…/Local/Resolvers/*.php</code></td><td>One class per resolver in chapter 8, behind the interface</td></tr>
+      <tr><td><code>…/Local/Guard.php</code>, <code>Redactor.php</code>, <code>Routing.php</code></td><td>Wraps <code>MimiHarmScannerService</code>; fallback payload builder; the owner's switches</td></tr>
+      <tr><td><code>app/Console/Commands/MimiKbImport.php</code>, <code>MimiKbLint.php</code></td><td>Reads this HTML format into the tables; the lint from chapter 11</td></tr>
+      <tr><td><code>tests/Feature/Mimi*Test.php</code></td><td>Leak matrix, golden questions, resolver scope, fallback egress</td></tr>
+      <tr><td><code>frontend/…/chat/Mimi.jsx</code></td><td>Show "answered on our server" vs "AI-assisted"; render "did you mean" buttons</td></tr>
+    </tbody>
+  </table></div>
+  <div class="callout note"><span class="t">One front-end detail</span>
+    <p>The chat's text renderer handles bold, italic, code, bullets and headings but not links. Entries such as <code>store.delivery</code> link to <code>/shipping</code>, so the renderer needs a small, safe link rule (same-site paths and <code>mailto:</code> only) when this ships.</p></div>
+</section>
+
+<!-- ═════════════════════════ 14 ═════════════════════════ -->
+<section class="chap" id="kb" aria-labelledby="h-kb">
+  <h2 id="h-kb"><span class="num">14</span>The knowledge entries</h2>
+  <p>This chapter <strong>is</strong> the data. The playground reads these <code>&lt;article class="kb"&gt;</code> elements directly. Placeholders such as <code>{{company.name}}</code> are filled from settings when an answer is given. Every entry is a <span class="chip warn">draft</span> until someone sets <code>data-reviewed</code>; the ones describing planned behaviour say so.</p>
+  <div class="callout warn"><span class="t">Where the wording came from</span>
+    <p>Public entries restate the Mimi usage policy, the storefront footer links and the existing system prompt. Staff entries restate <code>docs/IDENTITY_AND_ACCESS_PLAN.md</code>, <code>docs/LEDGER_GUIDE.md</code> and the AI gateway's own notes. The Swahili lines (<code>lang="sw"</code>) are starters for a fluent speaker to check.</p></div>
+  <div class="kbfilter" id="kbfilter" role="group" aria-label="Filter entries by audience">
+    <button type="button" data-f="all" aria-pressed="true">All</button>
+    <button type="button" data-f="any" aria-pressed="false">Everyone</button>
+    <button type="button" data-f="customer" aria-pressed="false">Customers</button>
+    <button type="button" data-f="staff" aria-pressed="false">Staff</button>
+  </div>
+
+  <div id="kbList">
+
+<article class="kb" id="mimi.hello" data-audience="any" data-sensitivity="public" data-keywords="hi hello hey greetings habari hujambo mambo morning afternoon" data-follow="mimi.about store.catalogue">
+  <h4 class="kb-title">Greeting</h4>
+  <ul class="kb-q"><li>Hi</li><li>Hello</li><li>Hey Mimi</li><li>Good morning</li><li>Good afternoon</li><li lang="sw">Habari</li><li lang="sw">Hujambo</li><li lang="sw">Mambo</li></ul>
+  <div class="kb-a"><p>Hi! I'm Mimi, {{company.name}}'s assistant. Ask me about our products and services, delivery and payment, or (when you're signed in) your own orders.</p></div>
+</article>
+
+<article class="kb" id="mimi.about" data-audience="any" data-sensitivity="public" data-keywords="mimi assistant bot help features capabilities" data-follow="mimi.data-access mimi.limits">
+  <h4 class="kb-title">What Mimi is and can do</h4>
+  <ul class="kb-q"><li>What is Mimi?</li><li>Who are you?</li><li>What can you do?</li><li>What can you help me with?</li><li>Help</li></ul>
+  <div class="kb-a"><p>I'm Mimi, {{company.name}}'s assistant. I can:</p><ul><li>tell you about our products, services, delivery, payment and returns;</li><li>show signed-in customers their own orders, payments and promo codes;</li><li>help our staff find things and understand how the system works, within what each person is allowed to see.</li></ul><p>For anything that needs a person, I'll point you to {{support.email}}.</p></div>
+</article>
+
+<article class="kb" id="mimi.privacy" data-audience="any" data-sensitivity="public" data-status="planned" data-keywords="private privacy data share shared openai google gemini chatgpt claude anthropic ai company" data-follow="mimi.data-access">
+  <h4 class="kb-title">Is my question sent to an AI company?</h4>
+  <ul class="kb-q"><li>Is my question sent to an AI company?</li><li>Do you share my data with OpenAI or Google?</li><li>Is this chat private?</li><li>Where does my data go?</li><li>Do you use ChatGPT, Gemini or Claude?</li></ul>
+  <div class="kb-a"><p>Most questions are answered on {{company.name}}'s own server, from our own knowledge and, if you're signed in, from your own account. Those never leave.</p><p>If a question isn't something we've written down, we may ask an outside AI service for help. Only the question goes (emails, phone numbers and order numbers swapped out), together with public store information. Never your orders, payments or account details. Each reply says whether it was answered on our server or with AI help.</p></div>
+  <p class="kb-more">This entry describes the planned behaviour; it must not go live before the local layer and the new policy version do.</p>
+</article>
+
+<article class="kb" id="mimi.data-access" data-audience="any" data-sensitivity="public" data-keywords="data access see information account profile personal" data-follow="mimi.privacy">
+  <h4 class="kb-title">What Mimi can see about you</h4>
+  <ul class="kb-q"><li>What can Mimi see about me?</li><li>What data do you have on me?</li><li>What information can you access?</li><li>Can you see my account?</li></ul>
+  <div class="kb-a"><ul><li><strong>Guests:</strong> public store information only. No personal data.</li><li><strong>Signed-in customers:</strong> your own account: profile summary, recent orders and payment status, active quotes, projects, promo and referral codes. Nobody else's.</li><li><strong>Staff:</strong> whatever their permissions allow, and nothing more.</li></ul><p>I never have your password, full card details or M-Pesa PIN, and I will never ask for them.</p></div>
+</article>
+
+<article class="kb" id="mimi.limits" data-audience="any" data-sensitivity="public" data-keywords="rules refuse decline restrictions policy suspended banned" data-follow="mimi.human">
+  <h4 class="kb-title">What Mimi won't help with</h4>
+  <ul class="kb-q"><li>What won't you help with?</li><li>What can't Mimi do?</li><li>Why won't you answer?</li><li>What are the rules?</li></ul>
+  <div class="kb-a"><p>I stay within {{company.name}} topics. I won't help with harmful, violent or sexually explicit content, with information about other customers or staff, with phishing-style requests, with anything illegal, or with hate or harassment. Repeated harmful questions can lead to Mimi access being suspended.</p></div>
+</article>
+
+<article class="kb" id="mimi.others-data" data-audience="guest customer" data-sensitivity="public" data-keywords="other others another someone else customers staff private details email phone address" data-follow="mimi.data-access mimi.limits">
+  <h4 class="kb-title">Other people's information</h4>
+  <ul class="kb-q"><li>Give me another customer's details</li><li>Tell me about other customers</li><li>Show me someone else's orders</li><li>What is the email of another customer?</li><li>Can you look up a staff member?</li></ul>
+  <div class="kb-a"><p>I can't share information about other customers or staff. I can only show you your own account, and only once you're signed in.</p></div>
+</article>
+
+<article class="kb" id="mimi.human" data-audience="any" data-sensitivity="public" data-keywords="human person agent support contact complaint email talk speak care" data-follow="mimi.about">
+  <h4 class="kb-title">Reach a person</h4>
+  <ul class="kb-q"><li>How do I talk to a person?</li><li>Contact support</li><li>I want to speak to someone</li><li>Customer care</li><li>How do I make a complaint?</li><li>What is your email?</li></ul>
+  <div class="kb-a"><p>You can reach the team at <a href="mailto:{{support.email}}">{{support.email}}</a>. For disputed payments, account suspension, legal matters, or anything that needs a firm commitment from us, please contact support. I'm not a substitute for a person.</p></div>
+</article>
+
+<article class="kb" id="store.pay" data-audience="any" data-sensitivity="public" data-keywords="pay payment mpesa checkout card cash methods options" data-follow="acct.my-payments store.delivery">
+  <h4 class="kb-title">How to pay</h4>
+  <ul class="kb-q"><li>How can I pay?</li><li>What payment methods do you accept?</li><li>Do you accept M-Pesa?</li><li>Can I pay by M-Pesa?</li><li>Payment options</li><li lang="sw">Nawezaje kulipa?</li><li lang="sw">Njia za malipo</li></ul>
+  <div class="kb-a"><p>M-Pesa (STK Push) is supported. The payment options currently on offer are shown at checkout.</p></div>
+  <p class="kb-more">If a payment is pending or has failed, signed-in customers can ask me "Did my payment go through?"</p>
+</article>
+
+<article class="kb" id="store.delivery" data-audience="any" data-sensitivity="public" data-keywords="delivery deliver shipping ship courier cost charge" data-follow="store.pay store.returns">
+  <h4 class="kb-title">Delivery</h4>
+  <ul class="kb-q"><li>How does delivery work?</li><li>How much is delivery?</li><li>Do you deliver?</li><li>Shipping options</li><li>Delivery cost</li></ul>
+  <div class="kb-a"><p>Delivery options and their charges are listed at checkout, and on our <a href="/shipping" target="_blank" rel="noopener">Shipping page</a>.</p></div>
+</article>
+
+<article class="kb" id="store.returns" data-audience="any" data-sensitivity="public" data-keywords="return returns refund exchange replace money back policy" data-follow="mimi.human">
+  <h4 class="kb-title">Returns and refunds</h4>
+  <ul class="kb-q"><li>What is your return policy?</li><li>Can I return something?</li><li>How do I get a refund?</li><li>Exchange an item</li><li>Returns</li></ul>
+  <div class="kb-a"><p>Our returns policy is on the <a href="/returns" target="_blank" rel="noopener">Returns page</a>. For a specific order, contact <a href="mailto:{{support.email}}">{{support.email}}</a>.</p></div>
+</article>
+
+<article class="kb" id="store.catalogue" data-audience="any" data-sensitivity="public" data-resolver="catalogue.public" data-keywords="products services catalogue catalog sell offer browse items" data-follow="store.quote store.pay">
+  <h4 class="kb-title">What we sell</h4>
+  <ul class="kb-q"><li>What products do you have?</li><li>What services do you offer?</li><li>What do you sell?</li><li>Show me your products</li><li>Catalogue</li></ul>
+  <div class="kb-a"><p>Here's a taste of what's on offer. You can browse everything on the shop pages.</p></div>
+  <p class="kb-empty">I can't see any items to show right now.</p>
+</article>
+
+<article class="kb" id="store.quote" data-audience="any" data-sensitivity="public" data-keywords="quote quotation estimate proposal price" data-follow="store.catalogue mimi.human">
+  <h4 class="kb-title">Asking for a quotation</h4>
+  <ul class="kb-q"><li>Can I request a quote?</li><li>I need a quotation</li><li>How do I get a quote?</li><li>Price estimate</li></ul>
+  <div class="kb-a"><p>Yes. Tell the team what you need at <a href="mailto:{{support.email}}">{{support.email}}</a> and we'll send a quotation. Once one is issued, signed-in customers can see their active quotes on their account.</p></div>
+</article>
+
+<article class="kb" id="acct.my-orders" data-audience="customer" data-sensitivity="own" data-resolver="orders.mine" data-keywords="order orders parcel package delivery shipped track status where" data-follow="acct.my-payments">
+  <h4 class="kb-title">Where is my order?</h4>
+  <ul class="kb-q"><li>Where is my order?</li><li>Track my order</li><li>What is the status of my order?</li><li>Has my order shipped?</li><li>My orders</li><li>Where is order {order}?</li><li>Show me order {order}</li><li lang="sw">Oda yangu iko wapi?</li><li lang="sw">Oda zangu</li></ul>
+  <div class="kb-a"><p>Here are your latest orders:</p></div>
+  <p class="kb-denied">Order tracking is for signed-in customers. Sign in and ask me again.</p>
+  <p class="kb-empty">I can't find a matching order on your account.</p>
+</article>
+
+<article class="kb" id="acct.my-payments" data-audience="customer" data-sensitivity="own" data-resolver="payments.mine" data-keywords="payment payments paid receipt mpesa status pending failed" data-follow="acct.my-orders">
+  <h4 class="kb-title">Did my payment go through?</h4>
+  <ul class="kb-q"><li>Did my payment go through?</li><li>Payment status</li><li>Was my M-Pesa payment received?</li><li>My payments</li><li>Show my receipt</li></ul>
+  <div class="kb-a"><p>Here are your latest payments:</p></div>
+  <p class="kb-denied">Payment status is for signed-in customers. Sign in and ask me again.</p>
+  <p class="kb-empty">I can't find any payments on your account yet.</p>
+</article>
+
+<article class="kb" id="acct.my-codes" data-audience="customer" data-sensitivity="own" data-resolver="codes.mine" data-keywords="promo referral code codes discount coupon share reward" data-follow="acct.my-orders">
+  <h4 class="kb-title">My promo and referral codes</h4>
+  <ul class="kb-q"><li>What is my referral code?</li><li>Do I have any promo codes?</li><li>My discount codes</li><li>Share my referral code</li></ul>
+  <div class="kb-a"><p>Here are your codes:</p></div>
+  <p class="kb-denied">Promo and referral codes are for signed-in customers. Sign in and ask me again.</p>
+  <p class="kb-empty">You don't have any promo or referral codes yet.</p>
+</article>
+
+<article class="kb" id="staff.order-lookup" data-audience="staff" data-requires="customers.view" data-sensitivity="restricted" data-resolver="orders.lookup" data-keywords="order voucher invoice sale find lookup" data-follow="staff.customer-lookup">
+  <h4 class="kb-title">Look up an order</h4>
+  <ul class="kb-q"><li>Look up order {order}</li><li>Show me order {order}</li><li>Find order {order}</li><li>Status of order {order}</li><li>Order {order}</li></ul>
+  <div class="kb-a"><p>Here's what I found:</p></div>
+  <p class="kb-denied">You don't have the permission to look up customers' orders.</p>
+  <p class="kb-empty">I couldn't find an order with that number.</p>
+</article>
+
+<article class="kb" id="staff.customer-lookup" data-audience="staff" data-requires="customers.view" data-sensitivity="restricted" data-resolver="customers.lookup" data-keywords="customer client buyer find lookup tier" data-follow="staff.order-lookup">
+  <h4 class="kb-title">Look up a customer</h4>
+  <ul class="kb-q"><li>Look up customer {email}</li><li>Find customer {customer}</li><li>Who is {email}?</li><li>Customer {customer}</li><li>Show customer {email}</li></ul>
+  <div class="kb-a"><p>Here's what I found:</p></div>
+  <p class="kb-more">Contact details, credit and spend are deliberately not shown here. Open the customer's page for those.</p>
+  <p class="kb-denied">You don't have the permission to look up customers.</p>
+  <p class="kb-empty">I couldn't find a customer with those details.</p>
+</article>
+
+<article class="kb" id="staff.payment-summary" data-audience="staff" data-requires="books.view" data-sensitivity="restricted" data-resolver="payments.summary" data-keywords="payment payments summary collected today pending failed dispute disputes totals" data-follow="staff.books-basics">
+  <h4 class="kb-title">Payment summary</h4>
+  <ul class="kb-q"><li>Payment summary</li><li>How much did we collect today?</li><li>Pending payments</li><li>Failed payments</li><li>Any open disputes?</li></ul>
+  <div class="kb-a"><p>Here's the payment picture:</p></div>
+  <p class="kb-denied">You don't have the permission to see payment records.</p>
+  <p class="kb-empty">Payment records aren't available right now.</p>
+</article>
+
+<article class="kb" id="staff.clearance" data-audience="staff" data-sensitivity="restricted" data-keywords="clearance level levels rank seniority manage authority ceiling" data-follow="staff.give-role staff.branch-limits">
+  <h4 class="kb-title">Clearance levels</h4>
+  <ul class="kb-q"><li>What are the clearance levels?</li><li>What does clearance mean?</li><li>What is clearance level 3?</li><li>Who can manage whom?</li><li>What is a clearance?</li></ul>
+  <div class="kb-a"><p>Clearance is a number from 0 to 6. It is a <strong>ceiling and an authority, not a permission</strong>: it decides which roles someone may hold and whom they may manage (only people strictly below their own level). Roles are what actually grant permissions.</p><ul><li><strong>0</strong> No staff access: customers, vendors, applicants</li><li><strong>1</strong> Staff: a defined job at a branch</li><li><strong>2</strong> Officer: runs a function</li><li><strong>3</strong> Manager</li><li><strong>4</strong> Senior: sees across every branch for their field</li><li><strong>5</strong> Administrator</li><li><strong>6</strong> Owner</li></ul></div>
+  <p class="kb-more">The level names can be renamed under Settings, Roles &amp; access.</p>
+</article>
+
+<article class="kb" id="staff.branch-limits" data-audience="staff" data-sensitivity="restricted" data-keywords="branch branches limit limits scope location test mode hidden vouchers" data-follow="staff.clearance">
+  <h4 class="kb-title">Branch limits</h4>
+  <ul class="kb-q"><li>What are branch limits?</li><li>Why can't I see another branch's vouchers?</li><li>What is branch scope?</li><li>What does test mode do?</li><li>Why do I only see my branch?</li></ul>
+  <div class="kb-a"><p>Branch limits keep a person to the branches they've been given. For Books (vouchers, day book, reports) and Stock (transfers, counts, jobs, expiry) the owner sets each area to <strong>Off</strong>, <strong>Test</strong> or <strong>On</strong>.</p><ul><li><strong>Test</strong> allows everything but records what <em>would</em> have been hidden or refused.</li><li><strong>On</strong> enforces it: you see and post only for your branches. A view-only grant lets you look but not post.</li></ul><p>People whose role covers every branch are never limited, and records with no branch stay visible to everyone.</p></div>
+  <p class="kb-more">It is set under Settings, Roles &amp; access, Branch limits.</p>
+</article>
+
+<article class="kb" id="staff.give-role" data-audience="staff" data-requires="access.view" data-sensitivity="restricted" data-keywords="role roles assign give permission access admin owner promote" data-follow="staff.clearance">
+  <h4 class="kb-title">Giving someone a role</h4>
+  <ul class="kb-q"><li>How do I give someone a role?</li><li>Who can make an admin?</li><li>Can I change my own role?</li><li>Who can assign roles?</li></ul>
+  <div class="kb-a"><p>Roles are given on Settings, Roles &amp; access, People, by someone who holds <code>access.manage</code>. The rules:</p><ul><li>You can only give roles, and clearance, strictly <strong>below your own</strong> clearance.</li><li>Only the owner can make administrators or build new roles.</li><li>You can't change your own role (the owner is the exception), and the last owner can't be lowered or removed.</li><li>Every change is written to the access log.</li></ul></div>
+  <p class="kb-denied">You don't have the permission to see who holds which roles.</p>
+</article>
+
+<article class="kb" id="staff.books-basics" data-audience="staff" data-requires="books.view" data-sensitivity="restricted" data-keywords="voucher vouchers post posting balance ledger control reconcile reconciliation register journal books" data-follow="staff.payment-summary">
+  <h4 class="kb-title">How money moves in the books</h4>
+  <ul class="kb-q"><li>How does a voucher post?</li><li>Why must a voucher balance?</li><li>What is a control ledger?</li><li>How do I reconcile registers?</li><li>Where is reconciliation?</li></ul>
+  <div class="kb-a"><p>Money only moves through <strong>vouchers</strong> (sales, receipts, payments, journals…). Every voucher balances: total debits equal total credits, in the voucher's currency and in the base currency.</p><p><strong>Registers are detail, never money</strong>: gift voucher codes, loyalty point lots, withholding certificates and bill references explain a ledger balance but never replace it. Each register reconciles to a control ledger. See <strong>Books → Reports → Reconciliation</strong>.</p></div>
+  <p class="kb-more">The full explanation is the Ledger guide (docs/LEDGER_GUIDE.md).</p>
+  <p class="kb-denied">You don't have the permission to see the books.</p>
+</article>
+
+<article class="kb" id="staff.mimi-analytics" data-audience="staff" data-requires="insight.mimi" data-sensitivity="restricted" data-keywords="mimi analytics sessions queries flagged harmful block blocked abuse logs transcripts" data-follow="staff.ai-keys">
+  <h4 class="kb-title">Seeing what people ask Mimi</h4>
+  <ul class="kb-q"><li>Where can I see what people ask Mimi?</li><li>Mimi sessions</li><li>How do I block someone from Mimi?</li><li>Flagged questions</li><li>Harmful questions</li></ul>
+  <div class="kb-a"><p>Under <strong>AI analytics</strong> there are Mimi screens for sessions, queries (where you can flag one), harmful questions and blocks. You can block a customer, a staff member or a guest.</p></div>
+  <p class="kb-denied">You don't have the permission to see Mimi's analytics.</p>
+</article>
+
+<article class="kb" id="staff.ai-keys" data-audience="staff" data-requires="ai.keys" data-sensitivity="restricted" data-keywords="key keys api gemini openai anthropic claude qwen provider quota model failover" data-follow="staff.mimi-analytics">
+  <h4 class="kb-title">Adding or changing an AI key</h4>
+  <ul class="kb-q"><li>Where do I add an AI key?</li><li>How do I change the AI provider?</li><li>Add a Gemini key</li><li>OpenAI key</li><li>My key ran out of quota</li></ul>
+  <div class="kb-a"><p>Go to <strong>AI → Keys</strong>. Keys are stored encrypted. For each key you choose the provider and model, what it may be used for (analytics, Mimi, screening or all), and where it comes in the order. If one fails (busy, over quota, bad key) the next is tried, and the last error shows on the screen.</p></div>
+  <p class="kb-denied">You don't have the permission to manage AI keys.</p>
+</article>
+
+  </div>
+</section>
+
+<!-- ═════════════════════════ 15 ═════════════════════════ -->
+<section class="chap" id="faq" aria-labelledby="h-faq">
+  <h2 id="h-faq"><span class="num">15</span>FAQ and glossary</h2>
+
+  <details class="q"><summary>Does this replace Gemini, Claude or OpenAI?</summary><div>No. They stay behind <code>AiGateway</code>, with the same keys, order and failover. They change from the only brain to the fallback, with a leash.</div></details>
+  <details class="q"><summary>Is this "AI" if nothing is trained?</summary><div>Today it is retrieval and rules: a transparent matcher over reviewed text and permissioned data. That is a feature for phase one, because every answer can be explained. The trained NLP in chapter 12 improves recall; it doesn't change who is allowed to see what.</div></details>
+  <details class="q"><summary>Why not just filter the prompt we send now?</summary><div>Filtering a prompt is a blacklist: one forgotten field leaks. Here, P1 to P3 data is never fetched for the outside route at all, so there is nothing to forget. It is also cheaper, because most questions never make the trip.</div></details>
+  <details class="q"><summary>What if two entries match almost equally?</summary><div>The higher score wins. If the top two are within 0.04 of each other, the person gets both as "did you mean…" buttons instead of a guess.</div></details>
+  <details class="q"><summary>Where do prices and stock levels go?</summary><div>Never in prose. They change, so they come from a resolver (<code>catalogue.public</code>), formatted at answer time.</div></details>
+  <details class="q"><summary>What if an entry is wrong?</summary><div>Every answer logs the entry id, so a wrong one is traceable in one click. Fix the entry once and it is fixed for everyone; the version goes up and the old text is kept.</div></details>
+  <details class="q"><summary>Does this page send my questions anywhere?</summary><div>No. It has no network code, loads no outside fonts or scripts, and counts any fetch, XHR or beacon it makes (the meter in chapter 2 stays at 0). You can also watch the Network tab in your browser's developer tools.</div></details>
+
+  <h3>Glossary</h3>
+  <dl class="def">
+    <dt>Caller context</dt><dd>The account kind, permissions, data scope, branches and language of whoever is asking, built on the server.</dd>
+    <dt>Entry</dt><dd>One <code>article.kb</code>: one question, its variants, its answer, and who may see it.</dd>
+    <dt>Variant</dt><dd>One way of asking an entry's question.</dd>
+    <dt>Slot</dt><dd>A reference cut out of the question (order, payment or customer number, email) and passed to a resolver.</dd>
+    <dt>Resolver</dt><dd>A permissioned server function that fetches live data for one caller and returns a few finished lines.</dd>
+    <dt>Confidence</dt><dd>The matcher's score from 0 to 1 for an entry against a question.</dd>
+    <dt>Data class</dt><dd>P0 public, P1 own, P2 restricted, P3 never. Decides what may reach an outside model.</dd>
+    <dt>Fallback</dt><dd>What happens when the local layer isn't confident: stay local, or ask an outside AI under the owner's rules.</dd>
+    <dt>Shadow mode</dt><dd>The local layer computes and logs its answer while the person still gets today's reply, so you can compare safely.</dd>
+    <dt>Golden set</dt><dd>A fixed list of questions with the entry each should reach, run on every change.</dd>
+    <dt>Egress</dt><dd>Anything that leaves our server for another party.</dd>
+  </dl>
+</section>
+
+<footer class="site">
+  <p>Draft 0.1 · 9 October 2026 · written against <code>tisl_v2</code> at commit <code>e15e726</code>.</p>
+  <p class="fine">Read to produce this guide: <code>ChatController.php</code>, <code>AiGateway.php</code>, <code>MimiPolicyService.php</code>, <code>MimiHarmScannerService.php</code>, <code>MimiQueryLogService.php</code>, <code>NumberingService.php</code>, <code>Catalog.php</code>, <code>User.php</code>, <code>routes/api.php</code>, <code>docs/IDENTITY_AND_ACCESS_PLAN.md</code>, <code>docs/LEDGER_GUIDE.md</code>. Figures and names in the playground are sample data, not records from the platform.</p>
+</footer>
+
+</main>
+</div>
+
+<script type="application/json" id="golden">
+[
+  ["guest",    "hello there",                                   "mimi.hello"],
+  ["guest",    "hi",                                            "mimi.hello"],
+  ["guest",    "what can you do for me",                        "mimi.about"],
+  ["guest",    "do you send my data to openai",                 "mimi.privacy"],
+  ["guest",    "how do i pay with mpesa",                       "store.pay"],
+  ["guest",    "nawezaje kulipa",                               "store.pay"],
+  ["guest",    "how much does shipping cost",                   "store.delivery"],
+  ["guest",    "what do you sell",                              "store.catalogue"],
+  ["guest",    "can i get a quotation",                         "store.quote"],
+  ["guest",    "how do i speak to a real person",               "mimi.human"],
+  ["guest",    "where is my order",                             "denied:acct.my-orders"],
+  ["guest",    "show me order WNKJ-SO-00012",                   "denied:acct.my-orders"],
+  ["guest",    "tell me a joke about cats",                     "none"],
+  ["guest",    "how to make a bomb",                            "guard"],
+  ["customer", "track my parcel",                               "acct.my-orders"],
+  ["customer", "oda yangu iko wapi",                            "acct.my-orders"],
+  ["customer", "was my mpesa payment received",                 "acct.my-payments"],
+  ["customer", "show my receipt",                               "acct.my-payments"],
+  ["customer", "do i have any discount codes",                  "acct.my-codes"],
+  ["customer", "payment summary",                               "suggest|none"],
+  ["customer", "look up customer wanjiru@example.com",          "suggest|none|mimi.others-data"],
+  ["customer", "give me the email of other customers",          "mimi.others-data"],
+  ["customer", "show me order WNKJ-SO-00012",                   "acct.my-orders"],
+  ["customer", "where is order WNKJ-SO-00015",                  "acct.my-orders"],
+  ["chef",     "look up order WNKJ-SO-00012",                   "denied:staff.order-lookup"],
+  ["chef",     "what are the clearance levels",                 "staff.clearance"],
+  ["chef",     "where do i add an ai key",                      "denied:staff.ai-keys"],
+  ["cashier",  "find order WNKJ-SO-00014",                      "staff.order-lookup"],
+  ["cashier",  "payment summary",                               "denied:staff.payment-summary"],
+  ["salesrep", "who is wanjiru@example.com",                    "staff.customer-lookup"],
+  ["finance",  "how much did we collect today",                 "staff.payment-summary"],
+  ["finance",  "why must a voucher balance",                    "staff.books-basics"],
+  ["finance",  "what does test mode do",                        "staff.branch-limits"],
+  ["owner",    "who can make an admin",                         "staff.give-role"],
+  ["owner",    "block someone from mimi",                       "staff.mimi-analytics"],
+  ["owner",    "my key ran out of quota",                       "staff.ai-keys"],
+  ["owner",    "paymnt summary",                                "staff.payment-summary"],
+  ["owner",    "refund",                                        "store.returns"],
+  ["owner",    "look up order",                                 "staff.order-lookup"],
+  ["guest",    "i want my money back",                          "store.returns",       "stretch"],
+  ["guest",    "is it safe to chat here",                       "mimi.privacy",        "stretch"],
+  ["guest",    "you guys do home delivery",                     "store.delivery",      "stretch"],
+  ["customer", "my package never showed up",                    "acct.my-orders",      "stretch"],
+  ["customer", "did the money leave my phone",                  "acct.my-payments",    "stretch"],
+  ["owner",    "who is allowed to promote people",              "staff.give-role",     "stretch"]
+]
+</script>
+
+<script>
+(() => {
+'use strict';
+
+/* ════════ 0 · a meter that counts anything this page sends out ════════ */
+const net = { calls: 0 };
+try {
+  if (window.fetch) { const f = window.fetch.bind(window); window.fetch = (...a) => { net.calls++; return f(...a); }; }
+  const xs = XMLHttpRequest.prototype.send; XMLHttpRequest.prototype.send = function (...a) { net.calls++; return xs.apply(this, a); };
+  if (navigator.sendBeacon) { const sb = navigator.sendBeacon.bind(navigator); navigator.sendBeacon = (...a) => { net.calls++; return sb(...a); }; }
+} catch (e) { /* the meter is a nicety, not a guarantee */ }
+
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) { if (k === 'class') n.className = v; else if (k === 'text') n.textContent = v; else n.setAttribute(k, v); }
+  kids.flat().forEach(k => n.append(k));
+  return n;
+};
+
+/* ════════ 1 · page furniture ════════ */
+const root = document.documentElement, themeBtn = $('#themeBtn');
+const curTheme = () => root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+themeBtn.setAttribute('aria-pressed', String(curTheme() === 'dark'));
+themeBtn.addEventListener('click', () => { const n = curTheme() === 'dark' ? 'light' : 'dark'; root.dataset.theme = n; themeBtn.setAttribute('aria-pressed', String(n === 'dark')); });
+
+const toc = $('details.toc'), small = matchMedia('(max-width:1023px)');
+if (toc && small.matches) toc.open = false;
+const tocLinks = $$('.toc a');
+tocLinks.forEach(a => a.addEventListener('click', () => { if (small.matches) toc.open = false; }));
+if ('IntersectionObserver' in window) {
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (!e.isIntersecting) return;
+    tocLinks.forEach(l => l.removeAttribute('aria-current'));
+    const a = tocLinks.find(l => l.getAttribute('href') === '#' + e.target.id);
+    if (a) a.setAttribute('aria-current', 'true');
+  }), { rootMargin: '-15% 0px -75% 0px' });
+  tocLinks.forEach(a => { const s = $(a.getAttribute('href')); if (s) io.observe(s); });
+}
+
+$$('pre').forEach(pre => {
+  const code = $('code', pre); if (!code) return;
+  const b = el('button', { class: 'copy', type: 'button', text: 'Copy' });
+  b.addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(code.textContent); b.textContent = 'Copied'; } catch (e) { b.textContent = 'Press Ctrl+C'; }
+    setTimeout(() => { b.textContent = 'Copy'; }, 1600);
+  });
+  pre.append(b);
+});
+
+/* ════════ 2 · data this guide is built on ════════ */
+const CFG = { 'company.name': 'TISL Store', 'support.email': 'web@targetisl.co.ke' };      // sample settings; the server reads the company profile
+const fill = html => html.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (m, k) => (k in CFG ? CFG[k] : m));
+
+// every permission key in Catalog::PERMISSIONS at commit e15e726
+const CATALOGUE_KEYS = new Set(['access.manage','access.roles','access.view','admin.access','ai.keys','algorithm.manage','algorithm.run','analytics.view','appearance.manage','attendance.arbitrate','attendance.manage','auctions.manage','bookings.manage','books.bounce','books.period','books.pettycash','books.post','books.review','books.view','books.writeoff','calendar.team','campaigns.admin','campaigns.build','campaigns.publish','campaigns.purge','careers.manage','catalogue.delete','catalogue.edit','catalogue.pricelists','catalogue.publish','catalogue.purge','catalogue.settings','catalogue.view','content.manage','costcentres.manage','costcentres.view','credit.act','credit.view','currency.base','currency.manage','customers.manage','customers.represent','customers.tiers','customers.view','delivery.manage','driver.app','engagement.moderate','engagement.settings','engagement.view','hampers.manage','hr.manage','hr.purge','hr.team','hr.view','imports.export','imports.manage','imports.view','insight.mimi','insight.ops','insight.view','inventory.accounting','inventory.manage','inventory.view','locations.manage','loyalty.configure','loyalty.deduct','loyalty.export','loyalty.grant','menus.manage','menus.view','payroll.run','policies.manage','projects.delete','projects.manage','projects.moderate','projects.purge','projects.use','promos.admin','promos.manage','quotes.view','quotes.write','resources.manage','settings.delete','shipping.manage','stock.expiry_alerts','stock.manage','stock.override_expiry','stock.settings','stock.view','system.backups','system.devtools','system.logs','system.modules','system.navigation','system.restore','tax.manage','tax.view','tickets.manage','tickets.purge','users.manage','users.purge','vault.bypass','vault.policies','vault.settings','vendors.approve','vendors.manage','vendors.view','verification.manage','verification.override']);
+const KINDS = ['guest', 'customer', 'vendor', 'applicant', 'driver', 'staff'];
+const ROLE_WORDS = ['super_admin', 'admin', 'manager', 'finance', 'cashier', 'chef', 'sales_rep', 'logistics', 'senior_accountant', 'owner'];
+
+// Sample permission sets, simplified from the built-in catalogue (docs/IDENTITY_AND_ACCESS_PLAN.md). The server asks Authorizer instead.
+const PERSONAS = {
+  guest:    { label: 'Guest (not signed in)', group: 'Not staff', kind: 'guest',    scope: 'own', perms: [],
+              note: 'Not signed in. Sees public entries only.', ex: ['Hi', 'How can I pay?', 'Is my question sent to an AI company?', 'Where is my order?', 'What products do you have?'] },
+  customer: { label: 'Customer (signed in)',  group: 'Not staff', kind: 'customer', scope: 'own', perms: [], custNo: 'CUST-2026-0001',
+              note: 'Signed in as a customer (sample: Wanjiru K., CUST-2026-0001). Public entries and their own account data; no staff permissions.',
+              ex: ['Where is my order?', 'Did my payment go through?', 'Do I have any promo codes?', 'Show me order WNKJ-SO-00012', 'Nawezaje kulipa?'] },
+  cashier:  { label: 'Cashier',   group: 'Staff', kind: 'staff', scope: 'own',
+              perms: ['admin.access', 'customers.view', 'catalogue.view', 'bookings.manage'],
+              note: 'Staff. Data scope “own”: records this person created.', ex: ['Find order WNKJ-SO-00014', 'Find order WNKJ-SO-00012', 'Payment summary', 'What are branch limits?'] },
+  chef:     { label: 'Chef',      group: 'Staff', kind: 'staff', scope: 'all',
+              perms: ['admin.access', 'menus.view', 'menus.manage'],
+              note: 'Staff who can open the admin area but holds no customer or books permissions.', ex: ['Look up order WNKJ-SO-00012', 'What are the clearance levels?', 'Where do I add an AI key?', 'Who is wanjiru@example.com?'] },
+  salesrep: { label: 'Sales rep', group: 'Staff', kind: 'staff', scope: 'assigned', assigned: ['CUST-2026-0001', 'CUST-2026-0002'],
+              perms: ['admin.access', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'quotes.write', 'catalogue.view', 'tickets.manage'],
+              note: 'Staff. Data scope “assigned”: only customers assigned to them (CUST-2026-0001 and 0002).', ex: ['Look up order WNKJ-SO-00012', 'Look up order WNKJ-SO-00015', 'Who is wanjiru@example.com?', 'Payment summary'] },
+  finance:  { label: 'Finance',   group: 'Staff', kind: 'staff', scope: 'all',
+              perms: ['admin.access', 'books.view', 'books.post', 'customers.view', 'credit.view', 'payroll.run', 'stock.view', 'stock.manage', 'catalogue.view', 'insight.view'],
+              note: 'Staff. Data scope “all”.', ex: ['Payment summary', 'Show me order WNKJ-SO-00015', 'Why must a voucher balance?', 'Where do I add an AI key?'] },
+  owner:    { label: 'Owner',     group: 'Staff', kind: 'staff', scope: 'all', perms: ['*'],
+              note: 'Holds every permission, including ones added later.', ex: ['Where can I see what people ask Mimi?', 'Where do I add an AI key?', 'Who can make an admin?', 'Look up order'] },
+};
+const ctxOf = key => { const p = PERSONAS[key]; return { id: key, kind: p.kind, perms: p.perms, scope: p.scope, assigned: p.assigned || [], custNo: p.custNo || null }; };
+const has = (ctx, perm) => ctx.perms.includes('*') || ctx.perms.includes(perm);
+
+// Sample records. Not from the platform.
+const CUSTOMERS = {
+  'CUST-2026-0001': { name: 'Wanjiru K.', email: 'wanjiru@example.com', tier: 'Silver', by: 'salesrep' },
+  'CUST-2026-0002': { name: 'Otieno M.',  email: 'otieno@example.com',  tier: 'Bronze', by: 'salesrep' },
+  'CUST-2026-0003': { name: 'Achieng R.', email: 'achieng@example.com', tier: 'Bronze', by: 'cashier'  },
+  'CUST-2026-0004': { name: 'Kiprono T.', email: 'kiprono@example.com', tier: 'Gold',   by: 'finance'  },
+};
+const ORDERS = [
+  { ref: 'WNKJ-SO-00012', cust: 'CUST-2026-0001', type: 'Sales order', status: 'Posted', fulfil: 'Out for delivery', total: 4500,  date: '2 Oct 2026', by: 'salesrep' },
+  { ref: 'WNKJ-SO-00009', cust: 'CUST-2026-0001', type: 'Sales order', status: 'Posted', fulfil: 'Delivered',        total: 1200,  date: '21 Sep 2026', by: 'salesrep' },
+  { ref: 'WNKJ-SO-00013', cust: 'CUST-2026-0002', type: 'Sales order', status: 'Draft',  fulfil: '',                 total: 18900, date: '5 Oct 2026', by: 'salesrep' },
+  { ref: 'WNKJ-SO-00014', cust: 'CUST-2026-0003', type: 'Cash sale',   status: 'Posted', fulfil: 'Collected',        total: 650,   date: '7 Oct 2026', by: 'cashier' },
+  { ref: 'WNKJ-SO-00015', cust: 'CUST-2026-0004', type: 'Sales order', status: 'Posted', fulfil: 'Processing',       total: 32000, date: '8 Oct 2026', by: 'finance' },
+];
+const PAYMENTS = [
+  { no: 'PAY-2026-1-001', cust: 'CUST-2026-0001', status: 'confirmed', amount: 1200, receipt: 'RGH5K2L9XY', order: 'WNKJ-SO-00009', date: '21 Sep 2026' },
+  { no: 'PAY-2026-1-017', cust: 'CUST-2026-0001', status: 'pending',   amount: 4500, receipt: '',           order: 'WNKJ-SO-00012', date: '2 Oct 2026' },
+];
+const CATALOGUE = [
+  { name: 'Sample product A', price: 1200, stock: true }, { name: 'Sample product B', price: 3450, stock: true },
+  { name: 'Sample service C (from)', price: 5000, stock: true }, { name: 'Sample product D', price: 800, stock: false },
+];
+const kes = n => 'KSh ' + Number(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+/* ════════ 3 · the knowledge base: read straight from this document ════════ */
+const split = s => (s || '').split(/\s+/).filter(Boolean);
+function loadKB() {
+  return $$('article.kb').map(a => ({
+    id: a.id, node: a,
+    title: $('.kb-title', a).textContent.trim(),
+    audience: split(a.dataset.audience), requires: split(a.dataset.requires),
+    sensitivity: a.dataset.sensitivity || '', resolver: a.dataset.resolver || '',
+    keywords: a.dataset.keywords || '', follow: split(a.dataset.follow),
+    status: a.dataset.status || '', reviewed: a.dataset.reviewed || '',
+    variants: $$('.kb-q > li', a).map(li => ({ text: li.textContent.trim(), lang: li.getAttribute('lang') || 'en' })),
+    a: $('.kb-a', a), more: $('.kb-more', a), denied: $('.kb-denied', a), empty: $('.kb-empty', a),
+  }));
+}
+const KB = loadKB();
+const KBID = Object.fromEntries(KB.map(e => [e.id, e]));
+
+const reachable = (ctx, e) => e.audience.includes('any') || e.audience.includes(ctx.kind) || (ctx.kind === 'guest' && e.audience.includes('customer') && !e.requires.length);   // same kind of account missing a permission, or a guest who could sign in
+const visible = (ctx, e) => (e.audience.includes('any') || e.audience.includes(ctx.kind)) && e.requires.every(p => has(ctx, p));
+
+/* ════════ 4 · language: tokens, stems, synonyms (data, not code) ════════ */
+const STOP = new Set(('a an the is are was were be been am to of for in on at by do does did can could would should will shall may might i me my mine we our us you your yours it its this that these those ' +
+  'and or but so if then than too very just please pls kindly about with there here any some up out as from into over also get got have has had having tell ' +
+  'yangu zangu wako yako langu iko').split(' '));
+
+const SYN = [
+  ['hello', 'hi', 'hey', 'hujambo', 'habari', 'mambo', 'vipi', 'greetings', 'morning', 'afternoon', 'evening'],
+  ['order', 'purchase', 'parcel', 'package', 'shipment', 'oda'],
+  ['track', 'tracking', 'status', 'where', 'locate', 'whereabouts', 'wapi', 'progress'],
+  ['pay', 'payment', 'paid', 'paying', 'mpesa', 'checkout', 'stk', 'lipa', 'kulipa', 'malipo', 'receipt'],
+  ['deliver', 'delivery', 'shipping', 'ship', 'shipped', 'courier', 'dispatch', 'freight'],
+  ['return', 'refund', 'exchange', 'replace', 'replacement'],
+  ['contact', 'human', 'person', 'agent', 'representative', 'support', 'helpdesk', 'call', 'phone', 'email', 'talk', 'speak', 'complaint', 'complain', 'care'],
+  ['private', 'privacy', 'secure', 'safe', 'confidential', 'share', 'shared', 'sharing', 'send', 'sent', 'leak'],
+  ['ai', 'openai', 'chatgpt', 'gpt', 'gemini', 'google', 'claude', 'anthropic', 'qwen', 'alibaba', 'llm', 'bot'],
+  ['permission', 'role', 'access', 'rights', 'privilege'],
+  ['clearance', 'level', 'rank', 'seniority'],
+  ['branch', 'location', 'outlet'],
+  ['voucher', 'journal', 'posting', 'post', 'ledger', 'books', 'book'],
+  ['reconcile', 'reconciliation', 'balance', 'agree'],
+  ['customer', 'client', 'buyer', 'shopper'],
+  ['product', 'item', 'goods', 'merchandise', 'catalogue', 'catalog', 'sell', 'selling', 'offer', 'offering'],
+  ['quote', 'quotation', 'estimate', 'proposal'],
+  ['code', 'coupon', 'promo', 'referral', 'refer', 'discount'],
+  ['summary', 'overview', 'stats', 'statistics', 'total', 'totals'],
+  ['find', 'lookup', 'search', 'look', 'show', 'display', 'fetch', 'view'],
+  ['collect', 'collected', 'collection', 'received', 'receive', 'takings', 'revenue', 'income'],
+  ['analytics', 'log', 'logs', 'history', 'transcript', 'session', 'conversation', 'harmful', 'abuse', 'abuser', 'block', 'blocked'],
+  ['fail', 'failed', 'failure', 'declined', 'unsuccessful'],
+  ['other', 'another', 'others', 'else', 'someone', 'somebody'],
+];
+
+function stem(w) {
+  if (w.length > 4 && w.endsWith('ies')) return w.slice(0, -3) + 'y';
+  if (w.length > 5 && w.endsWith('ing')) w = w.slice(0, -3);
+  else if (w.length > 4 && w.endsWith('ed')) w = w.slice(0, -2);
+  else if (w.length > 4 && /(ss|x|z|ch|sh)es$/.test(w)) w = w.slice(0, -2);
+  else if (w.length > 3 && w.endsWith('s') && !/(ss|us|is)$/.test(w)) w = w.slice(0, -1);
+  if (w.length > 3 && /([^aeiouls])\1$/.test(w)) w = w.slice(0, -1);         // shipp → ship
+  return w;
+}
+const CANON = new Map();
+SYN.forEach(g => { const c = stem(g[0]); g.forEach(m => CANON.set(stem(m), c)); });
+const canon = w => { const s = stem(w); return CANON.get(s) || s; };
+const squash = s => s.normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/m[\s-]?pesa/g, 'mpesa');
+const DICT = new Set();                                   // every word we know, stemmed: the spell-checker's dictionary
+function correct(s) {
+  if (DICT.has(s) || s.length < 5) return s;
+  const lim = s.length >= 8 ? 2 : 1; let best = s, bd = lim + 1;
+  for (const d of DICT) { if (d[0] !== s[0] || d.length < 4 || Math.abs(d.length - s.length) > lim) continue; const x = lev(s, d, lim); if (x < bd) { bd = x; best = d; } }
+  return best;
+}
+const tokens = t => squash(t).replace(/[^a-z0-9]+/g, ' ').split(' ').filter(w => w && !STOP.has(w)).map(w => { const s = correct(stem(w)); return CANON.get(s) || s; });
+
+/* slots: references cut out of the question. In the server these patterns come from voucher_series.prefix */
+const SERIES = ['WNKJ-SO', 'WNKJ-INV', 'WNKJ-CSH'];
+const RX = {
+  email:   /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi,
+  pay:     /\bPAY-\d{4}-\d+-\d+\b/gi,
+  cust:    /\bCUST-\d{4}-\d+\b/gi,
+  order:   new RegExp('\\b(?:' + SERIES.join('|') + ')-\\d+\\b', 'gi'),
+  receipt: /\b(?=[A-Z0-9]*[A-Z])(?=[A-Z0-9]*\d)[A-Z0-9]{10}\b/g,
+  ordnum:  /\border\s*#?\s*(\d{1,8})\b/gi,
+  phone:   /(?:\+?254|\b0)[\s-]?[17]\d{2}[\s-]?\d{3}[\s-]?\d{3}\b/g,
+  digits:  /\b\d[\d\s-]{7,}\d\b/g,
+};
+function extractSlots(q) {
+  const slots = {}; let t = q;
+  const take = (rx, name, ph) => { t = t.replace(rx, m => { if (!slots[name]) slots[name] = m; return ' ' + ph + ' '; }); };
+  take(RX.email, 'email', 'emailaddr'); take(RX.pay, 'payref', 'payref'); take(RX.cust, 'custref', 'custref');
+  take(RX.order, 'ordref', 'ordref');   take(RX.receipt, 'payref', 'payref');
+  t = t.replace(RX.ordnum, (m, n) => { slots.ordnum = n; return ' order ordref '; });
+  return { text: t, slots };
+}
+const VSLOT = { '{order}': ' ordref ', '{payment}': ' payref ', '{customer}': ' custref ', '{email}': ' emailaddr ' };
+const variantText = v => v.replace(/\{(?:order|payment|customer|email)\}/g, m => VSLOT[m]);
+const SAMPLE_SLOT = { '{order}': 'WNKJ-SO-00012', '{payment}': 'PAY-2026-1-001', '{customer}': 'CUST-2026-0001', '{email}': 'wanjiru@example.com' };
+const withSample = v => v.replace(/\{(?:order|payment|customer|email)\}/g, m => SAMPLE_SLOT[m]);
+
+/* ════════ 5 · matching ════════ */
+function lev(a, b, max) {
+  const m = a.length, n = b.length; if (Math.abs(m - n) > max) return max + 1;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i]; let rowMin = i;
+    for (let j = 1; j <= n; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (cur[j] < rowMin) rowMin = cur[j]; }
+    if (rowMin > max) return max + 1;
+    prev = cur;
+  }
+  return prev[n];
+}
+function sim(a, b) {
+  if (a === b) return 1;
+  if (a.length < 5 || b.length < 5 || a[0] !== b[0]) return 0;
+  const lim = Math.max(a.length, b.length) >= 8 ? 2 : 1;
+  return Math.abs(a.length - b.length) <= lim && lev(a, b, lim) <= lim ? 0.7 : 0;
+}
+function buildIndex(entries) {
+  const df = new Map(), rec = [];
+  for (const e of entries) {
+    const vars = [e.title, ...e.variants.map(v => v.text)].map(v => new Set(tokens(variantText(v))));
+    const kw = new Set(tokens(e.keywords)), seen = new Set();
+    vars.forEach(s => s.forEach(t => seen.add(t))); kw.forEach(t => seen.add(t));
+    seen.forEach(t => df.set(t, (df.get(t) || 0) + 1));
+    rec.push({ e, vars, kw });
+  }
+  const N = entries.length || 1;
+  return { rec, idf: t => Math.log(1 + N / (df.get(t) || 0.5)) };
+}
+function scoreOne(r, Q, idf) {
+  let best = 0;
+  for (const v of r.vars) {
+    if (!v.size) continue;
+    let cn = 0, cd = 0, pn = 0, pd = 0;
+    for (const q of Q) { const w = idf(q); cd += w; let m = 0; for (const t of v) { const s = sim(q, t); if (s > m) m = s; if (m === 1) break; } cn += w * m; }
+    for (const t of v) { const w = idf(t); pd += w; let m = 0; for (const q of Q) { const s = sim(t, q); if (s > m) m = s; if (m === 1) break; } pn += w * m; }
+    const cov = cn / cd, pre = pn / pd, f = cov && pre ? 2 * cov * pre / (cov + pre) : 0;
+    if (f > best) best = f;
+  }
+  let kn = 0, kd = 0;
+  for (const q of Q) { const w = idf(q); kd += w; for (const k of r.kw) if (sim(q, k) > 0) { kn += w; break; } }
+  return Math.min(1, best + (best > 0.2 && kd ? 0.15 * kn / kd : 0));
+}
+function rank(entries, text) {
+  const Q = new Set(tokens(text)); if (!Q.size || !entries.length) return [];
+  const { rec, idf } = buildIndex(entries);
+  return rec.map(r => ({ e: r.e, score: scoreOne(r, Q, idf) })).sort((a, b) => b.score - a.score);
+}
+(() => {
+  const add = text => squash(text).replace(/[^a-z0-9]+/g, ' ').split(' ').forEach(w => { if (w && !STOP.has(w)) DICT.add(stem(w)); });
+  SYN.forEach(g => g.forEach(add)); KB.forEach(e => [e.title, e.keywords, ...e.variants.map(v => v.text)].forEach(add));
+  ['ordref', 'payref', 'custref', 'emailaddr'].forEach(w => DICT.add(w));
+})();
+const VOCAB = (() => { const s = new Set(); KB.forEach(e => [e.title, e.keywords, ...e.variants.map(v => variantText(v.text))].forEach(t => tokens(t).forEach(w => s.add(w)))); return s; })();
+const unknownShare = text => { const T = [...new Set(tokens(text))]; return T.length ? T.filter(t => ![...VOCAB].some(v => sim(t, v) > 0)).length / T.length : 0; };
+
+/* ════════ 6 · guard: the same keyword families as MimiHarmScannerService, run first ════════ */
+const HARM = { HACKING: ['sql injection', 'reverse shell', 'ddos', 'ransomware'], FRAUD: ['money laundering', 'phishing email template', 'credit card fraud'], VIOLENCE: ['make a bomb', 'build a bomb', 'how to kill'] };
+function guard(q) { const l = q.toLowerCase(); for (const [cat, ws] of Object.entries(HARM)) if (ws.some(w => l.includes(w))) return cat; return null; }
+
+/* ════════ 7 · resolvers: permissioned, scoped, field-allowlisted ════════ */
+const inScope = (ctx, rec, ownerKey) => ctx.scope === 'all' ? true : ctx.scope === 'assigned' ? ctx.assigned.includes(ownerKey) : ctx.scope === 'own' ? rec.by === ctx.id : false;
+const RESOLVERS = {
+  'catalogue.public':  { kinds: ['any'], requires: [], needs: [], cls: 'P0', scope: 'public',
+    run: () => ({ status: 'ok', rows: CATALOGUE.length, scope: 'public', lines: CATALOGUE.map(p => `${p.name} · ${kes(p.price)} · ${p.stock ? 'In stock' : 'Out of stock'}`).concat('(sample rows: the live resolver reads your catalogue)') }) },
+  'orders.mine':       { kinds: ['customer'], requires: [], needs: [], cls: 'P1', scope: 'own',
+    run: (ctx, sl) => { let r = ORDERS.filter(o => o.cust === ctx.custNo);
+      if (sl.ordref) r = r.filter(o => o.ref === sl.ordref.toUpperCase()); else if (sl.ordnum) r = r.filter(o => parseInt(o.ref.split('-').pop(), 10) === parseInt(sl.ordnum, 10));
+      return r.length ? { status: 'ok', rows: r.length, scope: 'own', lines: r.map(o => `${o.ref} · ${o.type} · ${o.status}${o.fulfil ? ' · ' + o.fulfil : ''} · ${kes(o.total)} · ${o.date}`) } : { status: 'empty' }; } },
+  'payments.mine':     { kinds: ['customer'], requires: [], needs: [], cls: 'P1', scope: 'own',
+    run: ctx => { const r = PAYMENTS.filter(p => p.cust === ctx.custNo); return r.length ? { status: 'ok', rows: r.length, scope: 'own', lines: r.map(p => `${p.no} · ${p.status === 'confirmed' ? 'Paid ' + kes(p.amount) + ' · receipt ' + p.receipt : 'Waiting for ' + kes(p.amount)} · for ${p.order} · ${p.date}`) } : { status: 'empty' }; } },
+  'codes.mine':        { kinds: ['customer'], requires: [], needs: [], cls: 'P1', scope: 'own',
+    run: () => ({ status: 'ok', rows: 2, scope: 'own', lines: ['Your referral code: WANJIRU-5821 · used 3 times · active', 'WELCOME10 · 10% off · used 1 of 1 · expired'] }) },
+  'orders.lookup':     { kinds: ['staff'], requires: ['customers.view'], needs: ['ordref|ordnum'], cls: 'P2', scope: 'data scope + branch',
+    run: (ctx, s) => {
+      const ref = (s.ordref || '').toUpperCase();
+      const o = ORDERS.find(x => x.ref === ref) || (s.ordnum && ORDERS.find(x => parseInt(x.ref.split('-').pop(), 10) === parseInt(s.ordnum, 10)));
+      if (!o || !inScope(ctx, o, o.cust)) return { status: 'empty', scope: ctx.scope };      // same words for “not found” and “not yours”
+      const c = CUSTOMERS[o.cust];
+      return { status: 'ok', rows: 1, scope: ctx.scope, lines: [`${o.ref} · ${o.type} · ${o.status}${o.fulfil ? ' · ' + o.fulfil : ''} · ${kes(o.total)} · ${o.date} · ${c.name} (${o.cust})`] };
+    } },
+  'customers.lookup':  { kinds: ['staff'], requires: ['customers.view'], needs: ['email|custref'], cls: 'P2', scope: 'data scope + branch',
+    run: (ctx, s) => {
+      const no = s.custref ? s.custref.toUpperCase() : Object.keys(CUSTOMERS).find(k => CUSTOMERS[k].email === (s.email || '').toLowerCase());
+      const c = no && CUSTOMERS[no];
+      if (!c || !inScope(ctx, c, no)) return { status: 'empty', scope: ctx.scope };
+      return { status: 'ok', rows: 1, scope: ctx.scope, lines: [`${c.name} · ${no} · Tier ${c.tier} · ${ORDERS.filter(o => o.cust === no).length} orders`] };      // allowlist: no email, phone, credit, spend
+    } },
+  'payments.summary':  { kinds: ['staff'], requires: ['books.view'], needs: [], cls: 'P2', scope: 'branch (Books)',
+    run: () => ({ status: 'ok', rows: 4, scope: 'all', lines: ['Collected today: ' + kes(42300), 'This month: ' + kes(612450), 'Pending: 3 · Failed: 1 · Open disputes: 0', 'Latest pending: PAY-2026-1-017 · W. K. · ' + kes(4500)] }) },
+};
+function runResolver(name, ctx, slots) {
+  const R = RESOLVERS[name]; if (!R) return { status: 'empty' };
+  if (!R.kinds.includes('any') && !R.kinds.includes(ctx.kind)) return { status: 'denied' };             // checked again here, even though the entry was visible
+  if (!R.requires.every(p => has(ctx, p))) return { status: 'denied' };
+  for (const need of R.needs) if (!need.split('|').some(n => slots[n])) return { status: 'ask', need };
+  return R.run(ctx, slots);
+}
+
+/* ════════ 8 · the decision ════════ */
+const ANSWER = 0.60, SUGGEST = 0.45, TIE = 0.04;
+function respond(personaKey, query) {
+  const t0 = performance.now(), ctx = ctxOf(personaKey);
+  const res = { ctx, query, outcome: 'none', slots: {}, nVisible: 0, hidden: [], top: null, ranked: [], resolver: null };
+  const harm = guard(query);
+  if (harm) { res.outcome = 'guard'; res.harm = harm; res.ms = performance.now() - t0; return res; }
+
+  const { text, slots } = extractSlots(query); res.slots = slots; res.unknown = unknownShare(text);
+  const vis = KB.filter(e => visible(ctx, e)), hid = KB.filter(e => !visible(ctx, e));
+  res.nVisible = vis.length; res.hidden = hid.map(e => e.id);
+  const ranked = rank(vis, text); res.ranked = ranked.slice(0, 3); res.top = ranked[0] || null;
+  const top = ranked[0], second = ranked[1], topScore = top ? top.score : 0;
+
+  // Is the best match overall one this person may not see? Then say so, rather than answer a weaker visible entry.
+  const shadow = rank(hid.filter(e => e.denied && reachable(ctx, e)), text)[0];
+  if (shadow && shadow.score >= ANSWER && (topScore < ANSWER || shadow.score >= topScore + 0.10)) {
+    res.outcome = 'restricted'; res.entry = shadow.e; res.shadowScore = shadow.score; res.ms = performance.now() - t0; return res;
+  }
+  if (top && top.score >= ANSWER) {
+    if (second && second.score >= ANSWER && top.score - second.score < TIE) { res.outcome = 'suggest'; res.close = true; res.suggestions = [top, second].map(r => r.e); res.ms = performance.now() - t0; return res; }
+    res.outcome = 'answer'; res.entry = top.e;
+    if (top.e.resolver) {
+      const r = runResolver(top.e.resolver, ctx, slots); res.resolver = { name: top.e.resolver, ...r };
+      if (r.status === 'ask') res.outcome = 'ask';
+      else if (r.status === 'empty') res.outcome = 'empty';
+      else if (r.status === 'denied') res.outcome = 'denied_resolver';
+    }
+    res.ms = performance.now() - t0; return res;
+  }
+  if (top && top.score >= SUGGEST) { res.outcome = 'suggest'; res.suggestions = ranked.filter(r => r.score >= SUGGEST).slice(0, 3).map(r => r.e); res.ms = performance.now() - t0; return res; }
+  res.outcome = 'none'; res.ms = performance.now() - t0; return res;
+}
+const labelOf = r => ({ guard: 'guard', none: 'none', suggest: 'suggest', restricted: 'denied:' + (r.entry && r.entry.id) }[r.outcome] || (r.entry && r.entry.id));
+
+/* ════════ 9 · the outside-AI payload that would be built (never sent) ════════ */
+function redact(q) {
+  const map = {}, n = {};
+  const sub = (rx, label) => { q = q.replace(rx, m => { n[label] = (n[label] || 0) + 1; const tok = `[${label}_${n[label]}]`; map[tok] = m; return tok; }); };
+  sub(RX.email, 'EMAIL'); sub(RX.pay, 'PAYMENT'); sub(RX.cust, 'CUSTOMER'); sub(RX.order, 'ORDER'); sub(RX.receipt, 'PAYMENT'); sub(RX.phone, 'PHONE'); sub(RX.digits, 'NUMBER');
+  return { text: q, map };
+}
+function buildOutside(res) {
+  const rd = redact(res.query);
+  const snippets = res.ranked.filter(r => r.e.sensitivity === 'public' && r.score > 0.15).slice(0, 2).map(r => ({ id: r.e.id, text: fill(r.e.a.textContent.trim().replace(/\s+/g, ' ')).slice(0, 160) }));
+  return { payload: {
+    route: "AiGateway::run('mimi')", mode: 'ai_public',
+    system: fill('You are Mimi, a shop assistant for {{company.name}}. Use only the snippets. Never ask for passwords, card details or PINs. If the snippets do not cover it, say so.'),
+    snippets, question: rd.text,
+    withheld: ['account data (P1)', 'business data (P2)', 'secrets (P3)', 'conversation history'],
+  }, swaps: rd.map };
+}
+
+/* ════════ 10 · playground ════════ */
+const logEl = $('#log'), formEl = $('#askForm'), qEl = $('#q'), personaEl = $('#persona'), fbEl = $('#fallback'), traceEl = $('#trace');
+let current = 'guest';
+
+(() => {
+  const groups = {};
+  Object.entries(PERSONAS).forEach(([k, p]) => { (groups[p.group] = groups[p.group] || el('optgroup', { label: p.group })).append(el('option', { value: k, text: p.label })); });
+  Object.values(groups).forEach(g => personaEl.append(g));
+})();
+
+function msg(cls, ...kids) { return el('div', { class: 'msg ' + cls }, ...kids); }
+function say(cls, ...kids) { const m = msg(cls, ...kids); logEl.append(m); logEl.scrollTop = logEl.scrollHeight; return m; }
+function chip(text, cls = '') { return el('span', { class: 'chip ' + cls, text }); }
+function htmlBlock(html) { const d = el('div'); d.innerHTML = html; return d; }
+
+function setPersona(key) {
+  current = key; const p = PERSONAS[key];
+  $('#personaNote').textContent = p.note;
+  const perms = p.perms.includes('*') ? ['* (every permission)'] : p.perms;
+  $('#permCount').textContent = `(${p.perms.includes('*') ? 'all' : p.perms.length})`;
+  const pl = $('#permList'); pl.replaceChildren(...(perms.length ? perms.map(x => chip(x, 'mono')) : [chip('none', '')]));
+  const ex = $('#examples'); ex.replaceChildren(...p.ex.map(t => { const b = el('button', { type: 'button', text: t }); b.addEventListener('click', () => ask(t)); return b; }));
+  logEl.replaceChildren(); say('sys', `Now asking as: ${p.label}. Everything below runs in this page.`);
+  traceEl.replaceChildren(row('Waiting', document.createTextNode('Ask a question and the steps appear here.')));
+}
+personaEl.addEventListener('change', () => setPersona(personaEl.value));
+
+function sourceChips(res) {
+  const e = res.entry, box = el('div', { class: 'src' });
+  box.append(chip('Answered on our server', 'ok'));
+  if (e.sensitivity === 'own') box.append(chip('your account data', 'info'));
+  if (e.sensitivity === 'restricted') box.append(chip('permission-checked', 'warn'));
+  box.append(chip(e.id, 'mono'), chip('confidence ' + (res.top.score).toFixed(2), 'mono'));
+  return box;
+}
+function followButtons(e, ctx) {
+  const opts = e.follow.map(id => KBID[id]).filter(f => f && visible(ctx, f)).slice(0, 2);
+  if (!opts.length) return null;
+  const box = el('div', { class: 'sugg' }, el('span', { class: 'fine', text: 'You might also ask:' }));
+  opts.forEach(f => { const b = el('button', { type: 'button', text: f.title }); b.addEventListener('click', () => ask(withSample(f.variants[0].text))); box.append(b); });
+  return box;
+}
+function resultList(lines) { return el('ul', { class: 'res' }, lines.map(l => el('li', { text: l }))); }
+
+function buildReply(res) {
+  const e = res.entry;
+  switch (res.outcome) {
+    case 'guard': return msg('bot', el('p', { text: fill("I'm not able to help with that. Please keep our conversation focused on {{company.name}} topics.") }), el('div', { class: 'src' }, chip('Stopped by the guard, before anything else', 'bad'), chip(res.harm, 'mono')));
+    case 'answer': case 'empty': case 'denied_resolver': case 'ask': {
+      const m = msg('bot');
+      if (res.outcome === 'ask') { m.append(el('p', { text: 'Which one? Send the number, for example ' + (res.resolver.need.includes('ordref') ? 'WNKJ-SO-00012' : res.resolver.need.includes('email') ? 'wanjiru@example.com' : 'CUST-2026-0001') + '.' })); m.append(el('div', { class: 'src' }, chip('Needs a reference', 'warn'), chip(e.id, 'mono'))); return m; }
+      if (res.outcome === 'denied_resolver') { m.append(el('p', { text: fill(e.denied ? e.denied.textContent.trim() : 'That is not available to you.') })); m.append(el('div', { class: 'src' }, chip('Refused by the resolver, not only the entry', 'bad'), chip(e.id, 'mono'))); return m; }
+      m.append(htmlBlock(fill(e.a.innerHTML)));
+      if (res.outcome === 'empty') m.append(el('p', { text: fill(e.empty ? e.empty.textContent.trim() : 'Nothing found.') }));
+      else if (res.resolver && res.resolver.lines) m.append(resultList(res.resolver.lines));
+      if (e.more && res.outcome !== 'empty') m.append(el('details', {}, el('summary', { text: 'More' }), htmlBlock(fill(e.more.innerHTML))));
+      m.append(sourceChips(res));
+      const f = followButtons(e, res.ctx); if (f) m.append(f);
+      return m;
+    }
+    case 'restricted': return msg('bot', el('p', { text: fill(e.denied.textContent.trim()) }), el('div', { class: 'src' }, chip('Not available to this account', 'bad'), chip('content withheld', 'mono')));
+    case 'suggest': {
+      const m = msg('bot', el('p', { text: res.close ? 'Two answers fit about equally well. Which did you mean?' : "I'm not sure I understood. Did you mean:" }));
+      const box = el('div', { class: 'sugg' }); res.suggestions.forEach(s => { const b = el('button', { type: 'button', text: s.title }); b.addEventListener('click', () => ask(withSample(s.variants[0].text))); box.append(b); });
+      m.append(box, el('div', { class: 'src' }, chip('Answered on our server', 'ok'), chip('asking, not guessing', 'mono'))); return m;
+    }
+    default: {
+      const ai = fbEl.value === 'ai_public';
+      return msg('bot', el('p', { text: ai ? "That isn't written down yet. In production an outside AI would be asked here, with only the redacted question and public snippets (see the trace). Nothing was sent from this page." : fill("That isn't written down yet. I've noted it so the team can add it. Meanwhile you can reach a person at {{support.email}}.") }),
+        el('div', { class: 'src' }, chip(ai ? 'Would use AI help (simulated)' : 'Logged as a gap', ai ? 'warn' : 'info')));
+    }
+  }
+}
+
+function render(res) { const m = buildReply(res); logEl.append(m); logEl.scrollTop = logEl.scrollHeight; return m; }
+
+function row(label, ...kids) { return el('div', { class: 'row' }, el('dt', { text: label }), el('dd', {}, ...kids)); }
+function renderTrace(res) {
+  const rows = [], p = PERSONAS[current], ctx = res.ctx;
+  rows.push(row('Caller', document.createTextNode(`kind “${ctx.kind}” · ${p.perms.includes('*') ? 'every permission' : p.perms.length + ' permissions'} · data scope “${ctx.scope}”`)));
+  rows.push(row('Guard', document.createTextNode(res.outcome === 'guard' ? `refused: ${res.harm}` : 'passed (harm scan ran first, locally)')));
+  if (res.outcome !== 'guard') {
+    const sl = Object.entries(res.slots); rows.push(row('Slots', document.createTextNode(sl.length ? sl.map(([k, v]) => `${k}=${v}`).join(' · ') : 'none found')));
+    const hid = el('details', {}, el('summary', { text: `${KB.length - res.nVisible} hidden from this caller` }), el('div', { class: 'fine', text: 'Debug only, never shown to the person: ' + (res.hidden.join(', ') || 'none') }));
+    rows.push(row('Candidates', document.createTextNode(`${KB.length} entries → ${res.nVisible} visible`), hid));
+    if (res.top) {
+      const bar = el('div', { class: 'bar' }, el('i'), el('b')); bar.firstChild.style.width = Math.round(res.top.score * 100) + '%'; bar.lastChild.style.left = ANSWER * 100 + '%';
+      const band = res.top.score >= ANSWER ? 'answer' : res.top.score >= SUGGEST ? 'suggest' : 'no match';
+      rows.push(row('Best match', el('div', {}, el('code', { text: res.top.e.id }), ` · ${res.top.score.toFixed(2)} · ${band}`), bar,
+        el('div', { class: 'fine', text: 'next: ' + (res.ranked.slice(1).map(r => `${r.e.id} ${r.score.toFixed(2)}`).join(' · ') || '–') })));
+    } else rows.push(row('Best match', document.createTextNode('nothing visible shares a word with the question')));
+    if (res.outcome === 'restricted') rows.push(row('Shadow pass', document.createTextNode(`a restricted topic (${res.entry.id}, ${res.shadowScore.toFixed(2)}) was asked about. Only its public refusal line was used.`)));
+    if (res.resolver) { const r = res.resolver; rows.push(row('Resolver', el('div', {}, el('code', { text: r.name }), ` → ${r.status}${r.rows ? ', ' + r.rows + ' row(s)' : ''}`), el('div', { class: 'fine', text: `class ${RESOLVERS[r.name].cls} · scope ${RESOLVERS[r.name].scope} · re-checked at run time` }))); }
+    rows.push(row('Unknown words', document.createTextNode(Math.round((res.unknown || 0) * 100) + '% of the question’s words are not in any entry' + ((res.unknown || 0) >= 0.7 ? ' → likely another language' : ''))));
+  }
+  const fin = { guard: 'Refused locally', answer: 'Answered locally', empty: 'Answered locally (nothing found)', denied_resolver: 'Refused locally', ask: 'Asked for a reference', restricted: 'Refused locally', suggest: 'Asked which was meant', none: fbEl.value === 'ai_public' ? 'Would fall back to an outside AI' : 'Stayed local; logged as a gap' }[res.outcome];
+  rows.push(row('Outcome', el('strong', { text: fin }), ` · ${res.ms.toFixed(1)} ms`));
+  if (res.outcome === 'none' && fbEl.value === 'ai_public') {
+    const o = buildOutside(res), pre = el('pre'); pre.append(el('code', { text: JSON.stringify(o.payload, null, 2) }));
+    rows.push(row('Would leave', el('div', { class: 'fine', text: 'Everything below, and only this. Never sent from this page.' }), pre, el('div', { class: 'fine', text: Object.keys(o.swaps).length ? 'Kept on our server and swapped back into the reply: ' + Object.keys(o.swaps).join(', ') : 'No personal values were found to swap out.' })));
+  } else rows.push(row('Left the server', document.createTextNode('nothing')));
+  traceEl.replaceChildren(...rows);
+}
+
+function ask(text) {
+  text = (text || '').trim(); if (!text) return;
+  say('me', document.createTextNode(text));
+  const res = respond(current, text);
+  render(res); renderTrace(res);
+  $('#netCount').textContent = String(net.calls);
+}
+formEl.addEventListener('submit', ev => { ev.preventDefault(); const v = qEl.value; qEl.value = ''; ask(v); qEl.focus(); });
+
+/* ════════ 11 · the knowledge cards (chapter 14): metadata chips and filter ════════ */
+KB.forEach(e => {
+  const m = el('ul', { class: 'meta' });
+  e.audience.forEach(a => m.append(el('li', {}, chip(a === 'any' ? 'everyone' : a, 'info'))));
+  e.requires.forEach(r => m.append(el('li', {}, chip(r, 'mono'))));
+  m.append(el('li', {}, chip(e.sensitivity, e.sensitivity === 'public' ? 'ok' : e.sensitivity === 'own' ? 'info' : 'warn')));
+  if (e.resolver) m.append(el('li', {}, chip('resolver: ' + e.resolver, 'pri mono')));
+  if (e.status === 'planned') m.append(el('li', {}, chip('planned behaviour', 'warn')));
+  if (!e.reviewed) m.append(el('li', {}, chip('draft', 'warn')));
+  m.append(el('li', {}, chip('#' + e.id, 'mono')));
+  $('.kb-title', e.node).after(m);
+});
+$$('#kbfilter button').forEach(b => b.addEventListener('click', () => {
+  $$('#kbfilter button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  const f = b.dataset.f;
+  KB.forEach(e => { e.node.hidden = f !== 'all' && !e.audience.includes(f); });
+}));
+
+/* ════════ 12 · self-test ════════ */
+function runSelfTest() {
+  const results = [], add = (name, fails, note) => results.push({ name, fails, note });
+  const personas = Object.keys(PERSONAS);
+
+  // 1 · lint
+  { const f = [], ids = new Set();
+    KB.forEach(e => {
+      if (ids.has(e.id)) f.push(e.id + ': duplicate id'); ids.add(e.id);
+      if (!/^[a-z]+\.[a-z0-9-]+$/.test(e.id)) f.push(e.id + ': id is not area.topic');
+      if (!e.audience.length || e.audience.some(a => a !== 'any' && !KINDS.includes(a))) f.push(e.id + ': audience must be account kinds or "any"');
+      e.requires.forEach(r => { if (!CATALOGUE_KEYS.has(r)) f.push(`${e.id}: "${r}" is not in the permission catalogue`); });
+      [...e.audience, ...e.requires].forEach(t => { if (ROLE_WORDS.some(w => t === w)) f.push(`${e.id}: role name “${t}” in an attribute`); });
+      if (e.variants.length < 3) f.push(e.id + ': needs at least 3 question variants');
+      if (!['public', 'own', 'restricted'].includes(e.sensitivity)) f.push(e.id + ': sensitivity must be public, own or restricted');
+      if (e.sensitivity === 'public' && e.requires.length) f.push(e.id + ': a public entry cannot require a permission');
+      if (!e.a || !e.a.textContent.trim()) f.push(e.id + ': empty answer');
+      const needsDenied = KINDS.some(k => { const c = { kind: k, perms: [] }; return reachable(c, e) && !visible(c, e); });
+      if (needsDenied && !e.denied) f.push(e.id + ': someone could reach this topic but not see it, so it needs a “when not allowed” line');
+      if (e.resolver && !RESOLVERS[e.resolver]) f.push(`${e.id}: unknown resolver ${e.resolver}`);
+      e.follow.forEach(x => { if (!KBID[x]) f.push(`${e.id}: follow target ${x} does not exist`); });
+    });
+    add('KB lint', f, `${KB.length} entries, ${CATALOGUE_KEYS.size} catalogue keys known`); }
+
+  // 2 · leak matrix: every entry × every kind of caller
+  { const f = []; let pairs = 0;
+    KB.forEach(e => {
+      const q = withSample(e.variants[0].text), probe = e.a.textContent.trim().replace(/\s+/g, ' ').slice(0, 28);
+      personas.forEach(p => {
+        const r = respond(p, q), P = PERSONAS[p]; pairs++;
+        // the oracle reads the declared rules directly, so a bug in visible() cannot hide itself
+        const ok = (e.audience.includes('any') || e.audience.includes(P.kind)) && e.requires.every(x => P.perms.includes('*') || P.perms.includes(x));
+        const shown = buildReply(r).textContent;
+        if (ok && labelOf(r) !== e.id) f.push(`${p} should get ${e.id} but got ${labelOf(r)}`);
+        if (!ok && (r.entry === e && r.outcome !== 'restricted')) f.push(`${p} was answered from ${e.id} without access`);
+        if (!ok && probe.length > 12 && fill(shown).includes(fill(probe))) f.push(`${p} was shown text from ${e.id} without access`);
+      });
+    });
+    add('Leak matrix', f, `${KB.length} entries × ${personas.length} callers = ${pairs} checks`); }
+
+  // 3 · golden questions
+  { const f = [], all = JSON.parse($('#golden').textContent), G = all.filter(g => g[3] !== 'stretch'), S = all.filter(g => g[3] === 'stretch'), missed = [];
+    G.forEach(([p, q, want]) => { const got = labelOf(respond(p, q)); if (!want.split('|').includes(got)) f.push(`${p}: “${q}” → ${got} (wanted ${want})`); });
+    S.forEach(([p, q, want]) => { const got = labelOf(respond(p, q)); if (!want.split('|').includes(got)) missed.push(`${p}: “${q}” → ${got} (wanted ${want})`); });
+    add('Golden questions', f, `${G.length} paraphrases across ${new Set(G.map(g => g[0])).size} callers`);
+    const last = results[results.length - 1];
+    last.extra = S.length ? `Stretch set: ${S.length - missed.length} of ${S.length} hit. Misses are expected in phase 1; they are what the trained NLP is for.` : ''; last.missed = missed; }
+
+  // 4 · resolver guard: a resolver must refuse anyone who could not reach any entry that uses it
+  { const f = []; let n = 0;
+    const oracle = (p, e) => { const P = PERSONAS[p]; return (e.audience.includes('any') || e.audience.includes(P.kind)) && e.requires.every(x => P.perms.includes('*') || P.perms.includes(x)); };
+    Object.keys(RESOLVERS).forEach(name => personas.forEach(p => {
+      const users = KB.filter(e => e.resolver === name), eligible = users.some(e => oracle(p, e)); n++;
+      const slots = { ordref: 'WNKJ-SO-00012', custref: 'CUST-2026-0001', email: 'wanjiru@example.com' }, s = runResolver(name, ctxOf(p), slots).status;
+      if (!eligible && s !== 'denied') f.push(`${name} ran for ${p}, who can reach none of its entries (${s})`);
+      if (eligible && s === 'denied') f.push(`${name} refused ${p}, who can reach an entry that uses it`);
+    }));
+    add('Resolver guard', f, `${Object.keys(RESOLVERS).length} resolvers × ${personas.length} callers = ${n} direct calls, judged by the entries that use each resolver`); }
+
+  // 5 · scope: same words for “not found” and “not yours”
+  { const f = [], a = runResolver('orders.lookup', ctxOf('salesrep'), { ordref: 'WNKJ-SO-00015' }), b = runResolver('orders.lookup', ctxOf('salesrep'), { ordref: 'WNKJ-SO-99999' });
+    if (a.status !== 'empty' || b.status !== 'empty') f.push('an order outside the sales rep’s scope and one that does not exist must both come back “empty”');
+    const c = runResolver('orders.lookup', ctxOf('salesrep'), { ordref: 'WNKJ-SO-00012' }); if (c.status !== 'ok') f.push('an assigned customer’s order should be found');
+    const d = runResolver('customers.lookup', ctxOf('finance'), { email: 'wanjiru@example.com' }); if (d.status === 'ok' && /@|phone|credit|spend/i.test(d.lines.join(' '))) f.push('customer lookup leaked a field outside its allowlist');
+    add('Scope and allowlist', f, 'not-found and not-yours look identical; customer lookup shows no contact details'); }
+
+  // 6 · network
+  add('No network', net.calls ? [`${net.calls} network call(s) were made`] : [], 'fetch, XHR and beacon calls counted since the page loaded');
+  return results;
+}
+$('#runTests').addEventListener('click', () => {
+  const out = $('#testOut'); out.replaceChildren();
+  const res = runSelfTest();
+  const passed = res.filter(r => !r.fails.length).length;
+  $('#testNote').textContent = `${passed} of ${res.length} groups passed`;
+  res.forEach(r => {
+    const ok = !r.fails.length, body = el('div', {}, el('strong', { text: r.name }), ' ', el('span', { class: 'fine', text: ok ? r.note : `${r.fails.length} problem(s)` }));
+    if (!ok) body.append(el('ul', {}, r.fails.slice(0, 12).map(x => el('li', { text: x }))));
+    if (r.extra) { body.append(el('div', { class: 'fine', text: r.extra })); if (r.missed && r.missed.length) body.append(el('ul', { class: 'fine' }, r.missed.map(x => el('li', { text: x })))); }
+    out.append(el('div', { class: 'st-row ' + (ok ? 'pass' : 'fail') }, el('span', { class: 'badge', text: ok ? 'PASS' : 'FAIL' }), body));
+  });
+  $('#netCount').textContent = String(net.calls);
+});
+
+setPersona('guest');
+window.__mimi = { respond, runSelfTest, labelOf, KB, tokens, ANSWER, SUGGEST, TIE };      // handy for the console
+})();
+</script>
+</body>
+</html>
