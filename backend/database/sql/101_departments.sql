@@ -82,6 +82,10 @@ FROM (SELECT 'Sales' AS name, 1 AS o UNION ALL SELECT 'Procurement', 2 UNION ALL
       UNION ALL SELECT 'Marketing', 9 UNION ALL SELECT 'Administration', 10 UNION ALL SELECT 'Production', 11 UNION ALL SELECT 'Stores', 12) n
 WHERE NOT EXISTS (SELECT 1 FROM standard_departments s WHERE s.name = n.name);
 
+-- The rest of the database compares text in utf8mb4_unicode_ci; make these tables match (safe to repeat).
+ALTER TABLE departments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+ALTER TABLE standard_departments CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS employee_cost_centres (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     employee_id BIGINT UNSIGNED NOT NULL,
@@ -127,20 +131,20 @@ INSERT INTO departments (location_id, name, is_active, created_at, updated_at)
 SELECT DISTINCT e.location_id, TRIM(e.department), 1, NOW(), NOW()
 FROM employees e
 WHERE e.location_id IS NOT NULL AND TRIM(COALESCE(e.department, '')) <> ''
-  AND NOT EXISTS (SELECT 1 FROM departments d WHERE d.location_id = e.location_id AND d.name = TRIM(e.department));
+  AND NOT EXISTS (SELECT 1 FROM departments d WHERE d.location_id = e.location_id AND d.name = TRIM(e.department) COLLATE utf8mb4_unicode_ci);
 
 -- 3. each department gets its own cost centre, under its branch's cost centre
 INSERT INTO cost_centres (parent_id, location_id, name, code, type, purpose, is_system, is_active, sort_order, created_at, updated_at)
 SELECT l.cost_centre_id, d.location_id, d.name, CONCAT('DEP-', d.id), 'other', 'department', 0, 1, 100, NOW(), NOW()
 FROM departments d JOIN locations l ON l.id = d.location_id
 WHERE d.cost_centre_id IS NULL AND l.cost_centre_id IS NOT NULL
-  AND NOT EXISTS (SELECT 1 FROM cost_centres c WHERE c.code = CONCAT('DEP-', d.id));
+  AND NOT EXISTS (SELECT 1 FROM cost_centres c WHERE c.code = CONCAT('DEP-', d.id) COLLATE utf8mb4_unicode_ci);
 
-UPDATE departments d JOIN cost_centres c ON c.code = CONCAT('DEP-', d.id) SET d.cost_centre_id = c.id WHERE d.id > 0 AND d.cost_centre_id IS NULL;
+UPDATE departments d JOIN cost_centres c ON c.code = CONCAT('DEP-', d.id) COLLATE utf8mb4_unicode_ci SET d.cost_centre_id = c.id WHERE d.id > 0 AND d.cost_centre_id IS NULL;
 
 -- 4. each employee's department
 UPDATE employees e
-JOIN departments d ON d.location_id = e.location_id AND d.name = TRIM(e.department)
+JOIN departments d ON d.location_id = e.location_id AND d.name = TRIM(e.department) COLLATE utf8mb4_unicode_ci
 SET e.department_id = d.id
 WHERE e.id > 0 AND e.department_id IS NULL;
 
