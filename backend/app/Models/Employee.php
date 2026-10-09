@@ -19,6 +19,8 @@ class Employee extends Model
         'employee_id',
         'job_title',
         'department',
+        'location_id',
+        'department_id',
         'employment_type',
         'hire_date',
         'termination_date',
@@ -202,6 +204,21 @@ class Employee extends Model
     public function scopeTerminated($query)
     {
         return $query->where('status', 'terminated');
+    }
+
+    public function departmentRecord()
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function location()
+    {
+        return $this->belongsTo(Location::class, 'location_id');
+    }
+
+    public function costCentreShares()
+    {
+        return $this->hasMany(EmployeeCostCentre::class);
     }
 
     /**

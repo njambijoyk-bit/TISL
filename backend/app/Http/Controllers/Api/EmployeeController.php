@@ -91,6 +91,9 @@ class EmployeeController extends Controller
 
         $employee = Employee::with(['user', 'manager.user', 'subordinates.user', 'assignedCustomers'])
             ->findOrFail($id);
+        if (\App\Models\Department::ready()) {
+            $employee->load(['location:id,name,code', 'departmentRecord:id,name,location_id,cost_centre_id']);
+        }
 
         return response()->json([
             'employee' => $employee,
@@ -123,7 +126,9 @@ class EmployeeController extends Controller
             // Employee fields
             'employee_id' => 'nullable|string|unique:employees,employee_id',
             'job_title' => 'required|string|max:255',
-            'department' => 'required|string|max:255',
+            'department' => 'required_without:department_id|nullable|string|max:255',
+            'location_id' => 'nullable|integer|exists:locations,id',
+            'department_id' => 'nullable|integer|exists:departments,id',
             'employment_type' => 'required|in:full_time,part_time,contract,intern',
             'hire_date' => 'nullable|date',
             'manager_id' => 'nullable|exists:employees,id',
@@ -201,7 +206,10 @@ class EmployeeController extends Controller
                 ]);
             }
 
-            $employee = Employee::create([
+            // a branch and department chosen on the form also fill the old text columns, so everything still reading the text keeps working
+            $org = \App\Models\Department::ready() ? app(\App\Services\Departments\DepartmentService::class)->textFor($request->integer('location_id') ?: null, $request->integer('department_id') ?: null) : [];
+
+            $employee = Employee::create($org + [
                 'user_id' => $user->id,
                 'employee_id' => $request->employee_id,
                 'job_title' => $request->job_title,
@@ -235,10 +243,14 @@ class EmployeeController extends Controller
                 'created_by' => $request->user()->id,
             ]);
 
+            if ($org) {
+                app(\App\Services\Departments\DepartmentService::class)->setHome($employee);
+            }
+
             // Update user with employee_id and department
             $user->update([
                 'employee_id' => $request->employee_id ?? $employee->employee_number,
-                'department' => $request->department,
+                'department' => $employee->department,
             ]);
 
             DB::commit();
@@ -287,6 +299,8 @@ class EmployeeController extends Controller
             'employee_id' => 'nullable|string|unique:employees,employee_id,' . $id,
             'job_title' => 'string|max:255',
             'department' => 'string|max:255',
+            'location_id' => 'nullable|integer|exists:locations,id',
+            'department_id' => 'nullable|integer|exists:departments,id',
             'employment_type' => 'in:full_time,part_time,contract,intern',
             'hire_date' => 'nullable|date',
             'termination_date' => 'nullable|date',
@@ -368,7 +382,9 @@ class EmployeeController extends Controller
 
         DB::beginTransaction();
         try {
-            $employee->update($request->only([
+            $org = \App\Models\Department::ready() && ($request->filled('department_id') || $request->filled('location_id'))
+                ? app(\App\Services\Departments\DepartmentService::class)->textFor($request->integer('location_id') ?: $employee->location_id, $request->integer('department_id') ?: null) : [];
+            $employee->update($org + $request->only([
                 'employee_id', 'job_title', 'department', 'employment_type',
                 'hire_date', 'termination_date', 'manager_id', 'work_location',
                 'work_phone', 'work_email', 'emergency_contact_name',
@@ -384,7 +400,7 @@ class EmployeeController extends Controller
             if ($request->filled('employee_id') || $request->filled('department') || $request->filled('role')) {
                 $updateData = [
                     'employee_id' => $request->employee_id ?? $employee->employee_id,
-                    'department'  => $request->department  ?? $employee->department,
+                    'department'  => $org['department'] ?? $request->department ?? $employee->department,
                 ];
 
                 if ($request->filled('role')) {
@@ -392,6 +408,13 @@ class EmployeeController extends Controller
                 }
 
                 $employee->user->update($updateData);
+            }
+
+            if (isset($org['department_id'])) {
+                app(\App\Services\Departments\DepartmentService::class)->setHome($employee->fresh());
+            }
+            if (isset($org['department']) && ! $request->filled('employee_id') && ! $request->filled('role')) {
+                $employee->user?->update(['department' => $org['department']]);
             }
 
             // Handle status changes

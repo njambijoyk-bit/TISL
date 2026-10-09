@@ -1035,6 +1035,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/{id}',            [$c, 'update'])->whereNumber('id')->middleware('permission:costcentres.manage');
             Route::delete('/{id}',         [$c, 'destroy'])->whereNumber('id')->middleware('permission:costcentres.manage');
         });
+        Route::prefix('departments')->group(function () {
+            $c = \App\Http\Controllers\Api\DepartmentController::class;
+            Route::get('/',            [$c, 'index'])->middleware('permission:hr.view,hr.manage,hr.team');
+            Route::post('/',           [$c, 'store'])->middleware('permission:hr.manage');
+            Route::post('/bulk',       [$c, 'bulk'])->middleware('permission:hr.manage');
+            Route::post('/standard',   [$c, 'addStandard'])->middleware('permission:hr.manage');
+            Route::delete('/standard', [$c, 'removeStandard'])->middleware('permission:hr.manage');
+            Route::put('/{id}',        [$c, 'update'])->whereNumber('id')->middleware('permission:hr.manage');
+            Route::delete('/{id}',     [$c, 'destroy'])->whereNumber('id')->middleware('permission:hr.manage');
+        });
+        Route::get('/employee-cost-centres/{id}', [\App\Http\Controllers\Api\DepartmentController::class, 'shares'])->whereNumber('id')->middleware('permission:hr.view,hr.manage');
+        Route::put('/employee-cost-centres/{id}', [\App\Http\Controllers\Api\DepartmentController::class, 'saveShares'])->whereNumber('id')->middleware('permission:hr.manage');
         Route::get('/activity-feed', [\App\Http\Controllers\Api\ActivityFeedController::class, 'index']);
 
         // All auction activity across auctions (the Activity logs > Auctions tab)

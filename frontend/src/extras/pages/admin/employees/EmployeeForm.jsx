@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Save, User, Mail, Phone, Briefcase, Building2,
@@ -8,6 +8,9 @@ import {
 import toast from 'react-hot-toast';
 import employeesApi from '../../../../_shared/api/employees';
 import currencyAPI from '../../../../_shared/api/currency';
+import departmentsAPI from '../../../../_shared/api/departments';
+import locationsAPI from '../../../../_shared/api/locations';
+import CostCentreShares from './CostCentreShares';
 import { getBaseCode } from '../../../../_shared/lib/baseCurrency';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -49,7 +52,7 @@ const canBeManager = (roleMin, managerClearance) => roleMin != null && (managerC
 const EMPTY_FORM = {
   name: '', email: '', phone: '',
   role: '',
-  employee_id: '', job_title: '', department: '',
+  employee_id: '', job_title: '', department: '', location_id: '', department_id: '',
   employment_type: 'full_time', hire_date: '',
   work_location: '', work_email: '', work_phone: '',
   manager_id: '', status: 'active',
@@ -165,6 +168,8 @@ export default function EmployeeForm() {
   const [currencies, setCurrencies]       = useState([]);
   const [errors, setErrors]               = useState({});
   const [form, setForm]                   = useState(EMPTY_FORM);
+  const [org, setOrg]                     = useState({ ready: false, branches: [], departments: [] });   // branches and departments (script 101); the old text boxes show until it has run
+  const sharesRef                         = useRef({ touched: false, rows: [] });
   const [roleDefs, setRoleDefs]           = useState([]);   // the roles this person may give: [{ key, name, min_clearance }]
   const [allRoles, setAllRoles]           = useState([]);   // every staff role with the clearance it needs (to tell who may supervise a role you cannot give)
   const [levelNames, setLevelNames]       = useState({});
@@ -179,6 +184,7 @@ export default function EmployeeForm() {
   })();
 
   useEffect(() => {
+    Promise.all([departmentsAPI.list(), locationsAPI.getAdmin()]).then(([d, l]) => setOrg({ ready: Boolean(d.ready), departments: d.data ?? [], branches: (l.locations ?? []).filter((x) => x.is_active !== false) })).catch(() => {});
     employeesApi.getRoles().then((r) => { setRoleDefs(r.data || []); setAllRoles(r.all || []); setLevelNames(r.levels || {}); }).catch(() => {});
     fetchManagers();
     fetchCurrencies();
@@ -237,7 +243,7 @@ export default function EmployeeForm() {
       setForm({
         name: emp.user?.name || '', email: emp.user?.email || '', phone: emp.user?.phone || '',
         employee_id: emp.employee_id || '', job_title: emp.job_title || '',role: emp.user?.role || '',
-        department: emp.department || '', employment_type: emp.employment_type || 'full_time',
+        department: emp.department || '', location_id: emp.location_id || '', department_id: emp.department_id || '', employment_type: emp.employment_type || 'full_time',
         hire_date: toDateInput(emp.hire_date), work_location: emp.work_location || '',
         work_email: emp.work_email || '', work_phone: emp.work_phone || '',
         manager_id: emp.manager_id || '', status: emp.status || 'active',
@@ -273,7 +279,8 @@ export default function EmployeeForm() {
     if (!form.name.trim())       e.name       = 'Name is required';
     if (!form.email.trim())      e.email      = 'Email is required';
     if (!form.job_title.trim())  e.job_title  = 'Job title is required';
-    if (!form.department.trim()) e.department = 'Department is required';
+    if (!org.ready && !form.department.trim()) e.department = 'Department is required';
+    if (org.ready && !form.department_id) e.department_id = 'Choose a department';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -283,12 +290,17 @@ export default function EmployeeForm() {
     if (!validate()) return;
     setSaving(true);
     try {
+      let savedId = id;
       if (isEditing) { 
         await employeesApi.updateEmployee(id, form); 
         toast.success('Employee updated'); 
       } else { 
-        await employeesApi.createEmployee(form); 
+        const res = await employeesApi.createEmployee(form); 
+        savedId = res.employee?.id;
         toast.success('Employee created'); 
+      }
+      if (org.ready && sharesRef.current.touched && savedId) {
+        try { await departmentsAPI.saveShares(savedId, sharesRef.current.rows); } catch (e2) { toast.error(e2.response?.data?.errors?.shares?.[0] || e2.response?.data?.message || 'The cost centre shares were not saved'); return; }
       }
       navigate('/admin/employees');
     } catch (err) {
@@ -380,9 +392,23 @@ export default function EmployeeForm() {
           <Field label="Job Title" required error={errors.job_title}>
             <Input value={form.job_title} onChange={v => set('job_title', v)} error={errors.job_title} icon={Briefcase} placeholder="Software Engineer" />
           </Field>
-          <Field label="Department" required error={errors.department}>
-            <Input value={form.department} onChange={v => set('department', v)} error={errors.department} icon={Building2} placeholder="Engineering" />
-          </Field>
+          {org.ready ? (
+            <>
+              <Field label="Branch" required>
+                <Select value={form.location_id} onChange={v => setForm(f => ({ ...f, location_id: v ? Number(v) : '', department_id: '', department: '', work_location: '' }))}
+                  options={[{ value: '', label: 'Choose a branch' }, ...org.branches.map(b => ({ value: b.id, label: b.name }))]} />
+              </Field>
+              <Field label="Department" required error={errors.department_id}>
+                <Select value={form.department_id} error={errors.department_id}
+                  onChange={v => { const d = org.departments.find(x => x.id === Number(v)); setForm(f => ({ ...f, department_id: v ? Number(v) : '', department: d?.name ?? '' })); }}
+                  options={[{ value: '', label: form.location_id ? 'Choose a department' : 'Choose a branch first' }, ...org.departments.filter(d => Number(d.location_id) === Number(form.location_id)).map(d => ({ value: d.id, label: d.name }))]} />
+              </Field>
+            </>
+          ) : (
+            <Field label="Department" required error={errors.department}>
+              <Input value={form.department} onChange={v => set('department', v)} error={errors.department} icon={Building2} placeholder="Engineering" />
+            </Field>
+          )}
           <Field label="Employment Type">
             <Select value={form.employment_type} onChange={v => set('employment_type', v)} options={EMPLOYMENT_TYPES} />
           </Field>
@@ -392,9 +418,11 @@ export default function EmployeeForm() {
           <Field label="Hire Date">
             <input type="date" value={form.hire_date} onChange={e => set('hire_date', e.target.value)} style={baseInput} onFocus={iFocus} onBlur={iBlur} />
           </Field>
-          <Field label="Work Location">
-            <Input value={form.work_location} onChange={v => set('work_location', v)} icon={MapPin} placeholder="Nairobi HQ" />
-          </Field>
+          {!org.ready && (
+            <Field label="Work Location">
+              <Input value={form.work_location} onChange={v => set('work_location', v)} icon={MapPin} placeholder="Nairobi HQ" />
+            </Field>
+          )}
           <Field label="Work Email">
             <Input value={form.work_email} onChange={v => set('work_email', v)} type="email" icon={Mail} placeholder="work@company.com" />
           </Field>
@@ -484,6 +512,7 @@ export default function EmployeeForm() {
             </div>
           </Field>
         </Grid>
+        {org.ready && form.department_id && <CostCentreShares employeeId={isEditing ? id : null} homeCostCentreId={org.departments.find(d => d.id === Number(form.department_id))?.cost_centre_id} sharesRef={sharesRef} />}
       </SectionCard>
 
       {/* ── Personal ── */}
