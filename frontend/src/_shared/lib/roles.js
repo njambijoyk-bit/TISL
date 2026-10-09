@@ -44,6 +44,8 @@ export const roleName = (user, access = accessOf()) => {
 export const branchLimit = (area) => {
   const a = accessOf();
   if (!a?.scope || a.scope.global || a.scope.open || a.branch_limits?.[area] !== 'on') return null;
+  // given cost centres only (no branch): they pick any branch and the server decides by the cost centre
+  if (!Object.keys(a.scope.locations ?? {}).length && Object.keys(a.scope.cost_centres ?? {}).length) return null;
   return Object.keys(a.scope.locations ?? {}).map(Number);
 };
 

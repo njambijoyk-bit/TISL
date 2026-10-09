@@ -21,21 +21,21 @@ class BooksVoucherController extends Controller
     /** A voucher the person may look at (branch limits: a voucher at a branch they were not given is "not found"). */
     private function visible(Voucher $v): Voucher
     {
-        app(\App\Services\Access\BranchFilter::class)->assertVisible($v->location_id ? (int) $v->location_id : null, 'books', 'voucher');
+        app(\App\Services\Access\BranchFilter::class)->assertVisible($v->location_id ? (int) $v->location_id : null, 'books', 'voucher', $v->cost_centre_id ? (int) $v->cost_centre_id : null);
 
         return $v;
     }
 
     /** Posting at a branch: needs full access to it. */
-    private function writableAt($locationId): void
+    private function writableAt($locationId, $costCentreId = null): void
     {
-        app(\App\Services\Access\BranchFilter::class)->assertWrite(request()->user(), $locationId ? (int) $locationId : null, 'books', 'voucher');
+        app(\App\Services\Access\BranchFilter::class)->assertWrite(request()->user(), $locationId ? (int) $locationId : null, 'books', 'voucher', $costCentreId ? (int) $costCentreId : null);
     }
 
     /** A voucher the person may change: needs full access to its branch. */
     private function writable(Voucher $v): Voucher
     {
-        app(\App\Services\Access\BranchFilter::class)->assertWrite(request()->user(), $v->location_id ? (int) $v->location_id : null, 'books', 'voucher');
+        app(\App\Services\Access\BranchFilter::class)->assertWrite(request()->user(), $v->location_id ? (int) $v->location_id : null, 'books', 'voucher', $v->cost_centre_id ? (int) $v->cost_centre_id : null);
 
         return $v;
     }
@@ -114,7 +114,7 @@ class BooksVoucherController extends Controller
     public function store(Request $request): JsonResponse
     {
         return $this->guard(function () use ($request) {
-            $this->writableAt($request->input('location_id') ?: \App\Models\Location::default()?->id);
+            $this->writableAt($request->input('location_id') ?: \App\Models\Location::default()?->id, $request->input('cost_centre_id'));
             $v = $this->vouchers->create($request->all(), $request->user());
 
             return response()->json(['message' => "{$v->voucher_number} saved", 'data' => $v->load($this->vouchers->relations())], 201);
@@ -126,7 +126,7 @@ class BooksVoucherController extends Controller
         return $this->guard(function () use ($request, $id) {
             $existing = $this->writable(Voucher::findOrFail($id));
             if ($request->filled('location_id')) {
-                $this->writableAt($request->input('location_id'));   // moving it to another branch needs that branch too
+                $this->writableAt($request->input('location_id'), $request->input('cost_centre_id'));   // moving it to another branch needs that branch too
             }
             $v = $this->vouchers->alter($existing, $request->all(), $request->user());
 

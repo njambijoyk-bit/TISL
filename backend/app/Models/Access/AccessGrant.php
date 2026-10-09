@@ -4,14 +4,14 @@ namespace App\Models\Access;
 
 use Illuminate\Database\Eloquent\Model;
 
-/** Extra access to a branch (later a cost centre or a company), optionally between two dates. */
+/** Extra access to a branch or a cost centre (and everything beneath it), optionally between two dates. */
 class AccessGrant extends Model
 {
     protected $table = 'user_access_grants';
     protected $fillable = ['user_id', 'resource_type', 'resource_id', 'access', 'starts_at', 'expires_at', 'granted_by', 'reason', 'status', 'revoked_by', 'revoked_at'];
     protected $casts = ['starts_at' => 'datetime', 'expires_at' => 'datetime', 'revoked_at' => 'datetime', 'resource_id' => 'integer'];
 
-    public const TYPES = ['location'];   // cost_centre and entity are added when those exist
+    public const TYPES = ['location', 'cost_centre'];
 
     public function current(?\DateTimeInterface $at = null): bool
     {

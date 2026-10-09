@@ -129,11 +129,12 @@ export default function PersonPanel({ id, data, onClose, onChanged }) {
               onClick={() => run(() => accessAPI.setDefaultLocation(u.id, branch ? Number(branch) : null), 'Default branch saved')}><Save size={14} /> Save</button>
           </div>
 
-          <h4 style={{ ...title, marginTop: 14, fontSize: '0.78rem' }}>Extra branch access</h4>
-          {d.grants.length === 0 && <p style={sub}>None. Give access to another branch, for a while or for good.</p>}
+          <h4 style={{ ...title, marginTop: 14, fontSize: '0.78rem' }}>Extra branch and cost centre access</h4>
+          {d.grants.length === 0 && <p style={sub}>None. Give access to another branch or to a cost centre (with everything under it), for a while or for good.</p>}
           {d.grants.map((g) => (
             <div key={g.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0', flexWrap: 'wrap', opacity: g.status === 'revoked' ? 0.55 : 1 }}>
-              <strong style={{ fontSize: '0.85rem' }}>{g.name ?? `Branch ${g.resource_id}`}</strong>
+              <strong style={{ fontSize: '0.85rem' }}>{g.name ?? `${g.resource_type === 'cost_centre' ? 'Cost centre' : 'Branch'} ${g.resource_id}`}</strong>
+              {g.resource_type === 'cost_centre' && <span style={chip('#6366f1')}>Cost centre</span>}
               <span style={chip()}>{g.access === 'full' ? 'Full' : 'View only'}</span>
               <span style={chip(g.status === 'revoked' ? '#9ca3af' : g.in_force ? '#16a34a' : '#d97706')}>{g.status === 'revoked' ? 'Taken away' : g.in_force ? 'In force' : 'Not in force'}</span>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', flex: 1 }}>
@@ -145,9 +146,10 @@ export default function PersonPanel({ id, data, onClose, onChanged }) {
             </div>
           ))}
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.2fr) minmax(0,0.8fr)', gap: 8, marginTop: 8 }}>
-            <select style={input} value={grant.resource_id} disabled={off} onChange={(e) => setGrant({ ...grant, resource_id: e.target.value })} aria-label="Branch">
-              <option value="">Give access to a branch…</option>
-              {data.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            <select style={input} value={grant.resource_id} disabled={off} onChange={(e) => setGrant({ ...grant, resource_id: e.target.value })} aria-label="Branch or cost centre">
+              <option value="">Give access to…</option>
+              <optgroup label="Branches">{data.locations.map((l) => <option key={`l${l.id}`} value={`location:${l.id}`}>{l.name}</option>)}</optgroup>
+              {(data.cost_centres ?? []).length > 0 && <optgroup label="Cost centres">{data.cost_centres.map((c) => <option key={`c${c.id}`} value={`cost_centre:${c.id}`}>{c.name}</option>)}</optgroup>}
             </select>
             <select style={input} value={grant.access} disabled={off} onChange={(e) => setGrant({ ...grant, access: e.target.value })} aria-label="Kind of access">
               <option value="full">Full access</option>
@@ -160,7 +162,7 @@ export default function PersonPanel({ id, data, onClose, onChanged }) {
           </div>
           <input style={{ ...input, marginTop: 8 }} placeholder="Why? (for example: covering the stock take)" maxLength={255} value={grant.reason} disabled={off} onChange={(e) => setGrant({ ...grant, reason: e.target.value })} />
           <button type="button" style={{ ...btn(true), marginTop: 8 }} disabled={off || !grant.resource_id}
-            onClick={() => run(() => accessAPI.addGrant(u.id, { resource_type: 'location', resource_id: Number(grant.resource_id), access: grant.access, starts_at: grant.starts_at || null, expires_at: grant.expires_at || null, reason: grant.reason || null })
+            onClick={() => run(() => accessAPI.addGrant(u.id, { resource_type: grant.resource_id.split(':')[0], resource_id: Number(grant.resource_id.split(':')[1]), access: grant.access, starts_at: grant.starts_at || null, expires_at: grant.expires_at || null, reason: grant.reason || null })
               .then((r) => { setGrant({ resource_id: '', access: 'full', starts_at: '', expires_at: '', reason: '' }); return r; }), 'Access given')}><Plus size={14} /> Give access</button>
         </div>
 

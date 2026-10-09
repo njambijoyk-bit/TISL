@@ -387,7 +387,7 @@ class Authorizer
 
         $staff = $this->staffRoles($u);
         if (collect($staff)->contains(fn ($d) => $d['scope_type'] === 'global')) {
-            return $this->memo[$memoKey] = ['global' => true, 'open' => false, 'locations' => [], 'default' => $u->default_location_id ? (int) $u->default_location_id : null];
+            return $this->memo[$memoKey] = ['global' => true, 'open' => false, 'locations' => [], 'cost_centres' => [], 'default' => $u->default_location_id ? (int) $u->default_location_id : null];
         }
 
         $locs = [];
@@ -407,9 +407,20 @@ class Authorizer
                 }
             }
         }
-        $open = ! $locs && (bool) config('access.unassigned_sees_all', true) && ! empty($staff);
+        // cost centres they were given (each with everything beneath it)
+        $ccs = [];
+        if (self::ready() && Schema::hasTable('user_access_grants') && \App\Models\CostCentre::ready()) {
+            foreach (AccessGrant::where('user_id', $u->getKey())->where('resource_type', 'cost_centre')->active()->get() as $g) {
+                if ($g->current($at)) {
+                    foreach (app(\App\Services\CostCentres\CostCentreService::class)->withDescendants((int) $g->resource_id) as $id) {
+                        $ccs[$id] = ($ccs[$id] ?? null) === 'full' || $g->access === 'full' ? 'full' : 'view';
+                    }
+                }
+            }
+        }
+        $open = ! $locs && ! $ccs && (bool) config('access.unassigned_sees_all', true) && ! empty($staff);
 
-        return $this->memo[$memoKey] = ['global' => false, 'open' => $open, 'locations' => $locs, 'default' => $u->default_location_id ? (int) $u->default_location_id : null];
+        return $this->memo[$memoKey] = ['global' => false, 'open' => $open, 'locations' => $locs, 'cost_centres' => $ccs, 'default' => $u->default_location_id ? (int) $u->default_location_id : null];
     }
 
     /** Branch ids a person may use, or null for every branch. */
@@ -418,6 +429,26 @@ class Authorizer
         $s = $this->scope($u);
 
         return $s['global'] || $s['open'] ? null : array_keys($s['locations']);
+    }
+
+    /** Cost centre ids (with everything beneath each) they were given, or null when they have none or nothing limits them. */
+    public function costCentreIds(User $u): ?array
+    {
+        $s = $this->scope($u);
+
+        return $s['global'] || $s['open'] || empty($s['cost_centres']) ? null : array_keys($s['cost_centres']);
+    }
+
+    /** May they use this cost centre (given directly or by a cost centre above it)? Writing needs "full". */
+    public function canAccessCostCentre(User $u, int $costCentreId, bool $forWriting = false): bool
+    {
+        $s = $this->scope($u);
+        if ($s['global'] || $s['open']) {
+            return true;
+        }
+        $level = $s['cost_centres'][$costCentreId] ?? null;
+
+        return $level !== null && (! $forWriting || $level === 'full');
     }
 
     /** May they use this branch? Writing needs "full" access; looking at it only needs any. */

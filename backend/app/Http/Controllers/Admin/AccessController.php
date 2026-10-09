@@ -61,6 +61,7 @@ class AccessController extends Controller
             'scope_mode' => app(AccessSettings::class)->mode('general'),
             'scope' => $this->scopeSummary(),
             'locations' => Location::orderBy('name')->get(['id', 'name']),
+            'cost_centres' => \App\Models\CostCentre::ready() ? \App\Models\CostCentre::active()->orderBy('name')->get(['id', 'name', 'parent_id']) : [],
         ]);
     }
 
@@ -272,6 +273,9 @@ class AccessController extends Controller
         if ($d['resource_type'] === 'location' && ! Location::whereKey($d['resource_id'])->exists()) {
             return $this->refuse('That branch does not exist.');
         }
+        if ($d['resource_type'] === 'cost_centre' && (! \App\Models\CostCentre::ready() || ! \App\Models\CostCentre::whereKey($d['resource_id'])->exists())) {
+            return $this->refuse('That cost centre does not exist.');
+        }
         $g = AccessGrant::create(['user_id' => $target->id, 'resource_type' => $d['resource_type'], 'resource_id' => $d['resource_id'], 'access' => $d['access'] ?? 'full',
             'starts_at' => $d['starts_at'] ?? null, 'expires_at' => $d['expires_at'] ?? null, 'granted_by' => $request->user()->id, 'reason' => $d['reason'] ?? null, 'status' => 'active']);
         $this->access->forget((int) $target->id);
@@ -454,8 +458,9 @@ class AccessController extends Controller
         $roles = UserRole::with('role:id,key,name,min_clearance,kind')->where('user_id', $u->id)->get()->map(fn (UserRole $ur) => ['role_id' => $ur->role_id, 'key' => $ur->role?->key, 'name' => $ur->role?->name,
             'primary' => (bool) $ur->is_primary || $ur->role?->key === $u->role, 'starts_at' => $ur->starts_at?->toIso8601String(), 'expires_at' => $ur->expires_at?->toIso8601String(), 'in_force' => $ur->current()])->values();
         $names = Location::pluck('name', 'id');
+        $ccNames = \App\Models\CostCentre::ready() ? \App\Models\CostCentre::pluck('name', 'id') : collect();
         $grants = AccessGrant::where('user_id', $u->id)->orderByDesc('id')->get()->map(fn (AccessGrant $g) => ['id' => $g->id, 'resource_type' => $g->resource_type, 'resource_id' => $g->resource_id,
-            'name' => $names[$g->resource_id] ?? null, 'access' => $g->access, 'starts_at' => $g->starts_at?->toIso8601String(), 'expires_at' => $g->expires_at?->toIso8601String(), 'reason' => $g->reason,
+            'name' => ($g->resource_type === 'cost_centre' ? $ccNames : $names)[$g->resource_id] ?? null, 'access' => $g->access, 'starts_at' => $g->starts_at?->toIso8601String(), 'expires_at' => $g->expires_at?->toIso8601String(), 'reason' => $g->reason,
             'status' => $g->status, 'in_force' => $g->current()])->values();
 
         return ['user' => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->role, 'clearance_level' => (int) $u->clearance_level, 'default_location_id' => $u->default_location_id],

@@ -63,7 +63,19 @@ class BranchFilter
             return $query;
         }
 
-        return $query->where(fn ($w) => $w->whereIn($column, $ids)->orWhereNull($column));
+        // a cost centre they were given shows its records even at a branch that is not theirs (books vouchers only: those carry cost_centre_id)
+        $ccs = $area === 'books' && preg_match('/(^|\.)location_id$/', $column) ? $this->costCentres() : null;
+        $ccColumn = preg_replace('/location_id$/', 'cost_centre_id', $column);
+
+        return $query->where(fn ($w) => $w->whereIn($column, $ids)->orWhereNull($column)->when($ccs, fn ($x) => $x->orWhereIn($ccColumn, $ccs)));
+    }
+
+    /** The cost centres this person was given, or null. */
+    private function costCentres(?User $u = null): ?array
+    {
+        $u = $this->actor($u);
+
+        return $u && $this->access->isStaff($u) ? $this->access->costCentreIds($u) : null;
     }
 
     /** Like apply(), for a record that belongs to two branches (a transfer): visible when either end is the person's. */
@@ -122,10 +134,13 @@ class BranchFilter
     }
 
     /** A single record (a voucher): visible to this person? Hidden records are reported as not found. */
-    public function assertVisible(?int $locationId, string $area, string $what): void
+    public function assertVisible(?int $locationId, string $area, string $what, ?int $costCentreId = null): void
     {
         $ids = $this->limit();
         if ($ids === null || ! $locationId || in_array($locationId, $ids, true)) {
+            return;
+        }
+        if ($costCentreId && $area === 'books' && in_array($costCentreId, $this->costCentres() ?? [], true)) {
             return;
         }
         $mode = $this->settings->mode($area);
@@ -138,11 +153,14 @@ class BranchFilter
     }
 
     /** Posting to a branch: needs full (not view-only) access to it. */
-    public function assertWrite(?User $u, ?int $locationId, string $area, string $what): void
+    public function assertWrite(?User $u, ?int $locationId, string $area, string $what, ?int $costCentreId = null): void
     {
         $u = $this->actor($u);
         if (! $u || ! $locationId || ! $this->access->isStaff($u) || $this->access->canAccessLocation($u, $locationId, true)) {
             return;
+        }
+        if ($costCentreId && $area === 'books' && $this->access->canAccessCostCentre($u, $costCentreId, true)) {
+            return;   // full access to the cost centre lets them post to it at any branch
         }
         $mode = $this->settings->mode($area);
         if ($mode === 'on') {
