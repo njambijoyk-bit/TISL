@@ -12,24 +12,37 @@ final class KnowledgeStore
 {
     public const CACHE_KEY = 'mimi_local_layer_version';
 
+    /** @var array<string,bool> remembered for the life of the process: tables do not come and go in production */
+    private static array $has = [];
+
+    private static function has(string ...$tables): bool
+    {
+        $key = implode(',', $tables);
+        if (! isset(self::$has[$key])) {
+            try {
+                self::$has[$key] = collect($tables)->every(fn ($t) => Schema::hasTable($t));
+            } catch (\Throwable) {
+                self::$has[$key] = false;
+            }
+        }
+
+        return self::$has[$key];
+    }
+
+    /** Forget what was remembered (tests create and drop tables between cases). */
+    public static function forget(): void
+    {
+        self::$has = [];
+    }
+
     public static function tablesExist(): bool
     {
-        static $ok = null;
-        try {
-            return $ok ??= Schema::hasTable('mimi_kb_entries') && Schema::hasTable('mimi_kb_questions');
-        } catch (\Throwable) {
-            return $ok = false;
-        }
+        return self::has('mimi_kb_entries', 'mimi_kb_questions');
     }
 
     public static function routingTableExists(): bool
     {
-        static $ok = null;
-        try {
-            return $ok ??= Schema::hasTable('mimi_routing');
-        } catch (\Throwable) {
-            return $ok = false;
-        }
+        return self::has('mimi_routing');
     }
 
     /** A change here makes every worker rebuild its engine on the next question. */

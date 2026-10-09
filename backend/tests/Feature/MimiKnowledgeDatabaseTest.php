@@ -25,6 +25,7 @@ class MimiKnowledgeDatabaseTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \App\Services\Chat\Local\KnowledgeStore::forget();
         Schema::create('mimi_kb_entries', function ($t) {
             $t->id(); $t->string('entry_key')->unique(); $t->string('title'); $t->string('audience'); $t->string('requires')->nullable(); $t->string('sensitivity')->default('public');
             $t->string('resolver')->nullable(); $t->text('keywords')->nullable(); $t->string('follow')->nullable(); $t->text('answer_md'); $t->text('more_md')->nullable();

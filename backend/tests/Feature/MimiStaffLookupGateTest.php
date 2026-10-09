@@ -21,6 +21,7 @@ class MimiStaffLookupGateTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        \App\Services\Chat\Local\KnowledgeStore::forget();
         Schema::create('products', function ($t) { $t->id(); $t->string('status')->default('active'); $t->softDeletes(); });
         config(['cache.default' => 'array']);
     }

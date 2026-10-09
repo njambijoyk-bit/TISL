@@ -55,20 +55,27 @@ final class LocalLayer
         if ($this->answerer && $this->builtFor === $version) {
             return $this->answerer;
         }
+        $this->builtFor = $version;
+
+        return $this->answerer = $this->answererFor((array) config('mimi.thresholds'));
+    }
+
+    /** The same engine with other thresholds: for tuning them against questions someone has labelled (mimi:review --score). */
+    public function answererFor(array $thresholds): LocalAnswerer
+    {
         $profile = CompanyProfile::current();
         $ph = ['company.name' => CompanyProfile::name(), 'support.email' => $profile->email ?: (string) config('mimi.support_email_fallback')];
         $rows = KnowledgeStore::entries();
         $kb = $rows !== null ? Knowledge::fromEntries($rows, $ph) : Knowledge::fromFile((string) config('mimi.knowledge'), $ph);
-        $this->builtFor = $version;
         $scanner = new MimiHarmScannerService;
 
-        return $this->answerer = new LocalAnswerer(
+        return new LocalAnswerer(
             $kb,
             new Matcher(require (string) config('mimi.synonyms'), $kb->all()),
             $this->slots(),
             ResolverRegistry::all(),
             fn (string $q) => $scanner->scan($q, [])['harm_category'],
-            (array) config('mimi.thresholds'),
+            $thresholds,
             (bool) config('mimi.allow_drafts', true),
         );
     }
