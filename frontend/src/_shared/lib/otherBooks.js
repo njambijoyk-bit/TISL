@@ -37,6 +37,18 @@ function openingAt(doc, idx, ledgerId, from) {
   return open;
 }
 
+/**
+ * What the ledgers' own opening balances are out by (debit positive), like Tally's "Difference in opening balances". Every opening balance needs an opposite one;
+ * when they do not net to nothing the trial balance can never balance, so the live report carries the difference on a placeholder line and so does this one.
+ * The ledgers hold the opening balances as entered; `balances` in the file does not, because the exporter leaves the placeholder out. A one-branch file has no
+ * opening balances at all (they belong to the whole company), so there is nothing to carry.
+ */
+export function openingDifference(doc) {
+  if (doc.opening_balances_left_out) return 0;
+  const net = (doc.sections.ledgers ?? []).reduce((t, l) => t + (l.opening_side === 'C' ? -1 : 1) * (Number(l.opening_balance) || 0), 0);
+  return Math.abs(net) < 0.01 ? 0 : r2(net);
+}
+
 /** Trial balance for [from, to] inside the file's period. A summary file (level 1) has only the balances for its own period. */
 export function trialBalance(doc, idx, from, to) {
   const rows = [];
@@ -60,9 +72,11 @@ export function trialBalance(doc, idx, from, to) {
     rows.push({ ledger_id: l.id, ledger: l.name, group: idx.groupPath(l.group_id), opening: r2(open), debit: r2(dr), credit: r2(cr), closing: r2(close) });
   }
   rows.sort((a, b) => a.group.localeCompare(b.group) || a.ledger.localeCompare(b.ledger));
+  const diff = openingDifference(doc);
+  if (diff !== 0) rows.push({ ledger_id: null, ledger: 'Difference in opening balances', group: '', placeholder: true, opening: r2(-diff), debit: 0, credit: 0, closing: r2(-diff) });
   const tDr = r2(rows.reduce((t, r) => t + (r.closing > 0 ? r.closing : 0), 0));
   const tCr = r2(rows.reduce((t, r) => t + (r.closing < 0 ? -r.closing : 0), 0));
-  return { rows, total_debit: tDr, total_credit: tCr };
+  return { rows, total_debit: tDr, total_credit: tCr, balanced: Math.abs(tDr - tCr) < 0.01, opening_difference: diff };
 }
 
 /** One ledger's statement with a running balance (debit positive). */

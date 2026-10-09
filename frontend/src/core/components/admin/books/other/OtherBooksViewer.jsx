@@ -122,6 +122,11 @@ export default function OtherBooksViewer({ doc }) {
           rows={tb.rows} footer={tb.rows.length > 0 && (
             <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}><td colSpan={4} style={{ padding: '8px 12px', fontSize: '0.8rem' }}>Totals (closing)</td><td style={{ padding: '8px 12px', textAlign: 'right', fontSize: '0.8rem' }}>Dr {fmt(tb.total_debit)}</td><td style={{ padding: '8px 12px', textAlign: 'right', fontSize: '0.8rem' }}>Cr {fmt(tb.total_credit)}</td></tr>
           )} />
+          {tb.opening_difference !== 0 && (
+            <div style={{ ...card, padding: '8px 12px', fontSize: '0.78rem', color: colors.warningText }}>
+              <strong>Difference in opening balances: {fmt(Math.abs(tb.opening_difference))} {tb.opening_difference > 0 ? 'Cr' : 'Dr'}.</strong> It is a placeholder, not a ledger: the opening balances on this company's ledgers are {fmt(Math.abs(tb.opening_difference))} {tb.opening_difference > 0 ? 'heavy on the debit side' : 'heavy on the credit side'}, so it is held here to keep the trial balance in step. It clears when the opposite opening balance (usually Capital) is entered in their books.
+            </div>
+          )}
           {doc.opening_balances_left_out && <p style={{ fontSize: '0.76rem', color: colors.textMuted }}>It will not balance on its own: the file holds one branch and no opening balances.</p>}
         </>
       )}
