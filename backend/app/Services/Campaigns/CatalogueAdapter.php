@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\ProductVariant;
 use App\Models\Service;
+use App\Models\ServiceVariant;
 use App\Services\Licensing\LicenseManager;
 use Illuminate\Support\Facades\DB;
 
@@ -74,6 +75,9 @@ class CatalogueAdapter
             foreach ($this->describeVariants($by->get('product', collect())->where('variant_id', '>', 0)->pluck('variant_id')->unique()->values()->all(), $codes) as $k => $r) {
                 $out[$k] = $r;
             }
+            foreach ($this->describeServiceVariants($by->get('service', collect())->where('variant_id', '>', 0)->pluck('variant_id')->unique()->values()->all(), $codes) as $k => $r) {
+                $out[$k] = $r;
+            }
             foreach ($want('service') ? Service::whereIn('id', $want('service'))->get() : [] as $s) {
                 $out["service:{$s->id}"] = $this->row('service', $s->id, $s->name, $s->sku, $s->main_image_url, $s->base_price, $codes[$s->currency_id] ?? null, "/services/{$s->id}" . ($s->sku ? '-' . $s->sku : ''));
             }
@@ -115,6 +119,25 @@ class CatalogueAdapter
         return $out;
     }
 
+    /** One row per featured package of a service: the service's name with the package's, the package's own price, and a link that opens the service with that package chosen. */
+    private function describeServiceVariants(array $variantIds, $codes): array
+    {
+        if (! $variantIds) {
+            return [];
+        }
+        $out = [];
+        foreach (ServiceVariant::active()->with('service')->whereIn('id', $variantIds)->get() as $v) {
+            $s = $v->service;
+            if (! $s) {
+                continue;
+            }
+            $out[CampaignItem::keyOf('service', $s->id, $v->id)] = $this->row('service', $s->id, $s->name, $s->sku, $s->main_image_url, $v->price ?? $s->base_price, $codes[$s->currency_id] ?? null,
+                "/services/{$s->id}" . ($s->sku ? '-' . $s->sku : '') . "?variant={$v->id}") + ['variant_id' => $v->id, 'variant' => trim((string) $v->name) !== '' ? trim($v->name) : "Package {$v->id}"];
+        }
+
+        return $out;
+    }
+
     /** What the option sells for: its base unit's price, else the first unit that has one. */
     private function variantPrice(ProductVariant $v): ?float
     {
@@ -132,19 +155,27 @@ class CatalogueAdapter
     }
 
     /**
-     * The options of a product that can be featured on their own, for the picker.
-     * @return array<int,array{variant_id:int,variant:string,sku:?string,price:?float,image:?string,in_stock:bool,is_default:bool}>
+     * The options of a product, or the packages of a service, that can be featured on their own, for the picker.
+     * @return array<int,array{variant_id:int,variant:string,sku:?string,price:?float,image:?string,in_stock:?bool,is_default:bool}>
      */
-    public function variants(int $productId): array
+    public function variants(int $id, string $type = 'product'): array
     {
         if (! $this->active()) {
             return [];
         }
-        $product = Product::find($productId);
+        if ($type === 'service') {
+            $service = Service::find($id);
+
+            return ! $service ? [] : ServiceVariant::active()->where('service_id', $id)->orderByDesc('is_default')->orderBy('position')->orderBy('id')->get()->map(fn ($v) => [
+                'variant_id' => $v->id, 'variant' => trim((string) $v->name) !== '' ? trim($v->name) : "Package {$v->id}", 'sku' => null,
+                'price' => $v->price !== null ? (float) $v->price : ($service->base_price !== null ? (float) $service->base_price : null), 'image' => null, 'in_stock' => null, 'is_default' => (bool) $v->is_default,
+            ])->values()->all();
+        }
+        $product = Product::find($id);
         if (! $product) {
             return [];
         }
-        $variants = ProductVariant::active()->with('units')->where('product_id', $productId)->orderByDesc('is_default')->orderBy('id')->get();
+        $variants = ProductVariant::active()->with('units')->where('product_id', $id)->orderByDesc('is_default')->orderBy('id')->get();
         $images = ProductImage::whereIn('variant_id', $variants->pluck('id'))->orderBy('position')->get(['variant_id', 'path'])->unique('variant_id')->keyBy('variant_id');
 
         return $variants->map(fn ($v) => [

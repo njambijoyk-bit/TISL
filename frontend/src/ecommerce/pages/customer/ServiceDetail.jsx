@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowLeft,
   Star,
@@ -44,6 +44,7 @@ import useEngagement from '../../../_shared/lib/engagementConfig';
 
 const ServiceDetail = () => {
   const { id: idParam } = useParams();
+  const [searchParams] = useSearchParams();
   const id = idFromParam(idParam);   // the address is id-SKU (12-ANG-001); the id is what is looked up
   const navigate = useNavigate();
   const reviewsOn = useEngagement().on('service', 'review');
@@ -86,7 +87,7 @@ const ServiceDetail = () => {
   const money = useMoney();
 
   // Options + packages (each with its own price, duration, unit) chosen by the shopper
-  const picker = useServicePackages(id);
+  const picker = useServicePackages(id, searchParams.get('variant'));
   const pkg = picker.variant;
   const dispCode = picker.data?.display_currency;
   const fmtDisp = (n) => formatMoney(n ?? 0, dispCode, { decimals: 'auto' });

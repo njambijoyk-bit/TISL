@@ -27,8 +27,8 @@ const campaignsAPI = {
   savePage: async (id, sections) => (await api.put(`/admin/campaigns/${id}/page`, { sections })).data,
   worldOptions: async () => (await api.get('/admin/campaigns/world-options')).data,
   catalogue: async (type, q) => (await api.get('/admin/campaigns/catalogue', { params: { type, q } })).data,
-  /** The options (variants) of a product that can be featured on their own: { data: [{ variant_id, variant, sku, price, image, in_stock }], can_feature_options } */
-  catalogueVariants: async (productId) => (await api.get('/admin/campaigns/catalogue-variants', { params: { product_id: productId } })).data,
+  /** The options of a product, or the packages of a service, that can be featured on their own: { data: [{ variant_id, variant, sku, price, image, in_stock }], can_feature_options } */
+  catalogueVariants: async (id, type = 'product') => (await api.get('/admin/campaigns/catalogue-variants', { params: type === 'service' ? { service_id: id } : { product_id: id } })).data,
   uploadMedia: async (id, file, kind) => {
     const form = new FormData();
     form.append('kind', kind);

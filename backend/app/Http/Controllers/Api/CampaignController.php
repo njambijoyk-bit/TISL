@@ -255,13 +255,15 @@ class CampaignController extends Controller
             'resolved' => $this->catalogue->describe($fresh->items->map(fn ($i) => $i->ref())->all())]);
     }
 
-    /** GET /admin/campaigns/catalogue-variants?product_id=: the options of a product that can be featured on their own (needs E-commerce and script 106). */
+    /** GET /admin/campaigns/catalogue-variants?product_id= or ?service_id=: the options of a product, or the packages of a service, that can be featured on their own (needs E-commerce and script 106). */
     public function catalogueVariants(Request $request): JsonResponse
     {
         $this->builder($request);
-        $d = $request->validate(['product_id' => ['required', 'integer']]);
+        $d = $request->validate(['product_id' => ['nullable', 'integer'], 'service_id' => ['nullable', 'integer']]);
+        abort_unless(! empty($d['product_id']) || ! empty($d['service_id']), 422, 'Say which product or service.');
+        $data = ! empty($d['service_id']) ? $this->catalogue->variants((int) $d['service_id'], 'service') : $this->catalogue->variants((int) $d['product_id']);
 
-        return response()->json(['data' => $this->catalogue->variants((int) $d['product_id']), 'can_feature_options' => \App\Models\CampaignItem::hasVariants()]);
+        return response()->json(['data' => $data, 'can_feature_options' => \App\Models\CampaignItem::hasVariants()]);
     }
 
     /** GET /admin/campaigns/catalogue?type=&q=: find products, services, hampers or auctions to feature (needs E-commerce). */

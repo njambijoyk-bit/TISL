@@ -44,6 +44,8 @@ class CampaignItemVariantsTest extends TestCase
             $t->integer('position')->default(0); $t->dateTime('available_from')->nullable(); $t->string('label_override')->nullable(); $t->timestamps();
             $t->unique(['campaign_id', 'item_type', 'item_id', 'variant_id']);
         });
+        Schema::create('services', function ($t) { $t->id(); $t->string('name'); $t->string('sku')->nullable(); $t->decimal('base_price', 12, 2)->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); $t->string('main_image')->nullable(); $t->string('status')->default('active'); $t->softDeletes(); $t->timestamps(); });
+        Schema::create('service_variants', function ($t) { $t->id(); $t->unsignedBigInteger('service_id'); $t->string('name')->nullable(); $t->string('combination_key')->nullable(); $t->boolean('is_custom')->default(false); $t->boolean('is_default')->default(false); $t->string('status')->default('active'); $t->decimal('price', 12, 2)->nullable(); $t->integer('position')->default(0); $t->timestamps(); });
         CampaignItem::hasVariants();   // true now that the column exists
 
         $this->campaign = Campaign::create(['slug' => 'drop', 'title' => 'The drop', 'starts_at' => now()->subDays(3), 'published_at' => now()->subDays(3)]);
@@ -92,7 +94,7 @@ class CampaignItemVariantsTest extends TestCase
     public function test_a_product_is_featured_whole_or_by_option_never_both(): void
     {
         [$p, $v] = $this->product('Tee', ['Red' => [1200, 'active']]);
-        $this->refused([$this->item($p), $this->item($p, $v['Red'])], 'whole and by option');
+        $this->refused([$this->item($p), $this->item($p, $v['Red'])], 'whole and in part');
     }
 
     public function test_the_same_option_twice_is_refused(): void
@@ -107,7 +109,7 @@ class CampaignItemVariantsTest extends TestCase
         [$p2, $v2] = $this->product('Cap', ['Black' => [500, 'active'], 'Gone' => [500, 'inactive']]);
         $this->refused([$this->item($p1, $v2['Black'])], 'does not belong');
         $this->refused([$this->item($p2, $v2['Gone'])], 'no longer exists, or is switched off');
-        $this->refused([['item_type' => 'service', 'item_id' => 3, 'variant_id' => 9]], 'Only a product can be featured by one of its options');
+        $this->refused([['item_type' => 'hamper', 'item_id' => 3, 'variant_id' => 9]], 'can be featured in part');
     }
 
     public function test_saving_again_replaces_what_is_not_sent(): void
@@ -183,5 +185,63 @@ class CampaignItemVariantsTest extends TestCase
         $this->campaign->items()->delete();
         $this->save([$this->item($p)]);
         $this->assertTrue($svc->featured($this->campaign, $blue));
+    }
+
+    private function service(string $name, array $packages = []): array
+    {
+        $sid = DB::table('services')->insertGetId(['name' => $name, 'sku' => strtoupper(substr($name, 0, 3)), 'base_price' => 5000, 'currency_id' => 1]);
+        $ids = [];
+        foreach ($packages as $label => [$price, $status]) {
+            $ids[$label] = DB::table('service_variants')->insertGetId(['service_id' => $sid, 'name' => $label, 'price' => $price, 'status' => $status]);
+        }
+
+        return [$sid, $ids];
+    }
+
+    private function svc(int $sid, int $package = 0): array
+    {
+        return ['item_type' => 'service', 'item_id' => $sid, 'variant_id' => $package];
+    }
+
+    public function test_packages_of_a_service_can_be_featured_and_are_described_with_their_own_price_and_link(): void
+    {
+        [$s, $p] = $this->service('Logo design', ['Basic' => [3000, 'active'], 'Premium' => [9000, 'active']]);
+        $this->save([$this->svc($s, $p['Basic']), $this->svc($s, $p['Premium'])]);
+        $this->assertSame([$p['Basic'], $p['Premium']], $this->campaign->items()->pluck('variant_id')->map(fn ($x) => (int) $x)->all());
+
+        $d = app(CatalogueAdapter::class)->describe($this->campaign->items->map->ref()->all());
+        $row = $d["service:{$s}:v{$p['Premium']}"];
+        $this->assertSame(['Logo design', 'Premium', 9000.0, true], [$row['name'], $row['variant'], $row['price'], $row['available']]);
+        $this->assertStringEndsWith("/services/{$s}-LOG?variant={$p['Premium']}", $row['link']);
+        $this->assertSame(['Basic', 'Premium'], array_column(app(CatalogueAdapter::class)->variants($s, 'service'), 'variant'));
+    }
+
+    public function test_a_service_is_featured_whole_or_by_package_never_both_and_a_package_must_be_its_own_and_active(): void
+    {
+        [$s1, $p1] = $this->service('Logo design', ['Basic' => [3000, 'active'], 'Old' => [1000, 'inactive']]);
+        [$s2, $p2] = $this->service('Website', ['Starter' => [20000, 'active']]);
+        $this->refused([$this->svc($s1), $this->svc($s1, $p1['Basic'])], 'whole and in part');
+        $this->refused([$this->svc($s1, $p2['Starter'])], 'does not belong');
+        $this->refused([$this->svc($s1, $p1['Old'])], 'switched off');
+        // a product and a service that happen to share an id do not collide
+        [$p, $v] = $this->product('Tee', ['Red' => [1200, 'active']]);
+        $this->save([$this->item($p, $v['Red']), $this->svc($s1, $p1['Basic'])]);
+        $this->assertSame(2, $this->campaign->items()->count());
+    }
+
+    public function test_sales_for_a_package_count_only_that_package(): void
+    {
+        Schema::create('voucher_types', function ($t) { $t->id(); $t->string('base_type'); });
+        Schema::create('vouchers', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_type_id'); $t->string('status'); $t->date('date'); $t->decimal('exchange_rate', 12, 6)->default(1); $t->json('meta')->nullable(); $t->unsignedBigInteger('source_voucher_id')->nullable(); });
+        Schema::create('voucher_items', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_id'); $t->string('item_type')->default('service'); $t->boolean('is_header')->default(false); $t->unsignedBigInteger('parent_item_id')->nullable(); $t->unsignedBigInteger('product_id')->nullable(); $t->unsignedBigInteger('variant_id')->nullable(); $t->unsignedBigInteger('service_id')->nullable(); $t->unsignedBigInteger('service_variant_id')->nullable(); $t->unsignedBigInteger('hamper_id')->nullable(); $t->decimal('amount', 14, 2); $t->decimal('quantity', 12, 4); });
+        DB::table('voucher_types')->insert(['id' => 1, 'base_type' => 'sales']);
+        [$s, $p] = $this->service('Logo design', ['Basic' => [3000, 'active'], 'Premium' => [9000, 'active']]);
+        foreach ([[$p['Basic'], 3000], [$p['Premium'], 9000], [$p['Premium'], 9000]] as $i => [$pkg, $amount]) {
+            DB::table('vouchers')->insert(['id' => $i + 1, 'voucher_type_id' => 1, 'status' => 'posted', 'date' => now()->toDateString()]);
+            DB::table('voucher_items')->insert(['voucher_id' => $i + 1, 'service_id' => $s, 'service_variant_id' => $pkg, 'amount' => $amount, 'quantity' => 1]);
+        }
+        $this->save([$this->svc($s, $p['Premium'])]);
+        $sales = app(CampaignStats::class)->sales($this->campaign->fresh());
+        $this->assertSame([18000.0, 2.0, $p['Premium']], [$sales['total'], $sales['units'], $sales['items'][0]['variant_id']]);
     }
 }

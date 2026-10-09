@@ -4,9 +4,9 @@ import serviceCatalogAPI from '../../../../_shared/api/serviceCatalog';
 /**
  * Loads a service's options, packages and requirements and tracks the shopper's
  * choice. Options narrow down to one package; a service without options has a
- * single package.
+ * single package. `initialVariantId` opens it with that package chosen (a campaign links to one package with ?variant=ID).
  */
-export default function useServicePackages(serviceId) {
+export default function useServicePackages(serviceId, initialVariantId = null) {
   const [data, setData] = useState(null);
   const [selection, setSelection] = useState({});   // { [option_id]: value_id }
   const [variantId, setVariantId] = useState(null); // direct choice when there are no options (custom packages)
@@ -19,13 +19,13 @@ export default function useServicePackages(serviceId) {
       .then((res) => {
         if (cancelled) return;
         setData(res);
-        const start = res.variants.find((v) => v.is_default) ?? res.variants[0];
+        const start = (initialVariantId && res.variants.find((v) => String(v.id) === String(initialVariantId))) || res.variants.find((v) => v.is_default) || res.variants[0];
         setSelection(start ? { ...start.selection } : {});
         setVariantId(start?.id ?? null);
       })
       .catch(() => { if (!cancelled) setData({ options: [], variants: [], requirements: [], tax_label: null }); });
     return () => { cancelled = true; };
-  }, [serviceId]);
+  }, [serviceId, initialVariantId]);
 
   const options = data?.options ?? [];
   const variants = data?.variants ?? [];
