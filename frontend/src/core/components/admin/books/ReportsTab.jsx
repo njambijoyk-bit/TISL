@@ -8,12 +8,15 @@ import { card, colors } from '../../../../_shared/theme/tokens';
 import { ExportMenu } from './booksUi';
 import { money, filterStyle, yearStart, today } from './booksFmt';
 import StockMovement from './StockMovement';
+import costCentresAPI from '../../../../_shared/api/costCentres';
+import locationsAPI from '../../../../_shared/api/locations';
 
 const REPORTS = [
   { id: 'day-book', label: 'Day book', range: true },
   { id: 'ledger', label: 'Ledger statement', range: true },
   { id: 'trial-balance', label: 'Trial balance', range: true },
   { id: 'profit-loss', label: 'Profit & loss', range: true },
+  { id: 'profit-loss-by-cost-centre', label: 'Profit & loss by cost centre', range: true, byCostCentre: true },
   { id: 'balance-sheet', label: 'Balance sheet', asOf: true },
   { id: 'receivables', label: 'Receivables ageing', asOf: true },
   { id: 'payables', label: 'Payables ageing', asOf: true },
@@ -51,6 +54,11 @@ function View(props) {
       {n > 0 && (
         <div style={{ ...card, padding: '8px 12px', marginBottom: 10, fontSize: '0.76rem', color: colors.warningText }}>
           {n} voucher{n === 1 ? ' was' : 's were'} made when the base currency was different and {n === 1 ? 'is' : 'are'} shown at today's rate, so every figure here is in the current base currency.
+        </div>
+      )}
+      {props.data?.filtered && (
+        <div style={{ ...card, padding: '8px 12px', marginBottom: 10, fontSize: '0.76rem', color: colors.warningText }}>
+          Only entries of the chosen cost centre or branch are counted, so these figures will not balance on their own. Opening balances belong to the whole business and are left out.
         </div>
       )}
       {props.data?.branch_limited && (
@@ -111,7 +119,7 @@ function ViewBody({ id, data, nav, onRefresh }) {
           <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{data.opening_balances.map((o) => <li key={o.ledger_id}>{o.ledger} <span style={{ color: colors.textMuted }}>({o.group})</span> — {money(o.amount)} {o.side}</li>)}</ul>
         </div>
       ) : null}
-      {!data.balanced && (
+      {!data.balanced && !data.filtered && (
         <div role="alert" style={{ ...card, padding: 12, marginTop: 10, fontSize: '0.8rem', color: colors.dangerText }}>
           <strong>The trial balance does not balance: debits are {money(Math.abs(data.total_debit - data.total_credit))} {data.total_debit > data.total_credit ? 'more' : 'less'} than credits.</strong>
           <div style={{ marginTop: 4, color: colors.text }}>The difference is in the postings, not the opening balances — tell us and we will trace it.</div>
@@ -134,6 +142,27 @@ function ViewBody({ id, data, nav, onRefresh }) {
         {sec('Indirect income', data.sections.income_indirect)}{sec('Indirect expenses', data.sections.expense_indirect)}
         <Total><td style={td}>Net profit</td><td style={{ ...td, ...num, color: t.net_profit < 0 ? colors.danger : colors.successText }}>{money(t.net_profit)}</td></Total>
       </Table>
+    );
+  }
+  if (id === 'profit-loss-by-cost-centre') {
+    if (data.ready === false) return <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>Run database script 102_books_dimensions.sql to give the books their cost centres.</p>;
+    return (
+      <>
+        <p style={{ margin: '0 0 8px', fontSize: '0.75rem', color: colors.textMuted }}>The first two columns are what a cost centre earned and spent itself; the last three add everything beneath it, so a branch's line covers its utilities, stock, payroll and departments.</p>
+        <Table head={[['Cost centre'], ['Own income', true], ['Own expenses', true], ['Income', true], ['Expenses', true], ['Profit', true]]}>
+          {data.rows.length ? data.rows.map((r) => (
+            <tr key={r.cost_centre_id}>
+              <td style={{ ...td, paddingLeft: 12 + r.depth * 18, fontWeight: r.depth === 0 ? 700 : 500 }}>{r.name}{r.purpose && <span style={{ marginLeft: 6, fontSize: '0.68rem', color: colors.textFaint }}>{r.purpose}</span>}</td>
+              <td style={{ ...td, ...num }}>{r.own_income ? money(r.own_income) : ''}</td>
+              <td style={{ ...td, ...num }}>{r.own_expense ? money(r.own_expense) : ''}</td>
+              <td style={{ ...td, ...num }}>{money(r.income)}</td>
+              <td style={{ ...td, ...num }}>{money(r.expense)}</td>
+              <td style={{ ...td, ...num, color: r.profit < 0 ? colors.danger : colors.successText }}>{money(r.profit)}</td>
+            </tr>
+          )) : <Empty cols={6} />}
+          {data.rows.length > 0 && <Total><td style={td}>Whole business</td><td style={td} /><td style={td} /><td style={{ ...td, ...num }}>{money(data.totals.income)}</td><td style={{ ...td, ...num }}>{money(data.totals.expense)}</td><td style={{ ...td, ...num }}>{money(data.totals.profit)}</td></Total>}
+        </Table>
+      </>
     );
   }
   if (id === 'balance-sheet') return (
@@ -271,15 +300,24 @@ export default function ReportsTab() {
   useCalculatorContext(['profit-loss', 'balance-sheet', 'trial-balance'].includes(id) ? { type: 'report', report: id, from, to } : null);
   const [ledgerId, setLedgerId] = useState(params.get('ledger') ?? '');
   const [ledgers, setLedgers] = useState([]);
+  const [ccId, setCcId] = useState('');
+  const [locId, setLocId] = useState('');
+  const [ccOpts, setCcOpts] = useState({ ready: false, data: [] });
+  const [branches, setBranches] = useState([]);
+  const dimmed = ['day-book', 'ledger', 'trial-balance', 'profit-loss'].includes(id);
   const [result, setResult] = useState(null);   // { id, data }: a report never draws another report's figures
   const seq = useRef(0);
   const data = result && result.id === id ? result.data : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  useEffect(() => {
+    costCentresAPI.options().then(setCcOpts).catch(() => {});
+    locationsAPI.getAdmin().then((l) => setBranches((l.locations ?? []).filter((x) => x.is_active !== false))).catch(() => {});
+  }, []);
   useEffect(() => { booksAPI.ledgers({ all: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {}); }, []);
 
-  const query = useCallback(() => ({ ...(def.asOf ? { to } : { from, to }), ...(id === 'ledger' ? { ledger_id: ledgerId } : {}) }), [def, from, to, id, ledgerId]);
+  const query = useCallback(() => ({ ...(def.asOf ? { to } : { from, to }), ...(id === 'ledger' ? { ledger_id: ledgerId } : {}), ...((dimmed || def.byCostCentre) && locId ? { location_id: locId } : {}), ...(dimmed && ccId ? { cost_centre_id: ccId } : {}) }), [def, from, to, id, ledgerId, dimmed, ccId, locId]);
 
   const run = useCallback(async () => {
     if (def.custom) return;
@@ -309,6 +347,18 @@ export default function ReportsTab() {
           <select value={ledgerId} onChange={(e) => setLedgerId(e.target.value)} style={{ ...filterStyle, minWidth: 220 }} aria-label="Ledger">
             <option value="">Choose a ledger…</option>
             {ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
+        )}
+        {(dimmed || def.byCostCentre) && branches.length > 1 && (
+          <select value={locId} onChange={(e) => setLocId(e.target.value)} style={filterStyle} aria-label="Branch">
+            <option value="">All branches</option>
+            {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        )}
+        {dimmed && ccOpts.ready && (
+          <select value={ccId} onChange={(e) => setCcId(e.target.value)} style={{ ...filterStyle, minWidth: 180 }} aria-label="Cost centre">
+            <option value="">All cost centres</option>
+            {ccOpts.data.map((c) => <option key={c.id} value={c.id}>{'— '.repeat(c.depth)}{c.name}</option>)}
           </select>
         )}
         {!def.asOf && <><label style={{ fontSize: '0.75rem', color: colors.textMuted }}>From <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={filterStyle} /></label></>}

@@ -13,6 +13,42 @@ use Illuminate\Support\Facades\DB;
  */
 class BooksReportService
 {
+    /** @var int[]|null the cost centre asked for and everything beneath it, null for no filter */
+    private ?array $costCentreIds = null;
+
+    private ?int $dimLocation = null;
+
+    /**
+     * A copy of this service that only counts entries of one cost centre (and the ones under it) and/or one branch. Opening balances belong to
+     * the company, not to a cost centre, so a filtered report starts from nothing and shows movement only.
+     */
+    public function withDimensions(?int $costCentreId, ?int $locationId): static
+    {
+        $c = clone $this;
+        $c->costCentreIds = $costCentreId && app(\App\Services\CostCentres\CostCentreService::class)->booksReady() ? app(\App\Services\CostCentres\CostCentreService::class)->withDescendants($costCentreId) : null;
+        $c->dimLocation = $locationId && app(\App\Services\CostCentres\CostCentreService::class)->booksReady() ? $locationId : null;
+
+        return $c;
+    }
+
+    private function dimensional(): bool
+    {
+        return $this->costCentreIds !== null || $this->dimLocation !== null;
+    }
+
+    /** Narrow a query over voucher_entries as e to the chosen cost centre / branch. */
+    private function dims($q)
+    {
+        if ($this->costCentreIds !== null) {
+            $q->whereIn('e.cost_centre_id', $this->costCentreIds);
+        }
+        if ($this->dimLocation !== null) {
+            $q->where('e.location_id', $this->dimLocation);
+        }
+
+        return $q;
+    }
+
     private function branches(): \App\Services\Access\BranchFilter
     {
         return app(\App\Services\Access\BranchFilter::class);
@@ -41,6 +77,7 @@ class BooksReportService
         if ($before) {
             $q->where('v.date', '<', $before);
         }
+        $this->dims($q);
         $this->branches()->apply($q, 'v.location_id', 'books', 'reports');
 
         return $q->get()->keyBy('ledger_id')->map(fn ($r) => ['dr' => (float) $r->dr, 'cr' => (float) $r->cr])->all();
@@ -55,6 +92,9 @@ class BooksReportService
 
     private function opening($l): float
     {
+        if ($this->dimensional()) {
+            return 0.0;
+        }
         $o = (float) $l->opening_balance;
 
         return $l->opening_side === 'C' ? -$o : $o;
@@ -69,6 +109,7 @@ class BooksReportService
             ->when($to, fn ($q) => $q->where('date', '<=', $to))
             ->when($typeId, fn ($q) => $q->where('voucher_type_id', $typeId))
             ->when($locationId, fn ($q) => $q->where('location_id', $locationId))
+            ->when($this->costCentreIds !== null, fn ($q) => $q->whereIn('cost_centre_id', $this->costCentreIds))
             ->whereHas('type', fn ($t) => $t->where('base_type', '!=', \App\Models\Books\VoucherType::MEMORANDUM))   // a memorandum is a note, not a transaction
             ->orderBy('date')->orderBy('id');
         $this->branches()->apply($rows, 'location_id', 'books', 'day_book');
@@ -104,6 +145,7 @@ class BooksReportService
             ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
             ->where('e.ledger_id', $ledgerId)->where('v.status', Voucher::POSTED)
             ->when($to, fn ($q) => $q->where('v.date', '<=', $to))
+            ->when(true, fn ($q) => $this->dims($q))
             ->when(true, fn ($q) => $this->branches()->apply($q, 'v.location_id', 'books', 'ledger'))
             ->orderBy('v.date')->orderBy('v.id')->orderBy('e.line_no')
             ->get(['v.id as voucher_id', 'v.date', 'v.voucher_number', 't.name as type', 'e.side', 'e.amount', 'e.base_amount', 'e.narration', 'v.narration as voucher_narration',
@@ -179,7 +221,7 @@ class BooksReportService
 
         // like Tally's "Difference in opening balances": a placeholder, not a ledger, that carries what the opening balances are out by
         $diff = abs($openNet) < 0.01 ? 0.0 : round($openNet, 2);
-        if ($diff != 0.0) {
+        if ($diff != 0.0 && ! $this->dimensional()) {
             $rows[] = ['ledger_id' => null, 'ledger' => 'Difference in opening balances', 'group' => '', 'nature' => null, 'placeholder' => true,
                 'opening' => -$diff, 'debit' => 0, 'credit' => 0, 'closing' => -$diff];
             $tDr += $diff < 0 ? -$diff : 0;
@@ -188,7 +230,7 @@ class BooksReportService
 
         return ['from' => $from, 'to' => $to, 'branch_limited' => $this->limited(), 'rows' => $rows, 'total_debit' => round($tDr, 2), 'total_credit' => round($tCr, 2),
             'balanced' => abs($tDr - $tCr) < 0.01, 'restated_vouchers' => RestatedBase::restatedCount(),
-            'opening_difference' => $diff, 'opening_balances' => abs($openNet) < 0.01 ? [] : $openings];
+            'opening_difference' => $diff, 'opening_balances' => abs($openNet) < 0.01 ? [] : $openings, 'filtered' => $this->dimensional()];
     }
 
     /** Income & expense ledgers for a period, split into trading (gross profit) and the rest. */
@@ -215,6 +257,82 @@ class BooksReportService
         return ['from' => $from, 'to' => $to, 'branch_limited' => $this->limited(), 'restated_vouchers' => RestatedBase::restatedCount(), 'sections' => $sec,
             'totals' => ['direct_income' => $sum('income_direct'), 'direct_expense' => $sum('expense_direct'), 'gross_profit' => $gross,
                 'indirect_income' => $sum('income_indirect'), 'indirect_expense' => $sum('expense_indirect'), 'net_profit' => $net]];
+    }
+
+    /**
+     * Profit and loss by cost centre: what each earned and spent on its own, and in total with everything beneath it (a branch's total adds up
+     * its utilities, stock, payroll and departments). Entries with no cost centre (before script 102) are not counted.
+     */
+    public function profitLossByCostCentre(?string $from, ?string $to): array
+    {
+        $svc = app(\App\Services\CostCentres\CostCentreService::class);
+        if (! $svc->booksReady()) {
+            return ['ready' => false, 'rows' => [], 'totals' => ['income' => 0, 'expense' => 0, 'profit' => 0]];
+        }
+        $b = RestatedBase::entry();
+        $q = RestatedBase::join(DB::table('voucher_entries as e')->join('vouchers as v', 'v.id', '=', 'e.voucher_id'))
+            ->join('ledgers as l', 'l.id', '=', 'e.ledger_id')->join('ledger_groups as g', 'g.id', '=', 'l.group_id')
+            ->where('v.status', Voucher::POSTED)->whereIn('g.nature', ['income', 'expense'])->whereNotNull('e.cost_centre_id')
+            ->selectRaw("e.cost_centre_id, g.nature, SUM(CASE WHEN e.side='D' THEN {$b} ELSE 0 END) AS dr, SUM(CASE WHEN e.side='C' THEN {$b} ELSE 0 END) AS cr")
+            ->groupBy('e.cost_centre_id', 'g.nature');
+        if ($from) {
+            $q->where('v.date', '>=', $from);
+        }
+        if ($to) {
+            $q->where('v.date', '<=', $to);
+        }
+        if ($this->dimLocation !== null) {
+            $q->where('e.location_id', $this->dimLocation);
+        }
+        $this->branches()->apply($q, 'v.location_id', 'books', 'reports');
+        $own = [];
+        foreach ($q->get() as $r) {
+            $o = &$own[(int) $r->cost_centre_id];
+            $o ??= ['income' => 0.0, 'expense' => 0.0];
+            if ($r->nature === 'income') {
+                $o['income'] += (float) $r->cr - (float) $r->dr;
+            } else {
+                $o['expense'] += (float) $r->dr - (float) $r->cr;
+            }
+            unset($o);
+        }
+
+        $tree = $svc->tree();
+        $children = [];
+        foreach ($tree as $r) {
+            $children[$r['parent_id'] ?? 0][] = $r['id'];
+        }
+        $total = [];
+        $sum = function ($id) use (&$sum, &$total, $own, $children) {
+            $t = ($own[$id] ?? ['income' => 0.0, 'expense' => 0.0]);
+            foreach ($children[$id] ?? [] as $c) {
+                $ct = $sum($c);
+                $t['income'] += $ct['income'];
+                $t['expense'] += $ct['expense'];
+            }
+
+            return $total[$id] = $t;
+        };
+        foreach ($children[0] ?? [] as $root) {
+            $sum($root);
+        }
+
+        $rows = [];
+        foreach ($tree as $r) {
+            $t = $total[$r['id']] ?? ['income' => 0.0, 'expense' => 0.0];
+            if (abs($t['income']) < 0.005 && abs($t['expense']) < 0.005) {
+                continue;
+            }
+            $o = $own[$r['id']] ?? ['income' => 0.0, 'expense' => 0.0];
+            $rows[] = ['cost_centre_id' => $r['id'], 'name' => $r['name'], 'code' => $r['code'], 'purpose' => $r['purpose'], 'depth' => $r['depth'], 'path' => $r['path'],
+                'own_income' => round($o['income'], 2), 'own_expense' => round($o['expense'], 2), 'own_profit' => round($o['income'] - $o['expense'], 2),
+                'income' => round($t['income'], 2), 'expense' => round($t['expense'], 2), 'profit' => round($t['income'] - $t['expense'], 2)];
+        }
+        $inc = round(array_sum(array_column($own, 'income')), 2);
+        $exp = round(array_sum(array_column($own, 'expense')), 2);
+
+        return ['ready' => true, 'from' => $from, 'to' => $to, 'branch_limited' => $this->limited(), 'restated_vouchers' => RestatedBase::restatedCount(), 'rows' => $rows,
+            'totals' => ['income' => $inc, 'expense' => $exp, 'profit' => round($inc - $exp, 2)]];
     }
 
     public function balanceSheet(?string $asOf): array

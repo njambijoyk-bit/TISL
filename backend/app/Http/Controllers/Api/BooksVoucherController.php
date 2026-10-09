@@ -630,22 +630,23 @@ class BooksVoucherController extends Controller
         $from = $r->from;
         $to = $r->to;
         $period = trim(($from ?? 'start') . ' to ' . ($to ?? 'today'));
+        $rep = $this->reports->withDimensions($r->filled('cost_centre_id') ? (int) $r->cost_centre_id : null, $r->filled('location_id') ? (int) $r->location_id : null);
         switch ($name) {
             case 'day-book':
-                $d = $this->reports->dayBook($from, $to, $r->filled('voucher_type_id') ? (int) $r->voucher_type_id : null, $r->filled('location_id') ? (int) $r->location_id : null);
+                $d = $rep->dayBook($from, $to, $r->filled('voucher_type_id') ? (int) $r->voucher_type_id : null, $r->filled('location_id') ? (int) $r->location_id : null);
 
                 return [$d, ['title' => 'Day Book', 'subtitle' => $period, 'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Type', 'party' => 'Party', 'status' => 'Status', 'total' => 'Total'], 'rows' => $d['rows'], 'totals' => ['status' => 'Posted total', 'total' => $d['total']]]];
             case 'ledger':
-                $d = $this->reports->ledgerStatement((int) $r->ledger_id, $from, $to);
+                $d = $rep->ledgerStatement((int) $r->ledger_id, $from, $to);
                 $rows = array_merge([['date' => $from, 'voucher_number' => '', 'type' => 'Opening balance', 'debit' => '', 'credit' => '', 'balance' => $d['opening']]], $d['rows']);
 
                 return [$d, ['title' => 'Ledger: ' . $d['ledger']['name'], 'subtitle' => $period, 'columns' => ['date' => 'Date', 'voucher_number' => 'Number', 'type' => 'Type', 'in_currency' => 'In its currency', 'debit' => 'Debit (' . $d['base_currency'] . ')', 'credit' => 'Credit (' . $d['base_currency'] . ')', 'balance' => 'Balance (Dr +, ' . $d['base_currency'] . ')'], 'rows' => $rows, 'totals' => ['type' => 'Totals', 'debit' => $d['debit'], 'credit' => $d['credit'], 'balance' => $d['closing']]]];
             case 'trial-balance':
-                $d = $this->reports->trialBalance($from, $to);
+                $d = $rep->trialBalance($from, $to);
 
                 return [$d, ['title' => 'Trial Balance', 'subtitle' => $period, 'columns' => ['group' => 'Group', 'ledger' => 'Ledger', 'opening' => 'Opening', 'debit' => 'Debit', 'credit' => 'Credit', 'closing' => 'Closing (Dr +)'], 'rows' => $d['rows'], 'totals' => ['ledger' => 'Totals (closing Dr / Cr)', 'debit' => $d['total_debit'], 'credit' => $d['total_credit']]]];
             case 'profit-loss':
-                $d = $this->reports->profitLoss($from, $to);
+                $d = $rep->profitLoss($from, $to);
                 $rows = [];
                 foreach (['income_direct' => 'Direct income', 'expense_direct' => 'Direct expenses', 'income_indirect' => 'Indirect income', 'expense_indirect' => 'Indirect expenses'] as $k => $label) {
                     foreach ($d['sections'][$k] as $x) {
@@ -654,6 +655,11 @@ class BooksVoucherController extends Controller
                 }
 
                 return [$d, ['title' => 'Profit & Loss', 'subtitle' => $period, 'columns' => ['section' => 'Section', 'ledger' => 'Ledger', 'amount' => 'Amount'], 'rows' => $rows, 'totals' => ['ledger' => 'Net profit', 'amount' => $d['totals']['net_profit']]]];
+            case 'profit-loss-by-cost-centre':
+                $d = $rep->profitLossByCostCentre($from, $to);
+                $rows = array_map(fn ($x) => ['name' => str_repeat('  ', $x['depth']) . $x['name'], 'own_income' => $x['own_income'], 'own_expense' => $x['own_expense'], 'income' => $x['income'], 'expense' => $x['expense'], 'profit' => $x['profit']], $d['rows']);
+
+                return [$d, ['title' => 'Profit & Loss by cost centre', 'subtitle' => $period, 'columns' => ['name' => 'Cost centre', 'own_income' => 'Own income', 'own_expense' => 'Own expenses', 'income' => 'Income (with sub-centres)', 'expense' => 'Expenses (with sub-centres)', 'profit' => 'Profit'], 'rows' => $rows, 'totals' => ['name' => 'Whole company', 'income' => $d['totals']['income'], 'expense' => $d['totals']['expense'], 'profit' => $d['totals']['profit']]]];
             case 'balance-sheet':
                 $d = $this->reports->balanceSheet($to);
                 $rows = [];
