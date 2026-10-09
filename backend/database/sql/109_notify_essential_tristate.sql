@@ -2,7 +2,7 @@
 -- 109_notify_essential_tristate.sql
 -- customers.notify_essential_only becomes "yes / no / use the company default" (1 / 0 / NULL), so a customer can choose to get everything even when the company
 -- default is "essential messages only". An earlier copy of 108_notifications.sql made it NOT NULL DEFAULT 0 (which could only say yes or no).
--- Rows that are 0 because nobody ever chose are set back to NULL (the company default), so nothing changes for anyone. Safe to run twice.
+-- Rows that are 0 because nobody ever chose are set back to NULL (the company default), so nothing changes for anyone. That reset happens only in the run that changes the column, so a later run never undoes a customer's real choice. (The id > 0 lets it pass Workbench's safe-update mode.)
 -- Run in Workbench. DDL commits on its own; the UPDATE needs the COMMIT at the end.
 -- =====================================================================
 
@@ -17,7 +17,7 @@ CREATE PROCEDURE notify_essential_tristate_up()
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'customers' AND column_name = 'notify_essential_only' AND is_nullable = 'NO') THEN
         ALTER TABLE customers MODIFY COLUMN notify_essential_only TINYINT(1) NULL DEFAULT NULL;
-        UPDATE customers SET notify_essential_only = NULL WHERE notify_essential_only = 0;   -- nobody chose "everything"; 0 was only the old default
+        UPDATE customers SET notify_essential_only = NULL WHERE id > 0 AND notify_essential_only = 0;   -- nobody chose "everything"; 0 was only the old default
     END IF;
 END$$
 DELIMITER ;
