@@ -279,6 +279,18 @@ class PreorderController extends Controller
         return response()->json(['location_id' => $loc, 'data' => (object) $out, 'products' => (object) $byProduct, 'hampers' => (object) $hampers]);
     }
 
+    // -------------------------------------------------------------- the overview
+
+    /** GET /admin/preorders/dashboard : offers and how full they are, what is owed and covered, what is late, how long deliveries take. */
+    public function dashboard(): JsonResponse
+    {
+        if (! PreorderService::ready()) {
+            return response()->json(['ready' => false]);
+        }
+
+        return response()->json(['ready' => true] + app(\App\Services\Preorders\PreorderDashboard::class)->summary(today()));
+    }
+
     // -------------------------------------------------------------- customers asking to cancel a paid preorder
 
     /** GET /admin/preorders/cancel-requests : requests waiting for a decision, with what approving refunds and where from. */

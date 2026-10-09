@@ -16,11 +16,16 @@ const preordersAPI = {
   offers: (campaignId) => api.get(`/admin/campaigns/${campaignId}/preorder-offers`).then((r) => r.data),
   saveOffer: (campaignId, d) => api.post(`/admin/campaigns/${campaignId}/preorder-offers`, d).then((r) => r.data),
   updateOffer: (campaignId, id, d) => api.put(`/admin/campaigns/${campaignId}/preorder-offers/${id}`, d).then((r) => r.data),
+  /** the purchase orders linked to an offer, and the ones it could be linked to */
+  supply: (campaignId, offerId) => api.get(`/admin/campaigns/${campaignId}/preorder-offers/${offerId}/supply`).then((r) => r.data),
+  linkSupply: (campaignId, offerId, voucherId) => api.post(`/admin/campaigns/${campaignId}/preorder-offers/${offerId}/supply`, { voucher_id: voucherId }).then((r) => r.data),
+  unlinkSupply: (campaignId, offerId, voucherId) => api.delete(`/admin/campaigns/${campaignId}/preorder-offers/${offerId}/supply/${voucherId}`).then((r) => r.data),
   deleteOffer: (campaignId, id) => api.delete(`/admin/campaigns/${campaignId}/preorder-offers/${id}`).then((r) => r.data),
 
   // --- branches, waiting, counter
   branches: (variantId) => api.get('/admin/preorders/branches', { params: { variant_id: variantId } }).then((r) => r.data),
   setBranchFlag: (d) => api.put('/admin/preorders/branch-flag', d).then((r) => r.data),
+  dashboard: () => api.get('/admin/preorders/dashboard').then((r) => r.data),
   waiting: (locationId) => api.get('/admin/preorders/waiting', { params: { location_id: locationId || undefined } }).then((r) => r.data),
   deliver: (d = {}) => api.post('/admin/preorders/deliver', d).then((r) => r.data),
   send: (d) => api.post('/admin/preorders/send', d).then((r) => r.data),

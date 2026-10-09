@@ -78,7 +78,62 @@ function NewOffer({ campaignId, featured, taken, onSaved, onCancel, hasMax }) {
   );
 }
 
-function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage, hasMax }) {
+const qtyText = (n) => (Math.round(Number(n) * 100) / 100).toString();
+
+/**
+ * Where the stock for an offer is coming from: the purchase orders linked to it. What is still to arrive and when are read from the purchase orders, and that date is
+ * the one customers are given. Warns when what is owed is more than what is in stock and on order.
+ */
+function SupplyLine({ campaignId, o, canEdit, onChanged }) {
+  const [open, setOpen] = useState(false);
+  const [cands, setCands] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const s = o.supply;
+
+  const show = async () => {
+    setOpen(true);
+    try { setCands((await preordersAPI.supply(campaignId, o.id)).candidates); } catch (e) { toast.error(errMsg(e, 'Could not load the purchase orders')); setOpen(false); }
+  };
+  const link = async (voucherId) => {
+    setBusy(true);
+    try { const r = await preordersAPI.linkSupply(campaignId, o.id, voucherId); toast.success(r.message); setOpen(false); onChanged(); }
+    catch (e) { toast.error(errMsg(e, 'Could not link it'), { duration: 7000 }); } finally { setBusy(false); }
+  };
+  const unlink = async (voucherId) => {
+    setBusy(true);
+    try { await preordersAPI.unlinkSupply(campaignId, o.id, voucherId); onChanged(); }
+    catch (e) { toast.error(errMsg(e, 'Could not unlink it')); } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: 6, fontSize: '0.76rem', color: colors.textMuted }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span><strong style={{ color: colors.text }}>Stock coming in:</strong> {s.orders.length ? `${qtyText(s.incoming)} still to arrive` : 'no purchase order linked'}{s.date ? ` · customers are told ${s.date}` : ''}</span>
+        {s.orders.map((p) => (
+          <span key={p.voucher_id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 99, border: '1px solid var(--line)' }}>
+            {p.number} · {qtyText(p.incoming)} of {qtyText(p.ordered)}{p.due_date ? ` · due ${p.due_date}` : ' · no due date'}
+            {canEdit && <button type="button" aria-label={`Unlink ${p.number}`} disabled={busy} onClick={() => unlink(p.voucher_id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.danger, padding: 0, fontFamily: 'inherit' }}>×</button>}
+          </span>
+        ))}
+        {canEdit && !open && <button type="button" style={{ ...btnGhost, padding: '2px 9px', fontSize: '0.74rem' }} onClick={show}>Link a purchase order</button>}
+      </div>
+      {s.short > 0 && <div style={{ color: colors.warningText }}>Short by {qtyText(s.short)}: {qtyText(s.owed)} owed to customers, {qtyText(s.stock)} in stock, {qtyText(s.incoming)} on order.</div>}
+      {open && (
+        <div style={{ display: 'grid', gap: 6, padding: 10, border: '1px solid var(--line)', borderRadius: 8 }}>
+          {cands === null ? <span>Loading…</span> : cands.length === 0 ? <span>No open purchase order has this item still to arrive. Make the purchase order in Books first.</span> : cands.map((c) => (
+            <div key={c.voucher_id} style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <strong>{c.number}</strong><span>{c.supplier ?? 'supplier not named'} · {qtyText(c.incoming)} still to arrive{c.due_date ? ` · due ${c.due_date}` : ' · no due date'}</span>
+              <span style={{ flex: 1 }} /><button type="button" style={{ ...btnPrimary, padding: '3px 12px', fontSize: '0.74rem' }} disabled={busy} onClick={() => link(c.voucher_id)}>Link</button>
+            </div>
+          ))}
+          <div><button type="button" style={{ ...btnGhost, padding: '2px 9px', fontSize: '0.74rem' }} onClick={() => setOpen(false)}>Close</button></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage, hasMax, hasSupply }) {
   const [on, setOn] = useState(new Set(o.branches ?? []));
   const [max, setMax] = useState(null);   // the per-customer maximum while it is being changed
   const saveMax = async () => {
@@ -110,6 +165,7 @@ function OfferRow({ campaignId, o, branches, canEdit, onChanged, onPage, hasMax 
         {canEdit && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={remove} aria-label="Remove offer"><Trash2 size={13} /></button>}
       </div>
       {o.terms && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>{o.terms}</p>}
+      {hasSupply && o.supply && <SupplyLine campaignId={campaignId} o={o} canEdit={canEdit} onChanged={onChanged} />}
       {hasMax && (
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textMuted }}>
           {max === null ? (
@@ -154,7 +210,7 @@ export default function PreorderOffers({ campaignId, canEdit, featured = [], ref
   return (
     <div style={{ display: 'grid', gap: 10 }}>
       {data.data.length === 0 && !adding && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>No preorder offers. Feature an option on the page, then offer it here (or from its row in the page builder).</p>}
-      {data.data.map((o) => <OfferRow key={o.id} campaignId={campaignId} o={o} branches={data.branches} canEdit={canEdit} onChanged={load} onPage={onPage(o)} hasMax={data.has_max} />)}
+      {data.data.map((o) => <OfferRow key={o.id} campaignId={campaignId} o={o} branches={data.branches} canEdit={canEdit} onChanged={load} onPage={onPage(o)} hasMax={data.has_max} hasSupply={data.has_supply} />)}
       {adding && <NewOffer campaignId={campaignId} featured={featured} taken={taken} hasMax={data.has_max} onSaved={() => { setAdding(false); load(); }} onCancel={() => setAdding(false)} />}
       {canEdit && !adding && <div><button type="button" style={btnGhost} onClick={() => setAdding(true)}><Plus size={13} /> Add a preorder offer</button></div>}
     </div>

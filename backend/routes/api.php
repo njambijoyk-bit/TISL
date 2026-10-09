@@ -1082,6 +1082,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('preorders')->group(function () {
             $c = \App\Http\Controllers\Api\PreorderController::class;
             Route::get('/waiting',       [$c, 'waiting'])->middleware('permission:stock.view,books.view');
+            Route::get('/dashboard',     [$c, 'dashboard'])->middleware('permission:stock.view,books.view');
             Route::post('/deliver',      [$c, 'deliver'])->middleware('permission:stock.manage');
             Route::post('/send',         [$c, 'send'])->middleware('permission:stock.manage');
             Route::get('/branches',      [$c, 'branches'])->middleware('permission:stock.view');
