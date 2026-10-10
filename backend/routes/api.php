@@ -1116,6 +1116,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/image',           [$c, 'image'])->whereNumber('id')->middleware('permission:events.edit');
             Route::delete('/{id}/image',         [$c, 'removeImage'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/video',           [$c, 'setVideo'])->whereNumber('id')->middleware('permission:events.edit');
+            $d = \App\Http\Controllers\Api\EventDoorController::class;   // the door
+            Route::get('/{id}/door',                  [$d, 'door'])->whereNumber('id')->middleware('permission:events.checkin,events.view');
+            Route::post('/{id}/checkin',              [$d, 'checkin'])->whereNumber('id')->middleware(['permission:events.checkin', 'throttle:300,1']);
+            Route::post('/{id}/checkin/manual',       [$d, 'manual'])->whereNumber('id')->middleware('permission:events.checkin');
+            Route::post('/{id}/checkin/{checkinId}/undo', [$d, 'undo'])->whereNumber(['id', 'checkinId'])->middleware('permission:events.checkin');
+            Route::get('/{id}/guests',                [$d, 'guestList'])->whereNumber('id')->middleware('permission:events.checkin,events.view');
+            Route::get('/{id}/guests/export',         [$d, 'export'])->whereNumber('id')->middleware('permission:events.view');
             Route::delete('/{id}/video',         [$c, 'removeVideo'])->whereNumber('id')->middleware('permission:events.edit');
         });
         Route::prefix('codes')->group(function () {   // QR codes and barcodes: pictures, and staff scanning a signed code (each code type says who may)

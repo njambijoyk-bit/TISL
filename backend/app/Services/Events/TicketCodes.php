@@ -2,7 +2,9 @@
 
 namespace App\Services\Events;
 
+use App\Models\Events\Event;
 use App\Models\Events\EventTicket;
+use App\Models\User;
 use App\Services\Codes\CodeFactory;
 use App\Services\Codes\CodeResolvers;
 use App\Services\Codes\Signed;
@@ -18,7 +20,12 @@ final class TicketCodes
     /** What the QR means, registered once with the core Codes service. */
     public static function register(CodeResolvers $resolvers): void
     {
-        $resolvers->register(self::TYPE, 'Event ticket', fn (string $ref) => '/tickets/' . Signed::make(self::TYPE, $ref), null, 'events.checkin');
+        $resolvers->register(self::TYPE, 'Event ticket', fn (string $ref) => '/tickets/' . Signed::make(self::TYPE, $ref), function (string $ref, User $by, array $context) {
+            $ticket = EventTicket::where('reference', $ref)->firstOrFail();
+            $event = Event::findOrFail((int) ($context['event_id'] ?? $ticket->event_id));
+
+            return app(CheckIn::class)->scan($event, Signed::make(self::TYPE, $ref), isset($context['session_id']) ? (int) $context['session_id'] : null, $by->id);
+        }, 'events.checkin');
     }
 
     public static function code(EventTicket $t): string
