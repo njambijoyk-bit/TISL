@@ -22,6 +22,7 @@ class SecurityRateLimitTest extends TestCase
         parent::setUp();
         $this->createSecurityTables();
         Cache::flush();
+        config(['security.login.free_tries' => 10000]);   // these tests are about the speed limits; the wait after wrong passwords has its own tests
     }
 
     /** A knock on the sign-in door from one address with one email. */

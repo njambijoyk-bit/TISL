@@ -424,22 +424,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Record failed login attempt.
+     * Record a failed login attempt. Only counts: nobody is locked out by wrong passwords any more (a stranger could do that to the real owner).
+     * The wait after wrong passwords is per email and address; see Services\Security\SignInGuard.
      */
     public function recordFailedLogin(): void
     {
-        // Increment in DB
         $this->increment('failed_login_attempts');
-
-        // Refresh model to get the incremented value
-        $this->refresh();
-
-        // Lock account after 5 failed attempts (adjust threshold/time as needed)
-        if ($this->failed_login_attempts >= 5) {
-            $this->forceFill([
-                'locked_until' => now()->addMinutes(30),
-            ])->save();
-        }
     }
 
     /**

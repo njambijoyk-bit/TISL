@@ -23,13 +23,16 @@ return [
         'slide_every_minutes' => 5,
     ],
 
+    // What happens after wrong passwords. Nobody's account is ever locked by a stranger: the wait is counted for one email from one address, so it is the typist who waits, not the owner of the email.
     'login' => [
-        // wrong passwords allowed for one email from one address in 15 minutes, then a wait
-        'per_email_and_ip' => (int) env('SECURITY_LOGIN_PER_EMAIL_IP', 5),
-        // wrong passwords for one email from anywhere in an hour: more than this warns the account's owner
-        'per_email' => (int) env('SECURITY_LOGIN_PER_EMAIL', 30),
-        // wrong passwords from one address, any email, in 10 minutes
-        'per_ip' => (int) env('SECURITY_LOGIN_PER_IP', 40),
+        // wrong passwords in a row (one email, one address) before the first wait
+        'free_tries' => (int) env('SECURITY_LOGIN_FREE_TRIES', 4),
+        // seconds to wait after the next wrong ones: the first wait, the second, and so on (the last one repeats)
+        'wait_seconds' => [30, 60, 300, 900, 1800],
+        // a quiet spell this long forgets the count
+        'forget_after_minutes' => (int) env('SECURITY_LOGIN_FORGET_MINUTES', 60),
+        // wrong passwords for one email from anywhere in an hour: from this many on, it is written to the security log as an attack
+        'per_email_alert' => (int) env('SECURITY_LOGIN_PER_EMAIL_ALERT', 30),
     ],
 
     // How fast anyone may knock on the doors that take a password, a code or an email address. Each entry is [attempts, minutes]; the first list is counted per email AND address (so a stranger can only block their own address, never the real person), the second per address alone. Going over answers "wait N seconds" and writes a line in the security log.

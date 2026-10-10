@@ -264,7 +264,7 @@ const USERS_DEV_NOTES = {
     },
     {
       title: "Login has a correct security operation sequence",
-      detail: "Account lock is checked before password verification. Password is verified before any soft-deleted account is restored. force_password_change is intercepted before a token is issued. canLogin() is evaluated before any database writes. The order matters and it's right.",
+      detail: "The password is verified first, in the same time whether or not the email exists, and only someone who knows it is told whether the account is suspended or locked. Wrong passwords earn a growing wait for that email from that address only, so a stranger can never lock the real owner out. A soft-deleted account is restored only after the password fits, force_password_change is intercepted before a token is issued, and every sign-in is a tracked, expiring session the person can end.",
     },
     {
       title: "Policy re-acceptance system is sophisticated",
@@ -280,11 +280,6 @@ const USERS_DEV_NOTES = {
     },
   ],
   future: [
-    {
-      title: "Rate limiting on auth endpoints",
-      detail: "recordFailedLogin() tracks attempts and isLocked() blocks after threshold, but there is no middleware-level rate limiting on /login, /register, or /forgot-password. A high-volume distributed attack would flood failed_login_attempts before per-account locking triggers. Add Laravel's ThrottleRequests middleware with tight limits on auth routes.",
-      horizon: "near",
-    },
     {
       title: "Email verification flow completion",
       detail: "WelcomeEmail exists, the commented-out send() call exists, the status 'pending_verification' exists. The missing piece is a /verify-email endpoint that accepts the signed URL token and flips status to active. This is a near-complete feature with one endpoint needed.",

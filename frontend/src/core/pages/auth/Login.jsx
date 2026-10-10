@@ -74,11 +74,7 @@ export default function Login() {
         return;
       }
       if (error.response?.status === 403) {
-        toast.error('Your account has been suspended. Please contact support.');
-        return;
-      }
-      if (error.response?.status === 423) {
-        toast.error('Account locked due to too many failed attempts. Try again later.');
+        toast.error(error.response?.data?.message || 'Your account has been suspended. Please contact support.');
         return;
       }
       toast.error(error.response?.data?.message || 'Invalid credentials');

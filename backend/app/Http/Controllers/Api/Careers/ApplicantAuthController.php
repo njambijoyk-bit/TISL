@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Careers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Applicant;
+use App\Services\Security\SignInGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -90,11 +91,21 @@ class ApplicantAuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Too many wrong passwords means a wait first, the same for any email (see SignInGuard)
+        $typed = (string) $request->email;
+        $ip = (string) $request->ip();
+        if ($wait = SignInGuard::wait($typed, $ip)) {
+            return SignInGuard::refuse($wait, $request, $typed);
+        }
+
         $applicant = Applicant::where('email', $request->email)->first();
 
-        if (!$applicant || !Hash::check($request->password, $applicant->password)) {
+        // the password is checked first, in the same time whether or not the email exists
+        if (! SignInGuard::check((string) $request->password, $applicant?->password)) {
+            SignInGuard::failed($typed, $ip, $request);
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
+        SignInGuard::succeeded($typed, $ip);
 
         if ($applicant->status === 'suspended') {
             return response()->json(['message' => 'Your account has been suspended. Please contact support.'], 403);

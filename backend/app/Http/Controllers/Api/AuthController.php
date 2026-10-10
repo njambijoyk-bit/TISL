@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 use App\Services\Security\SecurityLog;
+use App\Services\Security\SignInGuard;
 use App\Services\Security\Sessions;
 use Laravel\Sanctum\PersonalAccessToken;
 
@@ -192,31 +193,31 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        // Someone who has typed too many wrong passwords waits first; nothing about the account is looked at, so the answer is the same for any email
+        $typed = (string) $request->email;
+        $ip = (string) $request->ip();
+        if ($wait = SignInGuard::wait($typed, $ip)) {
+            return SignInGuard::refuse($wait, $request, $typed);
+        }
+
         // Find user — include soft-deleted so they can be reactivated
         $user = User::withTrashed()->where('email', $request->email)->first();
 
-        if (!$user) {
+        // The password is checked FIRST, and takes the same time whether or not the email exists; only someone who knows it is told anything about the account
+        if (! SignInGuard::check((string) $request->password, $user?->password)) {
+            if ($user && !$user->trashed()) $user->recordFailedLogin();
+            SignInGuard::failed($typed, $ip, $request);
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
+        SignInGuard::succeeded($typed, $ip);
 
-        // Check if account is locked
-        if ($user->isLocked()) {
-            return response()->json([
-                'message' => 'Account is locked due to multiple failed login attempts. Please try again later.'
-            ], 423);
-        }
-
-        // Check if user can login
+        // Suspended, locked by an administrator, an employee who has left, a vendor not yet approved
         if (!$user->canLogin()) {
             return response()->json([
-                'message' => 'Your account is suspended. Please contact support.'
+                'message' => $user->isLocked()
+                    ? 'Your account is locked. Please contact support.'
+                    : 'Your account is suspended. Please contact support.'
             ], 403);
-        }
-        
-        // Verify password FIRST before restoring anything
-        if (!Hash::check($request->password, $user->password)) {
-            if (!$user->trashed()) $user->recordFailedLogin();
-            return response()->json(['message' => 'Invalid credentials'], 401);
         }
 
         // Now restore if soft-deleted
@@ -565,15 +566,25 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $user = User::where('email', $request->email)->first();
-
-        // Guard: user must exist AND actually have the flag set
-        if (!$user || !$user->force_password_change) {
-            return response()->json(['message' => 'Invalid request'], 403);
+        // The same waits as signing in (this door also takes a password), and the same answer for every way of being wrong
+        $typed = (string) $request->email;
+        $ip = (string) $request->ip();
+        if ($wait = SignInGuard::wait($typed, $ip)) {
+            return SignInGuard::refuse($wait, $request, $typed);
         }
 
-        if (!Hash::check($request->current_password, $user->password)) {
-            return response()->json(['message' => 'Current password is incorrect'], 401);
+        $user = User::where('email', $request->email)->first();
+
+        // Guard: the account must exist, hold a temporary password that fits, AND actually have the flag set; which of these failed is not said
+        $passwordFits = SignInGuard::check((string) $request->current_password, $user?->password);
+        if (! $passwordFits || ! $user->force_password_change) {
+            SignInGuard::failed($typed, $ip, $request);
+            return response()->json(['message' => 'The email or the temporary password is not right.'], 401);
+        }
+        SignInGuard::succeeded($typed, $ip);
+
+        if (!$user->canLogin()) {
+            return response()->json(['message' => 'Your account is suspended. Please contact support.'], 403);
         }
 
         if (Hash::check($request->new_password, $user->password)) {
