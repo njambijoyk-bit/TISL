@@ -9,6 +9,8 @@ import { NoAccess } from '../../../components/admin/ui/HubHeader';
 import { money, today } from '../../../components/admin/books/booksFmt';
 import { creditSentence } from '../../../components/admin/books/creditText';
 import booksAPI from '../../../../_shared/api/books';
+import CodeScanner from '../../../components/admin/codes/CodeScanner';
+import { scanMatch } from '../../../lib/codes/scanLookup';
 import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
@@ -179,6 +181,22 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   }, [h, lines, loading, key]);
 
   const addVariant = (row) => setLines((ls) => [...ls, lineFrom(row, currencyIsBase)]);
+  // Scan what arrived: a product already on the purchase counts one more; a carton code buys one carton.
+  const scanAdd = async (code) => {
+    const m = await scanMatch(code);
+    if (!m) return;
+    if (!m.variant_id || !m.product_id) { toast.error(`${m.label} is not something that can be bought here.`); return; }
+    const have = lines.find((l) => l.variant_id === m.variant_id && (m.type !== 'pack' || String(l.variant_unit_id) === String(m.id)));
+    if (have) { setLines((ls) => ls.map((l) => (l.key === have.key ? { ...l, quantity: (Number(l.quantity) || 0) + 1 } : l))); toast.success(`${m.label}: one more`, { duration: 1500 }); return; }
+    try {
+      const row = (await booksAPI.productVariants(m.product_id)).find((r) => r.variant_id === m.variant_id);
+      if (!row) { toast.error(`${m.label} could not be added.`); return; }
+      const line = lineFrom(row, currencyIsBase);
+      if (m.type === 'pack' && line.units.some((u) => String(u.id) === String(m.id))) line.variant_unit_id = m.id;
+      setLines((ls) => [...ls, line]);
+      toast.success(`${m.label} added`, { duration: 1500 });
+    } catch (e) { toast.error(errMsg(e, 'Could not add that item')); }
+  };
   const setLine = (k, patch) => setLines((ls) => ls.map((l) => (l.key === k ? { ...l, ...patch } : l)));
   const removeLine = (k) => setLines((ls) => ls.filter((l) => l.key !== k));
 
@@ -365,6 +383,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
             <div style={{ ...card, padding: 18 }}>
               <div style={{ marginBottom: 12 }}>
                 <ItemSearch onPick={addVariant} onCreate={createProduct} onAddVariant={addVariantTo} />
+                <div style={{ marginTop: 8 }}><CodeScanner autoFocus={false} placeholder="…or scan what arrived (a carton code buys a carton)" onScan={scanAdd} /></div>
               </div>
 
               {choose && (

@@ -45,15 +45,15 @@ final class CodeCatalogue
                 ->leftJoin('product_variant_units as u', fn ($j) => $j->on('u.variant_id', '=', 'v.id')->where('u.role', '=', 'base'))
                 ->leftJoin('currencies as c', 'c.id', '=', 'p.currency_id')
                 ->whereNull('v.deleted_at')->whereNull('p.deleted_at')
-                ->select('v.id', 'p.name as product', 'v.name as variant', 'v.sku', 'v.barcode as code', 'u.price', 'c.code as currency'),
+                ->select('v.id', 'v.id as variant_id', 'p.id as product_id', 'p.name as product', 'v.name as variant', 'v.sku', 'v.barcode as code', 'u.price', 'c.code as currency'),
             'pack' => DB::table('product_variant_units as u')->join('product_variants as v', 'v.id', '=', 'u.variant_id')->join('products as p', 'p.id', '=', 'v.product_id')
                 ->leftJoin('units_of_measure as m', 'm.id', '=', 'u.unit_id')->leftJoin('currencies as c', 'c.id', '=', 'p.currency_id')
                 ->where('u.role', '!=', 'base')->whereNull('v.deleted_at')->whereNull('p.deleted_at')
-                ->select('u.id', 'p.name as product', 'v.name as variant', 'v.sku', 'u.barcode as code', 'u.price', 'c.code as currency', 'm.name as unit', 'u.contains_qty', 'u.base_factor'),
+                ->select('u.id', 'v.id as variant_id', 'p.id as product_id', 'p.name as product', 'v.name as variant', 'v.sku', 'u.barcode as code', 'u.price', 'c.code as currency', 'm.name as unit', 'u.contains_qty', 'u.base_factor'),
             'asset' => DB::table('inventory_instances as i')->join('inventory_items as it', 'it.id', '=', 'i.item_id')->whereNull('i.deleted_at')
                 ->select('i.id', 'it.name as product', 'i.asset_tag as sku', 'i.serial_number', 'i.barcode as code'),
             'batch' => DB::table('stock_batches as b')->join('product_variants as v', 'v.id', '=', 'b.variant_id')->join('products as p', 'p.id', '=', 'v.product_id')
-                ->select('b.id', 'p.name as product', 'v.name as variant', 'v.sku', 'b.batch_no', 'b.expiry_date'),
+                ->select('b.id', 'v.id as variant_id', 'p.id as product_id', 'p.name as product', 'v.name as variant', 'v.sku', 'b.batch_no', 'b.expiry_date'),
             default => throw new CodeException("There is no \"{$type}\" kind of item."),
         };
     }
@@ -116,7 +116,8 @@ final class CodeCatalogue
         $code = $derived ? self::batchCode((int) $r->id) : ($r->code !== null && $r->code !== '' ? (string) $r->code : null);
 
         return [
-            'type' => $type, 'id' => (int) $r->id, 'label' => $label, 'sku' => $r->sku ?? null, 'code' => $code, 'derived' => $derived,
+            'type' => $type, 'id' => (int) $r->id, 'variant_id' => isset($r->variant_id) ? (int) $r->variant_id : null, 'product_id' => isset($r->product_id) ? (int) $r->product_id : null,
+            'pack_units' => $type === 'pack' ? (float) ($r->base_factor ?: ($r->contains_qty ?: 1)) : null, 'label' => $label, 'sku' => $r->sku ?? null, 'code' => $code, 'derived' => $derived,
             'price' => isset($r->price) && $r->price !== null ? (float) $r->price : null, 'currency' => $r->currency ?? null,
             'batch_no' => $r->batch_no ?? null, 'expiry' => isset($r->expiry_date) && $r->expiry_date ? substr((string) $r->expiry_date, 0, 10) : null,
             'name' => trim(($r->product ?? '') . ($type !== 'asset' && $this->variantName($r) !== '' ? ' — ' . $this->variantName($r) : '')),

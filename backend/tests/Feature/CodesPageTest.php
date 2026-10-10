@@ -90,6 +90,10 @@ class CodesPageTest extends TestCase
         DB::table('stock_batches')->insert(['id' => 12, 'variant_id' => $v, 'batch_no' => 'B-77', 'expiry_date' => '2027-03-31']);
 
         $this->assertSame(1, $this->items->list('pack')['total'], 'the base unit is the product itself, not a pack');
+        $pk = $this->items->list('pack')['data'][0];
+        $this->assertSame([$v, 24.0], [$pk['variant_id'], $pk['pack_units']], 'a pack says which variant it is and how many it holds');
+        $this->assertSame(12, $this->items->list('batch')['data'][0]['id']);
+        $this->assertSame([$v, 1], [$this->items->list('batch')['data'][0]['variant_id'], $this->items->list('batch')['data'][0]['product_id']]);
         $pack = $this->items->list('pack')['data'][0];
         $this->assertSame(['Water · Water 500ml · Carton × 24', '6001C'], [$pack['label'], $pack['code']]);
         $this->assertSame(['Laptop · AT-7', null], [$this->items->list('asset')['data'][0]['label'], $this->items->list('asset')['data'][0]['code']]);

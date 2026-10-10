@@ -21,7 +21,7 @@ const beep = () => {
  *  - a handheld USB or Bluetooth scanner: it types the code and presses Enter, so the box is kept ready for it;
  *  - the phone or laptop camera (where the browser can read codes);
  *  - typing the code.
- * The same code is ignored for 2 seconds after a read, so holding it in front of the camera does not repeat.
+ * With the camera, the same code is ignored for 2 seconds after a read, so holding it in front of the lens does not repeat.
  */
 export default function CodeScanner({ onScan, placeholder = 'Scan or type a code, then Enter', autoFocus = true, camera = true }) {
   const [text, setText] = useState('');
@@ -32,9 +32,10 @@ export default function CodeScanner({ onScan, placeholder = 'Scan or type a code
   const input = useRef(null);
   const canRead = typeof window !== 'undefined' && 'BarcodeDetector' in window;
 
-  const got = useCallback((code) => {
+  // the camera sees the same code many times a second, so the same code is ignored for 2 seconds after a read; a handheld scanner or typing is always one deliberate scan (counting two of the same thing is normal)
+  const got = useCallback((code, fromCamera = false) => {
     const now = Date.now();
-    if (last.current.code === code && now - last.current.at < 2000) return;
+    if (fromCamera && last.current.code === code && now - last.current.at < 2000) return;
     last.current = { code, at: now };
     beep();
     onScan(code);
@@ -57,7 +58,7 @@ export default function CodeScanner({ onScan, placeholder = 'Scan or type a code
           if (!video.current || video.current.readyState < 2) return;
           try {
             const found = await detector.detect(video.current);
-            if (found[0]?.rawValue) got(found[0].rawValue);
+            if (found[0]?.rawValue) got(found[0].rawValue, true);
           } catch { /* a frame that could not be read */ }
         }, 180);
       } catch (e) {

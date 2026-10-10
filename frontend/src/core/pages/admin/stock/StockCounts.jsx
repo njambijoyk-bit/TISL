@@ -8,6 +8,8 @@ import Modal from '../../../components/admin/ui/Modal';
 import { Field, SelectInput, TextInput, FormStack, ModalActions, FormError } from '../../../components/admin/ui/Form';
 import { money } from '../../../components/admin/books/booksFmt';
 import { stockCountsAPI } from '../../../../_shared/api/stockOps';
+import CodeScanner from '../../../components/admin/codes/CodeScanner';
+import { scanMatch } from '../../../lib/codes/scanLookup';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
@@ -51,12 +53,26 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
   const [c, setC] = useState(null);
   const [got, setGot] = useState({});
   const [busy, setBusy] = useState(false);
+  const [flash, setFlash] = useState(null);   // the line the last scan counted
   useEffect(() => {
     stockCountsAPI.show(id).then((d) => { setC(d); setGot(Object.fromEntries(d.lines.map((l) => [l.id, l.counted_qty ?? '']))); }).catch((e) => toast.error(errMsg(e, 'Could not load the count')));
   }, [id]);
   const open = c?.status === 'open' && canWrite;
   const diff = (l) => (got[l.id] === '' || got[l.id] === undefined ? null : Number(got[l.id]) - l.expected_qty);
   const net = c ? c.lines.reduce((t, l) => t + (diff(l) ?? 0) * l.unit_cost, 0) : 0;
+  // Scan an item: it counts one more (a carton counts as the units in it). A product held in several batches asks for the batch.
+  const scan = async (code) => {
+    const m = await scanMatch(code);
+    if (!m) return;
+    let lines = c.lines.filter((l) => l.sku && l.sku === m.sku);
+    if (m.type === 'batch') lines = lines.filter((l) => l.batch_no === m.batch_no);
+    if (!lines.length) { toast.error(`${m.label} is not on this count.`); return; }
+    if (lines.length > 1) { setFlash(lines[0].id); toast(`${m.label} is in ${lines.length} batches on this count: scan the batch label or type the count in its row.`, { duration: 7000, icon: '👉' }); return; }
+    const n = m.type === 'pack' ? Number(m.pack_units || 1) : 1;
+    setGot((g) => ({ ...g, [lines[0].id]: (Number(g[lines[0].id] || 0) + n) }));
+    setFlash(lines[0].id);
+    toast.success(`${m.label}: counted ${n > 1 ? `${n} (a carton)` : 'one'} more`, { duration: 1500 });
+  };
   const run = async (fn, okMsg) => {
     setBusy(true);
     try { const res = await fn(); toast.success(res?.message ?? okMsg); onChanged(); return res; } catch (x) {
@@ -69,13 +85,14 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
     <Modal title={c ? `Count ${c.number}` : 'Count'} subtitle={c ? `${c.location}${c.note ? ` · ${c.note}` : ''}` : ''} onClose={onClose} width={860}>
       {!c ? <p>Loading…</p> : (
         <div style={{ display: 'grid', gap: 12 }}>
+          {open && <CodeScanner onScan={scan} placeholder="Scan an item to count it" />}
           <div style={{ overflow: 'auto', maxHeight: '55vh' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>Item</th><th style={th}>Batch</th><th style={{ ...th, textAlign: 'right' }}>Books say</th><th style={{ ...th, width: 110 }}>Counted</th><th style={{ ...th, textAlign: 'right' }}>Difference</th></tr></thead>
               <tbody>{c.lines.map((l) => {
                 const d = diff(l);
                 return (
-                  <tr key={l.id}>
+                  <tr key={l.id} style={flash === l.id ? { background: colors.tint(0.08) } : undefined}>
                     <td style={td}>{l.product}{l.variant && l.variant !== 'Standard' ? ` — ${l.variant}` : ''}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{l.sku}</div></td>
                     <td style={td}>{l.batch_no ?? '—'}{l.expiry_date ? <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>exp {String(l.expiry_date).slice(0, 10)}</div> : null}</td>
                     <td style={{ ...td, textAlign: 'right' }}>{l.expected_qty}</td>

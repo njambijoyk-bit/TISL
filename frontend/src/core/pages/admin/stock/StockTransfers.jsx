@@ -11,6 +11,8 @@ import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import VariantPicker from '../../../components/admin/pickers/VariantPicker';
+import CodeScanner from '../../../components/admin/codes/CodeScanner';
+import { scanMatch } from '../../../lib/codes/scanLookup';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
 /**
@@ -50,6 +52,12 @@ function SendModal({ branches, onClose, onDone }) {
             <Field label="To"><SelectInput required value={to} onChange={(e) => setTo(e.target.value)}><option value="">Choose…</option>{branches.filter((b) => String(b.id) !== String(from)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
           </div>
           <VariantPicker onPick={add} />
+          <CodeScanner autoFocus={false} placeholder="…or scan an item to add it (a carton adds the units in it)" onScan={async (code) => {
+            const m = await scanMatch(code);
+            if (!m || !m.variant_id) { if (m) toast.error(`${m.label} is not a product we can transfer.`); return; }
+            const n = m.type === 'pack' ? Number(m.pack_units || 1) : 1;
+            setItems((xs) => (xs.some((x) => x.variant_id === m.variant_id) ? xs.map((x) => (x.variant_id === m.variant_id ? { ...x, quantity: String(Number(x.quantity || 0) + n) } : x)) : [...xs, { variant_id: m.variant_id, name: m.name, quantity: String(n) }]));
+          }} />
           {items.map((i) => (
             <div key={i.variant_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ flex: 1, fontSize: '0.82rem' }}>{i.name}</span>
