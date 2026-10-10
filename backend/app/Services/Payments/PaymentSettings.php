@@ -78,12 +78,12 @@ class PaymentSettings
 
     public const DEFAULTS = [
         'mpesa' => ['env' => 'sandbox', 'consumer_key' => '', 'consumer_secret' => '', 'shortcode' => '', 'passkey' => '', 'account_reference' => 'ORDER', 'transaction_desc' => 'Order Payment',
-            'callback_url' => '', 'callback_token' => '', 'callback_token_previous' => '', 'callback_token_rotated_at' => ''],
+            'callback_url' => '', 'callback_token' => '', 'callback_token_previous' => '', 'callback_token_rotated_at' => '', 'ledger_id' => ''],
     ];
 
     private const LABELS = ['env' => 'environment', 'consumer_key' => 'consumer key', 'consumer_secret' => 'consumer secret', 'shortcode' => 'shortcode', 'passkey' => 'passkey',
         'account_reference' => 'account reference', 'transaction_desc' => 'transaction description', 'callback_url' => 'callback address', 'callback_token' => 'callback token',
-        'callback_token_previous' => 'previous callback token', 'callback_token_rotated_at' => 'token rotated'];
+        'callback_token_previous' => 'previous callback token', 'callback_token_rotated_at' => 'token rotated', 'ledger_id' => 'account the money is booked into'];
 
     /** How long the old callback token is still accepted after a new one is made. */
     public const GRACE_MINUTES = 120;
@@ -253,7 +253,7 @@ class PaymentSettings
         if ($part === self::MPESA) {
             $rules = ['env' => 'sometimes|in:sandbox,production', 'consumer_key' => 'sometimes|nullable|string|max:300', 'consumer_secret' => 'sometimes|nullable|string|max:300',
                 'shortcode' => ['sometimes', 'nullable', 'regex:/^\d{3,10}$/'], 'passkey' => 'sometimes|nullable|string|max:300', 'account_reference' => 'sometimes|nullable|string|max:12',
-                'transaction_desc' => 'sometimes|nullable|string|max:13', 'callback_url' => 'sometimes|nullable|url|max:300'];
+                'transaction_desc' => 'sometimes|nullable|string|max:13', 'callback_url' => 'sometimes|nullable|url|max:300', 'ledger_id' => 'sometimes|nullable|integer|min:1'];
             $messages = ['shortcode.regex' => 'The shortcode is the number of your Paybill or Till (digits only).'];
         } else {
             $rules = Gateways::commonRules() + Gateways::get($part)->rules();
@@ -276,6 +276,10 @@ class PaymentSettings
             if ($v === null) {
                 $merged[$k] = '';
             }
+        }
+        $merged['ledger_id'] = ($merged['ledger_id'] ?? '') === '' ? '' : (int) $merged['ledger_id'];
+        if ($merged['ledger_id'] !== '' && ! in_array($merged['ledger_id'], array_column(MoneyLedgers::options(), 'id'), true)) {
+            throw new PaymentException('Choose a bank or cash account for the money to be booked into.');
         }
         if ($part !== self::MPESA) {
             $gw = Gateways::get($part);

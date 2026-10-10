@@ -24,7 +24,7 @@ function From({ source }) {
 export default function MpesaTab({ data, onChanged }) {
   const m = data.parts.mpesa;
   const saved = data.saved.mpesa;
-  const [f, setF] = useState({ env: m.env, shortcode: m.shortcode, account_reference: m.account_reference, transaction_desc: m.transaction_desc, callback_url: m.callback_url });
+  const [f, setF] = useState({ env: m.env, shortcode: m.shortcode, account_reference: m.account_reference, transaction_desc: m.transaction_desc, callback_url: m.callback_url, ledger_id: m.ledger_id ?? '' });
   const [secrets, setSecrets] = useState({ consumer_key: '', consumer_secret: '', passkey: '' });
   const [clear, setClear] = useState({ consumer_key: false, consumer_secret: false, passkey: false });
   const [busy, setBusy] = useState(null);
@@ -112,6 +112,13 @@ export default function MpesaTab({ data, onChanged }) {
           <Field label="Account reference" hint="Up to 12 characters, shown on the customer's M-Pesa message." error={fieldErrors.account_reference}><TextInput aria-label="Account reference" maxLength={12} value={f.account_reference} onChange={set('account_reference')} /></Field>
           <Field label="Description" hint="Up to 13 characters." error={fieldErrors.transaction_desc}><TextInput aria-label="Description" maxLength={13} value={f.transaction_desc} onChange={set('transaction_desc')} /></Field>
         </FormGrid>
+        <Field label="Money is booked into" hint="The bank, till or cash account every M-Pesa payment is booked to (and the account your M-Pesa statement is matched against). A dedicated account such as “M-Pesa till” is best." error={fieldErrors.ledger_id}>
+          <SelectInput aria-label="Money is booked into" value={f.ledger_id ?? ''} onChange={set('ledger_id')}>
+            <option value="">Choose an account…</option>
+            {(data.ledgers ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </SelectInput>
+          {!f.ledger_id && <div style={{ marginTop: 4, fontSize: '0.7rem', color: '#b45309' }}>No account chosen yet: pick the one M-Pesa money should be booked to.</div>}
+        </Field>
         <Field label="Callback address (leave empty to use this site's own)" hint="Only change this if you reach the site through a tunnel or another address. Live payments need https." error={fieldErrors.callback_url}>
           <TextInput aria-label="Callback address" value={f.callback_url} onChange={set('callback_url')} placeholder="https://…" />
         </Field>

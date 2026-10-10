@@ -168,6 +168,36 @@ class CardPaymentFlowTest extends NotifyTestCase
         $this->controller()->testCard($this->req([], 'POST'), 'nonsense');
     }
 
+    // ------------------------------------------------------------ M-Pesa's account
+
+    public function test_mpesa_money_goes_to_the_account_chosen_here_and_the_old_one_goes_back_to_a_plain_choice(): void
+    {
+        Schema::table('ledgers', function ($t) { $t->string('checkout_label')->nullable(); $t->integer('checkout_sort')->default(0); $t->string('mobile_kind')->nullable(); $t->string('mobile_number')->nullable(); $t->string('bank_name')->nullable(); $t->string('account_number')->nullable(); $t->string('account_name')->nullable(); $t->string('branch')->nullable(); $t->string('swift_code')->nullable(); $t->string('branch_code')->nullable(); $t->string('cash_kind')->nullable(); $t->text('checkout_instructions')->nullable(); $t->string('accepts')->nullable(); });
+        DB::table('ledgers')->insert(['id' => 9, 'group_id' => DB::table('ledger_groups')->value('id'), 'name' => 'M-Pesa till']);
+        Http::fake(['sandbox.safaricom.co.ke/*' => Http::response(['access_token' => 't'], 200)]);
+        $keys = ['env' => 'sandbox', 'consumer_key' => 'K-1', 'consumer_secret' => 'S-1', 'shortcode' => '174379', 'passkey' => 'P-1', 'password' => 'correct-horse'];
+
+        $this->assertSame(200, $this->controller()->update($this->req($keys + ['ledger_id' => 9]), 'mpesa')->getStatusCode());
+        $m = PaymentMethod::where('gateway', 'mpesa_stk')->first();
+        $this->assertSame([9, true, true], [(int) $m->ledger_id, $m->is_active, $m->is_online]);
+        $this->assertTrue((bool) DB::table('ledgers')->where('id', 9)->value('offer_at_checkout'));
+        $this->assertSame(9, $this->controller()->show($this->req([], 'GET'))->getData(true)['parts']['mpesa']['ledger_id']);
+
+        $this->controller()->update($this->req(['ledger_id' => 7, 'password' => 'correct-horse']), 'mpesa');   // moved to another account
+        $this->assertSame([7], PaymentMethod::where('gateway', 'mpesa_stk')->pluck('ledger_id')->map(fn ($v) => (int) $v)->all());
+        $this->assertNull(PaymentMethod::where('ledger_id', 9)->value('gateway'), 'the old account is just a pay-to-this-till choice again');
+
+        $res = $this->controller()->update($this->req(['ledger_id' => 8, 'password' => 'correct-horse']), 'mpesa');   // not a bank or cash account
+        $this->assertSame(422, $res->getStatusCode());
+        $this->assertSame(7, MoneyLedgersProbe::id());
+    }
+
+    public function test_the_screen_shows_the_account_already_behind_mpesa_before_anything_is_saved_here(): void
+    {
+        PaymentMethod::forceCreate(['name' => 'M-Pesa', 'gateway' => 'mpesa_stk', 'is_active' => true, 'is_online' => true, 'ledger_id' => 7]);
+        $this->assertSame(7, $this->controller()->show($this->req([], 'GET'))->getData(true)['parts']['mpesa']['ledger_id']);
+    }
+
     // ------------------------------------------------------------ starting a payment
 
     private function stripeOn(): PaymentMethod
@@ -406,5 +436,14 @@ class CardPaymentFlowTest extends NotifyTestCase
         $t = GatewayPaymentService::returnToken($a->id);
         $this->getJson('/api/payments/attempts/' . $a->id . '?check=1&t=' . $t)->assertOk()->assertJson(['status' => 'confirmed', 'receipt' => 'pi_77']);
         $this->assertCount(1, $this->settled);
+    }
+}
+
+/** @internal */
+class MoneyLedgersProbe
+{
+    public static function id(): ?int
+    {
+        return \App\Services\Payments\MoneyLedgers::mpesaLedgerId();
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services\Payments;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
 use App\Models\Books\PaymentMethod;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * The accounts card money can be booked into (bank and cash accounts), and the payment-method row that makes a provider appear at checkout. The shop finds an automatic
@@ -16,6 +17,9 @@ class MoneyLedgers
     /** @return array<int, array{id: int, name: string}> */
     public static function options(): array
     {
+        if (! Schema::hasTable('ledgers') || ! Schema::hasTable('ledger_groups')) {
+            return [];
+        }
         $groupIds = LedgerGroup::whereIn('name', ['Cash-in-hand', 'Bank Accounts'])->get()->flatMap(fn ($g) => $g->selfAndDescendantIds())->unique()->all();
 
         return Ledger::whereIn('group_id', $groupIds)->where('is_active', true)->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => (int) $l->id, 'name' => $l->name])->all();
@@ -41,5 +45,34 @@ class MoneyLedgers
         }
 
         return $method ? tap($method)->update($fields) : PaymentMethod::create($fields);
+    }
+
+    /** The account M-Pesa money is booked into right now: the one behind the automatic M-Pesa method (set here, or earlier on the ledger's own form). */
+    public static function mpesaLedgerId(): ?int
+    {
+        if (! Schema::hasTable('payment_methods')) {
+            return null;
+        }
+        $id = PaymentMethod::where('gateway', 'mpesa_stk')->where('is_active', true)->value('ledger_id');
+
+        return $id ? (int) $id : null;
+    }
+
+    /**
+     * Point the M-Pesa prompt at the chosen account: it becomes the account behind the automatic M-Pesa method (and is offered at checkout through it); the account that
+     * held that job before goes back to being an ordinary "pay to this till" choice. Nothing chosen = nothing changed.
+     */
+    public function syncMpesa(array $cfg): void
+    {
+        $id = (int) ($cfg['ledger_id'] ?? 0);
+        if (! $id || $id === self::mpesaLedgerId()) {
+            return;
+        }
+        $modes = app(\App\Services\Books\PaymentModeService::class);
+        foreach (PaymentMethod::where('gateway', 'mpesa_stk')->whereNotNull('ledger_id')->where('ledger_id', '!=', $id)->pluck('ledger_id') as $old) {
+            $modes->setMode((int) $old, 'details');
+        }
+        Ledger::whereKey($id)->where('offer_at_checkout', false)->update(['offer_at_checkout' => true]);
+        $modes->setMode($id, 'mpesa_stk');
     }
 }

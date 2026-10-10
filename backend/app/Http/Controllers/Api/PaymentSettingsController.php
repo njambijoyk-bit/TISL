@@ -60,6 +60,7 @@ class PaymentSettingsController extends Controller
             return response()->json(['ready' => false]);
         }
         $c = $this->settings->get('mpesa');
+        $mpesaLedger = ($c['ledger_id'] ?? '') !== '' ? $c['ledger_id'] : (MoneyLedgers::mpesaLedgerId() ?? '');   // chosen here, else the account already behind M-Pesa (set on the ledger's own form before)
         $server = app()->bound('daraja.server_values') ? app('daraja.server_values') : config('daraja');
         $from = function (string $field, string $cfg) use ($c, $server) {
             return ($c[$field] ?? '') !== '' ? 'screen' : (($server[$cfg] ?? '') !== '' && $server[$cfg] !== null ? 'server' : 'none');
@@ -72,14 +73,14 @@ class PaymentSettingsController extends Controller
         return response()->json([
             'ready' => true,
             'cards_ready' => $cards,
-            'parts' => collect($parts)->mapWithKeys(fn ($p) => [$p => $this->settings->masked($p)])->all(),
+            'parts' => collect($parts)->mapWithKeys(fn ($p) => [$p => $p === 'mpesa' ? array_replace($this->settings->masked($p), ['ledger_id' => $mpesaLedger]) : $this->settings->masked($p)])->all(),
             'saved' => collect($parts)->mapWithKeys(fn ($p) => [$p => $this->settings->isSaved($p)])->all(),
             'unreadable' => collect($parts)->mapWithKeys(fn ($p) => [$p => $this->settings->unreadable($p)])->all(),
             'current_version' => collect($parts)->mapWithKeys(fn ($p) => [$p => $version($p)])->all(),
             // the card providers: what each screen draws, how to set it up, and the address it should call
             'gateways' => $cards ? collect(Gateways::all())->map(fn ($g) => ['key' => $g->key(), 'label' => $g->label(), 'fields' => array_merge(Gateways::commonFields($g), $g->fields()), 'help' => $g->help(),
                 'webhook_url' => url('/api/payments/webhook/' . $g->key()), 'ready' => $g->configured($this->settings->get($g->key()))])->values()->all() : [],
-            'ledgers' => $cards ? MoneyLedgers::options() : [],
+            'ledgers' => MoneyLedgers::options(),
             // where each value comes from right now: what is saved here, the server's own settings (.env), or nothing
             'in_use' => ['env' => $from('env', 'env'), 'consumer_key' => $from('consumer_key', 'consumer_key'), 'consumer_secret' => $from('consumer_secret', 'consumer_secret'), 'shortcode' => $from('shortcode', 'shortcode'),
                 'passkey' => $from('passkey', 'passkey'), 'callback_token' => $from('callback_token', 'callback_token')],
@@ -253,5 +254,6 @@ class PaymentSettingsController extends Controller
             return;
         }
         app(DarajaConfigurator::class)->apply();
+        app(MoneyLedgers::class)->syncMpesa($this->settings->get('mpesa'));
     }
 }
