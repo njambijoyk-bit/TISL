@@ -11,6 +11,7 @@ import AlgorithmBanner from './_shared/components/layout/AlgorithmBanner';
 import BookmarkNote from './_shared/components/BookmarkNote';
 import AiPanelRoot from './core/components/ai/AiPanelRoot';
 import Mimi from './core/components/chat/Mimi';
+import PasskeyOffer from './core/components/account/PasskeyOffer';
 import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
@@ -448,6 +449,7 @@ function App() {
         <AiPanelRoot />
         <MemoDock />
         <CookieConsentBanner /> 
+        <PasskeyOffer />
         <PWANavBar /> 
 
         {/* All routes are lazy — Suspense handles the loading state */}

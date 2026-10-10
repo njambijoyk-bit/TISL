@@ -4,7 +4,7 @@ import {
   Camera, Save, X, Edit2, User, Mail, Phone, Globe,
   MessageCircle, Building2, FileText, MapPin, Package,
   Calendar, CreditCard, Star, Check, Loader2, Eye, EyeOff,
-  ShieldCheck, ShieldAlert, Shield, Bell, Gift, Percent,
+  ShieldCheck, ShieldAlert, Shield, Fingerprint, Bell, Gift, Percent,
 } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
@@ -13,6 +13,7 @@ import NotificationPreferencesModal from './NotificationPreferencesModal';
 import LoyaltyRedemptionModal from '../../components/customer/LoyaltyRedemptionModal';
 import CustomerCreditTab from './CustomerCreditTab';
 import SignedInDevices from '../../components/account/SignedInDevices';
+import PasskeyManager from '../../components/account/PasskeyManager';
 import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../../_shared/api/index';
 import { useAuthStore, usePromoCodeStore, useCurrencyStore, useLocationStore } from '../../../_shared/store/index';
 import CurrencyToggle from '../../../_shared/components/common/currency/CurrencyToggle';
@@ -1499,6 +1500,11 @@ export default function Profile() {
                     {savingPwd ? 'Changing…' : 'Change password'}
                   </button>
                 </form>
+              </div>
+
+              <div style={card}>
+                <p style={sectionTitle}><Fingerprint size={14} style={{ color: 'var(--color-primary-500)' }} /> My devices (passkeys)</p>
+                <PasskeyManager />
               </div>
 
               <div style={card}>

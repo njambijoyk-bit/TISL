@@ -16,6 +16,8 @@ require __DIR__.'/../../vendor/autoload.php';
 $app = require __DIR__.'/../../bootstrap/app.php';
 $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
+Illuminate\Support\Facades\Cache::flush();   // rate-limit counters from an earlier run would lock the next one out
+
 (new class {
     use Tests\Feature\Concerns\CreatesSecurityTables;
 

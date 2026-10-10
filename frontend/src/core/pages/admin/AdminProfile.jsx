@@ -1,10 +1,11 @@
 import SignedInDevices from '../../components/account/SignedInDevices';
+import PasskeyManager from '../../components/account/PasskeyManager';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   User, Mail, Phone, Shield, Key, LogOut, ChevronRight,
   FolderOpen, FileText, AlertCircle, MapPin, ShoppingBag,
-  Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award,
+  Eye, EyeOff, Loader2, ShieldCheck, ShieldAlert, Award, Fingerprint,
   UserCheck, ClipboardList, TrendingUp, Briefcase, Hash,
   ArrowRight, CalendarClock, Bell, Truck,
   ChevronDown, ChevronUp, Users, Star, Ticket, Camera, Calendar, CalendarCheck,
@@ -608,6 +609,12 @@ export default function AdminProfile() {
                       {savingPwd ? 'Changing…' : 'Change password'}
                     </button>
                   </form>
+                </div>
+
+                {/* Passkeys */}
+                <div style={card}>
+                  <p style={sectionTitle}><Fingerprint size={14} style={{ color: 'var(--color-primary-500)' }} /> My devices (passkeys)</p>
+                  <PasskeyManager />
                 </div>
 
                 {/* Where you are signed in */}

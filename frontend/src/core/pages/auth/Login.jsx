@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound } from 'lucide-react';
 import { authAPI } from '../../../_shared/api/index';
 import { useAuthStore, useModuleStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
+import { autofillSupported, passkeyProblem, passkeysSupported } from '../../../_shared/lib/webauthn';
+import { askForPasskey, finishPasskeySignIn } from '../../../_shared/lib/passkeyFlows';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -37,6 +39,44 @@ export default function Login() {
     return Object.keys(e).length === 0;
   };
 
+  // The sign-in worked (by password or by passkey): keep who they are, and go on.
+  // Returns false when the server still wants the updated policies accepted first.
+  const completeSignIn = (response) => {
+    // Backend may return requires_policy_acceptance if a new major version exists
+    if (response.requires_policy_acceptance) {
+      toast.error('Please accept the updated policies to continue.');
+      return false;
+    }
+
+    login(response.user, response.customer, response.token, response.access ?? null, response.csrf ?? null);
+    // Refresh active modules for the signed-in session (keys may have
+    // changed since boot); don't block the redirect on it.
+    useModuleStore.getState().refresh();
+    toast.success('Welcome back!');
+    navigate(redirect);
+    return true;
+  };
+
+  // The server said no. Returns true if the page already told the person why (or moved them on).
+  const showSignInProblem = (error, email) => {
+    if (error.response?.status === 403 && error.response?.data?.force_password_change) {
+      navigate('/force-change-password', { state: { email } });
+      return;
+    }
+    if (error.response?.status === 403 && error.response?.data?.policy_disagreement) {
+      // Disagreement was recorded; user stays on login
+      toast.error(error.response.data.message || 'You must accept this policy to continue.');
+      setPolicyAccepted(false);
+      setPolicyAcceptances([]);
+      return;
+    }
+    if (error.response?.status === 403) {
+      toast.error(error.response?.data?.message || 'Your account has been suspended. Please contact support.');
+      return;
+    }
+    toast.error(error.response?.data?.message || 'Invalid credentials');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -48,38 +88,96 @@ export default function Login() {
         // Send acceptances so the backend logs them at login time
         ...(policyAcceptances.length ? { policy_acceptances: policyAcceptances } : {}),
       });
-
-      // Backend may return requires_policy_acceptance if a new major version exists
-      if (response.requires_policy_acceptance) {
-        toast.error('Please accept the updated policies to continue.');
-        return;
-      }
-
-      login(response.user, response.customer, response.token, response.access ?? null, response.csrf ?? null);
-      // Refresh active modules for the signed-in session (keys may have
-      // changed since boot); don't block the redirect on it.
-      useModuleStore.getState().refresh();
-      toast.success('Welcome back!');
-      navigate(redirect);
+      completeSignIn(response);
     } catch (error) {
-      if (error.response?.status === 403 && error.response?.data?.force_password_change) {
-        navigate('/force-change-password', { state: { email: formData.email } });
-        return;
-      }
-      if (error.response?.status === 403 && error.response?.data?.policy_disagreement) {
-        // Disagreement was recorded; user stays on login
-        toast.error(error.response.data.message || 'You must accept this policy to continue.');
-        setPolicyAccepted(false);
-        setPolicyAcceptances([]);
-        return;
-      }
-      if (error.response?.status === 403) {
-        toast.error(error.response?.data?.message || 'Your account has been suspended. Please contact support.');
-        return;
-      }
-      toast.error(error.response?.data?.message || 'Invalid credentials');
+      showSignInProblem(error, formData.email);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // ── Passkeys ────────────────────────────────────────────────────────────────
+  // Two ways in: the button (a window asks the device), and the email field's own list ("conditional" sign-in: pick a saved passkey and you are in).
+  const [passkeyReady, setPasskeyReady] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const [heldAnswer, setHeldAnswer] = useState(null);     // the device answered before the policies were ticked: kept for a moment, sent once they are
+  const [round, setRound] = useState(0);                  // bumped to start waiting in the email field again
+  const failedSends = useRef(0);
+  const quiet = useRef(null);                              // the waiting autofill request, so the button can stop it
+  const alive = useRef(true);
+  const acceptedRef = useRef({ accepted: false, list: [] });
+  acceptedRef.current = { accepted: policyAccepted, list: policyAcceptances };
+
+  const sendAnswer = useCallback(async (answer) => {
+    setPasskeyBusy(true);
+    try {
+      completeSignIn(await finishPasskeySignIn(answer, acceptedRef.current.list));
+    } catch (error) {
+      showSignInProblem(error, '');
+      failedSends.current += 1;   // wait a moment and listen again, but not forever if the same saved passkey keeps being refused
+      if (failedSends.current <= 3) setTimeout(() => { if (alive.current) setRound((r) => r + 1); }, 1500);
+    } finally {
+      if (alive.current) setPasskeyBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const receiveAnswer = useCallback((answer) => {
+    if (!acceptedRef.current.accepted) {
+      setHeldAnswer({ answer, at: Date.now() });
+      toast('Tick the box below to finish signing in.', { icon: '✅' });
+      return;
+    }
+    sendAnswer(answer);
+  }, [sendAnswer]);
+
+  useEffect(() => {
+    if (heldAnswer && policyAccepted) {
+      setHeldAnswer(null);
+      if (Date.now() - heldAnswer.at < 90_000) sendAnswer(heldAnswer.answer);   // the server's question lives only two minutes
+    }
+  }, [heldAnswer, policyAccepted, sendAnswer]);
+
+  // Wait quietly in the email field's list for a saved passkey, and start over when the browser gives up waiting.
+  useEffect(() => {
+    alive.current = true;
+    let stopped = false;
+    (async () => {
+      if (!(await autofillSupported())) { setPasskeyReady(passkeysSupported()); return; }
+      setPasskeyReady(true);
+      let quickFailures = 0;
+      while (!stopped && quickFailures < 5) {
+        const controller = new AbortController();
+        quiet.current = controller;
+        const started = Date.now();
+        try {
+          const answer = await askForPasskey({ conditional: true, signal: controller.signal });
+          if (stopped) return;
+          receiveAnswer(answer);
+          return;
+        } catch (error) {
+          if (stopped) return;
+          if (controller.signal.aborted) return;                       // the button took over
+          if (!passkeyProblem(error).cancelled) { toast.error(passkeyProblem(error).text); return; }
+          quickFailures = Date.now() - started < 2000 ? quickFailures + 1 : 0;
+        }
+      }
+    })();
+
+    return () => { stopped = true; alive.current = false; quiet.current?.abort(); };
+  }, [receiveAnswer, round]);
+
+  const handlePasskey = async () => {
+    quiet.current?.abort();
+    setPasskeyBusy(true);
+    try {
+      receiveAnswer(await askForPasskey());
+    } catch (error) {
+      const p = passkeyProblem(error);
+      if (!p.cancelled || p.text) toast.error(p.text);
+      setRound((r) => r + 1);
+    } finally {
+      setPasskeyBusy(false);
     }
   };
 
@@ -165,7 +263,7 @@ export default function Login() {
               <div style={{ position: 'relative' }}>
                 <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'email' ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms' }} />
                 <input
-                  name="email" type="email" value={formData.email}
+                  name="email" type="email" autoComplete="username webauthn" value={formData.email}
                   onChange={handleChange}
                   onFocus={() => setFocused('email')} onBlur={() => setFocused('')}
                   placeholder="you@example.com"
@@ -184,7 +282,7 @@ export default function Login() {
               <div style={{ position: 'relative' }}>
                 <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focused === 'password' ? 'var(--color-primary-500)' : 'var(--text-tertiary)', transition: 'color 150ms' }} />
                 <input
-                  name="password" type={showPassword ? 'text' : 'password'} value={formData.password}
+                  name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" value={formData.password}
                   onChange={handleChange}
                   onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
                   placeholder="Enter your password"
@@ -234,6 +332,14 @@ export default function Login() {
             >
               {loading ? 'Signing in…' : <><span>Sign In</span><ArrowRight size={16} /></>}
             </button>
+
+            {/* Passkey */}
+            {passkeyReady && (
+              <button type="button" onClick={handlePasskey} disabled={loading || passkeyBusy || !policyAccepted} data-testid="passkey-signin"
+                style={{ height: 44, borderRadius: 12, border: '1.5px solid var(--color-primary-500)', background: 'transparent', cursor: (loading || passkeyBusy || !policyAccepted) ? 'not-allowed' : 'pointer', color: 'var(--color-primary-600)', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: (loading || passkeyBusy || !policyAccepted) ? 0.5 : 1 }}>
+                <KeyRound size={16} /> {passkeyBusy ? 'Waiting for your device…' : 'Sign in with a passkey'}
+              </button>
+            )}
 
             {/* Divider */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>

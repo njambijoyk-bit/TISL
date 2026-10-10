@@ -49,7 +49,21 @@ class PasskeyController extends Controller
     {
         $current = $this->sessions->recordOf($this->token($request))?->credential_id;
 
-        return response()->json(['data' => $this->store->forUser($request->user())->map(fn (AuthCredential $c) => $this->present($c, $current))->values(), 'max' => (int) config('security.passkeys.max_per_person', 10)]);
+        $user = $request->user();
+        $past = AuthCredential::where('user_id', $user->id)->whereNotNull('revoked_at')->orderByDesc('revoked_at')->limit(10)->get();
+        $names = AuthCredential::where('user_id', $user->id)->pluck('name', 'id');
+
+        return response()->json([
+            'data' => $this->store->forUser($user)->map(fn (AuthCredential $c) => $this->present($c, $current) + [
+                'approved_by_name' => $c->added_by_id ? ($names[$c->added_by_id] ?? null) : null,
+                // the lineage: which earlier passkeys this one took the place of
+                'replaces' => $past->where('replaced_by_id', $c->id)->map(fn (AuthCredential $p) => ['name' => $p->name, 'removed_at' => $p->revoked_at?->toIso8601String()])->values(),
+            ])->values(),
+            // the ones that are gone: what they were called, when and why they went, and what took their place
+            'history' => $past->map(fn (AuthCredential $p) => ['name' => $p->name, 'kind' => $p->kind, 'added_at' => $p->created_at?->toIso8601String(), 'removed_at' => $p->revoked_at?->toIso8601String(),
+                'reason' => $p->revoked_reason, 'replaced_by_name' => $p->replaced_by_id ? ($names[$p->replaced_by_id] ?? null) : null])->values(),
+            'max' => (int) config('security.passkeys.max_per_person', 10),
+        ]);
     }
 
     /** POST /auth/passkeys/register/options: the question a device is asked to add a passkey. */

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browser check harness</title>
+  </head>
+  <body>
+    <!-- Only the dev server ever serves this (the build starts from index.html). It shows one component on its own, for the browser checks, when the throw-away database is too small for the page that normally holds it. -->
+    <div id="root" style="max-width:640px;margin:24px auto;font-family:sans-serif"></div>
+    <script type="module">
+      import React from 'react';
+      import { createRoot } from 'react-dom/client';
+      import { Toaster } from 'react-hot-toast';
+      import '/src/index.css';
+      const which = new URLSearchParams(location.search).get('c') || 'PasskeyManager';
+      const parts = { PasskeyManager: () => import('/src/core/components/account/PasskeyManager.jsx') };
+      const { default: Component } = await parts[which]();
+      createRoot(document.getElementById('root')).render(React.createElement(React.Fragment, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component)));
+    </script>
+  </body>
+</html>

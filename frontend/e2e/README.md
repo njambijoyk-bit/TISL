@@ -10,7 +10,19 @@ tests/e2e/serve.sh                              # API on http://localhost:8000  
 cd ../frontend
 npx vite --port 5177 --strictPort &             # the website on http://localhost:5177
 node e2e/cookie-session.mjs                     # prints PASS / FAIL lines
+node e2e/passkeys.mjs                           # passkeys with Chromium's pretend fingerprint reader (it remakes the database itself, so run it as often as you like)
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).
 Screenshots go to `SHOTS` (default `/tmp/`).
+
+## What `passkeys.mjs` covers
+
+Sign-in offer after a password sign-in, adding the first passkey (and asking for the password when the sign-in is no longer fresh), "My devices" (add a second on another device after the page proves it by itself,
+rename, replace a lost key and keep the story, "I lost this device"), signing in with the button and from the email field's list, the policy box that must be ticked first, "Not now" being remembered,
+a copied key being refused and switched off, and what the page shows then.
+
+Two things to know about it:
+- The real profile pages need a much bigger database than this check builds, so "My devices" is shown on its own by `e2e/harness.html` (served by the dev server only, never part of the build), signed in as the same person.
+- The browser's own list under the email field can not be clicked by a test; the check stands in for the person picking from it (`picksFromList`). A device that already holds a passkey for the account refuses to make a second one,
+  so each new passkey in the check goes onto a new pretend device.

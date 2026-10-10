@@ -395,6 +395,45 @@ class PasskeyEndpointsTest extends TestCase
         $this->assertSame(['warning', $oldId, 'replaced', $newId], [$line->severity, $line->detail['credential'], $line->detail['reason'], $line->detail['replaced_by']]);
     }
 
+    public function test_the_list_tells_the_story_of_a_device_that_was_replaced(): void
+    {
+        $u = $this->person();
+        [$oldId, $old] = $this->add($this->openSession($u));
+        $t = $this->passkeyLogin($old, [], ['X-Token-In-Body' => '1'])->json('token');
+        [$newId, $new] = $this->add($t, $this->pk());
+        $this->as($t)->patchJson("/api/auth/passkeys/{$oldId}", ['name' => 'Pixel 7'])->assertOk();
+        $this->as($t)->patchJson("/api/auth/passkeys/{$newId}", ['name' => 'Pixel 9'])->assertOk();
+        $this->as($t)->deleteJson("/api/auth/passkeys/{$oldId}", ['replaced_by' => $newId])->assertOk();
+        $t2 = $this->passkeyLogin($new, [], ['X-Token-In-Body' => '1'])->json('token');
+        $r = $this->as($t2)->getJson('/api/auth/passkeys');
+        $r->assertOk();
+        $this->assertCount(1, $r->json('data'));
+        $row = $r->json('data.0');
+        $this->assertSame(['Pixel 9', 'Pixel 7', 'approved'], [$row['name'], $row['approved_by_name'], $row['added_method']]);
+        $this->assertSame(['Pixel 7'], array_column($row['replaces'], 'name'));
+        $this->assertNotEmpty($row['replaces'][0]['removed_at']);
+        $this->assertCount(1, $r->json('history'));
+        $h = $r->json('history.0');
+        $this->assertSame(['Pixel 7', 'replaced', 'Pixel 9'], [$h['name'], $h['reason'], $h['replaced_by_name']]);
+        [$thirdId] = $this->add($t2, $this->pk());
+        $rows = collect($this->as($t2)->getJson('/api/auth/passkeys')->json('data'))->keyBy('id');
+        $this->assertSame([], $rows[$thirdId]['replaces'], 'a passkey that took nobody\'s place says so');
+        $this->assertCount(1, $rows[$newId]['replaces']);
+    }
+
+    public function test_one_persons_history_is_theirs_alone(): void
+    {
+        $a = $this->person();
+        $b = $this->person('baraka@example.com', ['name' => 'Baraka']);
+        [$id, $d] = $this->add($this->openSession($a));
+        $t = $this->passkeyLogin($d, [], ['X-Token-In-Body' => '1'])->json('token');
+        $this->add($t, $this->pk());
+        $this->as($t)->deleteJson("/api/auth/passkeys/{$id}", ['reason' => 'lost'])->assertOk();
+        [, $db] = $this->add($this->openSession($b));
+        $tb = $this->passkeyLogin($db, [], ['X-Token-In-Body' => '1'])->json('token');
+        $this->assertSame([], $this->as($tb)->getJson('/api/auth/passkeys')->json('history'));
+    }
+
     public function test_the_reason_is_kept_and_a_wrong_replacement_is_refused(): void
     {
         $u = $this->person();
