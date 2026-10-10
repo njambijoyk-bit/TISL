@@ -35,6 +35,11 @@ return [
         'per_email_alert' => (int) env('SECURITY_LOGIN_PER_EMAIL_ALERT', 30),
     ],
 
+    // How long the security log keeps lines, in days, by how serious they are (0 = forever)
+    'log' => [
+        'keep_days' => ['info' => 90, 'notice' => 180, 'warning' => 365, 'alert' => 730],
+    ],
+
     // How fast anyone may knock on the doors that take a password, a code or an email address. Each entry is [attempts, minutes]; the first list is counted per email AND address (so a stranger can only block their own address, never the real person), the second per address alone. Going over answers "wait N seconds" and writes a line in the security log.
     'rate_limits' => [
         'sign_in' => ['email_ip' => [[10, 1], [30, 60]], 'ip' => [[30, 1], [200, 60]]],

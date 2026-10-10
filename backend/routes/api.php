@@ -2448,6 +2448,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}/change-logs',    [PolicyController::class, 'changeLogs']);
         });
 
+        Route::prefix('security')->middleware('permission:security.view')->group(function () {   // Sign-in log
+            Route::get('/events',  [\App\Http\Controllers\Api\SecurityLogController::class, 'index']);
+            Route::get('/summary', [\App\Http\Controllers\Api\SecurityLogController::class, 'summary']);
+        });
+
         Route::prefix('logs')->middleware('permission:system.logs')->group(function () {
             Route::get('/export/meta',   [LogExportController::class, 'meta']);
             Route::post('/export',       [LogExportController::class, 'export']);

@@ -207,12 +207,14 @@ class AuthController extends Controller
         if (! SignInGuard::check((string) $request->password, $user?->password)) {
             if ($user && !$user->trashed()) $user->recordFailedLogin();
             SignInGuard::failed($typed, $ip, $request);
+            SecurityLog::record('sign_in_failed', $user, $request, ['reason' => $user ? 'wrong_password' : 'unknown_email'], SecurityLog::NOTICE, $typed);
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
         SignInGuard::succeeded($typed, $ip);
 
         // Suspended, locked by an administrator, an employee who has left, a vendor not yet approved
         if (!$user->canLogin()) {
+            SecurityLog::record('sign_in_refused', $user, $request, ['reason' => $user->isLocked() ? 'locked' : 'not_allowed'], SecurityLog::WARNING, $typed);
             return response()->json([
                 'message' => $user->isLocked()
                     ? 'Your account is locked. Please contact support.'
@@ -365,6 +367,7 @@ class AuthController extends Controller
         $current = $request->user()->currentAccessToken();
         if ($current instanceof PersonalAccessToken) {
             app(Sessions::class)->revokeOne($request->user(), (int) $current->id, 'logout');
+            SecurityLog::record('sign_out', $request->user(), $request);
         }
         
         // A token login has no browser session to close; a cookie login does. (The token guard has no logout() at all, which used to turn every sign-out into an error after the token was already gone.)
@@ -578,11 +581,13 @@ class AuthController extends Controller
         $passwordFits = SignInGuard::check((string) $request->current_password, $user?->password);
         if (! $passwordFits || ! $user->force_password_change) {
             SignInGuard::failed($typed, $ip, $request);
+            SecurityLog::record('sign_in_failed', $user, $request, ['reason' => 'temporary_password'], SecurityLog::NOTICE, $typed);
             return response()->json(['message' => 'The email or the temporary password is not right.'], 401);
         }
         SignInGuard::succeeded($typed, $ip);
 
         if (!$user->canLogin()) {
+            SecurityLog::record('sign_in_refused', $user, $request, ['reason' => 'not_allowed', 'door' => 'temporary_password'], SecurityLog::WARNING, $typed);
             return response()->json(['message' => 'Your account is suspended. Please contact support.'], 403);
         }
 

@@ -30,7 +30,9 @@ final class Sessions
     public function issue(Model $tokenable, ?Request $request, string $name = 'auth-token', string $method = 'password'): string
     {
         $now = now();
+        $newDevice = $this->hasHistory($tokenable) && ! $this->seenBefore($tokenable, $request);   // asked before this session is recorded
         $made = $tokenable->createToken($name, ['*'], SessionPolicy::expiry($tokenable, $now, $now));
+        SecurityLog::record('sign_in', $tokenable, $request, ['method' => $method, 'device' => DeviceInfo::describe($request?->userAgent())['label'], 'new_device' => $newDevice]);
         if (self::tracked()) {
             $d = DeviceInfo::describe($request?->userAgent());
             AuthSession::create(['token_id' => $made->accessToken->id, 'tokenable_type' => $tokenable->getMorphClass(), 'tokenable_id' => $tokenable->getKey(), 'method' => $method, 'ip' => $request?->ip(),

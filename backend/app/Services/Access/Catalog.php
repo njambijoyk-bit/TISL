@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 11;
+    public const VERSION = 12;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        12 => ['security.view'],
         11 => ['events.view', 'events.edit', 'events.delete', 'events.sell', 'events.checkin', 'events.refund'],
         10 => ['codes.view', 'codes.manage', 'codes.print'],
         9 => ['payments.keys'],
@@ -105,6 +106,7 @@ class Catalog
         'access.view'       => [null, 'Access', 'See who holds which roles and branch access', false],
         'access.manage'     => [null, 'Access', 'Give people roles, clearance and branch access', true],
         'access.roles'      => [null, 'Access', 'Create and change roles', true],
+        'security.view'     => [null, 'Access', 'See the sign-in log: who signed in, wrong passwords, waits and alerts', false],
         'catalogue.pricelists' => ['ecommerce', 'Catalogue', 'Make price lists, catalogues and brochures', true],
         'catalogue.delete'  => ['ecommerce', 'Catalogue', 'Delete products, services, categories, brands and images', true],
         'campaigns.build'   => ['campaigns', 'Campaigns', 'Build campaigns and send them for approval', true],

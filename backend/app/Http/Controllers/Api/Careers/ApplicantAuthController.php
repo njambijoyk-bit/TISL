@@ -103,11 +103,13 @@ class ApplicantAuthController extends Controller
         // the password is checked first, in the same time whether or not the email exists
         if (! SignInGuard::check((string) $request->password, $applicant?->password)) {
             SignInGuard::failed($typed, $ip, $request);
+            \App\Services\Security\SecurityLog::record('sign_in_failed', $applicant, $request, ['reason' => $applicant ? 'wrong_password' : 'unknown_email', 'door' => 'applicant'], \App\Services\Security\SecurityLog::NOTICE, $typed);
             return response()->json(['message' => 'Invalid credentials.'], 401);
         }
         SignInGuard::succeeded($typed, $ip);
 
         if ($applicant->status === 'suspended') {
+            \App\Services\Security\SecurityLog::record('sign_in_refused', $applicant, $request, ['reason' => 'not_allowed', 'door' => 'applicant'], \App\Services\Security\SecurityLog::WARNING, $typed);
             return response()->json(['message' => 'Your account has been suspended. Please contact support.'], 403);
         }
 

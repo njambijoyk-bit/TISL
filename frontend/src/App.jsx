@@ -295,6 +295,7 @@ const QrRedirect = lazy(() => import('./core/pages/customer/QrRedirect'));
 const EventsPage = lazy(() => import('./events/pages/public/EventsPage'));
 const EventPage = lazy(() => import('./events/pages/public/EventPage'));
 const AdminEvents = lazy(() => import('./events/pages/admin/EventsList'));
+const SecurityLog = lazy(() => import('./core/pages/admin/SecurityLog'));
 const AdminEventDoor = lazy(() => import('./events/pages/admin/EventDoor'));
 const AdminEventForm = lazy(() => import('./events/pages/admin/EventForm'));
 const PaymentSettings = lazy(() => import('./core/pages/admin/settings/PaymentSettings'));
@@ -1431,6 +1432,14 @@ function App() {
 
               {/* The old orders-based Reports page is gone; its address goes to the books' reports */}
               <Route path="/admin/reports" element={<Navigate to="/admin/books?tab=reports" replace />} />
+              <Route
+                path="/admin/security"
+                element={
+                  <ProtectedRoute requireAdmin permission="security.view">
+                    <SecurityLog />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/logs"
                 element={
