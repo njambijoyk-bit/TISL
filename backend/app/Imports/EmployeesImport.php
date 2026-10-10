@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\User;
 use App\Models\Employee;
+use App\Services\Security\ImportedAccounts;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -100,11 +101,9 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
             };
 
             // 1. Create or find User
-            $user = User::updateOrCreate(
-                ['email' => $email],
-                [
+            // (a file never touches the password of someone who already has an account: see ImportedAccounts)
+            $user = ImportedAccounts::upsert($email, [
                     'name'              => $row['name'] ?? 'Employee',
-                    'password'          => Hash::make($row['password'] ?? 'EmpPass123!'),
                     'role'              => $role,
                     'phone'             => $this->normalizeKenyanPhone($row['phone'] ?? null),
                     'employee_id'       => $this->safeString($row['employee_id'] ?? null),
@@ -112,8 +111,7 @@ class EmployeesImport implements ToModel, WithHeadingRow, WithChunkReading, With
                     'hired_at'          => $this->parseDate($row['hire_date'] ?? null),
                     'status'            => $userStatus,
                     'oauth_provider'    => 'email',
-                ]
-            );
+            ], is_string($row['password'] ?? null) ? $row['password'] : null);
 
             // 2. Create/Update Employee record
             return Employee::updateOrCreate(

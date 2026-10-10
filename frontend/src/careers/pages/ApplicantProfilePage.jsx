@@ -212,7 +212,7 @@ export default function ApplicantProfilePage() {
                             show={showPw.next}
                             onToggle={() => setShowPw(s => ({ ...s, next: !s.next }))}
                             error={pwErr('password')}
-                            placeholder="Min. 8 characters"
+                            placeholder="Min. 10 characters"
                         />
                         <PwField
                             label="Confirm new password"

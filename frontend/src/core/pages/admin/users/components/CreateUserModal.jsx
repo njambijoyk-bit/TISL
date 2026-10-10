@@ -219,7 +219,7 @@ export default function CreateUserModal({ onClose, onSuccess, managers = [] }) {
                     type={showPwd ? 'text' : 'password'}
                     value={form.password}
                     onChange={e => set('password', e.target.value)}
-                    placeholder="Min 8 characters"
+                    placeholder="Min 10 characters"
                     className={inputCls(fieldErrors.password) + ' pr-10'}
                   />
                   <button type="button" onClick={() => setShowPwd(s => !s)}

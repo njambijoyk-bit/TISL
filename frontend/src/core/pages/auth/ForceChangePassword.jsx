@@ -57,7 +57,7 @@ export default function ForceChangePassword() {
 
   const fields = [
     { key: 'current_password',          label: 'Current password',  showKey: 'current', placeholder: 'Your temporary password'   },
-    { key: 'new_password',              label: 'New password',       showKey: 'next',    placeholder: 'At least 8 characters'     },
+    { key: 'new_password',              label: 'New password',       showKey: 'next',    placeholder: 'At least 10 characters'     },
     { key: 'new_password_confirmation', label: 'Confirm password',   showKey: 'confirm', placeholder: 'Repeat your new password'  },
   ];
 

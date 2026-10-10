@@ -20,6 +20,7 @@ use App\Mail\WelcomeEmail;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
+use App\Rules\StrongPassword;
 use App\Services\Security\SecurityLog;
 use App\Services\Security\SignInGuard;
 use App\Services\Security\Sessions;
@@ -39,7 +40,7 @@ class AuthController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => 'required|string|unique:users',
             'company_name' => 'nullable|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', new StrongPassword, 'confirmed'],
             'referral_code' => 'nullable|string',
             'policy_acceptances'            => 'required|array',
             'policy_acceptances.*.key'      => 'required|string',
@@ -52,7 +53,6 @@ class AuthController extends Controller
         'phone.required' => 'Phone number is required',
         'phone.min' => 'Phone number must be at least 10 digits',
         'phone.unique' => 'This phone number is already registered',
-        'password.min' => 'Password must be at least 8 characters',
         'password.confirmed' => 'Passwords do not match',
     ]);
 
@@ -439,7 +439,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'token' => 'required',
             'email' => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', new StrongPassword, 'confirmed'],
         ]);
 
         if ($validator->fails()) {
@@ -481,7 +481,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'current_password' => 'required|string',
-            'new_password' => 'required|string|min:8|confirmed',
+            'new_password' => ['required', 'string', new StrongPassword([$request->user()?->name, $request->user()?->email, $request->user()?->phone]), 'confirmed'],
         ]);
 
         if ($validator->fails()) {
@@ -556,9 +556,8 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email'         => 'required|email',
             'current_password'  => 'required|string',
-            'new_password'  => 'required|string|min:8|confirmed',
+            'new_password'  => ['required', 'string', new StrongPassword, 'confirmed'],
         ], [
-            'new_password.min'       => 'New password must be at least 8 characters',
             'new_password.confirmed' => 'Passwords do not match',
         ]);
 

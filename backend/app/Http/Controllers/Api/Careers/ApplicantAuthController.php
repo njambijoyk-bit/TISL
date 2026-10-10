@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Careers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Applicant;
+use App\Rules\StrongPassword;
 use App\Services\Security\SignInGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class ApplicantAuthController extends Controller
             'first_name'          => 'required|string|max:100',
             'last_name'           => 'required|string|max:100',
             'email'               => 'required|email|max:255|unique:applicants,email',
-            'password'            => 'required|string|min:8|confirmed',
+            'password'            => ['required', 'string', new StrongPassword, 'confirmed'],
             'phone'               => 'nullable|string|max:30',
             'linkedin_url'        => 'nullable|url|max:500',
             'portfolio_url'       => 'nullable|url|max:500',
@@ -35,7 +36,6 @@ class ApplicantAuthController extends Controller
         ], [
             'email.unique'       => 'An account with this email already exists.',
             'password.confirmed' => 'Passwords do not match.',
-            'password.min'       => 'Password must be at least 8 characters.',
         ]);
 
         if ($validator->fails()) {
@@ -129,10 +129,9 @@ class ApplicantAuthController extends Controller
     public function changePassword(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', new StrongPassword([$request->user()?->first_name, $request->user()?->last_name, $request->user()?->email]), 'confirmed'],
         ], [
             'password.confirmed' => 'Passwords do not match.',
-            'password.min'       => 'Password must be at least 8 characters.',
         ]);
 
         if ($validator->fails()) {
@@ -199,7 +198,7 @@ class ApplicantAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'token'    => 'required',
             'email'    => 'required|email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', new StrongPassword, 'confirmed'],
         ]);
 
         if ($validator->fails()) {

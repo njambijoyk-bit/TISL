@@ -48,5 +48,8 @@ return [
 
     'password' => [
         'min_length' => (int) env('SECURITY_PASSWORD_MIN', 10),
+        'max_length' => 128,
+        // words no password may contain (the person's own name, email and phone are added for each check)
+        'banned_words' => ['tisl'],
     ],
 ];

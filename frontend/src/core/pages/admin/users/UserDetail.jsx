@@ -191,7 +191,7 @@ function ResetPasswordModal({ onClose, onConfirm, loading }) {
           background: 'transparent', border: '1.5px solid var(--line)', color: 'var(--text-tertiary)', cursor: 'pointer', fontFamily: 'inherit',
         }}>Cancel</button>
         <button onClick={() => {
-          if (password.length < 8) { setError('At least 8 characters required.'); return; }
+          if (password.length < 10) { setError('At least 10 characters required.'); return; }
           onConfirm(password);
         }} disabled={loading} style={{
           flex: 1, padding: '8px', borderRadius: 8, fontSize: '0.82rem', fontWeight: 700,

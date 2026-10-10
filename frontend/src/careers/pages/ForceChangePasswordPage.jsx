@@ -76,7 +76,7 @@ export default function ForceChangePasswordPage() {
                         <input
                             style={s.input} type="password"
                             value={form.password} onChange={patch('password')}
-                            placeholder="Min. 8 characters" required autoFocus
+                            placeholder="Min. 10 characters" required autoFocus
                             onFocus={e => e.target.style.borderColor = 'var(--color-primary-500)'}
                             onBlur={e => e.target.style.borderColor = 'var(--line)'}
                         />

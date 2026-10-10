@@ -58,11 +58,11 @@ class AdminApplicantController extends Controller
 
     public function resetPassword(Request $request, int $id)
     {
-        $request->validate([
-            'temporary_password' => 'required|string|min:8',
-        ]);
-
         $applicant = Applicant::findOrFail($id);
+
+        $request->validate([
+            'temporary_password' => ['required', 'string', new \App\Rules\StrongPassword([$applicant->first_name, $applicant->last_name, $applicant->email, $applicant->phone])],
+        ]);
 
         $applicant->update([
             'password'             => Hash::make($request->temporary_password),

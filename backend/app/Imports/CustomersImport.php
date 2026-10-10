@@ -4,6 +4,7 @@ namespace App\Imports;
 
 use App\Models\User;
 use App\Models\Customer;
+use App\Services\Security\ImportedAccounts;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -85,19 +86,16 @@ class CustomersImport implements ToModel, WithHeadingRow, WithChunkReading, With
 
         return DB::transaction(function () use ($row, $email) {
             // 1. Create or find User
-            $user = User::updateOrCreate(
-                ['email' => $email],
-                [
+            // (a file never touches the password of someone who already has an account: see ImportedAccounts)
+            $user = ImportedAccounts::upsert($email, [
                     'name'              => $row['name'] ?? 'Customer',
-                    'password'          => Hash::make($row['password'] ?? 'TempPass123!'),
                     'role'              => 'customer',
                     'phone'             => $this->normalizeKenyanPhone($row['phone'] ?? null),
                     'company_name'      => $row['company_name'] ?? null,
                     'status'            => $row['status'] ?? 'active',
                     'email_verified_at' => !empty($row['email_verified']) ? now() : null,
                     'oauth_provider'    => 'email',
-                ]
-            );
+            ], is_string($row['password'] ?? null) ? $row['password'] : null);
 
             // 2. Create/Update Customer record
             $nameParts = explode(' ', trim($row['name'] ?? ''), 2);

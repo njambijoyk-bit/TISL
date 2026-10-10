@@ -30,6 +30,7 @@ export default function AdminApplicantDetailPage() {
     const [resetModal, setResetModal] = useState(false);
     const [tempPwd, setTempPwd]       = useState('');
     const [resetting, setResetting]   = useState(false);
+    const [resetError, setResetError] = useState('');
     const [resetDone, setResetDone]   = useState(false);
     const [selectedAppId, setSelectedAppId] = useState(null);
 
@@ -67,11 +68,15 @@ export default function AdminApplicantDetailPage() {
     const handleAdminReset = async () => {
         if (resetting || !tempPwd.trim()) return;
         setResetting(true);
+        setResetError('');
         try {
             await adminApi.resetApplicantPassword(id, tempPwd.trim());
             setResetDone(true);
             setTempPwd('');
             setTimeout(() => { setResetModal(false); setResetDone(false); }, 2000);
+        } catch (err) {
+            // the server says why in plain words (too short, too common, contains their name...)
+            setResetError(err?.errors?.temporary_password?.[0] ?? err?.message ?? 'That did not work.');
         } finally {
             setResetting(false);
         }
@@ -328,7 +333,7 @@ export default function AdminApplicantDetailPage() {
                                 <input
                                     value={tempPwd}
                                     onChange={e => setTempPwd(e.target.value)}
-                                    placeholder="Min. 8 characters"
+                                    placeholder="Min. 10 characters"
                                     style={{
                                         width: '100%', padding: '10px 13px', borderRadius: 8,
                                         border: '1px solid var(--line)', background: 'var(--bg-primary)',
@@ -338,15 +343,16 @@ export default function AdminApplicantDetailPage() {
                                     onFocus={e => e.target.style.borderColor = 'var(--status-warning)'}
                                     onBlur={e => e.target.style.borderColor = 'var(--line)'}
                                 />
+                                {resetError && <p style={{ margin: '-12px 0 16px', fontSize: 12, color: 'var(--status-error, #ef4444)' }}>{resetError}</p>}
                                 <div style={{ display: 'flex', gap: 10 }}>
                                     <button
                                         onClick={handleAdminReset}
-                                        disabled={resetting || tempPwd.trim().length < 8}
+                                        disabled={resetting || tempPwd.trim().length < 10}
                                         style={{
                                             flex: 1, padding: '10px 0', borderRadius: 8, border: 'none',
                                             background: 'var(--status-warning)', color: 'var(--text-inverse)', fontSize: 13, fontWeight: 700,
-                                            cursor: resetting || tempPwd.trim().length < 8 ? 'default' : 'pointer',
-                                            opacity: resetting || tempPwd.trim().length < 8 ? 0.5 : 1,
+                                            cursor: resetting || tempPwd.trim().length < 10 ? 'default' : 'pointer',
+                                            opacity: resetting || tempPwd.trim().length < 10 ? 0.5 : 1,
                                             fontFamily: 'inherit',
                                         }}
                                     >

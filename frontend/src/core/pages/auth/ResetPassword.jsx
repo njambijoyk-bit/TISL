@@ -176,7 +176,7 @@ export default function ResetPassword() {
                 Set new password
               </h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
-                Must be at least 8 characters.
+                Must be at least 10 characters, and not an easy one to guess.
               </p>
             </div>
 
@@ -209,7 +209,7 @@ export default function ResetPassword() {
                     name="password" type={show.password ? 'text' : 'password'}
                     value={form.password} onChange={handleChange}
                     onFocus={() => setFocused('password')} onBlur={() => setFocused('')}
-                    placeholder="At least 8 characters"
+                    placeholder="At least 10 characters"
                     style={{
                       width: '100%', padding: '11px 44px 11px 40px', borderRadius: 10,
                       border: `1.5px solid ${errors.password ? '#ef4444' : focused === 'password' ? 'var(--color-primary-500)' : '#e5e7eb'}`,

@@ -83,7 +83,7 @@ class OAuthController extends Controller
                 $user = User::create([
                     'name' => $socialUser->getName(),
                     'email' => $socialUser->getEmail(),
-                    'password' => Hash::make(uniqid()), // Random password
+                    'password' => Hash::make(\Illuminate\Support\Str::random(40)), // a password nobody knows (uniqid() is guessable from the time)
                     $oauthIdField => $socialUser->getId(),
                     'oauth_provider' => $provider,
                     'role' => 'customer',

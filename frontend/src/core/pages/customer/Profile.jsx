@@ -1452,7 +1452,7 @@ export default function Profile() {
                 <form onSubmit={handlePasswordSave} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {[
                     { key: 'current_password',         label: 'Current password',      show: 'current' },
-                    { key: 'new_password',             label: 'New password',          show: 'new',     hint: 'At least 8 characters' },
+                    { key: 'new_password',             label: 'New password',          show: 'new',     hint: 'At least 10 characters' },
                     { key: 'new_password_confirmation',label: 'Confirm new password',  show: 'confirm' },
                   ].map(({ key, label, show, hint }) => (
                     <Field key={key} label={label}>

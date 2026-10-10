@@ -174,10 +174,9 @@ class ApplicantPortalController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'current_password' => 'required|string',
-            'password'         => 'required|string|min:8|confirmed|different:current_password',
+            'password'         => ['required', 'string', new \App\Rules\StrongPassword([$request->user()?->first_name, $request->user()?->last_name, $request->user()?->email]), 'confirmed', 'different:current_password'],
         ], [
             'password.confirmed'  => 'Passwords do not match.',
-            'password.min'        => 'Password must be at least 8 characters.',
             'password.different'  => 'New password must be different from your current password.',
         ]);
 
@@ -196,6 +195,10 @@ class ApplicantPortalController extends Controller
         $applicant->update([
             'password' => \Illuminate\Support\Facades\Hash::make($request->password),
         ]);
+
+        // every other session of this applicant ends; this one stays
+        $current = $applicant->currentAccessToken();
+        app(\App\Services\Security\Sessions::class)->revokeAll($applicant, $current instanceof \Laravel\Sanctum\PersonalAccessToken ? (int) $current->id : null, 'password_changed');
 
         return response()->json(['message' => 'Password updated successfully.']);
     }

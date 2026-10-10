@@ -117,7 +117,7 @@ class EmployeeController extends Controller
             'name' => 'required_without:user_id|string|max:255',
             'email' => 'required_without:user_id|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:50',
-            'password' => 'nullable|string|min:8',
+            'password' => ['nullable', 'string', new \App\Rules\StrongPassword],
             'role' => ['required_without:user_id', 'nullable', Rule::in(app(Authorizer::class)->staffRoleKeys())],
             
             // Either user_id or name/email must be provided
@@ -200,7 +200,9 @@ class EmployeeController extends Controller
                     'name' => $request->name,
                     'email' => $request->email,
                     'phone' => $request->phone,
-                    'password' => bcrypt($request->password ?? 'password123'), // default password
+                    // no password given: one nobody knows (the person sets their own with "Forgot password"); given: it is temporary, they change it at first sign-in
+                    'password' => bcrypt($request->password ?: \App\Services\Security\PasswordPolicy::random()),
+                    'force_password_change' => true,
                     'role'  => $request->role,
                     'status' => 'active',
                 ]);

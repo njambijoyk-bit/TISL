@@ -206,7 +206,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name'         => 'required|string|max:255',
             'email'        => 'required|email|unique:users,email',
-            'password'     => 'required|string|min:8',
+            'password'     => ['required', 'string', new \App\Rules\StrongPassword],
             'role'         => $this->roleRule(),
             'phone'        => 'nullable|string|unique:users,phone',
             'company_name' => 'nullable|string|max:255',
@@ -591,7 +591,7 @@ class UserController extends Controller
         $this->authorize('manageAccount', $user);
 
         $validator = Validator::make($request->all(), [
-            'password' => 'required|string|min:8',
+            'password' => ['required', 'string', new \App\Rules\StrongPassword([$user->name, $user->email, $user->phone])],
         ]);
 
         if ($validator->fails()) {

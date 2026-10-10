@@ -86,7 +86,7 @@ export default function Register() {
       e.phone = 'Phone must be at least 10 digits';
     }
     if (!formData.password) e.password = 'Password is required';
-    else if (formData.password.length < 8) e.password = 'At least 8 characters';
+    else if (formData.password.length < 10) e.password = 'At least 10 characters';
     if (formData.password !== formData.password_confirmation) e.password_confirmation = 'Passwords do not match';
     if (!policyAccepted) e.policies = 'You must accept the policies to continue';
     setErrors(e);
@@ -233,7 +233,7 @@ export default function Register() {
 
             <Field
               name="password" label="Password" type={showPassword ? 'text' : 'password'}
-              placeholder="At least 8 characters" icon={Lock} error={errors.password}
+              placeholder="At least 10 characters" icon={Lock} error={errors.password}
               rightEl={<EyeBtn show={showPassword} toggle={() => setShowPassword(s => !s)} />}
               value={formData.password} {...fieldProps}
             />
