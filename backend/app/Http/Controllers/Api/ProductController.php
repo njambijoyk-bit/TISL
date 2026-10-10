@@ -503,6 +503,7 @@ class ProductController extends Controller
                     // Images
                     'main_image' => $product->main_image,
                     'images' => $product->images ?? [],
+                    'video' => $product->video,   // an uploaded file or a link (set on the product form), shown first in the gallery
                     
                     // Features & Specifications
                     'features' => $product->features ?? [],
