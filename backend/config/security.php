@@ -51,6 +51,9 @@ return [
         'guess'   => ['user' => [[8, 15], [30, 60]]],
     ],
 
+    // Email a person when a kind of browser they have not signed in from before signs in (with a button that signs everyone out). Off with SECURITY_NEW_SIGN_IN_EMAIL=false.
+    'new_sign_in_email' => (bool) env('SECURITY_NEW_SIGN_IN_EMAIL', true),
+
     'password' => [
         'min_length' => (int) env('SECURITY_PASSWORD_MIN', 10),
         'max_length' => 128,

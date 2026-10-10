@@ -18,6 +18,7 @@ final class SecurityEvents
         'password_reset' => ['Password reset by email', SecurityLog::WARNING],
         'password_reset_forced' => ['Password reset required by an administrator', SecurityLog::WARNING],
         'password_reset_by_admin' => ['Password set by an administrator', SecurityLog::WARNING],
+        'secure_account' => ['"This was not me" used: everyone signed out', SecurityLog::ALERT],
         'session_ended' => ['A signed-in device was ended', SecurityLog::NOTICE],
         'sessions_ended' => ['Signed-in devices were ended', SecurityLog::NOTICE],
     ];

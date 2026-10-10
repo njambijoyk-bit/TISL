@@ -139,6 +139,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-forgot');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword'])->middleware('throttle:password-force');
+    Route::post('/secure-account', [\App\Http\Controllers\Api\SecureAccountController::class, 'store'])->middleware('throttle:password-reset');   // "This was not me" in the new-sign-in email
 });
 
 Route::get('/bug-reports/search', [BugReportController::class, 'search']);

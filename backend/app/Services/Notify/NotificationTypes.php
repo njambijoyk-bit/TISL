@@ -32,6 +32,7 @@ class NotificationTypes
         'referral_earned' => ['Referral reward', false, 'customer'],
         'account_created' => ['Account created', true, 'customer'],
         'password_reset' => ['Password reset', true, 'customer'],
+        'new_sign_in' => ['A new browser signed in to your account', true, 'customer'],
         'event_ticket' => ['Your event tickets', true, 'customer'],
         'event_reminder' => ['Reminder: your event is coming up', false, 'customer'],
         'event_changed' => ['An event you have tickets for changed', true, 'customer'],
