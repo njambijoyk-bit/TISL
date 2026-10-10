@@ -219,6 +219,12 @@ class CodesCoreTest extends TestCase
         $k = $this->controller()->kinds()->getData(true);
         $this->assertContains('qr', array_column($k['kinds'], 'key'));
         $this->assertContains('ean13', array_column($k['kinds'], 'key'));
+        $forLabels = array_column($k['kinds'], 'for_labels', 'key');
+        foreach (['pdf417', 'datamatrix', 'code93', 'codabar'] as $key) {
+            $this->assertTrue($forLabels[$key], $key);
+        }
+        $this->assertFalse($forLabels['gs1128'], 'GS1 codes need (AI)value, not an item\'s plain code');
+        $this->assertFalse($forLabels['gs1datamatrix']);
         $this->assertSame('ean13', CodeFactory::suggest('5901234123457'));
         $this->assertSame('upca', CodeFactory::suggest('036000291452'));
         $this->assertSame('ean8', CodeFactory::suggest('55123457'));
