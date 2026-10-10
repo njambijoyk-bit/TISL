@@ -12,6 +12,7 @@ import NotificationsModal from '../../../_shared/components/common/Notifications
 import NotificationPreferencesModal from './NotificationPreferencesModal';
 import LoyaltyRedemptionModal from '../../components/customer/LoyaltyRedemptionModal';
 import CustomerCreditTab from './CustomerCreditTab';
+import SignedInDevices from '../../components/account/SignedInDevices';
 import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../../_shared/api/index';
 import { useAuthStore, usePromoCodeStore, useCurrencyStore, useLocationStore } from '../../../_shared/store/index';
 import CurrencyToggle from '../../../_shared/components/common/currency/CurrencyToggle';
@@ -1498,6 +1499,11 @@ export default function Profile() {
                     {savingPwd ? 'Changing…' : 'Change password'}
                   </button>
                 </form>
+              </div>
+
+              <div style={card}>
+                <p style={sectionTitle}><ShieldCheck size={14} style={{ color: 'var(--color-primary-500)' }} /> Where you are signed in</p>
+                <SignedInDevices onSignedOut={() => { useAuthStore.getState().logout(); navigate('/login'); }} />
               </div>
               </div>
             )}

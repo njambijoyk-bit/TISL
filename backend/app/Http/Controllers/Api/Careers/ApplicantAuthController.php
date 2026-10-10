@@ -57,7 +57,7 @@ class ApplicantAuthController extends Controller
                 'status'              => 'active',
             ]);
 
-            $token = $applicant->createToken('applicant-token')->plainTextToken;
+            $token = app(\App\Services\Security\Sessions::class)->issue($applicant, $request, 'applicant-token', 'register');
 
             DB::commit();
 
@@ -103,7 +103,7 @@ class ApplicantAuthController extends Controller
         // Revoke previous tokens (one active session at a time)
         $applicant->tokens()->delete();
 
-        $token = $applicant->createToken('applicant-token')->plainTextToken;
+        $token = app(\App\Services\Security\Sessions::class)->issue($applicant, $request, 'applicant-token', 'password');
 
         return response()->json([
             'message'              => 'Login successful.',
@@ -134,6 +134,9 @@ class ApplicantAuthController extends Controller
             'password'             => Hash::make($request->password),
             'must_change_password' => false,
         ]);
+
+        $current = $request->user()->currentAccessToken();   // every other session of this applicant ends; this one stays
+        app(\App\Services\Security\Sessions::class)->revokeAll($applicant, $current instanceof \Laravel\Sanctum\PersonalAccessToken ? (int) $current->id : null, 'password_changed');
 
         return response()->json(['message' => 'Password changed successfully.']);
     }
@@ -200,6 +203,8 @@ class ApplicantAuthController extends Controller
                     'must_change_password' => false,
                     'remember_token'       => Str::random(60),
                 ])->save();
+
+                app(\App\Services\Security\Sessions::class)->revokeAll($applicant, null, 'password_reset');
 
                 event(new PasswordReset($applicant));
             }

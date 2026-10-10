@@ -531,6 +531,8 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $this->authorize('manageAccount', $user);
         $user->forceFill(['force_password_change' => true])->save();
+        $ended = app(\App\Services\Security\Sessions::class)->revokeAll($user, null, 'admin');   // "must change it" means now, not whenever the old session happens to end
+        \App\Services\Security\SecurityLog::record('password_reset_forced', $user, $request, ['by' => $request->user()?->id, 'sessions_ended' => $ended], \App\Services\Security\SecurityLog::WARNING);
         return response()->json(['message' => 'User will be required to reset their password on next login.']);
     }
 
@@ -601,6 +603,9 @@ class UserController extends Controller
             'password_changed_at'   => now(),
             'force_password_change' => true,
         ])->save();
+
+        $ended = app(\App\Services\Security\Sessions::class)->revokeAll($user, null, 'admin');
+        \App\Services\Security\SecurityLog::record('password_reset_by_admin', $user, $request, ['by' => $request->user()?->id, 'sessions_ended' => $ended], \App\Services\Security\SecurityLog::WARNING);
 
         return response()->json(['message' => 'Password reset. User will be required to change it on next login.']);
     }

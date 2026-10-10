@@ -1,3 +1,4 @@
+import SignedInDevices from '../../components/account/SignedInDevices';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -607,6 +608,12 @@ export default function AdminProfile() {
                       {savingPwd ? 'Changing…' : 'Change password'}
                     </button>
                   </form>
+                </div>
+
+                {/* Where you are signed in */}
+                <div style={card}>
+                  <p style={sectionTitle}><ShieldCheck size={14} style={{ color: 'var(--color-primary-500)' }} /> Where you are signed in</p>
+                  <SignedInDevices onSignedOut={handleLogout} />
                 </div>
 
                 {/* Danger zone */}

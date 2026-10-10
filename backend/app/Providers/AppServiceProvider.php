@@ -100,6 +100,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Laravel\Sanctum\Sanctum::authenticateAccessTokensUsing(fn ($token, bool $valid) => \App\Services\Security\SessionGate::allows($token, $valid));   // a suspended account's open sessions stop working at once
         // Mail goes out from the company's default email address (Books → Settings → Company), under the company's name.
         if (! $this->app->runningInConsole() || ! $this->app->runningUnitTests()) {
             try {

@@ -20,6 +20,9 @@ use App\Mail\WelcomeEmail;
 use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
+use App\Services\Security\SecurityLog;
+use App\Services\Security\Sessions;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class AuthController extends Controller
 {
@@ -145,7 +148,7 @@ class AuthController extends Controller
             Auth::login($user);
 
             // Create token
-            $token = $user->createToken('auth-token')->plainTextToken;
+            $token = app(Sessions::class)->issue($user, $request, 'auth-token', 'register');
 
             DB::commit();
 
@@ -335,7 +338,7 @@ class AuthController extends Controller
         $user->recordLogin($request);
 
         // Create API token
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = app(Sessions::class)->issue($user, $request, 'auth-token', 'password');
 
         // NEW: Load customer with referral code
         $customer = null;
@@ -357,11 +360,18 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Revoke current token
-        $request->user()->currentAccessToken()->delete();
+        // End this session (the record keeps why)
+        $current = $request->user()->currentAccessToken();
+        if ($current instanceof PersonalAccessToken) {
+            app(Sessions::class)->revokeOne($request->user(), (int) $current->id, 'logout');
+        }
         
-        // Logout from session
-        Auth::logout();
+        // A token login has no browser session to close; a cookie login does. (The token guard has no logout() at all, which used to turn every sign-out into an error after the token was already gone.)
+        try {
+            Auth::guard('web')->logout();
+        } catch (\Throwable) {
+            // nothing to close
+        }
 
         return response()->json([
             'message' => 'Logout successful'
@@ -437,13 +447,16 @@ class AuthController extends Controller
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function (User $user, string $password) {
+            function (User $user, string $password) use ($request) {
                 $user->forceFill([
                     'password' => Hash::make($password),
                     'password_changed_at' => now(),
                     'force_password_change' => false,
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                $ended = app(Sessions::class)->revokeAll($user, null, 'password_reset');   // a reset ends every session, so whoever held the old password or a stolen session is out
+                SecurityLog::record('password_reset', $user, $request, ['sessions_ended' => $ended], SecurityLog::WARNING);
 
                 event(new PasswordReset($user));
             }
@@ -496,8 +509,13 @@ class AuthController extends Controller
             'force_password_change' => false,
         ]);
 
+        // Whoever else is signed in as this person (a stolen session, a forgotten laptop) is signed out now; this browser stays
+        $current = $request->user()->currentAccessToken();
+        $ended = app(Sessions::class)->revokeAll($user, $current instanceof PersonalAccessToken ? (int) $current->id : null, 'password_changed');
+        SecurityLog::record('password_changed', $user, $request, ['sessions_ended' => $ended], SecurityLog::NOTICE);
+
         return response()->json([
-            'message' => 'Password changed successfully'
+            'message' => 'Password changed successfully' . ($ended ? ". {$ended} other " . ($ended === 1 ? 'device was' : 'devices were') . ' signed out.' : '')
         ], 200);
     }
 
@@ -571,10 +589,13 @@ class AuthController extends Controller
             'remember_token'        => Str::random(60),
         ]);
 
+        $ended = app(Sessions::class)->revokeAll($user, null, 'password_changed');
+        SecurityLog::record('password_changed', $user, $request, ['sessions_ended' => $ended, 'forced' => true], SecurityLog::NOTICE);
+
         event(new PasswordReset($user));
 
         Auth::login($user);
-        $token = $user->createToken('auth-token')->plainTextToken;
+        $token = app(Sessions::class)->issue($user, $request, 'auth-token', 'reset');
         $user->recordLogin($request);
 
         $customer = null;

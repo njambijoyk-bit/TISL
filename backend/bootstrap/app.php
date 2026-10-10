@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(append: [
             \App\Http\Middleware\SetDisplayCurrency::class,
             \App\Http\Middleware\SetLocationContext::class,
+            \App\Http\Middleware\SlideSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

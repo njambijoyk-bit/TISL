@@ -430,6 +430,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chat', [ChatController::class, 'chat'])
         ->middleware('throttle:30,1');
     // Authentication
+    Route::get('/auth/sessions',                 [\App\Http\Controllers\Api\SessionController::class, 'index']);            // where I am signed in
+    Route::delete('/auth/sessions/{id}',         [\App\Http\Controllers\Api\SessionController::class, 'destroy'])->whereNumber('id');
+    Route::post('/auth/sessions/revoke-others',  [\App\Http\Controllers\Api\SessionController::class, 'revokeOthers']);
+    Route::post('/auth/sessions/revoke-all',     [\App\Http\Controllers\Api\SessionController::class, 'revokeAll']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
