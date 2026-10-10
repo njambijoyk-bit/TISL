@@ -1,6 +1,6 @@
 # Security: how TISL knows who you are — plan
 
-Status: **plan agreed in part; Phase 0 is being built.** Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
+Status: **Phase 0 is built and pushed; Phases 1 and 2 (with the cookie move and the seal phrase) are being built.** Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
 
 The idea in one line: **how a person proves who they are** (real cryptography, standard and vetted) is separate from **how we show it** (the ceremony: a seal, a dispatch, a cross-examination). The ceremony is skin. The proof is passkeys (WebAuthn / FIDO2), never a homemade cipher.
 
@@ -222,11 +222,10 @@ Tap-to-approve with number matching (Web Push to a trusted device; iPhone needs 
 - ✔ **Staff recovery:** all three rungs: recovery codes; assisted recovery by two administrators with a 24-hour cooling-off; and the owner break-glass command on the server.
 - ✔ **Passkey engine:** the vetted library (`web-auth/webauthn-lib`), not our own code.
 
-Still open (needed before Phase 1, not before Phase 0):
-1. **What goes in the first release after Phase 0?** Recommended: Phases 1 and 2; tap-to-approve and QR sign-in after.
-2. **The production domain(s)** for the passkey RP ID, and where the frontend is hosted (for headers and cookies).
-3. **Token storage:** `HttpOnly` cookie session (safer, a small change to how the frontend talks to the API) or keep a header token with expiry and rotation (what Phase 0 does). Recommended: cookie session, in Phase 1.
-4. **Seal phrase on the sign-in page:** yes as a flourish? Recommended: yes, clearly labelled as not a security factor.
+- ✔ **Production domain / RP ID: `targetisl.co.ke`** (the website at `targetisl.co.ke` and `www.targetisl.co.ke`). Passkeys are made for this domain, so the shop and the API can sit on subdomains of it. The API must be on a subdomain of the same domain (for example `api.targetisl.co.ke`) for the protected cookie to work (see 1.0).
+- ✔ **Token storage: move to a protected (`HttpOnly`) cookie.** Built as an opaque session code in a cookie that scripts cannot read, with a CSRF header and an origin check on every change; the sessions, expiry and revoke machinery from Phase 0 stays exactly as it is.
+- ✔ **Seal phrase on the sign-in page: yes**, as a clearly labelled flourish, shown only on a browser that has signed in as that person before (so a copy of the page can not simply ask for it).
+- ✔ **First release = Phases 1 and 2 together** (passkeys and devices, then step-up and risk). Tap-to-approve and QR sign-in (Phase 4) come after; Phase 3 (policy for roles, assisted recovery, Council of Two) follows Phase 2.
 
 ## 10. Phase 0, as it will be built
 
