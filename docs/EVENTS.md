@@ -9,6 +9,8 @@ Ticketed events: single dates, multi-day and repeating events, free RSVPs and on
 4. **Payments:** paid tickets use the same M-Pesa and card setup as the shop (Admin → Settings → Payments). The money lands in the account you choose there.
 5. **Admin → Events → Settings:** how long seats are kept for someone who has not paid (default 15 minutes), the income account tickets are booked to when an event names none, a line printed on every ticket, and whether to send reminders.
 
+6. **Check it on your own books before the first event:** `php artisan events:selfcheck --income=<id of the income account> --till=<id of a cash or bank account>`. It sells, pays (with a pretend M-Pesa), scans, refunds, sells at the box office and cancels an event through your real books, reports each step as PASS or FAIL, and then undoes everything (nothing is saved, nothing is sent). Run it again after any change to the books' setup.
+
 ## Make an event
 Admin → Events → **New event**.
 - **Details:** title, summary, in person / online / both, venue, join link (shown only to ticket holders), description, picture, video, whether it shows in the public list.
