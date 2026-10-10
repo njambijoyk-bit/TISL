@@ -1115,6 +1115,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/recurrence',           [$c, 'recurrence'])->middleware('permission:events.edit');
             Route::post('/',                     [$c, 'store'])->middleware('permission:events.edit');
             Route::get('/{id}',                  [$c, 'show'])->whereNumber('id')->middleware('permission:events.view');
+            Route::get('/{id}/summary',          [$c, 'summary'])->whereNumber('id')->middleware('permission:events.view');
             Route::put('/{id}',                  [$c, 'update'])->whereNumber('id')->middleware('permission:events.edit');
             Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id')->middleware('permission:events.delete');
             Route::post('/{id}/publish',         [$c, 'publish'])->whereNumber('id')->middleware('permission:events.edit');
@@ -1125,6 +1126,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/image',           [$c, 'image'])->whereNumber('id')->middleware('permission:events.edit');
             Route::delete('/{id}/image',         [$c, 'removeImage'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/video',           [$c, 'setVideo'])->whereNumber('id')->middleware('permission:events.edit');
+            $bo = \App\Http\Controllers\Api\EventBoxOfficeController::class;   // selling at the door
+            Route::get('/{id}/box-office',            [$bo, 'show'])->whereNumber('id')->middleware('permission:events.sell');
+            Route::post('/{id}/sell',                 [$bo, 'sell'])->whereNumber('id')->middleware(['permission:events.sell', 'throttle:120,1']);
             $d = \App\Http\Controllers\Api\EventDoorController::class;   // the door
             Route::get('/{id}/door',                  [$d, 'door'])->whereNumber('id')->middleware('permission:events.checkin,events.view');
             Route::post('/{id}/checkin',              [$d, 'checkin'])->whereNumber('id')->middleware(['permission:events.checkin', 'throttle:300,1']);

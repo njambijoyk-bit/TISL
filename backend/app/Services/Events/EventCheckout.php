@@ -48,7 +48,7 @@ final class EventCheckout
     }
 
     /** @param array<int, int> $wanted @return Collection<int, EventTicketType> keyed by id */
-    private function types(Event $event, array $wanted): Collection
+    public function types(Event $event, array $wanted): Collection
     {
         $types = EventTicketType::where('event_id', $event->id)->whereIn('id', array_keys($wanted))->get()->keyBy('id');
         if ($types->count() !== count($wanted)) {
@@ -87,11 +87,11 @@ final class EventCheckout
     }
 
     /** @param array<int, array<string, mixed>> $lines */
-    private function payload(Event $event, array $lines, array $meta = [], ?int $customerId = null, ?string $narration = null): array
+    public function payload(Event $event, array $lines, array $meta = [], ?int $customerId = null, ?string $narration = null, string $channel = 'storefront'): array
     {
         $locationId = $event->location_id ?: (Location::defaultSelling()?->id ?? Location::default()?->id);
 
-        return ['date' => today()->toDateString(), 'location_id' => $locationId, 'currency_id' => $event->currency_id, 'customer_id' => $customerId, 'channel' => 'storefront',
+        return ['date' => today()->toDateString(), 'location_id' => $locationId, 'currency_id' => $event->currency_id, 'customer_id' => $customerId, 'channel' => $channel,
             'lines' => $lines, 'narration' => $narration, 'meta' => $meta];
     }
 

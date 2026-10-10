@@ -14,6 +14,7 @@ const eventsAPI = {
   recurrence: (rule) => api.post('/admin/events/recurrence', rule).then((r) => r.data),
   uploadImage: (id, file) => { const f = new FormData(); f.append('file', file); return api.post(`/admin/events/${id}/image`, f, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data); },
   removeImage: (id) => api.delete(`/admin/events/${id}/image`).then((r) => r.data),
+  summary: (id) => api.get(`/admin/events/${id}/summary`).then((r) => r.data),
   postpone: (id) => api.post(`/admin/events/${id}/postpone`).then((r) => r.data),
   notifyHolders: (id, message) => api.post(`/admin/events/${id}/notify`, { message }).then((r) => r.data),
   // refunds

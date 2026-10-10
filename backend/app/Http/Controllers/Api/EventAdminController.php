@@ -10,6 +10,7 @@ use App\Services\Events\EventNotices;
 use App\Services\Events\EventException;
 use App\Services\Events\EventPresenter;
 use App\Services\Events\EventSettings;
+use App\Services\Events\EventSummary;
 use App\Services\Events\Recurrence;
 use App\Services\ServiceVideo;
 use Illuminate\Http\JsonResponse;
@@ -121,6 +122,12 @@ class EventAdminController extends Controller
 
             return response()->json(['message' => 'Deleted.']);
         });
+    }
+
+    /** GET /admin/events/{id}/summary: sold, what it brought in, who has arrived. */
+    public function summary(int $id): JsonResponse
+    {
+        return response()->json(app(EventSummary::class)->of(Event::findOrFail($id)));
     }
 
     /** POST /admin/events/recurrence: the dates of a repeat, to review before saving. */

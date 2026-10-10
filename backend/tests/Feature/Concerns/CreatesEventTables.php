@@ -19,7 +19,7 @@ trait CreatesEventTables
         Schema::create('event_refund_requests', function ($t) { $t->id(); $t->unsignedBigInteger('event_id'); $t->unsignedBigInteger('ticket_id'); $t->string('status')->default('pending'); $t->string('reason')->nullable(); $t->decimal('amount', 12, 2)->default(0); $t->string('requested_by')->nullable(); $t->unsignedBigInteger('decided_by')->nullable(); $t->dateTime('decided_at')->nullable(); $t->string('decision_note')->nullable(); $t->timestamps(); });
         Schema::create('event_settings', function ($t) { $t->unsignedTinyInteger('id')->primary(); $t->json('settings')->nullable(); $t->unsignedBigInteger('updated_by')->nullable(); $t->timestamps(); });
         Schema::create('ledger_groups', function ($t) { $t->id(); $t->unsignedBigInteger('parent_id')->nullable(); $t->string('name'); $t->timestamps(); });
-        Schema::create('ledgers', function ($t) { $t->id(); $t->unsignedBigInteger('group_id')->nullable(); $t->string('name'); $t->string('tax_nature')->nullable(); $t->boolean('offer_at_checkout')->default(false); $t->timestamps(); });
+        Schema::create('ledgers', function ($t) { $t->id(); $t->unsignedBigInteger('group_id')->nullable(); $t->string('name'); $t->string('tax_nature')->nullable(); $t->boolean('offer_at_checkout')->default(false); $t->boolean('is_active')->default(true); $t->timestamps(); });
         $income = DB::table('ledger_groups')->insertGetId(['name' => 'Direct Income']);
         $bank = DB::table('ledger_groups')->insertGetId(['name' => 'Bank Accounts']);
         DB::table('ledgers')->insert([['id' => 40, 'group_id' => $income, 'name' => 'Ticket sales'], ['id' => 41, 'group_id' => $bank, 'name' => 'KCB Bank']]);

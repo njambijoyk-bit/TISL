@@ -25,6 +25,9 @@ final class EventNotices
                 return;
             }
             $first = $tickets->first();
+            if (! $first->customer_id && ! $first->buyer_email && ! $first->buyer_phone) {
+                return;   // someone at the door who left no way to reach them: the ticket in their hand is all they need
+            }
             $event = Event::withTrashed()->with('sessions')->find($first->event_id);
             $this->tell($first, 'event_ticket', ($tickets->count() === 1 ? 'Your ticket for ' : 'Your tickets for ') . $event->title, $this->body($event, $tickets), '/tickets/' . TicketCodes::code($first), 'View my tickets');
         });

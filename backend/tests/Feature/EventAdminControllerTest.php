@@ -148,6 +148,7 @@ class EventAdminControllerTest extends TestCase
             $uri = $r->uri();
             $need = match (true) {
                 (bool) preg_match('#/refunds|/tickets/\{ticketId\}/refund#', $uri) => 'permission:events.refund',   // deciding ticket refunds
+                (bool) preg_match('#/(sell|box-office)$#', $uri) => 'permission:events.sell',   // selling at the door
                 (bool) preg_match('#/(door|guests)$#', $uri) => 'permission:events.checkin,events.view',   // the door and the guest list: door staff or whoever may view
                 str_ends_with($uri, '/guests/export') => 'permission:events.view',
                 (bool) preg_match('#/checkin#', $uri) => 'permission:events.checkin',   // scanning, letting in by hand, undoing
@@ -157,6 +158,6 @@ class EventAdminControllerTest extends TestCase
             };
             $this->assertSame($need, $perms[0], $r->methods()[0] . ' ' . $uri);
         }
-        $this->assertGreaterThanOrEqual(26, $seen);
+        $this->assertGreaterThanOrEqual(30, $seen);
     }
 }

@@ -15,6 +15,7 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 import StatusBadge from '../../components/admin/StatusBadge';
 import DatesTab from '../../components/admin/DatesTab';
 import TicketsTab from '../../components/admin/TicketsTab';
+import EventSummary from '../../components/admin/EventSummary';
 import { blankEvent, blankSession, blankType, fromServer, snapshot, toServer } from '../../lib/eventForm';
 import { KINDS } from '../../lib/eventFormat';
 
@@ -105,7 +106,7 @@ export default function EventForm() {
   const inPerson = event.kind === 'in_person' || event.kind === 'hybrid';
   const hasSales = types.some((t) => t.sold > 0 || t.taken > 0);
   const status = meta.status;
-  const TABS = [{ id: 'details', label: 'Details' }, { id: 'dates', label: 'Dates', count: sessions.length }, { id: 'tickets', label: 'Tickets', count: types.length }, { id: 'refunds', label: 'Refunds and more' }];
+  const TABS = [{ id: 'details', label: 'Details' }, { id: 'dates', label: 'Dates', count: sessions.length }, { id: 'tickets', label: 'Tickets', count: types.length }, { id: 'refunds', label: 'Refunds and more' }, ...(id && status !== 'draft' ? [{ id: 'summary', label: 'Summary' }] : [])];
   const readOnly = !canEdit || status === 'cancelled';
 
   return (
@@ -183,6 +184,7 @@ export default function EventForm() {
           </div>
         )}
 
+        {tab === 'summary' && id && <EventSummary eventId={id} />}
         {tab === 'dates' && <DatesTab sessions={sessions} onChange={setSessions} locked={hasSales} readOnly={readOnly} />}
         {tab === 'tickets' && <TicketsTab event={event} onEvent={setEvent} types={types} onTypes={setTypes} sessions={sessions} readOnly={readOnly} />}
 
