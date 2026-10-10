@@ -51,6 +51,13 @@ return [
         'guess'   => ['user' => [[8, 15], [30, 60]]],
     ],
 
+    // Headers added to every response (see Http/Middleware/SecurityHeaders). HSTS is only sent over HTTPS; switch it off if the site must also be reached over plain HTTP.
+    'headers' => [
+        'enabled' => (bool) env('SECURITY_HEADERS', true),
+        'hsts' => (bool) env('SECURITY_HSTS', true),
+        'hsts_seconds' => 31536000,
+    ],
+
     // Email a person when a kind of browser they have not signed in from before signs in (with a button that signs everyone out). Off with SECURITY_NEW_SIGN_IN_EMAIL=false.
     'new_sign_in_email' => (bool) env('SECURITY_NEW_SIGN_IN_EMAIL', true),
 

@@ -21,6 +21,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'exchange.key' => \App\Http\Middleware\ExchangeKeyAuth::class,
         ]);
 
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);   // nosniff, no referrer, HSTS over HTTPS, JSON may not be framed, sign-in answers are never cached
+
         // Behind a load balancer or CDN the visitor's real address arrives in X-Forwarded-For; trust it only from the proxies named here (TRUSTED_PROXIES=10.0.0.1,10.0.0.2 or * for all). Left empty, the address seen is the one that connected, and the sign-in limits count per real caller instead of per proxy.
         if ($proxies = env('TRUSTED_PROXIES')) {
             $middleware->trustProxies(at: $proxies === '*' ? '*' : array_map('trim', explode(',', $proxies)));

@@ -1,0 +1,117 @@
+<?php
+
+namespace App\Services\Security;
+
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Schema;
+
+/**
+ * "Is this server set up safely?": the list `php artisan security:check` prints. Each line is ok, a warning (worth fixing), a failure (the protections do not work as built) or a note.
+ * It looks only; the one thing it can mend (accounts still on a password the old imports used) needs --fix.
+ */
+final class SecurityCheck
+{
+    /** Passwords the old imports and employee form gave to new accounts, and the first few anyone tries. */
+    public const DEFAULT_PASSWORDS = ['password123', 'EmpPass123!', 'TempPass123!', 'Password123', 'password'];
+
+    public const OK = 'ok';
+    public const WARN = 'warn';
+    public const FAIL = 'fail';
+    public const NOTE = 'note';
+
+    /** @return array<int, array{status: string, label: string, advice: ?string}> */
+    public function run(bool $scanPasswords = true): array
+    {
+        $production = config('app.env') === 'production';
+        $out = [];
+        $add = function (string $status, string $label, ?string $advice = null) use (&$out) {
+            $out[] = ['status' => $status, 'label' => $label, 'advice' => $advice];
+        };
+
+        // how the app is run
+        $add(config('app.env') === 'production' ? self::OK : self::WARN, 'Running as production (APP_ENV)', config('app.env') === 'production' ? null : 'APP_ENV is "'.config('app.env').'". Set APP_ENV=production on the live server.');
+        $add(! config('app.debug') ? self::OK : ($production ? self::FAIL : self::WARN), 'Debug pages are off (APP_DEBUG)', ! config('app.debug') ? null : 'APP_DEBUG=true shows passwords, keys and code to anyone who triggers an error. Set APP_DEBUG=false on the live server.');
+        $add(config('app.key') ? self::OK : self::FAIL, 'The app key is set (APP_KEY)', config('app.key') ? null : 'Run php artisan key:generate. Without it nothing is encrypted or signed.');
+        foreach (['app.url' => 'APP_URL (this server)', 'app.frontend_url' => 'FRONTEND_URL (the website)'] as $key => $name) {
+            $https = str_starts_with((string) config($key), 'https://');
+            $add($https ? self::OK : ($production ? self::WARN : self::NOTE), "{$name} uses https", $https ? null : "{$name} is ".(config($key) ?: 'not set').'. Use the https address on the live server: links in emails and signed links depend on it.');
+        }
+        $local = array_values(array_filter((array) config('cors.allowed_origins', []), fn ($o) => preg_match('#//(localhost|127\.0\.0\.1)#', (string) $o)));
+        $add(! $local ? self::OK : ($production ? self::WARN : self::NOTE), 'Only real websites may call the API (CORS)', ! $local ? null : 'config/cors.php still lists '.implode(', ', $local).'. Remove them on the live server.');
+        $add(config('session.secure') ? self::OK : ($production ? self::WARN : self::NOTE), 'Cookies are sent over https only (SESSION_SECURE_COOKIE)', config('session.secure') ? null : 'Set SESSION_SECURE_COOKIE=true once the site is on https.');
+        $add(env('TRUSTED_PROXIES') ? self::OK : self::NOTE, 'The real visitor address is read behind a load balancer (TRUSTED_PROXIES)',
+            env('TRUSTED_PROXIES') ? null : 'Not set. If the API sits behind a load balancer, CDN or host proxy (Railway, Cloudflare, nginx in front), every visitor looks like one address and the sign-in limits count them all together: set TRUSTED_PROXIES to its address, or * if you cannot know it.');
+
+        // the protections need a place to remember
+        $store = (string) config('cache.default');
+        $add(in_array(config("cache.stores.{$store}.driver"), ['array', 'null'], true) ? self::FAIL : self::OK, 'The cache remembers between requests (CACHE_STORE)',
+            in_array(config("cache.stores.{$store}.driver"), ['array', 'null'], true) ? 'CACHE_STORE is "'.$store.'": the waits after wrong passwords and the speed limits forget everything at once. Use database, file or redis.' : null);
+        $add(config('queue.default') !== 'sync' ? self::OK : self::WARN, 'Emails are sent in the background (QUEUE_CONNECTION)', config('queue.default') !== 'sync' ? null : 'QUEUE_CONNECTION=sync sends every email while the person waits, including the new sign-in notice. Use database and run a queue worker.');
+        $add(! in_array(config('mail.default'), ['log', 'array'], true) ? self::OK : self::WARN, 'Email really goes out (MAIL_MAILER)', ! in_array(config('mail.default'), ['log', 'array'], true) ? null : 'MAIL_MAILER is "'.config('mail.default').'": password reset links and security notices are written to a file, not sent.');
+
+        // what the code needs in the database
+        $missing = array_values(array_filter(['auth_sessions', 'security_events'], fn ($t) => ! Schema::hasTable($t)));
+        $add(! $missing ? self::OK : self::FAIL, 'The security tables exist', ! $missing ? null : 'Missing: '.implode(', ', $missing).'. Run database script 123_security_core.sql in Workbench.');
+        if (Schema::hasTable('permissions')) {
+            $has = DB::table('permissions')->where('key', 'security.view')->exists();
+            $add($has ? self::OK : self::WARN, 'The "see the sign-in log" permission is installed', $has ? null : 'Run php artisan access:seed.');
+        }
+        $add(RateLimiter::limiter('sign-in') ? self::OK : self::FAIL, 'Sign-in has a speed limit', RateLimiter::limiter('sign-in') ? null : 'The speed limits are not registered.');
+        $add(PasswordPolicy::minLength() >= 10 ? self::OK : self::WARN, 'Passwords must be at least 10 characters', PasswordPolicy::minLength() >= 10 ? null : 'SECURITY_PASSWORD_MIN is '.PasswordPolicy::minLength().'.');
+        $add(config('security.headers.enabled') ? self::OK : self::WARN, 'Security headers are sent (SECURITY_HEADERS)', config('security.headers.enabled') ? null : 'Switched off.');
+        if (Schema::hasTable('personal_access_tokens')) {
+            $old = DB::table('personal_access_tokens')->whereNull('expires_at')->count();
+            $add(self::NOTE, $old ? "{$old} sign-in(s) from before expiry existed" : 'Every sign-in has an end date', $old ? 'Each gets an end date the next time it is used.' : null);
+        }
+
+        // people
+        if ($scanPasswords && Schema::hasTable('users')) {
+            $found = $this->accountsOnDefaultPasswords();
+            $add(! $found ? self::OK : self::FAIL, 'No account still uses a password everybody knows',
+                ! $found ? null : count($found).' account(s) can be signed in to with a password the old imports gave out or the first anyone tries: '.implode(', ', array_slice(array_column($found, 'email'), 0, 10)).(count($found) > 10 ? ', …' : '').'. Run php artisan security:check --fix to make each choose a new one at the next sign-in.');
+        }
+
+        return $out;
+    }
+
+    /**
+     * Every account whose password is one of DEFAULT_PASSWORDS. Slow on purpose (a real password check for each guess): run it when asked, not on every page.
+     *
+     * @return array<int, array{id: int, email: string, name: ?string}>
+     */
+    public function accountsOnDefaultPasswords(): array
+    {
+        $found = [];
+        User::query()->whereNotNull('password')->orderBy('id')->chunkById(200, function ($users) use (&$found) {
+            foreach ($users as $u) {
+                foreach (self::DEFAULT_PASSWORDS as $guess) {
+                    if (rescue(fn () => Hash::check($guess, $u->password), false, false)) {
+                        $found[] = ['id' => $u->id, 'email' => (string) $u->email, 'name' => $u->name];
+                        break;
+                    }
+                }
+            }
+        });
+
+        return $found;
+    }
+
+    /** Make each of these accounts choose a new password at the next sign-in, and end their sessions. @param array<int, array{id: int}> $accounts */
+    public function fix(array $accounts): int
+    {
+        $n = 0;
+        foreach ($accounts as $a) {
+            if ($u = User::find($a['id'])) {
+                $u->forceFill(['force_password_change' => true])->save();
+                $ended = app(Sessions::class)->revokeAll($u, null, 'default_password');
+                SecurityLog::record('default_password_found', $u, null, ['sessions_ended' => $ended], SecurityLog::WARNING);
+                $n++;
+            }
+        }
+
+        return $n;
+    }
+}

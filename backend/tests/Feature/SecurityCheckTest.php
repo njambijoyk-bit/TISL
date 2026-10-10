@@ -1,0 +1,282 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Security\AuthSession;
+use App\Models\Security\SecurityEvent;
+use App\Models\User;
+use App\Services\Security\SecurityCheck;
+use App\Services\Security\Sessions;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
+use Tests\TestCase;
+
+/** "Is this server set up safely?" and the accounts still on a password everybody knows. */
+class SecurityCheckTest extends TestCase
+{
+    use Concerns\CreatesSecurityTables;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->createSecurityTables();
+        $this->goodServer();
+    }
+
+    protected function tearDown(): void
+    {
+        putenv('TRUSTED_PROXIES');
+        parent::tearDown();
+    }
+
+    /** Settings of a well-run live server. */
+    private function goodServer(): void
+    {
+        config(['app.env' => 'production', 'app.debug' => false, 'app.url' => 'https://api.example.co.ke', 'app.frontend_url' => 'https://example.co.ke', 'cors.allowed_origins' => ['https://example.co.ke'],
+            'session.secure' => true, 'cache.default' => 'file', 'queue.default' => 'database', 'mail.default' => 'smtp', 'security.headers.enabled' => true, 'security.password.min_length' => 10]);
+        putenv('TRUSTED_PROXIES=*');
+        Schema::create('permissions', function ($t) { $t->id(); $t->string('key')->unique(); });
+        DB::table('permissions')->insert(['key' => 'security.view']);
+    }
+
+    /** @return array<string, array{status: string, label: string, advice: ?string}> keyed by the first words of the label */
+    private function results(bool $passwords = false): array
+    {
+        $out = [];
+        foreach (app(SecurityCheck::class)->run($passwords) as $r) {
+            $out[$r['label']] = $r;
+        }
+
+        return $out;
+    }
+
+    private function lineStatus(string $labelStart, bool $passwords = false): string
+    {
+        foreach ($this->results($passwords) as $label => $r) {
+            if (str_starts_with($label, $labelStart)) {
+                return $r['status'];
+            }
+        }
+        $this->fail("No line starting \"{$labelStart}\"");
+    }
+
+    private function person(string $email, string $password): User
+    {
+        return User::forceCreate(['name' => 'Someone', 'email' => $email, 'password' => Hash::make($password), 'role' => 'customer']);
+    }
+
+    // ------------------------------------------------------------ the settings
+
+    public function test_a_well_run_server_has_nothing_to_fix(): void
+    {
+        $bad = array_filter($this->results(), fn ($r) => in_array($r['status'], ['warn', 'fail'], true));
+        $this->assertSame([], array_keys($bad));
+    }
+
+    public function test_debug_pages_on_a_live_server_are_a_failure_and_elsewhere_a_warning(): void
+    {
+        config(['app.debug' => true]);
+        $this->assertSame('fail', $this->lineStatus('Debug pages'));
+        config(['app.env' => 'local']);
+        $this->assertSame('warn', $this->lineStatus('Debug pages'));
+    }
+
+    public function test_not_running_as_production_is_a_warning(): void
+    {
+        config(['app.env' => 'staging']);
+        $this->assertSame('warn', $this->lineStatus('Running as production'));
+    }
+
+    public function test_a_missing_app_key_is_a_failure(): void
+    {
+        config(['app.key' => '']);
+        $this->assertSame('fail', $this->lineStatus('The app key'));
+    }
+
+    public function test_plain_http_addresses_warn_on_a_live_server_and_only_note_elsewhere(): void
+    {
+        config(['app.url' => 'http://api.example.co.ke', 'app.frontend_url' => 'http://example.co.ke']);
+        $r = $this->results();
+        $this->assertSame(['warn', 'warn'], [$r['APP_URL (this server) uses https']['status'], $r['FRONTEND_URL (the website) uses https']['status']]);
+        config(['app.env' => 'local']);
+        $this->assertSame('note', $this->lineStatus('APP_URL'));
+    }
+
+    public function test_localhost_in_the_allowed_websites_is_caught_and_named(): void
+    {
+        config(['cors.allowed_origins' => ['https://example.co.ke', 'http://localhost:5173', 'http://127.0.0.1:3000']]);
+        $this->assertSame('warn', $this->lineStatus('Only real websites'));
+        $advice = $this->results()['Only real websites may call the API (CORS)']['advice'];
+        $this->assertStringContainsString('http://localhost:5173', $advice);
+        $this->assertStringContainsString('http://127.0.0.1:3000', $advice);
+        $this->assertStringNotContainsString('https://example.co.ke', $advice);
+        config(['app.env' => 'local']);
+        $this->assertSame('note', $this->lineStatus('Only real websites'));
+    }
+
+    public function test_cookies_that_may_travel_over_plain_http_warn_on_a_live_server(): void
+    {
+        config(['session.secure' => null]);
+        $this->assertSame('warn', $this->lineStatus('Cookies are sent'));
+    }
+
+    public function test_the_trusted_proxy_line_is_a_note_until_it_is_set(): void
+    {
+        $this->assertSame('ok', $this->lineStatus('The real visitor address'));
+        putenv('TRUSTED_PROXIES');
+        $this->assertSame('note', $this->lineStatus('The real visitor address'));
+    }
+
+    public function test_a_cache_that_forgets_at_once_is_a_failure_because_the_waits_and_limits_need_to_remember(): void
+    {
+        config(['cache.default' => 'array']);
+        $this->assertSame('fail', $this->lineStatus('The cache remembers'));
+        config(['cache.stores.nothing' => ['driver' => 'null'], 'cache.default' => 'nothing']);
+        $this->assertSame('fail', $this->lineStatus('The cache remembers'), 'a cache that keeps nothing is no better');
+        config(['cache.default' => 'file']);
+        $this->assertSame('ok', $this->lineStatus('The cache remembers'));
+    }
+
+    public function test_sending_mail_while_the_person_waits_or_writing_it_to_a_file_is_a_warning(): void
+    {
+        config(['queue.default' => 'sync']);
+        $this->assertSame('warn', $this->lineStatus('Emails are sent in the background'));
+        foreach (['log', 'array'] as $mailer) {
+            config(['mail.default' => $mailer]);
+            $this->assertSame('warn', $this->lineStatus('Email really goes out'), $mailer);
+        }
+        config(['mail.default' => 'smtp']);
+        $this->assertSame('ok', $this->lineStatus('Email really goes out'));
+    }
+
+    public function test_missing_security_tables_are_a_failure_that_names_them_and_the_script(): void
+    {
+        Schema::drop('security_events');
+        $line = $this->results()['The security tables exist'];
+        $this->assertSame('fail', $line['status']);
+        $this->assertStringContainsString('security_events', $line['advice']);
+        $this->assertStringContainsString('123_security_core.sql', $line['advice']);
+    }
+
+    public function test_the_permission_not_yet_installed_is_a_warning_that_says_how(): void
+    {
+        DB::table('permissions')->delete();
+        $line = $this->results()['The "see the sign-in log" permission is installed'];
+        $this->assertSame('warn', $line['status']);
+        $this->assertStringContainsString('access:seed', $line['advice']);
+    }
+
+    public function test_sign_in_with_no_speed_limit_registered_is_a_failure(): void
+    {
+        $limiter = app(\Illuminate\Cache\RateLimiter::class);
+        $prop = new \ReflectionProperty($limiter, 'limiters');
+        $kept = $prop->getValue($limiter);
+        $prop->setValue($limiter, []);
+        try {
+            $this->assertSame('fail', $this->lineStatus('Sign-in has a speed limit'));
+        } finally {
+            $prop->setValue($limiter, $kept);
+        }
+        $this->assertSame('ok', $this->lineStatus('Sign-in has a speed limit'));
+    }
+
+    public function test_a_short_password_rule_or_switched_off_headers_are_warnings(): void
+    {
+        config(['security.password.min_length' => 8, 'security.headers.enabled' => false]);
+        $this->assertSame('warn', $this->lineStatus('Passwords must be'));
+        $this->assertSame('warn', $this->lineStatus('Security headers'));
+    }
+
+    public function test_sign_ins_without_an_end_date_are_counted_in_a_note(): void
+    {
+        $u = $this->person('a@example.com', 'Strong-passphrase-here-1');
+        app(Sessions::class)->issue($u, Request::create('/x'));
+        $this->assertContains('Every sign-in has an end date', array_keys($this->results()));
+        DB::table('personal_access_tokens')->update(['expires_at' => null]);
+        $r = $this->results();
+        $this->assertContains('1 sign-in(s) from before expiry existed', array_keys($r));
+        $this->assertSame('note', $r['1 sign-in(s) from before expiry existed']['status']);
+    }
+
+    // ------------------------------------------------------------ the accounts
+
+    public function test_accounts_on_the_passwords_the_old_imports_gave_out_are_found_and_the_others_are_not(): void
+    {
+        foreach (['password123', 'EmpPass123!', 'TempPass123!', 'Password123', 'password'] as $i => $pw) {
+            $this->person("old{$i}@example.com", $pw);
+        }
+        $this->person('fine@example.com', 'purple-giraffe-lantern-77');
+        $found = app(SecurityCheck::class)->accountsOnDefaultPasswords();
+        $this->assertSame(['old0@example.com', 'old1@example.com', 'old2@example.com', 'old3@example.com', 'old4@example.com'], array_column($found, 'email'));
+        $this->assertSame('fail', $this->lineStatus('No account still uses', true));
+        $this->assertStringContainsString('security:check --fix', $this->results(true)['No account still uses a password everybody knows']['advice']);
+    }
+
+    public function test_every_account_is_looked_at_not_only_the_first_batch(): void
+    {
+        for ($i = 0; $i < 205; $i++) {
+            $this->person("u{$i}@example.com", 'purple-giraffe-lantern-77');
+        }
+        $last = $this->person('last@example.com', 'EmpPass123!');
+        $found = app(SecurityCheck::class)->accountsOnDefaultPasswords();
+        $this->assertSame([$last->id], array_column($found, 'id'));
+    }
+
+    public function test_with_no_such_account_the_line_is_ok_and_the_slow_look_can_be_skipped(): void
+    {
+        $this->person('fine@example.com', 'purple-giraffe-lantern-77');
+        $this->assertSame('ok', $this->lineStatus('No account still uses', true));
+        $this->person('old@example.com', 'password123');
+        $this->assertNull(collect($this->results(false))->first(fn ($r, $label) => str_starts_with($label, 'No account still uses')));
+    }
+
+    public function test_fixing_makes_them_choose_a_new_password_ends_their_sessions_and_leaves_everyone_else_alone(): void
+    {
+        $bad = $this->person('old@example.com', 'EmpPass123!');
+        $good = $this->person('fine@example.com', 'purple-giraffe-lantern-77');
+        app(Sessions::class)->issue($bad, Request::create('/x'));
+        app(Sessions::class)->issue($good, Request::create('/x'));
+        $this->assertSame(1, app(SecurityCheck::class)->fix(app(SecurityCheck::class)->accountsOnDefaultPasswords()));
+        $this->assertTrue((bool) $bad->fresh()->force_password_change);
+        $this->assertFalse((bool) $good->fresh()->force_password_change);
+        $this->assertSame(0, $bad->tokens()->count());
+        $this->assertSame(1, $good->tokens()->count());
+        $this->assertSame('default_password', AuthSession::where('tokenable_id', $bad->id)->first()->revoked_reason);
+        $line = SecurityEvent::where('event', 'default_password_found')->first();
+        $this->assertSame(['warning', $bad->id], [$line->severity, $line->subject_id]);
+    }
+
+    // ------------------------------------------------------------ the command
+
+    public function test_the_command_prints_each_line_and_what_to_do_and_fails_while_something_must_be_fixed(): void
+    {
+        config(['app.debug' => true]);
+        $code = Artisan::call('security:check', ['--no-passwords' => true]);
+        $out = Artisan::output();
+        $this->assertSame(1, $code);
+        $this->assertStringContainsString('FAIL', $out);
+        $this->assertStringContainsString('Debug pages are off', $out);
+        $this->assertStringContainsString('APP_DEBUG=false', $out);
+        $this->assertStringNotContainsString('No account still uses', $out, 'the slow look at every account was skipped');
+    }
+
+    public function test_the_command_passes_on_a_well_run_server(): void
+    {
+        $this->assertSame(0, Artisan::call('security:check'));
+        $this->assertStringContainsString('OK', Artisan::output());
+    }
+
+    public function test_the_command_with_fix_acts_only_when_asked(): void
+    {
+        $bad = $this->person('old@example.com', 'password123');
+        Artisan::call('security:check');
+        $this->assertFalse((bool) $bad->fresh()->force_password_change, 'looking changes nothing');
+        $code = Artisan::call('security:check', ['--fix' => true]);
+        $this->assertTrue((bool) $bad->fresh()->force_password_change);
+        $this->assertStringContainsString('1 account(s) must now choose a new password', Artisan::output());
+        $this->assertSame(1, $code, 'the account still counts until its owner has chosen a new password');
+    }
+}
