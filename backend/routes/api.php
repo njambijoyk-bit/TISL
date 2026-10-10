@@ -1182,6 +1182,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('permission:catalogue.delete');
             Route::post('/{id}/restore', [ProductController::class, 'restore'])->middleware('permission:catalogue.edit'); // restore single
             Route::delete('/{id}/force', [ProductController::class, 'forceDelete'])->middleware('permission:catalogue.delete'); // permanent delete single
+            Route::post('/{id}/video', [\App\Http\Controllers\Api\ProductVideoController::class, 'store'])->whereNumber('id')->middleware('permission:catalogue.edit');
+            Route::delete('/{id}/video', [\App\Http\Controllers\Api\ProductVideoController::class, 'destroy'])->whereNumber('id')->middleware('permission:catalogue.edit');
             Route::put('/{id}/stock', [ProductController::class, 'updateStock'])->middleware('permission:stock.manage');
             // Per-branch stock + price grid (multi-location)
             Route::get('/{id}/branch-stock', [ProductController::class, 'branchStock'])->middleware('permission:catalogue.view');

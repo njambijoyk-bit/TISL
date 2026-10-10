@@ -1,5 +1,6 @@
 import usePreorderState from '../../../../_shared/hooks/usePreorderState';
 import { useMemo, useState } from 'react';
+import { HoverVideo } from '../services/ServiceVideoPlayer';
 import ChargedInBadge from '../../../../_shared/components/common/ChargedInBadge';
 import { useNavigate } from 'react-router-dom';
 import useEngagement from '../../../../_shared/lib/engagementConfig';
@@ -81,6 +82,7 @@ export default function ProductCard({ product }) {
 
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  const [hovering, setHovering] = useState(false);   // the pointer is on the picture: a product video plays silently
   const hasMultipleImages = images.length > 1;
 
   const wished = Boolean(product?.id) ? has(product.id) : false;
@@ -136,7 +138,7 @@ export default function ProductCard({ product }) {
       }}
     >
       {/* Image Section */}
-      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700">
+      <div className="relative aspect-square overflow-hidden bg-gray-100 dark:bg-gray-700" onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)}>
 
         {/* Badges */}
         <div className="absolute top-2 left-2 z-40 flex flex-col gap-2 pointer-events-none">
@@ -188,6 +190,9 @@ export default function ProductCard({ product }) {
             <Package className="w-16 h-16 text-gray-400" />
           </div>
         )}
+
+        {/* A video, if the product has one: it plays silently while the pointer is on the picture */}
+        {product?.video && <div className="absolute inset-0 z-10 pointer-events-none"><HoverVideo video={product.video} hovering={hovering} /></div>}
 
         {/* Nav arrows */}
         {hasMultipleImages && !imageError && (

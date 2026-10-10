@@ -25,6 +25,7 @@ import {
   Check,
   Gavel,
   MapPin,
+  Play,
 } from 'lucide-react';
 
 import Header from '../../../_shared/components/layout/Header';
@@ -46,6 +47,7 @@ import toast from 'react-hot-toast';
 import useMoney from '../../../_shared/hooks/useMoney';
 import VariantPicker from '../../components/storefront/products/VariantPicker';
 import ItemBrochureButton from '../../components/catalogue/ItemBrochureButton';
+import { DetailVideo } from '../../components/storefront/services/ServiceVideoPlayer';
 import { storageUrl } from '../../../_shared/lib/storageUrl';
 import { auctionPath, idFromParam, itemSlug, productPath } from '../../../_shared/lib/itemPath';
 
@@ -307,6 +309,9 @@ export default function ProductDetail() {
     ...(Array.isArray(additionalImages) ? additionalImages : []),
     ...(Array.isArray(product?.images) ? product.images : []),
   ].filter(Boolean);
+  // The gallery runs: the video (if any), then the pictures. `selectedImage` points into this list.
+  const media = [...(product?.video ? [{ type: 'video' }] : []), ...productImages.map((src) => ({ type: 'image', src }))];
+  const current = media[selectedImage] ?? media[0];
   const currentPrice = choice ? (choice.unit.price ?? 0) : (product?.price ?? 0);
   const originalPrice = choice
     ? choice.unit.compare_at_price
@@ -432,7 +437,7 @@ export default function ProductDetail() {
             <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', maxHeight: 480, border: '1px solid color-mix(in srgb, var(--color-primary-500) 30%, transparent)', boxShadow: '0 0 0 3px color-mix(in srgb, var(--color-primary-500) 8%, transparent), 0 0 20px color-mix(in srgb, var(--color-primary-500) 15%, transparent)' }}>
             
               <div
-                style={{ position: 'relative', background: '#fff', aspectRatio: '16 / 9', overflow: 'hidden', cursor: 'zoom-in' }}
+                style={{ position: 'relative', background: '#fff', height: 'min(480px, 56.25vw)', overflow: 'hidden', cursor: 'zoom-in' }}
                 onMouseEnter={e => e.currentTarget.querySelector('img')?.style && (e.currentTarget.querySelector('img').style.transform = 'scale(1.06)')}
                 onMouseLeave={e => e.currentTarget.querySelector('img')?.style && (e.currentTarget.querySelector('img').style.transform = 'scale(1)')}
               >
@@ -469,36 +474,42 @@ export default function ProductDetail() {
                 </button>
 
                 {/* Image counter */}
-                {productImages.length > 1 && (
+                {media.length > 1 && (
                   <div style={{
                     position: 'absolute', top: 14, right: 66, zIndex: 10,
                     background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(6px)',
                     color: '#fff', fontSize: '0.72rem', fontWeight: 700,
                     padding: '4px 10px', borderRadius: 20, letterSpacing: '0.05em',
                   }}>
-                    {selectedImage + 1} / {productImages.length}
+                    {selectedImage + 1} / {media.length}
                   </div>
                 )}
 
                 {/* Arrow nav */}
-                {productImages.length > 1 && (
+                {media.length > 1 && (
                   <>
-                    <button onClick={() => setSelectedImage(i => (i - 1 + productImages.length) % productImages.length)}
+                    <button onClick={() => setSelectedImage(i => (i - 1 + media.length) % media.length)}
                       style={{ ...arrowBtn, left: 12 }}><ChevronLeft size={18} /></button>
-                    <button onClick={() => setSelectedImage(i => (i + 1) % productImages.length)}
+                    <button onClick={() => setSelectedImage(i => (i + 1) % media.length)}
                       style={{ ...arrowBtn, right: 12 }}><ChevronRight size={18} /></button>
                   </>
                 )}
 
                 {/* Image or placeholder */}
-                {imageErrors[selectedImage] || !productImages[selectedImage] ? (
+                {/* the video stays mounted so it keeps its place; it only plays when it is the chosen item and in view */}
+                {product?.video && (
+                  <div style={{ position: 'absolute', inset: '0 0 96px 0', zIndex: 5, visibility: current?.type === 'video' ? 'visible' : 'hidden' }}>
+                    <DetailVideo video={product.video} active={current?.type === 'video'} poster={productImages[0] ? getImageUrl(productImages[0]) : undefined} />
+                  </div>
+                )}
+                {current?.type === 'video' ? null : imageErrors[selectedImage] || !current?.src ? (
                   <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', gap: 12 }}>
                     <Package size={56} style={{ color: '#d1d5db' }} />
                     <span style={{ fontSize: '0.8rem', color: '#9ca3af', fontWeight: 500 }}>No image available</span>
                   </div>
                 ) : (
                   <img
-                    src={getImageUrl(productImages[selectedImage])}
+                    src={getImageUrl(current.src)}
                     alt={product?.name}
                     style={{
                       width: '100%', height: '100%', objectFit: 'cover', display: 'block',
@@ -509,14 +520,15 @@ export default function ProductDetail() {
                 )}
 
                 {/* Thumbnail strip — floats inside image at bottom */}
-                {productImages.length > 1 && (
+                {media.length > 1 && (
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 10,
                     background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 100%)',
                     padding: '32px 14px 14px',
                     display: 'flex', gap: 8, overflowX: 'auto',
                   }}>
-                    {productImages.map((img, idx) => {
+                    {media.map((m, idx) => {
+                      const img = m.type === 'video' ? (product.video.thumb || productImages[0]) : m.src;
                       const hasError = imageErrors[idx];
                       return hasError ? (
                         <div key={idx} style={{ width: 52, height: 52, borderRadius: 8, border: '2px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -527,7 +539,7 @@ export default function ProductDetail() {
                           key={idx}
                           onClick={() => setSelectedImage(idx)}
                           style={{
-                            width: 52, height: 52, borderRadius: 8, overflow: 'hidden', padding: 0,
+                            position: 'relative', width: 52, height: 52, borderRadius: 8, overflow: 'hidden', padding: 0,
                             border: selectedImage === idx ? '2px solid #fff' : '2px solid rgba(255,255,255,0.35)',
                             background: 'transparent', cursor: 'pointer', flexShrink: 0,
                             opacity: selectedImage === idx ? 1 : 0.65,
@@ -536,12 +548,13 @@ export default function ProductDetail() {
                             boxShadow: selectedImage === idx ? '0 0 0 2px color-mix(in srgb, var(--color-primary-500) 70%, transparent)' : 'none',
                           }}
                         >
-                          <img
+                          {img ? <img
                             src={getImageUrl(img)}
-                            alt={`View ${idx + 1}`}
+                            alt={m.type === 'video' ? 'Video' : `View ${idx + 1}`}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             onError={() => handleImageError(idx)}
-                          />
+                          /> : <span style={{ display: 'block', width: '100%', height: '100%', background: '#000' }} />}
+                          {m.type === 'video' && <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)', color: '#fff' }}><Play size={16} fill="#fff" /></span>}
                         </button>
                       );
                     })}

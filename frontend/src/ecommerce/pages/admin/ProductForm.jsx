@@ -21,6 +21,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canEditCatalogue } from '../../../_shared/lib/roles';
 import { canDeleteCatalogue } from '../../../_shared/lib/roles';
 import noSlash from '../../../_shared/lib/noSlash';
+import ServiceVideoField from '../../components/admin/services/ServiceVideoField';
 import ItemPinButton from '../../../campaigns/components/ItemPinButton';
 
 // ── Shared styles ─────────────────────────────────────────────────────────────
@@ -319,6 +320,7 @@ export default function ProductForm() {
   const [additionalImages,     setAdditionalImages]     = useState([]);
   const [additionalPreviews,   setAdditionalPreviews]   = useState([]);
   const [newFilePreviews,      setNewFilePreviews]      = useState([]);
+  const [video, setVideo] = useState(null);   // the product's saved video, set from its own field
   const [mainImage,            setMainImage]            = useState(null);
   const [mainImagePreview,     setMainImagePreview]     = useState('');
 
@@ -449,6 +451,7 @@ export default function ProductForm() {
         sales_ledger_id: product.sales_ledger_id ?? '', purchase_ledger_id: product.purchase_ledger_id ?? '',
       });
 
+      setVideo(product.video ?? null);
       const mainPreview = normalizeImageUrl(
         product.main_image_url || product.main_image ||
         (Array.isArray(product.image_urls) && product.image_urls[0]) ||
@@ -1064,6 +1067,12 @@ export default function ProductForm() {
                     </Field>
                   </div>
                 )}
+              </div>
+
+              {/* Video */}
+              <div>
+                <label style={labelStyle}>Video</label>
+                <ServiceVideoField productId={isEdit || isView ? Number(id) : null} video={video} onChange={setVideo} readOnly={isView} />
               </div>
             </>
           )}

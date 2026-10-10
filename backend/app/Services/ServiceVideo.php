@@ -2,14 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\Service;
+use Illuminate\Database\Eloquent\Model;
 use App\Services\Campaigns\VideoEmbed;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
- * A service's video. The existing services.video_url column holds either a link (YouTube, Vimeo, TikTok or Facebook, checked and turned into a safe embed address)
+ * A video for a service or a product. The video_url column (services, products) holds either a link (YouTube, Vimeo, TikTok or Facebook, checked and turned into a safe embed address)
  * or the path of a file staff uploaded (it starts with /storage/). Replacing or removing a video deletes the old uploaded file.
  */
 class ServiceVideo
@@ -35,36 +35,36 @@ class ServiceVideo
         }
     }
 
-    public function setLink(Service $s, string $url): Service
+    public function setLink(Model $s, string $url): Model
     {
         $v = VideoEmbed::parse($url);   // throws a validation error with the reason
         $this->forgetFile($s);
-        $s->update(['video_url' => $v['url']]);
+        $s->forceFill(['video_url' => $v['url']])->save();
 
         return $s->fresh();
     }
 
-    public function setFile(Service $s, UploadedFile $file): Service
+    public function setFile(Model $s, UploadedFile $file): Model
     {
-        $path = '/storage/' . $file->store('services/video', 'public');
+        $path = '/storage/' . $file->store($s->getTable() . '/video', 'public');
         $this->forgetFile($s);
-        $s->update(['video_url' => $path]);
+        $s->forceFill(['video_url' => $path])->save();
 
         return $s->fresh();
     }
 
-    public function remove(Service $s): Service
+    public function remove(Model $s): Model
     {
         $this->forgetFile($s);
-        $s->update(['video_url' => null]);
+        $s->forceFill(['video_url' => null])->save();
 
         return $s->fresh();
     }
 
-    private function forgetFile(Service $s): void
+    private function forgetFile(Model $s): void
     {
         $old = (string) $s->video_url;
-        if (str_starts_with($old, '/storage/services/video/')) {
+        if (str_starts_with($old, '/storage/' . $s->getTable() . '/video/')) {
             Storage::disk('public')->delete(substr($old, strlen('/storage/')));
         }
     }

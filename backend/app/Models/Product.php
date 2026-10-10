@@ -16,6 +16,7 @@ class Product extends Model
     protected $appends = [
         'main_image_url',
         'image_urls',
+        'video',
         'display_price',
         'display_currency',
         'tax_info',
@@ -67,6 +68,12 @@ class Product extends Model
         'created_by',
         'updated_by',
     ];
+
+    /** The product's video: an uploaded file (video_url holds its /storage path) or a link to YouTube, Vimeo, TikTok or Facebook. Null when it has none. */
+    public function getVideoAttribute(): ?array
+    {
+        return \App\Services\ServiceVideo::describe($this->attributes['video_url'] ?? null);
+    }
 
     protected $casts = [
         'price' => 'decimal:2',
