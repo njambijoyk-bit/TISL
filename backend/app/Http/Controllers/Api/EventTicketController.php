@@ -7,6 +7,7 @@ use App\Models\Events\Event;
 use App\Models\Events\EventTicket;
 use App\Services\Events\EventException;
 use App\Services\Events\EventNotices;
+use App\Services\Events\EventRefunds;
 use App\Services\Events\TicketCodes;
 use App\Services\Events\TicketPdf;
 use App\Services\Events\TicketPresenter;
@@ -20,7 +21,7 @@ use Illuminate\Http\Response;
  */
 class EventTicketController extends Controller
 {
-    public function __construct(private TicketPresenter $present, private TicketPdf $pdf, private EventNotices $notices)
+    public function __construct(private TicketPresenter $present, private TicketPdf $pdf, private EventNotices $notices, private EventRefunds $refunds)
     {
     }
 
@@ -69,6 +70,20 @@ class EventTicketController extends Controller
         $t->update(['holder_name' => trim($d['name'])]);
 
         return response()->json(['message' => 'Saved.', 'holder_name' => $t->holder_name]);
+    }
+
+    /** POST /tickets/{code}/refund {reason}: hand a ticket back. A paid one becomes a request for staff; a free one is cancelled at once. */
+    public function refund(Request $request, string $code): JsonResponse
+    {
+        $d = $request->validate(['reason' => 'nullable|string|max:300']);
+        $t = $this->find($code);
+        try {
+            $r = $this->refunds->request($t, (string) ($d['reason'] ?? ''), $request->user()?->email);
+        } catch (EventException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => $r['message'], 'cancelled' => $r['cancelled']]);
     }
 
     /** POST /tickets/resend {email}: "I lost my tickets". The answer is the same whether or not tickets were found, so this can not be used to find out who bought. */

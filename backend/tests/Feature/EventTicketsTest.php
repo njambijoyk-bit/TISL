@@ -66,7 +66,7 @@ class EventTicketsTest extends TestCase
 
     private function controller(): EventTicketController
     {
-        return new EventTicketController(app(TicketPresenter::class), app(TicketPdf::class), app(EventNotices::class));
+        return new EventTicketController(app(TicketPresenter::class), app(TicketPdf::class), app(EventNotices::class), app(\App\Services\Events\EventRefunds::class));
     }
 
     // ------------------------------------------------------------ the code

@@ -76,7 +76,7 @@ final class EventCheckout
             if (! $ledger) {
                 throw new EventException('This event is not ready to sell tickets: no income account is set.');
             }
-            $line = ['type' => 'custom', 'description' => $event->title . ' — ' . $t->name, 'ledger_id' => $ledger, 'quantity' => $n, 'rate' => (float) $t->price];
+            $line = ['type' => 'custom', 'description' => $event->title . ' — ' . $t->name, 'ledger_id' => $ledger, 'quantity' => $n, 'rate' => (float) $t->price, 'ticket_type_id' => $id];
             if ($event->tax_rate_id) {
                 $line['tax_rate_id'] = $event->tax_rate_id;
             }
@@ -175,7 +175,7 @@ final class EventCheckout
             return DB::transaction(function () use ($event, $lines, $buyer, $customer, $user, $method, $tickets, $summary, $minutes) {
                 $order = $this->vouchers->placeOrder($this->payload($event, $lines, [
                     'contact' => ['name' => $buyer['name'], 'email' => $buyer['email'], 'phone' => $buyer['phone']], 'guest' => $customer ? null : true,
-                    'event' => ['id' => $event->id, 'ticket_ids' => $tickets->pluck('id')->all()],
+                    'event' => ['id' => $event->id, 'ticket_ids' => $tickets->pluck('id')->all(), 'lines' => array_map(fn ($l) => ['ticket_type_id' => $l['ticket_type_id'], 'description' => $l['description']], $lines)],   // which line of the order each ticket type is, for a refund
                 ], $customer?->id, 'Tickets: ' . $event->title), null);
                 EventTicket::whereIn('id', $tickets->pluck('id'))->update(['order_id' => $order->id]);
                 $total = (float) $order->total_amount;

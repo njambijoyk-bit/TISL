@@ -143,9 +143,18 @@ class EventAdminControllerTest extends TestCase
             $perms = array_values(array_filter($mw, fn ($m) => is_string($m) && str_starts_with($m, 'permission:events.')));
             $this->assertCount(1, $perms, $r->uri() . ' needs an events permission');
             $this->assertContains('module:events', $mw, $r->uri());
-            $need = $r->methods()[0] === 'GET' ? 'permission:events.view' : (str_ends_with($r->uri(), '{id}') && $r->methods()[0] === 'DELETE' ? 'permission:events.delete' : 'permission:events.edit');
-            $this->assertSame($need, $perms[0], $r->methods()[0] . ' ' . $r->uri());
+            $uri = $r->uri();
+            $need = match (true) {
+                (bool) preg_match('#/refunds|/tickets/\{ticketId\}/refund#', $uri) => 'permission:events.refund',   // deciding ticket refunds
+                (bool) preg_match('#/(door|guests)$#', $uri) => 'permission:events.checkin,events.view',   // the door and the guest list: door staff or whoever may view
+                str_ends_with($uri, '/guests/export') => 'permission:events.view',
+                (bool) preg_match('#/checkin#', $uri) => 'permission:events.checkin',   // scanning, letting in by hand, undoing
+                $r->methods()[0] === 'GET' => 'permission:events.view',
+                str_ends_with($uri, '{id}') && $r->methods()[0] === 'DELETE' => 'permission:events.delete',
+                default => 'permission:events.edit',
+            };
+            $this->assertSame($need, $perms[0], $r->methods()[0] . ' ' . $uri);
         }
-        $this->assertGreaterThanOrEqual(14, $seen);
+        $this->assertGreaterThanOrEqual(26, $seen);
     }
 }

@@ -171,6 +171,7 @@ class EventCheckoutTest extends TestCase
         $this->assertSame([1, null, true, 5], [$order['currency_id'], $order['customer_id'], $order['meta']['guest'], $order['location_id']]);
         $this->assertSame(['name' => 'Amina Wanjiru', 'email' => 'amina@example.com', 'phone' => '0712345678'], $order['meta']['contact']);
         $this->assertEqualsCanonicalizing(EventTicket::pluck('id')->all(), $order['meta']['event']['ticket_ids'], 'the order remembers its tickets');
+        $this->assertSame([[$g->id, 'Jazz night — General'], [$v->id, 'Jazz night — VIP']], array_map(fn ($l) => [$l['ticket_type_id'], $l['description']], $order['meta']['event']['lines']), 'and which line each ticket type is, for a refund');
         $this->assertSame([1], array_unique(EventTicket::pluck('order_id')->all()), 'and each ticket its order');
         $this->assertEqualsWithDelta(7000 * 1.16, $this->started[0]['due'], 0.001, 'the payment asks for the total with tax');
         $this->assertSame('0712345678', $this->started[0]['contact']['phone']);

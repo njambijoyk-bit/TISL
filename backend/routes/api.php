@@ -262,6 +262,7 @@ Route::prefix('tickets')->middleware('module:events')->group(function () {
     Route::get('/{code}',         [$c, 'show'])->middleware('throttle:60,1')->where('code', '[A-Za-z0-9.\-]+');
     Route::get('/{code}/qr',      [$c, 'qr'])->middleware('throttle:120,1')->where('code', '[A-Za-z0-9.\-]+');
     Route::get('/{code}/pdf',     [$c, 'pdf'])->middleware('throttle:20,1')->where('code', '[A-Za-z0-9.\-]+');
+    Route::post('/{code}/refund', [$c, 'refund'])->middleware('throttle:10,1')->where('code', '[A-Za-z0-9.\-]+');
     Route::put('/{code}/holder',  [$c, 'rename'])->middleware('throttle:20,1')->where('code', '[A-Za-z0-9.\-]+');
 });
 
@@ -1104,6 +1105,12 @@ Route::middleware('auth:sanctum')->group(function () {
             $c = \App\Http\Controllers\Api\EventAdminController::class;
             Route::get('/',                      [$c, 'index'])->middleware('permission:events.view');
             Route::get('/settings',              [$c, 'settings'])->middleware('permission:events.view');
+            $rf = \App\Http\Controllers\Api\EventRefundController::class;   // ticket refunds
+            Route::get('/refunds',                   [$rf, 'index'])->middleware('permission:events.refund');
+            Route::post('/refunds/{id}/approve',     [$rf, 'approve'])->whereNumber('id')->middleware('permission:events.refund');
+            Route::post('/refunds/{id}/decline',     [$rf, 'decline'])->whereNumber('id')->middleware('permission:events.refund');
+            Route::post('/{id}/refunds/approve-all', [$rf, 'approveAll'])->whereNumber('id')->middleware('permission:events.refund');
+            Route::post('/{id}/tickets/{ticketId}/refund', [$rf, 'refundTicket'])->whereNumber(['id', 'ticketId'])->middleware('permission:events.refund');
             Route::put('/settings',              [$c, 'saveSettings'])->middleware('permission:events.edit');
             Route::post('/recurrence',           [$c, 'recurrence'])->middleware('permission:events.edit');
             Route::post('/',                     [$c, 'store'])->middleware('permission:events.edit');
@@ -1113,6 +1120,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/publish',         [$c, 'publish'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/unpublish',       [$c, 'unpublish'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/cancel',          [$c, 'cancel'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/postpone',        [$c, 'postpone'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/notify',          [$c, 'notifyHolders'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/image',           [$c, 'image'])->whereNumber('id')->middleware('permission:events.edit');
             Route::delete('/{id}/image',         [$c, 'removeImage'])->whereNumber('id')->middleware('permission:events.edit');
             Route::post('/{id}/video',           [$c, 'setVideo'])->whereNumber('id')->middleware('permission:events.edit');

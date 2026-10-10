@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Events\Event;
 use App\Models\Events\EventTicket;
 use App\Services\Events\EventEditor;
+use App\Services\Events\EventNotices;
 use App\Services\Events\EventException;
 use App\Services\Events\EventPresenter;
 use App\Services\Events\EventSettings;
@@ -91,6 +92,20 @@ class EventAdminController extends Controller
     public function cancel(Request $request, int $id): JsonResponse
     {
         return $this->guard(fn () => response()->json($this->present->admin($this->editor->cancel(Event::findOrFail($id), $request->user()?->id)) + ['message' => 'The event is cancelled and no more tickets can be bought.']));
+    }
+
+    public function postpone(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(fn () => response()->json($this->present->admin($this->editor->postpone(Event::findOrFail($id), $request->user()?->id)) + ['message' => 'Postponed: sales are stopped and the ticket holders have been told. Set the new dates, then put it on sale again.']));
+    }
+
+    /** POST /admin/events/{id}/notify {message}: tell everyone who holds a ticket something. */
+    public function notifyHolders(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['message' => 'required|string|min:3|max:1000']);
+        $n = app(EventNotices::class)->eventMessage(Event::findOrFail($id), $d['message']);
+
+        return response()->json(['message' => $n === 0 ? 'Nobody holds a valid ticket yet.' : "Sent to {$n} ticket holder" . ($n === 1 ? '' : 's') . '.', 'sent' => $n]);
     }
 
     /** DELETE: only an event nobody ever bought a ticket for. */

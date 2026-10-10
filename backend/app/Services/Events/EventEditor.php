@@ -248,7 +248,11 @@ final class EventEditor
         if ($problems = $this->problems($event)) {
             throw new EventException("It can not be published yet. " . implode(' ', $problems));
         }
+        $was = $event->status;
         $event->update(['status' => Event::PUBLISHED, 'published_at' => $event->published_at ?? now(), 'updated_by' => $by]);
+        if ($was === Event::POSTPONED) {
+            DB::afterCommit(fn () => app(EventNotices::class)->eventRescheduled($event->fresh()));   // the postponed event has its new date
+        }
 
         return $event->fresh();
     }
@@ -264,9 +268,27 @@ final class EventEditor
         return $event->fresh();
     }
 
+    /** Staff cancel the event: sales stop, held seats go back, every paid ticket gets a refund request waiting for staff, and every holder is told. */
     public function cancel(Event $event, ?int $by = null): Event
     {
-        $event->update(['status' => Event::CANCELLED, 'updated_by' => $by]);
+        DB::transaction(function () use ($event, $by) {
+            $event->update(['status' => Event::CANCELLED, 'updated_by' => $by]);
+            EventTicket::where('event_id', $event->id)->where('state', EventTicket::HELD)->update(['state' => EventTicket::RELEASED, 'held_until' => null]);
+            app(EventRefunds::class)->openForEvent($event);
+        });
+        DB::afterCommit(fn () => app(EventNotices::class)->eventCancelled($event->fresh()));
+
+        return $event->fresh();
+    }
+
+    /** Staff postpone it: sales stop, holders keep their tickets for the new date (and may ask for a refund), and they are told. Give it new dates and put it on sale again to finish. */
+    public function postpone(Event $event, ?int $by = null): Event
+    {
+        if ($event->status !== Event::PUBLISHED) {
+            throw new EventException('Only an event that is on sale can be postponed.');
+        }
+        $event->update(['status' => Event::POSTPONED, 'updated_by' => $by]);
+        DB::afterCommit(fn () => app(EventNotices::class)->eventPostponed($event->fresh()));
 
         return $event->fresh();
     }
