@@ -1,6 +1,6 @@
 # Security: how TISL knows who you are — plan
 
-Status: **plan, nothing built yet.** Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
+Status: **plan agreed in part; Phase 0 is being built.** Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
 
 The idea in one line: **how a person proves who they are** (real cryptography, standard and vetted) is separate from **how we show it** (the ceremony: a seal, a dispatch, a cross-examination). The ceremony is skin. The proof is passkeys (WebAuthn / FIDO2), never a homemade cipher.
 
@@ -217,11 +217,28 @@ Tap-to-approve with number matching (Web Push to a trusted device; iPhone needs 
 
 ## 9. Decisions for the owner
 
-1. **Phase 0 first, before anything new?** Recommended: yes (it fixes real holes: F1, F2, F3).
-2. **Who must use a passkey, and when?** Recommended: staff with admin, finance or payroll access required after a grace period; customers optional.
-3. **Library or write our own WebAuthn?** Recommended: the vetted library. (For QR codes we wrote our own and proved them; for security-critical cryptography the standard advice is to use code many experts have already attacked.)
-4. **How does staff recovery work?** Recommended: recovery codes **and** assisted recovery with two administrators and a 24-hour cooling-off, plus the break-glass command for the owner.
-5. **What goes in the first release?** Recommended: Phase 0, then Phase 1 and 2; tap-to-approve and QR sign-in after.
-6. **The production domain(s)** for the RP ID, and where the frontend is hosted (for headers and cookies).
-7. **Token storage:** `HttpOnly` cookie session (safer, a small change to how the frontend talks to the API) or keep a header token with expiry and rotation. Recommended: cookie session.
-8. **Seal phrase on the sign-in page:** yes as a flourish? Recommended: yes, clearly labelled as not a security factor.
+- ✔ **Phase 0 comes first**, before anything new. (It fixes F1, F2, F3 and friends.)
+- ✔ **Who must use a passkey:** staff with admin, finance or payroll access, after a grace period. Everyone else is nudged to add one; customers may add one to sign in faster and are never forced. Super admins also need two devices, device-bound.
+- ✔ **Staff recovery:** all three rungs: recovery codes; assisted recovery by two administrators with a 24-hour cooling-off; and the owner break-glass command on the server.
+- ✔ **Passkey engine:** the vetted library (`web-auth/webauthn-lib`), not our own code.
+
+Still open (needed before Phase 1, not before Phase 0):
+1. **What goes in the first release after Phase 0?** Recommended: Phases 1 and 2; tap-to-approve and QR sign-in after.
+2. **The production domain(s)** for the passkey RP ID, and where the frontend is hosted (for headers and cookies).
+3. **Token storage:** `HttpOnly` cookie session (safer, a small change to how the frontend talks to the API) or keep a header token with expiry and rotation (what Phase 0 does). Recommended: cookie session, in Phase 1.
+4. **Seal phrase on the sign-in page:** yes as a flourish? Recommended: yes, clearly labelled as not a security factor.
+
+## 10. Phase 0, as it will be built
+
+Each step is tested, mutation-checked and pushed on its own.
+
+| Step | What | Notes |
+|---|---|---|
+| 0.1 | Sessions: every token is recorded (`auth_sessions`: device, address, when); a password change or reset ends all the other sessions; **Sign out everywhere**; the person's own "Where you are signed in" list with Revoke | script 123 |
+| 0.2 | Rate limits on sign-in, register, forgot/reset password (and the applicant ones), keyed by email + address and by address | |
+| 0.3 | Sign-in answers: one message for "no such email" and "wrong password"; no 423 for locked accounts; the password is checked **before** anything about the account is revealed; the same time is spent whether or not the email exists; the 5-strikes-30-minutes lock becomes a growing delay per email + address, so a stranger can not lock the real person out | |
+| 0.4 | Tokens expire: idle (staff 12 h, customers 30 days, others 7 days) and absolute (14 / 90 / 30 days); existing tokens start counting from their next use | `config/security.php` |
+| 0.5 | Password rules: 10+ characters, not a common password, not the person's own name, email or "tisl"; the same rule at register, change, reset and the admin's temporary password | |
+| 0.6 | The security log (`security_events`): sign-in ok / failed / blocked, password changed or reset, sessions ended; the admin page **Security → Sign-in log** (permission `security.view`) | script 123 |
+| 0.7 | "New sign-in" email when a browser the person has not used before signs in, with a one-click way to end sessions | |
+| 0.8 | Security headers on the API; a hosting recipe for the frontend | domain still open |
