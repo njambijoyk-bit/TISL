@@ -80,7 +80,9 @@ function Tickets({ s }) {
           {s.event.tickets.map((t) => <li key={t.reference} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 12px', borderRadius: 10, background: 'color-mix(in srgb, var(--color-primary-500) 8%, transparent)', fontSize: '0.86rem' }}><span>{t.holder_name || 'Ticket'}</span><code style={{ fontWeight: 800 }}>{t.reference}</code></li>)}
         </ul>
       )}
-      <Link to={`/events/${s.event.slug}`} style={{ marginTop: 6, padding: '9px 18px', borderRadius: 8, background: '#6d28d9', color: 'white', fontWeight: 700, textDecoration: 'none' }}>Back to the event</Link>
+      {!s.event.problem && s.event.tickets.find((t) => t.code) && <Link to={`/tickets/${s.event.tickets.find((t) => t.code).code}`} style={{ marginTop: 6, padding: '9px 18px', borderRadius: 8, background: '#6d28d9', color: 'white', fontWeight: 700, textDecoration: 'none' }}>Open my tickets</Link>}
+      {!s.event.problem && <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>We have also emailed them to you.</p>}
+      <Link to={`/events/${s.event.slug}`} style={{ fontSize: '0.84rem', color: '#6d28d9', fontWeight: 700 }}>Back to the event</Link>
     </div>
   );
 }

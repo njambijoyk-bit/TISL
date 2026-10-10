@@ -181,10 +181,16 @@ final class TicketHolds
 
     // ------------------------------------------------------------ what happens next
 
-    /** Paid, or free: the held tickets become valid. @param iterable<EventTicket> $tickets */
+    /** Paid, or free: the held tickets become valid. Returns how many did. @param iterable<EventTicket> $tickets */
     public function issue(iterable $tickets, ?int $orderId = null, ?int $saleId = null): int
     {
-        $n = 0;
+        return $this->issueTickets($tickets, $orderId, $saleId)->count();
+    }
+
+    /** The same, but returns the tickets that became valid just now (what the buyer is to be told about). @param iterable<EventTicket> $tickets @return Collection<int, EventTicket> */
+    public function issueTickets(iterable $tickets, ?int $orderId = null, ?int $saleId = null): Collection
+    {
+        $made = collect();
         foreach ($tickets as $t) {
             $fresh = EventTicket::whereKey($t->id)->lockForUpdate()->first();
             if (! $fresh || $fresh->state === EventTicket::VALID) {
@@ -194,10 +200,10 @@ final class TicketHolds
                 continue;   // cancelled: staff took it back; nothing to issue
             }
             $fresh->update(['state' => EventTicket::VALID, 'held_until' => null, 'issued_at' => now(), 'order_id' => $orderId ?? $fresh->order_id, 'sale_id' => $saleId ?? $fresh->sale_id]);
-            $n++;
+            $made->push($fresh);
         }
 
-        return $n;
+        return $made;
     }
 
     /** Payment arrived after the hold ran out: take the seats again if they are still free. Returns true when every ticket got its seat back. @param iterable<EventTicket> $tickets */

@@ -32,6 +32,11 @@ class NotificationTypes
         'referral_earned' => ['Referral reward', false, 'customer'],
         'account_created' => ['Account created', true, 'customer'],
         'password_reset' => ['Password reset', true, 'customer'],
+        'event_ticket' => ['Your event tickets', true, 'customer'],
+        'event_reminder' => ['Reminder: your event is coming up', false, 'customer'],
+        'event_changed' => ['An event you have tickets for changed', true, 'customer'],
+        'event_refund' => ['Event ticket refund', true, 'customer'],
+        'event_refund_requested' => ['A ticket refund was asked for', false, 'staff'],
         'engagement_taken_down' => ['Post taken down', false, 'customer'],
     ];
 

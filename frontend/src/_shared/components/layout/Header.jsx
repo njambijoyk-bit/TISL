@@ -411,6 +411,7 @@ export default function Header() {
     { label: 'My Bookings',       icon: CalendarCheck, to: '/my-bookings', module: MODULES.BOOKINGS },
     { label: 'My Deliveries',     icon: Truck,         to: '/my-deliveries', module: MODULES.EXTRAS },
     { label: 'My Projects',       icon: FolderOpen,    to: '/my-projects', module: MODULES.PROJECTS },
+    { label: 'My Event Tickets',  icon: CalendarCheck, to: '/my-events', module: MODULES.EVENTS },
     { label: 'My Tickets',        icon: FolderOpen,    to: '/my-tickets' },
     { label: 'My Hampers',        icon: Package,       to: '/hampers', module: MODULES.HAMPERS },
     { label: 'Auctions',          icon: Zap,           to: '/auctions', module: MODULES.AUCTIONS },

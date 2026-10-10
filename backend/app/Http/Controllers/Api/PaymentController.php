@@ -84,7 +84,7 @@ class PaymentController extends Controller
         if ($order && $issuer->isEventOrder($order)) {   // a ticket purchase: say how the tickets stand
             $event = \App\Models\Events\Event::find($order->meta['event']['id'] ?? 0);
             $res['event'] = ['title' => $event?->title, 'slug' => $event?->slug, 'problem' => $order->meta['event']['problem'] ?? null,
-                'tickets' => $issuer->ticketsOf($order)->map(fn ($t) => ['reference' => $t->reference, 'state' => $t->state, 'holder_name' => $t->holder_name])->values()->all()];
+                'tickets' => $issuer->ticketsOf($order)->map(fn ($t) => ['reference' => $t->reference, 'state' => $t->state, 'holder_name' => $t->holder_name, 'code' => $t->state === 'valid' ? \App\Services\Events\TicketCodes::code($t) : null])->values()->all()];
         }
 
         return response()->json($res);

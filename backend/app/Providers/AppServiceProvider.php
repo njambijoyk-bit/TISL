@@ -48,6 +48,7 @@ class AppServiceProvider extends ServiceProvider
 
 
         $this->app->singleton(\App\Services\Codes\CodeResolvers::class);   // modules register what their signed codes mean
+        $this->app->afterResolving(\App\Services\Codes\CodeResolvers::class, fn ($r) => \App\Services\Events\TicketCodes::register($r));   // an event ticket's QR means something
         $this->app->singleton(PromoCodeService::class);
         $this->app->singleton(DarajaService::class);
         $this->app->singleton(LoyaltyService::class);

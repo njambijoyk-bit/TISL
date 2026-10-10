@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class EventCheckout
 {
-    public function __construct(private TicketHolds $holds, private EventEditor $editor, private VoucherService $vouchers, private GatewayPaymentService $gateway)
+    public function __construct(private TicketHolds $holds, private EventEditor $editor, private VoucherService $vouchers, private GatewayPaymentService $gateway, private EventNotices $notices)
     {
     }
 
@@ -162,10 +162,11 @@ final class EventCheckout
             }
         }
         $minutes = (int) EventSettings::all()['hold_minutes'];
-        $summary = fn ($ts) => $ts->map(fn ($t) => ['id' => $t->id, 'reference' => $t->reference, 'type' => $types[$t->ticket_type_id]->name, 'holder_name' => $t->holder_name, 'state' => $t->state])->values()->all();
+        $summary = fn ($ts) => $ts->map(fn ($t) => ['id' => $t->id, 'reference' => $t->reference, 'type' => $types[$t->ticket_type_id]->name, 'holder_name' => $t->holder_name, 'state' => $t->state, 'code' => $t->state === EventTicket::VALID ? TicketCodes::code($t) : null])->values()->all();
 
         if (! $lines) {   // free: no order, no payment
-            $this->holds->issue($tickets);
+            $made = $this->holds->issueTickets($tickets);
+            $this->notices->ticketsIssued($made);
 
             return ['status' => 'issued', 'tickets' => $summary($tickets->map->fresh()), 'message' => $tickets->count() === 1 ? 'You are in! Your ticket is below.' : 'You are in! Your tickets are below.'];
         }

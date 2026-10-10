@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Loader2, Smartphone, XCircle, CreditCard } from 'lucide-react';
 import eventsPublicAPI from '../../../_shared/api/eventsPublic';
@@ -15,8 +16,10 @@ const field = { width: '100%', padding: '10px 12px', borderRadius: 10, border: '
 const label = { display: 'block', fontSize: '0.72rem', fontWeight: 800, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 };
 const primary = { width: '100%', padding: '12px 16px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.95rem', color: '#fff', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' };
 
-/** What the buyer sees once tickets exist: each ticket's reference and the name on it. */
-function TicketsReady({ title, tickets, note }) {
+/** What the buyer sees once tickets exist: each ticket opens its page (with the QR to show at the door), and the same link is in the email. */
+function TicketsReady({ title, tickets, note, email }) {
+  const first = tickets.find((t) => t.code);
+
   return (
     <div role="status" style={{ ...card, display: 'grid', gap: 10, textAlign: 'center', justifyItems: 'center' }}>
       <CheckCircle2 size={36} color="#047857" />
@@ -29,7 +32,8 @@ function TicketsReady({ title, tickets, note }) {
           </li>
         ))}
       </ul>
-      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Keep these references: they identify your tickets at the door.</p>
+      {first && <Link to={`/tickets/${first.code}`} style={{ ...primary, width: 'auto', padding: '11px 22px', textDecoration: 'none', display: 'inline-block' }}>Open my tickets</Link>}
+      <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{email ? `We have also sent them to ${email}. ` : ''}Show the QR code on the ticket at the door.</p>
     </div>
   );
 }
@@ -95,7 +99,7 @@ export default function EventBuyBox({ event }) {
     } catch (err) { toast.error(errMsg(err, 'We could not get your tickets. Please try again.'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
-  if (phase?.kind === 'done') return <TicketsReady title={phase.title} tickets={phase.tickets} note={phase.note} />;
+  if (phase?.kind === 'done') return <TicketsReady title={phase.title} tickets={phase.tickets} note={phase.note} email={buyer.email} />;
   if (phase?.kind === 'waiting') {
     return (
       <div role="status" aria-live="polite" style={{ ...card, display: 'grid', gap: 10, textAlign: 'center', justifyItems: 'center' }}>

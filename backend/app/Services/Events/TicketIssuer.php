@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Log;
  */
 final class TicketIssuer
 {
-    public function __construct(private TicketHolds $holds)
+    public function __construct(private TicketHolds $holds, private EventNotices $notices)
     {
     }
 
@@ -46,7 +46,12 @@ final class TicketIssuer
             return ['issued' => 0, 'short' => true];
         }
 
-        return ['issued' => $this->holds->issue($tickets->map->fresh(), $order->id, $sale?->id), 'short' => false];
+        $made = $this->holds->issueTickets($tickets->map->fresh(), $order->id, $sale?->id);
+        if ($made->isNotEmpty()) {
+            \Illuminate\Support\Facades\DB::afterCommit(fn () => $this->notices->ticketsIssued($made));   // once the payment is really saved
+        }
+
+        return ['issued' => $made->count(), 'short' => false];
     }
 
     /** Paid, but the seats are gone: one refund request per ticket, for the staff to settle. */

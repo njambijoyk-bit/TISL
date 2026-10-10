@@ -255,6 +255,16 @@ Route::prefix('events')->middleware('module:events')->group(function () {
     Route::post('/{slug}/buy',     [$c, 'buy'])->middleware('throttle:20,1');
 });
 
+// A ticket holder's pages: the ticket's code is the key (no sign-in). Throttled.
+Route::prefix('tickets')->middleware('module:events')->group(function () {
+    $c = \App\Http\Controllers\Api\EventTicketController::class;
+    Route::post('/resend',        [$c, 'resend'])->middleware('throttle:5,1');
+    Route::get('/{code}',         [$c, 'show'])->middleware('throttle:60,1')->where('code', '[A-Za-z0-9.\-]+');
+    Route::get('/{code}/qr',      [$c, 'qr'])->middleware('throttle:120,1')->where('code', '[A-Za-z0-9.\-]+');
+    Route::get('/{code}/pdf',     [$c, 'pdf'])->middleware('throttle:20,1')->where('code', '[A-Za-z0-9.\-]+');
+    Route::put('/{code}/holder',  [$c, 'rename'])->middleware('throttle:20,1')->where('code', '[A-Za-z0-9.\-]+');
+});
+
 // "Tell me when it is back" — open to guests; throttled; the link in the email stops the alerts
 Route::prefix('stock-watches')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\StockWatchController::class, 'store'])->middleware('throttle:10,1');
@@ -751,6 +761,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('quote-list', [CustomerSyncController::class, 'clearQuoteList']);
         
         // My account: what I owe, what I have paid over, how to pay
+        Route::get('/events/tickets', [\App\Http\Controllers\Api\EventTicketController::class, 'mine'])->middleware('module:events');   // my event tickets
         Route::get('/account', [\App\Http\Controllers\Api\MyAccountController::class, 'show']);
         Route::get('/account/statement/export', [\App\Http\Controllers\Api\MyAccountController::class, 'statementExport']);
         Route::get('/account/outstandings/export', [\App\Http\Controllers\Api\MyAccountController::class, 'outstandingsExport']);
