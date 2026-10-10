@@ -8,17 +8,17 @@ const btn = { display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7p
 const input = { flex: 1, minWidth: 220, padding: '8px 10px', borderRadius: 8, fontSize: '0.84rem', fontFamily: 'inherit', border: '1px solid var(--border-color, rgba(148,163,184,0.45))', background: 'var(--surface-input, transparent)', color: 'var(--text-primary)' };
 
 /**
- * A service's or a product's video (pass `serviceId` or `productId`): a pasted link (YouTube, Vimeo, TikTok, Facebook) or an uploaded mp4 or webm of up to 100 MB. It is saved straight away, on its own, so it does not
+ * A service's, product's or event's video (pass `serviceId`, `productId` or `eventId`): a pasted link (YouTube, Vimeo, TikTok, Facebook) or an uploaded mp4 or webm of up to 100 MB. It is saved straight away, on its own, so it does not
  * wait for the form's Save button (and a large upload does not travel with the rest of the form). A new service needs saving once first.
  */
-export default function ServiceVideoField({ serviceId, productId, video, onChange, readOnly = false }) {
-  const entityId = productId ?? serviceId;
-  const base = productId ? `/admin/products/${productId}` : `/admin/services/${serviceId}`;
+export default function ServiceVideoField({ serviceId, productId, eventId, video, onChange, readOnly = false }) {
+  const entityId = eventId ?? productId ?? serviceId;
+  const base = eventId ? `/admin/events/${eventId}` : productId ? `/admin/products/${productId}` : `/admin/services/${serviceId}`;
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [pct, setPct] = useState(null);
 
-  if (!entityId) return <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Save {productId !== undefined ? 'the product' : 'the service'} first, then come back to add a video (a file or a link).</p>;
+  if (!entityId) return <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Save {eventId !== undefined ? 'the event' : productId !== undefined ? 'the product' : 'the service'} first, then come back to add a video (a file or a link).</p>;
 
   const save = async (body, config = {}) => {
     setBusy(true);

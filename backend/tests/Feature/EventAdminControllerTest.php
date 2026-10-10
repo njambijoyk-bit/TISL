@@ -56,6 +56,7 @@ class EventAdminControllerTest extends TestCase
         $this->assertSame([], $shown['problems'], 'it can be published');
         $list = $this->c()->index($this->req([], 'GET'))->getData(true)['data'];
         $this->assertSame([$id, 20, 0, false], [$list[0]['id'], $list[0]['capacity'], $list[0]['sold'], $list[0]['over']]);
+        $this->assertSame(1, $list[0]['currency_id'], 'the list says which currency its takings are in');
         $pub = $this->c()->publish($this->req(), $id);
         $this->assertSame(['published', 'Published: it is now on sale.'], [$pub->getData(true)['status'], $pub->getData(true)['message']]);
         $this->assertSame(1, count($this->c()->index($this->req(['status' => 'published'], 'GET'))->getData(true)['data']));

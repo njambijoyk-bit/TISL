@@ -24,7 +24,7 @@ final class EventPresenter
 
         return $this->base($e) + [
             'description' => $e->description, 'venue_address' => $e->venue_address, 'map_url' => $e->map_url, 'online_url' => $e->online_url, 'organiser' => $e->organiser, 'refund_policy' => $e->refund_policy,
-            'currency_id' => $e->currency_id, 'sales_ledger_id' => $e->sales_ledger_id, 'tax_rate_id' => $e->tax_rate_id, 'location_id' => $e->location_id, 'max_per_order' => (int) $e->max_per_order,
+            'sales_ledger_id' => $e->sales_ledger_id, 'tax_rate_id' => $e->tax_rate_id, 'location_id' => $e->location_id, 'max_per_order' => (int) $e->max_per_order,
             'allow_name_change' => (bool) $e->allow_name_change, 'refund_until' => $e->refund_until?->format('Y-m-d\TH:i'), 'video' => ServiceVideo::describe($e->video_url),
             'sessions' => $e->sessions->map(fn ($s) => ['id' => $s->id, 'label' => $s->label, 'starts_at' => $s->starts_at->format('Y-m-d\TH:i'), 'ends_at' => $s->ends_at?->format('Y-m-d\TH:i'), 'capacity' => $s->capacity, 'is_cancelled' => (bool) $s->is_cancelled])->values()->all(),
             'ticket_types' => $e->ticketTypes->map(fn ($t) => [
@@ -54,7 +54,7 @@ final class EventPresenter
     /** @return array<string, mixed> */
     private function base(Event $e): array
     {
-        return ['id' => $e->id, 'title' => $e->title, 'slug' => $e->slug, 'summary' => $e->summary, 'kind' => $e->kind, 'venue_name' => $e->venue_name, 'status' => $e->status, 'is_listed' => (bool) $e->is_listed,
+        return ['id' => $e->id, 'title' => $e->title, 'slug' => $e->slug, 'summary' => $e->summary, 'kind' => $e->kind, 'venue_name' => $e->venue_name, 'status' => $e->status, 'is_listed' => (bool) $e->is_listed, 'currency_id' => $e->currency_id,
             'image_url' => $e->main_image ? asset($e->main_image) : null, 'published_at' => $e->published_at?->toIso8601String()];
     }
 }

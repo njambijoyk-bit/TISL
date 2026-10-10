@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode,
+  GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { accountType, hasPermission, isStaff } from '../lib/roles';
@@ -46,6 +46,7 @@ export const ADMIN_NAV = [
       {
         id: 'quotes', title: 'Quotes', icon: FileText, color: 'var(--color-primary-400)', path: '/admin/quotes', perm: 'quotes.view',
       },
+      { id: 'events', title: 'Events', icon: CalendarDays, color: '#e11d48', path: '/admin/events', module: MODULES.EVENTS, perm: 'events.view', keywords: 'tickets door check-in guests rsvp concert festival' },
       { id: 'credit', title: 'Credit accounts', icon: CreditCard, color: '#6366f1', path: '/admin/credit', perm: 'credit.view', keywords: 'gift voucher invoices' },
     ],
   },

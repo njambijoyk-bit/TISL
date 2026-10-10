@@ -288,6 +288,8 @@ const CustomerTierSettings = lazy(() => import('./core/pages/admin/settings/Cust
 const GeneralSettings      = lazy(() => import('./core/pages/admin/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('./core/pages/admin/settings/NotificationSettings'));
 const Codes = lazy(() => import('./core/pages/admin/Codes'));
+const AdminEvents = lazy(() => import('./events/pages/admin/EventsList'));
+const AdminEventForm = lazy(() => import('./events/pages/admin/EventForm'));
 const PaymentSettings = lazy(() => import('./core/pages/admin/settings/PaymentSettings'));
 const SecuritySettings     = lazy(() => import('./core/pages/admin/settings/SecuritySettings'));
 const EmailSettings        = lazy(() => import('./core/pages/admin/settings/EmailSettings'));
@@ -1103,6 +1105,9 @@ function App() {
                 }
               />
               <Route path="/admin/codes" element={<ProtectedRoute requireAdmin permission="codes.view"><Codes /></ProtectedRoute>} />
+              <Route path="/admin/events" element={<ProtectedRoute requireAdmin permission="events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEvents /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/events/new" element={<ProtectedRoute requireAdmin permission="events.edit"><ModuleRoute module="events" redirectTo="/admin"><AdminEventForm /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/events/:id" element={<ProtectedRoute requireAdmin permission="events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEventForm /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/price-lists" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceLists /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/price-lists/new" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/price-lists/:id" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListView /></ModuleRoute></ProtectedRoute>} />
