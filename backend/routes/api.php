@@ -1080,6 +1080,24 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/connections/{id}',         [$c, 'deleteConnection'])->whereNumber('id')->middleware('permission:imports.manage');
             Route::post('/connections/{id}/fetch',     [$c, 'fetch'])->whereNumber('id')->middleware('permission:imports.view');
         });
+        Route::prefix('events')->middleware('module:events')->group(function () {   // staff side of ticketed events
+            $c = \App\Http\Controllers\Api\EventAdminController::class;
+            Route::get('/',                      [$c, 'index'])->middleware('permission:events.view');
+            Route::get('/settings',              [$c, 'settings'])->middleware('permission:events.view');
+            Route::put('/settings',              [$c, 'saveSettings'])->middleware('permission:events.edit');
+            Route::post('/recurrence',           [$c, 'recurrence'])->middleware('permission:events.edit');
+            Route::post('/',                     [$c, 'store'])->middleware('permission:events.edit');
+            Route::get('/{id}',                  [$c, 'show'])->whereNumber('id')->middleware('permission:events.view');
+            Route::put('/{id}',                  [$c, 'update'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id')->middleware('permission:events.delete');
+            Route::post('/{id}/publish',         [$c, 'publish'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/unpublish',       [$c, 'unpublish'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/cancel',          [$c, 'cancel'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/image',           [$c, 'image'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::delete('/{id}/image',         [$c, 'removeImage'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::post('/{id}/video',           [$c, 'setVideo'])->whereNumber('id')->middleware('permission:events.edit');
+            Route::delete('/{id}/video',         [$c, 'removeVideo'])->whereNumber('id')->middleware('permission:events.edit');
+        });
         Route::prefix('codes')->group(function () {   // QR codes and barcodes: pictures, and staff scanning a signed code (each code type says who may)
             $c = \App\Http\Controllers\Api\CodeController::class;
             Route::post('/scan',  [$c, 'scan'])->middleware('throttle:120,1');   // checked inside: the code type names the permission
