@@ -39,8 +39,8 @@ final class SvgRenderer
         }
         $title = isset($o['title']) && $o['title'] !== '' ? '<title>' . htmlspecialchars($o['title'], ENT_XML1) . '</title>' : '';
 
-        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . self::n($w) . ' ' . self::n($h) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" shape-rendering="crispEdges" role="img">'
-            . $title . ($bg !== null ? '<rect width="100%" height="100%" fill="' . $bg . '"/>' : '') . '<path fill="' . $fg . '" d="' . $d . '"/></svg>';
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . self::n($w) . ' ' . self::n($h) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" role="img">'
+            . $title . ($bg !== null ? '<rect width="100%" height="100%" fill="' . $bg . '"/>' : '') . '<path fill="' . $fg . '" shape-rendering="crispEdges" d="' . $d . '"/></svg>';
     }
 
     /**
@@ -77,14 +77,17 @@ final class SvgRenderer
             foreach ($c->captions as $cap) {
                 $from = ($c->quietLeft + $cap['from']) * $unit;
                 $len = ($cap['to'] - $cap['from']) * $unit;
-                $text .= '<text x="' . self::n($from + $len / 2) . '" y="' . self::n($height + $font * 1.05) . '" text-anchor="middle" textLength="' . self::n($len) . '" lengthAdjust="spacing">' . htmlspecialchars($cap['text'], ENT_XML1) . '</text>';
+                // retail digits are spread to sit under their half of the code; other text keeps its natural look and is only squeezed when it would be wider than the bars
+                $retail = in_array($c->format, ['ean13', 'ean8', 'upca', 'upce'], true);
+                $squeeze = $retail ? ' textLength="' . self::n($len) . '" lengthAdjust="spacing"' : (strlen($cap['text']) * $font * 0.62 > $len ? ' textLength="' . self::n($len) . '" lengthAdjust="spacingAndGlyphs"' : '');
+                $text .= '<text x="' . self::n($from + $len / 2) . '" y="' . self::n($height + $font * 1.05) . '" text-anchor="middle"' . $squeeze . '>' . htmlspecialchars($cap['text'], ENT_XML1) . '</text>';
             }
             $text = '<g fill="' . $fg . '" font-family="Arial, Helvetica, sans-serif" font-size="' . self::n($font) . '">' . $text . '</g>';
         }
         $title = isset($o['title']) && $o['title'] !== '' ? '<title>' . htmlspecialchars($o['title'], ENT_XML1) . '</title>' : '';
 
-        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . self::n($w) . ' ' . self::n($h) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" shape-rendering="crispEdges" role="img">'
-            . $title . ($bg !== null ? '<rect width="100%" height="100%" fill="' . $bg . '"/>' : '') . '<path fill="' . $fg . '" d="' . $d . '"/>' . $text . '</svg>';
+        return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . self::n($w) . ' ' . self::n($h) . '" width="' . self::n($w) . '" height="' . self::n($h) . '" role="img">'
+            . $title . ($bg !== null ? '<rect width="100%" height="100%" fill="' . $bg . '"/>' : '') . '<path fill="' . $fg . '" shape-rendering="crispEdges" d="' . $d . '"/>' . $text . '</svg>';
     }
 
     private static function n(float|int $v): string

@@ -1,6 +1,8 @@
 # Codes (core): QR codes and barcodes, made and read by us — plan
 
-Status: **plan, nothing built yet.** This becomes a core service that Events (tickets) is the first user of, then Ecommerce, Stock, Menus, Courses and others.
+Status: **built so far:** the QR encoder and decoder, the barcode encoders (Code 128, EAN-13/8, UPC-A/E, Code 39, ITF/ITF-14), signed codes and the scan registry, the Codes page (Admin → Codes & labels: items, giving codes, printing labels, scan lookup, settings, print log) and the scanner component (camera where the browser can read codes, handheld scanners, typing). **Still to build:** Data Matrix, PDF417, Code 93, Codabar, GS1-128 (phase B); our own camera decoder for browsers without a built-in reader (Safari/iPhone); scan buttons inside the stock screens; the checkout/POS. To use it: run `119_codes.sql` and `php artisan access:seed`.
+
+Originally: This becomes a core service that Events (tickets) is the first user of, then Ecommerce, Stock, Menus, Courses and others.
 
 ## Decisions
 - ✔ **We write our own encoder, in core**, not a library, so every module uses one thing and there is no outside dependency to update or trust.
@@ -61,3 +63,8 @@ The place to make a product scannable and put a label on it.
 - "arcodes" = barcodes (assumed).
 - Barcode kinds above are enough (add Data Matrix / PDF417 later only if a need appears).
 - Staff-badge attendance, and POS-style scanning at checkout, are later phases, not in the first build.
+
+## How it was proved (kept so the next encoder gets the same treatment)
+- Each encoder is checked against the standard's own tables and worked examples, against a second implementation where one exists (bit for bit), and by an **independent decoder (zxing-cpp)** reading what we make: 171 QR codes (every version and level at full capacity, every mask, the largest numeric and alphanumeric) and 255 barcodes. Run `tests/Tools/crosscheck` after any change to an encoder.
+- The printed labels themselves were rendered by a browser at several sheet and roll sizes (down to 38 × 21 mm) and read back by the same independent decoder.
+- Unit tests were also mutation-checked: deliberately breaking a rule makes a test fail.

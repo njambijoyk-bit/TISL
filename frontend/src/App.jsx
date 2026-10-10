@@ -287,6 +287,7 @@ const CustomerTierSettings = lazy(() => import('./core/pages/admin/settings/Cust
 
 const GeneralSettings      = lazy(() => import('./core/pages/admin/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('./core/pages/admin/settings/NotificationSettings'));
+const Codes = lazy(() => import('./core/pages/admin/Codes'));
 const PaymentSettings = lazy(() => import('./core/pages/admin/settings/PaymentSettings'));
 const SecuritySettings     = lazy(() => import('./core/pages/admin/settings/SecuritySettings'));
 const EmailSettings        = lazy(() => import('./core/pages/admin/settings/EmailSettings'));
@@ -1101,6 +1102,7 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route path="/admin/codes" element={<ProtectedRoute requireAdmin permission="codes.view"><Codes /></ProtectedRoute>} />
               <Route path="/admin/price-lists" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceLists /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/price-lists/new" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListEditor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/price-lists/:id" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceListView /></ModuleRoute></ProtectedRoute>} />

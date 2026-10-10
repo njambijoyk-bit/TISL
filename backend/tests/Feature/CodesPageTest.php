@@ -274,13 +274,14 @@ class CodesPageTest extends TestCase
     {
         $with = $this->variant('Has', 'Has', 'H', '111');
         $without = $this->variant('Not', 'Not', 'N');
-        $r = $this->labels()->build([['type' => 'variant', 'id' => $with, 'copies' => 2], ['type' => 'variant', 'id' => $without], ['type' => 'variant', 'id' => 404]], ['size' => 'a4-24'], 7);
+        $r = $this->labels()->build([['type' => 'variant', 'id' => $with, 'copies' => 2], ['type' => 'variant', 'id' => $without], ['type' => 'variant', 'id' => 404]], ['size' => 'a4-24'], 7, true);
         $this->assertSame([1, 2, 2], [count($r['labels']), $r['total'], count($r['skipped'])]);
         $this->assertStringContainsString('no code yet', $r['skipped'][0]['reason']);
         $log = DB::table('code_prints')->first();
         $this->assertSame([7, 2, 'a4-24'], [(int) $log->user_id, (int) $log->label_count, $log->size]);
-        $this->labels()->build([['type' => 'variant', 'id' => $without]], [], 7);
-        $this->assertSame(1, DB::table('code_prints')->count(), 'nothing printed, nothing logged');
+        $this->labels()->build([['type' => 'variant', 'id' => $without]], [], 7, true);
+        $this->labels()->build([['type' => 'variant', 'id' => $with]], [], 7);   // a preview
+        $this->assertSame(1, DB::table('code_prints')->count(), 'nothing printed or only previewed, nothing logged');
     }
 
     public function test_too_many_labels_at_once_are_refused(): void

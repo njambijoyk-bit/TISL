@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
-  GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2,
+  GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { accountType, hasPermission, isStaff } from '../lib/roles';
@@ -93,6 +93,7 @@ export const ADMIN_NAV = [
           { title: 'Service configuration', path: '/admin/service-settings', perm: 'catalogue.view' },
         ],
       },
+      { id: 'codes', title: 'Codes & labels', icon: QrCode, color: '#0d9488', path: '/admin/codes', perm: 'codes.view', keywords: 'barcode qr label print scan sticker gtin ean' },
       { id: 'hampers', title: 'Hampers', icon: Gift, color: '#fc7bf5', path: '/admin/hampers', module: MODULES.HAMPERS, perm: 'hampers.manage' },
       {
         id: 'auctions', title: 'Auctions', icon: Gavel, color: '#ef4444', path: '/admin/auctions', module: MODULES.AUCTIONS, perm: 'auctions.manage', keywords: 'bids',

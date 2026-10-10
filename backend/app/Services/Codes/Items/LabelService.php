@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Makes the labels for the Codes page: for each chosen item, the lines to print (name, SKU, price, batch) and the picture of its code. The browser lays them out on the sheet and
- * prints; this is the one place the pictures are drawn, so a label always shows exactly what a scan will read. Every print is logged.
+ * prints; this is the one place the pictures are drawn, so a label always shows exactly what a scan will read. A print is logged when asked to (not a preview).
  */
 final class LabelService
 {
@@ -23,9 +23,10 @@ final class LabelService
     /**
      * @param  array<int, array{type: string, id: int, copies?: int}>  $items
      * @param  array{kind?: ?string, name?: bool, sku?: bool, price?: bool, code_text?: bool, batch?: bool, size?: ?string, template?: ?string}  $o
+     * @param  bool  $log  write it to the print log (a preview on screen is not a print)
      * @return array{labels: array<int, array<string, mixed>>, skipped: array<int, array{type: string, id: int, label: ?string, reason: string}>, total: int}
      */
-    public function build(array $items, array $o, ?int $by): array
+    public function build(array $items, array $o, ?int $by, bool $log = false): array
     {
         $defaults = CodeSettings::all();
         $show = ['name' => $o['name'] ?? $defaults['label']['name'], 'sku' => $o['sku'] ?? $defaults['label']['sku'], 'price' => $o['price'] ?? $defaults['label']['price'],
@@ -74,7 +75,7 @@ final class LabelService
             }
             $labels[] = ['type' => $it['type'], 'id' => (int) $item['id'], 'copies' => $copies, 'code' => $item['code'], 'kind' => $kind, 'lines' => $lines, 'svg' => $svg, 'two_d' => CodeFactory::KINDS[$kind][1]];
         }
-        if ($labels && Schema::hasTable('code_prints')) {
+        if ($log && $labels && Schema::hasTable('code_prints')) {
             DB::table('code_prints')->insert(['user_id' => $by, 'template' => $o['template'] ?? null, 'size' => $o['size'] ?? $defaults['label']['size'], 'label_count' => $total,
                 'items' => json_encode(array_map(fn ($l) => ['type' => $l['type'], 'id' => $l['id'], 'copies' => $l['copies']], $labels)), 'created_at' => now(), 'updated_at' => now()]);
         }

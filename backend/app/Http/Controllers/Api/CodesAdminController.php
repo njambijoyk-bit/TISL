@@ -66,13 +66,13 @@ class CodesAdminController extends Controller
         return response()->json(['code' => $d['code'], 'matches' => $matches, 'found' => count($matches) > 0, 'ambiguous' => count(array_filter($matches, fn ($m) => ! $m['retired'])) > 1]);
     }
 
-    /** POST /admin/codes/labels {items: [{type, id, copies}], …options}: the labels to print. Logged. */
+    /** POST /admin/codes/labels {items: [{type, id, copies}], …options, log?}: the labels to print; `log` records it in the print log (a preview does not). */
     public function labels(Request $request): JsonResponse
     {
         $d = $request->validate([
             'items' => 'required|array|min:1|max:500', 'items.*.type' => 'required|in:variant,pack,asset,batch', 'items.*.id' => 'required|integer', 'items.*.copies' => 'nullable|integer|min:1|max:500',
             'kind' => 'nullable|string|max:12', 'name' => 'nullable|boolean', 'sku' => 'nullable|boolean', 'price' => 'nullable|boolean', 'code_text' => 'nullable|boolean', 'batch' => 'nullable|boolean',
-            'size' => 'nullable|string|max:40', 'template' => 'nullable|string|max:40',
+            'size' => 'nullable|string|max:40', 'template' => 'nullable|string|max:40', 'log' => 'nullable|boolean', 'preview' => 'nullable|boolean',
         ]);
         $o = array_filter(['kind' => $d['kind'] ?? null, 'size' => $d['size'] ?? null, 'template' => $d['template'] ?? null], fn ($v) => $v !== null);
         foreach (['name', 'sku', 'price', 'code_text', 'batch'] as $k) {
@@ -81,7 +81,7 @@ class CodesAdminController extends Controller
             }
         }
 
-        return $this->guard(fn () => response()->json($this->labels->build($d['items'], $o, $request->user()?->id)));
+        return $this->guard(fn () => response()->json($this->labels->build($d['items'], $o, $request->user()?->id, $request->boolean('log'))));
     }
 
     /** GET /admin/codes/prints: the print log. */
