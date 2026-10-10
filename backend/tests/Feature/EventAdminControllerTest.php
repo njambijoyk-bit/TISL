@@ -127,6 +127,8 @@ class EventAdminControllerTest extends TestCase
         $ok = $this->c()->saveSettings($this->req(['hold_minutes' => 20, 'sales_ledger_id' => 40], 'PUT'))->getData(true);
         $this->assertSame([20, 40], [$ok['settings']['hold_minutes'], $ok['settings']['sales_ledger_id']]);
         $this->assertSame(20, $this->c()->settings()->getData(true)['settings']['hold_minutes']);
+        $this->assertFalse($this->c()->settings()->getData(true)['settings']['reminders_on'], 'reminders are off until switched on');
+        $this->assertTrue($this->c()->saveSettings($this->req(['reminders_on' => true, 'reminder_hours' => 48], 'PUT'))->getData(true)['settings']['reminders_on']);
         $this->assertSame(422, $this->c()->saveSettings($this->req(['sales_ledger_id' => 41], 'PUT'))->getStatusCode());
         $this->assertSame(422, $this->c()->saveSettings($this->req(['hold_minutes' => 1], 'PUT'))->getStatusCode());
     }

@@ -99,6 +99,26 @@ Your " . ($g->count() === 1 ? 'ticket is' : 'tickets are') . ' valid for the new
         return $this->toHolders($event, 'event_changed', fn ($g) => ["News about {$event->title}", trim($message)]);
     }
 
+    /** The date is coming up: tell this buyer (one message for all their tickets for it). @param Collection<int, EventTicket> $tickets */
+    public function reminder(Event $event, \App\Models\Events\EventSession $session, Collection $tickets): void
+    {
+        $this->safely(function () use ($event, $session, $tickets) {
+            $first = $tickets->first();
+            $lines = ["Coming up: {$event->title} on " . $session->starts_at->format('D j M Y, H:i') . ($session->label ? " ({$session->label})" : '') . '.'];
+            if ($event->kind !== 'online' && $event->venue_name) {
+                $lines[] = 'Where: ' . $event->venue_name . ($event->venue_address ? ', ' . $event->venue_address : '');
+            }
+            $lines[] = $tickets->count() === 1 ? 'Have your ticket ready: show its QR code at the door.' : "Have your {$tickets->count()} tickets ready: show each QR code at the door.";
+            if (in_array($event->kind, ['online', 'hybrid'], true)) {
+                $lines[] = 'The link to join online is on your ticket page.';
+            }
+            if (($note = (string) (EventSettings::all()['ticket_note'] ?? '')) !== '') {
+                $lines[] = $note;
+            }
+            $this->tell($first, 'event_reminder', "Reminder: {$event->title}", implode("\n", $lines), '/tickets/' . TicketCodes::code($first), 'View my tickets');
+        });
+    }
+
     // ------------------------------------------------------------ refunds
 
     /** A holder asked for money back: the people who decide are told. */

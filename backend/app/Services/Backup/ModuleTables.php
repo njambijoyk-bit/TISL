@@ -141,7 +141,7 @@ final class ModuleTables
         'courses'        => [/* built later */],
         'accommodations' => [/* built later */],
         'menus'          => ['recipes', 'recipe_items', 'productions', 'production_lines'],
-        'events'         => ['events', 'event_sessions', 'event_ticket_types', 'event_ticket_type_sessions', 'event_tickets', 'event_checkins', 'event_refund_requests', 'event_settings'],
+        'events'         => ['events', 'event_sessions', 'event_ticket_types', 'event_ticket_type_sessions', 'event_tickets', 'event_checkins', 'event_refund_requests', 'event_settings', 'event_reminders'],
         'memberships'    => [/* built later */],
     ];
 

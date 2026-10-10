@@ -11,7 +11,8 @@ final class EventSettings
     public const DEFAULTS = [
         'hold_minutes' => 15,              // how long seats are kept for a buyer who has not paid
         'sales_ledger_id' => null,         // where ticket sales are booked when the event names none
-        'reminder_hours' => 24,            // the day-before reminder goes this long before the first session
+        'reminders_on' => false,           // send ticket holders a reminder before each date (off until the company switches it on)
+        'reminder_hours' => 24,            // the reminder goes this long before the date starts
         'ticket_note' => '',               // a line printed on every ticket and in the ticket email
     ];
 
@@ -45,6 +46,9 @@ final class EventSettings
                 throw new EventException('Seats can be held for 5 to 120 minutes.');
             }
             $cur['hold_minutes'] = $m;
+        }
+        if (array_key_exists('reminders_on', $in)) {
+            $cur['reminders_on'] = (bool) $in['reminders_on'];
         }
         if (array_key_exists('reminder_hours', $in)) {
             $h = (int) $in['reminder_hours'];

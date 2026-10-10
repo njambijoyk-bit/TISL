@@ -187,7 +187,7 @@ class EventAdminController extends Controller
 
     public function saveSettings(Request $request): JsonResponse
     {
-        $d = $request->validate(['hold_minutes' => 'nullable|integer', 'reminder_hours' => 'nullable|integer', 'sales_ledger_id' => 'nullable|integer', 'ticket_note' => 'nullable|string|max:300']);
+        $d = $request->validate(['hold_minutes' => 'nullable|integer', 'reminders_on' => 'nullable|boolean', 'reminder_hours' => 'nullable|integer', 'sales_ledger_id' => 'nullable|integer', 'ticket_note' => 'nullable|string|max:300']);
 
         return $this->guard(function () use ($d, $request) {
             if (! empty($d['sales_ledger_id'])) {
