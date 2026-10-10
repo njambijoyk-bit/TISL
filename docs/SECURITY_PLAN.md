@@ -234,8 +234,8 @@ Each step is tested, mutation-checked and pushed on its own.
 
 | Step | What | Notes |
 |---|---|---|
-| 0.1 | Sessions: every token is recorded (`auth_sessions`: device, address, when); a password change or reset ends all the other sessions; **Sign out everywhere**; the person's own "Where you are signed in" list with Revoke | script 123 |
-| 0.2 | Rate limits on sign-in, register, forgot/reset password (and the applicant ones), keyed by email + address and by address | |
+| 0.1 ✔ | Sessions: every token is recorded (`auth_sessions`: device, address, when); a password change or reset ends all the other sessions; **Sign out everywhere**; the person's own "Where you are signed in" list with Revoke | script 123 |
+| 0.2 ✔ | Rate limits on sign-in, register, forgot/reset password (and the applicant ones), keyed by email + address and by address; also the dev door, change-password, phone code (`config/security.php` → `rate_limits`; set `TRUSTED_PROXIES` when behind a load balancer) | |
 | 0.3 | Sign-in answers: one message for "no such email" and "wrong password"; no 423 for locked accounts; the password is checked **before** anything about the account is revealed; the same time is spent whether or not the email exists; the 5-strikes-30-minutes lock becomes a growing delay per email + address, so a stranger can not lock the real person out | |
 | 0.4 | Tokens expire: idle (staff 12 h, customers 30 days, others 7 days) and absolute (14 / 90 / 30 days); existing tokens start counting from their next use | `config/security.php` |
 | 0.5 | Password rules: 10+ characters, not a common password, not the person's own name, email or "tisl"; the same rule at register, change, reset and the admin's temporary password | |

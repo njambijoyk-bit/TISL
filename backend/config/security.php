@@ -32,6 +32,17 @@ return [
         'per_ip' => (int) env('SECURITY_LOGIN_PER_IP', 40),
     ],
 
+    // How fast anyone may knock on the doors that take a password, a code or an email address. Each entry is [attempts, minutes]; the first list is counted per email AND address (so a stranger can only block their own address, never the real person), the second per address alone. Going over answers "wait N seconds" and writes a line in the security log.
+    'rate_limits' => [
+        'sign_in' => ['email_ip' => [[10, 1], [30, 60]], 'ip' => [[30, 1], [200, 60]]],
+        'sign_up' => ['email_ip' => [[5, 60]],           'ip' => [[10, 1], [30, 60]]],
+        'forgot'  => ['email_ip' => [[3, 15], [8, 60]],  'ip' => [[10, 15], [30, 60]]],
+        'reset'   => ['email_ip' => [[10, 15]],          'ip' => [[20, 15], [60, 60]]],
+        'force'   => ['email_ip' => [[10, 15]],          'ip' => [[20, 15], [60, 60]]],
+        // someone already signed in, guessing a current password or a phone code: counted per person
+        'guess'   => ['user' => [[8, 15], [30, 60]]],
+    ],
+
     'password' => [
         'min_length' => (int) env('SECURITY_PASSWORD_MIN', 10),
     ],

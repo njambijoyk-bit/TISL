@@ -134,11 +134,11 @@ Route::get('/nav', [\App\Http\Controllers\Admin\NavController::class, 'publicNav
 Route::get('/locations', [LocationController::class, 'publicIndex']);
 // Authentication Routes
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-    Route::post('/force-change-password', [AuthController::class, 'forceChangePassword']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:sign-up');
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:sign-in');
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-forgot');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
+    Route::post('/force-change-password', [AuthController::class, 'forceChangePassword'])->middleware('throttle:password-force');
 });
 
 Route::get('/bug-reports/search', [BugReportController::class, 'search']);
@@ -303,7 +303,7 @@ Route::get('/bug-reports/track/{token}', [BugReportController::class, 'track']);
 // DEV GATED UX (no Laravel auth — uses one-time key + cache token)
 // ============================================================
 Route::prefix('dev')->group(function () {
-    Route::post('/auth',         [BugReportController::class, 'devAuth']);
+    Route::post('/auth',         [BugReportController::class, 'devAuth'])->middleware('throttle:sign-in');
  
     // These require X-Dev-Token header (checked inside controller)
     Route::get('/notes',         [BugReportController::class, 'devNoteIndex']);
@@ -318,12 +318,12 @@ Route::prefix('careers')->middleware('module:careers')->group(function () {
     Route::get('/jobs',         [PublicJobController::class, 'index']);
     Route::get('/jobs/{slug}',  [PublicJobController::class, 'show']);
 
-    Route::post('/forgot-password',[ApplicantAuthController::class, 'forgotPassword']);
-    Route::post('/reset-password', [ApplicantAuthController::class, 'resetPassword']);
+    Route::post('/forgot-password',[ApplicantAuthController::class, 'forgotPassword'])->middleware('throttle:password-forgot');
+    Route::post('/reset-password', [ApplicantAuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
 
     Route::prefix('auth')->group(function () {
-        Route::post('/register',       [ApplicantAuthController::class, 'register']);
-        Route::post('/login',          [ApplicantAuthController::class, 'login']);
+        Route::post('/register',       [ApplicantAuthController::class, 'register'])->middleware('throttle:sign-up');
+        Route::post('/login',          [ApplicantAuthController::class, 'login'])->middleware('throttle:sign-in');
     });
 });
 
@@ -436,7 +436,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/sessions/revoke-all',     [\App\Http\Controllers\Api\SessionController::class, 'revokeAll']);
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
-    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:guess');
     Route::post('/auth/profile-picture', [AuthController::class, 'uploadProfilePicture']);
 
     // My bookings (customers): book, see mine, cancel
@@ -461,9 +461,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/applications/{id}',           [ApplicantPortalController::class, 'show']);
         Route::post('/applications/{id}/documents',[ApplicantPortalController::class, 'uploadDocument']);
         Route::patch('/portal/profile',            [ApplicantPortalController::class, 'updateProfile']);
-        Route::post('/portal/password',            [ApplicantPortalController::class, 'changePasswordSelf']);
+        Route::post('/portal/password',            [ApplicantPortalController::class, 'changePasswordSelf'])->middleware('throttle:guess');
 
-        Route::post('/portal/change-password', [ApplicantAuthController::class, 'changePassword']);
+        Route::post('/portal/change-password', [ApplicantAuthController::class, 'changePassword'])->middleware('throttle:guess');
     });
     
     // ============================================
@@ -775,8 +775,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Email & Phone Verification
         Route::post('/email/resend', [VerificationController::class, 'resendEmailVerification']);
-        Route::post('/phone/send-otp', [VerificationController::class, 'sendPhoneOtp']);
-        Route::post('/phone/verify', [VerificationController::class, 'verifyPhoneOtp']);
+        Route::post('/phone/send-otp', [VerificationController::class, 'sendPhoneOtp'])->middleware('throttle:5,15');
+        Route::post('/phone/verify', [VerificationController::class, 'verifyPhoneOtp'])->middleware('throttle:guess');
         
         // Customer Addresses
         Route::prefix('addresses')->group(function () {

@@ -24,6 +24,9 @@ export default function ForgotPassword() {
       const status = err.response?.status;
       if (status === 422) {
         setError(err.response.data?.errors?.email?.[0] ?? 'Invalid email address');
+      } else if (status === 429) {
+        // asking too often: say how long to wait (the same for every email, so it reveals nothing)
+        setError(err.response.data?.message ?? 'Too many attempts. Please wait a moment and try again.');
       } else {
         setSent(true); // treat all other errors as "sent" — security best practice
       }
