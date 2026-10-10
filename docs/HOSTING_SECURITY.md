@@ -3,6 +3,11 @@
 What to set where the website and the server live. Nothing here changes how TISL works; it closes doors a browser or a stranger could otherwise use.
 Two places matter: **the website** (the files built from `frontend/`) and **the server** (Laravel in `backend/`). Both must be reached over **https** only.
 
+**The website and the server must share one domain.** Since sign-in moved into a protected cookie (the page can no longer read it, so a script that gets onto the page can no longer steal it), a browser only sends that cookie
+between addresses of the same domain: the website at `targetisl.co.ke` and the server at `api.targetisl.co.ke` work; the server on `something.up.railway.app` does not (nobody could stay signed in).
+So point `api.targetisl.co.ke` at the server, and set (before `npm run build`) `VITE_API_URL=https://api.targetisl.co.ke/api`, and on the server `APP_URL=https://api.targetisl.co.ke`, `FRONTEND_URL=https://targetisl.co.ke`.
+`php artisan security:check` tells you if the two are not on one domain. The first time this goes live, everybody who was signed in is signed out once and signs in again.
+
 When you are done, on the server run:
 
 ```
@@ -22,6 +27,8 @@ It reads the settings, the database and the accounts and prints OK / WARN / FAIL
 | `FRONTEND_URL` | `https://<the website address>` | the buttons in emails ("This was not me", "View my tickets") |
 | `TRUSTED_PROXIES` | the address of the load balancer / CDN / host proxy, or `*` if you cannot know it | behind a proxy every visitor looks like one address, so the sign-in speed limits count everyone together. On Railway, Cloudflare or nginx-in-front use `*` |
 | `SESSION_SECURE_COOKIE` | `true` | cookies only over https |
+| `SECURITY_COOKIE_SECURE` | leave empty; `true` if the server sits behind a proxy it does not trust | the sign-in cookie is marked Secure and host-only (`__Host-`) whenever the address is https |
+| `SECURITY_COOKIE_SESSIONS` | leave empty (on); `false` only to go back to handing the sign-in code to the page | the safe default is the protected cookie |
 | `CACHE_STORE` | `database`, `file` or `redis`, **never** `array` | the waits after wrong passwords and the speed limits live in the cache |
 | `QUEUE_CONNECTION` | `database` (or redis) **and a worker running** | emails are sent in the background, not while someone waits |
 | `MAIL_MAILER` | `smtp` (or your provider), not `log` | with `log`, password reset links never leave the server |

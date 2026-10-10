@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Careers;
 use App\Http\Controllers\Controller;
 use App\Models\Applicant;
 use App\Rules\StrongPassword;
+use App\Services\Security\SessionCookie;
 use App\Services\Security\SignInGuard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,11 +63,10 @@ class ApplicantAuthController extends Controller
 
             DB::commit();
 
-            return response()->json([
+            return SessionCookie::respond($request, [
                 'message'   => 'Registration successful.',
                 'applicant' => $applicant,
-                'token'     => $token,
-            ], 201);
+            ], 201, $token, $applicant);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -118,12 +118,11 @@ class ApplicantAuthController extends Controller
 
         $token = app(\App\Services\Security\Sessions::class)->issue($applicant, $request, 'applicant-token', 'password');
 
-        return response()->json([
+        return SessionCookie::respond($request, [
             'message'              => 'Login successful.',
             'applicant'            => $applicant,
             'must_change_password' => (bool) $applicant->must_change_password,
-            'token'                => $token,
-        ]);
+        ], 200, $token, $applicant);
     }
 
     // ── Force change password (admin-initiated reset) ─────────────────────────
@@ -159,7 +158,10 @@ class ApplicantAuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully.']);
+        $response = response()->json(['message' => 'Logged out successfully.']);
+        $response->headers->setCookie(SessionCookie::forget($request, SessionCookie::APPLICANT));
+
+        return $response;
     }
 
     // ── Me ────────────────────────────────────────────────────────────────────
@@ -168,7 +170,7 @@ class ApplicantAuthController extends Controller
     {
         $applicant = $request->user()->load('activeApplications.jobPosting');
 
-        return response()->json(['applicant' => $applicant]);
+        return response()->json(['applicant' => $applicant, 'csrf' => SessionCookie::csrfOf($request)]);
     }
 
     // ── Forgot Password ───────────────────────────────────────────────────────

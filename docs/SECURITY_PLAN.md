@@ -241,3 +241,24 @@ Each step is tested, mutation-checked and pushed on its own.
 | 0.6 ✔ | The security log (`security_events`): sign-in ok / failed / blocked, password changed or reset, sessions ended; the admin page **Security → Sign-in log** (permission `security.view`) | script 123; run `php artisan access:seed` to give admins `security.view` (permission catalogue version 12); `security:prune` runs daily |
 | 0.7 ✔ | "New sign-in" email when a browser the person has not used before signs in, with a one-click way to end sessions | Known limit: a "kind of browser" is the browser + system name, so a thief on the same kind of browser as the owner is not announced; Phase 1 device keys close that. The link is made by `SecureAccountLink` (3 days, dies on password change). Switch off with `SECURITY_NEW_SIGN_IN_EMAIL=false`. |
 | 0.8 ✔ | Security headers on the API; a hosting recipe for the frontend | `SecurityHeaders` middleware; `docs/HOSTING_SECURITY.md` (server settings, website headers, a report-only CSP to try); `frontend/public/_headers`; `php artisan security:check [--fix]` (also finds accounts still on the old default passwords) |
+
+
+## 11. Phases 1 and 2, as they will be built
+
+Decided by the owner: RP ID `targetisl.co.ke`; protected cookie instead of a stored token; seal phrase yes; first release = Phases 1 and 2 together. Each step is tested, mutation-checked, checked in a real browser where a browser is involved, and pushed on its own.
+
+| Step | What | Notes |
+|---|---|---|
+| 1.0 ✔ | **The sign-in moves into a protected cookie** (`HttpOnly`, `__Host-` and `Secure` over https, `SameSite=Lax`); the page keeps only a CSRF code; every change needs that code and an allowed origin; Google sign-in no longer puts the code in an address; applicants get their own cookie; the old stored code is dropped once | `CookieSession` middleware, `SessionCookie`; needs the API on a subdomain of the site (`security:check` says if not); browser check `frontend/e2e/cookie-session.mjs`. Built on the Phase 0 tokens, so expiry, revoke and the list of devices work unchanged. |
+| 1.1 | WebAuthn core with `web-auth/webauthn-lib`: tables `auth_credentials`, `auth_challenges` (script 124), settings (RP ID, origins), single-use challenges, register and sign-in verification, counter and clone detection | a software authenticator in the tests; every failure of section 7 |
+| 1.2 | Endpoints: register a passkey, sign in with a passkey (also the browser's "autofill" way), list / rename / revoke; sessions tied to the credential, the strength reached (S0 / S2) and when strong proof last happened | `auth_sessions` gets credential, strength, last-strong columns |
+| 1.3 | The screens: "Sign in with a passkey" and autofill on the sign-in page, the offer to add one after signing in, **My devices** (add, replace, revoke, lineage) on both profile pages; real browser with Chromium's virtual authenticator | `frontend/e2e/passkeys.mjs` |
+| 1.4 | The policy gate after every sign-in path (password, Google, passkey): who must have a passkey, grace dates, off / log / enforce; restricted sessions that can only add a device | accounts that need S2 can not get a full session from a password alone |
+| 1.5 | Recovery codes (10, shown once, stored hashed) and the restricted session they give | the first rung of the recovery ladder |
+| 1.6 | Owner view "who has not added a passkey", the reminder banner, alerts (new device, device removed, clone detected) by email | |
+| 1.7 | The seal phrase on the sign-in page, shown only on a browser that has signed in as that person before | a flourish, labelled as one; the protection is the passkey |
+| 2.1 | The step-up catalogue (the dozen sensitive actions), the pending-action record held on the server, freshness, `assurance` middleware, modes off / log / enforce per rule | script 125 |
+| 2.2 | The cross-examination: the screen shows facts from the server's record, the passkey signature is bound to that record, a reason for critical actions; password fallback for people without a passkey while the policy allows it | the Socratic screen |
+| 2.3 | The catalogue applied to the real routes (payment keys, roles and access, sign-in methods, security settings, payroll, backup restore, staff accounts, exports, voucher cancel / refund limits, bank details) | authorization is always asked first |
+| 2.4 | Risk rules at sign-in (new device, new network, unusual hour, many failures first) in log mode, and the owner's "would have asked" page | |
+| 2.5 | The security policy page (rule modes, grace dates, strength per kind of account) and moving payment keys from "password again" to the unified step-up | "two people" actions are recorded now and enforced with the Council of Two in Phase 3 |

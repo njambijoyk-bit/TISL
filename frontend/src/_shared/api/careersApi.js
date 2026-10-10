@@ -1,11 +1,19 @@
 import api from './axios';
 import axios from 'axios';
+import { attachSession } from './sessionKit';
 
-// ── Applicant token helpers ───────────────────────────────────────────────────
+// ── Applicant sign-in helpers ─────────────────────────────────────────────────
+// The sign-in is a protected cookie of its own. What the browser keeps is a marker that an applicant is signed in ('cookie'), and the CSRF code their changes carry.
+// Only with cookie sessions switched off on the server is it the sign-in code itself, sent as a header as before.
 const TOKEN_KEY = 'applicant_token';
+const CSRF_KEY = 'applicant_csrf';
 export const getApplicantToken   = () => localStorage.getItem(TOKEN_KEY);
-export const setApplicantToken   = (t) => localStorage.setItem(TOKEN_KEY, t);
-export const clearApplicantToken = () => localStorage.removeItem(TOKEN_KEY);
+export const rememberApplicantSession = (res) => {
+    localStorage.setItem(TOKEN_KEY, res?.token || 'cookie');
+    localStorage.setItem('applicant_mode', res?.token ? 'bearer' : 'cookie');
+    if (res?.csrf) localStorage.setItem(CSRF_KEY, res.csrf); else localStorage.removeItem(CSRF_KEY);
+};
+export const clearApplicantToken = () => { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(CSRF_KEY); };
 
 // ── Applicant axios instance ──────────────────────────────────────────────────
 const applicant = axios.create({
@@ -16,11 +24,7 @@ const applicant = axios.create({
         'X-Requested-With': 'XMLHttpRequest',
     },
 });
-applicant.interceptors.request.use((config) => {
-    const token = getApplicantToken();
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-});
+attachSession(applicant, { csrfKey: CSRF_KEY, meUrl: '/careers/auth/me', bearerKey: TOKEN_KEY });
 applicant.interceptors.response.use(
     (res) => res.data,
     (err) => Promise.reject(err.response?.data ?? err)

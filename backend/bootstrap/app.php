@@ -30,12 +30,19 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // ?currency=USD / X-Currency header -> display currency for every API response
         // ?location=<id> / X-Location header -> branch in context (multi-location)
-        $middleware->api(append: [
+        $middleware->api(prepend: [
+            \App\Http\Middleware\CookieSession::class,   // the sign-in cookie becomes the Authorization header the rest of the app reads, once the CSRF code and origin check out
+        ], append: [
             \App\Http\Middleware\SetDisplayCurrency::class,
             \App\Http\Middleware\SetLocationContext::class,
             \App\Http\Middleware\SlideSession::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // a change that came in on the sign-in cookie without the right CSRF code or origin is treated as not signed in; say why, so the website can fetch a fresh code and try once more
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->is('api/*') && $request->attributes->get('csrf_failed')) {
+                return response()->json(['message' => 'Your session needs refreshing. Please try again.', 'csrf' => true], 419);
+            }
+        });
     })->create();

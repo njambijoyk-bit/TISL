@@ -4,7 +4,7 @@ import {
     applicantAuth,
     portalApi,
     publicApi,
-    setApplicantToken,
+    rememberApplicantSession,
     clearApplicantToken,
     getApplicantToken,
 } from '../api/careersApi';
@@ -21,7 +21,7 @@ const useCareersStore = create(
                 set({ authLoading: true, authError: null });
                 try {
                     const res = await applicantAuth.register(data);
-                    setApplicantToken(res.token);
+                    rememberApplicantSession(res);
                     set({ applicant: res.applicant, authLoading: false });
                     return res;
                 } catch (err) {
@@ -34,7 +34,7 @@ const useCareersStore = create(
                 set({ authLoading: true, authError: null });
                 try {
                     const res = await applicantAuth.login(data);
-                    setApplicantToken(res.token);
+                    rememberApplicantSession(res);
                     set({ applicant: res.applicant, authLoading: false });
                     return res;
                 } catch (err) {

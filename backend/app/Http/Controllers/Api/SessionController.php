@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Security\SecurityLog;
+use App\Services\Security\SessionCookie;
 use App\Services\Security\Sessions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,12 +32,18 @@ class SessionController extends Controller
     /** DELETE /auth/sessions/{id}: end one browser (it is not necessarily this one). */
     public function destroy(Request $request, int $id): JsonResponse
     {
+        $current = $id === $this->currentId($request);
         if (! $this->sessions->revokeOne($request->user(), $id, 'revoked')) {
             return response()->json(['message' => 'That session was not found.'], 404);
         }
-        SecurityLog::record('session_ended', $request->user(), $request, ['session' => $id, 'was_current' => $id === $this->currentId($request)], SecurityLog::NOTICE);
+        SecurityLog::record('session_ended', $request->user(), $request, ['session' => $id, 'was_current' => $current], SecurityLog::NOTICE);
 
-        return response()->json(['message' => 'That device is signed out.']);
+        $response = response()->json(['message' => 'That device is signed out.']);
+        if ($current) {
+            $response->headers->setCookie(SessionCookie::forget($request));
+        }
+
+        return $response;
     }
 
     /** POST /auth/sessions/revoke-others: every browser but this one. */
@@ -54,6 +61,9 @@ class SessionController extends Controller
         $n = $this->sessions->revokeAll($request->user(), null, 'signed_out_everywhere');
         SecurityLog::record('sessions_ended', $request->user(), $request, ['count' => $n, 'kept_current' => false], SecurityLog::NOTICE);
 
-        return response()->json(['message' => 'Signed out everywhere.', 'ended' => $n]);
+        $response = response()->json(['message' => 'Signed out everywhere.', 'ended' => $n]);
+        $response->headers->setCookie(SessionCookie::forget($request));   // this browser too
+
+        return $response;
     }
 }

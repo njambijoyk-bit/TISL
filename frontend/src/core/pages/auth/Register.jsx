@@ -103,7 +103,7 @@ export default function Register() {
         policy_acceptances: policyAcceptances,
         ...(refCode ? { referral_code: refCode } : {}),
       });
-      login(response.user, response.customer, response.token);
+      login(response.user, response.customer, response.token, null, response.csrf ?? null);
       toast.success('Account created successfully!');
       navigate('/');
     } catch (error) {

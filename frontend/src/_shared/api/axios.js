@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { attachSession, dropLegacySession, MAIN_CSRF_KEY } from './sessionKit';
+
+dropLegacySession();
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
@@ -10,13 +13,13 @@ const api = axios.create({
   withXSRFToken: true,
 });
 
-// Request interceptor - Add token to requests
+// The sign-in is a protected cookie the page can not read: send it with every request, echo the CSRF code on changes, refresh the code on a 419.
+// (With cookie sessions switched off on the server the page keeps the code itself under 'token' and sends it as a header: attachSession covers that too.)
+attachSession(api, { csrfKey: MAIN_CSRF_KEY, meUrl: '/auth/me', bearerKey: 'token' });
+
+// Request interceptor - display currency and branch
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
 
     // Display currency chosen in the price toggle (persisted by currencyStore).
     // Backend SetDisplayCurrency middleware reads it; unknown codes fall back to base.
@@ -58,6 +61,7 @@ api.interceptors.response.use(
       const isLoginPage = window.location.pathname === '/login';
       if (!isLoginPage) {
         localStorage.removeItem('token');
+        localStorage.removeItem(MAIN_CSRF_KEY);
         localStorage.removeItem('auth-storage');
         localStorage.removeItem('user');
         window.location.href = '/login';

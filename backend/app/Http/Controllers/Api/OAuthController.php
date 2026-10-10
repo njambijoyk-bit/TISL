@@ -185,7 +185,12 @@ class OAuthController extends Controller
             
             Log::info('Token generated successfully');
 
-            // Redirect to frontend with token
+            // Send the person on to the website. The sign-in code rides in the cookie of this very answer, so it never appears in an address (history, logs, Referer);
+            // with cookie sessions switched off the old way remains.
+            if (\App\Services\Security\SessionCookie::enabled()) {
+                return \App\Services\Security\SessionCookie::attach($this->redirectToFrontend('ok=1'), request(), $token, $user);
+            }
+
             return $this->redirectToFrontend("token={$token}");
 
         } catch (\Exception $e) {
@@ -205,7 +210,7 @@ class OAuthController extends Controller
      */
     private function redirectToFrontend(string $params)
     {
-        $frontendUrl = env('APP_FRONTEND_URL', 'http://localhost:5173');
+        $frontendUrl = rtrim((string) (env('APP_FRONTEND_URL') ?: config('app.frontend_url')), '/');
         return redirect()->away("{$frontendUrl}/auth/callback?{$params}");
     }
 }

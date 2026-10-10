@@ -10,9 +10,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../../../../_shared/api/axios';
 import toast from 'react-hot-toast';
-import { useAuthStore } from '../../../../_shared/store/index';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import { Package, Wrench, Search, X, Save, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -228,8 +227,6 @@ function BoostRow({ row, dirty, onEdit, onSave, onRemove, saving, th, td }) {
 
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function CatalogueBoostPage() {
-  const { token } = useAuthStore();
-  const headers   = { Authorization: `Bearer ${token}` };
 
   const [entityType, setEntityType] = useState('product');
   const [rows,       setRows]       = useState([]);
@@ -250,7 +247,7 @@ export default function CatalogueBoostPage() {
 
   // ── Load categories once ────────────────────────────────────────────────────
   useEffect(() => {
-    axios.get(`${API}/categories`, { headers })
+    axios.get(`${API}/categories`)
       .then(r => setCategories(r.data?.data ?? r.data ?? []))
       .catch(() => {});
   }, []);
@@ -268,7 +265,7 @@ export default function CatalogueBoostPage() {
       };
       Object.keys(params).forEach(k => { if (!params[k]) delete params[k]; });
 
-      const res = await axios.get(`${API}/admin/algorithm/catalogue-boosts`, { headers, params });
+      const res = await axios.get(`${API}/admin/algorithm/catalogue-boosts`, { params });
       const { items, meta: m } = unwrap(res);
       setRows(items);
       setMeta(m);
@@ -279,7 +276,7 @@ export default function CatalogueBoostPage() {
     } finally {
       setLoading(false);
     }
-  }, [entityType, search, catFilter, token]);
+  }, [entityType, search, catFilter]);
 
   useEffect(() => { fetchRows(1); }, [entityType]);
 
@@ -325,9 +322,7 @@ export default function CatalogueBoostPage() {
     try {
       await axios.put(
         `${API}/admin/algorithm/catalogue-boosts/${type}/${id}`,
-        { message: payload.boost_message, badge_type: payload.badge_type, is_active: payload.boost_active ? 1 : 0 },
-        { headers }
-      );
+        { message: payload.boost_message, badge_type: payload.badge_type, is_active: payload.boost_active ? 1 : 0 });
       // Merge into row
       setRows(prev => prev.map(r => r.id === id && r.entity_type === type
         ? { ...r, boost_id: r.boost_id ?? -1, boost_message: payload.boost_message, badge_type: payload.badge_type, boost_active: payload.boost_active }
@@ -347,7 +342,7 @@ export default function CatalogueBoostPage() {
     const key = `${type}:${id}`;
     setSaving(s => new Set(s).add(key));
     try {
-      await axios.delete(`${API}/admin/algorithm/catalogue-boosts/${type}/${id}`, { headers });
+      await axios.delete(`${API}/admin/algorithm/catalogue-boosts/${type}/${id}`);
       setRows(prev => prev.map(r => r.id === id && r.entity_type === type
         ? { ...r, boost_id: null, boost_message: null, badge_type: null, boost_active: null }
         : r
@@ -373,9 +368,7 @@ export default function CatalogueBoostPage() {
       try {
         await axios.put(
           `${API}/admin/algorithm/catalogue-boosts/${type}/${id}`,
-          { message: payload.boost_message, badge_type: payload.badge_type, is_active: payload.boost_active ? 1 : 0 },
-          { headers }
-        );
+          { message: payload.boost_message, badge_type: payload.badge_type, is_active: payload.boost_active ? 1 : 0 });
         setRows(prev => prev.map(r => r.id === id && r.entity_type === type
           ? { ...r, boost_id: r.boost_id ?? -1, boost_message: payload.boost_message, badge_type: payload.badge_type, boost_active: payload.boost_active }
           : r

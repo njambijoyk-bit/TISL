@@ -35,7 +35,7 @@ class SecurityCheckTest extends TestCase
     /** Settings of a well-run live server. */
     private function goodServer(): void
     {
-        config(['app.env' => 'production', 'app.debug' => false, 'app.url' => 'https://api.example.co.ke', 'app.frontend_url' => 'https://example.co.ke', 'cors.allowed_origins' => ['https://example.co.ke'],
+        config(['security.cookie.enabled' => true, 'security.cookie.secure' => null, 'app.env' => 'production', 'app.debug' => false, 'app.url' => 'https://api.targetisl.co.ke', 'app.frontend_url' => 'https://targetisl.co.ke', 'cors.allowed_origins' => ['https://example.co.ke'],
             'session.secure' => true, 'cache.default' => 'file', 'queue.default' => 'database', 'mail.default' => 'smtp', 'security.headers.enabled' => true, 'security.password.min_length' => 10]);
         putenv('TRUSTED_PROXIES=*');
         Schema::create('permissions', function ($t) { $t->id(); $t->string('key')->unique(); });
@@ -103,6 +103,49 @@ class SecurityCheckTest extends TestCase
         $this->assertSame(['warn', 'warn'], [$r['APP_URL (this server) uses https']['status'], $r['FRONTEND_URL (the website) uses https']['status']]);
         config(['app.env' => 'local']);
         $this->assertSame('note', $this->lineStatus('APP_URL'));
+    }
+
+    public function test_the_website_and_the_api_must_share_a_domain_for_the_sign_in_cookie_to_be_sent(): void
+    {
+        $this->assertSame('ok', $this->lineStatus('The website and the API are on one domain'));
+        config(['app.url' => 'https://bluearc-api.up.railway.app']);
+        $line = $this->results()['The website and the API are on one domain (the sign-in cookie needs it)'];
+        $this->assertSame('fail', $line['status']);
+        $this->assertStringContainsString('railway.app', $line['advice']);
+        $this->assertStringContainsString('api.targetisl.co.ke', $line['advice']);
+        config(['app.env' => 'local']);
+        $this->assertSame('note', $this->lineStatus('The website and the API are on one domain'), 'only a note while developing');
+        config(['app.env' => 'production', 'security.cookie.enabled' => false]);
+        $this->assertNull(collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'The website and the API')), 'not asked when the cookie is not used');
+    }
+
+    public function test_addresses_that_are_not_set_do_not_count_as_the_same_domain(): void
+    {
+        config(['app.url' => '', 'app.frontend_url' => '']);
+        $this->assertSame('fail', $this->lineStatus('The website and the API are on one domain'));
+    }
+
+    public function test_a_subdomain_of_the_website_is_the_same_site_and_a_look_alike_is_not(): void
+    {
+        $same = fn (string $api, string $site) => \App\Services\Security\SecurityCheck::registrableDomain($api) === \App\Services\Security\SecurityCheck::registrableDomain($site);
+        $this->assertTrue($same('api.targetisl.co.ke', 'targetisl.co.ke'));
+        $this->assertTrue($same('api.targetisl.co.ke', 'www.targetisl.co.ke'));
+        $this->assertFalse($same('api.targetisl.co.ke', 'otherco.co.ke'), 'co.ke is an ending, not a site');
+        $this->assertFalse($same('targetisl.co.ke.evil.com', 'targetisl.co.ke'));
+        $this->assertTrue($same('localhost', 'localhost'));
+        $this->assertFalse($same('localhost', '127.0.0.1'));
+        $this->assertFalse($same('127.0.0.1', '10.0.0.1'), 'two numeric addresses sharing their last numbers are not one site');
+        $this->assertTrue($same('127.0.0.1', '127.0.0.1'));
+        $this->assertSame('example.com', \App\Services\Security\SecurityCheck::registrableDomain('A.B.Example.com.'));
+        $this->assertSame('', \App\Services\Security\SecurityCheck::registrableDomain(''));
+    }
+
+    public function test_the_cookie_over_plain_http_is_a_warning_on_a_live_server(): void
+    {
+        config(['app.url' => 'http://api.targetisl.co.ke']);
+        $this->assertSame('warn', $this->lineStatus('The sign-in cookie is marked Secure'));
+        config(['security.cookie.secure' => true]);
+        $this->assertSame('ok', $this->lineStatus('The sign-in cookie is marked Secure'));
     }
 
     public function test_localhost_in_the_allowed_websites_is_caught_and_named(): void

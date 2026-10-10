@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import usersAPI from '../api/users';
+import useAuthStore from './authStore';
 
 const useUsersStore = create((set, get) => ({
 
@@ -53,8 +54,7 @@ const useUsersStore = create((set, get) => ({
     })),
 
   fetchUsers: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!useAuthStore.getState().isAuthenticated) return;
     set({ loading: true, error: null });
     try {
       const params = usersAPI.buildParams(get().filters);
@@ -76,8 +76,7 @@ const useUsersStore = create((set, get) => ({
   },
 
   fetchStatistics: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!useAuthStore.getState().isAuthenticated) return;
     try {
       const data = await usersAPI.getStatistics();
       set({ statistics: data });
@@ -85,8 +84,7 @@ const useUsersStore = create((set, get) => ({
   },
 
   fetchDepartments: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!useAuthStore.getState().isAuthenticated) return;
     try {
       const data = await usersAPI.getDepartments();
       set({ departments: data.data || [] });
@@ -94,8 +92,7 @@ const useUsersStore = create((set, get) => ({
   },
 
   fetchRoles: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!useAuthStore.getState().isAuthenticated) return;
     try {
       set({ roles: await usersAPI.getRoles() });
     } catch { /* the screens still work without the list */ }

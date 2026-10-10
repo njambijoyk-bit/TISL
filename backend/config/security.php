@@ -58,6 +58,15 @@ return [
         'hsts_seconds' => 31536000,
     ],
 
+    // The sign-in code lives in a cookie scripts can not read (see Services/Security/SessionCookie). The website and the API must be on the same domain for a browser to send it
+    // (the website at targetisl.co.ke, the API at api.targetisl.co.ke). SECURITY_COOKIE_SESSIONS=false goes back to handing the code to the page, which then keeps it itself.
+    'cookie' => [
+        'enabled' => (bool) env('SECURITY_COOKIE_SESSIONS', true),
+        'secure' => env('SECURITY_COOKIE_SECURE') === null ? null : filter_var(env('SECURITY_COOKIE_SECURE'), FILTER_VALIDATE_BOOLEAN),   // null: https whenever the request or APP_URL is
+        'same_site' => env('SECURITY_COOKIE_SAMESITE', 'lax'),
+        'names' => ['user' => 'tisl_session', 'applicant' => 'tisl_applicant'],
+    ],
+
     // Email a person when a kind of browser they have not signed in from before signs in (with a button that signs everyone out). Off with SECURITY_NEW_SIGN_IN_EMAIL=false.
     'new_sign_in_email' => (bool) env('SECURITY_NEW_SIGN_IN_EMAIL', true),
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import axios from '../../../_shared/api/axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../../_shared/store/index';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -460,10 +460,9 @@ function AlgoDevNotesModal({ onClose }) {
 
 // ── Main panel ──────────────────────────────────────────────────────────────────
 export default function CustomerAlgorithmPanel() {
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   const isSuperAdmin = hasPermission(user, 'algorithm.run');   // may run the scoring
-  const headers = { Authorization: `Bearer ${token}` };
 
   // ── Tab ─────────────────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('leaderboard');
@@ -509,7 +508,7 @@ export default function CustomerAlgorithmPanel() {
     setLoadingScores(true);
     try {
       const { data } = await axios.get(`${API}/admin/algorithm/scores`, {
-        headers, params: { page, per_page: 30 },
+        params: { page, per_page: 30 },
       });
       setScores(data.data ?? []);
       setScoresMeta(data);
@@ -519,12 +518,12 @@ export default function CustomerAlgorithmPanel() {
     } finally {
       setLoadingScores(false);
     }
-  }, [token]);
+  }, []);
 
   const loadConfig = useCallback(async () => {
     setLoadingConfig(true);
     try {
-      const { data } = await axios.get(`${API}/admin/algorithm/config`, { headers });
+      const { data } = await axios.get(`${API}/admin/algorithm/config`);
       setConfig({
         weights:        data.weights        ?? defaultWeights(),
         signal_toggles: data.signal_toggles ?? defaultToggles(),
@@ -535,7 +534,7 @@ export default function CustomerAlgorithmPanel() {
     } finally {
       setLoadingConfig(false);
     }
-  }, [token]);
+  }, []);
 
   const loadRankedProducts = useCallback(async (customerId, page = 1, overrides = {}) => {
     setLoadingRanked(true);
@@ -543,7 +542,6 @@ export default function CustomerAlgorithmPanel() {
       const { data } = await axios.get(
         `${API}/admin/algorithm/customers/${customerId}/ranked-products`,
         {
-          headers,
           params: {
             entity_type: overrides.entity_type  !== undefined ? overrides.entity_type  : productEntityType,
             search:      overrides.search       !== undefined ? overrides.search       : productSearch,
@@ -560,7 +558,7 @@ export default function CustomerAlgorithmPanel() {
     } finally {
       setLoadingRanked(false);
     }
-  }, [token, productEntityType, productSearch]);
+  }, [productEntityType, productSearch]);
 
   useEffect(() => {
     loadScores(1);
@@ -579,7 +577,7 @@ export default function CustomerAlgorithmPanel() {
     setRunning(true);
     setRunResult(null);
     try {
-      const { data } = await axios.post(`${API}/admin/algorithm/run`, {}, { headers });
+      const { data } = await axios.post(`${API}/admin/algorithm/run`, {});
       setRunResult(data);
       toast.success(`Scored ${data.scored} customers in ${data.duration_s}s`);
       await loadScores(1);
@@ -594,7 +592,7 @@ export default function CustomerAlgorithmPanel() {
   const rescoreCustomer = async (customerId) => {
     setRescoringCustomer(true);
     try {
-      await axios.post(`${API}/admin/algorithm/run`, { customer_id: customerId }, { headers });
+      await axios.post(`${API}/admin/algorithm/run`, { customer_id: customerId });
       toast.success('Customer re-scored.');
       await loadScores(scoresPage);
       await loadRankedProducts(customerId, rankedPage);
@@ -612,7 +610,7 @@ export default function CustomerAlgorithmPanel() {
       await axios.put(`${API}/admin/algorithm/config`, {
         weights:        config.weights,
         signal_toggles: config.signal_toggles,
-      }, { headers });
+      });
       toast.success('Algorithm config saved.');
     } catch {
       toast.error('Failed to save config.');
@@ -633,10 +631,10 @@ export default function CustomerAlgorithmPanel() {
   const saveRule = async (form) => {
     try {
       if (form.id) {
-        await axios.put(`${API}/admin/algorithm/segment-rules/${form.id}`, form, { headers });
+        await axios.put(`${API}/admin/algorithm/segment-rules/${form.id}`, form);
         toast.success('Rule updated.');
       } else {
-        await axios.post(`${API}/admin/algorithm/segment-rules`, form, { headers });
+        await axios.post(`${API}/admin/algorithm/segment-rules`, form);
         toast.success('Rule created.');
       }
       setRuleModal(null);
@@ -649,7 +647,7 @@ export default function CustomerAlgorithmPanel() {
   const deleteRule = async (id) => {
     setDeletingRule(id);
     try {
-      await axios.delete(`${API}/admin/algorithm/segment-rules/${id}`, { headers });
+      await axios.delete(`${API}/admin/algorithm/segment-rules/${id}`);
       toast.success('Rule deleted.');
       await loadConfig();
     } catch {
@@ -692,9 +690,7 @@ export default function CustomerAlgorithmPanel() {
     try {
       await axios.post(
         `${API}/admin/algorithm/customers/${selectedCustomer.customer_id}/pins`,
-        { entity_type: entityType, entity_id: entityId },
-        { headers }
-      );
+        { entity_type: entityType, entity_id: entityId });
       setRankedProducts(prev => prev.map(p =>
         p.id === entityId && p.entity_type === entityType ? { ...p, is_pinned: true } : p
       ));
@@ -712,9 +708,7 @@ export default function CustomerAlgorithmPanel() {
     setPinning(s => new Set(s).add(key));
     try {
       await axios.delete(
-        `${API}/admin/algorithm/customers/${selectedCustomer.customer_id}/pins/${entityType}/${entityId}`,
-        { headers }
-      );
+        `${API}/admin/algorithm/customers/${selectedCustomer.customer_id}/pins/${entityType}/${entityId}`);
       setRankedProducts(prev => prev.map(p =>
         p.id === entityId && p.entity_type === entityType ? { ...p, is_pinned: false, pin_id: null } : p
       ));

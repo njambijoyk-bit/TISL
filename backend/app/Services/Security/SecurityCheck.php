@@ -39,6 +39,16 @@ final class SecurityCheck
             $https = str_starts_with((string) config($key), 'https://');
             $add($https ? self::OK : ($production ? self::WARN : self::NOTE), "{$name} uses https", $https ? null : "{$name} is ".(config($key) ?: 'not set').'. Use the https address on the live server: links in emails and signed links depend on it.');
         }
+        // the sign-in cookie: a browser sends it only to the API's own address, and only from a website on the same domain
+        if (SessionCookie::enabled()) {
+            $api = self::registrableDomain((string) parse_url((string) config('app.url'), PHP_URL_HOST));
+            $site = self::registrableDomain((string) parse_url((string) config('app.frontend_url'), PHP_URL_HOST));
+            $same = $api !== '' && $api === $site;
+            $add($same ? self::OK : ($production ? self::FAIL : self::NOTE), 'The website and the API are on one domain (the sign-in cookie needs it)',
+                $same ? null : "The website is on \"{$site}\" and the API on \"{$api}\". A browser will not send the sign-in cookie between them, so nobody could stay signed in. Put the API on a subdomain of the website's domain (for example api.targetisl.co.ke), or set SECURITY_COOKIE_SESSIONS=false to hand the sign-in code to the page instead (less safe).");
+            $add(config('security.cookie.secure') || str_starts_with((string) config('app.url'), 'https://') ? self::OK : ($production ? self::WARN : self::NOTE), 'The sign-in cookie is marked Secure',
+                config('security.cookie.secure') || str_starts_with((string) config('app.url'), 'https://') ? null : 'APP_URL is not https and SECURITY_COOKIE_SECURE is not set, so the cookie is sent over plain http too.');
+        }
         $local = array_values(array_filter((array) config('cors.allowed_origins', []), fn ($o) => preg_match('#//(localhost|127\.0\.0\.1)#', (string) $o)));
         $add(! $local ? self::OK : ($production ? self::WARN : self::NOTE), 'Only real websites may call the API (CORS)', ! $local ? null : 'config/cors.php still lists '.implode(', ', $local).'. Remove them on the live server.');
         $add(config('session.secure') ? self::OK : ($production ? self::WARN : self::NOTE), 'Cookies are sent over https only (SESSION_SECURE_COOKIE)', config('session.secure') ? null : 'Set SESSION_SECURE_COOKIE=true once the site is on https.');
@@ -75,6 +85,19 @@ final class SecurityCheck
         }
 
         return $out;
+    }
+
+    /** "api.targetisl.co.ke" -> "targetisl.co.ke": the part of an address a browser treats as one site. (A short list of the two-part endings used in East Africa and the usual others.) */
+    public static function registrableDomain(string $host): string
+    {
+        $host = strtolower(trim($host, '.'));
+        if ($host === '' || filter_var($host, FILTER_VALIDATE_IP)) {
+            return $host;   // a numeric address stands for itself
+        }
+        $labels = explode('.', $host);
+        $keep = in_array(implode('.', array_slice($labels, -2)), ['co.ke', 'or.ke', 'ac.ke', 'go.ke', 'ne.ke', 'sc.ke', 'me.ke', 'co.tz', 'co.ug', 'co.rw', 'co.za', 'co.uk', 'com.au', 'com.ng', 'com.gh', 'co.in'], true) ? 3 : 2;
+
+        return implode('.', array_slice($labels, -$keep));
     }
 
     /**

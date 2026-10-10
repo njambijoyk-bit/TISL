@@ -13,7 +13,8 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     const handleCallback = async () => {
-      const token   = searchParams.get('token');
+      const token   = searchParams.get('token');   // only from a server with cookie sessions switched off
+      const ok      = searchParams.get('ok');      // the sign-in is already in a protected cookie that came with the redirect
       const error   = searchParams.get('error');
       const message = searchParams.get('message');
 
@@ -23,15 +24,15 @@ export default function OAuthCallback() {
         return;
       }
 
-      if (!token) {
+      if (!token && !ok) {
         toast.error('Invalid OAuth callback');
         navigate('/login');
         return;
       }
 
       try {
-        // Store token before calling /me so the request is authenticated
-        localStorage.setItem('token', token);
+        // With a cookie there is nothing to store: /me is answered for the cookie. Without one (cookie sessions off) keep the code so the request is authenticated.
+        if (token) localStorage.setItem('token', token);
 
         const response = await authAPI.me();
         // /me returns { user, customer }
@@ -42,8 +43,8 @@ export default function OAuthCallback() {
           throw new Error('Invalid user data received');
         }
 
-        // Must match store signature: login(user, customer, token)
-        login(user, customer, token, response.access ?? null);
+        // Must match store signature: login(user, customer, token, access, csrf)
+        login(user, customer, token, response.access ?? null, response.csrf ?? null);
 
         toast.success(`Welcome back, ${user.name}!`);
 

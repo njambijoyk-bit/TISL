@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import referralsAPI from '../api/referrals';
+import useAuthStore from './authStore';
 
 const useReferralsStore = create((set, get) => ({
   // State
@@ -49,8 +50,7 @@ const useReferralsStore = create((set, get) => ({
 
   // ── Fetch ────────────────────────────────────────────
   fetchCodes: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!useAuthStore.getState().isAuthenticated) return;
     set({ loading: true, error: null });
     try {
       const params = referralsAPI.buildParams(get().filters);
@@ -72,8 +72,7 @@ const useReferralsStore = create((set, get) => ({
   },
 
   fetchStatistics: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    if (!useAuthStore.getState().isAuthenticated) return;
     try {
       const data = await referralsAPI.getStatistics();
       set({ statistics: data });

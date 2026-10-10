@@ -22,6 +22,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 use App\Rules\StrongPassword;
 use App\Services\Security\SecurityLog;
+use App\Services\Security\SessionCookie;
 use App\Services\Security\SignInGuard;
 use App\Services\Security\Sessions;
 use Laravel\Sanctum\PersonalAccessToken;
@@ -154,14 +155,13 @@ class AuthController extends Controller
             DB::commit();
 
             // NEW: Enhanced response with referral data
-            return response()->json([
+            return SessionCookie::respond($request, [
                 'message' => 'Registration successful',
                 'user' => $user->load('customer'),
                 'customer' => $customer->load('myReferralCode'), // NEW: Include referral code
-                'token' => $token,
                 'referral_code' => $personalCode->code, // NEW: Easy access to code
                 'share_url' => $personalCode->share_url, // NEW: Share URL
-            ], 201);
+            ], 201, $token, $user);
 
         } catch (\Exception $e) {
             DB::rollBack();
@@ -349,13 +349,12 @@ class AuthController extends Controller
             $customer = $user->customer->load('myReferralCode');
         }
 
-        return response()->json([
+        return SessionCookie::respond($request, [
             'message' => 'Login successful',
             'user' => $user->load('customer'),
             'access' => $user->accessSummary(),
             'customer' => $customer, // NEW: Separate customer data
-            'token' => $token
-        ], 200);
+        ], 200, $token, $user);
     }
 
     /**
@@ -377,9 +376,12 @@ class AuthController extends Controller
             // nothing to close
         }
 
-        return response()->json([
+        $response = response()->json([
             'message' => 'Logout successful'
         ], 200);
+        $response->headers->setCookie(SessionCookie::forget($request));   // the browser drops the sign-in cookie
+
+        return $response;
     }
 
     /**
@@ -400,6 +402,7 @@ class AuthController extends Controller
             'user' => $user->load('customer'),
             'access' => $user->accessSummary(),
             'customer' => $customer, // NEW: Separate customer data
+            'csrf' => SessionCookie::csrfOf($request),   // for a page signed in by cookie: the code its changes must carry (null for any other client)
         ], 200);
     }
 
@@ -618,12 +621,12 @@ class AuthController extends Controller
             $customer = $user->customer->load('myReferralCode');
         }
 
-        return response()->json([
+        return SessionCookie::respond($request, [
             'message'  => 'Password changed. Welcome back.',
             'user'     => $user->load('customer'),
+            'access'   => $user->accessSummary(),
             'customer' => $customer,
-            'token'    => $token,
-        ], 200);
+        ], 200, $token, $user);
     }
 
     /**
