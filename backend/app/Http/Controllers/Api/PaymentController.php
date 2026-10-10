@@ -78,7 +78,15 @@ class PaymentController extends Controller
         }
         $order = \App\Models\Books\Voucher::find($a->voucher_id);
 
-        return response()->json(['id' => $a->id, 'status' => $a->status, 'failure_reason' => $a->failure_reason, 'receipt' => $a->receipt_number, 'order_number' => $order?->voucher_number,
-            'amount' => (float) $a->amount, 'gateway' => $a->gateway]);
+        $res = ['id' => $a->id, 'status' => $a->status, 'failure_reason' => $a->failure_reason, 'receipt' => $a->receipt_number, 'order_number' => $order?->voucher_number,
+            'amount' => (float) $a->amount, 'gateway' => $a->gateway];
+        $issuer = app(\App\Services\Events\TicketIssuer::class);
+        if ($order && $issuer->isEventOrder($order)) {   // a ticket purchase: say how the tickets stand
+            $event = \App\Models\Events\Event::find($order->meta['event']['id'] ?? 0);
+            $res['event'] = ['title' => $event?->title, 'slug' => $event?->slug, 'problem' => $order->meta['event']['problem'] ?? null,
+                'tickets' => $issuer->ticketsOf($order)->map(fn ($t) => ['reference' => $t->reference, 'state' => $t->state, 'holder_name' => $t->holder_name])->values()->all()];
+        }
+
+        return response()->json($res);
     }
 }

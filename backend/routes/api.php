@@ -246,6 +246,15 @@ Route::prefix('checkout')->group(function () {
     Route::post('/place', [CheckoutController::class, 'place']);
 });
 
+// Events — open to everyone, no sign-in needed to buy; a signed-in customer's token (if sent) links the purchase to them
+Route::prefix('events')->middleware('module:events')->group(function () {
+    $c = \App\Http\Controllers\Api\EventPublicController::class;
+    Route::get('/',                [$c, 'index']);
+    Route::get('/{slug}',          [$c, 'show'])->middleware('throttle:120,1');
+    Route::post('/{slug}/quote',   [$c, 'quote'])->middleware('throttle:60,1');
+    Route::post('/{slug}/buy',     [$c, 'buy'])->middleware('throttle:20,1');
+});
+
 // "Tell me when it is back" — open to guests; throttled; the link in the email stops the alerts
 Route::prefix('stock-watches')->group(function () {
     Route::post('/', [\App\Http\Controllers\Api\StockWatchController::class, 'store'])->middleware('throttle:10,1');

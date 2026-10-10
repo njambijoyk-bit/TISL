@@ -51,6 +51,53 @@ final class EventPresenter
         ];
     }
 
+    /** @return array<string, mixed> one card of the public events list */
+    public function publicRow(Event $e): array
+    {
+        $e->loadMissing(['sessions', 'ticketTypes']);
+        $live = $e->sessions->where('is_cancelled', false)->filter(fn ($s) => ($s->ends_at ?? $s->starts_at)->isFuture());
+        $next = $live->first() ?? $e->sessions->where('is_cancelled', false)->last();
+        $types = $e->ticketTypes->where('is_active', true);
+        $prices = $types->map(fn ($t) => (float) $t->price);
+        $soldOut = $types->isNotEmpty() && $types->every(fn ($t) => $this->holds->remaining($t) === 0);
+
+        return ['id' => $e->id, 'slug' => $e->slug, 'title' => $e->title, 'summary' => $e->summary, 'kind' => $e->kind, 'venue_name' => $e->venue_name, 'organiser' => $e->organiser,
+            'image_url' => $e->main_image ? asset($e->main_image) : null, 'status' => $e->status, 'next_at' => $next?->starts_at?->format('Y-m-d\TH:i'), 'ends_at' => $e->endsAt()?->format('Y-m-d\TH:i'),
+            'dates' => $live->count(), 'price_from' => $prices->isEmpty() ? null : $prices->min(), 'is_free' => $prices->isNotEmpty() && $prices->max() <= 0, 'sold_out' => $soldOut,
+            'currency' => $this->currency($e)];
+    }
+
+    /** @return array<string, mixed> the event page: what a buyer needs, and never the join link (that is for ticket holders) */
+    public function publicShow(Event $e): array
+    {
+        $e->loadMissing(['sessions', 'ticketTypes']);
+        $bySession = $this->holds->sessionsByType($e->id);
+        $taxed = (bool) ($this->editor->salesLedgerId($e) && \App\Models\Books\Ledger::whereKey($this->editor->salesLedgerId($e))->where('tax_nature', 'taxable')->exists());
+        $onSale = $e->isOnSale();
+
+        return $this->publicRow($e) + [
+            'description' => $e->description, 'venue_address' => $e->venue_address, 'map_url' => $e->map_url, 'video' => ServiceVideo::describe($e->video_url),
+            'refund_until' => $e->refund_until?->format('Y-m-d\TH:i'), 'refund_policy' => $e->refund_policy, 'allow_name_change' => (bool) $e->allow_name_change, 'max_per_order' => (int) $e->max_per_order,
+            'over' => $e->isOver(), 'can_buy' => $onSale, 'tax_added' => $taxed, 'has_online_link' => in_array($e->kind, ['online', 'hybrid'], true) && trim((string) $e->online_url) !== '',
+            'sessions' => $e->sessions->map(fn ($s) => ['id' => $s->id, 'label' => $s->label, 'starts_at' => $s->starts_at->format('Y-m-d\TH:i'), 'ends_at' => $s->ends_at?->format('Y-m-d\TH:i'), 'is_cancelled' => (bool) $s->is_cancelled])->values()->all(),
+            'ticket_types' => $e->ticketTypes->where('is_active', true)->map(function ($t) use ($e, $bySession, $onSale) {
+                $left = $this->holds->remaining($t);
+                $state = ! $onSale ? 'off' : ($left === 0 ? 'sold_out' : ($t->sale_starts_at && $t->sale_starts_at->isFuture() ? 'not_yet' : ($t->sale_ends_at && $t->sale_ends_at->isPast() ? 'ended' : 'on_sale')));
+
+                return ['id' => $t->id, 'name' => $t->name, 'description' => $t->description, 'price' => (float) $t->price, 'is_free' => $t->isFree(), 'state' => $state,
+                    'min' => (int) $t->min_per_order, 'max' => (int) min($t->max_per_order ?? PHP_INT_MAX, (int) $e->max_per_order, $left ?? PHP_INT_MAX, 100),
+                    'left' => $left !== null && $left <= 10 ? $left : null, 'on_sale_from' => $t->sale_starts_at?->format('Y-m-d\TH:i'), 'session_ids' => $bySession[$t->id] ?? []];
+            })->values()->all(),
+        ];
+    }
+
+    private function currency(Event $e): ?array
+    {
+        $c = $e->currency_id ? \App\Models\Currency::find($e->currency_id) : null;
+
+        return $c ? ['code' => $c->code, 'symbol' => $c->symbol ?? $c->code] : null;
+    }
+
     /** @return array<string, mixed> */
     private function base(Event $e): array
     {

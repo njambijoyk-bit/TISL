@@ -24,6 +24,7 @@ Schedule::job(new \App\Jobs\QueueHeartbeat)->everyMinute()->name('health-queue-b
 Schedule::command('reminders:send')->hourlyAt(17)->withoutOverlapping();   // cart reminders and price-drop alerts (each off until the company switches it on)
 Schedule::command('notifications:prune')->dailyAt('03:30')->withoutOverlapping();   // delivery-log text older than 12 months is blanked
 Schedule::call(fn () => app(\App\Services\Stock\BackInStock::class)->expireOld())->dailyAt('03:40')->name('stock-alerts-expire');   // "tell me when it is back" requests nobody acted on for a year
+Schedule::command('events:release-holds')->everyMinute()->withoutOverlapping();   // ticket seats held for someone who did not pay go back on sale
 Schedule::command('stock:expire')->dailyAt('00:10')->withoutOverlapping();   // expired batches, auto write-offs, expiry warnings
 
 // ── Data backups ────────────────────────────────────────────────────────────

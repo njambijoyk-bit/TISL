@@ -239,6 +239,15 @@ final class TicketHolds
         return $expired->pluck('order_id')->filter()->unique()->values()->map(fn ($i) => (int) $i)->all();
     }
 
+    /** The buyer did not go through with it (the payment could not even be started): the held seats go back at once. @param iterable<EventTicket> $tickets */
+    public function release(iterable $tickets): void
+    {
+        $ids = collect($tickets)->pluck('id')->all();
+        if ($ids) {
+            EventTicket::whereIn('id', $ids)->where('state', EventTicket::HELD)->update(['state' => EventTicket::RELEASED, 'held_until' => null]);
+        }
+    }
+
     /** A paid ticket is cancelled (refunded, or staff took it back): the seat goes back and the code stops working. */
     public function cancel(EventTicket $ticket, ?string $reason = null): void
     {

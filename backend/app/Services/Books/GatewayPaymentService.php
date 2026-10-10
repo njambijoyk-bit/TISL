@@ -242,6 +242,20 @@ class GatewayPaymentService
         return $attempt->fresh();
     }
 
+    /** Tickets are issued once the money is in. A problem there must never undo a payment that has been received, so it is logged and noted on the attempt for staff. */
+    private function issueTickets(Voucher $order, Voucher $sale, PaymentAttempt $attempt): void
+    {
+        try {
+            $issuer = app(\App\Services\Events\TicketIssuer::class);
+            if ($issuer->isEventOrder($order) && $issuer->orderPaid($order, $sale)['short']) {
+                $attempt->update(['notes' => trim(($attempt->notes ? $attempt->notes . ' · ' : '') . 'The seats were gone when this payment arrived: a refund request was opened under Events.')]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('Gateway: tickets could not be issued after payment', ['attempt' => $attempt->id, 'order' => $order->id, 'error' => $e->getMessage()]);
+            $attempt->update(['notes' => trim(($attempt->notes ? $attempt->notes . ' · ' : '') . "The payment is booked but the tickets could not be issued ({$e->getMessage()}): please check the event's tickets.")]);
+        }
+    }
+
     /** Money is in: the order becomes a Cash Sale, or the payment is a Receipt against the invoice. */
     private function settle(PaymentAttempt $attempt): void
     {
@@ -266,6 +280,7 @@ class GatewayPaymentService
         }
         $sale = app(CheckoutService::class)->settle($voucher, $tenders, null);
         $attempt->update(['settled_voucher_id' => $sale->id]);
+        $this->issueTickets($voucher, $sale, $attempt);   // an order for event tickets: the tickets become valid now
         if ($paired) {
             // The money has arrived and the first order is settled: a problem with the second must not undo that (the whole callback would roll back and the payment be lost). Staff finish it by hand.
             try {
