@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Eye, EyeOff, ImagePlus, Save, Trash2 } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, ImagePlus, Save, ScanLine, Trash2 } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import Tabs from '../../../core/components/admin/ui/Tabs';
 import { CheckboxRow, Field, FormGrid, FormStack, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
@@ -110,6 +110,7 @@ export default function EventForm() {
             <h1 style={{ margin: '0 0 6px', fontSize: '1.5rem', fontWeight: 800, color: colors.primary, letterSpacing: '-0.02em' }}>{id ? (event.title || 'Event') : 'New event'}</h1>
             {id && <StatusBadge status={status} />}
           </div>
+          {id && status !== 'draft' && <Link to={`/admin/events/${id}/door`} style={{ ...btnGhost, textDecoration: 'none' }}><ScanLine size={14} /> Door</Link>}
           {canEdit && !readOnly && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {id && status === 'draft' && <button type="button" style={{ ...btnGhost, opacity: dirty || busy ? 0.55 : 1 }} disabled={dirty || busy || meta.problems.length > 0} title={dirty ? 'Save your changes first' : undefined} onClick={() => publish(true)}><Eye size={14} /> Put on sale</button>}

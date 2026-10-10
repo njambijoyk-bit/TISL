@@ -295,6 +295,7 @@ const QrRedirect = lazy(() => import('./core/pages/customer/QrRedirect'));
 const EventsPage = lazy(() => import('./events/pages/public/EventsPage'));
 const EventPage = lazy(() => import('./events/pages/public/EventPage'));
 const AdminEvents = lazy(() => import('./events/pages/admin/EventsList'));
+const AdminEventDoor = lazy(() => import('./events/pages/admin/EventDoor'));
 const AdminEventForm = lazy(() => import('./events/pages/admin/EventForm'));
 const PaymentSettings = lazy(() => import('./core/pages/admin/settings/PaymentSettings'));
 const SecuritySettings     = lazy(() => import('./core/pages/admin/settings/SecuritySettings'));
@@ -1118,6 +1119,7 @@ function App() {
               />
               <Route path="/admin/codes" element={<ProtectedRoute requireAdmin permission="codes.view"><Codes /></ProtectedRoute>} />
               <Route path="/admin/events" element={<ProtectedRoute requireAdmin permission="events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEvents /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/events/:id/door" element={<ProtectedRoute requireAdmin permission="events.checkin,events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEventDoor /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/events/new" element={<ProtectedRoute requireAdmin permission="events.edit"><ModuleRoute module="events" redirectTo="/admin"><AdminEventForm /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/events/:id" element={<ProtectedRoute requireAdmin permission="events.view"><ModuleRoute module="events" redirectTo="/admin"><AdminEventForm /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/price-lists" element={<ProtectedRoute requireAdmin permission="catalogue.pricelists"><ModuleRoute module="ecommerce" redirectTo="/admin"><PriceLists /></ModuleRoute></ProtectedRoute>} />

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CalendarDays, Plus, Search, Pencil, Eye, EyeOff, Ban, Trash2 } from 'lucide-react';
+import { CalendarDays, Plus, Search, Pencil, Eye, EyeOff, Ban, Trash2, ScanLine } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { Toolbar } from '../../../core/components/admin/ui/HubHeader';
 import Tabs from '../../../core/components/admin/ui/Tabs';
@@ -27,7 +27,7 @@ export default function EventsList() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
-  const can = { edit: hasPermission(user, 'events.edit'), del: hasPermission(user, 'events.delete') };
+  const can = { edit: hasPermission(user, 'events.edit'), del: hasPermission(user, 'events.delete'), door: hasPermission(user, 'events.checkin') || hasPermission(user, 'events.view') };
   const tab = TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'events';
   const { adminCurrencies, fetchAdminCurrencies } = useCurrencyStore();
   const [q, setQ] = useState('');
@@ -86,6 +86,7 @@ export default function EventsList() {
     { key: 'revenue', label: 'Takings', align: 'right', render: (r) => (r.revenue ? money(r.revenue, r.currency_id) : '—') },
     { key: 'act', label: '', align: 'right', render: (r) => (
       <span style={{ display: 'inline-flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        {can.door && r.status !== 'draft' && <button type="button" style={small} onClick={() => navigate(`/admin/events/${r.id}/door`)} aria-label={`Door of ${r.title}`}><ScanLine size={12} /> Door</button>}
         {can.edit && <button type="button" style={small} onClick={() => navigate(`/admin/events/${r.id}`)} aria-label={`Edit ${r.title}`}><Pencil size={12} /> Edit</button>}
         {can.edit && r.status === 'draft' && <button type="button" style={small} onClick={() => setAsk({ kind: 'publish', row: r })}><Eye size={12} /> Put on sale</button>}
         {can.edit && r.status === 'published' && !r.over && <button type="button" style={small} onClick={() => setAsk({ kind: 'unpublish', row: r })}><EyeOff size={12} /> Take down</button>}
