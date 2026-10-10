@@ -22,7 +22,7 @@ final class Code128
     private const SWITCH = ['A' => 101, 'B' => 100, 'C' => 99];   // the symbol that moves to this set
 
     /** @param string $text ASCII 0-127, plus FNC1 as "\xF1" */
-    public static function encode(string $text, bool $showText = true): LinearCode
+    public static function encode(string $text, bool $showText = true, ?string $caption = null): LinearCode
     {
         if ($text === '') {
             throw new CodeException('Code 128 needs something to hold.');
@@ -38,7 +38,7 @@ final class Code128
         $modules = 11 * (count($values)) + 13;
         $shown = str_replace(self::FNC1, '', $text);
 
-        return LinearCode::fromWidths($runs, 'code128', $text, $showText ? [['text' => preg_replace('/[^\x20-\x7e]/', '', $shown), 'from' => 0, 'to' => $modules]] : [], 10, 10);
+        return LinearCode::fromWidths($runs, 'code128', $text, $showText ? [['text' => $caption ?? preg_replace('/[^\x20-\x7e]/', '', $shown), 'from' => 0, 'to' => $modules]] : [], 10, 10);
     }
 
     /**

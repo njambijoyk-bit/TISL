@@ -2,8 +2,12 @@
 
 namespace App\Services\Codes;
 
+use App\Services\Codes\DataMatrix\DmEncoder;
 use App\Services\Codes\Linear\Code128;
 use App\Services\Codes\Linear\Code39;
+use App\Services\Codes\Linear\Code93;
+use App\Services\Codes\Linear\Codabar;
+use App\Services\Codes\Linear\Gs1128;
 use App\Services\Codes\Linear\Ean;
 use App\Services\Codes\Linear\Itf;
 use App\Services\Codes\Linear\LinearCode;
@@ -28,10 +32,15 @@ final class CodeFactory
         'code39' => ['Code 39', false],
         'itf' => ['Interleaved 2 of 5', false],
         'itf14' => ['ITF-14', false],
+        'code93' => ['Code 93', false],
+        'codabar' => ['Codabar', false],
+        'gs1128' => ['GS1-128', false],
+        'datamatrix' => ['Data Matrix', true],
+        'gs1datamatrix' => ['GS1 Data Matrix', true],
     ];
 
     /**
-     * @param  array{level?: string, minVersion?: int, check?: bool, text?: bool}  $o  level: QR error correction (L M Q H); check: add a check character (Code 39, ITF); text: print the digits under a barcode
+     * @param  array{level?: string, minVersion?: int, check?: bool, text?: bool, shape?: string}  $o  level: QR error correction (L M Q H); check: add a check character (Code 39, ITF); text: print the digits under a barcode
      */
     public static function make(string $kind, string $data, array $o = []): GeneratedCode
     {
@@ -46,6 +55,11 @@ final class CodeFactory
             'code39' => Code39::encode($data, (bool) ($o['check'] ?? false), $text),
             'itf' => Itf::encode($data, (bool) ($o['check'] ?? false), $text),
             'itf14' => Itf::itf14($data, $text),
+            'code93' => Code93::encode($data, $text),
+            'codabar' => Codabar::encode($data, $text),
+            'gs1128' => Gs1128::encode($data, $text),
+            'datamatrix' => DmEncoder::encode($data, $o['shape'] ?? 'square'),
+            'gs1datamatrix' => DmEncoder::encode(Gs1128::elements($data)['data'], $o['shape'] ?? 'square', true),
             default => throw new CodeException("There is no \"{$kind}\" kind of code."),
         };
 

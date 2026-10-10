@@ -11,4 +11,12 @@ php tests/Tools/crosscheck/qr_make.php /tmp/qrout        # every QR version x le
 php tests/Tools/crosscheck/linear_make.php /tmp/linout        # Code 128 (250 random strings), EAN-13/8, UPC-A/E (every check digit), Code 39, ITF
 /tmp/v/bin/python tests/Tools/crosscheck/read_linear.py /tmp/linout
 ```
-Each `x.png` has an `x.txt` with what it should read as. Run it after any change to an encoder. Last run: 171 of 171 QR codes and 255 of 255 barcodes read correctly.
+```
+php tests/Tools/crosscheck/linear2_make.php /tmp/lin2out        # Code 93 (full ASCII), Codabar, GS1-128
+/tmp/v/bin/python tests/Tools/crosscheck/read_linear2.py /tmp/lin2out
+php tests/Tools/crosscheck/datamatrix_make.php /tmp/dmout       # Data Matrix at all 30 sizes, full of letters and of digits, plus binary
+/tmp/v/bin/python tests/Tools/crosscheck/read_bytes.py /tmp/dmout
+```
+Each `x.png` has an `x.txt` with what it should read as. Run it after any change to an encoder. Last run: 171 of 171 QR codes, 255 of 255 barcodes, 98 of 100 more (the two others are test-data quirks, see below) and 68 of 68 Data Matrix symbols read correctly.
+
+Known test-data quirks: the decoder prints control characters by name (so the control-character Code 93 reads as `<SOH>…`: it is correct), and refuses a one-digit Codabar (`A0B`).

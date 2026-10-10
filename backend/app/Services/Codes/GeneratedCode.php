@@ -21,13 +21,19 @@ final class GeneratedCode
     /** @param array<string, mixed> $o see SvgRenderer::render / linear */
     public function svg(array $o = []): string
     {
-        return $this->code instanceof LinearCode ? SvgRenderer::linear($this->code, $o) : SvgRenderer::render($this->code, $o);
+        return $this->code instanceof LinearCode ? SvgRenderer::linear($this->code, $o) : SvgRenderer::render($this->code, $o + ['quiet' => $this->quiet()]);
     }
 
     /** @param array<string, mixed> $o see PngRenderer::render / linear */
     public function png(array $o = []): string
     {
-        return $this->code instanceof LinearCode ? PngRenderer::linear($this->code, $o) : PngRenderer::render($this->code, $o);
+        return $this->code instanceof LinearCode ? PngRenderer::linear($this->code, $o) : PngRenderer::render($this->code, $o + ['quiet' => $this->quiet()]);
+    }
+
+    /** the blank border in squares: QR needs 4, a Data Matrix 2 */
+    private function quiet(): int
+    {
+        return in_array($this->kind, ['datamatrix', 'gs1datamatrix'], true) ? 2 : 4;
     }
 
     /** What the code holds, as it was encoded (check digit included). */
