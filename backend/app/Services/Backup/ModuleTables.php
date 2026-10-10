@@ -79,7 +79,7 @@ final class ModuleTables
             'tickets', 'ticket_replies',
             'content_pages', 'content_sections', 'component_layouts',
             'policies', 'policy_acceptances', 'policy_change_logs',
-            'notifications', 'notification_settings', 'notification_setting_versions', 'notification_setting_logs', 'notification_deliveries', 'payment_settings', 'payment_setting_versions', 'payment_setting_logs', 'stock_watches', 'stock_watch_runs', 'customer_reminder_prefs', 'cart_reminders', 'price_watch_marks', 'price_drop_notices',
+            'notifications', 'notification_settings', 'notification_setting_versions', 'notification_setting_logs', 'notification_deliveries', 'payment_settings', 'payment_setting_versions', 'payment_setting_logs', 'code_settings', 'code_sequences', 'code_aliases', 'code_prints', 'stock_watches', 'stock_watch_runs', 'customer_reminder_prefs', 'cart_reminders', 'price_watch_marks', 'price_drop_notices',
             // Themes / appearance
             'colourings', 'icon_styles', 'appearance_fonts', 'user_appearance_preferences',
             // Mimi AI
