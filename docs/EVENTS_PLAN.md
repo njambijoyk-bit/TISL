@@ -4,7 +4,7 @@ Status: **plan, nothing built yet.** Decisions marked ✔ are the owner's.
 
 ## Decisions
 - ✔ **Anyone can buy, no sign-in.** Guests give name, email and phone; a signed-in customer's purchase is linked to their account (and shows in My tickets).
-- ✔ **Our own QR system.** Tickets are issued, signed and checked by us, with no outside ticketing service. Each ticket carries a code only we can make (HMAC of the ticket id with the app key). The QR image is drawn on our server and printed in the email/PDF; the door screen reads it with the phone camera and asks our server. *Assumption to confirm:* we use a small open-source QR drawing library (pure PHP) rather than writing the QR encoder by hand; everything about the code itself is ours.
+- ✔ **Our own QR system.** Tickets are issued, signed and checked by us, with no outside ticketing service. Each ticket carries a code only we can make (HMAC of the ticket id with the app key). The QR image is drawn on our server and printed in the email/PDF; the door screen reads it with the phone camera and asks our server. The QR encoder, signed codes and scanner come from the **core Codes service** (`docs/CODES_PLAN.md`), which is built first; Events is its first user.
 - ✔ **All event kinds in the first version:** single-date, free with RSVP, multi-day / recurring, online (join link only for ticket holders).
 - ✔ **Refunds:** staff approve; each event has a **refund cut-off date**; after it, no refund request. Same pattern as preorder cancellations (staff decide, money returned in the books).
 
@@ -54,6 +54,5 @@ An **Event** has a title, picture/video (reuse the product video field), descrip
 Campaigns can feature an event (item type `event`); memberships can give members a ticket discount or free tickets; the calendar can show events; the product-video field is reused for event videos.
 
 ## Open points to confirm while building
-- QR drawing library (assumed open-source, pure PHP).
 - Transfer of a ticket to another name: allowed until the event by default.
 - Whether box-office (staff) sales can take cash/till payments: assumed yes via the normal payment ledgers.
