@@ -9,7 +9,7 @@ use App\Services\Codes\Linear\LinearCode;
 /** Draws a BitMatrix as a PNG (for emails and PDFs, which do not always take SVG). `scale` is the pixels in one square. */
 final class PngRenderer
 {
-    /** @param array{quiet?: int, scale?: int, fg?: string, bg?: string} $o */
+    /** @param array{quiet?: int, scale?: int, scaleY?: int, fg?: string, bg?: string} $o  `scaleY` is the pixel height of one square (default = `scale`) */
     public static function render(BitMatrix $m, array $o = []): string
     {
         if (! function_exists('imagecreatetruecolor')) {
@@ -17,8 +17,9 @@ final class PngRenderer
         }
         $quiet = $o['quiet'] ?? 4;
         $scale = max(1, (int) ($o['scale'] ?? 8));
+        $sy = max(1, (int) ($o['scaleY'] ?? $scale));
         $w = ($m->width + 2 * $quiet) * $scale;
-        $h = ($m->height + 2 * $quiet) * $scale;
+        $h = $m->height * $sy + 2 * $quiet * $scale;
         $img = imagecreatetruecolor($w, $h);
         $bg = self::alloc($img, $o['bg'] ?? '#ffffff');
         $fg = self::alloc($img, $o['fg'] ?? '#000000');
@@ -26,7 +27,7 @@ final class PngRenderer
         foreach ($m->rows() as $y => $row) {
             foreach ($row as $x => $dark) {
                 if ($dark) {
-                    imagefilledrectangle($img, ($x + $quiet) * $scale, ($y + $quiet) * $scale, ($x + $quiet + 1) * $scale - 1, ($y + $quiet + 1) * $scale - 1, $fg);
+                    imagefilledrectangle($img, ($x + $quiet) * $scale, $quiet * $scale + $y * $sy, ($x + $quiet + 1) * $scale - 1, $quiet * $scale + ($y + 1) * $sy - 1, $fg);
                 }
             }
         }

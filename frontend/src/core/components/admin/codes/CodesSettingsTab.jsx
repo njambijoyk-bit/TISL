@@ -35,7 +35,7 @@ export default function CodesSettingsTab({ kinds, can }) {
             <Field key={t} label={`Kind of code for ${name.toLowerCase()}`}>
               <SelectInput aria-label={`Kind of code for ${name}`} value={s.kinds[t]} onChange={(e) => setS((x) => ({ ...x, kinds: { ...x.kinds, [t]: e.target.value } }))}>
                 <option value="auto">Automatic (a real barcode keeps its retail code)</option>
-                {kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+                {kinds.filter((k) => k.for_labels !== false).map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
               </SelectInput>
             </Field>
           ))}

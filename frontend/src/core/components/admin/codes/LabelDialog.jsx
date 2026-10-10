@@ -80,7 +80,7 @@ export default function LabelDialog({ items, defaults, kinds, onClose }) {
               <label style={{ display: 'grid', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: colors.textFaint }}>KIND OF CODE
                 <select value={kind} onChange={(e) => setKind(e.target.value)} style={sel} aria-label="Kind of code">
                   <option value="">Automatic (best for each item)</option>
-                  {kinds.map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
+                  {kinds.filter((k) => k.for_labels !== false).map((k) => <option key={k.key} value={k.key}>{k.label}</option>)}
                 </select>
               </label>
               <label style={{ display: 'grid', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: colors.textFaint }}>SHEET OR ROLL

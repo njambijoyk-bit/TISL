@@ -17,6 +17,10 @@ php tests/Tools/crosscheck/linear2_make.php /tmp/lin2out        # Code 93 (full 
 php tests/Tools/crosscheck/datamatrix_make.php /tmp/dmout       # Data Matrix at all 30 sizes, full of letters and of digits, plus binary
 /tmp/v/bin/python tests/Tools/crosscheck/read_bytes.py /tmp/dmout
 ```
-Each `x.png` has an `x.txt` with what it should read as. Run it after any change to an encoder. Last run: 171 of 171 QR codes, 255 of 255 barcodes, 98 of 100 more (the two others are test-data quirks, see below) and 68 of 68 Data Matrix symbols read correctly.
+```
+php tests/Tools/crosscheck/pdf417_make.php /tmp/p417out        # PDF417: every error-correction level, columns, text/numeric/byte compaction (all byte lengths 1-48)
+/tmp/v/bin/python tests/Tools/crosscheck/read_bytes.py /tmp/p417out
+```
+Each `x.png` has an `x.txt` with what it should read as. Run it after any change to an encoder. Last run: 171 of 171 QR codes, 255 of 255 barcodes, 98 of 100 more (the two others are test-data quirks, see below) 68 of 68 Data Matrix symbols and 148 of 148 PDF417 symbols read correctly.
 
 Known test-data quirks: the decoder prints control characters by name (so the control-character Code 93 reads as `<SOH>…`: it is correct), and refuses a one-digit Codabar (`A0B`).

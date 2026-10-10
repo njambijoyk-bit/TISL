@@ -12,16 +12,17 @@ use App\Services\Codes\Linear\LinearCode;
 final class SvgRenderer
 {
     /**
-     * @param  array{quiet?: int, unit?: float, fg?: string, bg?: ?string, title?: ?string, barHeight?: ?float}  $o
+     * @param  array{quiet?: int, unit?: float, unitY?: float, fg?: string, bg?: ?string, title?: ?string}  $o  `unitY` is the height of one square (default = `unit`; a PDF417 row is 3 high)
      */
     public static function render(BitMatrix $m, array $o = []): string
     {
         $quiet = $o['quiet'] ?? 4;
         $unit = $o['unit'] ?? 1;
+        $unitY = $o['unitY'] ?? $unit;
         $fg = self::colour($o['fg'] ?? '#000000');
         $bg = isset($o['bg']) || array_key_exists('bg', $o) ? ($o['bg'] === null ? null : self::colour($o['bg'])) : '#ffffff';
         $w = ($m->width + 2 * $quiet) * $unit;
-        $h = ($m->height + 2 * $quiet) * $unit;
+        $h = $m->height * $unitY + 2 * $quiet * $unit;
         $d = '';
         foreach ($m->rows() as $y => $row) {
             $x = 0;
@@ -34,7 +35,7 @@ final class SvgRenderer
                 while ($x < $m->width && $row[$x]) {
                     $x++;
                 }
-                $d .= 'M' . self::n(($start + $quiet) * $unit) . ' ' . self::n(($y + $quiet) * $unit) . 'h' . self::n(($x - $start) * $unit) . 'v' . self::n($unit) . 'h-' . self::n(($x - $start) * $unit) . 'z';
+                $d .= 'M' . self::n(($start + $quiet) * $unit) . ' ' . self::n($y * $unitY + $quiet * $unit) . 'h' . self::n(($x - $start) * $unit) . 'v' . self::n($unitY) . 'h-' . self::n(($x - $start) * $unit) . 'z';
             }
         }
         $title = isset($o['title']) && $o['title'] !== '' ? '<title>' . htmlspecialchars($o['title'], ENT_XML1) . '</title>' : '';

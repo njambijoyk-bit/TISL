@@ -1,6 +1,6 @@
 # Codes (core): QR codes and barcodes, made and read by us — plan
 
-Status: **built so far:** the QR encoder and decoder, the barcode encoders (Code 128, EAN-13/8, UPC-A/E, Code 39, ITF/ITF-14), signed codes and the scan registry, the Codes page (Admin → Codes & labels: items, giving codes, printing labels, scan lookup, settings, print log) and the scanner component (camera where the browser can read codes, handheld scanners, typing). **Still to build:** Data Matrix, PDF417, Code 93, Codabar, GS1-128 (phase B); our own camera decoder for browsers without a built-in reader (Safari/iPhone); scan buttons inside the stock screens; the checkout/POS. To use it: run `119_codes.sql` and `php artisan access:seed`.
+Status: **built so far:** the QR encoder and decoder, the barcode encoders (Code 128, EAN-13/8, UPC-A/E, Code 39, ITF/ITF-14), signed codes and the scan registry, the Codes page (Admin → Codes & labels: items, giving codes, printing labels, scan lookup, settings, print log) and the scanner component (camera where the browser can read codes, handheld scanners, typing). **Also built (phase B):** Data Matrix ECC 200 (all 30 sizes, GS1), PDF417, Code 93, Codabar, GS1-128. **Still to build:** our own camera decoder for browsers without a built-in reader (Safari/iPhone); scan buttons inside the stock screens; the checkout/POS. To use it: run `119_codes.sql` and `php artisan access:seed`.
 
 Originally: This becomes a core service that Events (tickets) is the first user of, then Ecommerce, Stock, Menus, Courses and others.
 

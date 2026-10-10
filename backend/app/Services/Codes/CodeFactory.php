@@ -3,6 +3,7 @@
 namespace App\Services\Codes;
 
 use App\Services\Codes\DataMatrix\DmEncoder;
+use App\Services\Codes\Pdf417\Pdf417Encoder;
 use App\Services\Codes\Linear\Code128;
 use App\Services\Codes\Linear\Code39;
 use App\Services\Codes\Linear\Code93;
@@ -37,10 +38,11 @@ final class CodeFactory
         'gs1128' => ['GS1-128', false],
         'datamatrix' => ['Data Matrix', true],
         'gs1datamatrix' => ['GS1 Data Matrix', true],
+        'pdf417' => ['PDF417', true],
     ];
 
     /**
-     * @param  array{level?: string, minVersion?: int, check?: bool, text?: bool, shape?: string}  $o  level: QR error correction (L M Q H); check: add a check character (Code 39, ITF); text: print the digits under a barcode
+     * @param  array{level?: string, minVersion?: int, check?: bool, text?: bool, shape?: string, level417?: int, columns?: int}  $o  level: QR error correction (L M Q H); check: add a check character (Code 39, ITF); text: print the digits under a barcode
      */
     public static function make(string $kind, string $data, array $o = []): GeneratedCode
     {
@@ -59,6 +61,7 @@ final class CodeFactory
             'codabar' => Codabar::encode($data, $text),
             'gs1128' => Gs1128::encode($data, $text),
             'datamatrix' => DmEncoder::encode($data, $o['shape'] ?? 'square'),
+            'pdf417' => Pdf417Encoder::encode($data, $o['level417'] ?? null, $o['columns'] ?? null),
             'gs1datamatrix' => DmEncoder::encode(Gs1128::elements($data)['data'], $o['shape'] ?? 'square', true),
             default => throw new CodeException("There is no \"{$kind}\" kind of code."),
         };

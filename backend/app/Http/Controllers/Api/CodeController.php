@@ -43,7 +43,7 @@ class CodeController extends Controller
     /** GET /admin/codes/kinds: what can be made, for the pickers. */
     public function kinds(): JsonResponse
     {
-        return response()->json(['kinds' => collect(CodeFactory::KINDS)->map(fn ($k, $key) => ['key' => $key, 'label' => $k[0], 'two_d' => $k[1]])->values(), 'signed_types' => $this->resolvers->types()]);
+        return response()->json(['kinds' => collect(CodeFactory::KINDS)->map(fn ($k, $key) => ['key' => $key, 'label' => $k[0], 'two_d' => $k[1], 'for_labels' => ! in_array($key, ['gs1128', 'gs1datamatrix'], true)]   // the GS1 kinds need the (AI)value form, so an item's plain code can not be one)->values(), 'signed_types' => $this->resolvers->types()]);
     }
 
     /** GET /admin/codes/image?kind=&data=&format=svg|png&…: the picture of a code (for previews and printing). */
