@@ -13,9 +13,10 @@ import { hasPermission } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import DoorResult from '../../components/admin/DoorResult';
+import BoxOffice from '../../components/admin/BoxOffice';
 import { whenText } from '../../lib/eventFormat';
 
-const TABS = [{ id: 'scan', label: 'Scan' }, { id: 'guests', label: 'Guest list' }, { id: 'log', label: 'Scan log' }];
+const ALL_TABS = [{ id: 'scan', label: 'Scan' }, { id: 'guests', label: 'Guest list' }, { id: 'sell', label: 'Sell', perm: 'sell' }, { id: 'log', label: 'Scan log' }];
 const RESULT_LABEL = { ok: 'In', manual: 'In (by hand)', already: 'Already used', wrong_event: 'Wrong event', wrong_session: 'Wrong date', not_valid: 'Not valid', not_found: 'Not ours', undone: 'Undone' };
 const hm = (s) => (s ? String(s).slice(11, 16) : '');
 
@@ -23,7 +24,8 @@ const hm = (s) => (s ? String(s).slice(11, 16) : '');
 export default function EventDoor() {
   const { id } = useParams();
   const user = useAuthStore((s) => s.user);
-  const can = { checkin: hasPermission(user, 'events.checkin'), export: hasPermission(user, 'events.view'), refund: hasPermission(user, 'events.refund') };
+  const can = { checkin: hasPermission(user, 'events.checkin'), export: hasPermission(user, 'events.view'), refund: hasPermission(user, 'events.refund'), sell: hasPermission(user, 'events.sell') };
+  const TABS = ALL_TABS.filter((t) => !t.perm || can[t.perm]);
   const [tab, setTab] = useState('scan');
   const [door, setDoor] = useState(null);
   const [sessionId, setSessionId] = useState(null);
@@ -91,6 +93,8 @@ export default function EventDoor() {
             {can.checkin ? <CodeScanner onScan={scan} placeholder="Scan a ticket, or type its code, then Enter" /> : <p style={{ color: colors.textMuted }}>You can see the door but not check people in.</p>}
           </div>
         )}
+
+        {tab === 'sell' && can.sell && <BoxOffice eventId={id} onSold={load} />}
 
         {tab === 'guests' && (
           <div style={{ display: 'grid', gap: 12 }}>

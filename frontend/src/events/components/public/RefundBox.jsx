@@ -36,7 +36,7 @@ export default function RefundBox({ t, event, onDone }) {
               <textarea id={`rf-${t.code}`} rows={3} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} style={{ padding: 10, borderRadius: 10, border: '1.5px solid var(--line)', fontFamily: 'inherit', background: 'var(--surface-input, #fff)', color: 'inherit' }} />
               {event.refund_policy && <p style={{ margin: 0, fontSize: '0.76rem', color: 'var(--text-tertiary)', whiteSpace: 'pre-wrap' }}>{event.refund_policy}</p>}</>}
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" disabled={busy} onClick={go} style={{ ...btn, background: '#b91c1c', borderColor: '#b91c1c', color: '#fff' }}>{busy ? 'One moment…' : r.can_cancel ? 'Yes, cancel it' : 'Send the request'}</button>
+            <button type="button" disabled={busy} onClick={go} style={{ ...btn, background: '#b91c1c', border: '1.5px solid #b91c1c', color: '#fff' }}>{busy ? 'One moment…' : r.can_cancel ? 'Yes, cancel it' : 'Send the request'}</button>
             <button type="button" style={btn} onClick={() => setOpen(false)}>Keep my ticket</button>
           </div>
         </div>

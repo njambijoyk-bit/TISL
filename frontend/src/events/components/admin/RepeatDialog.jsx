@@ -52,7 +52,7 @@ export default function RepeatDialog({ start, minutes, taken = [], onAdd, onClos
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {DAYS.map((n, d) => (
                 <button key={n} type="button" aria-pressed={rule.weekdays.includes(d)} onClick={() => toggleDay(d)}
-                  style={{ ...btnGhost, padding: '5px 11px', fontSize: '0.76rem', ...(rule.weekdays.includes(d) ? { background: colors.tint(0.14), borderColor: colors.primary, color: colors.primaryDeep } : {}) }}>{n}</button>
+                  style={{ ...btnGhost, padding: '5px 11px', fontSize: '0.76rem', ...(rule.weekdays.includes(d) ? { background: colors.tint(0.14), border: `1.5px solid ${colors.primary}`, color: colors.primaryDeep } : {}) }}>{n}</button>
               ))}
             </div>
           </Field>

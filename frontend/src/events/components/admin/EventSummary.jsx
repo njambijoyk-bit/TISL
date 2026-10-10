@@ -21,12 +21,12 @@ const Tile = ({ label, value, sub, to }) => {
 };
 
 /** A thin bar with its number beside it: how full something is. The number is always written, so the bar never carries meaning alone. */
-const Meter = ({ value, max, label }) => (
+const Meter = ({ value, max, label, plain = false }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, minWidth: 130 }}>
     <span role="progressbar" aria-label={label} aria-valuenow={value} aria-valuemin={0} aria-valuemax={max || 0} style={{ flex: 1, height: 6, borderRadius: 999, background: colors.tint(0.12), overflow: 'hidden', minWidth: 60 }}>
       <span style={{ display: 'block', width: `${max ? Math.min(100, (value / max) * 100) : 0}%`, height: '100%', background: colors.primary }} />
     </span>
-    <span style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{value}{max ? ` / ${max}` : ''}</span>
+    <span style={{ fontSize: '0.78rem', whiteSpace: 'nowrap' }}>{value}{max && !plain ? ` / ${max}` : ''}</span>
   </span>
 );
 
@@ -74,7 +74,7 @@ export default function EventSummary({ eventId }) {
           <h2 style={{ margin: '0 0 8px', fontSize: '0.95rem', fontWeight: 800 }}>Sales by day (last 30 days)</h2>
           <SimpleTable rowKey="date" rows={s.by_day} columns={[
             { key: 'date', label: 'Day', render: (r) => whenText(`${r.date}T00:00`, { time: false }) },
-            { key: 'tickets', label: 'Tickets', render: (r) => <Meter value={r.tickets} max={top} label={`Tickets sold on ${r.date}`} /> },
+            { key: 'tickets', label: 'Tickets', render: (r) => <Meter value={r.tickets} max={top} plain label={`Tickets sold on ${r.date}`} /> },
             { key: 'revenue', label: 'Brought in', align: 'right', render: (r) => money(r.revenue) },
           ]} />
         </section>
