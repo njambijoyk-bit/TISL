@@ -7,6 +7,7 @@ import authAPI from '../../../_shared/api/auth';
 import { passkeyProblem, passkeysSupported, suggestedName } from '../../../_shared/lib/webauthn';
 import { addPasskey, proveWithPasskey, withProtection } from '../../../_shared/lib/passkeyFlows';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
+import RecoveryUse from './RecoveryUse';
 
 const WORDS = {
   passkey_missing: {
@@ -44,6 +45,8 @@ export default function SecurityGate() {
   const [busy, setBusy] = useState(false);
   const [asking, setAsking] = useState(null);   // { resolve, reject } the password prompt
   const [typed, setTyped] = useState('');
+  const [lost, setLost] = useState(false);          // "I lost the device": the recovery code form is open
+  const [recovered, setRecovered] = useState(null); // when a recovery code was accepted (it is good for 15 minutes)
 
   // the server turned something away because of the rule, though the page did not know: find out why
   useEffect(() => {
@@ -55,12 +58,13 @@ export default function SecurityGate() {
 
   const gate = authed ? security?.gate : null;
   if (!gate) return null;
-  const words = WORDS[gate] ?? WORDS.passkey_needed;
+  const recoveredNow = recovered !== null && Date.now() - recovered < 15 * 60 * 1000;
+  const words = recoveredNow ? { ...(WORDS[gate] ?? WORDS.passkey_needed), title: 'Add a new passkey', body: 'Your recovery code was accepted. For the next 15 minutes you can add a passkey on this device. Afterwards, remove the one that was lost under My devices.', action: 'Add a new passkey' } : (WORDS[gate] ?? WORDS.passkey_needed);
 
   const go = async () => {
     setBusy(true);
     try {
-      if (gate === 'passkey_needed') {
+      if (gate === 'passkey_needed' && !recoveredNow) {
         await proveWithPasskey();
       } else {
         await withProtection((password) => addPasskey({ name: suggestedName(), password }), { askPassword: () => new Promise((resolve, reject) => { setTyped(''); setAsking({ resolve, reject }); }) });
@@ -108,6 +112,11 @@ export default function SecurityGate() {
             style={{ width: '100%', height: 46, marginTop: 12, borderRadius: 12, border: 'none', background: 'var(--color-primary-600)', color: 'white', fontWeight: 700, fontSize: '0.9rem', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}>
             {busy ? 'Waiting for your device…' : words.action}
           </button>
+        )}
+
+        {gate !== 'passkey_missing' && !recoveredNow && (
+          lost ? <RecoveryUse onRecovered={() => { setLost(false); setRecovered(Date.now()); }} />
+            : <button type="button" onClick={() => setLost(true)} data-testid="gate-lost" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-600)', fontWeight: 700, fontSize: '0.8rem', padding: 0, display: 'block' }}>I can't use my passkey device (lost or broken)</button>
         )}
 
         <button type="button" onClick={signOut} style={{ marginTop: 14, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: 6 }}>

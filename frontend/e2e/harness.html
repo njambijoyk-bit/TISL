@@ -14,9 +14,15 @@
       import { Toaster } from 'react-hot-toast';
       import '/src/index.css';
       const which = new URLSearchParams(location.search).get('c') || 'PasskeyManager';
-      const parts = { PasskeyManager: () => import('/src/core/components/account/PasskeyManager.jsx') };
+      const parts = {
+        PasskeyManager: () => import('/src/core/components/account/PasskeyManager.jsx'),
+        SealPhraseCard: () => import('/src/core/components/account/SealPhraseCard.jsx'),
+        PasskeyRule: () => import('/src/core/pages/admin/PasskeyRule.jsx'),   // a whole page: it needs the router around it
+      };
       const { default: Component } = await parts[which]();
-      createRoot(document.getElementById('root')).render(React.createElement(React.Fragment, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component)));
+      if (which === 'PasskeyRule') document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
+      const { BrowserRouter } = await import('react-router-dom');
+      createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component)));
     </script>
   </body>
 </html>

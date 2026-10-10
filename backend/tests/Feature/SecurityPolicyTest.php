@@ -80,6 +80,12 @@ class SecurityPolicyTest extends TestCase
         return $this->as($token)->putJson('/api/admin/security-policy', $body);
     }
 
+    /** The actor makes their own recovery codes (a way back), as the rule insists before it is switched on. */
+    private function codes(string $token): void
+    {
+        $this->as($token)->postJson('/api/auth/recovery-codes', ['current_password' => 'Right-password-1'])->assertStatus(201);
+    }
+
     private function today(): string
     {
         return now()->toDateString();
@@ -172,6 +178,7 @@ class SecurityPolicyTest extends TestCase
     public function test_a_future_date_does_not_lock_anyone_out_yet(): void
     {
         $token = $this->openSession($this->person('super_admin'));
+        $this->codes($token);
         $this->save($token, ['mode' => 'enforce', 'enforce_from' => now()->addDays(30)->toDateString(), 'confirm' => true])->assertOk()->assertJsonPath('settings.mode', 'enforce');
     }
 
@@ -181,6 +188,7 @@ class SecurityPolicyTest extends TestCase
         $token = $this->openSession($owner);
         $this->add($token);
         $this->add($token);
+        $this->codes($token);
         $this->person('admin');
         $this->person('admin');
 
@@ -200,7 +208,20 @@ class SecurityPolicyTest extends TestCase
         $token = $this->openSession($this->person('super_admin'));
         $this->add($token);
         $this->add($token);
+        $this->codes($token);
         $this->save($token, ['mode' => 'enforce', 'enforce_from' => $this->today()])->assertOk();
+    }
+
+    public function test_the_owner_must_have_recovery_codes_before_turning_it_on(): void
+    {
+        $token = $this->openSession($this->person('super_admin'));
+        $this->add($token);
+        $this->add($token);                                                       // two passkeys, but no way back if both devices are lost
+        $this->save($token, ['mode' => 'enforce', 'enforce_from' => $this->today(), 'confirm' => true])->assertStatus(422)->assertJsonPath('reason', 'make_recovery_codes');
+        $this->assertSame('off', app(SecuritySettings::class)->get('passkeys.mode'));
+        $this->assertSame(0, \DB::table('security_settings')->count());
+        $this->codes($token);
+        $this->save($token, ['mode' => 'enforce', 'enforce_from' => $this->today(), 'confirm' => true])->assertOk();
     }
 
     public function test_the_owner_signed_in_by_password_alone_is_asked_to_use_their_passkey_first(): void

@@ -1,5 +1,6 @@
 import SignedInDevices from '../../components/account/SignedInDevices';
 import PasskeyManager from '../../components/account/PasskeyManager';
+import SealPhraseCard from '../../components/account/SealPhraseCard';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
@@ -615,6 +616,12 @@ export default function AdminProfile() {
                 <div style={card}>
                   <p style={sectionTitle}><Fingerprint size={14} style={{ color: 'var(--color-primary-500)' }} /> My devices (passkeys)</p>
                   <PasskeyManager />
+                </div>
+
+                {/* Seal phrase */}
+                <div style={card}>
+                  <p style={sectionTitle}><ShieldCheck size={14} style={{ color: 'var(--color-primary-500)' }} /> Seal phrase</p>
+                  <SealPhraseCard />
                 </div>
 
                 {/* Where you are signed in */}

@@ -24,6 +24,8 @@ class RateLimits
         'guess' => 'guess',
         'passkey' => 'passkey',
         'passkey-manage' => 'passkey_manage',
+        'recovery' => 'recovery',
+        'seal' => 'seal',
     ];
 
     public static function register(): void

@@ -22,7 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
 class PolicyGate
 {
     /** What a restricted session can still reach: the way out of being restricted. */
-    private const OPEN = ['api/auth/me', 'api/auth/logout', 'api/auth/passkeys', 'api/auth/passkeys/*', 'api/auth/sessions', 'api/auth/sessions/*'];
+    private const OPEN = ['api/auth/me', 'api/auth/logout', 'api/auth/passkeys', 'api/auth/passkeys/*', 'api/auth/sessions', 'api/auth/sessions/*', 'api/auth/recovery-codes', 'api/auth/recovery-codes/*'];
 
     public function handle(Request $request, Closure $next): Response
     {

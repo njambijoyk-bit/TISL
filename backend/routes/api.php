@@ -139,6 +139,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-forgot');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword'])->middleware('throttle:password-force');
+    Route::post('/seal', [\App\Http\Controllers\Api\SealController::class, 'show'])->middleware('throttle:seal');   // the sign-in page asks for the person's seal phrase (tells a stranger nothing)
     Route::post('/passkeys/options', [AuthController::class, 'passkeyOptions'])->middleware('throttle:passkey');   // sign in with a passkey: the question the device signs
     Route::post('/passkeys/login', [AuthController::class, 'passkeyLogin'])->middleware('throttle:passkey');
     Route::post('/secure-account', [\App\Http\Controllers\Api\SecureAccountController::class, 'store'])->middleware('throttle:password-reset');   // "This was not me" in the new-sign-in email
@@ -444,6 +445,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}',                [$c, 'rename'])->whereNumber('id');
         Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id');
     });
+    // Recovery codes: the way back from a lost passkey device. Using one does not sign anyone in; it lets this session add a new passkey for 15 minutes.
+    Route::prefix('auth/recovery-codes')->group(function () {
+        $c = \App\Http\Controllers\Api\RecoveryCodeController::class;
+        Route::get('/',      [$c, 'status'])->middleware('throttle:passkey-manage');
+        Route::post('/',     [$c, 'generate'])->middleware('throttle:passkey-manage');
+        Route::post('/use',  [$c, 'use'])->middleware('throttle:recovery');
+    });
+    // The seal phrase the person chose (shown on the sign-in page, on browsers they have signed in from before)
+    Route::get('/auth/seal',    [\App\Http\Controllers\Api\SealController::class, 'mine']);
+    Route::put('/auth/seal',    [\App\Http\Controllers\Api\SealController::class, 'save'])->middleware('throttle:guess');
+    Route::delete('/auth/seal', [\App\Http\Controllers\Api\SealController::class, 'clear']);
     Route::get('/auth/sessions',                 [\App\Http\Controllers\Api\SessionController::class, 'index']);            // where I am signed in
     Route::delete('/auth/sessions/{id}',         [\App\Http\Controllers\Api\SessionController::class, 'destroy'])->whereNumber('id');
     Route::post('/auth/sessions/revoke-others',  [\App\Http\Controllers\Api\SessionController::class, 'revokeOthers']);

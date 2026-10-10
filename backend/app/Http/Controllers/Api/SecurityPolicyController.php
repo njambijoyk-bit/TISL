@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Access\Catalog;
 use App\Services\Security\PasskeyPolicy;
+use App\Services\Security\RecoveryCodes;
 use App\Services\Security\SecurityLog;
 use App\Services\Security\SecuritySettings;
 use App\Services\Security\Sessions;
@@ -101,6 +102,13 @@ class SecurityPolicyController extends Controller
                     SecuritySettings::forget();
 
                     return response()->json(['message' => 'You would be locked out by this rule yourself. Add your own passkey (and sign in with it) first, then turn it on.', 'reason' => 'would_lock_you_out', 'gate' => $mine['gate']], 422);
+                }
+                // there must be a way back for the person changing it if a device is ever lost
+                if (RecoveryCodes::ready() && app(RecoveryCodes::class)->status($actor)['remaining'] < 1) {
+                    DB::rollBack();
+                    SecuritySettings::forget();
+
+                    return response()->json(['message' => 'Make your own recovery codes first (in your profile, under My devices), so there is a way back in if a device is ever lost. Then turn the rule on.', 'reason' => 'make_recovery_codes'], 422);
                 }
                 // and make it deliberate when others still have something to do
                 $missing = $this->policy->roster()['summary']['missing'];

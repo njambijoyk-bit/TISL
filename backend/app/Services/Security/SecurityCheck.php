@@ -70,6 +70,11 @@ final class SecurityCheck
         }
         $add(! $missing ? self::OK : self::FAIL, 'The security tables exist', ! $missing ? null : 'Missing: '.implode(', ', $missing).'. Run database scripts 123_security_core.sql, 124_passkeys.sql and 125_security_policy.sql in Workbench.');
 
+        // recovery codes (the way back from a lost passkey device) and the seal phrase
+        $codes = Schema::hasTable('auth_recovery_codes') && Schema::hasColumn('auth_sessions', 'recovery_at');
+        $add($codes ? self::OK : self::WARN, 'Recovery codes are set up', $codes ? null : 'Run database script 126_recovery_codes.sql in Workbench. Without it, someone who loses the phone their passkey is on has no way back in but an administrator.');
+        $add(Schema::hasTable('auth_seals') ? self::OK : self::NOTE, 'The seal phrase is set up', Schema::hasTable('auth_seals') ? null : 'Optional: run database script 127_seal_phrase.sql to let people choose a few words the sign-in page shows them.');
+
         // passkeys are made for one domain and can never move: it must be the website's
         $rp = PasskeyConfig::rpId();
         $siteHost = (string) parse_url((string) config('app.frontend_url'), PHP_URL_HOST);

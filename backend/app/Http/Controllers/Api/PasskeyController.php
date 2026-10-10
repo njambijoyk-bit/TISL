@@ -8,6 +8,7 @@ use App\Services\Security\Passkeys\Challenges;
 use App\Services\Security\Passkeys\CredentialStore;
 use App\Services\Security\Passkeys\PasskeyException;
 use App\Services\Security\Passkeys\Passkeys;
+use App\Services\Security\SecurityAlerts;
 use App\Services\Security\SecurityLog;
 use App\Services\Security\SessionCookie;
 use App\Services\Security\Sessions;
@@ -87,13 +88,16 @@ class PasskeyController extends Controller
         $user = $request->user();
         $first = $this->store->forUser($user)->isEmpty();
         $provedWith = $this->sessions->recordOf($this->token($request))?->credential_id;
+        // added with no passkey vouching for it: only after a recovery code (the lost-phone way back)
+        $recovered = ! $first && ! $this->sessions->freshStrong($this->token($request), self::FRESH_MINUTES) && $this->sessions->recoveryFresh($this->token($request));
         try {
-            $c = $this->passkeys->register($user, (string) $request->input('challenge_id'), (array) $request->input('credential'), $request->input('name'), $request, $first ? 'first' : 'approved', $first ? null : $provedWith);
+            $c = $this->passkeys->register($user, (string) $request->input('challenge_id'), (array) $request->input('credential'), $request->input('name'), $request, $first ? 'first' : ($recovered ? 'recovery' : 'approved'), $first || $recovered ? null : $provedWith);
         } catch (PasskeyException $e) {
             return $this->refuse($e);
         }
         $this->sessions->markStrong($this->token($request), $c->id);   // the device has just verified the person: this session is strong now
         SecurityLog::record('passkey_added', $user, $request, ['credential' => $c->id, 'name' => $c->name, 'method' => $c->added_method, 'kind' => $c->kind, 'approved_by' => $c->added_by_id], SecurityLog::NOTICE);
+        app(SecurityAlerts::class)->passkeyAdded($user, $c, $request);
 
         return response()->json(['message' => 'Passkey added.', 'data' => $this->present($c->refresh(), $c->id)], 201);
     }
@@ -168,6 +172,7 @@ class PasskeyController extends Controller
             $ended += $this->sessions->revokeAll($user, $this->token($request)?->id, 'passkey_lost');
         }
         SecurityLog::record('passkey_removed', $user, $request, ['credential' => $c->id, 'name' => $c->name, 'reason' => $reason, 'replaced_by' => $successor?->id, 'sessions_ended' => $ended], SecurityLog::WARNING);
+        app(SecurityAlerts::class)->passkeyRemoved($user, $c->name, $reason, $ended, $request);
 
         $response = response()->json(['message' => $ended ? "Passkey removed. {$ended} sign-in".($ended === 1 ? '' : 's').' that used it ended.' : 'Passkey removed.', 'sessions_ended' => $ended]);
         if ($usedHere) {
@@ -180,7 +185,7 @@ class PasskeyController extends Controller
     /**
      * May this session change the person's passkeys now?
      *  - with no passkey yet: only right after signing in, or by typing the password again (the first one is how a person moves up from a password);
-     *  - with one or more: only after strong proof a few minutes ago.
+     *  - with one or more: only after strong proof a few minutes ago, or after a recovery code was used in this session (a lost phone).
      *
      * @throws PasskeyException
      */
@@ -189,7 +194,7 @@ class PasskeyController extends Controller
         $user = $request->user();
         $token = $this->token($request);
         if ($this->store->usableFor($user)->isNotEmpty()) {
-            if (! $this->sessions->freshStrong($token, self::FRESH_MINUTES)) {
+            if (! $this->sessions->freshStrong($token, self::FRESH_MINUTES) && ! $this->sessions->recoveryFresh($token)) {   // (a recovery code stands in for a passkey that is out of reach)
                 throw new PasskeyException('Confirm it is really you with one of your passkeys first.', 'proof_needed', 403);
             }
 

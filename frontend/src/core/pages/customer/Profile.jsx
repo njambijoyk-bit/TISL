@@ -14,6 +14,7 @@ import LoyaltyRedemptionModal from '../../components/customer/LoyaltyRedemptionM
 import CustomerCreditTab from './CustomerCreditTab';
 import SignedInDevices from '../../components/account/SignedInDevices';
 import PasskeyManager from '../../components/account/PasskeyManager';
+import SealPhraseCard from '../../components/account/SealPhraseCard';
 import { customersAPI, authAPI, customerLoyaltyAPI, referralsAPI, customerTiersAPI, notificationsAPI } from '../../../_shared/api/index';
 import { useAuthStore, usePromoCodeStore, useCurrencyStore, useLocationStore } from '../../../_shared/store/index';
 import CurrencyToggle from '../../../_shared/components/common/currency/CurrencyToggle';
@@ -1505,6 +1506,11 @@ export default function Profile() {
               <div style={card}>
                 <p style={sectionTitle}><Fingerprint size={14} style={{ color: 'var(--color-primary-500)' }} /> My devices (passkeys)</p>
                 <PasskeyManager />
+              </div>
+
+              <div style={card}>
+                <p style={sectionTitle}><ShieldCheck size={14} style={{ color: 'var(--color-primary-500)' }} /> Seal phrase</p>
+                <SealPhraseCard />
               </div>
 
               <div style={card}>

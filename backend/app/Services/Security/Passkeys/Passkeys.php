@@ -212,6 +212,7 @@ final class Passkeys
     {
         $c->forceFill(['disabled_at' => now(), 'disabled_reason' => 'clone_suspected'])->save();
         SecurityLog::record('passkey_clone_suspected', $user, $request, ['credential' => $c->id, 'name' => $c->name], SecurityLog::ALERT);
+        app(\App\Services\Security\SecurityAlerts::class)->passkeySwitchedOff($user, $c, $request);
     }
 
     /** The library accepts either kind of answer for either question; the standard says an add is answered as an add and a sign-in as a sign-in, and so do we. */

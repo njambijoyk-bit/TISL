@@ -135,6 +135,7 @@ const MimiKnowledgePage  = lazy(() => import('./extras/pages/admin/ai-analytics/
 
 const Dashboard          = lazy(() => import('./core/pages/admin/Dashboard'));
 const PolicySettings     = lazy(() => import('./core/pages/admin/settings/policies/PolicySettings'))
+const PasskeyRule        = lazy(() => import('./core/pages/admin/PasskeyRule'));
 const AdminProducts      = lazy(() => import('./ecommerce/pages/admin/Products'));
 const ProductForm        = lazy(() => import('./ecommerce/pages/admin/ProductForm'));
 const AdminPurchases     = lazy(() => import('./core/pages/admin/stock/Purchases'));
@@ -1440,6 +1441,14 @@ function App() {
 
               {/* The old orders-based Reports page is gone; its address goes to the books' reports */}
               <Route path="/admin/reports" element={<Navigate to="/admin/books?tab=reports" replace />} />
+              <Route
+                path="/admin/security/passkeys"
+                element={
+                  <ProtectedRoute requireAdmin permission="security.view">
+                    <PasskeyRule />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/security"
                 element={

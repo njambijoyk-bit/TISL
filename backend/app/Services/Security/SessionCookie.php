@@ -101,14 +101,24 @@ final class SessionCookie
         }
         $response = response()->json($body + ['csrf' => self::csrf($plainToken)], $status);
         $response->headers->setCookie(self::make($plainToken, $tokenable, $request));
+        self::noteDevice($response, $request, $tokenable);
 
         return $response;
+    }
+
+    /** Remember in this browser that it has signed in as this person (see KnownDevice): it is what lets the sign-in page show them their seal phrase. */
+    private static function noteDevice(\Symfony\Component\HttpFoundation\Response $response, Request $request, Model $tokenable): void
+    {
+        if ($tokenable instanceof \App\Models\User) {
+            $response->headers->setCookie(KnownDevice::remember($request, $tokenable));
+        }
     }
 
     /** A sign-in answer that sends the person on to a page (Google sign-in): the cookie rides on the redirect. */
     public static function attach(\Symfony\Component\HttpFoundation\Response $response, Request $request, string $plainToken, Model $tokenable): \Symfony\Component\HttpFoundation\Response
     {
         $response->headers->setCookie(self::make($plainToken, $tokenable, $request));
+        self::noteDevice($response, $request, $tokenable);
 
         return $response;
     }

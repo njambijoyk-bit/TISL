@@ -6,6 +6,8 @@ import { passkeyProblem, passkeysSupported, suggestedName } from '../../../_shar
 import { addPasskey, withProtection } from '../../../_shared/lib/passkeyFlows';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { useAuthStore } from '../../../_shared/store/index';
+import RecoveryCodes from './RecoveryCodes';
+import RecoveryUse from './RecoveryUse';
 
 const when = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—');
 const day = (s) => (s ? String(s).slice(0, 10) : '—');
@@ -35,6 +37,9 @@ export default function PasskeyManager() {
   const [replacing, setReplacing] = useState(null);
   const [ask, setAsk] = useState(null);           // { resolve, reject }: the password prompt
   const [typed, setTyped] = useState('');
+  const [lostHint, setLostHint] = useState(false);   // proving with a passkey did not work: offer the recovery code
+  const [recovering, setRecovering] = useState(false);
+  const [recovered, setRecovered] = useState(false);
   const mounted = useRef(true);
 
   const load = useCallback(() => passkeysAPI.list().then((r) => mounted.current && setState(r)).catch((e) => toast.error(errMsg(e, 'Could not load your passkeys'))), []);
@@ -56,6 +61,7 @@ export default function PasskeyManager() {
       if (e?.message !== 'cancelled') {
         const p = passkeyProblem(e);
         if (!p.cancelled || p.text) toast.error(p.text || errMsg(e, 'That did not work'));
+        if (p.cancelled && !e?.response) setLostHint(true);   // the device that should vouch for this did not answer: maybe it is lost
       }
       return null;
     } finally {
@@ -204,6 +210,18 @@ export default function PasskeyManager() {
         </form>
       )}
 
+      {(lostHint || recovering) && !recovered && (
+        <div style={{ display: 'grid', gap: 8, padding: 10, borderRadius: 8, border: '1.5px dashed var(--line)' }}>
+          {!recovering ? (
+            <>
+              <span style={{ fontSize: '0.8rem' }}>Can't use the device your passkey is on (lost, broken, left behind)?</span>
+              <button type="button" style={{ ...btn, justifySelf: 'start' }} onClick={() => setRecovering(true)} data-testid="recovery-open">Use a recovery code instead</button>
+            </>
+          ) : <RecoveryUse onRecovered={() => { setRecovering(false); setLostHint(false); setRecovered(true); }} compact />}
+        </div>
+      )}
+      {recovered && <p role="status" style={{ margin: 0, fontSize: '0.8rem', fontWeight: 700 }}>Recovery code accepted. For the next 15 minutes you can add a new passkey on this device, and remove the one that was lost.</p>}
+
       {state && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
           <input aria-label="Name for the new passkey" style={{ ...input, flex: '1 1 200px', maxWidth: 280 }} maxLength={80} placeholder={`Name it (${suggestedName()})`} value={name} onChange={(e) => setName(e.target.value)} disabled={busy} />
@@ -212,6 +230,11 @@ export default function PasskeyManager() {
         </div>
       )}
       {state && items.length > 0 && <p style={{ margin: 0, ...faint }}>Adding or removing a passkey asks your device to confirm it is you, so someone who only has your password can not do it.</p>}
+
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+        <div style={{ fontSize: '0.8rem', fontWeight: 800, marginBottom: 6 }}>Recovery codes</div>
+        <RecoveryCodes />
+      </div>
 
       {state?.history?.length > 0 && (
         <details>

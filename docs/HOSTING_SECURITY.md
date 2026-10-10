@@ -116,3 +116,32 @@ The map frames will keep warning until they are rebuilt; leave `script-src` repo
 3. `php artisan security:check --fix` once: it finds accounts still on a password the old imports gave out and makes each choose a new one at their next sign-in.
 4. Put the website headers in place (section 2); open the site and check nothing broke.
 5. Try the Content-Security-Policy in report-only mode.
+
+## 4. Passkeys, recovery codes and the passkey rule
+
+Run these in Workbench, in order, each on its own, then `php artisan access:seed` (it adds the permission to change the sign-in rules, for the owner only):
+
+| Script | What it adds |
+|---|---|
+| `124_passkeys.sql` | passkeys ("My devices") and what strength each sign-in reached |
+| `125_security_policy.sql` | the owner's settings for the passkey rule |
+| `126_recovery_codes.sql` | recovery codes, the way back from a lost phone |
+| `127_seal_phrase.sql` | the seal phrase on the sign-in page (optional) |
+
+Server settings (the project has no `.env` file of its own, so these go wherever the other settings live):
+
+| Setting | Meaning |
+|---|---|
+| `PASSKEY_RP_ID=targetisl.co.ke` | The domain passkeys are made for. **Never change it after anyone has added a passkey.** |
+| `PASSKEY_ORIGINS=https://targetisl.co.ke,https://www.targetisl.co.ke` | The exact website addresses that may ask for a passkey (https only; subdomains are not accepted unless listed). |
+| `SECURITY_PASSKEY_MODE=off` | The starting value of the passkey rule: `off`, `log` or `enforce`. Once the owner chooses on the Passkey rule page, that choice wins. |
+| `SECURITY_PASSKEY_ENFORCE_FROM=2026-12-01` | The starting value of the date from which the rule holds people back. |
+| `SECURITY_POLICY_OFF=true` | **Emergency only.** Puts the whole passkey rule to sleep whatever the page says (for a lock-out). Take it out again afterwards; `security:check` warns while it is set. |
+
+### Turning the passkey rule on, safely
+
+1. Run the scripts above and `php artisan security:check`.
+2. Everyone the rule is for adds a passkey (they are offered one when they sign in; it is under their profile, "My devices") and the owner makes recovery codes and keeps them somewhere safe, away from the phone.
+3. Admin → Security → **Passkey rule**: choose **Test** and a date. Nobody is stopped; each sign-in that would have been held is written to the sign-in log. Look at who is still to add one.
+4. Switch it to **On**. The page refuses if it would lock you out, or if you have no recovery codes yet, and asks you to confirm while others still have to add theirs. From the date, a person the rule is for who has not done what it asks can only add or use a passkey.
+5. If something goes wrong and nobody can get in: set `SECURITY_POLICY_OFF=true` in the server settings, reload, sign in, fix it, take the setting out.

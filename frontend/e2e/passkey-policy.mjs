@@ -158,4 +158,37 @@ for (const email of ['logistics@example.com', 'amina@example.com']) {
   await ctx.close();
 }
 
+// ── I. A lost device: the held-back admin uses a recovery code and adds a new passkey ───────────────────────────────────────────────────────
+{
+  rule('enforce', day(-2));
+  sql('DELETE FROM auth_credentials');
+  let code;
+  {
+    const { ctx, page } = await open();                                    // the old phone: adds its passkey and makes recovery codes
+    await signInWithPassword(page, 'admin@example.com');
+    await gate(page).waitFor({ timeout: 10000 });
+    await page.locator('[data-testid="security-gate-go"]').click();
+    await gate(page).waitFor({ state: 'detached', timeout: 15000 });
+    const made = await call(page, 'post', '/auth/recovery-codes');
+    code = made.data.codes?.[0];
+    await call(page, 'post', '/auth/logout');
+    await ctx.close();
+  }
+  const { ctx, page, keys } = await open();                                // the new computer: nothing on it
+  await signInWithPassword(page, 'admin@example.com');
+  await gate(page).waitFor({ timeout: 10000 });
+  ok('the admin has a passkey but not here: the screen asks them to confirm it', /Confirm it is you/.test(await gate(page).innerText()));
+  await page.locator('[data-testid="gate-lost"]').click();
+  await page.getByLabel('Recovery code').fill(code);
+  await page.getByRole('button', { name: 'Use this code' }).click();
+  await page.getByText(/Add a new passkey/).first().waitFor({ timeout: 8000 });
+  ok('a recovery code turns the screen into "add a new passkey"', /Your recovery code was accepted/.test(await gate(page).innerText()));
+  await page.screenshot({ path: D + 'passkey-gate-recovered.png' });
+  await page.locator('[data-testid="security-gate-go"]').click();
+  await gate(page).waitFor({ state: 'detached', timeout: 15000 });
+  ok('and adding it lifts the screen, with the new passkey on this device', (await keys()).length === 1 && (await call(page, 'get', '/admin/security-policy')).status === 200);
+  ok('the new passkey is recorded as added by recovery', rows("SELECT added_method FROM auth_credentials ORDER BY id DESC LIMIT 1")[0].added_method === 'recovery');
+  await ctx.close();
+}
+
 await finish();

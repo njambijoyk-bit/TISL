@@ -14,6 +14,9 @@ use Laravel\Sanctum\PersonalAccessToken;
  */
 final class Sessions
 {
+    /** How long a recovery code lets a session add a new passkey. */
+    public const RECOVERY_MINUTES = 15;
+
     private static ?bool $tracked = null;
     private static ?bool $strong = null;
 
@@ -154,6 +157,22 @@ final class Sessions
         $at = $this->recordOf($token)?->last_strong_at;
 
         return $at !== null && $at->gte(now()->subMinutes($minutes));
+    }
+
+    /** A recovery code has just been used in this session: for a quarter of an hour it may add a new passkey (and take away a lost one). */
+    public function markRecovered(?PersonalAccessToken $token): void
+    {
+        if ($token && RecoveryCodes::ready()) {
+            AuthSession::where('token_id', $token->id)->update(['recovery_at' => now()]);
+        }
+    }
+
+    /** Was a recovery code used in this session within the last quarter of an hour? */
+    public function recoveryFresh(?PersonalAccessToken $token): bool
+    {
+        $at = RecoveryCodes::ready() ? $this->recordOf($token)?->recovery_at : null;
+
+        return $at !== null && $at->gte(now()->subMinutes(self::RECOVERY_MINUTES));
     }
 
     /** End every session that was opened with this passkey (it was removed, or looked copied). @return int how many */

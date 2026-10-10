@@ -11,6 +11,8 @@ cd ../frontend
 npx vite --port 5177 --strictPort &             # the website on http://localhost:5177
 node e2e/cookie-session.mjs                     # prints PASS / FAIL lines
 node e2e/passkeys.mjs                           # passkeys with Chromium's pretend fingerprint reader (it remakes the database itself, so run it as often as you like)
+node e2e/passkey-policy.mjs                     # the passkey rule for staff: the reminder, the "one more step" screen, the owner needing two devices, a lost device and a recovery code
+node e2e/recovery-seal.mjs                      # recovery codes (make, save, use) and the seal phrase on the sign-in page
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).
@@ -26,3 +28,7 @@ Two things to know about it:
 - The real profile pages need a much bigger database than this check builds, so "My devices" is shown on its own by `e2e/harness.html` (served by the dev server only, never part of the build), signed in as the same person.
 - The browser's own list under the email field can not be clicked by a test; the check stands in for the person picking from it (`picksFromList`). A device that already holds a passkey for the account refuses to make a second one,
   so each new passkey in the check goes onto a new pretend device.
+
+`passkey-policy.mjs` writes the rule's settings straight into the throw-away database (the way the owner's page will), then signs in as the admin, the owner, a logistics user and a customer
+(all in `backend/tests/Support/E2eSeed.php`). `recovery-seal.mjs` uses the same pretend device for a lost phone: a second browser window with nothing on it, the password, and one of the codes.
+`lib.mjs` holds what the checks share (the browser, the database reset, the pretend devices).

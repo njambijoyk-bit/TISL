@@ -335,6 +335,7 @@ export const ADMIN_NAV = [
           { group: 'Content', title: 'Policies', path: '/admin/settings/policy', perm: 'policies.manage', description: 'Terms, privacy, returns' },
           { group: 'Access', title: 'Users & roles', path: '/admin/users', description: 'Staff accounts and their roles' },
           { group: 'Access', title: 'Sign-in log', path: '/admin/security', perm: 'security.view', description: 'Who signed in, wrong passwords, waits and alerts' },
+          { group: 'Access', title: 'Passkey rule', path: '/admin/security/passkeys', perm: 'security.view', description: 'Who must sign in with a passkey, and who still has to add one' },
           { group: 'Access', title: 'Roles & access', path: '/admin/access', perm: 'access.view', description: 'Clearance levels, roles, permissions and branch access' },
           { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, perm: 'algorithm.manage', description: 'Ranking, pins and catalogue boosts' },
           { group: 'Platform', title: 'Engagement', path: '/admin/settings/engagement', module: MODULES.EXTRAS, perm: 'engagement.settings', description: 'Who can review, comment, like, mark helpful and report' },

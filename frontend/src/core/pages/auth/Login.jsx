@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound, Stamp } from 'lucide-react';
 import { authAPI } from '../../../_shared/api/index';
 import { useAuthStore, useModuleStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import { autofillSupported, passkeyProblem, passkeysSupported } from '../../../_shared/lib/webauthn';
 import { askForPasskey, finishPasskeySignIn } from '../../../_shared/lib/passkeyFlows';
+import sealAPI from '../../../_shared/api/seal';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -38,6 +39,18 @@ export default function Login() {
     setErrors(e);
     return Object.keys(e).length === 0;
   };
+
+  // The seal phrase: once an email that looks real is typed, ask the server for the person's phrase. It answers only to a browser that has signed in as them before, so for anyone else this stays empty.
+  const [seal, setSeal] = useState(null);
+  useEffect(() => {
+    setSeal(null);
+    const email = formData.email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return undefined;
+    let current = true;
+    const t = setTimeout(() => { sealAPI.forEmail(email).then((p) => { if (current) setSeal(p); }).catch(() => {}); }, 500);
+
+    return () => { current = false; clearTimeout(t); };
+  }, [formData.email]);
 
   // The sign-in worked (by password or by passkey): keep who they are, and go on.
   // Returns false when the server still wants the updated policies accepted first.
@@ -272,6 +285,12 @@ export default function Login() {
                 />
               </div>
               {errors.email && <p style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: 4 }}>{errors.email}</p>}
+              {seal && (
+                <div data-testid="seal-shown" style={{ marginTop: 8, padding: '8px 12px', borderRadius: 10, border: '1.5px dashed var(--color-primary-500)', fontSize: '0.8rem', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <Stamp size={15} style={{ color: 'var(--color-primary-600)', flexShrink: 0, marginTop: 1 }} />
+                  <span><strong style={{ display: 'block' }}>{seal}</strong><span style={{ color: 'var(--text-secondary)' }}>Your seal phrase. If this is not the words you chose, do not type your password here.</span></span>
+                </div>
+              )}
             </div>
 
             {/* Password */}

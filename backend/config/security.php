@@ -52,6 +52,9 @@ return [
         // signing in with a passkey (nobody is named, so counted per address), and adding, proving with and removing them while signed in (per person)
         'passkey' => ['ip' => [[30, 1], [200, 60]]],
         'passkey_manage' => ['user' => [[30, 15], [100, 60]]],
+        // trying recovery codes while signed in (counted per person; a code is 49 bits, so a handful of tries an hour is plenty for a real person), and asking the sign-in page for a seal phrase (per address)
+        'recovery' => ['user' => [[5, 15], [15, 60]]],
+        'seal' => ['ip' => [[60, 1], [300, 60]]],
     ],
 
     // Headers added to every response (see Http/Middleware/SecurityHeaders). HSTS is only sent over HTTPS; switch it off if the site must also be reached over plain HTTP.
@@ -100,6 +103,9 @@ return [
 
     // Email a person when a kind of browser they have not signed in from before signs in (with a button that signs everyone out). Off with SECURITY_NEW_SIGN_IN_EMAIL=false.
     'new_sign_in_email' => (bool) env('SECURITY_NEW_SIGN_IN_EMAIL', true),
+
+    // Tell the person (email and bell) when a passkey is added, removed or switched off, or recovery codes are made or used. Off with SECURITY_ALERTS_EMAIL=false.
+    'alerts_email' => (bool) env('SECURITY_ALERTS_EMAIL', true),
 
     'password' => [
         'min_length' => (int) env('SECURITY_PASSWORD_MIN', 10),
