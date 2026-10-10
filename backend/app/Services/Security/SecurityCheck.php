@@ -3,6 +3,7 @@
 namespace App\Services\Security;
 
 use App\Models\User;
+use App\Services\Security\Passkeys\PasskeyConfig;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -63,8 +64,23 @@ final class SecurityCheck
         $add(! in_array(config('mail.default'), ['log', 'array'], true) ? self::OK : self::WARN, 'Email really goes out (MAIL_MAILER)', ! in_array(config('mail.default'), ['log', 'array'], true) ? null : 'MAIL_MAILER is "'.config('mail.default').'": password reset links and security notices are written to a file, not sent.');
 
         // what the code needs in the database
-        $missing = array_values(array_filter(['auth_sessions', 'security_events'], fn ($t) => ! Schema::hasTable($t)));
-        $add(! $missing ? self::OK : self::FAIL, 'The security tables exist', ! $missing ? null : 'Missing: '.implode(', ', $missing).'. Run database script 123_security_core.sql in Workbench.');
+        $missing = array_values(array_filter(['auth_sessions', 'security_events', 'auth_credentials', 'auth_challenges'], fn ($t) => ! Schema::hasTable($t)));
+        if (! $missing && ! Schema::hasColumn('auth_sessions', 'strength')) {
+            $missing[] = 'auth_sessions.strength';
+        }
+        $add(! $missing ? self::OK : self::FAIL, 'The security tables exist', ! $missing ? null : 'Missing: '.implode(', ', $missing).'. Run database scripts 123_security_core.sql and 124_passkeys.sql in Workbench.');
+
+        // passkeys are made for one domain and can never move: it must be the website's
+        $rp = PasskeyConfig::rpId();
+        $siteHost = (string) parse_url((string) config('app.frontend_url'), PHP_URL_HOST);
+        $site = self::registrableDomain($siteHost);
+        $okRp = $rp !== '' && $rp !== 'localhost' && ($siteHost === $rp || str_ends_with($siteHost, '.'.$rp)) && ($rp === $site || str_ends_with($rp, '.'.$site));   // the website's domain or a name under it, never a bare ending like co.ke
+        $add($okRp ? self::OK : ($production ? self::FAIL : self::NOTE), 'Passkeys are made for the website\'s own domain (PASSKEY_RP_ID)',
+            $okRp ? null : "PASSKEY_RP_ID is \"{$rp}\" and the website is on \"{$siteHost}\". A passkey belongs to the domain it was made for for ever: set PASSKEY_RP_ID to the website's domain (targetisl.co.ke) BEFORE anyone adds a passkey.");
+        $listed = (array) config('security.passkeys.origins', []);
+        $usable = PasskeyConfig::origins();
+        $add(count($usable) === count($listed) && $usable ? self::OK : self::WARN, 'Passkey origins are exact https addresses of the website (PASSKEY_ORIGINS)',
+            count($usable) === count($listed) && $usable ? null : (! $usable ? 'No usable address is listed: nobody could add or use a passkey.' : 'Ignored (not https, or not an address): '.implode(', ', array_diff($listed, $usable)).'.'));
         if (Schema::hasTable('permissions')) {
             $has = DB::table('permissions')->where('key', 'security.view')->exists();
             $add($has ? self::OK : self::WARN, 'The "see the sign-in log" permission is installed', $has ? null : 'Run php artisan access:seed.');

@@ -21,6 +21,8 @@ use Illuminate\Support\Str;
 use Illuminate\Auth\Events\PasswordReset;
 use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 use App\Rules\StrongPassword;
+use App\Services\Security\Passkeys\PasskeyException;
+use App\Services\Security\Passkeys\Passkeys;
 use App\Services\Security\SecurityLog;
 use App\Services\Security\SessionCookie;
 use App\Services\Security\SignInGuard;
@@ -147,7 +149,7 @@ class AuthController extends Controller
             //Mail::to($user->email)->send(new WelcomeEmail($user));
 
             // Auto login
-            Auth::login($user);
+            Auth::guard('web')->login($user);
 
             // Create token
             $token = app(Sessions::class)->issue($user, $request, 'auth-token', 'register');
@@ -238,7 +240,20 @@ class AuthController extends Controller
             ], 403);
         }
 
-        // ── Policy acceptance check (customers only) ──────────────────────────────
+        // Customers must have accepted the current policies: asked for them, or recorded when sent along
+        if ($stop = $this->policyGate($request, $user)) {
+            return $stop;
+        }
+
+        return $this->finishSignIn($request, $user, 'password');
+    }
+
+    /**
+     * Customers only: the policies they must have accepted (terms, privacy). Returns the answer to send back when they still have to accept or have refused; null to carry on.
+     * The same gate guards every way of signing in (password, passkey).
+     */
+    private function policyGate(Request $request, User $user): ?\Illuminate\Http\JsonResponse
+    {
         if ($user->isCustomer() && $user->customer) {
             $customer = $user->customer;
             $policyAcceptances = $request->input('policy_acceptances', []);
@@ -336,12 +351,18 @@ class AuthController extends Controller
             }
         }
 
+        return null;
+    }
+
+    /** The person is in: open the session (cookie or code), record it, and answer with who they are and what they may do. */
+    private function finishSignIn(Request $request, User $user, string $method, ?\App\Models\Security\AuthCredential $credential = null): \Illuminate\Http\JsonResponse
+    {
         // Login successful
-        Auth::login($user, $request->remember ?? false);
+        Auth::guard('web')->login($user, $request->remember ?? false);
         $user->recordLogin($request);
 
-        // Create API token
-        $token = app(Sessions::class)->issue($user, $request, 'auth-token', 'password');
+        // Create API token (a passkey sign-in is the strongest kind of proof we accept, and the session says so)
+        $token = app(Sessions::class)->issue($user, $request, 'auth-token', $method, $credential?->id, $credential ? 2 : 0);
 
         // NEW: Load customer with referral code
         $customer = null;
@@ -355,6 +376,42 @@ class AuthController extends Controller
             'access' => $user->accessSummary(),
             'customer' => $customer, // NEW: Separate customer data
         ], 200, $token, $user);
+    }
+
+    /** The question a device is asked to sign to sign in with a passkey: it names no one, so it tells a stranger nothing about who has an account. */
+    public function passkeyOptions(Request $request)
+    {
+        try {
+            $q = app(Passkeys::class)->loginOptions($request);
+        } catch (PasskeyException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->httpStatus);
+        }
+
+        return response()->json(['challenge_id' => $q['id'], 'options' => $q['options']]);
+    }
+
+    /** SIGN IN WITH A PASSKEY: the strongest proof we take. A genuine answer to a question we asked, for our website, with the person verified on their device. */
+    public function passkeyLogin(Request $request)
+    {
+        $request->validate(['challenge_id' => 'required|string|size:40', 'credential' => 'required|array']);
+        try {
+            ['user' => $user, 'credential' => $credential] = app(Passkeys::class)->login((string) $request->input('challenge_id'), (array) $request->input('credential'), $request);
+        } catch (PasskeyException $e) {
+            SecurityLog::record('sign_in_failed', null, $request, ['reason' => 'passkey_'.$e->reason, 'door' => 'passkey'], SecurityLog::NOTICE);
+
+            return response()->json(['message' => $e->getMessage()], $e->httpStatus);
+        }
+        if (! $user->canLogin()) {   // suspended, locked, a left employee... (a passkey does not get past that)
+            SecurityLog::record('sign_in_refused', $user, $request, ['reason' => $user->isLocked() ? 'locked' : 'not_allowed', 'door' => 'passkey'], SecurityLog::WARNING);
+
+            return response()->json(['message' => $user->isLocked() ? 'Your account is locked. Please contact support.' : 'Your account is suspended. Please contact support.'], 403);
+        }
+        // the passkey is itself the proof, so a pending "choose a new password" does not stand in its way; the policies still must be accepted
+        if ($stop = $this->policyGate($request, $user)) {
+            return $stop;
+        }
+
+        return $this->finishSignIn($request, $user, 'passkey', $credential);
     }
 
     /**
@@ -612,7 +669,7 @@ class AuthController extends Controller
 
         event(new PasswordReset($user));
 
-        Auth::login($user);
+        Auth::guard('web')->login($user);
         $token = app(Sessions::class)->issue($user, $request, 'auth-token', 'reset');
         $user->recordLogin($request);
 

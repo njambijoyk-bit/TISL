@@ -49,6 +49,9 @@ return [
         'force'   => ['email_ip' => [[10, 15]],          'ip' => [[20, 15], [60, 60]]],
         // someone already signed in, guessing a current password or a phone code: counted per person
         'guess'   => ['user' => [[8, 15], [30, 60]]],
+        // signing in with a passkey (nobody is named, so counted per address), and adding, proving with and removing them while signed in (per person)
+        'passkey' => ['ip' => [[30, 1], [200, 60]]],
+        'passkey_manage' => ['user' => [[30, 15], [100, 60]]],
     ],
 
     // Headers added to every response (see Http/Middleware/SecurityHeaders). HSTS is only sent over HTTPS; switch it off if the site must also be reached over plain HTTP.
@@ -65,6 +68,18 @@ return [
         'secure' => env('SECURITY_COOKIE_SECURE') === null ? null : filter_var(env('SECURITY_COOKIE_SECURE'), FILTER_VALIDATE_BOOLEAN),   // null: https whenever the request or APP_URL is
         'same_site' => env('SECURITY_COOKIE_SAMESITE', 'lax'),
         'names' => ['user' => 'tisl_session', 'applicant' => 'tisl_applicant'],
+    ],
+
+    // Passkeys (WebAuthn). The RP ID is the domain a passkey is made for and can never change without orphaning every passkey: it is the website's registrable domain, so the shop and the API
+    // can sit on subdomains of it. Only the origins listed here (exact addresses, subdomains are NOT accepted) may ask for or answer a passkey.
+    // For development set PASSKEY_RP_ID=localhost and PASSKEY_ORIGINS=http://localhost:5173.
+    'passkeys' => [
+        'rp_id' => env('PASSKEY_RP_ID', 'targetisl.co.ke'),
+        'rp_name' => env('PASSKEY_RP_NAME', 'TISL'),
+        'origins' => array_values(array_filter(array_map('trim', explode(',', (string) env('PASSKEY_ORIGINS', 'https://targetisl.co.ke,https://www.targetisl.co.ke'))))),
+        'challenge_seconds' => 120,   // a question to a device is good for two minutes, once
+        'timeout_ms' => 120000,
+        'max_per_person' => 10,
     ],
 
     // Email a person when a kind of browser they have not signed in from before signs in (with a button that signs everyone out). Off with SECURITY_NEW_SIGN_IN_EMAIL=false.

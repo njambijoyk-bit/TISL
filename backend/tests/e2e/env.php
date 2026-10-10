@@ -10,6 +10,8 @@ return [
     'APP_KEY' => 'base64:'.base64_encode(str_repeat('e', 32)),
     'APP_URL' => 'http://localhost:8000',
     'FRONTEND_URL' => 'http://localhost:5177',
+    'PASSKEY_RP_ID' => 'localhost',
+    'PASSKEY_ORIGINS' => 'http://localhost:5177',
     'DB_CONNECTION' => 'sqlite',
     'CACHE_STORE' => 'file',
     'SESSION_DRIVER' => 'file',

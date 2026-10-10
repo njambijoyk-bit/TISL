@@ -22,6 +22,8 @@ class RateLimits
         'password-reset' => 'reset',
         'password-force' => 'force',
         'guess' => 'guess',
+        'passkey' => 'passkey',
+        'passkey-manage' => 'passkey_manage',
     ];
 
     public static function register(): void

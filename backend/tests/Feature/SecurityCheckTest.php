@@ -202,6 +202,54 @@ class SecurityCheckTest extends TestCase
         $this->assertSame('fail', $line['status']);
         $this->assertStringContainsString('security_events', $line['advice']);
         $this->assertStringContainsString('123_security_core.sql', $line['advice']);
+        $this->assertStringContainsString('124_passkeys.sql', $line['advice']);
+    }
+
+    public function test_missing_passkey_tables_or_columns_are_a_failure_too(): void
+    {
+        \Illuminate\Support\Facades\Schema::drop('auth_credentials');
+        $this->assertStringContainsString('auth_credentials', $this->results()['The security tables exist']['advice']);
+        \Illuminate\Support\Facades\Schema::create('auth_credentials', fn ($t) => $t->id());
+        \Illuminate\Support\Facades\Schema::table('auth_sessions', fn ($t) => $t->dropColumn('strength'));
+        $line = $this->results()['The security tables exist'];
+        $this->assertSame('fail', $line['status']);
+        $this->assertStringContainsString('auth_sessions.strength', $line['advice']);
+    }
+
+    public function test_passkeys_must_be_made_for_the_websites_own_domain(): void
+    {
+        $this->assertSame('ok', $this->lineStatus('Passkeys are made for'));
+        config(['security.passkeys.rp_id' => 'localhost']);
+        $this->assertSame('fail', $this->lineStatus('Passkeys are made for'));
+        config(['security.passkeys.rp_id' => 'otherco.co.ke']);
+        $line = collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Passkeys are made for'));
+        $this->assertSame('fail', $line['status']);
+        $this->assertStringContainsString('BEFORE anyone adds a passkey', $line['advice']);
+        config(['security.passkeys.rp_id' => 'co.ke']);
+        $this->assertSame('fail', $this->lineStatus('Passkeys are made for'), 'a domain that is only the ending of the website address is not the website');
+        config(['app.env' => 'local', 'security.passkeys.rp_id' => 'localhost', 'app.frontend_url' => 'http://localhost:5177']);
+        $this->assertSame('note', $this->lineStatus('Passkeys are made for'), 'while developing');
+        config(['security.passkeys.rp_id' => 'targetisl.co.ke', 'app.frontend_url' => 'https://www.targetisl.co.ke', 'app.env' => 'production']);
+        $this->assertSame('ok', $this->lineStatus('Passkeys are made for'), 'the website may sit on a subdomain of the domain');
+        config(['security.passkeys.rp_id' => 'shop.targetisl.co.ke']);
+        $this->assertSame('fail', $this->lineStatus('Passkeys are made for'), 'a name under the domain that is not the website is not it');
+        config(['security.passkeys.rp_id' => 'www.targetisl.co.ke']);
+        $this->assertSame('ok', $this->lineStatus('Passkeys are made for'), 'the website\'s own full name works too');
+    }
+
+    public function test_passkey_origins_that_are_not_https_are_pointed_out(): void
+    {
+        $this->assertSame('ok', $this->lineStatus('Passkey origins'));
+        $this->assertNull(collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Passkey origins'))['advice']);
+        config(['security.passkeys.origins' => ['https://targetisl.co.ke', 'http://targetisl.co.ke']]);
+        $line = collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Passkey origins'));
+        $this->assertSame('warn', $line['status']);
+        $this->assertStringContainsString('http://targetisl.co.ke', $line['advice']);
+        config(['security.passkeys.origins' => ['http://targetisl.co.ke']]);
+        $line = collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Passkey origins'));
+        $this->assertStringContainsString('nobody could', $line['advice']);
+        config(['security.passkeys.origins' => []]);
+        $this->assertSame('warn', $this->lineStatus('Passkey origins'));
     }
 
     public function test_the_permission_not_yet_installed_is_a_warning_that_says_how(): void

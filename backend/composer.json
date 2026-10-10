@@ -13,7 +13,12 @@
         "laravel/socialite": "^5.24",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "^3.1",
-        "socialiteproviders/microsoft": "^4.7"
+        "socialiteproviders/microsoft": "^4.7",
+        "symfony/property-access": "^7.2",
+        "symfony/property-info": "^7.2",
+        "symfony/serializer": "^7.2",
+        "symfony/type-info": "^7.2",
+        "web-auth/webauthn-lib": "^5.2"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

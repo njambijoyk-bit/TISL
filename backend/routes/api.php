@@ -139,6 +139,8 @@ Route::prefix('auth')->group(function () {
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:password-forgot');
     Route::post('/reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:password-reset');
     Route::post('/force-change-password', [AuthController::class, 'forceChangePassword'])->middleware('throttle:password-force');
+    Route::post('/passkeys/options', [AuthController::class, 'passkeyOptions'])->middleware('throttle:passkey');   // sign in with a passkey: the question the device signs
+    Route::post('/passkeys/login', [AuthController::class, 'passkeyLogin'])->middleware('throttle:passkey');
     Route::post('/secure-account', [\App\Http\Controllers\Api\SecureAccountController::class, 'store'])->middleware('throttle:password-reset');   // "This was not me" in the new-sign-in email
 });
 
@@ -431,6 +433,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chat', [ChatController::class, 'chat'])
         ->middleware('throttle:30,1');
     // Authentication
+    // My devices: the passkeys a person has added. Changing them needs strong proof (see PasskeyController).
+    Route::prefix('auth/passkeys')->middleware('throttle:passkey-manage')->group(function () {
+        $c = \App\Http\Controllers\Api\PasskeyController::class;
+        Route::get('/',                      [$c, 'index']);
+        Route::post('/register/options',     [$c, 'registerOptions']);
+        Route::post('/register/verify',      [$c, 'registerVerify']);
+        Route::post('/prove/options',        [$c, 'proveOptions']);
+        Route::post('/prove',                [$c, 'prove']);
+        Route::patch('/{id}',                [$c, 'rename'])->whereNumber('id');
+        Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id');
+    });
     Route::get('/auth/sessions',                 [\App\Http\Controllers\Api\SessionController::class, 'index']);            // where I am signed in
     Route::delete('/auth/sessions/{id}',         [\App\Http\Controllers\Api\SessionController::class, 'destroy'])->whereNumber('id');
     Route::post('/auth/sessions/revoke-others',  [\App\Http\Controllers\Api\SessionController::class, 'revokeOthers']);

@@ -15,6 +15,13 @@ use Laravel\Sanctum\PersonalAccessToken;
 final class Sessions
 {
     private static ?bool $tracked = null;
+    private static ?bool $strong = null;
+
+    /** Does the table know about passkeys (database script 124 run)? Until it does, sessions are recorded as before. */
+    public static function strongTracked(): bool
+    {
+        return self::tracked() && (self::$strong ??= Schema::hasColumn('auth_sessions', 'strength'));
+    }
 
     public static function tracked(): bool
     {
@@ -24,22 +31,30 @@ final class Sessions
     public static function forget(): void
     {
         self::$tracked = null;
+        self::$strong = null;
     }
 
-    /** A new login token for this person, ending by the policy, and the record of where it came from. @return string the token to hand to the browser */
-    public function issue(Model $tokenable, ?Request $request, string $name = 'auth-token', string $method = 'password'): string
+    /**
+     * A new login token for this person, ending by the policy, and the record of where it came from.
+     * `$strength` is how well the person proved who they are: 0 a password, 2 a passkey checked with fingerprint, face or PIN; with a passkey, `$credentialId` says which one.
+     *
+     * @return string the token to hand to the browser
+     */
+    public function issue(Model $tokenable, ?Request $request, string $name = 'auth-token', string $method = 'password', ?int $credentialId = null, int $strength = 0): string
     {
         $now = now();
         $newDevice = $this->hasHistory($tokenable) && ! $this->seenBefore($tokenable, $request);   // asked before this session is recorded
         $made = $tokenable->createToken($name, ['*'], SessionPolicy::expiry($tokenable, $now, $now));
-        SecurityLog::record('sign_in', $tokenable, $request, ['method' => $method, 'device' => DeviceInfo::describe($request?->userAgent())['label'], 'new_device' => $newDevice]);
+        SecurityLog::record('sign_in', $tokenable, $request, ['method' => $method, 'device' => DeviceInfo::describe($request?->userAgent())['label'], 'new_device' => $newDevice]
+            + ($credentialId ? ['credential' => $credentialId, 'strength' => $strength] : []));
         if ($newDevice) {
             rescue(fn () => app(NewSignInNotice::class)->send($tokenable, $request, $method), null, true);   // telling them must never stop them signing in
         }
         if (self::tracked()) {
             $d = DeviceInfo::describe($request?->userAgent());
             AuthSession::create(['token_id' => $made->accessToken->id, 'tokenable_type' => $tokenable->getMorphClass(), 'tokenable_id' => $tokenable->getKey(), 'method' => $method, 'ip' => $request?->ip(),
-                'user_agent' => $request?->userAgent() ? mb_substr($request->userAgent(), 0, 255) : null, 'device_key' => $d['key'], 'label' => $d['label'], 'last_seen_at' => $now]);
+                'user_agent' => $request?->userAgent() ? mb_substr($request->userAgent(), 0, 255) : null, 'device_key' => $d['key'], 'label' => $d['label'], 'last_seen_at' => $now]
+                + (self::strongTracked() ? ['credential_id' => $credentialId, 'strength' => $strength, 'last_strong_at' => $strength >= 2 ? $now : null] : []));
         }
 
         return $made->plainTextToken;
@@ -115,6 +130,47 @@ final class Sessions
         return true;
     }
 
+    /** The record of the session a token belongs to (null before script 123, or for a session that was never recorded). */
+    public function recordOf(?PersonalAccessToken $token): ?AuthSession
+    {
+        return $token && self::tracked() ? AuthSession::where('token_id', $token->id)->first() : null;
+    }
+
+    /**
+     * Strong proof has just happened in this session (a passkey was used): note when, and lift its strength. The session stays tied to the passkey that opened it, or that first lifted it
+     * from a password; a later proof with another passkey is on the log but does not change whose session it is.
+     */
+    public function markStrong(?PersonalAccessToken $token, int $credentialId): void
+    {
+        if ($token && self::strongTracked()) {
+            AuthSession::where('token_id', $token->id)->update(['strength' => 2, 'last_strong_at' => now()]);
+            AuthSession::where('token_id', $token->id)->whereNull('credential_id')->update(['credential_id' => $credentialId]);
+        }
+    }
+
+    /** Was strong proof given in this session within the last few minutes? (A session started with a passkey counts from the moment it started.) */
+    public function freshStrong(?PersonalAccessToken $token, int $minutes = 10): bool
+    {
+        $at = $this->recordOf($token)?->last_strong_at;
+
+        return $at !== null && $at->gte(now()->subMinutes($minutes));
+    }
+
+    /** End every session that was opened with this passkey (it was removed, or looked copied). @return int how many */
+    public function revokeByCredential(int $credentialId, string $reason): int
+    {
+        if (! self::strongTracked()) {
+            return 0;
+        }
+        $ids = AuthSession::where('credential_id', $credentialId)->whereNull('revoked_at')->pluck('token_id')->all();
+        if ($ids) {
+            PersonalAccessToken::whereIn('id', $ids)->delete();
+            $this->markEnded($ids, $reason);
+        }
+
+        return count($ids);
+    }
+
     /** @param int[] $tokenIds */
     private function markEnded(array $tokenIds, string $reason): void
     {
@@ -134,7 +190,7 @@ final class Sessions
 
             return ['id' => $t->id, 'label' => $m?->label ?? 'A device from before sessions were listed', 'ip' => $m?->ip, 'method' => $m?->method,
                 'signed_in_at' => ($m?->created_at ?? $t->created_at)?->format('Y-m-d\TH:i'), 'last_seen_at' => ($m?->last_seen_at ?? $t->last_used_at)?->format('Y-m-d\TH:i'),
-                'ends_at' => $t->expires_at?->format('Y-m-d\TH:i'), 'current' => $currentTokenId !== null && (int) $t->id === $currentTokenId];
+                'ends_at' => $t->expires_at?->format('Y-m-d\TH:i'), 'strong' => (int) ($m?->strength ?? 0) >= 2, 'current' => $currentTokenId !== null && (int) $t->id === $currentTokenId];
         })->values()->all();
     }
 }

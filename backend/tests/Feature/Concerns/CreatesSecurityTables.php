@@ -24,6 +24,18 @@ trait CreatesSecurityTables
         Schema::create('auth_sessions', function ($t) {
             $t->id(); $t->unsignedBigInteger('token_id')->unique(); $t->string('tokenable_type'); $t->unsignedBigInteger('tokenable_id'); $t->string('method', 20)->default('password'); $t->string('ip', 45)->nullable();
             $t->string('user_agent')->nullable(); $t->string('device_key', 40)->nullable(); $t->string('label')->nullable(); $t->dateTime('last_seen_at')->nullable(); $t->dateTime('revoked_at')->nullable(); $t->string('revoked_reason', 40)->nullable(); $t->timestamps();
+            $t->unsignedBigInteger('credential_id')->nullable(); $t->unsignedTinyInteger('strength')->default(0); $t->dateTime('last_strong_at')->nullable(); $t->boolean('restricted')->default(false);
+        });
+        Schema::create('auth_credentials', function ($t) {
+            $t->id(); $t->unsignedBigInteger('user_id'); $t->string('credential_hash', 64)->unique(); $t->text('credential_id'); $t->text('public_key'); $t->string('user_handle', 100); $t->string('name', 80); $t->string('kind', 20)->default('passkey');
+            $t->json('transports')->nullable(); $t->string('aaguid', 36)->nullable(); $t->string('attestation_type', 20)->nullable(); $t->unsignedBigInteger('counter')->default(0); $t->boolean('backup_eligible')->nullable(); $t->boolean('backup_status')->nullable();
+            $t->boolean('uv_initialized')->nullable(); $t->string('added_method', 20)->default('first'); $t->unsignedBigInteger('added_by_id')->nullable(); $t->unsignedBigInteger('replaced_by_id')->nullable(); $t->dateTime('last_used_at')->nullable();
+            $t->string('last_used_ip', 45)->nullable(); $t->string('last_used_device', 120)->nullable(); $t->dateTime('disabled_at')->nullable(); $t->string('disabled_reason', 40)->nullable(); $t->dateTime('revoked_at')->nullable();
+            $t->unsignedBigInteger('revoked_by_id')->nullable(); $t->string('revoked_reason', 40)->nullable(); $t->timestamps();
+        });
+        Schema::create('auth_challenges', function ($t) {
+            $t->string('id', 40)->primary(); $t->string('purpose', 20); $t->unsignedBigInteger('user_id')->nullable(); $t->string('challenge', 43); $t->string('context_hash', 64)->nullable(); $t->json('options'); $t->string('ip', 45)->nullable();
+            $t->dateTime('expires_at'); $t->dateTime('used_at')->nullable(); $t->timestamp('created_at')->nullable();
         });
         Schema::create('security_events', function ($t) {
             $t->id(); $t->string('subject_type', 40)->nullable(); $t->unsignedBigInteger('subject_id')->nullable(); $t->string('event', 40); $t->string('severity', 10)->default('info'); $t->string('email_tried')->nullable();
