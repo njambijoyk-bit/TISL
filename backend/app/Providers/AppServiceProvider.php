@@ -47,6 +47,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(\App\Services\Location\LocationContext::class);
 
 
+        $this->app->singleton(\App\Services\Codes\CodeResolvers::class);   // modules register what their signed codes mean
         $this->app->singleton(PromoCodeService::class);
         $this->app->singleton(DarajaService::class);
         $this->app->singleton(LoyaltyService::class);

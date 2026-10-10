@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 9;
+    public const VERSION = 10;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        10 => ['codes.view', 'codes.manage', 'codes.print'],
         9 => ['payments.keys'],
         8 => ['notifications.view', 'notifications.send', 'notifications.settings', 'notifications.keys.purge'],
         7 => ['mimi.knowledge', 'mimi.routing'],
@@ -144,6 +145,9 @@ class Catalog
         'notifications.send'       => [null, 'System', 'Send waiting WhatsApp messages by hand, retry failed ones and send a test message', true],
         'notifications.settings'   => [null, 'System', 'Set up email and WhatsApp (keys, passwords, rules) and roll a change back', true],
         'notifications.keys.purge' => [null, 'System', 'Delete old keys and passwords kept in the history of the notification settings', true],
+        'codes.view'        => [null, 'Codes', 'See the Codes page and look up what a code stands for', false],
+        'codes.manage'      => [null, 'Codes', 'Give products, batches and assets their barcodes and change or retire a code', true],
+        'codes.print'       => [null, 'Codes', 'Print code labels and sheets', false],
         'payments.keys'     => [null, 'System', 'Set the M-Pesa (and card) payment keys, roll a change back and delete old keys from the history', true],
         'resources.manage'  => [null, 'Operations', 'Manage bookable staff, rooms, tables and equipment', true],
         // added in R4: one for each role-name check that was left in the code
@@ -248,7 +252,7 @@ class Catalog
                 'permissions' => array_merge(self::STAFF, ['books.view', 'stock.view', 'inventory.view', 'vendors.view', 'menus.view', 'campaigns.build', 'campaigns.publish', 'catalogue.pricelists',
                     'catalogue.delete', 'credit.act', 'delivery.manage', 'tax.view', 'inventory.accounting', 'inventory.manage', 'catalogue.settings', 'promos.manage', 'projects.use',
                     'analytics.view', 'insight.mimi', 'resources.manage', 'quotes.write', 'calendar.team', 'hr.view', 'hr.team', 'stock.override_expiry', 'stock.expiry_alerts', 'loyalty.grant',
-                    'loyalty.deduct', 'loyalty.export', 'projects.manage', 'catalogue.publish', 'engagement.view', 'engagement.moderate', 'insight.ops', 'vendors.approve', 'users.manage', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'auctions.manage', 'shipping.manage', 'tickets.manage', 'bookings.manage', 'costcentres.view']),
+                    'loyalty.deduct', 'loyalty.export', 'projects.manage', 'catalogue.publish', 'engagement.view', 'engagement.moderate', 'insight.ops', 'vendors.approve', 'users.manage', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'auctions.manage', 'shipping.manage', 'tickets.manage', 'bookings.manage', 'costcentres.view', 'codes.view', 'codes.manage', 'codes.print']),
                 'approvals' => ['campaign.publish' => null], 'sort' => 40],
             'finance' => ['name' => 'Finance', 'kind' => 'staff', 'min_clearance' => 3, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Does the finance work of the branches assigned or granted.', 'modules' => ['*'],

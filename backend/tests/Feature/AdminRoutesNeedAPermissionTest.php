@@ -30,6 +30,7 @@ class AdminRoutesNeedAPermissionTest extends TestCase
         'api/admin/my-payslips' => 'only ever the signed-in person\'s own payslips',
         'api/admin/currencies' => 'read-only lookup every screen needs (changes need currency.manage)',
         'api/admin/activity-feed' => 'ActivityFeedService shows each person only the feeds their permissions open',
+        'api/admin/codes/scan' => 'CodeResolvers: each code type names the permission a scan needs',
         'api/modules/setup' => 'first-time ownership code, open to staff only while the install is unverified',
     ];
 

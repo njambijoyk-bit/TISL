@@ -258,6 +258,9 @@ Route::prefix('stock-watches')->group(function () {
 Route::get('/reminder-prefs/{token}', [\App\Http\Controllers\Api\ReminderPrefsController::class, 'show'])->middleware('throttle:30,1');
 Route::post('/reminder-prefs/{token}/stop', [\App\Http\Controllers\Api\ReminderPrefsController::class, 'stop'])->middleware('throttle:30,1');
 
+// A customer's phone camera opened the address in one of our QR codes: where does it lead?
+Route::get('/q/{code}', [\App\Http\Controllers\Api\CodeController::class, 'open'])->middleware('throttle:60,1')->where('code', '.+');
+
 // Public shipping options (for checkout)
 Route::get('/shipping-options', [ShippingOptionController::class, 'publicIndex']);
 
@@ -1076,6 +1079,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/connections/{id}',            [$c, 'saveConnection'])->whereNumber('id')->middleware('permission:imports.manage');
             Route::delete('/connections/{id}',         [$c, 'deleteConnection'])->whereNumber('id')->middleware('permission:imports.manage');
             Route::post('/connections/{id}/fetch',     [$c, 'fetch'])->whereNumber('id')->middleware('permission:imports.view');
+        });
+        Route::prefix('codes')->group(function () {   // QR codes and barcodes: pictures, and staff scanning a signed code (each code type says who may)
+            $c = \App\Http\Controllers\Api\CodeController::class;
+            Route::post('/scan',  [$c, 'scan'])->middleware('throttle:120,1');   // checked inside: the code type names the permission
+            Route::get('/kinds',  [$c, 'kinds'])->middleware('permission:codes.view,codes.print');
+            Route::get('/image',  [$c, 'image'])->middleware('permission:codes.view,codes.print');
         });
         Route::prefix('payments')->middleware('permission:payments.keys')->group(function () {   // the payment keys: the owner only; every change asks for the password again, is logged and emailed to the owners
             $c = \App\Http\Controllers\Api\PaymentSettingsController::class;
