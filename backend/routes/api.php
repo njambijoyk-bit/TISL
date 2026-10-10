@@ -1085,6 +1085,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/scan',  [$c, 'scan'])->middleware('throttle:120,1');   // checked inside: the code type names the permission
             Route::get('/kinds',  [$c, 'kinds'])->middleware('permission:codes.view,codes.print');
             Route::get('/image',  [$c, 'image'])->middleware('permission:codes.view,codes.print');
+            $a = \App\Http\Controllers\Api\CodesAdminController::class;
+            Route::get('/items',     [$a, 'items'])->middleware('permission:codes.view');
+            Route::post('/assign',   [$a, 'assign'])->middleware('permission:codes.manage');
+            Route::put('/item',      [$a, 'setCode'])->middleware('permission:codes.manage');
+            Route::get('/lookup',    [$a, 'lookup'])->middleware('permission:codes.view,catalogue.view,stock.view');   // scanning in the stock screens (and checkout, later)
+            Route::post('/labels',   [$a, 'labels'])->middleware('permission:codes.print');
+            Route::get('/prints',    [$a, 'prints'])->middleware('permission:codes.view');
+            Route::get('/settings',  [$a, 'settings'])->middleware('permission:codes.view');
+            Route::put('/settings',  [$a, 'saveSettings'])->middleware('permission:codes.manage');
         });
         Route::prefix('payments')->middleware('permission:payments.keys')->group(function () {   // the payment keys: the owner only; every change asks for the password again, is logged and emailed to the owners
             $c = \App\Http\Controllers\Api\PaymentSettingsController::class;
