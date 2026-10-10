@@ -45,11 +45,13 @@ export default function CustomerOrderPage() {
   const registrationUnpaid = o.registration && o.payment === 'invoiced' && Number(o.due) >= Number(o.total) - 0.005;
   const canCancel = o.status !== 'cancelled' && ((o.payment === 'unpaid' && !(o.documents?.length)) || registrationUnpaid);
 
+  const payMethod = opts?.payment_methods?.find((x) => String(x.id) === String(pay.methodId || opts.payment_methods[0]?.id));
   const startPay = async (e) => {
     e.preventDefault(); setBusy(true);
     try {
-      const res = await checkoutAPI.payOrder(id, { payment_method_id: Number(pay.methodId || opts.payment_methods[0].id), phone: pay.phone, gift_voucher_code: pay.gift || undefined, full: (dep && pay.full) || undefined });
+      const res = await checkoutAPI.payOrder(id, { payment_method_id: Number(pay.methodId || opts.payment_methods[0].id), phone: payMethod?.gateway === 'mpesa_stk' ? pay.phone : undefined, gift_voucher_code: pay.gift || undefined, full: (dep && pay.full) || undefined });
       toast.success(res.message);
+      if (res.redirect_url) { window.location.assign(res.redirect_url); return; }   // a card: the provider's page, then back to /payment/return
       setPay((p) => ({ ...p, open: false }));
       // poll for the confirmation
       let n = 0;
@@ -270,10 +272,10 @@ export default function CustomerOrderPage() {
                 );
               })}
             </div>
-            <input required placeholder="M-Pesa number" value={pay.phone} onChange={(e) => setPay((p) => ({ ...p, phone: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />
+            {payMethod?.gateway === 'mpesa_stk' && <input required placeholder="M-Pesa number" value={pay.phone} onChange={(e) => setPay((p) => ({ ...p, phone: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />}
             {opts.gift_vouchers_enabled && <input placeholder="Gift voucher code (optional)" value={pay.gift} onChange={(e) => setPay((p) => ({ ...p, gift: e.target.value }))} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', background: 'var(--surface-input)', color: 'var(--text-primary)' }} />}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="submit" disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#6d28d9', color: 'white', fontWeight: 700 }}>{busy ? 'Sending…' : 'Send payment prompt'}</button>
+              <button type="submit" disabled={busy} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#6d28d9', color: 'white', fontWeight: 700 }}>{busy ? 'Please wait…' : (payMethod?.gateway === 'mpesa_stk' ? 'Send payment prompt' : 'Continue to secure payment')}</button>
             </div>
           </form>
         )}

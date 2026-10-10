@@ -7,6 +7,8 @@ use App\Models\PaymentSettingLog;
 use App\Services\DarajaService;
 use App\Services\Payments\DarajaConfigurator;
 use App\Services\Payments\DarajaTester;
+use App\Services\Payments\Gateways;
+use App\Services\Payments\MoneyLedgers;
 use App\Services\Payments\PaymentAlerts;
 use App\Services\Payments\PaymentException;
 use App\Services\Payments\PaymentSettings;
@@ -20,8 +22,6 @@ use Illuminate\Support\Facades\Hash;
  */
 class PaymentSettingsController extends Controller
 {
-    private const PARTS = ['mpesa'];
-
     public function __construct(private PaymentSettings $settings, private DarajaTester $tester, private PaymentAlerts $alerts)
     {
     }
@@ -37,7 +37,7 @@ class PaymentSettingsController extends Controller
 
     private function part(string $part): string
     {
-        abort_unless(in_array($part, self::PARTS, true), 404, 'There is no such part.');
+        abort_unless(in_array($part, PaymentSettings::parts(), true), 404, 'There is no such part.');
 
         return $part;
     }
@@ -65,13 +65,21 @@ class PaymentSettingsController extends Controller
             return ($c[$field] ?? '') !== '' ? 'screen' : (($server[$cfg] ?? '') !== '' && $server[$cfg] !== null ? 'server' : 'none');
         };
         $base = DarajaConfigurator::callbackUrl($c);
+        $cards = PaymentSettings::cardsReady();
+        $parts = $cards ? PaymentSettings::parts() : ['mpesa'];
+        $version = fn ($p) => ($v = $this->settings->currentVersion($p)) ? ['id' => $v->id, 'version_no' => $v->version_no, 'at' => $v->created_at?->toIso8601String(), 'tested_ok' => $v->tested_ok] : null;
 
         return response()->json([
             'ready' => true,
-            'parts' => ['mpesa' => $this->settings->masked('mpesa')],
-            'saved' => ['mpesa' => $this->settings->isSaved('mpesa')],
-            'unreadable' => ['mpesa' => $this->settings->unreadable('mpesa')],
-            'current_version' => ['mpesa' => ($v = $this->settings->currentVersion('mpesa')) ? ['id' => $v->id, 'version_no' => $v->version_no, 'at' => $v->created_at?->toIso8601String(), 'tested_ok' => $v->tested_ok] : null],
+            'cards_ready' => $cards,
+            'parts' => collect($parts)->mapWithKeys(fn ($p) => [$p => $this->settings->masked($p)])->all(),
+            'saved' => collect($parts)->mapWithKeys(fn ($p) => [$p => $this->settings->isSaved($p)])->all(),
+            'unreadable' => collect($parts)->mapWithKeys(fn ($p) => [$p => $this->settings->unreadable($p)])->all(),
+            'current_version' => collect($parts)->mapWithKeys(fn ($p) => [$p => $version($p)])->all(),
+            // the card providers: what each screen draws, how to set it up, and the address it should call
+            'gateways' => $cards ? collect(Gateways::all())->map(fn ($g) => ['key' => $g->key(), 'label' => $g->label(), 'fields' => array_merge(Gateways::commonFields($g), $g->fields()), 'help' => $g->help(),
+                'webhook_url' => url('/api/payments/webhook/' . $g->key()), 'ready' => $g->configured($this->settings->get($g->key()))])->values()->all() : [],
+            'ledgers' => $cards ? MoneyLedgers::options() : [],
             // where each value comes from right now: what is saved here, the server's own settings (.env), or nothing
             'in_use' => ['env' => $from('env', 'env'), 'consumer_key' => $from('consumer_key', 'consumer_key'), 'consumer_secret' => $from('consumer_secret', 'consumer_secret'), 'shortcode' => $from('shortcode', 'shortcode'),
                 'passkey' => $from('passkey', 'passkey'), 'callback_token' => $from('callback_token', 'callback_token')],
@@ -96,10 +104,12 @@ class PaymentSettingsController extends Controller
 
         return $this->guard(function () use ($request, $part) {
             $this->confirm($request);
-            $r = $this->settings->save($part, $request->except(['clear', 'anyway', 'password']), $request->user(), fn (array $candidate) => $this->tester->connection($candidate), $request->boolean('anyway'), (array) $request->input('clear', []));
-            $this->applyNow();
+            $tester = PaymentSettings::isCard($part) ? fn (array $candidate) => Gateways::get($part)->test($candidate) : fn (array $candidate) => $this->tester->connection($candidate);
+            $r = $this->settings->save($part, $request->except(['clear', 'anyway', 'password']), $request->user(), $tester, $request->boolean('anyway'), (array) $request->input('clear', []));
+            $this->applyNow($part);
             if (! $r['unchanged']) {
-                $this->alerts->changed($request->user(), $part, 'Changed: ' . implode(', ', $r['changed']) . '.' . ($r['test'] && ! $r['test']['ok'] ? ' (saved although Safaricom did not accept the key)' : ''));
+                $who = PaymentSettings::isCard($part) ? Gateways::get($part)->label() : 'Safaricom';
+                $this->alerts->changed($request->user(), $part, 'Changed: ' . implode(', ', $r['changed']) . '.' . ($r['test'] && ! $r['test']['ok'] ? " (saved although {$who} did not accept the key)" : ''));
             }
 
             return response()->json(['message' => $r['unchanged'] ? 'Nothing was different, so nothing was saved.' : 'Saved as version ' . $r['version']->version_no . '.' . ($r['test'] ? ' ' . $r['test']['message'] : ''),
@@ -113,6 +123,18 @@ class PaymentSettingsController extends Controller
         $c = array_replace($this->settings->get('mpesa'), array_filter($request->only(['env', 'consumer_key', 'consumer_secret']), fn ($v) => is_string($v) && $v !== ''));
         $r = $this->tester->connection($c);
         PaymentSettingLog::write('tested', $request->user(), 'mpesa', $this->settings->currentVersion('mpesa')?->id, $r['ok'] ? 'Key test passed.' : 'Key test failed: ' . $r['message']);
+
+        return response()->json($r, $r['ok'] ? 200 : 422);
+    }
+
+    /** POST /admin/payments/settings/{part}/test : try a card provider's typed keys (kept ones filled in from what is saved) with the provider, saving nothing. */
+    public function testCard(Request $request, string $part): JsonResponse
+    {
+        abort_unless(PaymentSettings::isCard($part), 404);
+        $g = Gateways::get($part);
+        $typed = array_filter($request->only(array_column($g->fields(), 'key')), fn ($v) => is_string($v) && $v !== '');
+        $r = $g->test(array_replace($this->settings->get($part), $typed));
+        PaymentSettingLog::write('tested', $request->user(), $part, $this->settings->currentVersion($part)?->id, $g->label() . ($r['ok'] ? ': key test passed.' : ': key test failed: ' . $r['message']));
 
         return response()->json($r, $r['ok'] ? 200 : 422);
     }
@@ -146,7 +168,7 @@ class PaymentSettingsController extends Controller
         return $this->guard(function () use ($request, $part) {
             $this->confirm($request);
             $v = $this->settings->rotateToken($part, $request->user());
-            $this->applyNow();
+            $this->applyNow($part);
             $this->alerts->changed($request->user(), $part, 'A new callback token was made (the old one still works for ' . PaymentSettings::GRACE_MINUTES / 60 . ' hours).');
 
             return response()->json(['message' => 'A new callback token is in use (version ' . $v->version_no . '). Payments already waiting still arrive for ' . PaymentSettings::GRACE_MINUTES / 60 . ' hours.']);
@@ -161,6 +183,13 @@ class PaymentSettingsController extends Controller
         return $this->guard(function () use ($request, $part) {
             $this->confirm($request);
             $v = $this->settings->reset($part, $request->user());
+            PaymentSettings::forget();
+            if (PaymentSettings::isCard($part)) {
+                app(MoneyLedgers::class)->sync($part, $this->settings->get($part));   // switched off at checkout
+                $this->alerts->changed($request->user(), $part, 'Cleared: the keys for ' . Gateways::get($part)->label() . ' were removed and it is no longer offered at checkout.', 'Payment keys were cleared');
+
+                return response()->json(['message' => 'Cleared (version ' . $v->version_no . '). ' . Gateways::get($part)->label() . ' is no longer offered at checkout.']);
+            }
             app()->forgetInstance(DarajaService::class);
             $this->alerts->changed($request->user(), $part, 'Cleared: the keys saved on the screen were removed and the server\'s own keys (.env) are used again.', 'Payment keys were cleared');
 
@@ -182,7 +211,7 @@ class PaymentSettingsController extends Controller
         return $this->guard(function () use ($request, $part, $id) {
             $this->confirm($request);
             $v = $this->settings->rollback($part, $id, $request->user());
-            $this->applyNow();
+            $this->applyNow($part);
             $this->alerts->changed($request->user(), $part, "Rolled back to an earlier version (now version {$v->version_no}).", 'Payment keys were rolled back');
 
             return response()->json(['message' => "Restored as version {$v->version_no}."]);
@@ -214,9 +243,15 @@ class PaymentSettingsController extends Controller
         return response()->json($rows);
     }
 
-    private function applyNow(): void
+    /** What was just saved goes live: M-Pesa's keys are laid over the config; a card provider's method at checkout is switched on or off to match. */
+    private function applyNow(string $part): void
     {
         PaymentSettings::forget();
+        if (PaymentSettings::isCard($part)) {
+            app(MoneyLedgers::class)->sync($part, $this->settings->get($part));
+
+            return;
+        }
         app(DarajaConfigurator::class)->apply();
     }
 }

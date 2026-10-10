@@ -54,6 +54,7 @@ const AuctionDetailPage    = lazy(() => import('./ecommerce/pages/customer/Aucti
 const Cart                 = lazy(() => import('./core/pages/customer/Cart'));
 const Wishlist             = lazy(() => import('./ecommerce/pages/customer/Wishlist'));
 const Checkout             = lazy(() => import('./core/pages/customer/Checkout'));
+const PaymentReturn        = lazy(() => import('./core/pages/customer/PaymentReturn'));
 const MyOrders             = lazy(() => import('./core/pages/customer/MyOrdersPage'));
 const CustomerOrderDetail  = lazy(() => import('./core/pages/customer/CustomerOrderPage'));
 const Services             = lazy(() => import('./ecommerce/pages/customer/Services'));
@@ -542,6 +543,7 @@ function App() {
 
             <Route path="/account/bug-reports" element={<ProtectedRoute><MyBugReports /></ProtectedRoute>} />
             <Route path="/settings/appearance" element={<CustomerAppearance />} />
+            <Route path="/payment/return" element={<PaymentReturn />} />
             <Route
               path="/checkout"
               element={

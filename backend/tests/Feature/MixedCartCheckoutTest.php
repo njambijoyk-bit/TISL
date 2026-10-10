@@ -151,9 +151,9 @@ class MixedCartCheckoutTest extends NotifyTestCase
     {
         $method = PaymentMethod::forceCreate(['name' => 'M-Pesa', 'gateway' => 'mpesa_stk', 'is_active' => true]);
         $gateway = \Mockery::mock(GatewayPaymentService::class);
-        $gateway->shouldReceive('initiateMpesa')->once()->withArgs(function ($voucher, $m, $phone, $planned, $due) {
-            return $voucher->id === 10 && $phone === '0712345678' && $planned === [] && abs($due - 2088.0) < 0.001;
-        })->andReturn(PaymentAttempt::forceCreate(['voucher_id' => 10, 'status' => 'pending', 'amount' => 2088, 'payment_method_id' => 1]));
+        $gateway->shouldReceive('start')->once()->withArgs(function ($voucher, $m, $contact, $planned, $due) {
+            return $voucher->id === 10 && $contact['phone'] === '0712345678' && $planned === [] && abs($due - 2088.0) < 0.001;
+        })->andReturn(['attempt' => PaymentAttempt::forceCreate(['voucher_id' => 10, 'status' => 'pending', 'amount' => 2088, 'payment_method_id' => 1]), 'redirect_url' => null]);
         $this->app->instance(GatewayPaymentService::class, $gateway);
         $s = $this->partial();
         $places = [$this->placed(10, 'ORD-1', 928.0, 'awaiting_payment'), $this->placed(11, 'PRE-1', 1160.0, 'awaiting_payment')];

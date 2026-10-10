@@ -324,6 +324,10 @@ Route::post('/webhooks/whatsapp/meta', [\App\Http\Controllers\Api\WhatsAppWebhoo
 Route::post('/webhooks/whatsapp/twilio', [\App\Http\Controllers\Api\WhatsAppWebhookController::class, 'twilio'])->middleware('throttle:600,1');
 Route::post('/payments/callback', [PaymentController::class, 'callback'])
     ->name('payments.callback');
+// Card providers call this when a payment changes (Pesapal calls it with GET); the call is checked and the provider is asked what happened before anything is booked
+Route::match(['get', 'post'], '/payments/webhook/{provider}', [PaymentController::class, 'webhook'])->middleware('throttle:600,1');
+// How a payment went, for the page the customer lands on after paying: a code in the link proves it is theirs
+Route::get('/payments/attempts/{id}', [PaymentController::class, 'attemptStatus'])->whereNumber('id')->middleware('throttle:120,1');
 
 // PUBLIC PRODUCTS - ANYONE CAN VIEW (NO AUTH REQUIRED)
 // Active currencies for the storefront price toggle (?currency= / X-Currency)
@@ -1078,6 +1082,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/settings',                                [$c, 'show']);
             Route::put('/settings/{part}',                         [$c, 'update'])->middleware('throttle:10,1');
             Route::post('/settings/mpesa/test',                    [$c, 'test'])->middleware('throttle:10,1');
+            Route::post('/settings/{part}/test',                   [$c, 'testCard'])->middleware('throttle:10,1');
             Route::post('/settings/mpesa/test-prompt',             [$c, 'testPrompt'])->middleware('throttle:5,1');
             Route::post('/settings/purge-keys',                    [$c, 'purgeKeys'])->middleware('throttle:10,1');
             Route::post('/settings/{part}/rotate-token',           [$c, 'rotateToken'])->middleware('throttle:10,1');

@@ -17,6 +17,8 @@ const checkoutAPI = {
   quote: async (data) => (await api.post('/checkout/quote', data)).data,
   place: async (data) => (await api.post('/checkout/place', { ...data, attribution: data.attribution ?? campaignClaim() })).data,
   attempt: async (id, check = false) => (await api.get(`/customer/checkout/attempts/${id}`, { params: check ? { check: 1 } : undefined })).data,
+  /** How a card payment went, for the page the customer lands on after the provider's page: the code `t` in the link proves it is theirs. check=true asks the provider now. */
+  paymentStatus: async (id, t, check = false) => (await api.get(`/payments/attempts/${id}`, { params: { t, ...(check ? { check: 1 } : {}) } })).data,
   payOrder: async (id, data) => (await api.post(`/customer/checkout/orders/${id}/pay`, data)).data,
   orders: async (params) => (await api.get('/customer/sales-orders', { params })).data,
   order: async (id) => (await api.get(`/customer/sales-orders/${id}`)).data,

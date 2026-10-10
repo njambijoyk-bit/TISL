@@ -121,7 +121,7 @@ class CheckoutController extends Controller
     /** Pay an unpaid order later (M-Pesa prompt, optionally with a gift voucher). */
     public function payOrder(Request $request, $id): JsonResponse
     {
-        $request->validate(['payment_method_id' => 'required|integer|exists:payment_methods,id', 'phone' => 'required|string', 'gift_voucher_code' => 'nullable|string', 'full' => 'nullable|boolean']);
+        $request->validate(['payment_method_id' => 'required|integer|exists:payment_methods,id', 'phone' => 'nullable|string', 'gift_voucher_code' => 'nullable|string', 'full' => 'nullable|boolean']);
 
         return $this->guard(function () use ($request, $id) {
             $customerId = $request->user()?->customer?->id;
@@ -155,9 +155,17 @@ class CheckoutController extends Controller
                 $due = round($due - $use, 2);
             }
             $method = PaymentMethod::offeredAtCheckout()->findOrFail($request->payment_method_id);
-            $attempt = $this->gateway->initiateMpesa($order, $method, $request->phone, $tenders, $due, $request->user());
+            if (! GatewayPaymentService::isAutomatic($method)) {
+                throw new BooksException("{$method->name} can't be charged automatically — choose another way to pay.");
+            }
+            if ($method->gateway === 'mpesa_stk' && ! $request->filled('phone')) {
+                throw new BooksException('Enter the M-Pesa phone number.');
+            }
+            $user = $request->user();
+            $r = $this->gateway->start($order, $method, ['phone' => (string) $request->input('phone', $user?->customer?->phone), 'email' => $user?->email, 'name' => $user?->name], $tenders, $due, $user);
 
-            return response()->json(['attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'stage' => $stage, 'message' => 'Check your phone and enter your M-Pesa PIN.']);
+            return response()->json(['attempt' => $this->checkout->attemptSummary($r), 'stage' => $stage, 'redirect_url' => $r['redirect_url'],
+                'message' => $r['redirect_url'] ? 'Taking you to the secure payment page…' : 'Check your phone and enter your M-Pesa PIN.']);
         });
     }
 

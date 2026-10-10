@@ -13,5 +13,5 @@ class PaymentSetting extends Model
 
     protected $casts = ['versions' => 'array'];
 
-    protected $hidden = ['mpesa_enc'];
+    protected $hidden = ['mpesa_enc', 'stripe_enc', 'paystack_enc', 'flutterwave_enc', 'pesapal_enc', 'dpo_enc'];
 }

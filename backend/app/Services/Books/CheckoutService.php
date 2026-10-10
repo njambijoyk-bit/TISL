@@ -453,8 +453,8 @@ class CheckoutService
             if (! $customer) {
                 throw new BooksException('Sign in to pay a deposit.');
             }
-            if ($mode !== 'online' || ! $method || $method->gateway !== 'mpesa_stk') {
-                throw new BooksException('A deposit is paid now with M-Pesa.');
+            if ($mode !== 'online' || ! $method || ! GatewayPaymentService::isAutomatic($method)) {
+                throw new BooksException('A deposit is paid now, by M-Pesa or card.');
             }
             if ($this->giftCodes($in)) {
                 throw new BooksException('A gift voucher cannot be used with a deposit. Pay in full, or leave the voucher out.');
@@ -543,14 +543,14 @@ class CheckoutService
             }
             // 2. pay online
             if ($mode === 'online') {
-                if ($method->gateway === 'mpesa_stk' && ! empty($in['_defer_online'])) {   // checked out together with another order: one prompt for both is made by placeTogether
+                if (GatewayPaymentService::isAutomatic($method) && ! empty($in['_defer_online'])) {   // checked out together with another order: one payment for both is made by placeTogether
                     return ['order' => $this->orderSummary($order), 'status' => 'awaiting_payment', 'due' => $due, 'message' => ''];
                 }
-                if ($method->gateway === 'mpesa_stk') {
-                    $attempt = $this->gateway->initiateMpesa($order, $method, (string) ($in['phone'] ?? $order->meta['contact']['phone'] ?? ''), $tenders, $due, $user);
+                if (GatewayPaymentService::isAutomatic($method)) {
+                    $r = $this->gateway->start($order, $method, $this->contactFor($in, $order), $tenders, $due, $user);
 
-                    return ['order' => $this->orderSummary($order), 'attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'status' => 'awaiting_payment',
-                        'message' => 'Check your phone and enter your M-Pesa PIN to finish paying.'];
+                    return ['order' => $this->orderSummary($order), 'attempt' => $this->attemptSummary($r), 'status' => 'awaiting_payment', 'redirect_url' => $r['redirect_url'],
+                        'message' => $r['redirect_url'] ? 'Taking you to the secure payment page…' : 'Check your phone and enter your M-Pesa PIN to finish paying.'];
                 }
                 // any other online method with no gateway: the customer pays offline and we confirm it
                 throw new BooksException("{$method->name} can't be charged automatically yet — choose another way to pay.");
@@ -584,11 +584,12 @@ class CheckoutService
         $order->save();
         $due = collect($a['placeable'])->map(fn ($p) => $p['offer']?->expected_until)->filter()->max() ?? today()->addDays(30);
         $invoice = $this->vouchers->convert($order, VoucherType::SALES, ['due_date' => \Illuminate\Support\Carbon::parse($due)->toDateString()], null);
-        $attempt = $this->gateway->initiateMpesa($invoice, $method, (string) ($in['phone'] ?? $order->meta['contact']['phone'] ?? ''), [], $amount, $user);
+        $r = $this->gateway->start($invoice, $method, $this->contactFor($in, $order), [], $amount, $user);
         $cur = $a['currency']->code;
+        $how = $r['redirect_url'] ? 'You will be taken to the secure payment page to pay' : 'Check your phone and enter your M-Pesa PIN to pay';
 
-        return ['order' => $this->orderSummary($order), 'sale' => $this->orderSummary($invoice), 'attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'status' => 'awaiting_payment',
-            'message' => "Check your phone and enter your M-Pesa PIN to pay the deposit of {$cur} " . number_format($amount, 2) . '. The balance of ' . $cur . ' ' . number_format($total - $amount, 2) . ' is paid on delivery or online from My orders.'];
+        return ['order' => $this->orderSummary($order), 'sale' => $this->orderSummary($invoice), 'attempt' => $this->attemptSummary($r), 'status' => 'awaiting_payment', 'redirect_url' => $r['redirect_url'],
+            'message' => "{$how} the deposit of {$cur} " . number_format($amount, 2) . '. The balance of ' . $cur . ' ' . number_format($total - $amount, 2) . ' is paid on delivery or online from My orders.'];
     }
 
     /**
@@ -784,15 +785,32 @@ class CheckoutService
             if ($defer && ($a['status'] ?? null) === 'awaiting_payment') {
                 $method = PaymentMethod::find($in['payment_method_id']);
                 $primary = Voucher::findOrFail($a['order']['id']);
-                $attempt = $this->gateway->initiateMpesa($primary, $method, (string) ($in['phone'] ?? $primary->meta['contact']['phone'] ?? ''), [], round((float) $a['due'] + (float) $b['due'], 2), $user);
+                $r = $this->gateway->start($primary, $method, $this->contactFor($in, $primary), [], round((float) $a['due'] + (float) $b['due'], 2), $user);
 
-                return ['order' => $a['order'], 'orders' => $orders, 'attempt' => ['id' => $attempt->id, 'status' => $attempt->status, 'amount' => (float) $attempt->amount], 'status' => 'awaiting_payment',
-                    'message' => 'Check your phone and enter your M-Pesa PIN to pay for both orders.'];
+                return ['order' => $a['order'], 'orders' => $orders, 'attempt' => $this->attemptSummary($r), 'status' => 'awaiting_payment', 'redirect_url' => $r['redirect_url'],
+                    'message' => $r['redirect_url'] ? 'Taking you to the secure payment page for both orders…' : 'Check your phone and enter your M-Pesa PIN to pay for both orders.'];
             }
 
             return ['order' => $a['order'], 'orders' => $orders, 'status' => 'placed',
                 'message' => 'Both orders are placed: ' . $a['order']['number'] . ' (ready now) and ' . $b['order']['number'] . ' (preorder). We will confirm payment and delivery with you.'];
         });
+    }
+
+    /** Who is paying, as the payment provider wants to know: what they typed at checkout, else what the order remembers. */
+    public function contactFor(array $in, Voucher $order): array
+    {
+        $c = (array) ($order->meta['contact'] ?? []);
+
+        return ['phone' => (string) ($in['phone'] ?? $in['customer_phone'] ?? $c['phone'] ?? ''), 'email' => ($in['customer_email'] ?? $c['email'] ?? $order->customer?->email) ?: null,
+            'name' => ($in['customer_name'] ?? $c['name'] ?? $order->customer?->name) ?: null];
+    }
+
+    /** @param array{attempt: \App\Models\Books\PaymentAttempt} $r */
+    public function attemptSummary(array $r): array
+    {
+        $a = $r['attempt'];
+
+        return ['id' => $a->id, 'status' => $a->status, 'amount' => (float) $a->amount, 'gateway' => $a->gateway, 'token' => GatewayPaymentService::returnToken((int) $a->id)];
     }
 
     /** Each of the two orders remembers the other, so one payment can settle both. */

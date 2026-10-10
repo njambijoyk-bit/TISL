@@ -157,6 +157,9 @@ export default function Checkout() {
         ...(policies.length ? { policy_acceptances: policies } : {}),
         ...(credits.length && !together && plan !== 'deposit' ? { use_credit: credits.filter((c) => (creditPick ?? credits.map((x) => x.voucher_id)).includes(c.voucher_id)).map((c) => c.voucher_id) } : {}),
       });
+      if (res.status === 'awaiting_payment' && res.redirect_url) {   // a card: the order is saved; the provider's page takes the payment, then sends the customer back to /payment/return
+        done.current = true; clearCart(); prefs.reset(); toast.success(res.message); window.location.assign(res.redirect_url); return;
+      }
       if (res.status === 'awaiting_payment') { toast.success(res.message); setPending({ attemptId: res.attempt.id, orderId: res.order.id, together: together || undefined }); return; }
       toast.success(res.message, { duration: together ? 8000 : undefined });
       done.current = true; clearCart(); prefs.reset(); navigate(together ? '/orders' : `/orders/${encodeURIComponent(res.order.number ?? res.order.id)}`);
@@ -242,7 +245,7 @@ export default function Checkout() {
                   <p style={title}><Package size={14} /> How much now?</p>
                   <Choice active={plan === 'full'} onClick={() => setPlan('full')} label={`Pay in full: ${money(quote.total)}`} sub="Nothing more to pay" />
                   <Choice active={plan === 'deposit'} onClick={() => { setPlan('deposit'); setMode('online'); }} label={`Pay a ${quote.deposit.percent}% deposit: ${money(quote.deposit.amount)}`}
-                    sub={`The balance of ${money(quote.deposit.balance)} is paid on delivery or online from My orders. Paid with M-Pesa now.`} />
+                    sub={`The balance of ${money(quote.deposit.balance)} is paid on delivery or online from My orders. The deposit is paid now, online.`} />
                 </div>
               )}
               <p style={title}><CreditCard size={14} /> How will you pay{plan === 'deposit' ? ' the deposit' : ''}?</p>

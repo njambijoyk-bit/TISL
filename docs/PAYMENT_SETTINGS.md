@@ -1,6 +1,6 @@
 # Payment keys (Settings → Payment keys)
 
-The M-Pesa (Daraja) keys can be set on a screen instead of in `.env`. **Owner only.** Built the same way as the notification settings (`docs/NOTIFICATIONS_PLAN.md`), with stricter rules because these keys move money. Cards will be a second part on the same screen when you choose a provider.
+The M-Pesa (Daraja) keys can be set on a screen instead of in `.env`. **Owner only.** Built the same way as the notification settings (`docs/NOTIFICATIONS_PLAN.md`), with stricter rules because these keys move money. Card providers (Stripe with Link, Paystack, Flutterwave, Pesapal, DPO) are further parts on the same screen, one tab each.
 
 ## Decisions (from the owner)
 - **Owner only** (permission `payments.keys`, held by the owner role alone; the admin role does not have it). The owner can give it to another role in the role builder.
@@ -18,10 +18,20 @@ The M-Pesa (Daraja) keys can be set on a screen instead of in `.env`. **Owner on
 - **Live needs https.** A typed callback address must start with `https://` for the live environment; the screen warns when the address is not https or looks private or local (Safaricom can not reach it).
 - **Applying it.** Saved keys are laid over the configuration at boot and before every queued job, so the background worker picks up a change without a restart. The M-Pesa access token is remembered per environment and key, so a changed key never reuses the old one's token.
 
+## Card payments (Stripe incl. Link, Paystack, Flutterwave, Pesapal, DPO)
+- **Setup:** run `database/sql/117_payment_cards.sql` (after 116). Each provider is a tab on Settings → Payment keys with the same rules as M-Pesa (owner only, password for every change, version history, emailed and logged, keys write-only). Each tab shows the provider's setup steps and **this site's webhook address** (`/api/payments/webhook/{provider}`) to paste into the provider's dashboard where one is needed.
+- **Per provider:** *Offer this at checkout* (on/off), the name customers see, **the account the money is booked into** (a bank/cash ledger; give each provider its own, e.g. "Stripe clearing", which is also how its payouts are matched to the bank later), and an optional *charge in* currency (orders in another currency are converted at today's rate; the order itself stays in its own currency).
+- **Link** is Stripe's one-click wallet: the *Also offer Link* switch on the Stripe tab adds it to the same Stripe page. (Read "Link the green platform" as that; say if another provider was meant.)
+- **How a payment goes:** checkout (or *Pay* on My orders) starts the payment and sends the customer to the provider's secure page, so card details never touch this server. They come back to `/payment/return`, which asks the server how it went. The server **asks the provider** (never the webhook or the return link alone) and books the money only when the provider says it is paid for at least the amount asked, in the currency asked. A webhook that fails its signature is refused (400); one that is real is still verified. Money that arrives but is short or in another currency is **not booked**: a note is left on the payment for staff.
+- **Same books as M-Pesa:** a paid card payment settles the order into a Cash Sale (or a Receipt on an invoice, for a deposit or balance), through the provider's account. A ready-now order and a preorder checked out together are paid with one card payment. Deposits can be paid by card as well as M-Pesa.
+- **Webhook set-up by provider:** Stripe: add the address and the event `checkout.session.completed`, then paste its signing secret (`whsec_…`). Paystack: set the address as the webhook URL (signed with the secret key). Flutterwave: set the address and a secret hash, type the same hash here. Pesapal: nothing (the notification address is registered automatically). DPO: nothing (we check the token when the customer returns).
+- **Not built yet:** refunds through the provider (a refunded card order is refunded in the books and the money is returned from the provider's dashboard), Flutterwave v4.
+
 ## If something goes wrong
 - *The keys can no longer be read:* the server's application key (`APP_KEY`) changed; the screen says so; enter the keys again. (Keep `.env` filled in as the fallback.)
 - *Stolen login:* the other owners get an email for every change; roll it back from History and change the password.
 - *Payments stopped after a change:* History → restore the previous version, or *Go back to the server's keys*.
 
 ## Not verified here
+- **The five card providers** were written from each provider's published API and tested only against stand-ins. Before relying on one: save its **test** keys, use *Only test the keys*, then make one small real (or test-card) payment from the shop and check the order is paid, the right ledger moved and the webhook is accepted. DPO's key test and Flutterwave's webhook header are the least certain.
 - The real Safaricom calls (token test, KES 1 prompt) and the emails to owners need trying once on the real system: save the sandbox keys, send the KES 1 prompt, check the owner email and the History tab.

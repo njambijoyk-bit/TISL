@@ -182,10 +182,10 @@ class PreorderDepositTest extends PreorderTestCase
             });
         });
         $this->mock(GatewayPaymentService::class, function ($m) use (&$asked) {
-            $m->shouldReceive('initiateMpesa')->once()->andReturnUsing(function ($v, $method, $phone, $tenders, $due) use (&$asked) {
-                $asked['mpesa'] = [$v->id, $phone, $due];
+            $m->shouldReceive('start')->once()->andReturnUsing(function ($v, $method, $contact, $tenders, $due) use (&$asked) {
+                $asked['mpesa'] = [$v->id, $contact['phone'], $due];
 
-                return new \App\Models\Books\PaymentAttempt(['id' => 9, 'status' => 'pending', 'amount' => $due]);
+                return ['attempt' => new \App\Models\Books\PaymentAttempt(['id' => 9, 'status' => 'pending', 'amount' => $due]), 'redirect_url' => null];
             });
         });
         $svc = app(CheckoutService::class);

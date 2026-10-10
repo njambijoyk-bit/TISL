@@ -8,6 +8,8 @@ use App\Models\Books\Voucher;
 use App\Models\User;
 use App\Services\CurrencyConversionService;
 use App\Services\DarajaService;
+use App\Services\Payments\Gateways;
+use App\Services\Payments\PaymentSettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -54,6 +56,133 @@ class GatewayPaymentService
         ]);
     }
 
+    /** Can the shop charge this method itself (an M-Pesa prompt or a card page), rather than the customer paying by their own means and staff confirming? */
+    public static function isAutomatic(?PaymentMethod $m): bool
+    {
+        return $m && ($m->gateway === 'mpesa_stk' || Gateways::has((string) $m->gateway));
+    }
+
+    /**
+     * Start a payment on whichever online method was chosen. An M-Pesa prompt goes to the phone (no redirect); a card provider gives a page to send the customer to.
+     *
+     * @param  array{phone?: ?string, email?: ?string, name?: ?string}  $contact
+     * @return array{attempt: PaymentAttempt, redirect_url: ?string}
+     */
+    public function start(Voucher $voucher, PaymentMethod $method, array $contact, array $plannedTenders, float $due, ?User $user = null): array
+    {
+        if ($method->gateway === 'mpesa_stk') {
+            return ['attempt' => $this->initiateMpesa($voucher, $method, (string) ($contact['phone'] ?? ''), $plannedTenders, $due, $user), 'redirect_url' => null];
+        }
+        if (Gateways::has((string) $method->gateway)) {
+            return $this->initiateCard($voucher, $method, $contact, $plannedTenders, $due, $user);
+        }
+
+        throw new BooksException("{$method->name} can't be charged automatically yet — choose another way to pay.");
+    }
+
+    /** The code in the link a customer comes back with: proves the link is the one we made for this payment (no sign-in is needed to see how it went). */
+    public static function returnToken(int $attemptId): string
+    {
+        return substr(hash_hmac('sha256', 'payment-return-' . $attemptId, (string) config('app.key')), 0, 32);
+    }
+
+    /** @return array{attempt: PaymentAttempt, redirect_url: ?string} */
+    public function initiateCard(Voucher $voucher, PaymentMethod $method, array $contact, array $plannedTenders, float $due, ?User $user = null): array
+    {
+        if ($due <= 0) {
+            throw new BooksException('There is nothing to collect.');
+        }
+        $gateway = Gateways::get((string) $method->gateway);
+        $cfg = app(PaymentSettings::class)->get($gateway->key());
+        if (empty($cfg['enabled']) || ! $gateway->configured($cfg)) {
+            throw new BooksException("{$method->name} is not set up. Choose another way to pay.");
+        }
+        $currency = $this->money->currencyFrom($voucher->currency_id);
+        $chargeCode = strtoupper((string) ($cfg['charge_currency'] ?: $currency->code));
+        $chargeAmount = $due;
+        if ($chargeCode !== strtoupper($currency->code)) {
+            $to = $this->money->findByCode($chargeCode) ?? throw new BooksException("The currency {$chargeCode} is not set up here (Settings → Currency), so {$method->name} can not charge in it.");
+            $chargeAmount = round((float) $this->money->convert($due, $currency, $to), 2);
+        }
+        $attempt = PaymentAttempt::create(['voucher_id' => $voucher->id, 'customer_id' => $voucher->customer_id, 'payment_method_id' => $method->id, 'gateway' => $gateway->key(), 'status' => PaymentAttempt::PENDING,
+            'amount' => $due, 'currency_id' => $voucher->currency_id, 'gateway_amount' => $chargeAmount, 'gateway_currency' => $chargeCode, 'phone' => $contact['phone'] ?? null, 'tenders' => $plannedTenders, 'created_by' => $user?->id]);
+        $attempt->merchant_request_id = 'TISL-' . $attempt->id . '-' . strtoupper(substr(md5(uniqid('', true)), 0, 6));   // our own reference: unique, and what the provider echoes back
+        $front = rtrim((string) config('app.frontend_url'), '/') . '/payment/return?attempt=' . $attempt->id . '&t=' . self::returnToken($attempt->id);
+        try {
+            $r = $gateway->start($cfg, ['reference' => $attempt->merchant_request_id, 'amount' => $chargeAmount, 'currency' => $chargeCode, 'email' => $contact['email'] ?? null, 'phone' => $contact['phone'] ?? null,
+                'name' => $contact['name'] ?? null, 'description' => 'Order ' . $voucher->voucher_number, 'return_url' => $front, 'cancel_url' => $front . '&cancelled=1',
+                'webhook_url' => url('/api/payments/webhook/' . $gateway->key()), 'attempt_id' => (int) $attempt->id]);
+        } catch (\Throwable $e) {
+            Log::error('Gateway: card payment did not start', ['provider' => $gateway->key(), 'error' => $e->getMessage()]);
+            $attempt->update(['status' => PaymentAttempt::FAILED, 'failed_at' => now(), 'failure_reason' => 'Could not start: ' . $e->getMessage()]);
+            throw new BooksException('We could not start the card payment (' . $gateway->label() . '). Please try again or choose another way to pay.');
+        }
+        $attempt->update(['checkout_request_id' => $r['provider_ref'], 'callback_raw' => ['redirect_url' => $r['redirect_url']]]);
+
+        return ['attempt' => $attempt->fresh(), 'redirect_url' => $r['redirect_url']];
+    }
+
+    /**
+     * Ask the provider what happened and act on the answer: paid → confirmed and booked (only when it took what we asked for), failed → failed, anything else stays waiting.
+     * Safe to call again and again (a webhook, the customer returning and a status check can all arrive together).
+     */
+    public function verifyCard(PaymentAttempt $attempt): PaymentAttempt
+    {
+        $gateway = Gateways::get((string) $attempt->gateway);
+        $cfg = app(PaymentSettings::class)->get($gateway->key());
+        if (! $gateway->configured($cfg)) {
+            return $attempt;
+        }
+        $res = $gateway->verify($cfg, $attempt);
+        if ($res['state'] === 'pending') {
+            return $attempt;
+        }
+        DB::transaction(function () use ($attempt, $res) {
+            $a = PaymentAttempt::whereKey($attempt->id)->lockForUpdate()->first();
+            if (! $a || $a->status !== PaymentAttempt::PENDING) {
+                return;
+            }
+            if ($res['state'] === 'failed') {
+                $a->update(['status' => PaymentAttempt::FAILED, 'failed_at' => now(), 'failure_reason' => $res['reason'] ?: 'The payment did not go through.']);
+
+                return;
+            }
+            $short = $res['amount'] !== null && $res['amount'] + 0.01 < (float) $a->gateway_amount;
+            $other = $res['currency'] !== null && strtoupper((string) $a->gateway_currency) !== $res['currency'];
+            if ($short || $other) {   // money arrived but not what was asked for: never book it automatically
+                $a->update(['notes' => trim(($a->notes ? $a->notes . ' · ' : '') . "The provider reports {$res['amount']} {$res['currency']} paid, but {$a->gateway_amount} {$a->gateway_currency} was asked for: check it with the provider before booking.")]);
+                Log::warning('Gateway: card payment amount mismatch', ['attempt' => $a->id, 'reported' => $res]);
+
+                return;
+            }
+            $a->update(['status' => PaymentAttempt::CONFIRMED, 'receipt_number' => $res['receipt'], 'confirmed_at' => now()]);
+            $this->settle($a);
+        });
+
+        return $attempt->fresh();
+    }
+
+    /** A call to our webhook for a card provider. False when it is not believable (the caller answers 400); true otherwise, whether or not it was about a payment we know. */
+    public function handleWebhook(string $part, \Illuminate\Http\Request $request): bool
+    {
+        $gateway = Gateways::get($part);
+        $cfg = app(PaymentSettings::class)->get($part);
+        $ref = $gateway->parseWebhook($request, $cfg);
+        if ($ref === null) {
+            Log::warning('Gateway: webhook refused', ['provider' => $part, 'ip' => $request->ip()]);
+
+            return false;
+        }
+        $attempt = PaymentAttempt::where('gateway', $part)->where(function ($q) use ($ref) {
+            $q->when($ref['reference'], fn ($w) => $w->orWhere('merchant_request_id', $ref['reference']))->when($ref['provider_ref'], fn ($w) => $w->orWhere('checkout_request_id', $ref['provider_ref']));
+        })->first();
+        if ($attempt) {
+            $this->verifyCard($attempt);   // never trust the call about the outcome: ask the provider
+        }
+
+        return true;
+    }
+
     /**
      * Daraja called back. Returns true when the callback was for one of our attempts (so the
      * old payments handler should not also look for it).
@@ -91,6 +220,9 @@ class GatewayPaymentService
     /** Ask Daraja now (the customer says they paid but the callback never came). */
     public function refresh(PaymentAttempt $attempt): PaymentAttempt
     {
+        if ($attempt->status === PaymentAttempt::PENDING && Gateways::has((string) $attempt->gateway)) {
+            return $this->verifyCard($attempt);   // a card payment: ask the provider
+        }
         if ($attempt->status !== PaymentAttempt::PENDING || ! $attempt->checkout_request_id) {
             return $attempt;
         }

@@ -8,6 +8,8 @@ const paymentSettingsAPI = {
   save: (part, body) => api.put(`/admin/payments/settings/${part}`, body).then((r) => r.data),
   /** try typed keys against Safaricom, saving nothing */
   test: (body) => api.post('/admin/payments/settings/mpesa/test', body).then((r) => r.data),
+  /** try a card provider's typed keys with the provider, saving nothing */
+  testCard: (part, body) => api.post(`/admin/payments/settings/${part}/test`, body).then((r) => r.data),
   /** a real KES 1 prompt through the live keys */
   testPrompt: (phone, password) => api.post('/admin/payments/settings/mpesa/test-prompt', { phone, password }).then((r) => r.data),
   rotateToken: (part, password) => api.post(`/admin/payments/settings/${part}/rotate-token`, { password }).then((r) => r.data),
