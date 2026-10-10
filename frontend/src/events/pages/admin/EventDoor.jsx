@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Download, Search, UserCheck } from 'lucide-react';
+import { ArrowLeft, Download, Search, UserCheck, Undo2 } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import Tabs from '../../../core/components/admin/ui/Tabs';
+import ConfirmModal from '../../../core/components/admin/ui/ConfirmModal';
 import { SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import CodeScanner from '../../../core/components/admin/codes/CodeScanner';
 import eventsAPI from '../../../_shared/api/events';
@@ -22,7 +23,7 @@ const hm = (s) => (s ? String(s).slice(11, 16) : '');
 export default function EventDoor() {
   const { id } = useParams();
   const user = useAuthStore((s) => s.user);
-  const can = { checkin: hasPermission(user, 'events.checkin'), export: hasPermission(user, 'events.view') };
+  const can = { checkin: hasPermission(user, 'events.checkin'), export: hasPermission(user, 'events.view'), refund: hasPermission(user, 'events.refund') };
   const [tab, setTab] = useState('scan');
   const [door, setDoor] = useState(null);
   const [sessionId, setSessionId] = useState(null);
@@ -31,6 +32,7 @@ export default function EventDoor() {
   const [q, setQ] = useState('');
   const [arrived, setArrived] = useState('');
   const [page, setPage] = useState(1);
+  const [refunding, setRefunding] = useState(null);
   const queue = useRef(Promise.resolve());
 
   const load = useCallback(() => eventsAPI.door(id, sessionId).then((d) => { setDoor(d); setSessionId((cur) => cur ?? d.current_session_id); }).catch((e) => toast.error(errMsg(e, 'Could not load the door'))), [id, sessionId]);
@@ -51,6 +53,9 @@ export default function EventDoor() {
   };
   const letIn = async (g) => {
     try { const r = await eventsAPI.checkinManual(id, g.id, sessionId); setLast(r); if (r.ok) toast.success(`${g.holder_name || 'Guest'} is in`); else toast.error(r.message); load(); loadGuests(); } catch (e) { toast.error(errMsg(e, 'Could not check in')); }
+  };
+  const refund = async (note) => {
+    try { const r = await eventsAPI.refundTicket(id, refunding.id, { note: note || undefined }); toast.success(r.message); setRefunding(null); loadGuests(); load(); } catch (e) { toast.error(errMsg(e, 'Could not refund'), { duration: 9000 }); setRefunding(null); }
   };
   const download = async () => { try { await eventsAPI.exportGuests(id); } catch (e) { toast.error(errMsg(e, 'Could not download')); } };
 
@@ -107,6 +112,7 @@ export default function EventDoor() {
                   <div style={{ fontSize: '0.78rem', color: colors.textMuted }}>{g.type} · <code>{g.reference}</code>{g.buyer_phone ? <> · <a href={`tel:${g.buyer_phone}`} style={{ color: 'inherit' }}>{g.buyer_phone}</a></> : ''}</div>
                   {g.arrived && <div style={{ fontSize: '0.78rem', color: '#047857', fontWeight: 700 }}>In at {hm(g.arrived.at)}{g.arrived.by ? ` · ${g.arrived.by}` : ''}</div>}
                 </div>
+                {can.refund && g.state === 'valid' && g.price > 0 && <button type="button" style={{ ...btnGhost, padding: '6px 10px', fontSize: '0.74rem', color: colors.danger }} onClick={() => setRefunding(g)} aria-label={`Refund ${g.holder_name || g.reference}`}><Undo2 size={13} /> Refund</button>}
                 {can.checkin && g.state === 'valid' && (g.arrived
                   ? <button type="button" style={{ ...btnGhost, padding: '6px 12px', fontSize: '0.76rem' }} onClick={() => undo({ checkin_id: g.arrived.checkin_id })}>Undo</button>
                   : <button type="button" style={{ ...btnGhost, padding: '6px 12px', fontSize: '0.8rem', fontWeight: 800 }} onClick={() => letIn(g)}><UserCheck size={14} /> Let in</button>)}
@@ -134,6 +140,7 @@ export default function EventDoor() {
           </div>
         )}
       </div>
+      {refunding && <ConfirmModal title="Refund this ticket?" message={`${refunding.holder_name || refunding.buyer_name} · ${refunding.reference}: the ticket is cancelled, its QR stops working, and its price and tax go back to the buyer from the account the payment came in to.`} confirmLabel="Refund it" danger withReason reasonLabel="A note for the buyer (optional)" onConfirm={refund} onClose={() => setRefunding(null)} />}
     </AdminLayout>
   );
 }

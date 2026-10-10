@@ -14,6 +14,14 @@ const eventsAPI = {
   recurrence: (rule) => api.post('/admin/events/recurrence', rule).then((r) => r.data),
   uploadImage: (id, file) => { const f = new FormData(); f.append('file', file); return api.post(`/admin/events/${id}/image`, f, { headers: { 'Content-Type': 'multipart/form-data' } }).then((r) => r.data); },
   removeImage: (id) => api.delete(`/admin/events/${id}/image`).then((r) => r.data),
+  postpone: (id) => api.post(`/admin/events/${id}/postpone`).then((r) => r.data),
+  notifyHolders: (id, message) => api.post(`/admin/events/${id}/notify`, { message }).then((r) => r.data),
+  // refunds
+  refunds: (params) => api.get('/admin/events/refunds', { params }).then((r) => r.data.data),
+  approveRefund: (id, body) => api.post(`/admin/events/refunds/${id}/approve`, body).then((r) => r.data),
+  declineRefund: (id, note) => api.post(`/admin/events/refunds/${id}/decline`, { note }).then((r) => r.data),
+  approveAllRefunds: (eventId, refundLedgerId) => api.post(`/admin/events/${eventId}/refunds/approve-all`, { refund_ledger_id: refundLedgerId || undefined }).then((r) => r.data),
+  refundTicket: (eventId, ticketId, body = {}) => api.post(`/admin/events/${eventId}/tickets/${ticketId}/refund`, body).then((r) => r.data),
   // the door
   door: (id, sessionId) => api.get(`/admin/events/${id}/door`, { params: { session_id: sessionId || undefined } }).then((r) => r.data),
   checkin: (id, code, sessionId) => api.post(`/admin/events/${id}/checkin`, { code, session_id: sessionId || undefined }).then((r) => r.data),

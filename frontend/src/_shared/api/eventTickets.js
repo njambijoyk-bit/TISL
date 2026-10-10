@@ -7,6 +7,8 @@ const eventTicketsAPI = {
   pdfUrl: (code) => `${api.defaults.baseURL}/tickets/${encodeURIComponent(code)}/pdf`,
   qrUrl: (code) => `${api.defaults.baseURL}/tickets/${encodeURIComponent(code)}/qr`,
   rename: async (code, name) => (await api.put(`/tickets/${encodeURIComponent(code)}/holder`, { name })).data,
+  /** hand a ticket back: a paid one becomes a request for staff, a free one is cancelled at once */
+  refund: async (code, reason) => (await api.post(`/tickets/${encodeURIComponent(code)}/refund`, { reason })).data,
   resend: async (email) => (await api.post('/tickets/resend', { email })).data,
   mine: async () => (await api.get('/customer/events/tickets')).data,
   /** where a scanned QR leads: { type, label, path } */

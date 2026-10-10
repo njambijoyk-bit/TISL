@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { ArrowLeft, Eye, EyeOff, ImagePlus, Save, ScanLine, Trash2 } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, ImagePlus, Megaphone, Save, ScanLine, Trash2 } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import Tabs from '../../../core/components/admin/ui/Tabs';
-import { CheckboxRow, Field, FormGrid, FormStack, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
+import Modal from '../../../core/components/admin/ui/Modal';
+import { CheckboxRow, Field, FormGrid, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import ServiceVideoField from '../../../ecommerce/components/admin/services/ServiceVideoField';
 import eventsAPI from '../../../_shared/api/events';
 import useAuthStore from '../../../_shared/store/authStore';
@@ -30,6 +31,7 @@ export default function EventForm() {
   const [tab, setTab] = useState('details');
   const [loading, setLoading] = useState(Boolean(id));
   const [busy, setBusy] = useState(false);
+  const [tell, setTell] = useState(null);   // the message to all ticket holders, while it is being written
   const saved = useRef(snapshot(fresh()));
   const { event, sessions, types } = state;
 
@@ -82,6 +84,11 @@ export default function EventForm() {
     catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 9000 }); } finally { setBusy(false); }
   };
 
+  const sendNews = async () => {
+    setBusy(true);
+    try { const r = await eventsAPI.notifyHolders(id, tell); toast.success(r.message); setTell(null); } catch (e) { toast.error(errMsg(e, 'Could not send it'), { duration: 8000 }); } finally { setBusy(false); }
+  };
+
   const pickImage = async (e) => {
     const file = e.target.files?.[0]; e.target.value = '';
     if (!file) return;
@@ -113,7 +120,8 @@ export default function EventForm() {
           {id && status !== 'draft' && <Link to={`/admin/events/${id}/door`} style={{ ...btnGhost, textDecoration: 'none' }}><ScanLine size={14} /> Door</Link>}
           {canEdit && !readOnly && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {id && status === 'draft' && <button type="button" style={{ ...btnGhost, opacity: dirty || busy ? 0.55 : 1 }} disabled={dirty || busy || meta.problems.length > 0} title={dirty ? 'Save your changes first' : undefined} onClick={() => publish(true)}><Eye size={14} /> Put on sale</button>}
+              {id && (status === 'published' || status === 'postponed') && <button type="button" style={btnGhost} onClick={() => setTell('')}><Megaphone size={14} /> Tell ticket holders</button>}
+              {id && (status === 'draft' || status === 'postponed') && <button type="button" style={{ ...btnGhost, opacity: dirty || busy ? 0.55 : 1 }} disabled={dirty || busy || meta.problems.length > 0} title={dirty ? 'Save your changes first' : undefined} onClick={() => publish(true)}><Eye size={14} /> {status === 'postponed' ? 'Put on sale again' : 'Put on sale'}</button>}
               {id && status === 'published' && <button type="button" style={btnGhost} disabled={busy} onClick={() => publish(false)}><EyeOff size={14} /> Take down</button>}
               <button type="button" style={{ ...btnPrimary, opacity: busy || (id && !dirty) ? 0.6 : 1 }} disabled={busy || Boolean(id && !dirty)} onClick={save}><Save size={14} /> {busy ? 'Saving…' : id ? 'Save changes' : 'Make the event'}</button>
             </div>
@@ -121,13 +129,13 @@ export default function EventForm() {
         </div>
 
         {status === 'cancelled' && <p role="status" style={{ ...card, padding: 12, margin: '0 0 16px', fontSize: '0.82rem', color: colors.dangerText, background: colors.dangerBg }}>This event is cancelled. It is kept for the records and can not be changed.</p>}
-        {id && status === 'draft' && meta.problems.length > 0 && (
+        {id && (status === 'draft' || status === 'postponed') && meta.problems.length > 0 && (
           <div role="status" style={{ ...card, padding: 12, margin: '0 0 16px', fontSize: '0.82rem' }}>
-            <strong style={{ display: 'block', marginBottom: 4 }}>Before it can go on sale:</strong>
+            <strong style={{ display: 'block', marginBottom: 4 }}>{status === 'postponed' ? 'This event is postponed. To put it on sale again with its new date:' : 'Before it can go on sale:'}</strong>
             <ul style={{ margin: 0, paddingLeft: 18, color: colors.textBody }}>{meta.problems.map((p) => <li key={p}>{p}</li>)}</ul>
           </div>
         )}
-        {id && status === 'draft' && meta.problems.length === 0 && !dirty && <p role="status" style={{ ...card, padding: 12, margin: '0 0 16px', fontSize: '0.82rem', color: colors.successText, background: colors.successBg }}>Everything needed is filled in: you can put it on sale.</p>}
+        {id && (status === 'draft' || status === 'postponed') && meta.problems.length === 0 && !dirty && <p role="status" style={{ ...card, padding: 12, margin: '0 0 16px', fontSize: '0.82rem', color: colors.successText, background: colors.successBg }}>Everything needed is filled in: you can put it on sale.</p>}
         {dirty && id && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.78rem', color: colors.warningText }}>You have changes that are not saved yet.</p>}
 
         <Tabs tabs={TABS} active={tab} onChange={setTab} />
@@ -195,6 +203,12 @@ export default function EventForm() {
           </div>
         )}
       </div>
+      {tell !== null && (
+        <Modal title="Tell ticket holders" subtitle="Everyone who holds a valid ticket gets this, once." width={480} onClose={() => setTell(null)}
+          footer={<ModalActions onCancel={() => setTell(null)} onSubmit={sendNews} busy={busy} disabled={tell.trim().length < 3} submitLabel="Send" busyLabel="Sending…" />}>
+          <Field label="Your message" htmlFor="ev-tell" hint="For example: Doors now open at 5.30pm. Bring a photo ID."><TextArea id="ev-tell" rows={5} maxLength={1000} value={tell} onChange={(e) => setTell(e.target.value)} /></Field>
+        </Modal>
+      )}
     </AdminLayout>
   );
 }

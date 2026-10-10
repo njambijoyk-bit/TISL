@@ -7,13 +7,14 @@ import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import eventTicketsAPI from '../../../_shared/api/eventTickets';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
+import RefundBox from '../../components/public/RefundBox';
 import { whenText } from '../../lib/eventFormat';
 
 const card = { background: 'var(--surface-card, #fff)', borderRadius: 16, border: '1px solid var(--line)', padding: 18, boxShadow: '0 1px 8px rgba(0,0,0,0.05)' };
 const STATE = { valid: ['Valid', '#047857', 'rgba(4,120,87,0.1)'], cancelled: ['Cancelled', '#b91c1c', 'rgba(185,28,28,0.1)'], held: ['Waiting for payment', '#b45309', 'rgba(180,83,9,0.1)'], released: ['Not paid', '#6b7280', 'rgba(107,114,128,0.12)'] };
 
 /** One ticket: the name on it, its QR to show at the door, the dates it admits to and, for an online event, the link to join. */
-function Ticket({ t, onRenamed }) {
+function Ticket({ t, event, onRenamed }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(t.holder_name ?? '');
   const [busy, setBusy] = useState(false);
@@ -51,6 +52,7 @@ function Ticket({ t, onRenamed }) {
           {t.sessions.map((s) => <li key={s.starts_at} style={{ textDecoration: s.is_cancelled ? 'line-through' : 'none' }}>{whenText(s.starts_at)}{s.ends_at ? ` – ${s.ends_at.slice(11, 16)}` : ''}{s.label ? ` · ${s.label}` : ''}{s.is_cancelled ? ' (cancelled)' : ''}</li>)}
         </ul>
       )}
+      <RefundBox t={t} event={event} onDone={onRenamed} />
       {t.join_url && <a href={t.join_url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', gap: 6, alignItems: 'center', padding: '10px 18px', borderRadius: 10, background: 'var(--color-primary-500)', color: '#fff', fontWeight: 800, textDecoration: 'none' }}><Video size={15} /> Join online <ExternalLink size={12} /></a>}
     </article>
   );
@@ -90,7 +92,7 @@ export default function TicketPage() {
         {event.status === 'postponed' && <p role="alert" style={{ ...card, margin: 0, background: 'rgba(180,83,9,0.1)', color: '#92400e', fontWeight: 700 }}>This event has been postponed. We will tell you the new date.</p>}
         {event.note && <p style={{ margin: 0, fontSize: '0.86rem', color: 'var(--text-secondary)' }}>{event.note}</p>}
       </header>
-      {tickets.map((t) => <Ticket key={t.code} t={t} onRenamed={load} />)}
+      {tickets.map((t) => <Ticket key={t.code} t={t} event={event} onRenamed={load} />)}
       <a href={eventTicketsAPI.pdfUrl(tickets[0].code)} style={{ display: 'inline-flex', gap: 8, alignItems: 'center', justifyContent: 'center', padding: '12px 18px', borderRadius: 12, border: '1.5px solid var(--line)', color: 'inherit', fontWeight: 800, textDecoration: 'none' }}><Download size={16} /> Download as PDF ({tickets.length} ticket{tickets.length === 1 ? '' : 's'})</a>
       <p style={{ margin: 0, fontSize: '0.78rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>Show the QR code at the door, on your phone or printed. One ticket admits one person. Anyone with this link can see the tickets, so share it only with people you trust.</p>
     </>,

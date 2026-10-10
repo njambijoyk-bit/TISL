@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { CalendarDays, Plus, Search, Pencil, Eye, EyeOff, Ban, Trash2, ScanLine } from 'lucide-react';
+import { CalendarDays, Plus, Search, Pencil, Eye, EyeOff, Ban, Trash2, ScanLine, CalendarClock } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { Toolbar } from '../../../core/components/admin/ui/HubHeader';
 import Tabs from '../../../core/components/admin/ui/Tabs';
@@ -17,9 +17,10 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, colors } from '../../../_shared/theme/tokens';
 import StatusBadge from '../../components/admin/StatusBadge';
 import EventSettingsTab from '../../components/admin/EventSettingsTab';
+import RefundsTab from '../../components/admin/RefundsTab';
 import { whenText } from '../../lib/eventFormat';
 
-const TABS = [{ id: 'events', label: 'Events' }, { id: 'settings', label: 'Settings' }];
+const BASE_TABS = [{ id: 'events', label: 'Events' }, { id: 'refunds', label: 'Refunds' }, { id: 'settings', label: 'Settings' }];
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' };
 
 /** Admin → Events: every event with what is sold, and the buttons to put it on sale, take it down or cancel it. */
@@ -27,7 +28,9 @@ export default function EventsList() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
-  const can = { edit: hasPermission(user, 'events.edit'), del: hasPermission(user, 'events.delete'), door: hasPermission(user, 'events.checkin') || hasPermission(user, 'events.view') };
+  const can = { edit: hasPermission(user, 'events.edit'), del: hasPermission(user, 'events.delete'), refund: hasPermission(user, 'events.refund'), door: hasPermission(user, 'events.checkin') || hasPermission(user, 'events.view') };
+  const [waiting, setWaiting] = useState(null);
+  const TABS = BASE_TABS.filter((t) => t.id !== 'refunds' || can.refund).map((t) => (t.id === 'refunds' && waiting ? { ...t, count: waiting } : t));
   const tab = TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'events';
   const { adminCurrencies, fetchAdminCurrencies } = useCurrencyStore();
   const [q, setQ] = useState('');
@@ -40,6 +43,7 @@ export default function EventsList() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => { if (!adminCurrencies.length) fetchAdminCurrencies().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (can.refund) eventsAPI.refunds({ status: 'pending' }).then((r) => setWaiting(r.length)).catch(() => {}); }, [can.refund]);   // the number waiting, on the tab
 
   const load = useCallback(() => {
     setLoading(true);
@@ -61,7 +65,7 @@ export default function EventsList() {
     setBusy(true);
     try {
       if (kind === 'delete') { await eventsAPI.remove(row.id); toast.success('Deleted'); }
-      else { const r = await ({ publish: eventsAPI.publish, unpublish: eventsAPI.unpublish, cancel: eventsAPI.cancel }[kind])(row.id); toast.success(r.message); }
+      else { const r = await ({ publish: eventsAPI.publish, unpublish: eventsAPI.unpublish, cancel: eventsAPI.cancel, postpone: eventsAPI.postpone }[kind])(row.id); toast.success(r.message); }
       setAsk(null); load();
     } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 9000 }); setAsk(null); } finally { setBusy(false); }
   };
@@ -69,7 +73,8 @@ export default function EventsList() {
   const MESSAGES = {
     publish: (r) => ({ title: `Put "${r.title}" on sale?`, message: 'It will show on the website and anyone can buy tickets.', label: 'Put on sale' }),
     unpublish: (r) => ({ title: `Take "${r.title}" down?`, message: 'It stops showing on the website and no more tickets can be bought. Tickets already sold stay valid.', label: 'Take down' }),
-    cancel: (r) => ({ title: `Cancel "${r.title}"?`, message: 'No more tickets can be bought. This can not be undone: a cancelled event can not be put on sale again.', label: 'Cancel the event', danger: true }),
+    postpone: (r) => ({ title: `Postpone "${r.title}"?`, message: 'Sales stop and everyone who holds a ticket is told it is postponed. Their tickets stay valid for the new date, and they can ask for a refund. Give it new dates, then put it on sale again.', label: 'Postpone it' }),
+    cancel: (r) => ({ title: `Cancel "${r.title}"?`, message: 'Sales stop, every ticket holder is told, and a refund is opened for every paid ticket for you to approve under Refunds. This can not be undone: a cancelled event can not be put on sale again.', label: 'Cancel the event', danger: true }),
     delete: (r) => ({ title: `Delete "${r.title}"?`, message: 'Only an event nobody bought a ticket for can be deleted.', label: 'Delete', danger: true }),
   };
 
@@ -90,6 +95,7 @@ export default function EventsList() {
         {can.edit && <button type="button" style={small} onClick={() => navigate(`/admin/events/${r.id}`)} aria-label={`Edit ${r.title}`}><Pencil size={12} /> Edit</button>}
         {can.edit && r.status === 'draft' && <button type="button" style={small} onClick={() => setAsk({ kind: 'publish', row: r })}><Eye size={12} /> Put on sale</button>}
         {can.edit && r.status === 'published' && !r.over && <button type="button" style={small} onClick={() => setAsk({ kind: 'unpublish', row: r })}><EyeOff size={12} /> Take down</button>}
+        {can.edit && r.status === 'published' && !r.over && <button type="button" style={small} onClick={() => setAsk({ kind: 'postpone', row: r })}><CalendarClock size={12} /> Postpone</button>}
         {can.edit && ['published', 'postponed', 'draft'].includes(r.status) && !r.over && <button type="button" style={{ ...small, color: colors.danger }} onClick={() => setAsk({ kind: 'cancel', row: r })}><Ban size={12} /> Cancel</button>}
         {can.del && !r.sold && <button type="button" style={{ ...small, color: colors.danger }} onClick={() => setAsk({ kind: 'delete', row: r })} aria-label={`Delete ${r.title}`}><Trash2 size={12} /></button>}
       </span>
@@ -105,7 +111,7 @@ export default function EventsList() {
           action={can.edit && <Link to="/admin/events/new" style={{ ...btnPrimary, textDecoration: 'none' }}><Plus size={14} /> New event</Link>} />
         <Tabs tabs={TABS} active={tab} onChange={(id) => setParams(id === 'events' ? {} : { tab: id })} />
 
-        {tab === 'settings' ? <EventSettingsTab canEdit={can.edit} /> : (
+        {tab === 'settings' ? <EventSettingsTab canEdit={can.edit} /> : tab === 'refunds' ? <RefundsTab onCount={setWaiting} /> : (
           <>
             {!ready && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.82rem', color: colors.textMuted }}>Run database script 120_events.sql, then reload: events can not be saved until then.</p>}
             <Toolbar right={<span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{totals.live} on sale · {totals.sold} ticket{totals.sold === 1 ? '' : 's'} sold</span>}>
