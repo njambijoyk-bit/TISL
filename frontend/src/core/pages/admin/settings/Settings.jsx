@@ -3,6 +3,7 @@ import {
   Globe, DollarSign, FileText, Phone, BookOpen, Home, Crown, Gavel,
   Users, ChevronRight, Ruler, BrainCircuit, Vault, Network, Palette, Compass, Blocks,
   Settings as SettingsIcon, FootprintsIcon, Truck,
+  BellRing, KeyRound, Building2, PieChart, CalendarClock, ShieldCheck, MessagesSquare, MapPin, DatabaseBackup,
   ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +34,15 @@ const LOOK = {
   '/admin/appearance':                { icon: Palette,        bg: 'linear-gradient(135deg,var(--color-primary-600),var(--color-primary-400))', color: 'var(--color-primary-400)' },
   '/admin/settings/navigation':       { icon: Compass,        bg: 'linear-gradient(135deg,#0f766e,#14b8a6)', color: '#14b8a6' },
   '/admin/settings/modules':          { icon: Blocks,         bg: 'linear-gradient(135deg,#9d174d,#ec4899)', color: '#ec4899' },
+  '/admin/settings/cost-centres':     { icon: PieChart,       bg: 'linear-gradient(135deg,#7c3aed,#a78bfa)', color: '#a78bfa' },
+  '/admin/settings/departments':      { icon: Building2,      bg: 'linear-gradient(135deg,#0369a1,#38bdf8)', color: '#38bdf8' },
+  '/admin/settings/stock':            { icon: CalendarClock,  bg: 'linear-gradient(135deg,#b45309,#fbbf24)', color: '#fbbf24' },
+  '/admin/settings/payments':         { icon: KeyRound,       bg: 'linear-gradient(135deg,#15803d,#4ade80)', color: '#4ade80' },
+  '/admin/settings/notifications':    { icon: BellRing,       bg: 'linear-gradient(135deg,#c026d3,#e879f9)', color: '#e879f9' },
+  '/admin/access':                    { icon: ShieldCheck,    bg: 'linear-gradient(135deg,#4338ca,#818cf8)', color: '#818cf8' },
+  '/admin/settings/engagement':       { icon: MessagesSquare, bg: 'linear-gradient(135deg,#e11d48,#fb7185)', color: '#fb7185' },
+  '/admin/settings/locations':        { icon: MapPin,         bg: 'linear-gradient(135deg,#0f766e,#2dd4bf)', color: '#2dd4bf' },
+  '/admin/settings/backups':          { icon: DatabaseBackup, bg: 'linear-gradient(135deg,#475569,#94a3b8)', color: '#94a3b8' },
 };
 const LOOK_FALLBACK = { icon: SettingsIcon, bg: 'linear-gradient(135deg,#475569,#64748b)', color: '#64748b' };
 
