@@ -1,3 +1,5 @@
+import { formatMoney } from '../../_shared/lib/money';
+
 // Small helpers shared by the event screens (staff and customer).
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -33,3 +35,12 @@ export const KINDS = [
   { id: 'online', label: 'Online' },
   { id: 'hybrid', label: 'In person and online' },
 ];
+
+/** The price on a card: "Free", "From KSh 1,500" or nothing when nothing is on sale. */
+export const priceLabel = (e) => {
+  if (e.is_free) return 'Free';
+  if (e.price_from === null || e.price_from === undefined) return '';
+
+  return `From ${formatMoney(e.price_from, e.currency?.symbol || e.currency?.code || '', { decimals: 'auto' })}`;
+};
+

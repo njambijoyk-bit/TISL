@@ -1,6 +1,6 @@
 # Events (ticketed) — plan
 
-Status: **built so far:** steps 1 and 2 (data, permissions, seat rules, and the staff screens: Admin → Events list, event form with details, dates incl. "Repeat…", tickets and refund rules, put on sale / take down, settings). **Still to build:** steps 3–7 (public pages and buying, tickets, door screen, refunds, reminders). To use it: run `120_events.sql` and `php artisan access:seed`. Decisions marked ✔ are the owner's.
+Status: **built so far:** steps 1–3 (data, permissions, seat rules; the staff screens under Admin → Events; the public Events list and event page, buying with or without an account, free RSVP, M-Pesa and card payment, tickets turning valid when the money is confirmed, seats given back when nobody pays). **Still to build:** steps 4–7 (the ticket itself with its QR code and email, the door screen, refunds, reminders and the sales summary). To use it: run `120_events.sql` (and `121_events_nav_link.sql` for the storefront menu link) and `php artisan access:seed`; the scheduler must be running (`events:release-holds` every minute) and, for M-Pesa and cards, the payment settings done. Decisions marked ✔ are the owner's.
 
 ## Decisions
 - ✔ **Anyone can buy, no sign-in.** Guests give name, email and phone; a signed-in customer's purchase is linked to their account (and shows in My tickets).

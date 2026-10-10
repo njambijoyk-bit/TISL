@@ -288,6 +288,8 @@ const CustomerTierSettings = lazy(() => import('./core/pages/admin/settings/Cust
 const GeneralSettings      = lazy(() => import('./core/pages/admin/settings/GeneralSettings'));
 const NotificationSettings = lazy(() => import('./core/pages/admin/settings/NotificationSettings'));
 const Codes = lazy(() => import('./core/pages/admin/Codes'));
+const EventsPage = lazy(() => import('./events/pages/public/EventsPage'));
+const EventPage = lazy(() => import('./events/pages/public/EventPage'));
 const AdminEvents = lazy(() => import('./events/pages/admin/EventsList'));
 const AdminEventForm = lazy(() => import('./events/pages/admin/EventForm'));
 const PaymentSettings = lazy(() => import('./core/pages/admin/settings/PaymentSettings'));
@@ -453,6 +455,8 @@ function App() {
             } />
             <Route path="/home" element={<Home />} />
             <Route path="/portal" element={<Portal />} />
+            <Route path="/events" element={<ModuleRoute module="events"><EventsPage /></ModuleRoute>} />
+            <Route path="/events/:slug" element={<ModuleRoute module="events"><EventPage /></ModuleRoute>} />
             <Route path="/campaigns" element={<ModuleRoute module="campaigns"><CampaignsPage /></ModuleRoute>} />
             <Route path="/campaigns/:slug" element={<ModuleRoute module="campaigns"><CampaignPage /></ModuleRoute>} />
             <Route path="/world" element={<ModuleRoute module="campaigns"><WorldPage /></ModuleRoute>} />
