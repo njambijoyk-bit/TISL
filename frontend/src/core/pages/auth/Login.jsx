@@ -48,7 +48,7 @@ export default function Login() {
       return false;
     }
 
-    login(response.user, response.customer, response.token, response.access ?? null, response.csrf ?? null);
+    login(response.user, response.customer, response.token, response.access ?? null, response.csrf ?? null, response.security);
     // Refresh active modules for the signed-in session (keys may have
     // changed since boot); don't block the redirect on it.
     useModuleStore.getState().refresh();

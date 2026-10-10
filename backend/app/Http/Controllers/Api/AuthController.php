@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\Traits\LogsPolicyAcceptances;
 use App\Rules\StrongPassword;
 use App\Services\Security\Passkeys\PasskeyException;
 use App\Services\Security\Passkeys\Passkeys;
+use App\Services\Security\PasskeyPolicy;
 use App\Services\Security\SecurityLog;
 use App\Services\Security\SessionCookie;
 use App\Services\Security\SignInGuard;
@@ -375,6 +376,7 @@ class AuthController extends Controller
             'user' => $user->load('customer'),
             'access' => $user->accessSummary(),
             'customer' => $customer, // NEW: Separate customer data
+            'security' => app(PasskeyPolicy::class)->reportForToken($user, $token),   // where the person stands with the passkey rule (a reminder, or "one more step")
         ], 200, $token, $user);
     }
 
@@ -459,6 +461,7 @@ class AuthController extends Controller
             'user' => $user->load('customer'),
             'access' => $user->accessSummary(),
             'customer' => $customer, // NEW: Separate customer data
+            'security' => app(PasskeyPolicy::class)->report($user, app(Sessions::class)->recordOf($user->currentAccessToken() instanceof PersonalAccessToken ? $user->currentAccessToken() : null)),
             'csrf' => SessionCookie::csrfOf($request),   // for a page signed in by cookie: the code its changes must carry (null for any other client)
         ], 200);
     }

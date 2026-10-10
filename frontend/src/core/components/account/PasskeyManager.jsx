@@ -5,6 +5,7 @@ import passkeysAPI from '../../../_shared/api/passkeys';
 import { passkeyProblem, passkeysSupported, suggestedName } from '../../../_shared/lib/webauthn';
 import { addPasskey, withProtection } from '../../../_shared/lib/passkeyFlows';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
+import { useAuthStore } from '../../../_shared/store/index';
 
 const when = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '—');
 const day = (s) => (s ? String(s).slice(0, 10) : '—');
@@ -49,6 +50,7 @@ export default function PasskeyManager() {
       const r = await withProtection(fn, { askPassword });
       if (done) toast.success(done);
       await load();
+      useAuthStore.getState().fetchCustomer();   // the passkey rule may now be met (or no longer)
       return r;
     } catch (e) {
       if (e?.message !== 'cancelled') {
@@ -92,6 +94,7 @@ export default function PasskeyManager() {
       toast.success(r.message);
       setName('');
       await load();
+      useAuthStore.getState().fetchCustomer();
     } catch (e) {
       if (e?.message !== 'cancelled') {
         const p = passkeyProblem(e);

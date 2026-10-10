@@ -41,8 +41,12 @@ trait CreatesSecurityTables
             $t->id(); $t->string('subject_type', 40)->nullable(); $t->unsignedBigInteger('subject_id')->nullable(); $t->string('event', 40); $t->string('severity', 10)->default('info'); $t->string('email_tried')->nullable();
             $t->string('ip', 45)->nullable(); $t->string('user_agent')->nullable(); $t->json('detail')->nullable(); $t->timestamp('created_at')->nullable();
         });
+        Schema::create('security_settings', function ($t) {
+            $t->string('setting_key', 80)->primary(); $t->json('value')->nullable(); $t->unsignedBigInteger('updated_by_id')->nullable(); $t->timestamps();
+        });
         config(['app.key' => 'base64:' . base64_encode(str_repeat('k', 32)), 'app.cipher' => 'AES-256-CBC']);
         Sessions::forget();
         SecurityLog::forget();
+        \App\Services\Security\SecuritySettings::forget();
     }
 }

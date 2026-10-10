@@ -58,7 +58,7 @@ final class ModuleTables
             // Identity and access: clearance levels, roles and what they hold, who holds which role, branch grants, the audit trail.
             'clearance_levels', 'roles', 'permissions', 'role_permissions', 'role_modules', 'role_approvals', 'user_roles', 'user_access_grants', 'access_log', 'access_meta', 'access_settings',
             // Security: who is signed in where, and the one log of sign-in events.
-            'auth_sessions', 'security_events', 'auth_credentials',   // (the passkeys people added: restoring a backup must not lock everyone out)
+            'auth_sessions', 'security_events', 'auth_credentials', 'security_settings', 'auth_recovery_codes', 'auth_seals',   // (the passkeys people added, the passkey rule's settings, recovery codes and seal phrases: restoring a backup must not lock everyone out)
             // Loyalty: the point lots are the register behind Loyalty Points Liability.
             'loyalty_point_transactions', 'loyalty_settings',
             'customer_tiers', 'customer_tier_activities', 'customer_type_discounts',

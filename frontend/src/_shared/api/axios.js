@@ -71,6 +71,10 @@ api.interceptors.response.use(
     // Handle 403 Forbidden
     if (error.response?.status === 403) {
       console.error('Access forbidden');
+      // "One more step": the passkey rule holds this sign-in to adding or using a passkey. The gate screen (SecurityGate) listens and covers the page.
+      if (error.response?.data?.restricted) {
+        window.dispatchEvent(new CustomEvent('tisl:restricted', { detail: error.response.data.restricted }));
+      }
     }
 
     // Handle 404 Not Found

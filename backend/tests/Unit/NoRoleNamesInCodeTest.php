@@ -112,6 +112,7 @@ class NoRoleNamesInCodeTest extends TestCase
         'access.manage' => ['super_admin', 'admin'],
         'access.roles' => ['super_admin'],
         'security.view' => ['super_admin', 'admin'],
+        'security.manage' => ['super_admin'],
         'catalogue.pricelists' => ['super_admin', 'admin', 'manager', 'finance', 'sales_rep'],
         'catalogue.delete' => ['super_admin', 'admin', 'manager'],
         'campaigns.build' => ['super_admin', 'admin', 'manager', 'finance', 'sales_rep'],

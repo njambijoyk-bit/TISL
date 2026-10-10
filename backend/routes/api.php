@@ -2467,6 +2467,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/summary', [\App\Http\Controllers\Api\SecurityLogController::class, 'summary']);
         });
 
+        Route::prefix('security-policy')->group(function () {   // Who must use a passkey: the switch, the date, the roles, and who has not yet
+            Route::get('/', [\App\Http\Controllers\Api\SecurityPolicyController::class, 'show'])->middleware('permission:security.view');
+            Route::put('/', [\App\Http\Controllers\Api\SecurityPolicyController::class, 'update'])->middleware('permission:security.manage');
+        });
+
         Route::prefix('logs')->middleware('permission:system.logs')->group(function () {
             Route::get('/export/meta',   [LogExportController::class, 'meta']);
             Route::post('/export',       [LogExportController::class, 'export']);

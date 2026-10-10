@@ -25,6 +25,7 @@ export default function PasskeyOffer() {
   const user = useAuthStore((s) => s.user);
   const authed = useAuthStore((s) => s.isAuthenticated);
   const account = useAuthStore((s) => s.access?.account);
+  const security = useAuthStore((s) => s.security);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [needPassword, setNeedPassword] = useState(null);   // { resolve, reject }
@@ -34,19 +35,23 @@ export default function PasskeyOffer() {
   const quiet = QUIET.some((p) => pathname === p || pathname.startsWith(`${p}/`));
 
   const userId = user?.id;
+  const gated = !!security?.gate;
   useEffect(() => {
-    if (!authed || !userId || quiet || checked.current === userId || !passkeysSupported()) return;
+    if (!authed || !userId || quiet || gated || checked.current === userId || !passkeysSupported()) return;
     const saved = read({ id: userId });
     checked.current = userId;                                  // ask the server once per person per visit, not on every page
     if (saved.never || (saved.until && saved.until > Date.now())) return;
-    passkeysAPI.list().then((r) => { if (checked.current === userId && (r.data ?? []).length === 0) setOpen(true); }).catch(() => { /* not signed in after all: nothing to offer */ });
-  }, [authed, userId, quiet]);
+    passkeysAPI.list().then((r) => { if (checked.current === userId && !useAuthStore.getState().security?.gate && (r.data ?? []).length === 0) setOpen(true); }).catch(() => { /* not signed in after all: nothing to offer */ });
+  }, [authed, userId, quiet, gated]);
+
+  useEffect(() => { if (gated) setOpen(false); }, [gated]);   // the gate screen has the one thing to do; the offer must not come back behind it
 
   useEffect(() => { if (!authed) { setOpen(false); checked.current = null; } }, [authed]);
 
-  if (!open || !authed || !user || quiet) return null;
+  if (!open || !authed || !user || quiet || gated) return null;
 
-  const later = () => { write(user, { until: Date.now() + 7 * DAY }); setOpen(false); };
+  const required = !!security?.applies;   // the rule is for them: they can put it off, not refuse it
+  const later = () => { write(user, { until: Date.now() + (required ? 1 : 7) * DAY }); setOpen(false); };
   const never = () => { write(user, { never: true }); setOpen(false); };
 
   const add = async () => {
@@ -57,6 +62,7 @@ export default function PasskeyOffer() {
       });
       toast.success('Passkey added. Next time you can sign in with your fingerprint, face or PIN.');
       setOpen(false);
+      useAuthStore.getState().fetchCustomer();
     } catch (e) {
       if (e?.message !== 'cancelled') {
         const p = passkeyProblem(e);
@@ -100,7 +106,7 @@ export default function PasskeyOffer() {
             </button>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', flexWrap: 'wrap' }}>
               <button type="button" onClick={later} data-testid="passkey-offer-later" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 600 }}>Not now</button>
-              <button type="button" onClick={never} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: '0.78rem' }}>Don't ask again</button>
+              {!required && <button type="button" onClick={never} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', fontSize: '0.78rem' }}>Don't ask again</button>}
             </div>
             <Link to={mine} onClick={() => setOpen(false)} style={{ fontSize: '0.76rem', color: 'var(--color-primary-600)', textAlign: 'center' }}>Manage my passkeys</Link>
           </div>

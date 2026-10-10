@@ -35,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ], append: [
             \App\Http\Middleware\SetDisplayCurrency::class,
             \App\Http\Middleware\SetLocationContext::class,
+            \App\Http\Middleware\PolicyGate::class,   // the passkey rule: a person it is for who has not yet done what it asks can only add or use a passkey (off unless the owner switches it on)
             \App\Http\Middleware\SlideSession::class,
         ]);
     })

@@ -64,11 +64,11 @@ final class SecurityCheck
         $add(! in_array(config('mail.default'), ['log', 'array'], true) ? self::OK : self::WARN, 'Email really goes out (MAIL_MAILER)', ! in_array(config('mail.default'), ['log', 'array'], true) ? null : 'MAIL_MAILER is "'.config('mail.default').'": password reset links and security notices are written to a file, not sent.');
 
         // what the code needs in the database
-        $missing = array_values(array_filter(['auth_sessions', 'security_events', 'auth_credentials', 'auth_challenges'], fn ($t) => ! Schema::hasTable($t)));
+        $missing = array_values(array_filter(['auth_sessions', 'security_events', 'auth_credentials', 'auth_challenges', 'security_settings'], fn ($t) => ! Schema::hasTable($t)));
         if (! $missing && ! Schema::hasColumn('auth_sessions', 'strength')) {
             $missing[] = 'auth_sessions.strength';
         }
-        $add(! $missing ? self::OK : self::FAIL, 'The security tables exist', ! $missing ? null : 'Missing: '.implode(', ', $missing).'. Run database scripts 123_security_core.sql and 124_passkeys.sql in Workbench.');
+        $add(! $missing ? self::OK : self::FAIL, 'The security tables exist', ! $missing ? null : 'Missing: '.implode(', ', $missing).'. Run database scripts 123_security_core.sql, 124_passkeys.sql and 125_security_policy.sql in Workbench.');
 
         // passkeys are made for one domain and can never move: it must be the website's
         $rp = PasskeyConfig::rpId();
@@ -82,8 +82,24 @@ final class SecurityCheck
         $add(count($usable) === count($listed) && $usable ? self::OK : self::WARN, 'Passkey origins are exact https addresses of the website (PASSKEY_ORIGINS)',
             count($usable) === count($listed) && $usable ? null : (! $usable ? 'No usable address is listed: nobody could add or use a passkey.' : 'Ignored (not https, or not an address): '.implode(', ', array_diff($listed, $usable)).'.'));
         if (Schema::hasTable('permissions')) {
-            $has = DB::table('permissions')->where('key', 'security.view')->exists();
-            $add($has ? self::OK : self::WARN, 'The "see the sign-in log" permission is installed', $has ? null : 'Run php artisan access:seed.');
+            $has = DB::table('permissions')->where('key', 'security.view')->exists() && DB::table('permissions')->where('key', 'security.manage')->exists();
+            $add($has ? self::OK : self::WARN, 'The security permissions are installed (see the sign-in log, change the sign-in rules)', $has ? null : 'Run php artisan access:seed.');
+        }
+
+        // the passkey rule (who must sign in with a passkey)
+        if (config('security.policy.kill_switch')) {
+            $add(self::WARN, 'The passkey rule is asleep (SECURITY_POLICY_OFF)', 'The emergency switch is on, so nobody is held to the rule whatever the Security screen says. Take SECURITY_POLICY_OFF out of the server settings once everyone is back in.');
+        } elseif (! $missing) {
+            $policy = app(PasskeyPolicy::class);
+            $mode = $policy->mode();
+            if ($mode === 'off') {
+                $add(self::NOTE, 'The passkey rule is off', 'Staff who handle money or access can still sign in with a password alone. Try it in "log" mode first (Admin → Security), then switch it on.');
+            } else {
+                $roster = $policy->roster()['summary'];
+                $due = $policy->enforceFrom()?->lte(now()) ?? false;
+                $add($mode === 'enforce' && $due ? self::OK : self::NOTE, 'The passkey rule is on ('.$mode.($mode === 'enforce' ? ($due ? '' : ', not yet in force') : ': nobody is stopped').')',
+                    $roster['missing'] ? "{$roster['missing']} of {$roster['applies']} people it is for still have to add the passkeys it asks for." : null);
+            }
         }
         $add(RateLimiter::limiter('sign-in') ? self::OK : self::FAIL, 'Sign-in has a speed limit', RateLimiter::limiter('sign-in') ? null : 'The speed limits are not registered.');
         $add(PasswordPolicy::minLength() >= 10 ? self::OK : self::WARN, 'Passwords must be at least 10 characters', PasswordPolicy::minLength() >= 10 ? null : 'SECURITY_PASSWORD_MIN is '.PasswordPolicy::minLength().'.');

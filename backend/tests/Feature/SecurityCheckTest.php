@@ -39,7 +39,7 @@ class SecurityCheckTest extends TestCase
             'session.secure' => true, 'cache.default' => 'file', 'queue.default' => 'database', 'mail.default' => 'smtp', 'security.headers.enabled' => true, 'security.password.min_length' => 10]);
         putenv('TRUSTED_PROXIES=*');
         Schema::create('permissions', function ($t) { $t->id(); $t->string('key')->unique(); });
-        DB::table('permissions')->insert(['key' => 'security.view']);
+        DB::table('permissions')->insert([['key' => 'security.view'], ['key' => 'security.manage']]);
     }
 
     /** @return array<string, array{status: string, label: string, advice: ?string}> keyed by the first words of the label */
@@ -255,9 +255,64 @@ class SecurityCheckTest extends TestCase
     public function test_the_permission_not_yet_installed_is_a_warning_that_says_how(): void
     {
         DB::table('permissions')->delete();
-        $line = $this->results()['The "see the sign-in log" permission is installed'];
+        $line = $this->results()['The security permissions are installed (see the sign-in log, change the sign-in rules)'];
         $this->assertSame('warn', $line['status']);
         $this->assertStringContainsString('access:seed', $line['advice']);
+        // one of the two is not enough
+        DB::table('permissions')->insert(['key' => 'security.view']);
+        $this->assertSame('warn', $this->results()['The security permissions are installed (see the sign-in log, change the sign-in rules)']['status']);
+    }
+
+    // ------------------------------------------------------------ the passkey rule
+
+    public function test_the_passkey_rule_being_off_is_a_note_that_says_where_to_switch_it_on(): void
+    {
+        $line = collect($this->results())->first(fn ($r, $label) => $label === 'The passkey rule is off');
+        $this->assertSame('note', $line['status']);
+        $this->assertStringContainsString('"log" mode', $line['advice']);
+    }
+
+    public function test_log_mode_is_a_note_and_counts_the_people_still_to_do_it(): void
+    {
+        config(['security.policy.passkeys.mode' => 'log']);
+        \App\Services\Security\SecuritySettings::forget();
+        User::forceCreate(['name' => 'A', 'email' => 'a@example.com', 'password' => Hash::make('x'), 'role' => 'admin']);
+        $b = User::forceCreate(['name' => 'B', 'email' => 'b@example.com', 'password' => Hash::make('x'), 'role' => 'finance']);
+        User::forceCreate(['name' => 'C', 'email' => 'c@example.com', 'password' => Hash::make('x'), 'role' => 'logistics']);   // staff, but the rule is not for them
+        DB::table('auth_credentials')->insert(['user_id' => $b->id, 'credential_hash' => str_repeat('a', 64), 'credential_id' => 'x', 'public_key' => 'x', 'user_handle' => 'x', 'name' => 'Phone']);
+        $line = collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'The passkey rule is on'));
+        $this->assertSame('note', $line['status']);
+        $this->assertStringContainsString('nobody is stopped', $line['label']);
+        $this->assertStringContainsString('1 of 2 people', $line['advice']);
+    }
+
+    public function test_the_rule_in_force_is_fine_and_before_its_date_a_note(): void
+    {
+        config(['security.policy.passkeys.mode' => 'enforce', 'security.policy.passkeys.enforce_from' => now()->subDay()->toDateString()]);
+        \App\Services\Security\SecuritySettings::forget();
+        $this->assertSame('ok', $this->lineStatus('The passkey rule is on'));
+        config(['security.policy.passkeys.enforce_from' => now()->addDays(5)->toDateString()]);
+        $line = collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'The passkey rule is on'));
+        $this->assertSame('note', $line['status']);
+        $this->assertStringContainsString('not yet in force', $line['label']);
+    }
+
+    public function test_the_emergency_switch_being_left_on_is_a_warning(): void
+    {
+        config(['security.policy.kill_switch' => true]);
+        $line = collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'The passkey rule is asleep'));
+        $this->assertSame('warn', $line['status']);
+        $this->assertStringContainsString('SECURITY_POLICY_OFF', $line['advice']);
+    }
+
+    public function test_the_policy_table_is_part_of_what_must_exist(): void
+    {
+        Schema::drop('security_settings');
+        \App\Services\Security\SecuritySettings::forget();
+        $line = $this->results()['The security tables exist'];
+        $this->assertSame('fail', $line['status']);
+        $this->assertStringContainsString('security_settings', $line['advice']);
+        $this->assertStringContainsString('125_security_policy.sql', $line['advice']);
     }
 
     public function test_sign_in_with_no_speed_limit_registered_is_a_failure(): void

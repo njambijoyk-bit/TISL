@@ -24,6 +24,7 @@ Illuminate\Support\Facades\Cache::flush();   // rate-limit counters from an earl
     public function go(): void
     {
         $this->createSecurityTables();
+        Illuminate\Support\Facades\Schema::create('employees', function ($t) { $t->id(); $t->unsignedBigInteger('user_id')->nullable(); $t->softDeletes(); $t->timestamps(); });   // (signing in as staff looks for the employee record)
     }
 })->go();
 
