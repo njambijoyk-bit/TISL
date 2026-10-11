@@ -636,8 +636,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/recipes', [$r, 'index']);
         Route::get('/recipes/{id}/cost', [$r, 'cost'])->whereNumber('id');
         $in = \App\Http\Controllers\Admin\MenusIngredientController::class;
+        $dc = \App\Http\Controllers\Admin\MenusDishController::class;
         Route::get('/ingredients', [$in, 'index']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in) {
+        Route::get('/dishes', [$dc, 'index']);
+        Route::get('/settings', [$dc, 'settings']);
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc) {
+            Route::post('/dishes', [$dc, 'save']);
+            Route::put('/dishes/{id}', [$dc, 'save'])->whereNumber('id');
+            Route::post('/dishes/{id}/sold-out', [$dc, 'soldOut'])->whereNumber('id');
+            Route::delete('/dishes/{id}', [$dc, 'destroy'])->whereNumber('id');
+            Route::put('/settings', [$dc, 'saveSettings']);
             Route::post('/ingredients', [$in, 'save']);
             Route::put('/ingredients/{id}', [$in, 'save'])->whereNumber('id');
             Route::delete('/ingredients/{id}', [$in, 'destroy'])->whereNumber('id');

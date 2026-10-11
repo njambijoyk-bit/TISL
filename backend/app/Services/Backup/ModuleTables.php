@@ -142,7 +142,7 @@ final class ModuleTables
             'campaign_pins', 'campaign_boards', 'campaign_board_pins', 'campaign_moodboards', 'campaign_board_follows', 'campaign_access_log', 'campaign_settings', 'campaign_pin_uploads', 'preorder_offers', 'preorder_lines', 'preorder_offer_supply'],
         'courses'        => [/* built later */],
         'accommodations' => [/* built later */],
-        'menus'          => ['recipes', 'recipe_items', 'productions', 'production_lines', 'menus_ingredient_families', 'menus_ingredient_variants', 'recipe_steps'],
+        'menus'          => ['recipes', 'recipe_items', 'productions', 'production_lines', 'menus_ingredient_families', 'menus_ingredient_variants', 'recipe_steps', 'menus_dishes', 'menus_settings'],
         'events'         => ['events', 'event_sessions', 'event_ticket_types', 'event_ticket_type_sessions', 'event_tickets', 'event_checkins', 'event_refund_requests', 'event_settings', 'event_reminders'],
         'memberships'    => [/* built later */],
     ];

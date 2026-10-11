@@ -56,8 +56,8 @@ class RecipeLines
         return 1 / (1 - $w / 100);
     }
 
-    /** @return array<int, array{variant_id: int, quantity: float, from: string}> */
-    private function resolve(RecipeItem $line, float $factor, int $locationId): array
+    /** What one line asks for: an ingredient family and the amount in the family's unit, or an exact item and the amount in its own stock unit. @return array{family: ?IngredientFamily, qty: float, variant_id: ?int} */
+    private function need(RecipeItem $line, float $factor): array
     {
         $qty = (float) $line->quantity * $factor * self::wasteFactor($line);
         if (self::extended() && $line->family_id) {
@@ -65,13 +65,44 @@ class RecipeLines
             if (! $family || ! $family->is_active) {
                 throw new BooksException('An ingredient in this recipe has been removed or switched off. Open the recipe and choose another.');
             }
-            $need = $line->unit_id ? $this->convert($qty, (int) $line->unit_id, $family->unit, $family->name) : $qty;
 
-            return array_map(fn ($p) => ['variant_id' => $p['variant_id'], 'quantity' => $p['stock_qty'], 'from' => $family->name], $this->resolver->plan($family, $need, $locationId));
+            return ['family' => $family, 'qty' => $line->unit_id ? $this->convert($qty, (int) $line->unit_id, $family->unit, $family->name) : $qty, 'variant_id' => null];
         }
         $stock = self::extended() && $line->unit_id ? $this->toStockUnits((int) $line->variant_id, $qty, (int) $line->unit_id) : $qty;
 
-        return [['variant_id' => (int) $line->variant_id, 'quantity' => round($stock, 4), 'from' => '']];
+        return ['family' => null, 'qty' => $stock, 'variant_id' => (int) $line->variant_id];
+    }
+
+    /** @return array<int, array{variant_id: int, quantity: float, from: string}> */
+    private function resolve(RecipeItem $line, float $factor, int $locationId): array
+    {
+        $n = $this->need($line, $factor);
+        if ($n['family']) {
+            return array_map(fn ($p) => ['variant_id' => $p['variant_id'], 'quantity' => $p['stock_qty'], 'from' => $n['family']->name], $this->resolver->plan($n['family'], $n['qty'], $locationId));
+        }
+
+        return [['variant_id' => $n['variant_id'], 'quantity' => round($n['qty'], 4), 'from' => '']];
+    }
+
+    /**
+     * How many units of the finished item the shelf at a branch could make right now: the scarcest ingredient decides. An ingredient with none on the shelf makes it 0.
+     * (A family counts everything its allowed items hold; waste is allowed for.)
+     */
+    public function capacity(Recipe $r, int $locationId, ?\App\Services\Stock\BatchService $batches = null): float
+    {
+        $r->loadMissing('items');
+        $batches ??= app(\App\Services\Stock\BatchService::class);
+        $yields = INF;
+        foreach ($r->items as $line) {
+            $n = $this->need($line, 1.0);
+            if ($n['qty'] <= 0) {
+                continue;
+            }
+            $have = $n['family'] ? $this->resolver->available($n['family'], $locationId) : $batches->sellable((int) $n['variant_id'], $locationId);
+            $yields = min($yields, $have / $n['qty']);
+        }
+
+        return is_infinite($yields) ? 0.0 : round(max(0.0, $yields) * (float) $r->yield_qty, 4);
     }
 
     private function convert(float $qty, int $fromUnitId, ?UnitOfMeasure $to, string $what): float
