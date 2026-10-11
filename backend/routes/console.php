@@ -27,6 +27,7 @@ Schedule::command('notifications:prune')->dailyAt('03:30')->withoutOverlapping()
 Schedule::call(fn () => app(\App\Services\Stock\BackInStock::class)->expireOld())->dailyAt('03:40')->name('stock-alerts-expire');   // "tell me when it is back" requests nobody acted on for a year
 Schedule::command('events:remind')->everyFifteenMinutes()->withoutOverlapping();   // "tomorrow: your event" (only when the company has switched it on)
 Schedule::command('events:release-holds')->everyMinute()->withoutOverlapping();   // ticket seats held for someone who did not pay go back on sale
+Schedule::command('menus:sweep-orders')->everyFiveMinutes()->withoutOverlapping();   // online food orders whose payment never arrived are cancelled
 Schedule::command('stock:expire')->dailyAt('00:10')->withoutOverlapping();   // expired batches, auto write-offs, expiry warnings
 
 // ── Data backups ────────────────────────────────────────────────────────────

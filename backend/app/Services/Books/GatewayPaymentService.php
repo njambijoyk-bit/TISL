@@ -256,6 +256,20 @@ class GatewayPaymentService
         }
     }
 
+    /** A food order is paid: it moves on to the kitchen. A problem there must never undo a payment that has been received. */
+    private function menuOrderPaid(Voucher $order, Voucher $sale, PaymentAttempt $attempt): void
+    {
+        if (empty($order->meta['menu_order_id'])) {
+            return;
+        }
+        try {
+            app(\App\Services\Menus\MenuOrderService::class)->paid($order, $sale);
+        } catch (\Throwable $e) {
+            Log::error('Gateway: the food order could not be marked paid', ['attempt' => $attempt->id, 'order' => $order->id, 'error' => $e->getMessage()]);
+            $attempt->update(['notes' => trim(($attempt->notes ? $attempt->notes . ' · ' : '') . "The payment is booked but the food order could not be marked paid ({$e->getMessage()}): please check Menus → Orders.")]);
+        }
+    }
+
     /** Money is in: the order becomes a Cash Sale, or the payment is a Receipt against the invoice. */
     private function settle(PaymentAttempt $attempt): void
     {
@@ -281,6 +295,7 @@ class GatewayPaymentService
         $sale = app(CheckoutService::class)->settle($voucher, $tenders, null);
         $attempt->update(['settled_voucher_id' => $sale->id]);
         $this->issueTickets($voucher, $sale, $attempt);   // an order for event tickets: the tickets become valid now
+        $this->menuOrderPaid($voucher, $sale, $attempt);   // a food order: the kitchen is told now
         if ($paired) {
             // The money has arrived and the first order is settled: a problem with the second must not undo that (the whole callback would roll back and the payment be lost). Staff finish it by hand.
             try {

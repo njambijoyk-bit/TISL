@@ -34,6 +34,12 @@ class NotificationTypes
         'password_reset' => ['Password reset', true, 'customer'],
         'new_sign_in' => ['A new browser signed in to your account', true, 'customer'],
         'email_sign_in_link' => ['Your sign-in link', true, 'customer'],
+        // food orders (Services/Menus/MenuOrderNotices)
+        'menu_order_placed' => ['Your food order was received', true, 'customer'],
+        'menu_order_ready' => ['Your food order is ready', true, 'customer'],
+        'menu_order_out' => ['Your food order is on its way', true, 'customer'],
+        'menu_order_cancelled' => ['Your food order was cancelled', true, 'customer'],
+        'menu_order_new' => ['A new food order', true, 'staff'],
         // security messages (Services/Security/SecurityAlerts). Essential: a security message is never silent.
         'council_request' => ['A second person is needed to approve something', true, 'staff'],
         'council_answer' => ['A second person answered your request', true, 'staff'],

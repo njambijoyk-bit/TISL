@@ -256,6 +256,14 @@ Route::prefix('checkout')->group(function () {
 
 // Menus — the menu a customer reads (open to everyone)
 Route::get('/menu', [\App\Http\Controllers\Api\MenusPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
+Route::prefix('menu')->middleware('module:menus')->group(function () {   // ordering food online: no sign-in needed; a signed-in customer's token (if sent) links the order to them
+    $c = \App\Http\Controllers\Api\MenusOrderController::class;
+    Route::get('/channels',                 [$c, 'channels'])->middleware('throttle:120,1');
+    Route::post('/quote',                   [$c, 'quote'])->middleware('throttle:60,1');
+    Route::post('/orders',                  [$c, 'place'])->middleware('throttle:20,1');
+    Route::get('/orders/{token}',           [$c, 'show'])->middleware('throttle:120,1')->where('token', '[A-Za-z0-9]{40}');
+    Route::post('/orders/{token}/cancel',   [$c, 'cancel'])->middleware('throttle:10,1')->where('token', '[A-Za-z0-9]{40}');
+});
 
 // Events — open to everyone, no sign-in needed to buy; a signed-in customer's token (if sent) links the purchase to them
 Route::prefix('events')->middleware('module:events')->group(function () {
@@ -646,7 +654,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/dishes/{id}/options', [$mc, 'options'])->whereNumber('id');
         Route::get('/dishes', [$dc, 'index']);
         Route::get('/settings', [$dc, 'settings']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc) {
+        $oc = \App\Http\Controllers\Admin\MenusOrderAdminController::class;
+        Route::get('/orders', [$oc, 'index']);
+        Route::get('/channels', [$oc, 'channelList']);
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc) {
+            Route::post('/orders/{id}/status', [$oc, 'status'])->whereNumber('id');
+            Route::post('/orders/{id}/pay', [$oc, 'pay'])->whereNumber('id');
+            Route::put('/channels/{id}', [$oc, 'saveChannel'])->whereNumber('id');
             Route::post('/menus', [$mc, 'save']);
             Route::put('/menus/{id}', [$mc, 'save'])->whereNumber('id');
             Route::delete('/menus/{id}', [$mc, 'destroy'])->whereNumber('id');

@@ -87,6 +87,11 @@ class PaymentController extends Controller
                 'tickets' => $issuer->ticketsOf($order)->map(fn ($t) => ['reference' => $t->reference, 'state' => $t->state, 'holder_name' => $t->holder_name, 'code' => $t->state === 'valid' ? \App\Services\Events\TicketCodes::code($t) : null])->values()->all()];
         }
 
+        if ($order && ! empty($order->meta['menu_order_id'])) {   // a food order: the page can send the customer on to follow it
+            $mo = \App\Models\Menus\MenuOrder::withoutGlobalScopes()->find($order->meta['menu_order_id']);
+            $res['menu_order'] = $mo ? ['number' => $mo->number, 'token' => $mo->track_token] : null;
+        }
+
         return response()->json($res);
     }
 }
