@@ -25,6 +25,6 @@ class IngredientFamily extends Model
 
     public function variants(): HasMany
     {
-        return $this->hasMany(IngredientVariant::class, 'family_id')->orderBy('rank')->orderBy('id');
+        return $this->hasMany(IngredientVariant::class, 'family_id')->orderBy('preference')->orderBy('id');
     }
 }

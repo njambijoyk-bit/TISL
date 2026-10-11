@@ -86,7 +86,7 @@ class IngredientResolver
                 ->selectRaw('SUM(b.quantity) as qty, SUM(b.quantity * s.unit_cost) as value, MIN(s.expiry_date) as soonest')->first();
             $qty = (float) ($stats->qty ?? 0);
             $rows[] = [
-                'variant_id' => $variantId, 'units_per_stock' => (float) $v->units_per_stock, 'rank' => (int) $v->rank,
+                'variant_id' => $variantId, 'units_per_stock' => (float) $v->units_per_stock, 'rank' => (int) $v->preference,
                 'available' => $qty > 0 ? $this->batches->sellable($variantId, $locationId) : 0.0,
                 'cost' => $qty > 0 ? round((float) $stats->value / $qty, 6) : null, 'expiry' => $stats->soonest ?? null,
             ];

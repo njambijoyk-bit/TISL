@@ -68,7 +68,7 @@ class IngredientFamilies
             $family->variants()->whereNotIn('variant_id', $ids ?: [0])->delete();
             foreach ($variants as $i => $v) {
                 IngredientVariant::updateOrCreate(['variant_id' => (int) $v['variant_id']], [
-                    'family_id' => $family->id, 'rank' => $i + 1, 'units_per_stock' => round((float) $v['units_per_stock'], 6),
+                    'family_id' => $family->id, 'preference' => $i + 1, 'units_per_stock' => round((float) $v['units_per_stock'], 6),
                     'is_allowed' => (bool) ($v['is_allowed'] ?? true), 'sell_retail' => (bool) ($v['sell_retail'] ?? false),
                 ]);
             }

@@ -30,14 +30,14 @@ CREATE TABLE IF NOT EXISTS menus_ingredient_variants (
     id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
     family_id      BIGINT UNSIGNED NOT NULL,
     variant_id     BIGINT UNSIGNED NOT NULL,                     -- the stock item (product_variants)
-    rank           SMALLINT UNSIGNED NOT NULL DEFAULT 1,         -- 1 = preferred
+    preference     SMALLINT UNSIGNED NOT NULL DEFAULT 1,         -- 1 = preferred
     units_per_stock DECIMAL(18,6) NOT NULL DEFAULT 1,            -- family units in one stock unit of this item
     is_allowed     TINYINT(1) NOT NULL DEFAULT 1,                -- 0 = never used as a substitute
     sell_retail    TINYINT(1) NOT NULL DEFAULT 0,                -- 1 = also sold in the shop (a jar of spice); 0 = hidden from the shop
     created_at     TIMESTAMP NULL,
     updated_at     TIMESTAMP NULL,
     UNIQUE KEY uq_menus_ingredient_variant (variant_id),
-    KEY idx_menus_ingredient_family (family_id, rank)
+    KEY idx_menus_ingredient_family (family_id, preference)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- PART C - READ-ONLY CHECK

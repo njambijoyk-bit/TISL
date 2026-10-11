@@ -11,9 +11,9 @@ class IngredientVariant extends Model
 {
     protected $table = 'menus_ingredient_variants';
 
-    protected $fillable = ['family_id', 'variant_id', 'rank', 'units_per_stock', 'is_allowed', 'sell_retail'];
+    protected $fillable = ['family_id', 'variant_id', 'preference', 'units_per_stock', 'is_allowed', 'sell_retail'];
 
-    protected $casts = ['rank' => 'integer', 'units_per_stock' => 'decimal:6', 'is_allowed' => 'boolean', 'sell_retail' => 'boolean'];
+    protected $casts = ['preference' => 'integer', 'units_per_stock' => 'decimal:6', 'is_allowed' => 'boolean', 'sell_retail' => 'boolean'];
 
     public function family(): BelongsTo
     {

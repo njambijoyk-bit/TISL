@@ -79,7 +79,7 @@ class MenusIngredientController extends Controller
             'unit_cost' => $location ? $this->resolver->unitCost($f, $location) : null,
             'variants' => $f->variants->map(fn ($v) => [
                 'variant_id' => (int) $v->variant_id, 'name' => ($n = $names[$v->variant_id] ?? null) ? trim($n->name.($n->variant && $n->variant !== 'Standard' ? ' — '.$n->variant : '')) : null, 'sku' => $names[$v->variant_id]->sku ?? null,
-                'rank' => (int) $v->rank, 'units_per_stock' => (float) $v->units_per_stock, 'is_allowed' => (bool) $v->is_allowed, 'sell_retail' => (bool) $v->sell_retail,
+                'rank' => (int) $v->preference, 'units_per_stock' => (float) $v->units_per_stock, 'is_allowed' => (bool) $v->is_allowed, 'sell_retail' => (bool) $v->sell_retail,
             ])->values(),
         ];
     }

@@ -145,7 +145,7 @@ class MenusIngredientsTest extends TestCase
     {
         [$f, $exe, $pembe, $brown] = $this->flour();
         $this->assertSame([$exe, $pembe, $brown], $f->variants->pluck('variant_id')->map(fn ($i) => (int) $i)->all());
-        $this->assertSame([1, 2, 3], $f->variants->pluck('rank')->map(fn ($i) => (int) $i)->all());
+        $this->assertSame([1, 2, 3], $f->variants->pluck('preference')->map(fn ($i) => (int) $i)->all());
         $f = app(IngredientFamilies::class)->save(['name' => 'Wheat flour', 'unit_id' => $this->g, 'variants' => [['variant_id' => $brown, 'units_per_stock' => 1000], ['variant_id' => $exe, 'units_per_stock' => 2000]]], $f->id);
         $this->assertSame([$brown, $exe], $f->variants->pluck('variant_id')->map(fn ($i) => (int) $i)->all());
         $this->assertSame(0, IngredientVariant::where('variant_id', $pembe)->count(), 'an item left out of the list is taken out of the family');
