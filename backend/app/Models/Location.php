@@ -47,21 +47,65 @@ class Location extends Model
         'produces'           => 'boolean',
     ];
 
-    /** What a location is for. It is a label: it only fills in the four capabilities below, which are what the app actually checks. */
-    public const KINDS = ['shop' => 'Shop', 'warehouse' => 'Warehouse', 'depot' => 'Depot', 'factory' => 'Factory', 'office' => 'Office', 'other' => 'Other'];
+    /** The longest a kind can be (the column is VARCHAR(20)). */
+    public const KIND_MAX = 20;
 
     /** What a location may do: customers can buy from it, delivery notes can come from it, goods can be received into it, production can run in it. */
     public const CAPABILITIES = ['sells_to_customers', 'fulfils_orders', 'receives_purchases', 'produces'];
 
-    /** The capabilities each kind starts with (a form can still change them). */
-    public const KIND_DEFAULTS = [
-        'shop'      => ['sells_to_customers' => true,  'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
-        'warehouse' => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
-        'depot'     => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false],
-        'office'    => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => false, 'produces' => false],
-        'factory'   => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => true],
-        'other'     => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => false],
+    /**
+     * What the form offers as clickable suggestions for the free-text "What is it?" box: code => label, the module that makes it worth suggesting (null = always),
+     * and the capabilities it starts with. A kind is only a label the owner types; it fills in these four switches, which are what the app actually checks.
+     * Anything typed that is not here is allowed and starts with the "other" switches.
+     */
+    public const KIND_SUGGESTIONS = [
+        'shop'       => ['label' => 'Shop',        'module' => null,             'defaults' => ['sells_to_customers' => true,  'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false]],
+        'warehouse'  => ['label' => 'Warehouse',   'module' => null,             'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false]],
+        'depot'      => ['label' => 'Depot',       'module' => null,             'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => false]],
+        'office'     => ['label' => 'Office',      'module' => null,             'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => false, 'produces' => false]],
+        'factory'    => ['label' => 'Factory',     'module' => null,             'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => true]],
+        'other'      => ['label' => 'Other',       'module' => null,             'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => false]],
+        'restaurant' => ['label' => 'Restaurant',  'module' => 'menus',          'defaults' => ['sells_to_customers' => true,  'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => true]],
+        'cafe'       => ['label' => 'Cafe',        'module' => 'menus',          'defaults' => ['sells_to_customers' => true,  'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => true]],
+        'bakery'     => ['label' => 'Bakery',      'module' => 'menus',          'defaults' => ['sells_to_customers' => true,  'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => true]],
+        'bar'        => ['label' => 'Bar',         'module' => 'menus',          'defaults' => ['sells_to_customers' => true,  'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => false]],
+        'kitchen'    => ['label' => 'Central kitchen', 'module' => 'menus',      'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => true,  'receives_purchases' => true,  'produces' => true]],
+        'food truck' => ['label' => 'Food truck',  'module' => 'menus',          'defaults' => ['sells_to_customers' => true,  'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => true]],
+        'venue'      => ['label' => 'Venue',       'module' => 'events',         'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => false, 'produces' => false]],
+        'property'   => ['label' => 'Property',    'module' => 'accommodations', 'defaults' => ['sells_to_customers' => false, 'fulfils_orders' => false, 'receives_purchases' => true,  'produces' => false]],
     ];
+
+    /** Tidy what was typed: no stray spaces, one space between words. */
+    public static function cleanKind(?string $kind): string
+    {
+        return trim((string) preg_replace('/\s+/', ' ', (string) $kind));
+    }
+
+    /** The four switches a kind starts with (the match ignores capital letters). */
+    public static function defaultsFor(?string $kind): array
+    {
+        $key = mb_strtolower(self::cleanKind($kind));
+
+        return (self::KIND_SUGGESTIONS[$key] ?? self::KIND_SUGGESTIONS['other'])['defaults'];
+    }
+
+    /**
+     * The suggestions to show now: the always-on ones, plus those of modules that are licensed and switched on.
+     *
+     * @param callable(string): bool $moduleIsActive
+     * @return array<int, array{kind: string, label: string, module: ?string, defaults: array<string, bool>}>
+     */
+    public static function suggestions(callable $moduleIsActive): array
+    {
+        $out = [];
+        foreach (self::KIND_SUGGESTIONS as $kind => $s) {
+            if ($s['module'] === null || $moduleIsActive($s['module'])) {
+                $out[] = ['kind' => $kind, 'label' => $s['label'], 'module' => $s['module'], 'defaults' => $s['defaults']];
+            }
+        }
+
+        return $out;
+    }
 
     /**
      * Has the capabilities script (97) been run? Until it has, every location counts as a shop that does everything but produce,
@@ -69,9 +113,15 @@ class Location extends Model
      */
     public static function hasCapabilities(): bool
     {
-        static $has = null;
+        return self::$hasCapabilities ??= Schema::hasColumn('locations', 'sells_to_customers');
+    }
 
-        return $has ??= Schema::hasColumn('locations', 'sells_to_customers');
+    private static ?bool $hasCapabilities = null;
+
+    /** Ask the database again (after the script was run; and between tests). */
+    public static function forgetCapabilities(): void
+    {
+        self::$hasCapabilities = null;
     }
 
     // ── Relationships ───────────────────────────────────────────────────────

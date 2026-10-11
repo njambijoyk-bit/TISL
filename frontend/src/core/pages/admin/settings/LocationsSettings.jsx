@@ -69,13 +69,17 @@ function LocationModal({ open, onClose, editing, options, onSaved }) {
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   // choosing a kind fills in what that kind usually does; the four switches below can still be changed
-  const pickKind = (kind) => setForm((f) => ({ ...f, kind, ...(options.kind_defaults?.[kind] ?? {}) }));
+  // (the kind is typed; a suggestion, or typing exactly one of them, fills in the switches. The suggestions follow the modules that are switched on.)
+  const suggestions = options.kind_suggestions ?? [];
+  const pickKind = (kind) => setForm((f) => ({ ...f, kind, ...(suggestions.find((s) => s.kind === kind.trim().toLowerCase())?.defaults ?? {}) }));
+  const typeKind = (kind) => setForm((f) => ({ ...f, kind }));
   const toggleStaff = (id) => setForm((f) => ({
     ...f, staff_ids: f.staff_ids.includes(id) ? f.staff_ids.filter((x) => x !== id) : [...f.staff_ids, id],
   }));
 
   const save = async () => {
     if (!form.name.trim() || !form.code.trim()) { toast.error('Name and code are required.'); return; }
+    if (options.capabilities_ready !== false && !form.kind.trim()) { toast.error('Say what this branch is (a shop, a restaurant, a warehouse…).'); return; }
     const payload = {
       ...form,
       currency_id: form.currency_id || null,
@@ -144,10 +148,21 @@ function LocationModal({ open, onClose, editing, options, onSaved }) {
           <div style={{ marginTop: 16, padding: 14, borderRadius: 10, border: '1px solid var(--line)' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 220px) 1fr', gap: 12, alignItems: 'start' }}>
               <div>
-                <label style={label}>What is it?</label>
-                <select style={input} value={form.kind} onChange={(e) => pickKind(e.target.value)}>
-                  {Object.entries(options.kinds ?? { shop: 'Shop', warehouse: 'Warehouse', factory: 'Factory', other: 'Other' }).map(([k, name]) => <option key={k} value={k}>{name}</option>)}
-                </select>
+                <label style={label} htmlFor="location-kind">What is it? *</label>
+                <input id="location-kind" data-testid="location-kind" style={input} value={form.kind} maxLength={options.kind_max ?? 20} required placeholder="e.g. shop, restaurant…"
+                  onChange={(e) => typeKind(e.target.value)} onBlur={(e) => pickKind(e.target.value)} />
+                <div data-testid="location-kind-suggestions" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                  {suggestions.map((sug) => {
+                    const on = form.kind.trim().toLowerCase() === sug.kind;
+                    return (
+                      <button type="button" key={sug.kind} onClick={() => pickKind(sug.kind)} aria-pressed={on}
+                        style={{ padding: '3px 10px', borderRadius: 999, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                          border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line)'}`, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)' : 'transparent', color: on ? 'var(--color-primary-600)' : 'var(--text-secondary)' }}>
+                        {sug.label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {CAPABILITY_LABELS.map(([key, name, hint]) => (

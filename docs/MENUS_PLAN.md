@@ -166,7 +166,11 @@ These reuse existing modules. Menus supplies the food side (recipes, costing, in
 - **Ingredient variants: families with preferred and substitute variants** (Decision A, recommended option).
 - **Dish link: a hidden finished-item stock variant per dish** (Decision B, recommended option).
 
-**Still open (I will use the recommended answer unless told otherwise):** items 4 to 9 below.
+- **Set up for every kind of business; a single restaurant or a chain is decided by the Locations table**, not by a setting in Menus. A location's **kind** is a **compulsory text box** (up to 20 letters, the column is VARCHAR(20)) with **clickable suggestions that follow the modules that are licensed and switched on** (Menus adds restaurant, cafe, bakery, bar, central kitchen, food truck). A kind only fills in the four capability switches (sells, delivers, receives goods, makes things); built and tested (`LocationKindTest`).
+- Kitchen screens (KDS): **we build them**. Online pickup/delivery first, then counter, tables, kiosk.
+- **Tips and service charge:** an accounting matter, managed in the ledgers like VAT (their own ledgers); the menu only posts to the ledgers chosen in Settings → Menus.
+- **Offline-tolerant till:** yes (kept in the build order, after the online-only till).
+- **Allergen wording:** a disclaimer line on the menu, agreed. **Table QR ordering without sign-in:** yes.
 
 ### Decisions needed from the owner (what changes the build)
 1. **First business to serve** and its size: a single restaurant/café, a bakery/cake business, a catering kitchen, or a multi-branch brand? This sets the order of the phases below.

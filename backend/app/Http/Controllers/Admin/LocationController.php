@@ -41,8 +41,8 @@ class LocationController extends Controller
             'currencies'    => Currency::where('is_active', true)->get(['id', 'code', 'name', 'symbol', 'is_base']),
             'tax_districts' => TaxDistrict::where('is_active', true)->orderBy('name')->get(['id', 'name', 'level', 'locale']),
             'staff'         => User::staffAccounts(['driver'])->orderBy('name')->get(['id', 'name', 'email', 'role']),
-            'kinds'         => Location::KINDS,
-            'kind_defaults' => Location::KIND_DEFAULTS,
+            'kind_suggestions' => Location::suggestions(fn (string $module) => app(\App\Services\Licensing\LicenseManager::class)->isActive($module)),
+            'kind_max'      => Location::KIND_MAX,
             'capabilities_ready' => Location::hasCapabilities(),
         ]);
     }
@@ -174,7 +174,7 @@ class LocationController extends Controller
             'accepts_delivery'      => 'boolean',
             'is_default'            => 'boolean',
             'is_active'             => 'boolean',
-            'kind'                  => ['nullable', Rule::in(array_keys(Location::KINDS))],
+            'kind'                  => [$id === null && Location::hasCapabilities() ? 'required' : 'nullable', 'string', 'max:'.Location::KIND_MAX],
             'sells_to_customers'    => 'boolean',
             'fulfils_orders'        => 'boolean',
             'receives_purchases'    => 'boolean',
@@ -192,10 +192,16 @@ class LocationController extends Controller
         if (! Location::hasCapabilities()) {
             return array_diff_key($data, array_flip(['kind', ...Location::CAPABILITIES]));
         }
+        if (array_key_exists('kind', $data)) {
+            $data['kind'] = Location::cleanKind($data['kind']);
+            if ($data['kind'] === '') {
+                unset($data['kind']);   // an edit that clears the box keeps what was there
+            }
+        }
         if ($creating) {
-            $kind = $data['kind'] ?? 'shop';
+            $kind = Location::cleanKind($data['kind'] ?? '') ?: 'shop';
             $data['kind'] = $kind;
-            foreach (Location::KIND_DEFAULTS[$kind] as $cap => $on) {
+            foreach (Location::defaultsFor($kind) as $cap => $on) {
                 if (! $request->has($cap)) {
                     $data[$cap] = $on;
                 }
