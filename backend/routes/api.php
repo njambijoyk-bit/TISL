@@ -634,7 +634,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(['module:menus', 'permission:menus.view'])->prefix('admin/menus')->group(function () {
         $r = \App\Http\Controllers\Admin\RecipeController::class;
         Route::get('/recipes', [$r, 'index']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r) {
+        $in = \App\Http\Controllers\Admin\MenusIngredientController::class;
+        Route::get('/ingredients', [$in, 'index']);
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in) {
+            Route::post('/ingredients', [$in, 'save']);
+            Route::put('/ingredients/{id}', [$in, 'save'])->whereNumber('id');
+            Route::delete('/ingredients/{id}', [$in, 'destroy'])->whereNumber('id');
+            Route::post('/ingredients/suggest', [$in, 'suggest']);
             Route::put('/recipes', [$r, 'save']);
             Route::delete('/recipes/{id}', [$r, 'destroy'])->whereNumber('id');
             Route::post('/recipes/{id}/produce', [$r, 'produce'])->whereNumber('id');
