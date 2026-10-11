@@ -15,7 +15,7 @@ use Illuminate\Http\Request;
 final class NewSignInNotice
 {
     /** Ways of signing in where the person has just proved who they are in a way that already tells them: no email. */
-    public const QUIET_METHODS = ['register', 'reset'];
+    public const QUIET_METHODS = ['register', 'reset', 'email_link'];   // (an emailed link already went to the person's own inbox)
 
     public function __construct(private Notifier $notifier)
     {

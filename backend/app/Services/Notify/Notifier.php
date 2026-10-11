@@ -22,7 +22,9 @@ class Notifier
     public function __construct(private NotifySettings $settings, private ChannelResolver $resolver, private Recipients $recipients, private WhatsAppProviders $providers) {}
 
     /**
-     * @param  array{action_url?: ?string, action_text?: ?string, data?: ?array, priority?: string, subject?: ?string, email?: ?string, whatsapp?: ?string, whatsapp_source?: ?string}  $o
+     * `only` limits the message to some channels (a sign-in link goes by email, never to a WhatsApp list a person sends by hand); `no_bell` keeps it out of the bell (a link that signs someone in should not sit in a list).
+     *
+     * @param  array{action_url?: ?string, action_text?: ?string, data?: ?array, priority?: string, subject?: ?string, email?: ?string, whatsapp?: ?string, whatsapp_source?: ?string, only?: string[], no_bell?: bool}  $o
      * @return array{notification: ?Notification, channels: string[], skipped: array<string,string>, staff_list: bool}
      */
     public function send(Model $to, string $type, string $title, string $message, array $o = []): array
@@ -58,10 +60,13 @@ class Notifier
     private function run(array $r, ?Model $to, string $type, string $title, string $message, array $o): array
     {
         $rule = $this->settings->get('types')['rules'][$type] ?? [];
+        if (isset($o['only'])) {
+            $rule['channels'] = array_values(array_intersect($rule['channels'] ?? ['email', 'whatsapp'], $o['only']));
+        }
         $plan = $this->resolver->resolve($this->settings->get('general'), $rule, NotificationTypes::isEssential($type), $r['person']);
 
         $bell = null;
-        if (in_array('database', $plan['channels'], true) && $r['bell']) {
+        if (in_array('database', $plan['channels'], true) && $r['bell'] && empty($o['no_bell'])) {
             $bell = Notification::create(['notifiable_type' => get_class($r['bell']), 'notifiable_id' => $r['bell']->id, 'type' => $type, 'title' => $title, 'message' => $message,
                 'action_url' => $o['action_url'] ?? null, 'action_text' => $o['action_text'] ?? null, 'data' => $o['data'] ?? null, 'channels' => $plan['channels'],
                 'priority' => $o['priority'] ?? (NotificationTypes::isEssential($type) ? 'high' : 'normal'), 'sent_at' => now()]);

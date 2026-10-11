@@ -19,6 +19,7 @@ node e2e/risk.mjs                               # a sign-in that does not look l
 node e2e/signin-reset.mjs                       # "reset sign-in methods": the serious-action question, a waiting day, another administrator cancelling, the sweep carrying it out, and an immediate reset for someone the rule is not for
 node e2e/recovery-assisted.mjs                  # assisted recovery: a locked-out person asks, two administrators approve (or decline / stop it), a day passes, and one sign-in may add a new passkey
 node e2e/council.mjs                            # the Council of Two in two browsers: a serious action waits for a second person, who approves or declines it, and the first person's action goes ahead by itself
+node e2e/email-link.mjs                        # the emailed sign-in link for customers: the same answer for staff and strangers, tied to the asking browser, a button before anything happens, once only
 node e2e/actions.mjs                            # the owner's page for sensitive actions and the sign-in check, and the real payment keys screen asking once (passkey) instead of the password
 ```
 

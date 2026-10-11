@@ -143,6 +143,10 @@ Route::prefix('auth')->group(function () {
     Route::post('/passkeys/options', [AuthController::class, 'passkeyOptions'])->middleware('throttle:passkey');   // sign in with a passkey: the question the device signs
     Route::post('/passkeys/login', [AuthController::class, 'passkeyLogin'])->middleware('throttle:passkey');
     Route::post('/secure-account', [\App\Http\Controllers\Api\SecureAccountController::class, 'store'])->middleware('throttle:password-reset');   // "This was not me" in the new-sign-in email
+    // a customer asks for a one-time sign-in link by email (customers only), looks at it, and uses it
+    Route::post('/email-link',         [\App\Http\Controllers\Api\EmailLinkController::class, 'ask'])->middleware('throttle:email-link');
+    Route::post('/email-link/check',   [\App\Http\Controllers\Api\EmailLinkController::class, 'check'])->middleware('throttle:email-link-use');
+    Route::post('/email-link/confirm', [\App\Http\Controllers\Api\EmailLinkController::class, 'confirm'])->middleware('throttle:email-link-use');
 });
 
 Route::get('/bug-reports/search', [BugReportController::class, 'search']);

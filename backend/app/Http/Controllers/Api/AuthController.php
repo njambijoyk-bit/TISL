@@ -253,7 +253,7 @@ class AuthController extends Controller
      * Customers only: the policies they must have accepted (terms, privacy). Returns the answer to send back when they still have to accept or have refused; null to carry on.
      * The same gate guards every way of signing in (password, passkey).
      */
-    private function policyGate(Request $request, User $user): ?\Illuminate\Http\JsonResponse
+    public function policyGate(Request $request, User $user): ?\Illuminate\Http\JsonResponse
     {
         if ($user->isCustomer() && $user->customer) {
             $customer = $user->customer;
@@ -356,7 +356,7 @@ class AuthController extends Controller
     }
 
     /** The person is in: open the session (cookie or code), record it, and answer with who they are and what they may do. */
-    private function finishSignIn(Request $request, User $user, string $method, ?\App\Models\Security\AuthCredential $credential = null): \Illuminate\Http\JsonResponse
+    public function finishSignIn(Request $request, User $user, string $method, ?\App\Models\Security\AuthCredential $credential = null): \Illuminate\Http\JsonResponse
     {
         // Login successful
         Auth::guard('web')->login($user, $request->remember ?? false);

@@ -28,6 +28,7 @@ const OAuthCallback       = lazy(() => import('./core/pages/auth/OAuthCallback')
 const ForceChangePassword = lazy(() => import('./core/pages/auth/ForceChangePassword.jsx'));
 const ForgotPassword      = lazy(() => import('./core/pages/auth/ForgotPassword'));
 const SecureAccount       = lazy(() => import('./core/pages/auth/SecureAccount'));
+const EmailLinkSignIn     = lazy(() => import('./core/pages/auth/EmailLinkSignIn'));
 const StockAlertStop      = lazy(() => import('./core/pages/customer/StockAlertStop'));
 const ReminderStop        = lazy(() => import('./core/pages/customer/ReminderStop'));
 const ResetPassword       = lazy(() => import('./core/pages/auth/ResetPassword'));
@@ -534,6 +535,7 @@ function App() {
             <Route path="/force-change-password" element={<ForceChangePassword />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/secure-account" element={<SecureAccount />} />
+            <Route path="/sign-in/email" element={<EmailLinkSignIn />} />
             <Route path="/stock-alerts/stop/:token" element={<StockAlertStop />} />
             <Route path="/reminders/stop/:token" element={<ReminderStop />} />
             <Route path="/reset-password" element={<ResetPassword />} />

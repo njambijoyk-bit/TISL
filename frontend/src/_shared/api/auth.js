@@ -13,6 +13,11 @@ const authAPI = {
     return response.data;
   },
 
+  // Sign in with a one-time link emailed to a customer (the browser keeps a cookie that ties the link to it)
+  askEmailLink: async (email) => (await api.post('/auth/email-link', { email })).data,
+  checkEmailLink: async (k) => (await api.post('/auth/email-link/check', { k })).data,
+  confirmEmailLink: async (k, extra = {}) => (await api.post('/auth/email-link/confirm', { k, ...extra })).data,
+
   // Logout
   logout: async () => {
     const response = await api.post('/auth/logout');

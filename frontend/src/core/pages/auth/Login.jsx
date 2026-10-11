@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound, Stamp } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound, Stamp, Send } from 'lucide-react';
 import { authAPI } from '../../../_shared/api/index';
 import { useAuthStore, useModuleStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
@@ -88,6 +88,21 @@ export default function Login() {
       return;
     }
     toast.error(error.response?.data?.message || 'Invalid credentials');
+  };
+
+  // A customer who would rather not type a password: a one-time link by email. The answer is the same whoever the email belongs to.
+  const [linkState, setLinkState] = useState({ busy: false, sent: null });
+  const askLink = async () => {
+    const email = formData.email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setErrors((er) => ({ ...er, email: 'Type your email first' })); return; }
+    setLinkState({ busy: true, sent: null });
+    try {
+      const r = await authAPI.askEmailLink(email);
+      setLinkState({ busy: false, sent: r.message });
+    } catch (error) {
+      setLinkState({ busy: false, sent: null });
+      toast.error(error.response?.data?.message || 'That did not work. Please try again in a moment.');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -357,6 +372,16 @@ export default function Login() {
               <button type="button" onClick={handlePasskey} disabled={loading || passkeyBusy || !policyAccepted} data-testid="passkey-signin"
                 style={{ height: 44, borderRadius: 12, border: '1.5px solid var(--color-primary-500)', background: 'transparent', cursor: (loading || passkeyBusy || !policyAccepted) ? 'not-allowed' : 'pointer', color: 'var(--color-primary-600)', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: (loading || passkeyBusy || !policyAccepted) ? 0.5 : 1 }}>
                 <KeyRound size={16} /> {passkeyBusy ? 'Waiting for your device…' : 'Sign in with a passkey'}
+              </button>
+            )}
+
+            {/* Email link (customers) */}
+            {linkState.sent ? (
+              <p role="status" data-testid="email-link-sent" style={{ margin: 0, fontSize: '0.8rem', lineHeight: 1.5, textAlign: 'center' }} className="text-gray-600 dark:text-gray-300">{linkState.sent}</p>
+            ) : (
+              <button type="button" onClick={askLink} disabled={loading || linkState.busy} data-testid="email-link-ask"
+                style={{ background: 'none', border: 'none', cursor: linkState.busy ? 'wait' : 'pointer', color: 'var(--color-primary-600)', fontSize: '0.82rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 0 }}>
+                <Send size={14} /> {linkState.busy ? 'Sending…' : 'Email me a sign-in link instead'}
               </button>
             )}
 

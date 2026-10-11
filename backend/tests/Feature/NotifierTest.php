@@ -54,6 +54,23 @@ class NotifierTest extends NotifyTestCase
         $this->assertStringStartsWith('https://wa.me/254712345678?text=', $wa->wa_url);
     }
 
+    public function test_a_message_limited_to_email_with_no_bell_goes_nowhere_else(): void
+    {
+        Queue::fake();
+        $this->general(['whatsapp_enabled' => true, 'default_mode' => 'whatsapp']);   // a customer who prefers WhatsApp must still not get a sign-in link there
+        $c = $this->customer();
+
+        $r = app(Notifier::class)->send($c, 'email_sign_in_link', 'Your sign-in link', 'Press the button.', ['action_url' => '/sign-in/email?k=abc', 'action_text' => 'Sign me in', 'only' => ['email'], 'no_bell' => true]);
+
+        $this->assertNotContains('whatsapp', $r['channels']);
+        $this->assertContains('email', $r['channels']);
+        $this->assertSame(0, Notification::count(), 'not in the bell');
+        $this->assertSame(0, NotificationDelivery::where('channel', 'whatsapp')->count(), 'not on a WhatsApp list');
+        $email = NotificationDelivery::where('channel', 'email')->first();
+        $this->assertSame(['queued', 'amina@example.com'], [$email->status, $email->to_address]);
+        Queue::assertPushed(SendNotificationEmail::class);
+    }
+
     public function test_the_job_sends_the_email_and_marks_it_sent(): void
     {
         Mail::fake();

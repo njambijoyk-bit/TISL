@@ -33,6 +33,7 @@ class NotificationTypes
         'account_created' => ['Account created', true, 'customer'],
         'password_reset' => ['Password reset', true, 'customer'],
         'new_sign_in' => ['A new browser signed in to your account', true, 'customer'],
+        'email_sign_in_link' => ['Your sign-in link', true, 'customer'],
         'passkey_added' => ['A passkey was added to your account', true, 'customer'],
         'passkey_removed' => ['A passkey was removed from your account', true, 'customer'],
         'passkey_clone' => ['A passkey on your account was switched off', true, 'customer'],

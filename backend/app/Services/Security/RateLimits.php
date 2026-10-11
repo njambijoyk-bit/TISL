@@ -29,6 +29,8 @@ class RateLimits
         'step-up' => 'step_up',
         'approvals' => 'approvals',
         'seal' => 'seal',
+        'email-link' => 'email_link',
+        'email-link-use' => 'email_link_use',
     ];
 
     public static function register(): void

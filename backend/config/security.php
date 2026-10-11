@@ -61,6 +61,9 @@ return [
         'step_up' => ['user' => [[20, 15], [60, 60]]],
         // looking at what is waiting for them (the Approvals page asks every few seconds, so this is its own, wider, bucket: it must never use up the one for answering)
         'approvals' => ['user' => [[600, 15]]],
+        // asking for a sign-in link by email (per email and address, and per address), and using one (per address)
+        'email_link' => ['email_ip' => [[3, 15], [6, 60]], 'ip' => [[10, 15], [30, 60]]],
+        'email_link_use' => ['ip' => [[20, 15], [60, 60]]],
     ],
 
     // Headers added to every response (see Http/Middleware/SecurityHeaders). HSTS is only sent over HTTPS; switch it off if the site must also be reached over plain HTTP.
@@ -140,6 +143,13 @@ return [
 
     // Tell the person (email and bell) when a passkey is added, removed or switched off, or recovery codes are made or used. Off with SECURITY_ALERTS_EMAIL=false.
     'alerts_email' => (bool) env('SECURITY_ALERTS_EMAIL', true),
+
+    // The sign-in link a customer can ask for by email (Services/Security/EmailSignInLink). Customers only, never staff. Off with SECURITY_EMAIL_LINK=false.
+    'email_link' => [
+        'enabled' => (bool) env('SECURITY_EMAIL_LINK', true),
+        'minutes' => (int) env('SECURITY_EMAIL_LINK_MINUTES', 15),
+        'resend_seconds' => (int) env('SECURITY_EMAIL_LINK_RESEND_SECONDS', 60),
+    ],
 
     'password' => [
         'min_length' => (int) env('SECURITY_PASSWORD_MIN', 10),

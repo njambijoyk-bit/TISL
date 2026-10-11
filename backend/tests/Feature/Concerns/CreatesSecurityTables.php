@@ -59,6 +59,10 @@ trait CreatesSecurityTables
             $t->id(); $t->string('request_id', 40); $t->unsignedBigInteger('user_id'); $t->string('approved_with', 10); $t->unsignedBigInteger('credential_id')->nullable(); $t->string('note', 300)->nullable(); $t->string('ip', 45)->nullable(); $t->timestamps();
             $t->unique(['request_id', 'user_id']);
         });
+        Schema::create('auth_email_links', function ($t) {
+            $t->string('id', 64)->primary(); $t->unsignedBigInteger('user_id'); $t->string('binder_hash', 64); $t->string('ip', 45)->nullable(); $t->string('user_agent')->nullable(); $t->unsignedTinyInteger('tries')->default(0);
+            $t->dateTime('expires_at'); $t->dateTime('used_at')->nullable(); $t->timestamps();
+        });
         Schema::create('auth_seals', function ($t) { $t->unsignedBigInteger('user_id')->primary(); $t->string('phrase', 60); $t->timestamps(); });
         Schema::create('security_settings', function ($t) {
             $t->string('setting_key', 80)->primary(); $t->json('value')->nullable(); $t->unsignedBigInteger('updated_by_id')->nullable(); $t->timestamps();

@@ -165,7 +165,7 @@ final class ModuleTables
         'jobs', 'job_batches', 'failed_jobs',
         'password_reset_tokens', 'personal_access_tokens',
         'auth_challenges',   // single-use questions that run out in two minutes
-        'auth_recovery_requests', 'auth_recovery_approvals',   // help getting back into an account: they run out in days, and a restored approval would be a stale one
+        'auth_recovery_requests', 'auth_recovery_approvals', 'auth_email_links',   // help getting back into an account: they run out in days, and a restored approval would be a stale one
         'auth_pending_actions',   // "one more step" questions about sensitive actions: they run out in minutes, and a restored one would be a stale approval
     ];
 
