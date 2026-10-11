@@ -5,6 +5,7 @@ namespace App\Services\Menus;
 use App\Models\Menus\Chef;
 use App\Models\Menus\DayOff;
 use App\Models\Menus\Shift;
+use App\Models\Menus\Swap;
 use App\Models\User;
 use App\Services\Notify\Notifier;
 use App\Services\Notify\Staff;
@@ -64,6 +65,70 @@ class RotaNotices
     {
         $this->safely(fn () => $this->tell($c->user_id, 'menu_dayoff_decided', $d->status === 'approved' ? 'Your time off is approved' : 'Your time off was not approved',
             $this->span($d).($d->status === 'approved' ? '.' : ($d->decision_note ? ": {$d->decision_note}" : '.')).($shiftsRemoved ? " {$shiftsRemoved} shift(s) in that time were taken off your rota." : '')));
+    }
+
+    // ── swaps ─────────────────────────────────────────────────────────────
+
+    public function swapAsked(Swap $w, Shift $s, Chef $from, Chef $to, ?Shift $back): void
+    {
+        $this->safely(fn () => $this->tell($to->user_id, 'menu_swap_asked', "{$from->display_name} asks you to take a shift",
+            $this->line($s).($back ? ", in return for your {$this->line($back)}" : '').($w->note ? " ({$w->note})" : '').'. Answer on the rota page.'));
+    }
+
+    public function swapAnswered(Swap $w, bool $accepted): void
+    {
+        $this->safely(function () use ($w, $accepted) {
+            $from = Chef::find($w->from_chef_id);
+            $to = Chef::find($w->to_chef_id);
+            if ($from) {
+                $this->tell($from->user_id, 'menu_swap_answered', $accepted ? "{$to?->display_name} agreed to the swap" : "{$to?->display_name} can not take the shift", $accepted ? 'It now waits for a manager to approve it.' : 'The shift stays yours.');
+            }
+        });
+    }
+
+    public function swapNeedsApproval(Swap $w, Shift $s): void
+    {
+        $this->safely(function () use ($w, $s) {
+            $from = Chef::find($w->from_chef_id);
+            $to = Chef::find($w->to_chef_id);
+            foreach ($this->staff->holding('menus.manage') as $u) {
+                $this->notifier->send($u, 'menu_swap_needs_approval', 'A shift swap needs approval', "{$from?->display_name} to {$to?->display_name}: {$this->line($s)}.", ['action_url' => '/admin/menus/rota', 'action_text' => 'Decide']);
+            }
+        });
+    }
+
+    public function swapDecided(Swap $w, bool $approved): void
+    {
+        $this->safely(function () use ($w, $approved) {
+            foreach ([$w->from_chef_id, $w->to_chef_id] as $id) {
+                if ($c = Chef::find($id)) {
+                    $this->tell($c->user_id, 'menu_swap_decided', $approved ? 'The shift swap is done' : 'The shift swap was not approved', $approved ? 'Your rota has changed. Open the rota to see it.' : ($w->decision_note ?: 'The shifts stay as they were.'));
+                }
+            }
+        });
+    }
+
+    // ── attendance and patterns ───────────────────────────────────────────
+
+    /** A rostered chef has not signed in (or did not come): the managers are told once per shift. */
+    public function notIn(Shift $s, Chef $c, string $state): void
+    {
+        $this->safely(function () use ($s, $c, $state) {
+            foreach ($this->staff->holding('menus.manage') as $u) {
+                $this->notifier->send($u, 'menu_rota_not_in', $state === 'no_show' ? "{$c->display_name} did not come" : "{$c->display_name} has not signed in",
+                    "Rostered {$this->line($s)}".($state === 'no_show' ? ' and the shift is over.' : ' and the shift has started.'), ['action_url' => '/admin/menus/rota', 'action_text' => 'Open the rota']);
+            }
+        });
+    }
+
+    /** Shifts were planned from the weekly patterns as drafts: the managers should look and publish. */
+    public function planned(int $n): void
+    {
+        $this->safely(function () use ($n) {
+            foreach ($this->staff->holding('menus.manage') as $u) {
+                $this->notifier->send($u, 'menu_rota_planned', "{$n} shift(s) planned from the weekly patterns", 'They are drafts: check them and publish the week so each chef is told.', ['action_url' => '/admin/menus/rota', 'action_text' => 'Open the rota']);
+            }
+        });
     }
 
     private function span(DayOff $d): string

@@ -32,7 +32,8 @@ export default function MenusSettings() {
         tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
         qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
         custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0,
-        rota_max_week_hours: Number(s.rota_max_week_hours) || 48, rota_min_rest_hours: Number(s.rota_min_rest_hours) || 0 });
+        rota_max_week_hours: Number(s.rota_max_week_hours) || 48, rota_min_rest_hours: Number(s.rota_min_rest_hours) || 0,
+        rota_ahead_weeks: Number(s.rota_ahead_weeks) || 0, rota_swaps_need_approval: Boolean(s.rota_swaps_need_approval), rota_no_show_alerts: Boolean(s.rota_no_show_alerts) });
       setS(r.settings); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -81,7 +82,10 @@ export default function MenusSettings() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                   <Field label="Warn above (hours a week)" htmlFor="ms-rmw" hint="The rota shows a warning, it does not stop you."><NumberInput id="ms-rmw" min="1" max="120" value={s.rota_max_week_hours ?? 48} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_max_week_hours: e.target.value }))} /></Field>
                   <Field label="Warn below (hours of rest between days)" htmlFor="ms-rmr"><NumberInput id="ms-rmr" min="0" max="24" value={s.rota_min_rest_hours ?? 10} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_min_rest_hours: e.target.value }))} /></Field>
+                  <Field label="Plan from weekly patterns this many weeks ahead" htmlFor="ms-raw" hint="0 = only when you press Plan. Planned shifts are drafts."><NumberInput id="ms-raw" min="0" max="8" value={s.rota_ahead_weeks ?? 2} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_ahead_weeks: e.target.value }))} /></Field>
                 </div>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_swaps_need_approval)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_swaps_need_approval: e.target.checked }))} /> A shift swap the colleague agreed to still waits for a manager</label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_no_show_alerts)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_no_show_alerts: e.target.checked }))} /> Tell the managers when a rostered chef has not signed in (uses the Attendance sign-ins)</label>
               </fieldset>
               {canEdit && <div><button type="button" style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }} disabled={busy || !ready} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</button></div>}
             </FormStack>

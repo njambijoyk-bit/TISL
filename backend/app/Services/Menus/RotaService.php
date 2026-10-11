@@ -38,7 +38,7 @@ class RotaService
         return self::$installed ??= Schema::hasTable('menus_shifts') && Schema::hasTable('menus_days_off');
     }
 
-    public function __construct(private RotaNotices $notices)
+    public function __construct(private RotaNotices $notices, private RotaLeave $leave)
     {
     }
 
@@ -85,9 +85,10 @@ class RotaService
      * Add or change a shift (a new one is a draft). Refused: the past, an inactive chef, an approved day off, a shift that overlaps another of theirs or a private chef job they hold.
      *
      * @param array{chef_id?: mixed, location_id?: mixed, station_id?: mixed, date?: mixed, starts_at?: mixed, ends_at?: mixed, note?: mixed} $d
+     * @param int[] $ignore shifts to leave out of the overlap check (the other half of a trade that is being made at the same moment)
      * @return array{shift: Shift, warnings: string[]}
      */
-    public function saveShift(array $d, ?Shift $shift = null, ?User $by = null): array
+    public function saveShift(array $d, ?Shift $shift = null, ?User $by = null, array $ignore = []): array
     {
         $old = $shift ? $shift->replicate() : null;
         $shift ??= new Shift(['status' => 'draft', 'created_by' => $by?->id]);
@@ -125,20 +126,11 @@ class RotaService
         if ($hours < self::MIN_HOURS || $hours > self::MAX_HOURS) {
             throw new BooksException('A shift is between '.self::MIN_HOURS.' and '.self::MAX_HOURS.' hours long.');
         }
-        if ($off = $this->offDuring($chef->id, $start, $end)) {
-            throw new BooksException("{$chef->display_name} is off on {$day->format('D j M')} ({$off->from_date->format('j M')} to {$off->to_date->format('j M')}).");
-        }
-        $clash = Shift::where('chef_id', $chef->id)->where('shift_date', $day->toDateString())->where('id', '!=', $shift->id ?: 0)->get()
-            ->first(function (Shift $o) use ($start, $end) { [$a, $b] = $o->span(); return $a->lt($end) && $b->gt($start); });
-        if ($clash) {
-            throw new BooksException("{$chef->display_name} already works ".substr((string) $clash->starts_at, 0, 5).' to '.substr((string) $clash->ends_at, 0, 5).' that day.');
-        }
-        if (CookingService::chefInstalled() && ($job = app(CookingService::class)->heldJob($chef->id, $start, $end))) {
-            throw new BooksException("{$chef->display_name} has private chef job {$job->number} at {$job->event_at->copy()->timezone($this->tz())->format('D j M, H:i')}, too close to this shift.");
-        }
+        $this->assertFree($chef, $start, $end, (int) $shift->id, $ignore);
 
         $shift->fill(['chef_id' => $chef->id, 'location_id' => $loc->id, 'station_id' => $stationId, 'shift_date' => $day->toDateString(), 'starts_at' => $from, 'ends_at' => $to,
-            'note' => array_key_exists('note', $d) ? (trim((string) $d['note']) === '' ? null : mb_substr(trim((string) $d['note']), 0, 200)) : $shift->note]);
+            'note' => array_key_exists('note', $d) ? (trim((string) $d['note']) === '' ? null : mb_substr(trim((string) $d['note']), 0, 200)) : $shift->note]
+            + (! empty($d['pattern_id']) && Schema::hasColumn('menus_shifts', 'pattern_id') ? ['pattern_id' => (int) $d['pattern_id']] : []));
         $changed = $shift->exists && $shift->isDirty(['chef_id', 'shift_date', 'starts_at', 'ends_at', 'location_id', 'station_id']);
         $shift->save();
         if ($shift->status === 'published' && $changed) {   // the chef already knew about it
@@ -149,6 +141,38 @@ class RotaService
         }
 
         return ['shift' => $shift->fresh(), 'warnings' => $this->shiftWarnings($chef, $shift)];
+    }
+
+    /**
+     * The checks a chef must pass to work this time: not on an approved day off, no overlapping shift (apart from the ones named), no private chef job they hold close by.
+     *
+     * @param int[] $ignore
+     * @throws BooksException
+     */
+    private function assertFree(Chef $chef, Carbon $start, Carbon $end, int $exceptShift = 0, array $ignore = []): void
+    {
+        $day = $start->copy()->timezone($this->tz());
+        if ($off = $this->offDuring($chef->id, $start, $end)) {
+            throw new BooksException("{$chef->display_name} is off on {$day->format('D j M')} ({$off->from_date->format('j M')} to {$off->to_date->format('j M')}).");
+        }
+        $clash = Shift::where('chef_id', $chef->id)->where('shift_date', $day->toDateString())->where('id', '!=', $exceptShift)->when($ignore, fn ($q) => $q->whereNotIn('id', $ignore))->get()
+            ->first(function (Shift $o) use ($start, $end) { [$a, $b] = $o->span(); return $a->lt($end) && $b->gt($start); });
+        if ($clash) {
+            throw new BooksException("{$chef->display_name} already works ".substr((string) $clash->starts_at, 0, 5).' to '.substr((string) $clash->ends_at, 0, 5).' that day.');
+        }
+        if (CookingService::chefInstalled() && ($job = app(CookingService::class)->heldJob($chef->id, $start, $end))) {
+            throw new BooksException("{$chef->display_name} has private chef job {$job->number} at {$job->event_at->copy()->timezone($this->tz())->format('D j M, H:i')}, too close to this shift.");
+        }
+    }
+
+    /** Could this chef take this shift as it is? (A swap asks before it asks the colleague.) @param int[] $ignore @throws BooksException */
+    public function assertCanHold(Chef $chef, Shift $shift, array $ignore = []): void
+    {
+        if (! $chef->is_active) {
+            throw new BooksException("{$chef->display_name} is not working with us.");
+        }
+        [$a, $b] = $shift->span();
+        $this->assertFree($chef, $a, $b, 0, $ignore);
     }
 
     public function deleteShift(Shift $shift): void
@@ -238,9 +262,19 @@ class RotaService
         if (DayOff::where('chef_id', $chef->id)->whereIn('status', ['requested', 'approved'])->whereDate('from_date', '<=', $to->toDateString())->whereDate('to_date', '>=', $from->toDateString())->exists()) {
             throw new BooksException('That overlaps time off already asked for or approved.');
         }
+        if ($kind === 'leave') {
+            $this->leave->assertEnough($chef, $from, $to);
+        }
         $reason = trim((string) ($d['reason'] ?? ''));
-        $off = DayOff::create(['chef_id' => $chef->id, 'from_date' => $from->toDateString(), 'to_date' => $to->toDateString(), 'kind' => $kind, 'reason' => $reason === '' ? null : mb_substr($reason, 0, 300),
+        $off = DB::transaction(function () use ($chef, $from, $to, $kind, $reason, $record, $by) {
+            $off = DayOff::create(['chef_id' => $chef->id, 'from_date' => $from->toDateString(), 'to_date' => $to->toDateString(), 'kind' => $kind, 'reason' => $reason === '' ? null : mb_substr($reason, 0, 300),
             'status' => $record ? 'approved' : 'requested', 'requested_by' => $by?->id] + ($record ? ['decided_by' => $by?->id, 'decided_at' => now()] : []));
+            if ($record) {
+                $this->leave->charge($off, $chef, $by);
+            }
+
+            return $off;
+        });
         if ($record) {
             $this->clearShifts($off);
             $this->notices->decided($off, $chef, 0);
@@ -261,9 +295,14 @@ class RotaService
             throw new BooksException('Approve or decline it.');
         }
         $note = trim((string) $note);
-        $off->update(['status' => $to, 'decided_by' => $by?->id, 'decided_at' => now(), 'decision_note' => $note === '' ? null : mb_substr($note, 0, 300)]);
-        $removed = $to === 'approved' ? $this->clearShifts($off) : 0;
         $chef = Chef::find($off->chef_id);
+        DB::transaction(function () use ($off, $to, $note, $by, $chef) {
+            $off->update(['status' => $to, 'decided_by' => $by?->id, 'decided_at' => now(), 'decision_note' => $note === '' ? null : mb_substr($note, 0, 300)]);
+            if ($to === 'approved' && $chef) {
+                $this->leave->charge($off, $chef, $by);   // refused (and nothing changed) when the balance is not enough any more
+            }
+        });
+        $removed = $to === 'approved' ? $this->clearShifts($off) : 0;
         if ($chef) {
             $this->notices->decided($off, $chef, $removed);
         }
@@ -271,12 +310,16 @@ class RotaService
         return ['dayoff' => $off->fresh(), 'shifts_removed' => $removed, 'jobs' => $to === 'approved' ? $this->jobsIn($off) : []];
     }
 
-    public function cancelDayOff(DayOff $off): DayOff
+    public function cancelDayOff(DayOff $off, ?User $by = null): DayOff
     {
         if (! in_array($off->status, ['requested', 'approved'], true) || $off->to_date->lt($this->today())) {
             throw new BooksException('This time off can not be cancelled now.');
         }
+        $wasApproved = $off->status === 'approved';
         $off->update(['status' => 'cancelled']);
+        if ($wasApproved && ($chef = Chef::find($off->chef_id))) {
+            $this->leave->refund($off->fresh(), $chef, $by);   // approved leave gives its days back
+        }
 
         return $off->fresh();
     }
@@ -380,7 +423,7 @@ class RotaService
 
         return ['id' => $s->id, 'chef_id' => $s->chef_id, 'chef' => $chefs ? ($chefs[$s->chef_id] ?? null) : Chef::whereKey($s->chef_id)->value('display_name'), 'location_id' => $s->location_id, 'station_id' => $s->station_id,
             'station' => $s->station_id ? ($stations[$s->station_id] ?? null) : null, 'date' => $s->shift_date->toDateString(), 'starts_at' => substr((string) $s->starts_at, 0, 5), 'ends_at' => substr((string) $s->ends_at, 0, 5),
-            'hours' => $s->hours(), 'status' => $s->status, 'note' => $s->note];
+            'hours' => $s->hours(), 'status' => $s->status, 'note' => $s->note, 'from_pattern' => ! empty($s->pattern_id), 'attendance' => null];
     }
 
     /** @return array<string, mixed> */
@@ -388,7 +431,7 @@ class RotaService
     {
         return ['id' => $d->id, 'chef_id' => $d->chef_id, 'chef' => $chefs ? ($chefs[$d->chef_id] ?? null) : Chef::whereKey($d->chef_id)->value('display_name'), 'from' => $d->from_date->toDateString(), 'to' => $d->to_date->toDateString(),
             'days' => $d->days(), 'kind' => $d->kind, 'kind_label' => DayOff::KINDS[$d->kind] ?? $d->kind, 'status' => $d->status, 'status_label' => DayOff::STATUSES[$d->status] ?? $d->status, 'reason' => $d->reason,
-            'decision_note' => $d->decision_note, 'can_cancel' => in_array($d->status, ['requested', 'approved'], true) && $d->to_date->gte($this->today())];
+            'decision_note' => $d->decision_note, 'charged_days' => $d->charged_days ?? null, 'can_cancel' => in_array($d->status, ['requested', 'approved'], true) && $d->to_date->gte($this->today())];
     }
 
     /**
@@ -408,13 +451,15 @@ class RotaService
         $chefs = Chef::where('is_active', true)->orderBy('sort_order')->orderBy('display_name')->get();
         $names = $chefs->pluck('display_name', 'id');
         $stations = KitchenService::installed() ? Station::pluck('name', 'id') : collect();
+        $att = app(RotaAttendance::class)->states($shifts);   // was the chef there? (empty until the shift has started or without attendance)
+        $attended = app(RotaAttendance::class)->attendedHours($chefs, $monday, $end);
         $off = DayOff::whereIn('status', ['requested', 'approved'])->whereDate('from_date', '<=', $end->toDateString())->whereDate('to_date', '>=', $monday->toDateString())->orderBy('from_date')->get();
 
         return [
             'week_start' => $monday->toDateString(), 'week_end' => $end->toDateString(), 'days' => array_map(fn ($i) => $monday->copy()->addDays($i)->toDateString(), range(0, 6)),
             'chefs' => $chefs->map(fn (Chef $c) => ['id' => $c->id, 'name' => $c->display_name, 'title' => $c->title, 'user_id' => $c->user_id,
-                'hours' => round($shifts->where('chef_id', $c->id)->sum(fn (Shift $s) => $s->hours()), 2), 'warnings' => $this->weekWarnings($c->id, $shifts->where('chef_id', $c->id))])->values()->all(),
-            'shifts' => $shifts->map(fn (Shift $s) => $this->shiftRow($s, $stations, $names))->values()->all(),
+                'leave_balance' => $this->leave->balance($c), 'attended_hours' => $attended[$c->id] ?? null, 'hours' => round($shifts->where('chef_id', $c->id)->sum(fn (Shift $s) => $s->hours()), 2), 'warnings' => $this->weekWarnings($c->id, $shifts->where('chef_id', $c->id))])->values()->all(),
+            'shifts' => $shifts->map(function (Shift $s) use ($stations, $names, $att) { $r = $this->shiftRow($s, $stations, $names); $r['attendance'] = $att[$s->id] ?? null; return $r; })->values()->all(),
             'days_off' => $off->map(fn (DayOff $d) => $this->dayOffRow($d, $names))->values()->all(),
             'drafts' => $shifts->where('status', 'draft')->count(),
             'waiting' => DayOff::where('status', 'requested')->where('to_date', '>=', $this->today()->toDateString())->count(),
@@ -431,7 +476,7 @@ class RotaService
         $names = [$chef->id => $chef->display_name];
         $from = $this->today();
 
-        return ['chef' => ['id' => $chef->id, 'name' => $chef->display_name],
+        return ['chef' => ['id' => $chef->id, 'name' => $chef->display_name, 'leave_balance' => $this->leave->balance($chef)],
             'shifts' => Shift::where('chef_id', $chef->id)->where('status', 'published')->whereBetween('shift_date', [$from->toDateString(), $from->copy()->addDays(21)->toDateString()])->orderBy('shift_date')->orderBy('starts_at')->get()
                 ->map(fn (Shift $s) => $this->shiftRow($s, null, $names))->all(),
             'days_off' => DayOff::where('chef_id', $chef->id)->where('to_date', '>=', $from->toDateString())->orderBy('from_date')->get()->map(fn (DayOff $d) => $this->dayOffRow($d, $names))->all()];

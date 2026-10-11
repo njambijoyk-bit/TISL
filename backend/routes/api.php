@@ -695,6 +695,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/rota', [$ro, 'index']);
         Route::get('/rota/mine', [$ro, 'mine']);
         Route::post('/rota/days-off', [$ro, 'requestOff']);
+        Route::post('/rota/swaps', [$ro, 'askSwap']);
+        Route::post('/rota/swaps/{id}/respond', [$ro, 'respondSwap'])->whereNumber('id');
+        Route::post('/rota/swaps/{id}/cancel', [$ro, 'cancelSwap'])->whereNumber('id');
         Route::post('/rota/days-off/{id}/cancel', [$ro, 'cancelOff'])->whereNumber('id');
         $ck = \App\Http\Controllers\Admin\MenusCookingController::class;
         Route::get('/custom', [$ck, 'index']);
@@ -726,6 +729,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/rota/shifts/{id}', [$ro, 'saveShift'])->whereNumber('id');
             Route::delete('/rota/shifts/{id}', [$ro, 'deleteShift'])->whereNumber('id');
             Route::post('/rota/publish', [$ro, 'publish']);
+            Route::post('/rota/patterns', [$ro, 'savePattern']);
+            Route::put('/rota/patterns/{id}', [$ro, 'savePattern'])->whereNumber('id');
+            Route::post('/rota/patterns/{id}/active', [$ro, 'patternActive'])->whereNumber('id');
+            Route::delete('/rota/patterns/{id}', [$ro, 'deletePattern'])->whereNumber('id');
+            Route::post('/rota/patterns/apply', [$ro, 'applyPatterns']);
+            Route::post('/rota/swaps/{id}/decide', [$ro, 'decideSwap'])->whereNumber('id');
             Route::post('/rota/copy', [$ro, 'copy']);
             Route::post('/rota/days-off/{id}/decide', [$ro, 'decide'])->whereNumber('id');
             Route::post('/custom/{id}/quote', [$ck, 'quote'])->whereNumber('id');

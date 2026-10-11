@@ -25,6 +25,9 @@ final class MenusSettings
         'custom_lead_hours' => 72,       // the least notice for a catering job
         'chef_lead_hours' => 48,         // the least notice for a private chef
         'rota_max_week_hours' => 48,     // the rota warns when a chef is given more than this in a week
+        'rota_swaps_need_approval' => true,   // a swap the colleague agreed to still waits for a manager
+        'rota_ahead_weeks' => 2,         // patterns plan this many weeks ahead as drafts (daily)
+        'rota_no_show_alerts' => true,   // managers are told when a rostered chef has not signed in
         'rota_min_rest_hours' => 10,     // ...and when the rest between one day's work and the next is shorter than this
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
     ];
@@ -81,12 +84,12 @@ final class MenusSettings
                 $cur[$key] = $id;
             }
         }
-        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders'] as $key) {
+        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts'] as $key) {
             if (array_key_exists($key, $in)) {
                 $cur[$key] = (bool) $in[$key];
             }
         }
-        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24]] as $key => [$lo, $hi]) {
+        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24], 'rota_ahead_weeks' => [0, 8]] as $key => [$lo, $hi]) {
             if (array_key_exists($key, $in)) {
                 $n = round((float) $in[$key], 2);
                 if ($n < $lo || $n > $hi) {

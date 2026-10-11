@@ -6,14 +6,20 @@ use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\Menus\Chef;
 use App\Models\Menus\DayOff;
+use App\Models\Menus\RotaPattern;
 use App\Models\Menus\Shift;
+use App\Models\Menus\Swap;
 use App\Models\Menus\Station;
 use App\Services\Access\Authorizer;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\BooksException;
 use App\Services\Menus\KitchenService;
 use App\Services\Menus\MenusSettings;
+use App\Services\Menus\RotaAttendance;
+use App\Services\Menus\RotaLeave;
+use App\Services\Menus\RotaPatterns;
 use App\Services\Menus\RotaService;
+use App\Services\Menus\RotaSwaps;
 use App\Services\Notify\Staff;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,7 +30,7 @@ use Illuminate\Http\Request;
  */
 class MenusRotaController extends Controller
 {
-    public function __construct(private RotaService $rota, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
+    public function __construct(private RotaService $rota, private RotaPatterns $patterns, private RotaSwaps $swaps, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
     {
     }
 
@@ -60,8 +66,12 @@ class MenusRotaController extends Controller
         $d = $request->validate(['week' => 'nullable|date', 'location_id' => 'nullable|integer']);
         $week = $this->rota->week($this->rota->monday($d['week'] ?? null), $d['location_id'] ?? null, fn ($q) => $this->branches->apply($q, 'location_id', 'stock', 'the rota'));
         $settings = MenusSettings::all();
+        $manager = $this->manager($request);
+        $me = Chef::where('user_id', $request->user()->id)->first();
+        $scope = fn ($q) => $this->branches->apply($q, 'location_id', 'stock', 'the rota');
 
-        return response()->json(['ready' => true, 'can_manage' => $this->manager($request), 'me' => Chef::where('user_id', $request->user()->id)->value('id')] + $week + [
+        return response()->json(['ready' => true, 'can_manage' => $manager, 'me' => $me?->id, 'more' => RotaPatterns::installed() && RotaSwaps::installed(), 'attendance' => RotaAttendance::ready(), 'leave' => RotaLeave::active(),
+            'patterns' => $manager ? $this->patterns->rows($scope) : [], 'swaps' => $this->swaps->rows($me, $manager, $scope), 'swaps_need_approval' => (bool) $settings['rota_swaps_need_approval']] + $week + [
             'locations' => Location::query()->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values(),
             'stations' => KitchenService::installed() ? Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : [],
             'limits' => ['max_week_hours' => $settings['rota_max_week_hours'], 'min_rest_hours' => $settings['rota_min_rest_hours']], 'kinds' => DayOff::KINDS]);
@@ -179,7 +189,145 @@ class MenusRotaController extends Controller
                 abort(403, 'Only the chef or a manager can cancel this.');
             }
 
-            return response()->json(['dayoff' => $this->rota->dayOffRow($this->rota->cancelDayOff($off))]);
+            return response()->json(['dayoff' => $this->rota->dayOffRow($this->rota->cancelDayOff($off, $request->user()))]);
+        });
+    }
+
+    // ── weekly patterns ───────────────────────────────────────────────────
+
+    private function more(): void
+    {
+        abort_unless(RotaPatterns::installed() && RotaSwaps::installed(), 422, 'Run database script 146_menus_rota_more.sql first.');
+    }
+
+    public function savePattern(Request $request, ?int $id = null): JsonResponse
+    {
+        $d = $request->validate(['chef_id' => 'nullable|integer', 'weekdays' => 'nullable|array|max:7', 'weekdays.*' => 'integer|min:1|max:7', 'weekday' => 'nullable|integer|min:1|max:7', 'location_id' => 'nullable|integer', 'station_id' => 'nullable|integer',
+            'starts_at' => 'nullable|string|max:8', 'ends_at' => 'nullable|string|max:8', 'valid_from' => 'nullable|date', 'valid_to' => 'nullable|date', 'note' => 'nullable|string|max:200']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $this->more();
+            $edit = $id ? RotaPattern::findOrFail($id) : null;
+            if ($edit) {
+                $this->branches->assertVisible((int) $edit->location_id, 'stock', 'the rota');
+            }
+            if (! empty($d['location_id'])) {
+                $this->branches->assertVisible((int) $d['location_id'], 'stock', 'the rota');
+            }
+            $made = $this->patterns->save($d, $edit, $request->user());
+
+            return response()->json(['message' => count($made) > 1 ? count($made).' patterns saved.' : 'Pattern saved.', 'count' => count($made)], $id ? 200 : 201);
+        });
+    }
+
+    public function patternActive(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['active' => 'required|boolean']);
+
+        return $this->guard(function () use ($d, $id) {
+            $this->more();
+            $p = RotaPattern::findOrFail($id);
+            $this->branches->assertVisible((int) $p->location_id, 'stock', 'the rota');
+            $this->patterns->setActive($p, (bool) $d['active']);
+
+            return response()->json(['message' => $d['active'] ? 'Pattern is running again.' : 'Pattern paused.']);
+        });
+    }
+
+    public function deletePattern(int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id) {
+            $this->more();
+            $p = RotaPattern::findOrFail($id);
+            $this->branches->assertVisible((int) $p->location_id, 'stock', 'the rota');
+            $n = $this->patterns->delete($p);
+
+            return response()->json(['message' => 'Pattern removed.'.($n ? " {$n} draft shift(s) it had planned were removed." : '')]);
+        });
+    }
+
+    public function applyPatterns(Request $request): JsonResponse
+    {
+        $d = $request->validate(['week' => 'required|date', 'location_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($d, $request) {
+            $this->more();
+            if (! empty($d['location_id'])) {
+                $this->branches->assertVisible((int) $d['location_id'], 'stock', 'the rota');
+            }
+            $r = $this->patterns->apply($this->rota->monday($d['week']), $d['location_id'] ?? null, $request->user());
+
+            return response()->json(['message' => "Planned {$r['created']} draft shift(s) from the patterns.".($r['skipped'] ? ' '.count($r['skipped']).' left out.' : '')] + $r);
+        });
+    }
+
+    // ── swaps ─────────────────────────────────────────────────────────────
+
+    private function mineChef(Request $request): ?Chef
+    {
+        return Chef::where('user_id', $request->user()->id)->first();
+    }
+
+    /** A chef asks a colleague to take one of their own shifts; a manager may ask for anyone. */
+    public function askSwap(Request $request): JsonResponse
+    {
+        $d = $request->validate(['shift_id' => 'required|integer', 'to_chef_id' => 'required|integer', 'return_shift_id' => 'nullable|integer', 'note' => 'nullable|string|max:300']);
+
+        return $this->guard(function () use ($d, $request) {
+            $this->more();
+            $shift = $this->shift((int) $d['shift_id']);
+            $me = $this->mineChef($request);
+            if (! $this->manager($request) && (! $me || (int) $me->id !== (int) $shift->chef_id)) {
+                abort(403, 'You can only swap your own shifts.');
+            }
+            $w = $this->swaps->ask($d, $request->user());
+
+            return response()->json(['message' => 'Your colleague has been asked.', 'swap_id' => $w->id], 201);
+        });
+    }
+
+    public function respondSwap(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['accept' => 'required|boolean', 'note' => 'nullable|string|max:300']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $this->more();
+            $w = Swap::findOrFail($id);
+            $this->shift((int) $w->shift_id);
+            $me = $this->mineChef($request) ?? throw new BooksException('You do not have a chef profile.');
+            $r = $this->swaps->respond($w, $me, (bool) $d['accept'], $d['note'] ?? null);
+
+            return response()->json(['message' => $d['accept'] ? ($r->status === 'approved' ? 'Done: the shift is yours now.' : 'Thank you. A manager will approve it.') : 'You said no.', 'status' => $r->status]);
+        });
+    }
+
+    public function decideSwap(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['decision' => 'required|string|in:approved,declined', 'note' => 'nullable|string|max:300']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $this->more();
+            $w = Swap::findOrFail($id);
+            $this->shift((int) $w->shift_id);
+            $r = $this->swaps->decide($w, $d['decision'] === 'approved', $d['note'] ?? null, $request->user());
+
+            return response()->json(['message' => $r->status === 'approved' ? 'Approved: the rota has changed.' : 'Declined.', 'status' => $r->status]);
+        });
+    }
+
+    public function cancelSwap(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id, $request) {
+            $this->more();
+            $w = Swap::findOrFail($id);
+            $this->shift((int) $w->shift_id);
+            $me = $this->mineChef($request);
+            if (! $this->manager($request) && (! $me || (int) $me->id !== (int) $w->from_chef_id)) {
+                abort(403, 'Only the chef who asked, or a manager, can cancel this.');
+            }
+            $this->swaps->cancel($w);
+
+            return response()->json(['message' => 'Swap cancelled.']);
         });
     }
 }
