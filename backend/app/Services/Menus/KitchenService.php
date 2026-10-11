@@ -29,6 +29,18 @@ class KitchenService
         return self::$ready ??= Schema::hasTable('menus_tickets') && Schema::hasTable('menus_stations') && Schema::hasColumn('menus_order_lines', 'ticket_id');
     }
 
+    private static ?bool $rounds = null;
+
+    /** Has script 138 been run (a tab's rounds)? Until then a ticket is one per order per station. */
+    public static function rounds(): bool
+    {
+        if (app()->runningUnitTests()) {
+            return Schema::hasColumn('menus_tickets', 'round') && Schema::hasColumn('menus_order_lines', 'round');
+        }
+
+        return self::$rounds ??= Schema::hasColumn('menus_tickets', 'round') && Schema::hasColumn('menus_order_lines', 'round');
+    }
+
     public function __construct(private DishInfo $info)
     {
     }
@@ -54,7 +66,7 @@ class KitchenService
         foreach ($o->lines()->whereNull('ticket_id')->get() as $line) {
             $station = $this->stationFor(Dish::find($line->dish_id), (int) $o->location_id);
             if ($station) {
-                $groups[$station->id][(int) $line->round][] = $line->id;
+                $groups[$station->id][self::rounds() ? (int) $line->round : 1][] = $line->id;
             }
         }
 
@@ -62,7 +74,7 @@ class KitchenService
             $made = 0;
             foreach ($groups as $stationId => $rounds) {
                 foreach ($rounds as $round => $lineIds) {
-                    $t = Ticket::firstOrCreate(['order_id' => $o->id, 'station_id' => $stationId, 'round' => $round], ['status' => 'new', 'due_at' => $o->fulfil_at]);
+                    $t = Ticket::firstOrCreate(['order_id' => $o->id, 'station_id' => $stationId] + (self::rounds() ? ['round' => $round] : []), ['status' => 'new', 'due_at' => $o->fulfil_at]);
                     \App\Models\Menus\MenuOrderLine::whereIn('id', $lineIds)->update(['ticket_id' => $t->id]);
                     $made += $t->wasRecentlyCreated ? 1 : 0;
                 }

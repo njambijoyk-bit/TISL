@@ -319,12 +319,13 @@ class MenuOrderService
 
         $result = DB::transaction(function () use ($p, $priced, $contact, $later, $method, $user) {
             $voucher = $this->vouchers->placeOrder($p['payload'], null);
-            $order = MenuOrder::create([
+            $extra = \Illuminate\Support\Facades\Schema::hasColumn('menus_orders', 'tax_breakdown') ? ['tax_breakdown' => $priced['tax_breakdown']] : [];   // (script 138)
+            $order = MenuOrder::create($extra + [
                 'number' => 'MO-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'channel_id' => $p['channel']->id, 'order_type' => $p['channel']->order_type, 'location_id' => $p['location']->id,
                 'voucher_id' => $voucher->id, 'customer_id' => $p['customer_id'], 'user_id' => $user?->id, 'name' => $contact['name'], 'email' => $contact['email'], 'phone' => $contact['phone'],
                 'status' => 'placed', 'payment' => $later ? 'later' : 'pending', 'payment_method_id' => $method?->id, 'asap' => $p['asap'], 'fulfil_at' => $p['at'],
                 'delivery_address' => $p['delivery']['address'] ?? null, 'shipping_option_id' => $p['delivery']['option']->id ?? null, 'delivery_fee' => $priced['delivery_fee'],
-                'subtotal' => $priced['subtotal'], 'tax_total' => $priced['tax_total'], 'tax_breakdown' => $priced['tax_breakdown'], 'total' => (float) $voucher->total_amount, 'currency_id' => $voucher->currency_id,
+                'subtotal' => $priced['subtotal'], 'tax_total' => $priced['tax_total'], 'total' => (float) $voucher->total_amount, 'currency_id' => $voucher->currency_id,
                 'notes' => $p['notes'], 'placed_at' => now(),
             ]);
             $order->update(['number' => 'MO-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
