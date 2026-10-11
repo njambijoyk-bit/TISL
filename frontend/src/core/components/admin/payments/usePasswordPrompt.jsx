@@ -2,16 +2,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Lock, X } from 'lucide-react';
 import { btnGhost, btnPrimary, colors } from '../../../../_shared/theme/tokens';
 
+/** What `ask` hands back when the box is not shown because the server asks for the one-more-step proof itself (a stand-in, never a real password). */
+export const CONFIRMED_AT_THE_DOOR = '(confirmed at the door)';
+
 /**
  * "Type your password to confirm": a change to payment keys moves money, so a screen left open is not enough. `ask(message)` returns a promise of the password, or null if
  * they cancelled. Render `dialog` somewhere in the page. The password is only held while the box is open and is never stored.
+ *
+ * `skip`: the owner has the "one more step" rule for payment keys on, so the server asks (passkey, or password until there is one) the moment the change is sent, and the box would only be a second
+ * question. `ask(message, { always: true })` still shows it: the KES 1 test prompt does not go through that door.
  */
-export default function usePasswordPrompt() {
+export default function usePasswordPrompt(skip = false) {
   const [state, setState] = useState(null);   // { message, resolve }
   const [value, setValue] = useState('');
   const input = useRef(null);
+  const skipRef = useRef(skip);
+  skipRef.current = skip;
 
-  const ask = useCallback((message) => new Promise((resolve) => { setValue(''); setState({ message, resolve }); }), []);
+  const ask = useCallback((message, { always = false } = {}) => (skipRef.current && !always
+    ? Promise.resolve(CONFIRMED_AT_THE_DOOR)
+    : new Promise((resolve) => { setValue(''); setState({ message, resolve }); })), []);
   const done = (v) => { state?.resolve(v); setState(null); setValue(''); };
   useEffect(() => { if (state) input.current?.focus(); }, [state]);
   useEffect(() => {

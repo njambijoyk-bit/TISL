@@ -2490,6 +2490,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('security-policy')->group(function () {   // Who must use a passkey: the switch, the date, the roles, and who has not yet
             Route::get('/', [\App\Http\Controllers\Api\SecurityPolicyController::class, 'show'])->middleware('permission:security.view');
             Route::put('/', [\App\Http\Controllers\Api\SecurityPolicyController::class, 'update'])->middleware(['permission:security.manage', 'assurance:security_settings']);
+            // Sensitive actions: which ones ask for one more step (off / test / on) and how often they would have, and the same switch for the unusual-sign-in check
+            Route::get('/actions', [\App\Http\Controllers\Api\SensitiveActionsController::class, 'show'])->middleware('permission:security.view');
+            Route::put('/actions', [\App\Http\Controllers\Api\SensitiveActionsController::class, 'update'])->middleware(['permission:security.manage', 'assurance:security_settings']);
         });
 
         Route::prefix('logs')->middleware('permission:system.logs')->group(function () {

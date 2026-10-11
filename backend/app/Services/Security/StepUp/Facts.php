@@ -42,6 +42,9 @@ final class Facts
     /** @return array<int, array{label: string, value: string}> */
     private static function securitySettings(Request $r): array
     {
+        if (str_ends_with((string) $r->route()?->uri(), '/actions')) {
+            return self::sensitiveActions($r);
+        }
         $names = app(Authorizer::class)->roleNames();
         $mode = ['off' => 'Off: nothing changes', 'log' => 'Test: nobody is stopped, it is only written down', 'enforce' => 'On: people the rule is for are held back until they add a passkey'][(string) $r->input('mode')] ?? (string) $r->input('mode');
         $facts = [['label' => 'The passkey rule', 'value' => $mode], ['label' => 'Applies from', 'value' => $r->input('enforce_from') ?: 'not set']];
@@ -56,6 +59,21 @@ final class Facts
         }
         if ($r->has('owner_device_bound')) {
             $facts[] = ['label' => 'Their two stay on the device', 'value' => self::yes($r->input('owner_device_bound'))];
+        }
+
+        return $facts;
+    }
+
+    /** The switches for "one more step" and for the unusual-sign-in check: each one named, and what it is being set to. @return array<int, array{label: string, value: string}> */
+    private static function sensitiveActions(Request $r): array
+    {
+        $word = ['off' => 'Off: nothing is asked', 'log' => 'Test: nobody is stopped, it is only written down', 'enforce' => 'On: the person must confirm'];
+        $facts = [];
+        foreach ((array) $r->input('rules', []) as $rule => $mode) {
+            $facts[] = ['label' => Catalogue::has((string) $rule) ? Catalogue::rule((string) $rule)['label'] : Str::headline((string) $rule), 'value' => $word[(string) $mode] ?? (string) $mode];
+        }
+        if ($r->has('risk_mode')) {
+            $facts[] = ['label' => 'Unusual sign-in check', 'value' => ['off' => 'Off: nothing is done', 'log' => 'Test: nothing is done, it is only written down', 'enforce' => 'On: the person is told, or must confirm with a passkey'][(string) $r->input('risk_mode')] ?? (string) $r->input('risk_mode')];
         }
 
         return $facts;

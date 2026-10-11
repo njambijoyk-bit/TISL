@@ -35,6 +35,7 @@ final class SecurityEvents
         'stepup_approved' => ['Confirmed a sensitive action', SecurityLog::NOTICE],
         'stepup_failed' => ['A confirmation of a sensitive action was refused', SecurityLog::WARNING],
         'stepup_cancelled' => ['Gave up a sensitive action', SecurityLog::INFO],
+        'stepup_rules_changed' => ['The sensitive-action rules were changed', SecurityLog::WARNING],
         'stepup_would_ask' => ['Would have been asked to confirm a sensitive action (test mode, nobody was stopped)', SecurityLog::INFO],
         'risk_would_ask' => ['Sign-in looked unusual (test mode, nothing was done)', SecurityLog::INFO],
         'risk_notice' => ['Sign-in looked unusual: the person was told', SecurityLog::INFO],

@@ -74,6 +74,7 @@ class StepUpRoutesTest extends TestCase
     {
         $expect = [
             'PUT api/admin/security-policy' => 'security_settings',
+            'PUT api/admin/security-policy/actions' => 'security_settings',
             'PUT api/admin/payments/settings/{part}' => 'payment_keys',
             'POST api/admin/payments/settings/purge-keys' => 'payment_keys',
             'POST api/admin/payments/settings/{part}/rotate-token' => 'payment_keys',

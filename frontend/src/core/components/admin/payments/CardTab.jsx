@@ -25,7 +25,7 @@ export default function CardTab({ data, gateway, onChanged }) {
   const [busy, setBusy] = useState(null);
   const [refused, setRefused] = useState(null);
   const [errors, setErrors] = useState({});
-  const [ask, dialog] = usePasswordPrompt();
+  const [ask, dialog] = usePasswordPrompt(data.confirm_with_password === false);
   const set = (k) => (v) => { setRefused(null); setF((x) => ({ ...x, [k]: v })); };
   const typed = () => Object.fromEntries(Object.entries(secrets).filter(([, v]) => v));
   const body = () => ({ ...f, ...typed(), clear: Object.entries(clear).filter(([, v]) => v).map(([k]) => k) });

@@ -12,14 +12,14 @@ const EVENTS = { saved: 'Saved', saved_anyway: 'Saved without a passing test', s
 const when = (s) => (s ? s.replace('T', ' ').slice(0, 16) : '');
 
 /** Every version of the payment settings with a way back, and the log of everything done, wrong passwords included. Rolling back or deleting keys asks for your password. */
-export default function PaymentHistoryTab({ onChanged, parts = [{ key: 'mpesa', label: 'M-Pesa' }] }) {
+export default function PaymentHistoryTab({ onChanged, skipPassword = false, parts = [{ key: 'mpesa', label: 'M-Pesa' }] }) {
   const [part, setPart] = useState('mpesa');
   const [versions, setVersions] = useState([]);
   const [picked, setPicked] = useState(new Set());
   const [log, setLog] = useState({ data: [], current_page: 1, last_page: 1 });
   const [logPage, setLogPage] = useState(1);
   const [busy, setBusy] = useState(false);
-  const [ask, dialog] = usePasswordPrompt();
+  const [ask, dialog] = usePasswordPrompt(skipPassword);
 
   const loadVersions = useCallback(() => paymentSettingsAPI.versions(part).then((r) => { setVersions(r.data); setPicked(new Set()); }).catch((e) => toast.error(errMsg(e, 'Could not load the history'))), [part]);
   const loadLog = useCallback(() => paymentSettingsAPI.log({ page: logPage }).then(setLog).catch(() => {}), [logPage]);

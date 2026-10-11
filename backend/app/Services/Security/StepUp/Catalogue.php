@@ -19,7 +19,7 @@ final class Catalogue
 {
     /** @var array<string, array{label: string, class: string, strength: int, fresh: int, reason: bool, window: bool, two: bool, ignore: string[]}> */
     public const RULES = [
-        'payment_keys' => ['label' => 'Change the payment keys', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => false, 'ignore' => ['current_password']],
+        'payment_keys' => ['label' => 'Change the payment keys', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => false, 'ignore' => ['current_password', 'password']],
         'access_change' => ['label' => 'Change who may do what (roles, permissions, clearance, branch access)', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'ignore' => []],
         'signin_reset' => ['label' => 'Reset someone\'s sign-in methods, or lower an account\'s strength', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'ignore' => []],
         'security_settings' => ['label' => 'Change the security rules', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'ignore' => ['confirm']],

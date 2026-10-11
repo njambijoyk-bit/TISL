@@ -39,7 +39,7 @@ export default function PaymentSettings() {
         <Tabs tabs={TABS} active={active} onChange={(id) => { setTab(id); setParams({ tab: id }, { replace: true }); }} />
         {active === 'mpesa' && <MpesaTab key={`m${data.current_version.mpesa?.id ?? 0}`} data={data} onChanged={load} />}
         {gw && <CardTab key={`${gw.key}${data.current_version[gw.key]?.id ?? 0}`} data={data} gateway={gw} onChanged={load} />}
-        {active === 'history' && <PaymentHistoryTab onChanged={load} parts={[{ key: 'mpesa', label: 'M-Pesa' }, ...gateways.map((g) => ({ key: g.key, label: g.label }))]} />}
+        {active === 'history' && <PaymentHistoryTab onChanged={load} skipPassword={data.confirm_with_password === false} parts={[{ key: 'mpesa', label: 'M-Pesa' }, ...gateways.map((g) => ({ key: g.key, label: g.label }))]} />}
       </>
     );
   };

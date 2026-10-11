@@ -18,9 +18,11 @@
         PasskeyManager: () => import('/src/core/components/account/PasskeyManager.jsx'),
         SealPhraseCard: () => import('/src/core/components/account/SealPhraseCard.jsx'),
         PasskeyRule: () => import('/src/core/pages/admin/PasskeyRule.jsx'),   // a whole page: it needs the router around it
+        SensitiveActions: () => import('/src/core/pages/admin/SensitiveActions.jsx'),
+        PaymentSettings: () => import('/src/core/pages/admin/settings/PaymentSettings.jsx'),
       };
       const { default: Component } = await parts[which]();
-      if (which === 'PasskeyRule') document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
+      if (['PasskeyRule', 'SensitiveActions', 'PaymentSettings'].includes(which)) document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
       const { BrowserRouter } = await import('react-router-dom');
       const { default: StepUpModal } = await import('/src/core/components/account/StepUpModal.jsx');   // (the app mounts it once; here it is part of the frame)
       createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component), React.createElement(StepUpModal)));

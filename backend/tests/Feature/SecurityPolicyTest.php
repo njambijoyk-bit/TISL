@@ -111,7 +111,7 @@ class SecurityPolicyTest extends TestCase
 
     public function test_the_routes_are_guarded_by_their_permissions(): void
     {
-        $routes = collect(Route::getRoutes()->getRoutes())->filter(fn ($r) => str_starts_with($r->uri(), 'api/admin/security-policy'));
+        $routes = collect(Route::getRoutes()->getRoutes())->filter(fn ($r) => $r->uri() === 'api/admin/security-policy');
         $this->assertCount(2, $routes);
         foreach ($routes as $r) {
             $this->assertContains(in_array('GET', $r->methods()) ? 'permission:security.view' : 'permission:security.manage', $r->gatherMiddleware(), $r->uri());

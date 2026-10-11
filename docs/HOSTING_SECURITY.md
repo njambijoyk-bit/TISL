@@ -139,6 +139,7 @@ Server settings (the project has no `.env` file of its own, so these go wherever
 | `SECURITY_PASSKEY_ENFORCE_FROM=2026-12-01` | The starting value of the date from which the rule holds people back. |
 | `SECURITY_RISK_MODE=off` | The starting value of the unusual-sign-in check: `off`, `log` (only written down) or `enforce`. |
 | `SECURITY_RISK_NOTICE_AT=1`, `SECURITY_RISK_STRONGER_AT=2` | How many signals tell the person (1) and hold the sign-in until a passkey confirms it (2). New browser, new network, an odd hour = 1 each; a new country, or several wrong passwords just before = 2 each. |
+| `SECURITY_STEPUP_PASSWORD_FALLBACK=true` | Someone with no passkey yet may answer a question that asks for one with their password. Set it to `false` once everyone has a passkey. |
 | `SECURITY_STEPUP_NEW_PASSKEY_HOURS=24` | A passkey added more recently than this can not approve a critical action (someone who just got into an account adds their own device first). |
 | `SECURITY_ALERTS_EMAIL=false` | Stops the emails about passkeys and recovery codes being added, removed or used. |
 | `SECURITY_POLICY_OFF=true` | **Emergency only.** Puts the whole passkey rule, the sensitive-action questions and the unusual-sign-in check to sleep whatever the page says (for a lock-out). Take it out again afterwards; `security:check` warns while it is set. |
@@ -150,3 +151,13 @@ Server settings (the project has no `.env` file of its own, so these go wherever
 3. Admin → Security → **Passkey rule**: choose **Test** and a date. Nobody is stopped; each sign-in that would have been held is written to the sign-in log. Look at who is still to add one.
 4. Switch it to **On**. The page refuses if it would lock you out, or if you have no recovery codes yet, and asks you to confirm while others still have to add theirs. From the date, a person the rule is for who has not done what it asks can only add or use a passkey.
 5. If something goes wrong and nobody can get in: set `SECURITY_POLICY_OFF=true` in the server settings, reload, sign in, fix it, take the setting out.
+
+### Turning on "one more step" for sensitive actions, and the unusual-sign-in check
+
+Admin → Security → **Sensitive actions** lists every action that can be asked to confirm (payment keys, roles and permissions, security rules, payroll, restore, exports, voucher cancel, staff accounts, bank details), each Off, Test or On, and the check on unusual sign-ins.
+
+1. Leave everything **Off** until the people who do these things have a passkey (the question asks for one; until someone has one, the password answers it, except where the server's `SECURITY_STEPUP_PASSWORD_FALLBACK` is false).
+2. Set the ones you want to **Test** and the unusual-sign-in check to **Test**. Nobody is stopped. For a week or two the page shows beside each one how often it would have asked, and for sign-ins how many would have been flagged and why.
+3. Switch a rule to **On** when the count is something people can live with. A serious action can only be switched on by someone who could answer it themselves (a passkey that has been on their account for a day, or no passkey and the password fallback); the page says so if not.
+4. Once **Payment keys** is On, the screen asks one question at the door (passkey) and no longer asks for the password as well. The KES 1 test prompt still asks for the password.
+5. Every change on this page is written to the sign-in log (`stepup_rules_changed`, with before and after), and once **Change the security rules** is On, changing them asks its own question first. `SECURITY_POLICY_OFF=true` puts all of these to sleep.

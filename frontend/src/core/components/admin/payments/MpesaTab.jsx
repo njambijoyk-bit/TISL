@@ -31,7 +31,7 @@ export default function MpesaTab({ data, onChanged }) {
   const [refused, setRefused] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [phone, setPhone] = useState('');
-  const [ask, dialog] = usePasswordPrompt();
+  const [ask, dialog] = usePasswordPrompt(data.confirm_with_password === false);
   const set = (k) => (ev) => { setRefused(null); setF((x) => ({ ...x, [k]: ev.target.value })); };
   const setSecret = (k) => (v) => { setRefused(null); setSecrets((x) => ({ ...x, [k]: v })); };
   const setClr = (k) => (v) => setClear((x) => ({ ...x, [k]: v }));
@@ -59,7 +59,7 @@ export default function MpesaTab({ data, onChanged }) {
     catch (err) { toast.error(errMsg(err, 'Safaricom did not accept it'), { duration: 10000 }); } finally { setBusy(null); }
   };
   const prompt = async () => {
-    const password = await ask('A real KES 1 prompt will be sent to this phone through the keys that are live now. Type your password to send it.');
+    const password = await ask('A real KES 1 prompt will be sent to this phone through the keys that are live now. Type your password to send it.', { always: true });
     if (!password) return;
     setBusy('prompt');
     try { const r = await paymentSettingsAPI.testPrompt(phone, password); toast.success(r.message, { duration: 12000 }); onChanged(); }

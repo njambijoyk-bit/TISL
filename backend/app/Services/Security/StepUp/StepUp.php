@@ -197,6 +197,22 @@ final class StepUp
             'facts' => $p->facts, 'expires_at' => $p->expires_at->toIso8601String(), 'has_passkey' => $hasPasskey, 'can_use_password' => $this->passwordAllowed($user, $p->strength_needed), 'approved' => $p->approved_at !== null];
     }
 
+    /** Could this person answer the rule today? (Asked before the owner switches a rule on, so the switch can never be one they could not get through themselves.) */
+    public function couldAnswer(User $user, string $rule): bool
+    {
+        $r = Catalogue::rule($rule);
+        if ($this->passwordAllowed($user, $r['strength'])) {
+            return true;
+        }
+        $keys = $this->store->usableFor($user);
+        $hours = (int) config('security.stepup.new_passkey_hours', 24);
+        if ($r['class'] === 'critical' && $hours > 0) {
+            $keys = $keys->filter(fn ($c) => ! $c->created_at || $c->created_at->lte(now()->subHours($hours)));   // too new to approve a critical action (see approveWithPasskey)
+        }
+
+        return $keys->isNotEmpty();
+    }
+
     private function passwordAllowed(User $user, int $strength): bool
     {
         if ($strength <= 1) {

@@ -12,12 +12,13 @@ use App\Services\Payments\MoneyLedgers;
 use App\Services\Payments\PaymentAlerts;
 use App\Services\Payments\PaymentException;
 use App\Services\Payments\PaymentSettings;
+use App\Services\Security\StepUp\StepUp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Payment keys, for the OWNER only (permission payments.keys). Every change asks for the owner's password again, is logged, and is emailed to every holder of the permission.
+ * Payment keys, for the OWNER only (permission payments.keys). Every change asks for the owner's password again (or, once the "one more step" rule for payment keys is on, for a passkey), is logged, and is emailed to every holder of the permission.
  * A key is never returned: only {set, hint}. See docs/PAYMENT_SETTINGS.md.
  */
 class PaymentSettingsController extends Controller
@@ -42,9 +43,16 @@ class PaymentSettingsController extends Controller
         return $part;
     }
 
-    /** The owner proves it is them again before anything is changed: a signed-in screen left open is not enough to move money. */
-    private function confirm(Request $request): void
+    /**
+     * The owner proves it is them again before anything is changed: a signed-in screen left open is not enough to move money.
+     * Once the owner has the "one more step" rule for payment keys switched on, the door itself has already asked (passkey, or password until there is one), so it is not asked a second time.
+     * `$atTheDoor` is false for the one action whose route does not carry that rule (the KES 1 test prompt): it always asks for the password.
+     */
+    private function confirm(Request $request, bool $atTheDoor = true): void
     {
+        if ($atTheDoor && app(StepUp::class)->mode('payment_keys') === 'enforce') {
+            return;
+        }
         $request->validate(['password' => 'required|string']);
         if (! Hash::check((string) $request->input('password'), (string) $request->user()->password)) {
             PaymentSettingLog::write('password_failed', $request->user(), null, null, 'A change was refused: the password typed to confirm it was wrong.');
@@ -88,6 +96,7 @@ class PaymentSettingsController extends Controller
             'callback' => ['url' => $base, 'https' => str_starts_with($base, 'https://'), 'local' => (bool) preg_match('#^https?://(localhost|127\.|10\.|192\.168\.)#', $base), 'custom' => ($c['callback_url'] ?? '') !== '',
                 'token_set' => ($c['callback_token'] ?? '') !== '' || ! empty($server['callback_token']), 'previous_valid_until' => $this->previousUntil($c)],
             'can' => ['keys' => true],
+            'confirm_with_password' => app(StepUp::class)->mode('payment_keys') !== 'enforce',   // false: the one-more-step rule asks instead, so the screen does not
         ]);
     }
 
@@ -146,7 +155,7 @@ class PaymentSettingsController extends Controller
         $d = $request->validate(['phone' => 'required|string|max:20']);
 
         return $this->guard(function () use ($request, $d) {
-            $this->confirm($request);
+            $this->confirm($request, false);
             $daraja = app(DarajaService::class);
             try {
                 $phone = $daraja->normalizePhone($d['phone']);
