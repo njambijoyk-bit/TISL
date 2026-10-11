@@ -30,13 +30,18 @@ class MenusChefController extends Controller
         }
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         if (! ChefService::installed()) {
             return response()->json(['ready' => false, 'chefs' => [], 'stations' => [], 'kinds' => ChefCert::KINDS]);
         }
 
-        return response()->json(['ready' => true, 'chefs' => $this->chefs->roster(), 'kinds' => ChefCert::KINDS, 'warn_days' => ChefCert::WARN_DAYS,
+        $chefs = $this->chefs->roster();
+        if (! $this->canPay($request)) {
+            $chefs = array_map(fn ($c) => array_diff_key($c, array_flip(['pay_mode', 'shift_rate', 'hour_rate'])), $chefs);
+        }
+
+        return response()->json(['ready' => true, 'can_pay' => $this->canPay($request), 'chefs' => $chefs, 'kinds' => ChefCert::KINDS, 'warn_days' => ChefCert::WARN_DAYS,
             'stations' => KitchenService::installed() ? Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : []]);
     }
 
@@ -45,10 +50,19 @@ class MenusChefController extends Controller
         return $this->guard(fn () => response()->json(['users' => $this->chefs->candidates((string) $request->query('q', ''))]));
     }
 
+    private function canPay(Request $request): bool
+    {
+        return app(\App\Services\Access\Authorizer::class)->allows($request->user(), 'payroll.run');
+    }
+
     public function save(Request $request, ?int $id = null): JsonResponse
     {
         $d = $request->validate(['user_id' => 'nullable|integer', 'display_name' => 'nullable|string|max:80', 'title' => 'nullable|string|max:80', 'bio' => 'nullable|string|max:2000', 'photo' => 'nullable|string|max:255',
-            'station_ids' => 'nullable|array|max:30', 'station_ids.*' => 'integer', 'is_instructor' => 'nullable|boolean', 'is_public' => 'nullable|boolean', 'is_active' => 'nullable|boolean', 'sort_order' => 'nullable|integer|min:0|max:9999']);
+            'station_ids' => 'nullable|array|max:30', 'station_ids.*' => 'integer', 'is_instructor' => 'nullable|boolean', 'pay_mode' => 'nullable|string|in:salary,per_shift,per_hour', 'shift_rate' => 'nullable|numeric|min:0|max:10000000', 'hour_rate' => 'nullable|numeric|min:0|max:10000000', 'is_public' => 'nullable|boolean', 'is_active' => 'nullable|boolean', 'sort_order' => 'nullable|integer|min:0|max:9999']);
+
+        if (! $this->canPay($request)) {   // how a chef is paid is for people with payroll access only
+            unset($d['pay_mode'], $d['shift_rate'], $d['hour_rate']);
+        }
 
         return $this->guard(fn () => response()->json(['message' => 'Chef saved.', 'chef' => $this->chefs->save($d, $id)], $id === null ? 201 : 200));
     }

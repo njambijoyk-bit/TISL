@@ -20,9 +20,11 @@ use App\Services\Books\BooksException;
 use App\Services\Menus\KitchenService;
 use App\Services\Menus\MenusSettings;
 use App\Services\Menus\RotaAttendance;
+use App\Services\Menus\HolidayCalendar;
 use App\Services\Menus\RotaBoard;
 use App\Services\Menus\RotaClock;
 use App\Services\Menus\RotaLeave;
+use App\Services\Menus\RotaDoor;
 use App\Services\Menus\RotaOvertime;
 use App\Services\Menus\RotaPatterns;
 use App\Services\Menus\RotaPay;
@@ -40,7 +42,7 @@ use Illuminate\Http\Request;
  */
 class MenusRotaController extends Controller
 {
-    public function __construct(private RotaService $rota, private RotaPatterns $patterns, private RotaSwaps $swaps, private RotaBoard $board, private RotaClock $clock, private RotaPay $pay, private RotaPremium $premiums, private RotaOvertime $overtime, private RotaSites $sites, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
+    public function __construct(private RotaService $rota, private RotaPatterns $patterns, private RotaSwaps $swaps, private RotaBoard $board, private RotaClock $clock, private RotaPay $pay, private RotaPremium $premiums, private RotaOvertime $overtime, private RotaSites $sites, private RotaDoor $door, private HolidayCalendar $calendar, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
     {
     }
 
@@ -442,12 +444,21 @@ class MenusRotaController extends Controller
         return array_filter(['lat' => $d['lat'] ?? null, 'lng' => $d['lng'] ?? null, 'accuracy' => $d['accuracy'] ?? null], fn ($v) => $v !== null);
     }
 
+    /** Other proof of being at the branch: the internet address the request came from (its Wi-Fi) and a code scanned at the door. */
+    private function proof(Request $request): array
+    {
+        $d = $request->validate(['door' => 'nullable|string|max:80']);
+
+        return array_filter(['ip' => $request->ip(), 'door' => $d['door'] ?? null], fn ($v) => $v !== null && $v !== '');
+    }
+
     public function clockIn(Request $request): JsonResponse
     {
         $pos = $this->position($request);
+        $proof = $this->proof($request);
 
-        return $this->guard(function () use ($request, $pos) {
-            $this->clock->clockIn($request->user(), $pos);
+        return $this->guard(function () use ($request, $pos, $proof) {
+            $this->clock->clockIn($request->user(), $pos, $proof);
 
             return response()->json(['message' => 'Clocked in.', 'notice' => $this->clock->notice, 'clock' => $this->clock->status($request->user())]);
         });
@@ -456,9 +467,10 @@ class MenusRotaController extends Controller
     public function clockOut(Request $request): JsonResponse
     {
         $pos = $this->position($request);
+        $proof = $this->proof($request);
 
-        return $this->guard(function () use ($request, $pos) {
-            $this->clock->clockOut($request->user(), $pos);
+        return $this->guard(function () use ($request, $pos, $proof) {
+            $this->clock->clockOut($request->user(), $pos, $proof);
 
             return response()->json(['message' => 'Clocked out.', 'clock' => $this->clock->status($request->user())]);
         });
@@ -473,13 +485,76 @@ class MenusRotaController extends Controller
 
     public function saveSite(Request $request, int $locationId): JsonResponse
     {
-        $d = $request->validate(['latitude' => 'nullable|numeric', 'longitude' => 'nullable|numeric', 'radius_m' => 'nullable|integer|min:20|max:5000', 'is_active' => 'nullable|boolean']);
+        $d = $request->validate(['latitude' => 'nullable|numeric', 'longitude' => 'nullable|numeric', 'radius_m' => 'nullable|integer|min:20|max:5000', 'is_active' => 'nullable|boolean', 'networks' => 'nullable|string|max:2000']);
 
         return $this->guard(function () use ($d, $locationId) {
             $this->branches->assertVisible($locationId, 'stock', 'the rota');
             $this->sites->save($locationId, $d);
 
             return response()->json(['message' => 'Saved.']);
+        });
+    }
+
+    // ── the code at the door, and the branch's Wi-Fi ──────────────────────
+
+    /** The door screen's current code for a branch (a manager shows it on a screen at the door, or prints it when fixed). */
+    public function doorCode(int $locationId): JsonResponse
+    {
+        return $this->guard(function () use ($locationId) {
+            $this->branches->assertVisible($locationId, 'stock', 'the rota');
+            abort_unless(\App\Models\Location::whereKey($locationId)->exists(), 404);
+            if ($this->door->mode() === 'off') {
+                throw new BooksException('Door codes are switched off: choose rotating or fixed under Menus → Settings → Chef rota.');
+            }
+
+            return response()->json(['mode' => $this->door->mode(), 'seconds_left' => $this->door->secondsLeft(), 'branch' => \App\Models\Location::whereKey($locationId)->value('name'), 'svg' => $this->door->svg($locationId), 'url' => $this->door->url($this->door->code($locationId))]);
+        });
+    }
+
+    /** What a scanned door code stands for: shown to the chef on the clock-in page before they press the button. */
+    public function doorLookup(Request $request): JsonResponse
+    {
+        $d = $request->validate(['code' => 'required|string|max:80']);
+
+        return $this->guard(function () use ($d) {
+            $loc = $this->door->verify($d['code']);
+            if (! $loc) {
+                throw new BooksException('This code is not valid, or it has run out. Scan the code on the door screen again.');
+            }
+
+            return response()->json(['location_id' => $loc, 'branch' => \App\Models\Location::whereKey($loc)->value('name')]);
+        });
+    }
+
+    /** The internet address this request comes from, so a manager at the branch can add it as the branch's Wi-Fi. */
+    public function myIp(Request $request): JsonResponse
+    {
+        return response()->json(['ip' => $request->ip()]);
+    }
+
+    // ── public holidays by country (payroll access) ───────────────────────
+
+    public function holidayCountries(): JsonResponse
+    {
+        return response()->json(['countries' => $this->calendar->countries()]);
+    }
+
+    public function holidayPreview(Request $request): JsonResponse
+    {
+        $d = $request->validate(['country' => 'required|string|max:2', 'year' => 'required|integer|min:2000|max:2100']);
+
+        return $this->guard(fn () => response()->json(['holidays' => $this->calendar->forYear($d['country'], (int) $d['year'])]));
+    }
+
+    public function holidayImport(Request $request): JsonResponse
+    {
+        $d = $request->validate(['country' => 'required|string|max:2', 'year' => 'required|integer|min:2000|max:2100', 'location_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($d) {
+            $this->premiumsReady();
+            $r = $this->calendar->import($d['country'], (int) $d['year'], $d['location_id'] ?? null);
+
+            return response()->json(['message' => "Added {$r['added']} holiday(s)".($r['skipped'] ? ", {$r['skipped']} already there" : '').'. Check them against the official notice and add any that follow the moon by hand.'] + $r);
         });
     }
 
@@ -554,15 +629,11 @@ class MenusRotaController extends Controller
         return $this->guard(function () use ($d, $request) {
             [$from, $to] = $this->period($d);
             $manager = $this->manager($request);
-            $me = $this->mineChef($request);
-            if (! $manager && ! $me) {
-                return response()->json(['rows' => [], 'required' => $this->overtime->required()]);
-            }
             if ($manager) {
                 $this->overtime->sync($from, $to, false);
             }
 
-            return response()->json(['rows' => $this->overtime->rows($from, $to, $manager ? null : $me->id), 'required' => $this->overtime->required(), 'can_manage' => $manager]);
+            return response()->json(['rows' => $this->overtime->rows($from, $to, $manager ? null : $request->user()->id, $request->user()), 'required' => $this->overtime->required(), 'staff' => $this->overtime->coversStaff(), 'can_manage' => $manager]);
         });
     }
 

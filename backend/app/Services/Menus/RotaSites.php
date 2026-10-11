@@ -52,35 +52,55 @@ class RotaSites
      * Is this position at the branch? Returns the result and, when it could be worked out, how far away.
      *
      * @param array{lat?: mixed, lng?: mixed, accuracy?: mixed} $pos
-     * @return array{result: string, distance: ?int, blocked: bool, message: ?string, site: ?array}
+     * @param array{ip?: ?string, door?: ?string} $proof other ways to show the chef is there: the internet address they are on (the branch's Wi-Fi) and a code scanned at the door
+     * @return array{result: string, distance: ?int, blocked: bool, message: ?string, site: ?array, method: ?string}
      */
-    public function check(int $locationId, array $pos): array
+    public function check(int $locationId, array $pos, array $proof = []): array
     {
         $mode = MenusSettings::all()['rota_clock_location'];
         if ($mode === 'off' || ! self::installed()) {
-            return ['result' => 'ok', 'distance' => null, 'blocked' => false, 'message' => null, 'site' => null];
+            return ['result' => 'ok', 'distance' => null, 'blocked' => false, 'message' => null, 'site' => null, 'method' => null];
+        }
+        // a code from the door, or the branch's own Wi-Fi, is proof enough: the position is then not needed
+        if (! empty($proof['door']) && app(RotaDoor::class)->verify((string) $proof['door']) === $locationId) {
+            return ['result' => 'ok', 'distance' => null, 'blocked' => false, 'message' => null, 'site' => null, 'method' => 'qr'];
+        }
+        if (MenusSettings::all()['rota_clock_wifi'] && ! empty($proof['ip']) && $this->onBranchNetwork($locationId, (string) $proof['ip'])) {
+            return ['result' => 'ok', 'distance' => null, 'blocked' => false, 'message' => null, 'site' => null, 'method' => 'wifi'];
         }
         $site = $this->site($locationId);
         if (! $site) {
-            return ['result' => 'no_site', 'distance' => null, 'blocked' => false, 'message' => null, 'site' => null];
+            return ['result' => 'no_site', 'distance' => null, 'blocked' => false, 'message' => null, 'site' => null, 'method' => null];
         }
         $block = $mode === 'require';
         $has = isset($pos['lat'], $pos['lng']) && is_numeric($pos['lat']) && is_numeric($pos['lng']) && abs((float) $pos['lat']) <= 90 && abs((float) $pos['lng']) <= 180;
         if (! $has) {
-            return ['result' => 'no_position', 'distance' => null, 'blocked' => $block, 'site' => $site, 'message' => 'Allow your phone or browser to share your location, then try again.'];
+            return ['result' => 'no_position', 'distance' => null, 'blocked' => $block, 'site' => $site, 'method' => null, 'message' => 'Allow your phone or browser to share your location, scan the code at the door'.(MenusSettings::all()['rota_clock_wifi'] ? ', or join the branch Wi-Fi' : '').', then try again.'];
         }
         $acc = isset($pos['accuracy']) && is_numeric($pos['accuracy']) ? max(0, (int) round((float) $pos['accuracy'])) : null;
         $limit = (int) MenusSettings::all()['rota_clock_accuracy'];
         $d = (int) round(self::distance((float) $pos['lat'], (float) $pos['lng'], $site['lat'], $site['lng']));
         if ($acc === null || $acc > $limit) {
-            return ['result' => 'poor_signal', 'distance' => $d, 'blocked' => $block, 'site' => $site, 'message' => 'Your location is not clear enough ('.($acc === null ? 'unknown accuracy' : "about {$acc} m").'). Move to a window or outside and try again.'];
+            return ['result' => 'poor_signal', 'distance' => $d, 'blocked' => $block, 'site' => $site, 'method' => null, 'message' => 'Your location is not clear enough ('.($acc === null ? 'unknown accuracy' : "about {$acc} m").'). Move to a window or outside and try again.'];
         }
         // the phone may be anywhere inside its own accuracy circle: it is "there" if the circle reaches the branch's
         if ($d - $acc > $site['radius']) {
-            return ['result' => $block ? 'outside' : 'warned', 'distance' => $d, 'blocked' => $block, 'site' => $site, 'message' => "You are about {$d} m from the branch: clock in when you are there."];
+            return ['result' => $block ? 'outside' : 'warned', 'distance' => $d, 'blocked' => $block, 'site' => $site, 'method' => null, 'message' => "You are about {$d} m from the branch: clock in when you are there or scan the code at the door."];
         }
 
-        return ['result' => 'ok', 'distance' => $d, 'blocked' => false, 'message' => null, 'site' => $site];
+        return ['result' => 'ok', 'distance' => $d, 'blocked' => false, 'message' => null, 'site' => $site, 'method' => 'gps'];
+    }
+
+    /** Is this internet address one of the branch's own (its Wi-Fi's public address or range)? */
+    public function onBranchNetwork(int $locationId, string $ip): bool
+    {
+        if (! self::installed() || ! Schema::hasColumn('menus_clock_sites', 'networks') || ! filter_var($ip, FILTER_VALIDATE_IP)) {
+            return false;
+        }
+        $row = DB::table('menus_clock_sites')->where('location_id', $locationId)->where('is_active', true)->first();
+        $list = array_values(array_filter(array_map('trim', preg_split('/[\s,;]+/', (string) ($row->networks ?? '')) ?: [])));
+
+        return $list !== [] && \Symfony\Component\HttpFoundation\IpUtils::checkIp($ip, $list);
     }
 
     /** Write one line to the clock log. */
@@ -91,7 +111,8 @@ class RotaSites
         }
         DB::table('menus_clock_events')->insert(['user_id' => $userId, 'chef_id' => $chefId, 'shift_id' => $shiftId, 'location_id' => $locationId, 'action' => $action,
             'latitude' => isset($pos['lat']) && is_numeric($pos['lat']) ? round((float) $pos['lat'], 7) : null, 'longitude' => isset($pos['lng']) && is_numeric($pos['lng']) ? round((float) $pos['lng'], 7) : null,
-            'accuracy_m' => isset($pos['accuracy']) && is_numeric($pos['accuracy']) ? (int) round((float) $pos['accuracy']) : null, 'distance_m' => $check['distance'], 'result' => $check['result'], 'created_at' => now()]);
+            'accuracy_m' => isset($pos['accuracy']) && is_numeric($pos['accuracy']) ? (int) round((float) $pos['accuracy']) : null, 'distance_m' => $check['distance'], 'result' => $check['result'], 'created_at' => now()]
+            + (Schema::hasColumn('menus_clock_events', 'method') ? ['method' => $check['method'] ?? null] : []));
     }
 
     /** Set a branch's clocking point and radius (empty point: the branch's own address point is used). @param array{latitude?: mixed, longitude?: mixed, radius_m?: mixed, is_active?: mixed} $d */
@@ -112,11 +133,25 @@ class RotaSites
         if ($has && (! is_numeric($lat) || ! is_numeric($lng) || abs((float) $lat) > 90 || abs((float) $lng) > 180)) {
             throw new BooksException('The latitude is between -90 and 90 and the longitude between -180 and 180.');
         }
+        $networks = null;
+        if (array_key_exists('networks', $d) && Schema::hasColumn('menus_clock_sites', 'networks')) {
+            $list = array_values(array_unique(array_filter(array_map('trim', preg_split('/[\s,;]+/', (string) $d['networks']) ?: []))));
+            foreach ($list as $n) {
+                if (! (filter_var($n, FILTER_VALIDATE_IP) || (str_contains($n, '/') && filter_var(strstr($n, '/', true), FILTER_VALIDATE_IP) && ctype_digit((string) substr(strstr($n, '/'), 1))))) {
+                    throw new BooksException("\"{$n}\" is not an internet address (like 41.90.12.34) or a range (like 41.90.12.0/24).");
+                }
+            }
+            if (count($list) > 20) {
+                throw new BooksException('Give at most 20 addresses.');
+            }
+            $networks = $list ? implode("\n", $list) : null;
+        }
         $radius = (int) ($d['radius_m'] ?? 150);
         if ($radius < 20 || $radius > 5000) {
             throw new BooksException('The radius is between 20 and 5000 metres.');
         }
-        $row = ['latitude' => $has ? round((float) $lat, 7) : null, 'longitude' => $has ? round((float) $lng, 7) : null, 'radius_m' => $radius, 'is_active' => ! array_key_exists('is_active', $d) || (bool) $d['is_active'], 'updated_at' => now()];
+        $row = ['latitude' => $has ? round((float) $lat, 7) : null, 'longitude' => $has ? round((float) $lng, 7) : null, 'radius_m' => $radius, 'is_active' => ! array_key_exists('is_active', $d) || (bool) $d['is_active'], 'updated_at' => now()]
+            + (array_key_exists('networks', $d) && Schema::hasColumn('menus_clock_sites', 'networks') ? ['networks' => $networks] : []);
         DB::table('menus_clock_sites')->where('location_id', $locationId)->exists()
             ? DB::table('menus_clock_sites')->where('location_id', $locationId)->update($row)
             : DB::table('menus_clock_sites')->insert($row + ['location_id' => $locationId, 'created_at' => now()]);
@@ -132,7 +167,7 @@ class RotaSites
 
             return ['location_id' => $l->id, 'name' => $l->name, 'branch_latitude' => $l->latitude !== null ? (float) $l->latitude : null, 'branch_longitude' => $l->longitude !== null ? (float) $l->longitude : null,
                 'latitude' => $s?->latitude !== null ? (float) $s->latitude : null, 'longitude' => $s?->longitude !== null ? (float) $s->longitude : null, 'radius_m' => (int) ($s?->radius_m ?: MenusSettings::all()['rota_clock_radius']),
-                'is_active' => $s ? (bool) $s->is_active : true, 'checked' => $this->site($l->id) !== null];
+                'is_active' => $s ? (bool) $s->is_active : true, 'networks' => (string) ($s->networks ?? ''), 'checked' => $this->site($l->id) !== null];
         })->values()->all();
     }
 

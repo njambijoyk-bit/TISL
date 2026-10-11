@@ -76,6 +76,29 @@ class ChefService
         if (! $c->is_active) {
             $c->is_public = false;
         }
+        if (array_key_exists('pay_mode', $d) || array_key_exists('shift_rate', $d) || array_key_exists('hour_rate', $d)) {   // how the chef is paid (the caller only passes these on to people with payroll access)
+            if (! Schema::hasColumn('menus_chefs', 'pay_mode')) {
+                throw new BooksException('Run database script 149_menus_rota_more_pay.sql before setting how a chef is paid.');
+            }
+            $mode = (string) ($d['pay_mode'] ?? $c->pay_mode ?? 'salary');
+            if (! isset(Chef::PAY_MODES[$mode])) {
+                throw new BooksException('Choose how the chef is paid.');
+            }
+            $shift = array_key_exists('shift_rate', $d) ? ($d['shift_rate'] === null || $d['shift_rate'] === '' ? null : round((float) $d['shift_rate'], 2)) : $c->shift_rate;
+            $hour = array_key_exists('hour_rate', $d) ? ($d['hour_rate'] === null || $d['hour_rate'] === '' ? null : round((float) $d['hour_rate'], 2)) : $c->hour_rate;
+            foreach ([$shift, $hour] as $rate) {
+                if ($rate !== null && ($rate < 0 || $rate > 10000000)) {
+                    throw new BooksException('A rate can not be negative or more than 10,000,000.');
+                }
+            }
+            if ($mode === 'per_shift' && (! $shift || $shift <= 0)) {
+                throw new BooksException('Give the amount paid for each shift.');
+            }
+            if ($mode === 'per_hour' && (! $hour || $hour <= 0)) {
+                throw new BooksException('Give the amount paid for each hour.');
+            }
+            $c->fill(['pay_mode' => $mode, 'shift_rate' => $shift, 'hour_rate' => $hour]);
+        }
         $c->save();
 
         return $c->fresh();
@@ -180,7 +203,7 @@ class ChefService
 
             return ['id' => $c->id, 'user_id' => $c->user_id, 'user' => $c->user?->name, 'email' => $c->user?->email, 'display_name' => $c->display_name, 'title' => $c->title, 'bio' => $c->bio, 'photo' => $c->photo,
                 'station_ids' => $c->station_ids ?? [], 'stations' => collect($c->station_ids ?? [])->map(fn ($id) => $stations[$id] ?? null)->filter()->values()->all(), 'is_instructor' => $c->is_instructor, 'is_public' => $c->is_public,
-                'is_active' => $c->is_active, 'sort_order' => $c->sort_order, 'on_duty' => in_array((int) $c->user_id, $duty, true), 'rostered_today' => $rostered[$c->id] ?? null, 'certs' => $certs,
+                'is_active' => $c->is_active, 'sort_order' => $c->sort_order, 'pay_mode' => $c->pay_mode ?? 'salary', 'shift_rate' => $c->shift_rate ?? null, 'hour_rate' => $c->hour_rate ?? null, 'on_duty' => in_array((int) $c->user_id, $duty, true), 'rostered_today' => $rostered[$c->id] ?? null, 'certs' => $certs,
                 'attention' => count(array_filter($certs, fn ($x) => in_array($x['standing'], ['expiring', 'expired'], true))), 'dishes' => Schema::hasColumn('menus_dishes', 'chef_id') ? Dish::where('chef_id', $c->id)->count() : 0];
         })->values()->all();
     }

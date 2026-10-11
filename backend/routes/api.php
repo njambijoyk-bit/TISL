@@ -696,6 +696,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/rota/mine', [$ro, 'mine']);
         Route::post('/rota/days-off', [$ro, 'requestOff']);
         Route::get('/rota/hours', [$ro, 'hours']);
+        Route::get('/rota/door-lookup', [$ro, 'doorLookup'])->middleware('throttle:60,1');
         Route::get('/rota/overtime', [$ro, 'overtimeList']);
         Route::post('/rota/clock/in', [$ro, 'clockIn'])->middleware('throttle:30,1');
         Route::post('/rota/clock/out', [$ro, 'clockOut'])->middleware('throttle:30,1');
@@ -738,11 +739,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/rota/publish', [$ro, 'publish']);
             Route::get('/rota/hours.csv', [$ro, 'hoursCsv']);
             Route::get('/rota/sites', [$ro, 'sites']);
+            Route::get('/rota/sites/my-ip', [$ro, 'myIp']);
+            Route::get('/rota/door/{locationId}', [$ro, 'doorCode'])->whereNumber('locationId');
             Route::put('/rota/sites/{locationId}', [$ro, 'saveSite'])->whereNumber('locationId');
             Route::post('/rota/overtime/decide-many', [$ro, 'overtimeDecideMany']);
             Route::post('/rota/overtime/{id}/decide', [$ro, 'overtimeDecide'])->whereNumber('id');
             Route::middleware('permission:payroll.run')->group(function () use ($ro) {   // pay rules: owner-only, like payroll itself
                 Route::get('/rota/premiums', [$ro, 'premiumRules']);
+                Route::get('/rota/holidays/countries', [$ro, 'holidayCountries']);
+                Route::get('/rota/holidays/preview', [$ro, 'holidayPreview']);
+                Route::post('/rota/holidays/import', [$ro, 'holidayImport']);
                 Route::post('/rota/premiums', [$ro, 'saveRule']);
                 Route::put('/rota/premiums/{id}', [$ro, 'saveRule'])->whereNumber('id');
                 Route::delete('/rota/premiums/{id}', [$ro, 'deleteRule'])->whereNumber('id');

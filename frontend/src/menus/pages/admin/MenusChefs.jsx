@@ -15,9 +15,10 @@ import MenusNav from '../../components/MenusNav';
 
 const STANDING = { valid: ['ok', 'Valid'], expiring: ['warn', 'Runs out soon'], expired: ['danger', 'Has run out'], none: ['neutral', 'No end date'] };
 
-function ChefForm({ chef, stations, onClose, onDone }) {
+function ChefForm({ chef, stations, canPay, onClose, onDone }) {
   const [f, setF] = useState({ user_id: chef?.user_id ?? '', display_name: chef?.display_name ?? '', title: chef?.title ?? '', bio: chef?.bio ?? '', photo: chef?.photo ?? '', station_ids: chef?.station_ids ?? [],
-    is_instructor: chef?.is_instructor ?? false, is_public: chef?.is_public ?? false, is_active: chef?.is_active ?? true, sort_order: chef?.sort_order ?? 0 });
+    is_instructor: chef?.is_instructor ?? false, is_public: chef?.is_public ?? false, is_active: chef?.is_active ?? true, sort_order: chef?.sort_order ?? 0,
+    pay_mode: chef?.pay_mode ?? 'salary', shift_rate: chef?.shift_rate ?? '', hour_rate: chef?.hour_rate ?? '' });
   const [q, setQ] = useState('');
   const [found, setFound] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -30,7 +31,8 @@ function ChefForm({ chef, stations, onClose, onDone }) {
   const save = async () => {
     setBusy(true);
     try {
-      await menusAPI.saveChef({ ...f, user_id: f.user_id ? Number(f.user_id) : undefined, sort_order: Number(f.sort_order) || 0, display_name: f.display_name || undefined }, chef?.id);
+      const pay = canPay ? { pay_mode: f.pay_mode, shift_rate: f.shift_rate === '' ? null : Number(f.shift_rate), hour_rate: f.hour_rate === '' ? null : Number(f.hour_rate) } : {};
+      await menusAPI.saveChef({ ...f, ...(canPay ? {} : { pay_mode: undefined, shift_rate: undefined, hour_rate: undefined }), ...pay, user_id: f.user_id ? Number(f.user_id) : undefined, sort_order: Number(f.sort_order) || 0, display_name: f.display_name || undefined }, chef?.id);
       toast.success('Chef saved.'); onDone();
     } catch (e) { toast.error(errMsg(e, 'Could not save the chef'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -61,6 +63,17 @@ function ChefForm({ chef, stations, onClose, onDone }) {
           <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_instructor} onChange={(e) => setF({ ...f, is_instructor: e.target.checked })} /> Teaches (for Courses)</label>
           <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_active} onChange={(e) => setF({ ...f, is_active: e.target.checked })} /> Working here</label>
         </div>
+        {canPay && (
+          <fieldset style={{ border: `1px solid var(--line, #e5e7eb)`, borderRadius: 10, margin: 0, padding: 12, display: 'grid', gap: 10 }} data-testid="chef-pay">
+            <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, padding: '0 6px' }}>How this chef is paid</legend>
+            <SelectInput aria-label="How this chef is paid" value={f.pay_mode} onChange={(e) => setF({ ...f, pay_mode: e.target.value })}>
+              <option value="salary">Monthly salary (as set in Employees)</option><option value="per_shift">A fixed amount for each shift worked</option><option value="per_hour">An amount for each hour worked</option>
+            </SelectInput>
+            {f.pay_mode === 'per_shift' && <Field label="Pay for each shift worked" htmlFor="chef-shift-rate" hint="A rostered shift counts when most of it was signed in (Menus → Settings). Verified days only. No overtime."><NumberInput id="chef-shift-rate" min={0} step="any" value={f.shift_rate} onChange={(e) => setF({ ...f, shift_rate: e.target.value })} /></Field>}
+            {f.pay_mode === 'per_hour' && <Field label="Pay for each hour worked" htmlFor="chef-hour-rate" hint="Hours worked up to the hours rostered each day; overtime beyond that is paid at this rate times the overtime multiplier. Verified days only."><NumberInput id="chef-hour-rate" min={0} step="any" value={f.hour_rate} onChange={(e) => setF({ ...f, hour_rate: e.target.value })} /></Field>}
+            {f.pay_mode !== 'salary' && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>The chef still needs an employee record for payroll to include them. Nothing is deducted for absence: a day not worked simply earns nothing.</p>}
+          </fieldset>
+        )}
         <Field label="Order on the page" htmlFor="chef-sort" hint="Smaller numbers come first."><NumberInput id="chef-sort" min={0} value={f.sort_order} onChange={(e) => setF({ ...f, sort_order: e.target.value })} /></Field>
       </FormStack>
     </Modal>
@@ -163,7 +176,7 @@ export default function MenusChefs() {
           </>
         )}
       </div>
-      {form && data && <ChefForm chef={form.id ? form : null} stations={data.stations} onClose={() => setForm(null)} onDone={() => { setForm(null); load(); }} />}
+      {form && data && <ChefForm chef={form.id ? form : null} stations={data.stations} canPay={Boolean(data.can_pay)} onClose={() => setForm(null)} onDone={() => { setForm(null); load(); }} />}
       {certForm && data && <CertForm chef={certForm.chef} cert={certForm.cert} kinds={data.kinds} onClose={() => setCertForm(null)} onDone={() => { setCertForm(null); load(); }} />}
     </AdminLayout>
   );

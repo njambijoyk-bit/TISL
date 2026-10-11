@@ -149,14 +149,22 @@ class PayrollService
             }
         }
         $absence = $s->deduct_absence ? min($basic, round($daily * $unpaid, 2)) : 0.0;
+        $hourly = $hoursPerDay > 0 ? $daily / $hoursPerDay : 0.0;
+        // a chef paid per shift or per hour (Menus → Chefs): the basic is what the verified shifts and hours come to, nothing is deducted for absence (an absent day earns nothing), and a flat per-shift chef has no overtime
+        if ($contract = app(\App\Services\Menus\RotaPay::class)->contractPay($u, $empFrom, $empTo)) {
+            $basic = $contract['basic'];
+            $absence = 0.0;
+            $hourly = $contract['hourly'];
+            $otMinutes = $contract['mode'] === 'per_shift' ? 0 : $otMinutes;
+        }
         $otHours = round($otMinutes / 60, 2);
-        $overtime = round($otHours * ($daily / $hoursPerDay) * (float) $s->overtime_multiplier, 2);
+        $overtime = round($otHours * $hourly * (float) $s->overtime_multiplier, 2);
         $afterAbsence = round($basic - $absence + $overtime, 2);
 
         // shift premiums (night, weekend, holiday) for a chef, as a line of its own on the payslip: worked out again each time, so an old one is never kept
         $adjust = array_values(array_filter($adjust, fn ($x) => ($x['auto'] ?? null) !== 'rota_premium'));
         if (\App\Services\Menus\MenusSettings::all()['rota_premium_source'] === 'payroll' && \App\Models\Menus\Chef::where('user_id', $u->id)->exists()) {
-            $prem = app(\App\Services\Menus\RotaPremium::class)->pay($u->id, $empFrom, $empTo, $hoursPerDay > 0 ? $daily / $hoursPerDay : 0.0);
+            $prem = app(\App\Services\Menus\RotaPremium::class)->pay($u->id, $empFrom, $empTo, $hourly);
             if ($prem['amount'] > 0) {
                 $adjust[] = ['description' => 'Shift premiums ('.number_format($prem['hours'], 2).' h: '.implode(', ', array_map(fn ($l) => $l['rule'], $prem['lines'])).')', 'amount' => $prem['amount'], 'kind' => 'earning', 'auto' => 'rota_premium'];
             }

@@ -66,11 +66,13 @@ class RotaClock
         }
 
         return ['available' => true, 'chef' => true, 'shifts' => $today->map(fn (Shift $s) => ['id' => $s->id, 'starts_at' => substr((string) $s->starts_at, 0, 5), 'ends_at' => substr((string) $s->ends_at, 0, 5)])->values()->all(),
-            'in' => $in?->copy()->timezone($this->tz())->format('H:i'), 'out' => $out?->copy()->timezone($this->tz())->format('H:i'), 'can_in' => $canIn, 'can_out' => (bool) $canOut, 'message' => $message, 'location_mode' => MenusSettings::all()['rota_clock_location'] !== 'off' && RotaSites::installed() ? MenusSettings::all()['rota_clock_location'] : 'off'];
+            'in' => $in?->copy()->timezone($this->tz())->format('H:i'), 'out' => $out?->copy()->timezone($this->tz())->format('H:i'), 'can_in' => $canIn, 'can_out' => (bool) $canOut, 'message' => $message, 'location_mode' => MenusSettings::all()['rota_clock_location'] !== 'off' && RotaSites::installed() ? MenusSettings::all()['rota_clock_location'] : 'off',
+            'door_codes' => MenusSettings::all()['rota_clock_location'] !== 'off' && app(RotaDoor::class)->mode() !== 'off', 'wifi' => MenusSettings::all()['rota_clock_location'] !== 'off' && (bool) MenusSettings::all()['rota_clock_wifi']];
     }
 
-    /** @param array{lat?: mixed, lng?: mixed, accuracy?: mixed} $pos where the phone says it is (asked for when the settings check the place) */
-    public function clockIn(User $u, array $pos = []): AttendanceDay
+    /** @param array{lat?: mixed, lng?: mixed, accuracy?: mixed} $pos where the phone says it is (asked for when the settings check the place)
+     * @param array{ip?: ?string, door?: ?string} $proof the address the request came from (the branch's Wi-Fi) and a code scanned at the door */
+    public function clockIn(User $u, array $pos = [], array $proof = []): AttendanceDay
     {
         $chef = Chef::where('user_id', $u->id)->first() ?? throw new BooksException('You do not have a chef profile.');
         if (! MenusSettings::all()['rota_clock_from_rota']) {
@@ -82,7 +84,7 @@ class RotaClock
             $s = $this->status($u);
             throw new BooksException($s['message'] ?? 'You can not clock in right now.');
         }
-        $check = $this->sites->check((int) $shift->location_id, $pos);
+        $check = $this->sites->check((int) $shift->location_id, $pos, $proof);
         if (MenusSettings::all()['rota_clock_location'] !== 'off') {
             $this->sites->log($u->id, $chef->id, $shift->id, (int) $shift->location_id, 'in', $pos, $check);   // every attempt is kept, the refused ones too
         }
@@ -99,7 +101,7 @@ class RotaClock
     }
 
     /** Clocking out is never refused for being away (people leave the branch before they remember), but where it happened is kept. */
-    public function clockOut(User $u, array $pos = []): AttendanceDay
+    public function clockOut(User $u, array $pos = [], array $proof = []): AttendanceDay
     {
         $chef = Chef::where('user_id', $u->id)->first() ?? throw new BooksException('You do not have a chef profile.');
         if (! MenusSettings::all()['rota_clock_from_rota']) {
@@ -109,7 +111,7 @@ class RotaClock
         $day = $this->attendance->signOut($u);
         $shift = Shift::where('chef_id', $chef->id)->where('status', 'published')->where('shift_date', Carbon::now($this->tz())->toDateString())->orderBy('starts_at')->first();
         if ($shift && MenusSettings::all()['rota_clock_location'] !== 'off') {
-            $this->sites->log($u->id, $chef->id, $shift->id, (int) $shift->location_id, 'out', $pos, $this->sites->check((int) $shift->location_id, $pos));
+            $this->sites->log($u->id, $chef->id, $shift->id, (int) $shift->location_id, 'out', $pos, $this->sites->check((int) $shift->location_id, $pos, $proof));
         }
 
         return $day;

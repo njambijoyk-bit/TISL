@@ -59,6 +59,54 @@ class RotaPay
         return $chef ? $this->day((int) $chef, $date, $row)['overtime'] : 0;
     }
 
+    /**
+     * What a chef paid per shift or per hour earns over a stretch (verified days only): null for a chef on salary (and for anyone who is not a chef).
+     * Per shift: each rostered shift counts as worked when at least the set share (50% by default) of that day's rostered time was signed in, and pays the shift rate; unrostered work earns nothing.
+     * Per hour: the hours worked up to the hours rostered each day (overtime beyond them is paid separately by payroll at the same rate and multiplier).
+     *
+     * @return array{mode: string, basic: float, shifts: int, hours: float, hourly: float}|null hourly: what an hour is worth for overtime and premiums (a shift rate over the average shift length)
+     */
+    public function contractPay(\App\Models\User $u, Carbon $from, Carbon $to, bool $verifiedOnly = true): ?array
+    {
+        if (! Schema::hasColumn('menus_chefs', 'pay_mode') || ! Schema::hasTable('attendance_days')) {
+            return null;
+        }
+        $chef = Chef::where('user_id', $u->id)->first();
+        $mode = $chef->pay_mode ?? 'salary';
+        if (! $chef || $mode === 'salary') {
+            return null;
+        }
+        $share = (int) MenusSettings::all()['rota_shift_min_share'];
+        $rows = AttendanceDay::where('user_id', $u->id)->whereBetween('work_date', [$from->toDateString(), $to->toDateString()])->whereNotNull('sign_in_at')->whereNotNull('sign_out_at')
+            ->when($verifiedOnly, fn ($q) => $q->where('verify_status', 'verified'))->get();
+        $shifts = 0;
+        $schedMin = 0;
+        $paidMin = 0;
+        foreach ($rows as $r) {
+            $date = $r->work_date->toDateString();
+            $count = Shift::where('chef_id', $chef->id)->where('status', 'published')->where('shift_date', $date)->count();
+            $sched = $this->scheduledMinutes($chef->id, $date);
+            if ($count === 0 || $sched <= 0) {
+                continue;
+            }
+            $worked = (int) $r->minutes_worked;
+            if ($worked * 100 >= $sched * $share) {
+                $shifts += $count;
+                $schedMin += $sched;
+            }
+            $paidMin += min($worked, $sched);
+        }
+        $shiftRate = (float) ($chef->shift_rate ?? 0);
+        $hourRate = (float) ($chef->hour_rate ?? 0);
+        if ($mode === 'per_shift') {
+            $avgHours = $shifts > 0 ? $schedMin / 60 / $shifts : 8.0;
+
+            return ['mode' => $mode, 'basic' => round($shifts * $shiftRate, 2), 'shifts' => $shifts, 'hours' => round($schedMin / 60, 2), 'hourly' => $avgHours > 0 ? round($shiftRate / $avgHours, 4) : 0.0];
+        }
+
+        return ['mode' => $mode, 'basic' => round($paidMin / 60 * $hourRate, 2), 'shifts' => $shifts, 'hours' => round($paidMin / 60, 2), 'hourly' => $hourRate];
+    }
+
     /** What an hour is worth for this person: the monthly salary over the company's working days and hours, as payroll works it out. */
     public function hourlyRate(Employee $e, Carbon $from, Carbon $to): float
     {
@@ -133,6 +181,11 @@ class RotaPay
                 $e = $c->user_id ? Employee::where('user_id', $c->user_id)->first() : null;
                 $rate = $e ? $this->hourlyRate($e, $from, $to) : null;
                 $prem = $c->user_id && $rate !== null ? app(RotaPremium::class)->pay((int) $c->user_id, $from, $to, $rate, false) : ['hours' => 0.0, 'amount' => 0.0, 'lines' => []];
+                $contract = $c->user_id ? $this->contractPay((new \App\Models\User())->forceFill(['id' => $c->user_id]), $from, $to, false) : null;
+                if ($contract) {   // paid per shift or per hour: what the shifts and hours come to replaces the salary
+                    $rate = $contract['hourly'];
+                    $row += ['pay_mode' => $contract['mode'], 'contract_basic' => $contract['basic'], 'contract_shifts' => $contract['shifts']];
+                }
                 $row += ['hourly_rate' => $rate !== null ? round($rate, 2) : null, 'overtime_multiplier' => $mult, 'overtime_pay' => $rate !== null ? round($over / 60 * $rate * $mult, 2) : null,
                     'premium_hours' => $prem['hours'], 'premium_pay' => $prem['amount'], 'premium_lines' => $prem['lines']];
             }

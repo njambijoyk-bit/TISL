@@ -102,7 +102,7 @@ function ClockCard({ clock, onChange }) {
       <div style={{ flex: 1, minWidth: 200 }}>
         <strong style={{ fontSize: '0.9rem' }}>{clock.shifts.length ? `Today: ${clock.shifts.map((s) => `${s.starts_at}–${s.ends_at}`).join(', ')}` : 'No shift today'}</strong>
         <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{clock.in ? `Clocked in at ${clock.in}${clock.out ? `, out at ${clock.out}` : ''}.` : (clock.message ?? '')}</div>
-        {clock.location_mode !== 'off' && (clock.can_in || clock.can_out) && <div style={{ fontSize: '0.74rem', color: colors.textMuted }}><MapPin size={11} aria-hidden="true" /> Your location is checked against the branch{clock.location_mode === 'require' ? ' and you must be there' : ''}.</div>}
+        {clock.location_mode !== 'off' && (clock.can_in || clock.can_out) && <div style={{ fontSize: '0.74rem', color: colors.textMuted }}><MapPin size={11} aria-hidden="true" /> Your location is checked against the branch{clock.location_mode === 'require' ? ' and you must be there' : ''}{clock.door_codes ? '; or scan the code on the door screen with your camera' : ''}{clock.wifi ? '; or use the branch Wi-Fi' : ''}.</div>}
       </div>
       {clock.can_in && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '8px 18px' }} onClick={() => go(menusAPI.clockIn)}>Clock in</button>}
       {clock.can_out && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '8px 18px' }} onClick={() => go(menusAPI.clockOut)}>Clock out</button>}
@@ -135,16 +135,47 @@ function OvertimeBlock({ from, to, canManage, onChanged }) {
         <span style={{ flex: 1 }} />
         {canManage && waiting.length > 1 && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.76rem' }} onClick={all}>Approve all waiting</button>}
       </div>
+      {d.required && !d.staff && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Only chefs are covered. Turn on the setting for other staff in Menus → Settings → Chef rota.</p>}
       {!d.required && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Approval is off: payroll pays all verified overtime. Switch it on in Menus → Settings → Chef rota.</p>}
       {d.rows.map((r) => (
         <div key={r.id} data-overtime={r.id} style={{ ...card, padding: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.84rem' }}>
-          <strong>{r.chef}</strong><span>{label(r.date)}</span><span>{r.hours} h</span><Pill tone={r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'danger' : 'warn'}>{r.status_label}</Pill>
+          <strong>{r.chef}</strong>{r.kind === 'staff' && <Pill tone="neutral">Staff</Pill>}<span>{label(r.date)}</span><span>{r.hours} h</span><Pill tone={r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'danger' : 'warn'}>{r.status_label}</Pill>
           {r.note && <span style={{ color: colors.textMuted }}>{r.note}</span>}
           <span style={{ flex: 1 }} />
           {canManage && r.status !== 'approved' && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '4px 12px', fontSize: '0.76rem' }} onClick={() => decide(r, 'approved')}>Approve</button>}
           {canManage && r.status !== 'rejected' && <button type="button" disabled={busy} style={{ ...btnGhost, padding: '4px 12px', fontSize: '0.76rem', color: '#b91c1c' }} onClick={() => decide(r, 'rejected')}>Do not approve</button>}
         </div>
       ))}
+    </div>
+  );
+}
+
+function HolidayImport({ onDone }) {
+  const [countries, setCountries] = useState([]);
+  const [country, setCountry] = useState('');
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [list, setList] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { menusAPI.holidayCountries().then((r) => setCountries(r.countries)).catch(() => setCountries([])); }, []);
+  const note = countries.find((c) => c.code === country)?.note;
+  const preview = async () => {
+    try { const r = await menusAPI.holidayPreview({ country, year }); setList(r.holidays); } catch (e) { toast.error(errMsg(e, 'Could not make the list'), { duration: 8000 }); }
+  };
+  const add = async () => {
+    setBusy(true);
+    try { const r = await menusAPI.importHolidays({ country, year: Number(year) }); toast.success(r.message, { duration: 9000 }); setList(null); onDone(); } catch (e) { toast.error(errMsg(e, 'Could not add them'), { duration: 8000 }); } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ ...card, padding: 12, display: 'grid', gap: 8 }} data-testid="holiday-import">
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <SelectInput aria-label="Country" value={country} onChange={(e) => { setCountry(e.target.value); setList(null); }} style={{ width: 'auto' }}><option value="">Add a country&apos;s holidays…</option>{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</SelectInput>
+        <TextInput aria-label="Year" type="number" min="2000" max="2100" value={year} onChange={(e) => { setYear(e.target.value); setList(null); }} style={{ width: 100 }} />
+        <button type="button" style={{ ...btnGhost, padding: '6px 12px', fontSize: '0.78rem' }} disabled={!country} onClick={preview}>Show the list</button>
+        {list && <button type="button" style={{ ...btnPrimary, padding: '6px 14px', fontSize: '0.78rem' }} disabled={busy} onClick={add}>Add these {list.length}</button>}
+      </div>
+      {note && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>{note} Check the list against the official notice: calendars change by law.</p>}
+      {list && <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 2, fontSize: '0.82rem' }} data-testid="holiday-preview">{list.map((h) => <li key={`${h.date}${h.name}`}><span style={{ display: 'inline-block', width: 120 }}>{label(h.date)}</span>{h.name}</li>)}</ul>}
     </div>
   );
 }
@@ -187,6 +218,7 @@ function PremiumPanel({ source }) {
         <div><button type="button" style={{ ...btnPrimary, padding: '6px 14px', fontSize: '0.78rem' }} disabled={!f.name.trim()} onClick={add}>Add the rule</button></div>
       </div>
       <h4 style={{ margin: '6px 0 0', fontSize: '0.82rem', fontWeight: 800 }}>Public holidays</h4>
+      <HolidayImport onDone={load} />
       {d.holidays.map((x) => <div key={x.id} data-holiday={x.name} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '0.84rem' }}><span style={{ width: 120 }}>{label(x.date)}</span><span>{x.name}</span><button type="button" aria-label={`Remove ${x.name}`} style={{ ...btnGhost, padding: '2px 8px', color: '#b91c1c' }} onClick={() => run(() => menusAPI.removeHoliday(x.id), 'Could not remove it')}><Trash2 size={12} /></button></div>)}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <TextInput aria-label="Holiday date" type="date" value={h.date} onChange={(e) => setH({ ...h, date: e.target.value })} style={{ width: 160 }} />
@@ -234,7 +266,7 @@ function HoursSection({ canPay, canManage, premiumSource }) {
               {rows.map((r) => (
                 <Fragment key={r.chef_id}>
                   <tr data-hours={r.name} style={{ borderTop: `1px solid ${colors.border ?? '#e5e7eb'}`, cursor: 'pointer' }} onClick={() => setOpen(open === r.chef_id ? null : r.chef_id)}>
-                    <td style={{ padding: 10, fontWeight: 700 }}>{r.name}</td>
+                    <td style={{ padding: 10, fontWeight: 700 }}>{r.name}{r.pay_mode && <div style={{ fontWeight: 400, fontSize: '0.72rem', color: colors.textMuted }} data-testid="pay-basis">{r.pay_mode === 'per_shift' ? `Per shift: ${fmt(r.contract_basic)} for ${r.contract_shifts} shift(s)` : `Per hour: ${fmt(r.contract_basic)}`}</div>}</td>
                     <td style={{ padding: 10, textAlign: 'right' }}>{fmt(r.scheduled_h)} h</td>
                     <td style={{ padding: 10, textAlign: 'right' }}>{fmt(r.worked_h)} h</td>
                     <td style={{ padding: 10, textAlign: 'right', fontWeight: r.overtime_h > 0 ? 800 : 400 }}>{fmt(r.overtime_h)} h</td>
