@@ -58,6 +58,7 @@ function DishModal({ dish, data, onClose, onDone }) {
   const [prep, setPrep] = useState(dish?.prep_minutes ?? '');
   const [sort, setSort] = useState(dish?.sort_order ?? 0);
   const [active, setActive] = useState(dish?.is_active ?? true);
+  const [station, setStation] = useState(dish?.station_id ?? '');
   const [ledger, setLedger] = useState(null);
   const [allergens, setAllergens] = useState(dish?.allergens_declared ? dish.allergens : null);
   const [tags, setTags] = useState(dish?.tags_declared ? dish.tags : null);
@@ -70,7 +71,7 @@ function DishModal({ dish, data, onClose, onDone }) {
     try {
       const res = await menusAPI.saveDish({
         name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), sort_order: Number(sort) || 0, is_active: active,
-        ...(needsLedger ? { sales_ledger_id: ledger } : {}), allergens, tags,
+        ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), allergens, tags,
       }, dish?.id);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the dish')); } finally { setBusy(false); }
@@ -89,6 +90,9 @@ function DishModal({ dish, data, onClose, onDone }) {
           <Field label="Description" htmlFor="dish-desc"><TextArea id="dish-desc" rows={3} maxLength={3000} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <Field label="Takes about (minutes)" htmlFor="dish-prep"><NumberInput id="dish-prep" min="0" max="6000" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
+            {data.stations && data.stations.length > 0 && (
+              <Field label="Made at" htmlFor="dish-station" hint="The kitchen screen that gets this dish. Empty: the station that takes everything else."><SelectInput id="dish-station" value={station} onChange={(e) => setStation(e.target.value)}><option value="">The default station</option>{data.stations.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field>
+            )}
             <Field label="Order on the menu" htmlFor="dish-sort" hint="Smaller numbers come first."><NumberInput id="dish-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
           <Declare title="Allergens" options={data.allergens} inherited={dish?.allergens ?? []} value={allergens} onChange={setAllergens} />

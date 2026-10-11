@@ -23,6 +23,7 @@ node e2e/email-link.mjs                        # the emailed sign-in link for cu
 node e2e/security-nav.mjs                      # the breadcrumb and the row that moves between the four security pages
 node e2e/menus-ui.mjs                          # the Menus screens (ingredients with substitutes, dishes with allergens, recipes with units, waste and steps): what they show and what they send (the Menus API is answered by the check itself)
 node e2e/menus-orders-ui.mjs                    # ordering food online (basket, choices, checkout, following an order), the kitchen's board with taking payment, and switching the ways to order on (the API is answered by the check itself)
+node e2e/menus-kitchen-ui.mjs                   # the kitchen screens: a station's tickets (allergens, timers, buttons, paper ticket), the pass, stations in settings and on a dish
 node e2e/actions.mjs                            # the owner's page for sensitive actions and the sign-in check, and the real payment keys screen asking once (passkey) instead of the password
 ```
 
