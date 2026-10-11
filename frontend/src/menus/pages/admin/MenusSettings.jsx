@@ -33,7 +33,8 @@ export default function MenusSettings() {
         qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
         custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0,
         rota_max_week_hours: Number(s.rota_max_week_hours) || 48, rota_min_rest_hours: Number(s.rota_min_rest_hours) || 0,
-        rota_ahead_weeks: Number(s.rota_ahead_weeks) || 0, rota_swaps_need_approval: Boolean(s.rota_swaps_need_approval), rota_no_show_alerts: Boolean(s.rota_no_show_alerts) });
+        rota_ahead_weeks: Number(s.rota_ahead_weeks) || 0, rota_overtime_source: s.rota_overtime_source ?? 'attendance', rota_overtime_grace: Number(s.rota_overtime_grace) || 0,
+        rota_claims_need_approval: Boolean(s.rota_claims_need_approval), rota_clock_from_rota: Boolean(s.rota_clock_from_rota), rota_clock_early: Number(s.rota_clock_early) || 0, rota_swaps_need_approval: Boolean(s.rota_swaps_need_approval), rota_no_show_alerts: Boolean(s.rota_no_show_alerts) });
       setS(r.settings); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -85,6 +86,15 @@ export default function MenusSettings() {
                   <Field label="Plan from weekly patterns this many weeks ahead" htmlFor="ms-raw" hint="0 = only when you press Plan. Planned shifts are drafts."><NumberInput id="ms-raw" min="0" max="8" value={s.rota_ahead_weeks ?? 2} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_ahead_weeks: e.target.value }))} /></Field>
                 </div>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_swaps_need_approval)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_swaps_need_approval: e.target.checked }))} /> A shift swap the colleague agreed to still waits for a manager</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                  <Field label="Payroll takes a chef's overtime from" htmlFor="ms-ots" hint="Rota: the hours worked beyond the shifts rostered. Attendance: beyond the company's working day.">
+                    <SelectInput id="ms-ots" value={s.rota_overtime_source ?? 'attendance'} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_overtime_source: e.target.value }))}><option value="attendance">Attendance (company working day)</option><option value="rota">The rota (hours beyond the shifts)</option></SelectInput>
+                  </Field>
+                  <Field label="Overtime counts after (minutes)" htmlFor="ms-otg" hint="Only for the rota source."><NumberInput id="ms-otg" min="0" max="120" value={s.rota_overtime_grace ?? 15} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_overtime_grace: e.target.value }))} /></Field>
+                  <Field label="Clocking in opens (minutes before the shift)" htmlFor="ms-ce"><NumberInput id="ms-ce" min="0" max="240" value={s.rota_clock_early ?? 30} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_clock_early: e.target.value }))} /></Field>
+                </div>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_clock_from_rota)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_clock_from_rota: e.target.checked }))} /> Chefs may clock in and out from the rota page (the same sign-in as Attendance)</label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_claims_need_approval)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_claims_need_approval: e.target.checked }))} /> A claim on an open shift waits for a manager (off: the first chef who is free gets it)</label>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_no_show_alerts)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_no_show_alerts: e.target.checked }))} /> Tell the managers when a rostered chef has not signed in (uses the Attendance sign-ins)</label>
               </fieldset>
               {canEdit && <div><button type="button" style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }} disabled={busy || !ready} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</button></div>}

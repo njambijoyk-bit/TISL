@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Location;
 use App\Models\Menus\Chef;
 use App\Models\Menus\DayOff;
+use App\Models\Menus\OpenShift;
 use App\Models\Menus\RotaPattern;
 use App\Models\Menus\Shift;
 use App\Models\Menus\Swap;
@@ -16,8 +17,11 @@ use App\Services\Books\BooksException;
 use App\Services\Menus\KitchenService;
 use App\Services\Menus\MenusSettings;
 use App\Services\Menus\RotaAttendance;
+use App\Services\Menus\RotaBoard;
+use App\Services\Menus\RotaClock;
 use App\Services\Menus\RotaLeave;
 use App\Services\Menus\RotaPatterns;
+use App\Services\Menus\RotaPay;
 use App\Services\Menus\RotaService;
 use App\Services\Menus\RotaSwaps;
 use App\Services\Notify\Staff;
@@ -30,7 +34,7 @@ use Illuminate\Http\Request;
  */
 class MenusRotaController extends Controller
 {
-    public function __construct(private RotaService $rota, private RotaPatterns $patterns, private RotaSwaps $swaps, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
+    public function __construct(private RotaService $rota, private RotaPatterns $patterns, private RotaSwaps $swaps, private RotaBoard $board, private RotaClock $clock, private RotaPay $pay, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
     {
     }
 
@@ -71,7 +75,8 @@ class MenusRotaController extends Controller
         $scope = fn ($q) => $this->branches->apply($q, 'location_id', 'stock', 'the rota');
 
         return response()->json(['ready' => true, 'can_manage' => $manager, 'me' => $me?->id, 'more' => RotaPatterns::installed() && RotaSwaps::installed(), 'attendance' => RotaAttendance::ready(), 'leave' => RotaLeave::active(),
-            'patterns' => $manager ? $this->patterns->rows($scope) : [], 'swaps' => $this->swaps->rows($me, $manager, $scope), 'swaps_need_approval' => (bool) $settings['rota_swaps_need_approval']] + $week + [
+            'patterns' => $manager ? $this->patterns->rows($scope) : [], 'swaps' => $this->swaps->rows($me, $manager, $scope), 'board' => RotaBoard::installed(), 'open_shifts' => $this->board->rows($me, $manager, $scope), 'clock' => $this->clock->status($request->user()),
+            'can_see_pay' => $this->access->allows($request->user(), 'payroll.run'), 'swaps_need_approval' => (bool) $settings['rota_swaps_need_approval'], 'claims_need_approval' => (bool) $settings['rota_claims_need_approval']] + $week + [
             'locations' => Location::query()->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values(),
             'stations' => KitchenService::installed() ? Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : [],
             'limits' => ['max_week_hours' => $settings['rota_max_week_hours'], 'min_rest_hours' => $settings['rota_min_rest_hours']], 'kinds' => DayOff::KINDS]);
@@ -329,5 +334,168 @@ class MenusRotaController extends Controller
 
             return response()->json(['message' => 'Swap cancelled.']);
         });
+    }
+
+    // ── the open shift board ──────────────────────────────────────────────
+
+    private function board(): void
+    {
+        abort_unless(RotaBoard::installed(), 422, 'Run database script 147_menus_rota_board.sql first.');
+    }
+
+    private function open(int $id): OpenShift
+    {
+        $o = OpenShift::findOrFail($id);
+        $this->branches->assertVisible((int) $o->location_id, 'stock', 'the rota');
+
+        return $o;
+    }
+
+    public function postOpen(Request $request): JsonResponse
+    {
+        $d = $request->validate(['location_id' => 'required|integer', 'station_id' => 'nullable|integer', 'date' => 'required|date', 'starts_at' => 'required|string|max:8', 'ends_at' => 'required|string|max:8', 'note' => 'nullable|string|max:200']);
+
+        return $this->guard(function () use ($d, $request) {
+            $this->board();
+            $this->branches->assertVisible((int) $d['location_id'], 'stock', 'the rota');
+            $this->board->post($d, $request->user());
+
+            return response()->json(['message' => 'Posted on the board. The chefs who could take it have been told.'], 201);
+        });
+    }
+
+    /** A chef gives one of their published shifts back to the board; a manager may for anyone. */
+    public function releaseShift(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id, $request) {
+            $this->board();
+            $shift = $this->shift($id);
+            $me = $this->mineChef($request);
+            if (! $this->manager($request) && (! $me || (int) $me->id !== (int) $shift->chef_id)) {
+                abort(403, 'You can only give back your own shifts.');
+            }
+            $this->board->release($shift, $request->user());
+
+            return response()->json(['message' => 'The shift is on the board. It stays yours until someone else takes it.'], 201);
+        });
+    }
+
+    public function claimOpen(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['note' => 'nullable|string|max:200']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $this->board();
+            $o = $this->open($id);
+            $me = $this->mineChef($request) ?? throw new BooksException('Only chefs can claim shifts.');
+            $r = $this->board->claim($o, $me, $d['note'] ?? null);
+
+            return response()->json(['message' => $r->status === 'filled' ? 'The shift is yours.' : 'Claimed. A manager will decide.', 'status' => $r->status]);
+        });
+    }
+
+    public function withdrawClaim(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id, $request) {
+            $this->board();
+            $this->board->withdraw($this->open($id), $this->mineChef($request) ?? throw new BooksException('Only chefs can claim shifts.'));
+
+            return response()->json(['message' => 'Claim withdrawn.']);
+        });
+    }
+
+    public function awardOpen(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['chef_id' => 'required|integer']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $this->board();
+            $this->board->award($this->open($id), Chef::findOrFail((int) $d['chef_id']), $request->user());
+
+            return response()->json(['message' => 'Awarded: the shift is on that chef\'s rota and they have been told.']);
+        });
+    }
+
+    public function cancelOpen(int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id) {
+            $this->board();
+            $this->board->cancel($this->open($id));
+
+            return response()->json(['message' => 'Taken off the board.']);
+        });
+    }
+
+    // ── clocking in from the rota page ────────────────────────────────────
+
+    public function clockIn(Request $request): JsonResponse
+    {
+        return $this->guard(function () use ($request) {
+            $this->clock->clockIn($request->user());
+
+            return response()->json(['message' => 'Clocked in.', 'clock' => $this->clock->status($request->user())]);
+        });
+    }
+
+    public function clockOut(Request $request): JsonResponse
+    {
+        return $this->guard(function () use ($request) {
+            $this->clock->clockOut($request->user());
+
+            return response()->json(['message' => 'Clocked out.', 'clock' => $this->clock->status($request->user())]);
+        });
+    }
+
+    // ── hours and pay ─────────────────────────────────────────────────────
+
+    /**
+     * Hours rostered, worked, overtime and short time for a stretch of days (default: this month). A manager sees every chef; a chef sees only their own row. Pay figures need payroll access.
+     */
+    public function hours(Request $request): JsonResponse
+    {
+        $d = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date']);
+
+        return $this->guard(function () use ($d, $request) {
+            [$from, $to] = $this->period($d);
+            $rows = $this->report($request, $from, $to);
+
+            return response()->json(['from' => $from->toDateString(), 'to' => $to->toDateString(), 'rows' => $rows, 'money' => $this->access->allows($request->user(), 'payroll.run'),
+                'overtime_source' => MenusSettings::all()['rota_overtime_source']]);
+        });
+    }
+
+    public function hoursCsv(Request $request)
+    {
+        $d = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date']);
+        abort_unless($this->manager($request), 403, 'Only a manager can download this.');
+        [$from, $to] = $this->period($d);
+        $money = $this->access->allows($request->user(), 'payroll.run');
+
+        return response($this->pay->csv($this->report($request, $from, $to), $money), 200, ['Content-Type' => 'text/csv; charset=UTF-8', 'Content-Disposition' => 'attachment; filename="rota-hours-'.$from->format('Y-m-d').'-to-'.$to->format('Y-m-d').'.csv"']);
+    }
+
+    /** @return array{0: \Illuminate\Support\Carbon, 1: \Illuminate\Support\Carbon} */
+    private function period(array $d): array
+    {
+        $tz = (string) config('app.timezone', 'Africa/Nairobi');
+        $from = ! empty($d['from']) ? \Illuminate\Support\Carbon::parse($d['from'], $tz)->startOfDay() : \Illuminate\Support\Carbon::now($tz)->startOfMonth();
+        $to = ! empty($d['to']) ? \Illuminate\Support\Carbon::parse($d['to'], $tz)->startOfDay() : $from->copy()->endOfMonth()->startOfDay();
+        if ($to->lt($from) || $from->diffInDays($to) > 92) {
+            throw new BooksException('Choose a stretch of at most three months.');
+        }
+
+        return [$from, $to];
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function report(Request $request, $from, $to): array
+    {
+        $manager = $this->manager($request);
+        $me = $this->mineChef($request);
+        if (! $manager && ! $me) {
+            return [];
+        }
+
+        return $this->pay->report($from, $to, $this->access->allows($request->user(), 'payroll.run') && $manager, fn ($q) => $this->branches->apply($q, 'location_id', 'stock', 'the rota hours'), $manager ? null : $me->id);
     }
 }

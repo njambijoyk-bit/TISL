@@ -132,6 +132,8 @@ class PayrollService
         $unpaid = 0.0;
         $otMinutes = 0;
         $unverified = 0;
+        $rotaPay = app(\App\Services\Menus\RotaPay::class);
+        $fromRota = $rotaPay->appliesTo($u->id);   // a chef whose overtime is the hours beyond their rostered shifts (Menus settings)
         if (Schema::hasTable('attendance_days')) {
             $rows = AttendanceDay::where('user_id', $u->id)->whereBetween('work_date', [$empFrom->toDateString(), $empTo->toDateString()])->get()->keyBy(fn ($r) => $r->work_date->toDateString());
             for ($d = $empFrom->copy(); $d->lte($empTo); $d->addDay()) {
@@ -144,7 +146,7 @@ class PayrollService
                     continue;
                 }
                 $unpaid += $r->status === 'absent' ? 1.0 : ($r->status === 'half_day' ? 0.5 : 0.0);
-                $otMinutes += (int) $r->overtime_minutes;
+                $otMinutes += $fromRota ? $rotaPay->dayOvertime($u->id, $d->toDateString(), $r) : (int) $r->overtime_minutes;
             }
         }
         $absence = $s->deduct_absence ? min($basic, round($daily * $unpaid, 2)) : 0.0;

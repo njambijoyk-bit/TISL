@@ -695,6 +695,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/rota', [$ro, 'index']);
         Route::get('/rota/mine', [$ro, 'mine']);
         Route::post('/rota/days-off', [$ro, 'requestOff']);
+        Route::get('/rota/hours', [$ro, 'hours']);
+        Route::post('/rota/clock/in', [$ro, 'clockIn']);
+        Route::post('/rota/clock/out', [$ro, 'clockOut']);
+        Route::post('/rota/open/{id}/claim', [$ro, 'claimOpen'])->whereNumber('id');
+        Route::post('/rota/open/{id}/withdraw', [$ro, 'withdrawClaim'])->whereNumber('id');
+        Route::post('/rota/shifts/{id}/release', [$ro, 'releaseShift'])->whereNumber('id');
         Route::post('/rota/swaps', [$ro, 'askSwap']);
         Route::post('/rota/swaps/{id}/respond', [$ro, 'respondSwap'])->whereNumber('id');
         Route::post('/rota/swaps/{id}/cancel', [$ro, 'cancelSwap'])->whereNumber('id');
@@ -729,6 +735,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/rota/shifts/{id}', [$ro, 'saveShift'])->whereNumber('id');
             Route::delete('/rota/shifts/{id}', [$ro, 'deleteShift'])->whereNumber('id');
             Route::post('/rota/publish', [$ro, 'publish']);
+            Route::get('/rota/hours.csv', [$ro, 'hoursCsv']);
+            Route::post('/rota/open', [$ro, 'postOpen']);
+            Route::post('/rota/open/{id}/award', [$ro, 'awardOpen'])->whereNumber('id');
+            Route::post('/rota/open/{id}/cancel', [$ro, 'cancelOpen'])->whereNumber('id');
             Route::post('/rota/patterns', [$ro, 'savePattern']);
             Route::put('/rota/patterns/{id}', [$ro, 'savePattern'])->whereNumber('id');
             Route::post('/rota/patterns/{id}/active', [$ro, 'patternActive'])->whereNumber('id');

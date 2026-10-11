@@ -165,6 +165,15 @@ class RotaService
         }
     }
 
+    /** Could this chef work from this time to that time? (an open shift asks before a claim is taken) @param int[] $ignore @throws BooksException */
+    public function assertCanWork(Chef $chef, Carbon $start, Carbon $end, array $ignore = []): void
+    {
+        if (! $chef->is_active) {
+            throw new BooksException("{$chef->display_name} is not working with us.");
+        }
+        $this->assertFree($chef, $start, $end, 0, $ignore);
+    }
+
     /** Could this chef take this shift as it is? (A swap asks before it asks the colleague.) @param int[] $ignore @throws BooksException */
     public function assertCanHold(Chef $chef, Shift $shift, array $ignore = []): void
     {

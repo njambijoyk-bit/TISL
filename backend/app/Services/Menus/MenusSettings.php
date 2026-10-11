@@ -27,6 +27,11 @@ final class MenusSettings
         'rota_max_week_hours' => 48,     // the rota warns when a chef is given more than this in a week
         'rota_swaps_need_approval' => true,   // a swap the colleague agreed to still waits for a manager
         'rota_ahead_weeks' => 2,         // patterns plan this many weeks ahead as drafts (daily)
+        'rota_overtime_source' => 'attendance', // where payroll takes a chef's overtime from: 'attendance' (the company's working day) or 'rota' (hours beyond the shifts rostered)
+        'rota_overtime_grace' => 15,     // minutes beyond the rostered hours before a day counts as overtime (rota source)
+        'rota_claims_need_approval' => true, // a claim on an open shift waits for a manager (off: the first chef who is free gets it)
+        'rota_clock_from_rota' => true,  // chefs may clock in and out from the rota page (the same Attendance sign-in)
+        'rota_clock_early' => 30,        // minutes before a shift starts that clocking in opens
         'rota_no_show_alerts' => true,   // managers are told when a rostered chef has not signed in
         'rota_min_rest_hours' => 10,     // ...and when the rest between one day's work and the next is shorter than this
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
@@ -84,12 +89,12 @@ final class MenusSettings
                 $cur[$key] = $id;
             }
         }
-        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts'] as $key) {
+        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts', 'rota_claims_need_approval', 'rota_clock_from_rota'] as $key) {
             if (array_key_exists($key, $in)) {
                 $cur[$key] = (bool) $in[$key];
             }
         }
-        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24], 'rota_ahead_weeks' => [0, 8]] as $key => [$lo, $hi]) {
+        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24], 'rota_ahead_weeks' => [0, 8], 'rota_overtime_grace' => [0, 120], 'rota_clock_early' => [0, 240]] as $key => [$lo, $hi]) {
             if (array_key_exists($key, $in)) {
                 $n = round((float) $in[$key], 2);
                 if ($n < $lo || $n > $hi) {
@@ -97,6 +102,12 @@ final class MenusSettings
                 }
                 $cur[$key] = $key === 'custom_deposit_pct' ? $n : (int) $n;
             }
+        }
+        if (array_key_exists('rota_overtime_source', $in)) {
+            if (! in_array($in['rota_overtime_source'], ['attendance', 'rota'], true)) {
+                throw new BooksException('Overtime comes from attendance or from the rota.');
+            }
+            $cur['rota_overtime_source'] = $in['rota_overtime_source'];
         }
         if (array_key_exists('service_charge_pct', $in)) {
             $pct = round((float) $in['service_charge_pct'], 2);

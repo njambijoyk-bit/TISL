@@ -4,6 +4,7 @@ namespace App\Services\Menus;
 
 use App\Models\Menus\Chef;
 use App\Models\Menus\DayOff;
+use App\Models\Menus\OpenShift;
 use App\Models\Menus\Shift;
 use App\Models\Menus\Swap;
 use App\Models\User;
@@ -105,6 +106,34 @@ class RotaNotices
                     $this->tell($c->user_id, 'menu_swap_decided', $approved ? 'The shift swap is done' : 'The shift swap was not approved', $approved ? 'Your rota has changed. Open the rota to see it.' : ($w->decision_note ?: 'The shifts stay as they were.'));
                 }
             }
+        });
+    }
+
+    // ── the open shift board ──────────────────────────────────────────────
+
+    /** An open shift was posted: the chefs who could take it are told. @param \Illuminate\Support\Collection<int, Chef> $chefs */
+    public function openPosted(OpenShift $o, $chefs): void
+    {
+        $this->safely(function () use ($o, $chefs) {
+            foreach ($chefs as $c) {
+                $this->tell($c->user_id, 'menu_open_shift', 'An open shift you could take', $o->shift_date->format('D j M').' '.substr((string) $o->starts_at, 0, 5).'–'.substr((string) $o->ends_at, 0, 5).($o->note ? " ({$o->note})" : '').'. Claim it on the rota page.');
+            }
+        });
+    }
+
+    public function claimAsked(OpenShift $o, Chef $c): void
+    {
+        $this->safely(function () use ($o, $c) {
+            foreach ($this->staff->holding('menus.manage') as $u) {
+                $this->notifier->send($u, 'menu_open_claim', "{$c->display_name} wants an open shift", $o->shift_date->format('D j M').' '.substr((string) $o->starts_at, 0, 5).'–'.substr((string) $o->ends_at, 0, 5).'.', ['action_url' => '/admin/menus/rota', 'action_text' => 'Award it']);
+            }
+        });
+    }
+
+    public function openFilled(OpenShift $o, Shift $s, Chef $chef): void
+    {
+        $this->safely(function () use ($s, $chef) {
+            $this->tell($chef->user_id, 'menu_open_filled', 'The shift is yours', "{$this->line($s)} is on your rota now.");
         });
     }
 
