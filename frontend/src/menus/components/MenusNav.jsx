@@ -1,7 +1,8 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BellRing, BookOpenText, ChefHat, ChevronRight, ClipboardList, LayoutList, Salad, Settings2, UtensilsCrossed } from 'lucide-react';
+import { BellRing, BookOpenText, ChefHat, Coins, ChevronRight, ClipboardList, LayoutList, Salad, Settings2, UtensilsCrossed } from 'lucide-react';
 
 const PAGES = [
+  { path: '/admin/menus/till', title: 'Till', icon: Coins, color: '#10b981' },
   { path: '/admin/menus/orders', title: 'Orders', icon: BellRing, color: '#ef4444' },
   { path: '/admin/menus/kitchen', title: 'Kitchen', icon: ChefHat, color: '#0ea5e9' },
   { path: '/admin/menus/dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316' },

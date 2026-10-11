@@ -23,11 +23,11 @@ function Ticket({ t, stationName, canAct, onAct, minutes }) {
   return (
     <article data-ticket={t.number} style={{ background: '#0f172a', color: '#f8fafc', borderRadius: 14, overflow: 'hidden', border: `3px solid ${t.late ? '#ef4444' : bg}`, display: 'grid' }}>
       <header style={{ background: t.late ? '#7f1d1d' : bg, padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-        <strong style={{ fontSize: '1.1rem' }}>{t.number}</strong>
+        <strong style={{ fontSize: '1.1rem' }}>{t.short_no ? `#${t.short_no}` : t.number}{t.round > 1 ? ` · round ${t.round}` : ''}</strong>
         <span style={{ fontSize: '0.8rem', fontWeight: 800 }}>{label} · {minutes}m{t.late ? ' LATE' : ''}</span>
       </header>
       <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#cbd5e1', display: 'flex', gap: 8, alignItems: 'center' }}>
-        <Icon size={14} aria-hidden="true" /> {t.name} · {t.asap ? 'ASAP' : `for ${clock(t.due_at)}`}
+        <Icon size={14} aria-hidden="true" /> {t.service ? `${t.service === 'dine_in' ? 'Dine in' : 'Take out'} · ${t.label ?? t.name}` : t.name} · {t.asap ? 'ASAP' : `for ${clock(t.due_at)}`}
       </div>
       <ul style={{ listStyle: 'none', margin: 0, padding: '0 12px 8px', display: 'grid', gap: 8 }}>
         {t.lines.map((l, i) => (

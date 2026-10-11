@@ -55,7 +55,7 @@ await page.locator('[data-testid="ingredients"]').waitFor({ timeout: 15000 });
 let text = await page.locator('[data-testid="ingredients"]').innerText();
 ok('the list shows the ingredient, its items in order, what is on hand and the cost', /Wheat flour/.test(text) && /1\. Exe flour/.test(text) && /2\. Pembe flour/.test(text) && /14,000 g/.test(text) && /0\.15 \/ g/.test(text), text.replace(/\n+/g, ' | ').slice(0, 220));
 ok('and its allergens', /Wheat/.test(await page.locator('[data-testid="allergens"]').first().innerText()));
-ok('the Menus navigation is there with its seven pages', (await page.locator('[data-testid="menus-nav"] [role="tab"]').count()) === 7);
+ok('the Menus navigation is there with its eight pages', (await page.locator('[data-testid="menus-nav"] [role="tab"]').count()) === 8);
 
 await page.getByRole('button', { name: /New ingredient/ }).click();
 await page.getByLabel('Name', { exact: true }).fill('Cooking oil');
@@ -231,6 +231,6 @@ await page.screenshot({ path: D + 'menus-public.png', fullPage: true });
 // ---------------------------------------------------------------- settings
 await go('MenusSettings');
 await page.locator('[data-testid="menus-settings"]').waitFor({ timeout: 15000 });
-ok('the settings page says tips and service charge live in the books', /Tips and service charge are accounts like any other/.test(await page.locator('[data-testid="menus-settings"]').innerText()));
+ok('the settings page has the tip and service charge accounts (managed in the books)', /Tips are booked to/.test(await page.locator('[data-testid="menus-settings"]').innerText()) && /Service charge on dine-in/.test(await page.locator('[data-testid="menus-settings"]').innerText()));
 
 await finish();

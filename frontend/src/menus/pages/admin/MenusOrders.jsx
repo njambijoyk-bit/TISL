@@ -21,7 +21,7 @@ const COLUMNS = [
   { title: 'Preparing', keys: ['preparing'], color: '#f59e0b' },
   { title: 'Ready / on the way', keys: ['ready', 'out'], color: '#22c55e' },
 ];
-const payTone = { paid: ['ok', 'Paid'], later: ['warn', 'Pays on arrival'], pending: ['warn', 'Waiting for payment'], failed: ['danger', 'Payment failed'] };
+const payTone = { open: ['warn', 'Tab open'], paid: ['ok', 'Paid'], later: ['warn', 'Pays on arrival'], pending: ['warn', 'Waiting for payment'], failed: ['danger', 'Payment failed'] };
 
 /** Menus → Orders: the board for online orders. New ones come in on the left; the kitchen moves each along; an order paid at the door is settled with its payment. */
 export default function MenusOrders() {

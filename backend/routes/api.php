@@ -668,6 +668,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/till/quote', [$tc, 'quote']);
             Route::post('/till/sell', [$tc, 'sell']);
             Route::post('/till/tabs', [$tc, 'openTab']);
+            Route::post('/till/tabs/{id}/quote', [$tc, 'quoteTab'])->whereNumber('id');
             Route::post('/till/tabs/{id}/add', [$tc, 'addToTab'])->whereNumber('id');
             Route::delete('/till/tabs/{id}/lines/{line}', [$tc, 'voidLine'])->whereNumber(['id', 'line']);
             Route::post('/till/tabs/{id}/settle', [$tc, 'settleTab'])->whereNumber('id');

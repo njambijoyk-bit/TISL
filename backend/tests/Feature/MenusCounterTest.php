@@ -265,6 +265,18 @@ class MenusCounterTest extends TestCase
         $this->assertNull($q->completed_at);
     }
 
+    public function test_a_tab_is_quoted_with_the_service_charge_and_tip_before_it_is_paid(): void
+    {
+        $this->settings(['service_charge_pct' => 10, 'service_charge_ledger_id' => 81, 'tip_ledger_id' => 80]);
+        $d = $this->dish();
+        $tab = $this->counter()->openTab($this->in([$d], ['service' => 'dine_in', 'label' => 'T9']), null, $this->now);
+        $q = $this->counter()->quoteTab($tab, ['tip' => 40]);
+        $this->assertSame([1000.0, 100.0, 40.0, 1300.0], [$q['subtotal'], $q['service_charge'], $q['tip'], $q['total']]);
+        $this->assertSame(0.0, $this->counter()->quoteTab($tab, ['waive_service' => true])['service_charge']);
+        $tab->update(['status' => 'cancelled']);
+        $this->fails(fn () => $this->counter()->quoteTab($tab->fresh(), []), 'not an open tab');
+    }
+
     public function test_a_tab_paid_after_everything_was_served_is_closed(): void
     {
         $d = $this->dish();

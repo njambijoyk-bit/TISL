@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import { Field, FormStack, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
+import { Field, FormStack, NumberInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
@@ -10,6 +10,7 @@ import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
+import LedgerSelect from '../../components/LedgerSelect';
 import ChannelsCard from '../../components/ChannelsCard';
 import StationsCard from '../../components/StationsCard';
 
@@ -26,7 +27,8 @@ export default function MenusSettings() {
   const save = async () => {
     setBusy(true);
     try {
-      const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '' });
+      const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
+        tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0 });
       setS(r.settings); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -50,7 +52,11 @@ export default function MenusSettings() {
               <Field label="A line at the foot of every receipt" htmlFor="ms-footer" hint="For example: Thank you for dining with us. Prices include VAT.">
                 <TextInput id="ms-footer" maxLength={200} value={s.receipt_footer ?? ''} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, receipt_footer: e.target.value }))} />
               </Field>
-              <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textFaint }}>Tips and service charge are accounts like any other: you set them up in the books (Chart of accounts) and they are chosen when the till is built.</p>
+              <LedgerSelect id="ms-tip" label="Tips are booked to" value={s.tip_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, tip_ledger_id: v }))} hint="Usually money held for staff. Empty: the till takes no tips. Set up the account in the books (Chart of accounts)." />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                <LedgerSelect id="ms-svc" label="Service charge is booked to" value={s.service_charge_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, service_charge_ledger_id: v }))} />
+                <Field label="Service charge on dine-in (%)" htmlFor="ms-pct" hint="0 = none. The cashier may waive it for a bill."><NumberInput id="ms-pct" min="0" max="30" step="any" value={s.service_charge_pct ?? 0} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, service_charge_pct: e.target.value }))} /></Field>
+              </div>
               {canEdit && <div><button type="button" style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }} disabled={busy || !ready} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</button></div>}
             </FormStack>
           </div>

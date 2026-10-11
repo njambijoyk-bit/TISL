@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const KEY = 'tisl.menu.basket';
 
-const read = () => { try { const v = JSON.parse(window.localStorage.getItem(KEY) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
-const write = (lines) => { try { window.localStorage.setItem(KEY, JSON.stringify(lines)); } catch { /* private window: the basket just lives on this page */ } };
+const read = (key) => { if (!key) return []; try { const v = JSON.parse(window.localStorage.getItem(key) ?? '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+const write = (key, lines) => { if (!key) return; try { window.localStorage.setItem(key, JSON.stringify(lines)); } catch { /* private window: the basket just lives on this page */ } };
 
 /** The same dish with the same choices and note is one line. */
 export const lineKey = (dishId, optionIds, note) => `${dishId}:${[...optionIds].sort((a, b) => a - b).join(',')}:${(note ?? '').trim()}`;
@@ -11,10 +11,10 @@ export const lineKey = (dishId, optionIds, note) => `${dishId}:${[...optionIds].
 /** What a line costs before tax: the dish and its choices, times how many. */
 export const lineTotal = (l) => (Number(l.price) + l.option_delta) * l.quantity;
 
-/** The customer's basket, kept in this browser so it survives a refresh. Each line: { key, dish_id, name, price, option_delta, option_ids, option_names, note, quantity }. */
-export function useBasket() {
-  const [lines, setLines] = useState(read);
-  useEffect(() => { write(lines); }, [lines]);
+/** A basket. With the default key it is the customer's, kept in this browser (pass null for one that is only on this page, like the till's) so it survives a refresh. Each line: { key, dish_id, name, price, option_delta, option_ids, option_names, note, quantity }. */
+export function useBasket(storageKey = KEY) {
+  const [lines, setLines] = useState(() => read(storageKey));
+  useEffect(() => { write(storageKey, lines); }, [storageKey, lines]);
 
   const add = useCallback((dish, { option_ids = [], option_names = [], option_delta = 0, note = '', quantity = 1 } = {}) => {
     const key = lineKey(dish.id, option_ids, note);
