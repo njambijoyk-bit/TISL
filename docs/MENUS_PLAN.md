@@ -100,6 +100,44 @@ Today a recipe is a cost-and-stock list (yield, ingredients, made ahead / made t
 - **Payments at the table:** guest pays by M-Pesa STK prompt from the QR page; waiter can take card/cash and close the tab.
 - **Offline-tolerant POS:** the waiter app should keep working through a short internet drop and sync after (a decision for the build, see §7).
 
+## 4a. Receipts and kitchen tickets (the format the owner liked)
+
+✔ The owner likes the **kiosk receipt** layout (a fast-food kiosk receipt, monospaced, narrow). We use it as the one look for the customer receipt, the kiosk/counter/online order slip and the kitchen ticket, built from one template so they never drift apart:
+
+```
+        BUSINESS NAME / BRANCH
+   address line, town
+   phone · PIN / VAT number
+   26/09/2026, 06:04:34 AM
+ ---------------------------------
+ Order Type          Take Out
+ POS Order #         6829
+ Kiosk Session       RXC22ZCIX3
+ ---------------------------------
+ 1  Steak, Egg & Cheese       9.50
+    - White Bread
+    - Remove Mayo
+    - Remove Egg
+ 1  Steak, Egg & Cheese       9.50
+    - White Bread
+ ---------------------------------
+ Subtotal                    20.70
+ Sales Tax                    1.41
+ Service Charge               0.62
+ Total                       22.73
+```
+
+What we take from it:
+- **Header:** business and branch, address, phone, tax number, date and time.
+- **Order block:** order type (Dine in / Take out / Delivery / Catering), a short **order number** the customer can call out, the **channel and its session code** (kiosk, table, counter, online), and for tables the table and seat.
+- **Lines:** quantity, dish, price on the right, **modifiers indented under it** with a dash, "Remove x" shown plainly, a price beside a modifier only when it costs something.
+- **Totals:** subtotal, **tax (shown per rate)**, service charge and tip when on, total, then how it was paid (cash, M-Pesa with the code, card), change, and the order's QR for "track my order" / reorder.
+- **Same template, three outputs:** (1) the customer receipt (screen, email, PDF, 58 mm / 80 mm thermal printout), (2) the order slip (customer's number, big), (3) the **kitchen ticket**, the same layout with no prices, larger type, allergens and "NO ..." in bold, the table and the course.
+
+**One lesson from the same receipt** (the post it comes from complains that removing an egg was charged $1.70): **removals are free by default**. A removal never adds a charge and, if the ingredient is removed, it is not consumed from stock. Only add-ons carry a price; a business may deliberately price a removal (a setting per option), but the default and the screen wording make it clear what costs money.
+
+Receipt wording (footer message, return policy line, social handle) is edited in Settings → Menus. Printers are the owner's hardware; the template is plain monospaced text and a print stylesheet so any ESC/POS-compatible or browser-printed thermal printer works, with no printer-specific code in the first releases.
+
 ## 5. "Different kinds of cooking service"
 
 These reuse existing modules. Menus supplies the food side (recipes, costing, ingredients); the booking and money side already exists.
