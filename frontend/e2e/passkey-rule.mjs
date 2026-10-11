@@ -1,5 +1,5 @@
 // Browser check: the owner's page for the passkey rule (Admin → Security → Passkey rule), in a real Chromium against the real API (see e2e/README.md).
-import { D, SITE, ok, finish, open, signInWithPassword, call, resetDatabase, rows } from './lib.mjs';
+import { D, SITE, ok, finish, open, signInWithPassword, call, sql, resetDatabase, rows } from './lib.mjs';
 resetDatabase();
 
 const rule = '/e2e/harness.html?c=PasskeyRule';
@@ -65,6 +65,37 @@ const setting = (k) => { const r = rows(`SELECT value FROM security_settings WHE
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByText('Chege Admin', { exact: true }).waitFor({ timeout: 8000 });
   ok('the list still shows who has to add one, and the counts moved', (await stat('Have what it asks')) === 1 && (await stat('Still to add a passkey')) === 1);
+
+  // what each role needs (starting from the older settings: the owner's two kept on the device by the one all-in-one switch)
+  sql("DELETE FROM security_settings WHERE setting_key = 'passkeys.device_bound_roles'");
+  sql("INSERT OR REPLACE INTO security_settings (setting_key, value, created_at, updated_at) VALUES ('passkeys.owner_device_bound', 'true', datetime('now'), datetime('now'))");
+  await page.reload({ waitUntil: 'networkidle' });
+  const level = (role) => page.locator(`input[name="level-${role}"]:checked`).getAttribute('value');
+  await page.locator('[data-testid="role-strength"]').waitFor({ timeout: 10000 });
+  ok('each role says how many passkeys it needs', (await level('super_admin')) === '2' && (await level('admin')) === '1' && (await level('logistics')) === '0');
+  ok('the owner\'s two stay on the device, the others do not', (await page.locator('input[name="bound-super_admin"]').isChecked()) && !(await page.locator('input[name="bound-admin"]').isChecked()));
+  ok('a role that needs none has nothing to keep on the device', await page.locator('input[name="bound-logistics"]').isDisabled());
+  ok('showing the older settings this way changes nothing: there is nothing to save', await page.locator('[data-testid="rule-save"]').isDisabled());
+  await page.screenshot({ path: D + 'passkey-rule-roles.png', fullPage: true });
+  await page.locator('input[name="level-admin"][value="2"]').check();
+  await page.locator('input[name="bound-admin"]').check();
+  await page.locator('input[name="level-logistics"][value="1"]').check();
+  await page.locator('[data-testid="rule-save"]').click();
+  await page.getByRole('button', { name: /Yes, switch it on/ }).click();
+  await page.getByText('Saved').first().waitFor({ timeout: 8000 });
+  ok('the roles are saved: admin needs two on the device, logistics one', JSON.stringify(setting('passkeys.owner_roles')) === JSON.stringify(['super_admin', 'admin']) && setting('passkeys.roles').includes('logistics') && setting('passkeys.device_bound_roles').includes('admin') && setting('passkeys.device_bound_roles').includes('super_admin') && setting('passkeys.owner_device_bound') === false, JSON.stringify([setting('passkeys.roles'), setting('passkeys.owner_roles'), setting('passkeys.device_bound_roles')]));
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.locator('[data-stat="Staff accounts"]').waitFor({ timeout: 10000 });
+  ok('and the counts follow: the rule is now for three people', (await stat('The rule is for')) === 3);
+  ok('a reload shows what was saved and nothing to save', (await level('admin')) === '2' && (await page.locator('input[name="bound-admin"]').isChecked()) && (await level('logistics')) === '1' && (await page.locator('[data-testid="rule-save"]').isDisabled()));
+  // taking a role's requirement away takes its "stay on the device" with it
+  await page.locator('input[name="level-admin"][value="0"]').check();
+  await page.locator('[data-testid="rule-save"]').click();
+  await page.getByRole('button', { name: /Yes, switch it on/ }).click();
+  await page.getByText('Saved').first().waitFor({ timeout: 8000 });
+  ok('a role set to none is no longer kept to the device either', !setting('passkeys.roles').includes('admin') && !setting('passkeys.owner_roles').includes('admin') && !setting('passkeys.device_bound_roles').includes('admin') && setting('passkeys.device_bound_roles').includes('super_admin'), JSON.stringify(setting('passkeys.device_bound_roles')));
+  await page.getByRole('combobox', { name: 'Show' }).selectOption('applies');
+  ok('the list says how many each person needs', /0 of 1/.test(await page.getByText('Otieno Driver', { exact: true }).locator('xpath=ancestor::tr').innerText()), '');
   await ctx.close();
 }
 {

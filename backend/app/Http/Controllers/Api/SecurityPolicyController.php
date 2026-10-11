@@ -56,6 +56,7 @@ class SecurityPolicyController extends Controller
                 'permissions' => array_values((array) $this->settings->get('passkeys.permissions', [])),
                 'owner_roles' => array_values((array) $this->settings->get('passkeys.owner_roles', [])),
                 'owner_device_bound' => (bool) $this->settings->get('passkeys.owner_device_bound', true),
+                'device_bound_roles' => array_values((array) $this->settings->get('passkeys.device_bound_roles', [])),
             ],
             'roster' => $ready ? $this->policy->roster() : null,
             'choices' => [
@@ -78,6 +79,7 @@ class SecurityPolicyController extends Controller
             'roles' => 'sometimes|array|max:60', 'roles.*' => ['string', Rule::in($roleKeys)],
             'permissions' => 'sometimes|array|max:200', 'permissions.*' => ['string', Rule::in(array_keys(Catalog::PERMISSIONS))],
             'owner_roles' => 'sometimes|array|max:10', 'owner_roles.*' => ['string', Rule::in($roleKeys)],
+            'device_bound_roles' => 'sometimes|array|max:60', 'device_bound_roles.*' => ['string', Rule::in($roleKeys)],
             'owner_device_bound' => 'sometimes|boolean',
             'confirm' => 'sometimes|boolean',
         ]);
@@ -85,7 +87,7 @@ class SecurityPolicyController extends Controller
         /** @var User $actor */
         $actor = $request->user();
         $before = $this->payload()['settings'];
-        $after = ['mode' => $data['mode'], 'enforce_from' => $data['enforce_from'] ?? null] + array_intersect_key($data, array_flip(['roles', 'permissions', 'owner_roles', 'owner_device_bound']));
+        $after = ['mode' => $data['mode'], 'enforce_from' => $data['enforce_from'] ?? null] + array_intersect_key($data, array_flip(['roles', 'permissions', 'owner_roles', 'owner_device_bound', 'device_bound_roles']));
 
         DB::beginTransaction();
         try {

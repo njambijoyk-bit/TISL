@@ -13,7 +13,8 @@ use Laravel\Sanctum\PersonalAccessToken;
 /**
  * Who must sign in with a passkey, and what a person who has not yet is allowed to do.
  *
- * The rule is for staff whose work can move money or change who may do what (the roles and permissions named in `config/security.php` → `policy.passkeys`). The owner's role needs two devices.
+ * The rule is for staff whose work can move money or change who may do what (the roles and permissions named in `config/security.php` → `policy.passkeys`). Each role says how many passkeys it needs
+ * (none, one, or two as the owner's role does) and whether they must stay on the device; the owner sets this per role on the Passkey rule page.
  * It is switched on slowly, as every rule here is:
  *  - off:     nothing happens (the default);
  *  - log:     nobody is stopped, but each sign-in that WOULD have been is written to the security log, so the owner sees how many people it would touch;
@@ -69,10 +70,23 @@ final class PasskeyPolicy
         return false;
     }
 
-    /** How many passkeys the person needs: two for the owner, one for everyone else the rule is for. */
+    /** How many passkeys the person needs: two for the roles that need two (the owner's), one for everyone else the rule is for. A person with several roles needs what the strictest of them asks. */
     public function needs(User $user): int
     {
         return array_intersect($this->auth->roleKeys($user), (array) $this->settings->get('passkeys.owner_roles', [])) ? 2 : 1;
+    }
+
+    /**
+     * Must the person's passkeys be tied to a device (a security key, the computer's own sign-in), not copied to a Google or Apple account? Per role (`device_bound_roles`); the older
+     * all-in-one switch (`owner_device_bound`) still means it for the roles that need two. A person with several roles is held to the strictest.
+     */
+    public function deviceBound(User $user, int $needs): bool
+    {
+        if (array_intersect($this->auth->roleKeys($user), (array) $this->settings->get('passkeys.device_bound_roles', []))) {
+            return true;
+        }
+
+        return $needs === 2 && (bool) $this->settings->get('passkeys.owner_device_bound', true);
     }
 
     /**
@@ -131,7 +145,7 @@ final class PasskeyPolicy
     private function standing(User $user, $usable): array
     {
         $needs = $this->needs($user);
-        $counted = $needs === 2 && $this->settings->get('passkeys.owner_device_bound', true) ? $usable->filter(fn ($c) => $c->backup_eligible === false)->count() : $usable->count();
+        $counted = $this->deviceBound($user, $needs) ? $usable->filter(fn ($c) => $c->backup_eligible === false)->count() : $usable->count();
 
         return [$needs, $counted >= $needs];
     }
@@ -156,7 +170,7 @@ final class PasskeyPolicy
                 $summary['applies']++;
                 $summary[$met ? 'met' : 'missing']++;
             }
-            $people[] = ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->role, 'suspended' => $u->status === 'suspended', 'applies' => $applies, 'needs' => $applies ? $needs : 0,
+            $people[] = ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->role, 'suspended' => $u->status === 'suspended', 'applies' => $applies, 'needs' => $applies ? $needs : 0, 'device_bound' => $applies && $this->deviceBound($u, $needs),
                 'passkeys' => $usable->count(), 'met' => $met, 'last_sign_in_at' => $u->last_login_at?->toIso8601String(), 'last_passkey_used_at' => $usable->max('last_used_at')?->toIso8601String()];
         }
 

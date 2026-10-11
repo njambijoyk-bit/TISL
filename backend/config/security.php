@@ -89,7 +89,7 @@ return [
 
     // Who must sign in with a passkey (Services/Security/PasskeyPolicy). These are only the starting values: once the owner changes one on the Security screen, the screen's value is used.
     // mode: off (nothing happens) | log (nobody is stopped; each sign-in that would have been held is written to the security log) | enforce (from `enforce_from` on, a person without the passkeys the rule asks for gets a session that can only add or use one).
-    // The rule is for staff who hold one of the roles or any of the permissions below (people who can move money or change who may do what). `owner_roles` need two passkeys, and with `owner_device_bound` both must be tied to the device (not copied to a cloud account).
+    // The rule is for staff who hold one of the roles or any of the permissions below (people who can move money or change who may do what). `owner_roles` need two passkeys, and with `owner_device_bound` both must be tied to the device (not copied to a cloud account). `device_bound_roles` asks the same of any role, however many passkeys it needs.
     // SECURITY_POLICY_OFF=true is the emergency way out for a lock-out: it puts the whole rule to sleep from the server's settings, whatever the screen says.
     'policy' => [
         'kill_switch' => (bool) env('SECURITY_POLICY_OFF', false),
@@ -101,6 +101,7 @@ return [
             'permissions' => ['payroll.run', 'books.post', 'access.manage', 'access.roles', 'security.manage', 'system.restore'],
             'owner_roles' => ['super_admin'],
             'owner_device_bound' => true,
+            'device_bound_roles' => [],   // roles whose passkeys must stay on the device (on top of the roles that need two, while owner_device_bound is on)
         ],
     ],
 

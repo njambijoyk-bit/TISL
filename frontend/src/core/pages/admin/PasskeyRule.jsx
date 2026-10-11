@@ -4,7 +4,7 @@ import { AlertTriangle, Fingerprint, ShieldCheck } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader from '../../components/admin/ui/HubHeader';
 import SimpleTable from '../../components/admin/ui/SimpleTable';
-import { CheckboxRow, Field, SelectInput, TextInput } from '../../components/admin/ui/Form';
+import { Field, SelectInput, TextInput } from '../../components/admin/ui/Form';
 import securityAPI from '../../../_shared/api/security';
 import { useAuthStore } from '../../../_shared/store/index';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -15,6 +15,23 @@ const MODES = [
   { value: 'log', title: 'Test', text: 'Nobody is stopped. Each sign-in that would have been held is written to the sign-in log, so you can see who would be affected first.' },
   { value: 'enforce', title: 'On', text: 'From the date below, a person the rule is for who has not added what it asks can only add a passkey (or use theirs) until they do.' },
 ];
+
+const LEVELS = [
+  { value: 0, title: 'None' },
+  { value: 1, title: 'A passkey' },
+  { value: 2, title: 'Two passkeys' },
+];
+
+/** What a role needs, read from the lists the server keeps: two (the owner's), one, or none. */
+const levelOf = (s, role) => (s.owner_roles.includes(role) ? 2 : s.roles.includes(role) ? 1 : 0);
+const boundOf = (s, role) => (s.device_bound_roles ?? []).includes(role) || (s.owner_device_bound && s.owner_roles.includes(role));
+const without = (list, k) => list.filter((x) => x !== k);
+const withKey = (list, k) => (list.includes(k) ? list : [...list, k]);
+
+/** The same settings with "must stay on the device" kept per role (the older all-in-one switch is folded into the roles it meant): behaves exactly as before. */
+const tidy = (s, roles) => ({ ...s, device_bound_roles: roles.filter((r) => boundOf(s, r)), owner_device_bound: false });
+
+const staffRoles = (r) => r.choices.roles.map((x) => x.key);
 
 const day = (iso) => (iso ? new Date(iso).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
 
@@ -62,7 +79,8 @@ export default function PasskeyRule() {
   const [problem, setProblem] = useState(null);       // a refusal the owner has to read: { message, reason }
   const [show, setShow] = useState('todo');
 
-  const load = useCallback(() => securityAPI.policy().then((r) => { setData(r); setForm(r.settings); }).catch((e) => toast.error(errMsg(e, 'Could not load the rule'))), []);
+  const adopt = useCallback((r) => { setData(r); setForm(tidy(r.settings, staffRoles(r))); }, []);
+  const load = useCallback(() => securityAPI.policy().then(adopt).catch((e) => toast.error(errMsg(e, 'Could not load the rule'))), [adopt]);
   useEffect(() => { load(); }, [load]);
 
   const save = async (confirm = false) => {
@@ -71,8 +89,7 @@ export default function PasskeyRule() {
     try {
       const r = await securityAPI.savePolicy({ ...form, enforce_from: form.enforce_from || null, ...(confirm ? { confirm: true } : {}) });
       toast.success(r.message ?? 'Saved');
-      setData(r);
-      setForm(r.settings);
+      adopt(r);
     } catch (e) {
       const d = e.response?.data;
       if (e.response?.status === 422 && d?.reason) setProblem({ message: d.message, reason: d.reason });
@@ -82,7 +99,7 @@ export default function PasskeyRule() {
     }
   };
 
-  const dirty = data && form && JSON.stringify(form) !== JSON.stringify(data.settings);
+  const dirty = data && form && JSON.stringify(form) !== JSON.stringify(tidy(data.settings, staffRoles(data)));
   const sum = data?.roster?.summary;
   const people = (data?.roster?.people ?? []).filter((p) => (show === 'todo' ? p.applies && !p.met : show === 'applies' ? p.applies : true));
 
@@ -136,10 +153,34 @@ export default function PasskeyRule() {
             <Field label="Applies from" htmlFor="enforce_from" hint={form.mode === 'enforce' ? 'Required. Until this day people are only reminded; from this day they can only add a passkey.' : 'Optional while testing. People are reminded until this day.'}>
               <TextInput id="enforce_from" type="date" value={form.enforce_from ?? ''} disabled={!canChange} onChange={(e) => setForm({ ...form, enforce_from: e.target.value || null })} style={{ width: 'auto' }} />
             </Field>
-            <Field label="For people who hold one of these roles"><Chips label="Add a role" value={form.roles} onChange={(v) => setForm({ ...form, roles: v })} options={data.choices.roles} disabled={!canChange} /></Field>
             <Field label="…or can do any of these" hint="Whoever holds the permission is included, whatever their role is called."><Chips label="Add a permission" value={form.permissions} onChange={(v) => setForm({ ...form, permissions: v })} options={data.choices.permissions} disabled={!canChange} /></Field>
-            <Field label="These roles need two passkeys" hint="So losing one device never locks the owner out."><Chips label="Add a role that needs two" value={form.owner_roles} onChange={(v) => setForm({ ...form, owner_roles: v })} options={data.choices.roles} disabled={!canChange} /></Field>
-            <CheckboxRow checked={form.owner_device_bound} disabled={!canChange} onChange={(v) => setForm({ ...form, owner_device_bound: v })} label="Their two must stay on the device" description="A security key, or the computer's own sign-in. A passkey that is copied to a Google or Apple account does not count." />
+            <div data-testid="role-strength">
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: 2 }}>What each role needs</div>
+              <p style={{ margin: '0 0 8px', fontSize: '0.74rem', color: colors.textMuted }}>Two passkeys mean losing one device never locks the person out (the owner's role needs them). "Stays on the device" means a security key or the computer's own sign-in: a passkey that is copied to a Google or Apple account does not count.</p>
+              <div style={{ display: 'grid', gap: 6 }}>
+                {data.choices.roles.map((r) => {
+                  const level = levelOf(form, r.key);
+                  return (
+                    <div key={r.key} data-role={r.key} style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', border: '1px solid var(--line)', borderRadius: 10, padding: '8px 12px' }}>
+                      <span style={{ flex: '1 1 160px', fontWeight: 600, fontSize: '0.84rem' }}>{r.name}</span>
+                      <span role="radiogroup" aria-label={`${r.name}: how many passkeys`} style={{ display: 'inline-flex', gap: 12, flexWrap: 'wrap' }}>
+                        {LEVELS.map((l) => (
+                          <label key={l.value} style={{ display: 'inline-flex', gap: 5, alignItems: 'center', fontSize: '0.8rem', cursor: canChange ? 'pointer' : 'default' }}>
+                            <input type="radio" name={`level-${r.key}`} value={l.value} checked={level === l.value} disabled={!canChange}
+                              onChange={() => setForm({ ...form, roles: l.value >= 1 ? withKey(form.roles, r.key) : without(form.roles, r.key), owner_roles: l.value === 2 ? withKey(form.owner_roles, r.key) : without(form.owner_roles, r.key),
+                                device_bound_roles: l.value === 0 ? without(form.device_bound_roles, r.key) : form.device_bound_roles })} style={{ accentColor: colors.primary }} /> {l.title}
+                          </label>
+                        ))}
+                      </span>
+                      <label style={{ display: 'inline-flex', gap: 5, alignItems: 'center', fontSize: '0.8rem', opacity: level === 0 ? 0.45 : 1 }}>
+                        <input type="checkbox" name={`bound-${r.key}`} checked={level > 0 && boundOf(form, r.key)} disabled={!canChange || level === 0}
+                          onChange={(e) => setForm({ ...form, device_bound_roles: e.target.checked ? withKey(form.device_bound_roles, r.key) : without(form.device_bound_roles, r.key) })} style={{ accentColor: colors.primary }} /> Stays on the device
+                      </label>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
 
             {problem && (
               <div role="alert" style={{ border: `1.5px solid ${problem.reason === 'confirm_needed' ? colors.warning : colors.danger}`, borderRadius: 10, padding: 12, fontSize: '0.82rem', display: 'grid', gap: 8 }}>
@@ -151,7 +192,7 @@ export default function PasskeyRule() {
             {canChange ? (
               <div style={{ display: 'flex', gap: 8 }}>
                 <button type="button" style={btnPrimary} disabled={busy || !dirty} onClick={() => save(false)} data-testid="rule-save">{busy ? 'Saving…' : 'Save'}</button>
-                <button type="button" style={btnGhost} disabled={busy || !dirty} onClick={() => { setForm(data.settings); setProblem(null); }}>Undo changes</button>
+                <button type="button" style={btnGhost} disabled={busy || !dirty} onClick={() => { setForm(tidy(data.settings, staffRoles(data))); setProblem(null); }}>Undo changes</button>
               </div>
             ) : <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textFaint }}>You can see the rule but not change it. Changing it needs the "change the sign-in rules" permission.</p>}
           </div>

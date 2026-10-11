@@ -150,7 +150,7 @@ Server settings (the project has no `.env` file of its own, so these go wherever
 
 1. Run the scripts above and `php artisan security:check`.
 2. Everyone the rule is for adds a passkey (they are offered one when they sign in; it is under their profile, "My devices") and the owner makes recovery codes and keeps them somewhere safe, away from the phone.
-3. Admin → Security → **Passkey rule**: choose **Test** and a date. Nobody is stopped; each sign-in that would have been held is written to the sign-in log. Look at who is still to add one.
+3. Admin → Security → **Passkey rule**: under "What each role needs" say, role by role, none / a passkey / two passkeys and whether they must stay on the device (the owner's role starts at two, on the device). Then choose **Test** and a date. Nobody is stopped; each sign-in that would have been held is written to the sign-in log. Look at who is still to add one.
 4. Switch it to **On**. The page refuses if it would lock you out, or if you have no recovery codes yet, and asks you to confirm while others still have to add theirs. From the date, a person the rule is for who has not done what it asks can only add or use a passkey.
 5. If something goes wrong and nobody can get in: set `SECURITY_POLICY_OFF=true` in the server settings, reload, sign in, fix it, take the setting out.
 

@@ -57,6 +57,9 @@ final class Facts
         if ($r->has('owner_roles')) {
             $facts[] = ['label' => 'Needing two passkeys', 'value' => implode(', ', array_map(fn ($k) => $names[$k] ?? $k, (array) $r->input('owner_roles'))) ?: 'none'];
         }
+        if ($r->has('device_bound_roles')) {
+            $facts[] = ['label' => 'Passkeys must stay on the device for', 'value' => implode(', ', array_map(fn ($k) => $names[$k] ?? $k, (array) $r->input('device_bound_roles'))) ?: 'none'];
+        }
         if ($r->has('owner_device_bound')) {
             $facts[] = ['label' => 'Their two stay on the device', 'value' => self::yes($r->input('owner_device_bound'))];
         }
