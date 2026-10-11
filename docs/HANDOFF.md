@@ -19,7 +19,7 @@ Written at the end of a session. Read this first, then `docs/MENUS_PLAN.md` (sta
 ## Next work, in order
 
 1. **Cooking services** (next in `MENUS_PLAN.md`). Read the plan section on it first; it was not started. Follow the same recipe as steps 3 to 9 (below).
-2. **Courses hook**. The chef profile already has an "teaches" switch (`is_instructor`) waiting for it.
+2. **Courses** (plan in `docs/COURSES_PLAN.md`, written, nothing built yet; owner chose it before cooking services). Includes the Courses hook: The chef profile already has an "teaches" switch (`is_instructor`) waiting for it.
 3. Backlog from the "not built yet" lists (confirm priority with the owner before starting any):
    - Till: discounts, cash drawer and shift close, offline till (the owner wants this later), refunds from the till.
    - Kiosk: "now serving" display, kiosk-only prices, card payment at the screen.
