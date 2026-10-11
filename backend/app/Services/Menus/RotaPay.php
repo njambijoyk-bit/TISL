@@ -125,10 +125,16 @@ class RotaPay
             }
             $row = ['chef_id' => $c->id, 'name' => $c->display_name, 'scheduled_h' => round($sched / 60, 2), 'worked_h' => round($worked / 60, 2), 'overtime_h' => round($over / 60, 2), 'short_h' => round($short / 60, 2),
                 'unverified_days' => $unverified, 'no_shows' => $noShows, 'late_days' => $late, 'days' => $detail];
+            $row['overtime_pending_h'] = 0.0;
+            if (RotaOvertime::installed()) {
+                $row['overtime_pending_h'] = round(\App\Models\Menus\OvertimeEntry::where('chef_id', $c->id)->where('status', 'pending')->whereBetween('work_date', [$from->toDateString(), $to->toDateString()])->sum('minutes') / 60, 2);
+            }
             if ($money) {
                 $e = $c->user_id ? Employee::where('user_id', $c->user_id)->first() : null;
                 $rate = $e ? $this->hourlyRate($e, $from, $to) : null;
-                $row += ['hourly_rate' => $rate !== null ? round($rate, 2) : null, 'overtime_multiplier' => $mult, 'overtime_pay' => $rate !== null ? round($over / 60 * $rate * $mult, 2) : null];
+                $prem = $c->user_id && $rate !== null ? app(RotaPremium::class)->pay((int) $c->user_id, $from, $to, $rate, false) : ['hours' => 0.0, 'amount' => 0.0, 'lines' => []];
+                $row += ['hourly_rate' => $rate !== null ? round($rate, 2) : null, 'overtime_multiplier' => $mult, 'overtime_pay' => $rate !== null ? round($over / 60 * $rate * $mult, 2) : null,
+                    'premium_hours' => $prem['hours'], 'premium_pay' => $prem['amount'], 'premium_lines' => $prem['lines']];
             }
             $out[] = $row;
         }
@@ -139,11 +145,11 @@ class RotaPay
     /** The report as a spreadsheet file (one line per chef). */
     public function csv(array $rows, bool $money): string
     {
-        $h = ['Chef', 'Rostered hours', 'Worked hours', 'Overtime hours', 'Short hours', 'Days not verified', 'Did not come', 'Late days'] + ($money ? [8 => 'Hourly rate', 9 => 'Overtime pay'] : []);
+        $h = ['Chef', 'Rostered hours', 'Worked hours', 'Overtime hours', 'Overtime waiting for approval (hours)', 'Short hours', 'Days not verified', 'Did not come', 'Late days'] + ($money ? [9 => 'Hourly rate', 10 => 'Overtime pay', 11 => 'Premium hours', 12 => 'Premium pay'] : []);
         $f = fopen('php://temp', 'w+');
         fputcsv($f, $h);
         foreach ($rows as $r) {
-            fputcsv($f, [$this->safe($r['name']), $r['scheduled_h'], $r['worked_h'], $r['overtime_h'], $r['short_h'], $r['unverified_days'], $r['no_shows'], $r['late_days']] + ($money ? [8 => $r['hourly_rate'], 9 => $r['overtime_pay']] : []));
+            fputcsv($f, [$this->safe($r['name']), $r['scheduled_h'], $r['worked_h'], $r['overtime_h'], $r['overtime_pending_h'] ?? 0, $r['short_h'], $r['unverified_days'], $r['no_shows'], $r['late_days']] + ($money ? [9 => $r['hourly_rate'], 10 => $r['overtime_pay'], 11 => $r['premium_hours'] ?? 0, 12 => $r['premium_pay'] ?? 0] : []));
         }
         rewind($f);
 

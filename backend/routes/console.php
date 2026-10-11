@@ -30,6 +30,7 @@ Schedule::command('events:release-holds')->everyMinute()->withoutOverlapping(); 
 Schedule::command('menus:chef-certs')->dailyAt('07:35')->withoutOverlapping();   // chefs' certificates that run out within a month, or have
 Schedule::command('menus:sweep-orders')->everyFiveMinutes()->withoutOverlapping();   // online food orders whose payment never arrived are cancelled
 Schedule::command('menus:rota-watch')->everyTenMinutes()->withoutOverlapping();   // a rostered chef who has not signed in; swaps whose shift has started run out
+Schedule::command('menus:rota-overtime')->dailyAt('05:40')->withoutOverlapping();   // chefs' overtime of the last weeks becomes entries for a manager to approve (only when the settings ask for approval)
 Schedule::command('menus:rota-plan')->dailyAt('06:10')->withoutOverlapping();   // weekly patterns plan the coming weeks of the chef rota as drafts
 Schedule::command('stock:expire')->dailyAt('00:10')->withoutOverlapping();   // expired batches, auto write-offs, expiry warnings
 

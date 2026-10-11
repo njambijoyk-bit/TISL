@@ -17,7 +17,10 @@ use Illuminate\Support\Carbon;
  */
 class RotaClock
 {
-    public function __construct(private AttendanceService $attendance, private RotaAttendance $watch)
+    /** What to tell a chef who was let in although the place did not check out. */
+    public ?string $notice = null;
+
+    public function __construct(private AttendanceService $attendance, private RotaAttendance $watch, private RotaSites $sites)
     {
     }
 
@@ -63,10 +66,11 @@ class RotaClock
         }
 
         return ['available' => true, 'chef' => true, 'shifts' => $today->map(fn (Shift $s) => ['id' => $s->id, 'starts_at' => substr((string) $s->starts_at, 0, 5), 'ends_at' => substr((string) $s->ends_at, 0, 5)])->values()->all(),
-            'in' => $in?->copy()->timezone($this->tz())->format('H:i'), 'out' => $out?->copy()->timezone($this->tz())->format('H:i'), 'can_in' => $canIn, 'can_out' => (bool) $canOut, 'message' => $message];
+            'in' => $in?->copy()->timezone($this->tz())->format('H:i'), 'out' => $out?->copy()->timezone($this->tz())->format('H:i'), 'can_in' => $canIn, 'can_out' => (bool) $canOut, 'message' => $message, 'location_mode' => MenusSettings::all()['rota_clock_location'] !== 'off' && RotaSites::installed() ? MenusSettings::all()['rota_clock_location'] : 'off'];
     }
 
-    public function clockIn(User $u): AttendanceDay
+    /** @param array{lat?: mixed, lng?: mixed, accuracy?: mixed} $pos where the phone says it is (asked for when the settings check the place) */
+    public function clockIn(User $u, array $pos = []): AttendanceDay
     {
         $chef = Chef::where('user_id', $u->id)->first() ?? throw new BooksException('You do not have a chef profile.');
         if (! MenusSettings::all()['rota_clock_from_rota']) {
@@ -78,6 +82,14 @@ class RotaClock
             $s = $this->status($u);
             throw new BooksException($s['message'] ?? 'You can not clock in right now.');
         }
+        $check = $this->sites->check((int) $shift->location_id, $pos);
+        if (MenusSettings::all()['rota_clock_location'] !== 'off') {
+            $this->sites->log($u->id, $chef->id, $shift->id, (int) $shift->location_id, 'in', $pos, $check);   // every attempt is kept, the refused ones too
+        }
+        $this->notice = $check['blocked'] ? null : $check['message'];   // allowed but not at the branch (the *warn* setting): said to the chef, kept in the log
+        if ($check['blocked']) {
+            throw new BooksException($check['message'] ?? 'You are not at the branch.');
+        }
         $day = $this->attendance->signIn($u);   // the same sign-in as the Attendance page (refuses a second one)
         [$start] = $shift->span();
         $late = $now->gt($start->copy()->addMinutes($this->watch->grace()));
@@ -86,13 +98,20 @@ class RotaClock
         return $day->fresh();
     }
 
-    public function clockOut(User $u): AttendanceDay
+    /** Clocking out is never refused for being away (people leave the branch before they remember), but where it happened is kept. */
+    public function clockOut(User $u, array $pos = []): AttendanceDay
     {
-        Chef::where('user_id', $u->id)->first() ?? throw new BooksException('You do not have a chef profile.');
+        $chef = Chef::where('user_id', $u->id)->first() ?? throw new BooksException('You do not have a chef profile.');
         if (! MenusSettings::all()['rota_clock_from_rota']) {
             throw new BooksException('Clocking out from the rota is switched off: use the Attendance page.');
         }
 
-        return $this->attendance->signOut($u);
+        $day = $this->attendance->signOut($u);
+        $shift = Shift::where('chef_id', $chef->id)->where('status', 'published')->where('shift_date', Carbon::now($this->tz())->toDateString())->orderBy('starts_at')->first();
+        if ($shift && MenusSettings::all()['rota_clock_location'] !== 'off') {
+            $this->sites->log($u->id, $chef->id, $shift->id, (int) $shift->location_id, 'out', $pos, $this->sites->check((int) $shift->location_id, $pos));
+        }
+
+        return $day;
     }
 }

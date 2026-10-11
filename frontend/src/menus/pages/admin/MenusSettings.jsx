@@ -14,6 +14,7 @@ import LedgerSelect from '../../components/LedgerSelect';
 import ChannelsCard from '../../components/ChannelsCard';
 import StationsCard from '../../components/StationsCard';
 import KiosksCard from '../../components/KiosksCard';
+import ClockPlacesCard from '../../components/ClockPlacesCard';
 
 /** Menus → Settings: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
@@ -34,7 +35,8 @@ export default function MenusSettings() {
         custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0,
         rota_max_week_hours: Number(s.rota_max_week_hours) || 48, rota_min_rest_hours: Number(s.rota_min_rest_hours) || 0,
         rota_ahead_weeks: Number(s.rota_ahead_weeks) || 0, rota_overtime_source: s.rota_overtime_source ?? 'attendance', rota_overtime_grace: Number(s.rota_overtime_grace) || 0,
-        rota_claims_need_approval: Boolean(s.rota_claims_need_approval), rota_clock_from_rota: Boolean(s.rota_clock_from_rota), rota_clock_early: Number(s.rota_clock_early) || 0, rota_swaps_need_approval: Boolean(s.rota_swaps_need_approval), rota_no_show_alerts: Boolean(s.rota_no_show_alerts) });
+        rota_claims_need_approval: Boolean(s.rota_claims_need_approval), rota_clock_from_rota: Boolean(s.rota_clock_from_rota), rota_clock_early: Number(s.rota_clock_early) || 0, rota_premium_source: s.rota_premium_source ?? 'off', rota_overtime_needs_approval: Boolean(s.rota_overtime_needs_approval),
+        rota_clock_location: s.rota_clock_location ?? 'off', rota_clock_radius: Number(s.rota_clock_radius) || 150, rota_clock_accuracy: Number(s.rota_clock_accuracy) || 200, rota_swaps_need_approval: Boolean(s.rota_swaps_need_approval), rota_no_show_alerts: Boolean(s.rota_no_show_alerts) });
       setS(r.settings); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -93,6 +95,17 @@ export default function MenusSettings() {
                   <Field label="Overtime counts after (minutes)" htmlFor="ms-otg" hint="Only for the rota source."><NumberInput id="ms-otg" min="0" max="120" value={s.rota_overtime_grace ?? 15} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_overtime_grace: e.target.value }))} /></Field>
                   <Field label="Clocking in opens (minutes before the shift)" htmlFor="ms-ce"><NumberInput id="ms-ce" min="0" max="240" value={s.rota_clock_early ?? 30} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_clock_early: e.target.value }))} /></Field>
                 </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                  <Field label="Shift premiums (night, weekend, holiday)" htmlFor="ms-prem" hint="Set the rules on the Rota page (payroll access). Payroll: they appear on the chef's payslip as an earning of their own.">
+                    <SelectInput id="ms-prem" value={s.rota_premium_source ?? 'off'} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_premium_source: e.target.value }))}><option value="off">Only shown on the Rota page</option><option value="payroll">Added to payroll</option></SelectInput>
+                  </Field>
+                  <Field label="Clocking in by place" htmlFor="ms-cl" hint="Warn: kept in the log, the chef is let in. Require: a chef away from the branch is turned away. Set the places below.">
+                    <SelectInput id="ms-cl" value={s.rota_clock_location ?? 'off'} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_clock_location: e.target.value }))}><option value="off">Do not check</option><option value="warn">Warn</option><option value="require">Require</option></SelectInput>
+                  </Field>
+                  <Field label="Counts as at the branch within (metres)" htmlFor="ms-clr" hint="A branch's own radius below overrides this."><NumberInput id="ms-clr" min="20" max="5000" value={s.rota_clock_radius ?? 150} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_clock_radius: e.target.value }))} /></Field>
+                  <Field label="Ignore positions rougher than (metres)" htmlFor="ms-cla"><NumberInput id="ms-cla" min="10" max="2000" value={s.rota_clock_accuracy ?? 200} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_clock_accuracy: e.target.value }))} /></Field>
+                </div>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_overtime_needs_approval)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_overtime_needs_approval: e.target.checked }))} /> A manager must approve a chef&apos;s overtime before payroll pays it (payroll can not be approved while any waits)</label>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_clock_from_rota)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_clock_from_rota: e.target.checked }))} /> Chefs may clock in and out from the rota page (the same sign-in as Attendance)</label>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_claims_need_approval)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_claims_need_approval: e.target.checked }))} /> A claim on an open shift waits for a manager (off: the first chef who is free gets it)</label>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.rota_no_show_alerts)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, rota_no_show_alerts: e.target.checked }))} /> Tell the managers when a rostered chef has not signed in (uses the Attendance sign-ins)</label>
@@ -104,6 +117,7 @@ export default function MenusSettings() {
         {s && <ChannelsCard canEdit={canEdit} />}
         {s && <StationsCard canEdit={canEdit} />}
         {s && <KiosksCard canEdit={canEdit} />}
+        {s && <ClockPlacesCard canEdit={canEdit} />}
       </div>
     </AdminLayout>
   );

@@ -32,6 +32,11 @@ final class MenusSettings
         'rota_claims_need_approval' => true, // a claim on an open shift waits for a manager (off: the first chef who is free gets it)
         'rota_clock_from_rota' => true,  // chefs may clock in and out from the rota page (the same Attendance sign-in)
         'rota_clock_early' => 30,        // minutes before a shift starts that clocking in opens
+        'rota_premium_source' => 'off',  // 'payroll': shift premiums are added to a chef's payslip as an earning; 'off': they are only shown
+        'rota_overtime_needs_approval' => false, // chefs' overtime waits for a manager before payroll pays it (and payroll can not be approved while any is waiting)
+        'rota_clock_location' => 'off',  // clocking in by place: 'off', 'warn' (recorded, allowed) or 'require' (refused away from the branch)
+        'rota_clock_radius' => 150,      // metres from the branch that count as there (a branch's own radius overrides)
+        'rota_clock_accuracy' => 200,    // a position less accurate than this many metres is not trusted
         'rota_no_show_alerts' => true,   // managers are told when a rostered chef has not signed in
         'rota_min_rest_hours' => 10,     // ...and when the rest between one day's work and the next is shorter than this
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
@@ -89,18 +94,26 @@ final class MenusSettings
                 $cur[$key] = $id;
             }
         }
-        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts', 'rota_claims_need_approval', 'rota_clock_from_rota'] as $key) {
+        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts', 'rota_claims_need_approval', 'rota_clock_from_rota', 'rota_overtime_needs_approval'] as $key) {
             if (array_key_exists($key, $in)) {
                 $cur[$key] = (bool) $in[$key];
             }
         }
-        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24], 'rota_ahead_weeks' => [0, 8], 'rota_overtime_grace' => [0, 120], 'rota_clock_early' => [0, 240]] as $key => [$lo, $hi]) {
+        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24], 'rota_ahead_weeks' => [0, 8], 'rota_overtime_grace' => [0, 120], 'rota_clock_early' => [0, 240], 'rota_clock_radius' => [20, 5000], 'rota_clock_accuracy' => [10, 2000]] as $key => [$lo, $hi]) {
             if (array_key_exists($key, $in)) {
                 $n = round((float) $in[$key], 2);
                 if ($n < $lo || $n > $hi) {
                     throw new BooksException("{$key} must be between {$lo} and {$hi}.");
                 }
                 $cur[$key] = $key === 'custom_deposit_pct' ? $n : (int) $n;
+            }
+        }
+        foreach (['rota_premium_source' => ['off', 'payroll'], 'rota_clock_location' => ['off', 'warn', 'require']] as $key => $allowed) {
+            if (array_key_exists($key, $in)) {
+                if (! in_array($in[$key], $allowed, true)) {
+                    throw new BooksException("{$key} must be one of: ".implode(', ', $allowed).'.');
+                }
+                $cur[$key] = $in[$key];
             }
         }
         if (array_key_exists('rota_overtime_source', $in)) {

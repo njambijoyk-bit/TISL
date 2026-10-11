@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { AlertTriangle, ArrowLeftRight, CalendarClock, ChevronLeft, ChevronRight, Clock, Copy, Download, Hand, Plus, Repeat, Send } from 'lucide-react';
+import { AlertTriangle, ArrowLeftRight, CalendarClock, ChevronLeft, ChevronRight, Clock, Copy, Download, Hand, MapPin, Plus, Repeat, Send, Trash2 } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import Modal from '../../../core/components/admin/ui/Modal';
@@ -81,7 +81,20 @@ function OpenModal({ data, locationId, onClose, onDone }) {
 function ClockCard({ clock, onChange }) {
   const [busy, setBusy] = useState(false);
   if (!clock?.available) return null;
-  const go = async (fn) => { setBusy(true); try { const r = await fn(); toast.success(r.message); onChange(); } catch (e) { toast.error(errMsg(e, 'Could not do that'), { duration: 8000 }); } finally { setBusy(false); } };
+  // when the settings check the place, the phone is asked where it is (the answer is only a report: the server decides)
+  const where = () => new Promise((resolve) => {
+    if (clock.location_mode === 'off' || !navigator.geolocation) { resolve({}); return; }
+    navigator.geolocation.getCurrentPosition((p) => resolve({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }), () => resolve({}), { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+  });
+  const go = async (fn) => {
+    setBusy(true);
+    try {
+      const r = await fn(await where());
+      toast.success(r.message);
+      if (r.notice) toast(r.notice, { icon: '⚠️', duration: 10000 });
+      onChange();
+    } catch (e) { toast.error(errMsg(e, 'Could not do that'), { duration: 9000 }); } finally { setBusy(false); }
+  };
 
   return (
     <section aria-label="Clock" data-testid="clock-card" style={{ ...card, padding: 14, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px' }}>
@@ -89,6 +102,7 @@ function ClockCard({ clock, onChange }) {
       <div style={{ flex: 1, minWidth: 200 }}>
         <strong style={{ fontSize: '0.9rem' }}>{clock.shifts.length ? `Today: ${clock.shifts.map((s) => `${s.starts_at}–${s.ends_at}`).join(', ')}` : 'No shift today'}</strong>
         <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{clock.in ? `Clocked in at ${clock.in}${clock.out ? `, out at ${clock.out}` : ''}.` : (clock.message ?? '')}</div>
+        {clock.location_mode !== 'off' && (clock.can_in || clock.can_out) && <div style={{ fontSize: '0.74rem', color: colors.textMuted }}><MapPin size={11} aria-hidden="true" /> Your location is checked against the branch{clock.location_mode === 'require' ? ' and you must be there' : ''}.</div>}
       </div>
       {clock.can_in && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '8px 18px' }} onClick={() => go(menusAPI.clockIn)}>Clock in</button>}
       {clock.can_out && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '8px 18px' }} onClick={() => go(menusAPI.clockOut)}>Clock out</button>}
@@ -96,7 +110,94 @@ function ClockCard({ clock, onChange }) {
   );
 }
 
-function HoursSection({ canPay, canManage }) {
+function OvertimeBlock({ from, to, canManage, onChanged }) {
+  const [d, setD] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(() => menusAPI.overtime({ from, to }).then(setD).catch(() => setD({ rows: [], required: false })), [from, to]);
+  useEffect(() => { load(); }, [load]);
+  if (!d || (d.rows.length === 0 && !d.required)) return null;
+  const waiting = d.rows.filter((r) => r.status === 'pending');
+  const decide = async (r, decision) => {
+    let note;
+    if (decision === 'rejected') { note = window.prompt('Say why (the chef can see it):', ''); if (note === null) return; }
+    setBusy(true);
+    try { const x = await menusAPI.decideOvertime(r.id, decision, note || undefined); toast.success(x.message); await load(); onChanged(); } catch (e) { toast.error(errMsg(e, 'Could not decide'), { duration: 8000 }); } finally { setBusy(false); }
+  };
+  const all = async () => {
+    setBusy(true);
+    try { const x = await menusAPI.decideOvertimeMany(waiting.map((r) => r.id), 'approved'); toast.success(x.message); await load(); onChanged(); } catch (e) { toast.error(errMsg(e, 'Could not approve'), { duration: 8000 }); } finally { setBusy(false); }
+  };
+
+  return (
+    <div style={{ display: 'grid', gap: 8 }} data-testid="overtime-approvals">
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <h3 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800 }}>Overtime{d.required ? ' to approve before payroll' : ''}{waiting.length ? ` · ${waiting.length} waiting` : ''}</h3>
+        <span style={{ flex: 1 }} />
+        {canManage && waiting.length > 1 && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.76rem' }} onClick={all}>Approve all waiting</button>}
+      </div>
+      {!d.required && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Approval is off: payroll pays all verified overtime. Switch it on in Menus → Settings → Chef rota.</p>}
+      {d.rows.map((r) => (
+        <div key={r.id} data-overtime={r.id} style={{ ...card, padding: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.84rem' }}>
+          <strong>{r.chef}</strong><span>{label(r.date)}</span><span>{r.hours} h</span><Pill tone={r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'danger' : 'warn'}>{r.status_label}</Pill>
+          {r.note && <span style={{ color: colors.textMuted }}>{r.note}</span>}
+          <span style={{ flex: 1 }} />
+          {canManage && r.status !== 'approved' && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '4px 12px', fontSize: '0.76rem' }} onClick={() => decide(r, 'approved')}>Approve</button>}
+          {canManage && r.status !== 'rejected' && <button type="button" disabled={busy} style={{ ...btnGhost, padding: '4px 12px', fontSize: '0.76rem', color: '#b91c1c' }} onClick={() => decide(r, 'rejected')}>Do not approve</button>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PremiumPanel({ source }) {
+  const [d, setD] = useState(null);
+  const [f, setF] = useState({ name: '', kind: 'night', starts_at: '22:00', ends_at: '06:00', weekdays: [6, 7], extra_pct: '25', flat_per_hour: '' });
+  const [h, setH] = useState({ date: '', name: '' });
+  const load = useCallback(() => menusAPI.premiumRules().then(setD).catch((e) => { setD({ rules: [], holidays: [], error: errMsg(e, 'Could not load the premium rules') }); }), []);
+  useEffect(() => { load(); }, [load]);
+  if (!d) return null;
+  const run = async (fn, fallback) => { try { const r = await fn(); toast.success(r.message); await load(); } catch (e) { toast.error(errMsg(e, fallback), { duration: 8000 }); } };
+  const add = () => run(() => menusAPI.saveRule({ name: f.name, kind: f.kind, extra_pct: Number(f.extra_pct) || 0, flat_per_hour: Number(f.flat_per_hour) || 0,
+    ...(f.kind === 'night' ? { starts_at: f.starts_at, ends_at: f.ends_at } : {}), ...(f.kind === 'weekend' ? { weekdays: f.weekdays } : {}) }), 'Could not save the rule').then(() => setF((x) => ({ ...x, name: '' })));
+  const toggleDay = (n) => setF((x) => ({ ...x, weekdays: x.weekdays.includes(n) ? x.weekdays.filter((i) => i !== n) : [...x.weekdays, n] }));
+
+  return (
+    <div style={{ display: 'grid', gap: 8 }} data-testid="premiums">
+      <h3 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800 }}>Shift premiums</h3>
+      <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Hours signed in at night, on certain weekdays or on public holidays are paid extra on top of the hourly rate. If two rules cover the same minute the better one applies (they do not add up). {source === 'payroll' ? 'Payroll adds them to the payslip.' : 'They are only shown here until you choose "Added to payroll" in Menus → Settings.'}</p>
+      {d.error && <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>{d.error}</p>}
+      {d.rules.map((r) => (
+        <div key={r.id} data-rule={r.name} style={{ ...card, padding: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.84rem', opacity: r.is_active ? 1 : 0.6 }}>
+          <strong>{r.name}</strong><span>{r.kind_label}{r.kind === 'night' ? ` ${r.starts_at}–${r.ends_at}` : ''}{r.kind === 'weekend' ? ` (${r.weekdays.map((n) => DAYS.find((x) => x[0] === n)?.[1]).join(', ')})` : ''}</span>
+          <span>{r.extra_pct > 0 ? `+${r.extra_pct}%` : ''}{r.extra_pct > 0 && r.flat_per_hour > 0 ? ' and ' : ''}{r.flat_per_hour > 0 ? `+${r.flat_per_hour} an hour` : ''}</span>
+          <span style={{ flex: 1 }} />
+          <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.76rem' }} onClick={() => run(() => menusAPI.saveRule({ is_active: !r.is_active }, r.id), 'Could not change it')}>{r.is_active ? 'Pause' : 'Resume'}</button>
+          <button type="button" aria-label={`Remove ${r.name}`} style={{ ...btnGhost, padding: '4px 8px', color: '#b91c1c' }} onClick={() => run(() => menusAPI.removeRule(r.id), 'Could not remove it')}><Trash2 size={13} /></button>
+        </div>
+      ))}
+      <div style={{ ...card, padding: 12, display: 'grid', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+          <TextInput aria-label="Rule name" maxLength={80} placeholder="Night shift" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+          <SelectInput aria-label="Kind" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}><option value="night">Night hours</option><option value="weekend">Weekend days</option><option value="holiday">Public holidays</option></SelectInput>
+          <TextInput aria-label="Extra percent" type="number" min="0" max="500" placeholder="Extra %" value={f.extra_pct} onChange={(e) => setF({ ...f, extra_pct: e.target.value })} />
+          <TextInput aria-label="Extra amount per hour" type="number" min="0" placeholder="Extra per hour" value={f.flat_per_hour} onChange={(e) => setF({ ...f, flat_per_hour: e.target.value })} />
+        </div>
+        {f.kind === 'night' && <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.84rem' }}>From <TextInput aria-label="Night from" type="time" value={f.starts_at} onChange={(e) => setF({ ...f, starts_at: e.target.value })} /> until <TextInput aria-label="Night until" type="time" value={f.ends_at} onChange={(e) => setF({ ...f, ends_at: e.target.value })} /></div>}
+        {f.kind === 'weekend' && <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: '0.84rem' }}>{DAYS.map(([n, t]) => <label key={n} style={{ display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={f.weekdays.includes(n)} onChange={() => toggleDay(n)} /> {t}</label>)}</div>}
+        <div><button type="button" style={{ ...btnPrimary, padding: '6px 14px', fontSize: '0.78rem' }} disabled={!f.name.trim()} onClick={add}>Add the rule</button></div>
+      </div>
+      <h4 style={{ margin: '6px 0 0', fontSize: '0.82rem', fontWeight: 800 }}>Public holidays</h4>
+      {d.holidays.map((x) => <div key={x.id} data-holiday={x.name} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '0.84rem' }}><span style={{ width: 120 }}>{label(x.date)}</span><span>{x.name}</span><button type="button" aria-label={`Remove ${x.name}`} style={{ ...btnGhost, padding: '2px 8px', color: '#b91c1c' }} onClick={() => run(() => menusAPI.removeHoliday(x.id), 'Could not remove it')}><Trash2 size={12} /></button></div>)}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <TextInput aria-label="Holiday date" type="date" value={h.date} onChange={(e) => setH({ ...h, date: e.target.value })} style={{ width: 160 }} />
+        <TextInput aria-label="Holiday name" maxLength={80} placeholder="Jamhuri Day" value={h.name} onChange={(e) => setH({ ...h, name: e.target.value })} style={{ width: 200 }} />
+        <button type="button" style={{ ...btnGhost, padding: '6px 14px', fontSize: '0.78rem' }} disabled={!h.date || !h.name.trim()} onClick={() => run(() => menusAPI.saveHoliday({ date: h.date, name: h.name }), 'Could not add it').then(() => setH({ date: '', name: '' }))}>Add holiday</button>
+      </div>
+    </div>
+  );
+}
+
+function HoursSection({ canPay, canManage, premiumSource }) {
   const [month, setMonth] = useState(() => { const d = new Date(); return iso(new Date(d.getFullYear(), d.getMonth(), 1)); });
   const [rows, setRows] = useState(null);
   const [src, setSrc] = useState('attendance');
@@ -128,7 +229,7 @@ function HoursSection({ canPay, canManage }) {
       {!rows ? <p style={{ fontSize: '0.82rem', color: colors.textMuted }}>Loading…</p> : rows.length === 0 ? <p style={{ margin: 0, fontSize: '0.82rem', color: colors.textFaint }}>Nothing rostered or signed in this month.</p> : (
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 640 }}>
-            <thead><tr>{['Chef', 'Rostered', 'Worked', 'Overtime', 'Short', 'Not verified', 'Did not come', 'Late'].concat(money ? ['Hourly', 'Overtime pay'] : []).map((h) => <th key={h} style={{ textAlign: h === 'Chef' ? 'left' : 'right', padding: 10 }}>{h}</th>)}</tr></thead>
+            <thead><tr>{['Chef', 'Rostered', 'Worked', 'Overtime', 'Waiting', 'Short', 'Not verified', 'Did not come', 'Late'].concat(money ? ['Hourly', 'Overtime pay', 'Premium h', 'Premium pay'] : []).map((h) => <th key={h} style={{ textAlign: h === 'Chef' ? 'left' : 'right', padding: 10 }}>{h}</th>)}</tr></thead>
             <tbody>
               {rows.map((r) => (
                 <Fragment key={r.chef_id}>
@@ -137,15 +238,18 @@ function HoursSection({ canPay, canManage }) {
                     <td style={{ padding: 10, textAlign: 'right' }}>{fmt(r.scheduled_h)} h</td>
                     <td style={{ padding: 10, textAlign: 'right' }}>{fmt(r.worked_h)} h</td>
                     <td style={{ padding: 10, textAlign: 'right', fontWeight: r.overtime_h > 0 ? 800 : 400 }}>{fmt(r.overtime_h)} h</td>
+                    <td style={{ padding: 10, textAlign: 'right', color: r.overtime_pending_h > 0 ? '#b45309' : undefined }}>{r.overtime_pending_h > 0 ? `${fmt(r.overtime_pending_h)} h` : '—'}</td>
                     <td style={{ padding: 10, textAlign: 'right' }}>{fmt(r.short_h)} h</td>
                     <td style={{ padding: 10, textAlign: 'right' }}>{r.unverified_days}</td>
                     <td style={{ padding: 10, textAlign: 'right' }}>{r.no_shows}</td>
                     <td style={{ padding: 10, textAlign: 'right' }}>{r.late_days}</td>
                     {money && <td style={{ padding: 10, textAlign: 'right' }}>{r.hourly_rate === null ? '—' : fmt(r.hourly_rate)}</td>}
                     {money && <td style={{ padding: 10, textAlign: 'right', fontWeight: 700 }}>{r.overtime_pay === null ? '—' : fmt(r.overtime_pay)}</td>}
+                    {money && <td style={{ padding: 10, textAlign: 'right' }}>{fmt(r.premium_hours ?? 0)}</td>}
+                    {money && <td style={{ padding: 10, textAlign: 'right', fontWeight: 700 }} title={(r.premium_lines ?? []).map((l) => `${l.rule}: ${l.hours} h = ${l.amount}`).join('\n')}>{fmt(r.premium_pay ?? 0)}</td>}
                   </tr>
                   {open === r.chef_id && (
-                    <tr><td colSpan={money ? 10 : 8} style={{ padding: '4px 10px 12px', background: 'color-mix(in srgb, #94a3b8 8%, transparent)' }}>
+                    <tr><td colSpan={money ? 13 : 9} style={{ padding: '4px 10px 12px', background: 'color-mix(in srgb, #94a3b8 8%, transparent)' }}>
                       {r.days.map((x) => <div key={x.date} style={{ display: 'flex', gap: 12, fontSize: '0.78rem' }}><span style={{ width: 90 }}>{label(x.date)}</span><span>rostered {fmt(x.scheduled_h)} h</span><span>worked {fmt(x.worked_h)} h{x.in ? ` (${x.in}–${x.out ?? '…'})` : ''}</span>{x.overtime_h > 0 && <strong>overtime {fmt(x.overtime_h)} h</strong>}{x.short_h > 0 && <span>short {fmt(x.short_h)} h</span>}{!x.verified && <span style={{ color: '#b45309' }}>not verified</span>}</div>)}
                     </td></tr>
                   )}
@@ -155,6 +259,8 @@ function HoursSection({ canPay, canManage }) {
           </table>
         </div>
       )}
+      <OvertimeBlock from={month} to={end} canManage={canManage} onChanged={() => menusAPI.rotaHours({ from: month, to: end }).then((r) => setRows(r.rows)).catch(() => undefined)} />
+      {canPay && <PremiumPanel source={premiumSource} />}
     </section>
   );
 }
@@ -508,7 +614,7 @@ export default function MenusRota() {
               </section>
             )}
 
-            <HoursSection canPay={data.can_see_pay} canManage={data.can_manage} />
+            <HoursSection canPay={data.can_see_pay} canManage={data.can_manage} premiumSource={data.premium_source} />
 
             {data.more && data.can_manage && (
               <section aria-label="Weekly patterns" style={{ marginTop: 26, display: 'grid', gap: 10 }} data-testid="patterns">

@@ -696,8 +696,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/rota/mine', [$ro, 'mine']);
         Route::post('/rota/days-off', [$ro, 'requestOff']);
         Route::get('/rota/hours', [$ro, 'hours']);
-        Route::post('/rota/clock/in', [$ro, 'clockIn']);
-        Route::post('/rota/clock/out', [$ro, 'clockOut']);
+        Route::get('/rota/overtime', [$ro, 'overtimeList']);
+        Route::post('/rota/clock/in', [$ro, 'clockIn'])->middleware('throttle:30,1');
+        Route::post('/rota/clock/out', [$ro, 'clockOut'])->middleware('throttle:30,1');
         Route::post('/rota/open/{id}/claim', [$ro, 'claimOpen'])->whereNumber('id');
         Route::post('/rota/open/{id}/withdraw', [$ro, 'withdrawClaim'])->whereNumber('id');
         Route::post('/rota/shifts/{id}/release', [$ro, 'releaseShift'])->whereNumber('id');
@@ -736,6 +737,18 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/rota/shifts/{id}', [$ro, 'deleteShift'])->whereNumber('id');
             Route::post('/rota/publish', [$ro, 'publish']);
             Route::get('/rota/hours.csv', [$ro, 'hoursCsv']);
+            Route::get('/rota/sites', [$ro, 'sites']);
+            Route::put('/rota/sites/{locationId}', [$ro, 'saveSite'])->whereNumber('locationId');
+            Route::post('/rota/overtime/decide-many', [$ro, 'overtimeDecideMany']);
+            Route::post('/rota/overtime/{id}/decide', [$ro, 'overtimeDecide'])->whereNumber('id');
+            Route::middleware('permission:payroll.run')->group(function () use ($ro) {   // pay rules: owner-only, like payroll itself
+                Route::get('/rota/premiums', [$ro, 'premiumRules']);
+                Route::post('/rota/premiums', [$ro, 'saveRule']);
+                Route::put('/rota/premiums/{id}', [$ro, 'saveRule'])->whereNumber('id');
+                Route::delete('/rota/premiums/{id}', [$ro, 'deleteRule'])->whereNumber('id');
+                Route::post('/rota/holidays', [$ro, 'saveHoliday']);
+                Route::delete('/rota/holidays/{id}', [$ro, 'deleteHoliday'])->whereNumber('id');
+            });
             Route::post('/rota/open', [$ro, 'postOpen']);
             Route::post('/rota/open/{id}/award', [$ro, 'awardOpen'])->whereNumber('id');
             Route::post('/rota/open/{id}/cancel', [$ro, 'cancelOpen'])->whereNumber('id');

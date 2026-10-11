@@ -132,8 +132,7 @@ class PayrollService
         $unpaid = 0.0;
         $otMinutes = 0;
         $unverified = 0;
-        $rotaPay = app(\App\Services\Menus\RotaPay::class);
-        $fromRota = $rotaPay->appliesTo($u->id);   // a chef whose overtime is the hours beyond their rostered shifts (Menus settings)
+        $rotaOvertime = app(\App\Services\Menus\RotaOvertime::class);   // a chef's overtime: from attendance or the rota, and only once approved when the settings ask for it (Menus)
         if (Schema::hasTable('attendance_days')) {
             $rows = AttendanceDay::where('user_id', $u->id)->whereBetween('work_date', [$empFrom->toDateString(), $empTo->toDateString()])->get()->keyBy(fn ($r) => $r->work_date->toDateString());
             for ($d = $empFrom->copy(); $d->lte($empTo); $d->addDay()) {
@@ -146,13 +145,22 @@ class PayrollService
                     continue;
                 }
                 $unpaid += $r->status === 'absent' ? 1.0 : ($r->status === 'half_day' ? 0.5 : 0.0);
-                $otMinutes += $fromRota ? $rotaPay->dayOvertime($u->id, $d->toDateString(), $r) : (int) $r->overtime_minutes;
+                $otMinutes += $rotaOvertime->payable($u->id, $d->toDateString(), $r);
             }
         }
         $absence = $s->deduct_absence ? min($basic, round($daily * $unpaid, 2)) : 0.0;
         $otHours = round($otMinutes / 60, 2);
         $overtime = round($otHours * ($daily / $hoursPerDay) * (float) $s->overtime_multiplier, 2);
         $afterAbsence = round($basic - $absence + $overtime, 2);
+
+        // shift premiums (night, weekend, holiday) for a chef, as a line of its own on the payslip: worked out again each time, so an old one is never kept
+        $adjust = array_values(array_filter($adjust, fn ($x) => ($x['auto'] ?? null) !== 'rota_premium'));
+        if (\App\Services\Menus\MenusSettings::all()['rota_premium_source'] === 'payroll' && \App\Models\Menus\Chef::where('user_id', $u->id)->exists()) {
+            $prem = app(\App\Services\Menus\RotaPremium::class)->pay($u->id, $empFrom, $empTo, $hoursPerDay > 0 ? $daily / $hoursPerDay : 0.0);
+            if ($prem['amount'] > 0) {
+                $adjust[] = ['description' => 'Shift premiums ('.number_format($prem['hours'], 2).' h: '.implode(', ', array_map(fn ($l) => $l['rule'], $prem['lines'])).')', 'amount' => $prem['amount'], 'kind' => 'earning', 'auto' => 'rota_premium'];
+            }
+        }
 
         $mine = $components->filter(function (PayrollComponent $c) use ($items) {
             $it = $items->get($c->id);
@@ -182,7 +190,7 @@ class PayrollService
                 continue;
             }
             $kind = ($x['kind'] ?? 'earning') === 'deduction' ? 'deduction' : 'earning';
-            $adjClean[] = ['description' => trim((string) ($x['description'] ?? '')) ?: ucfirst($kind), 'amount' => $amt, 'kind' => $kind, 'ledger_id' => $x['ledger_id'] ?? null];
+            $adjClean[] = ['description' => trim((string) ($x['description'] ?? '')) ?: ucfirst($kind), 'amount' => $amt, 'kind' => $kind, 'ledger_id' => $x['ledger_id'] ?? null] + (($x['auto'] ?? null) ? ['auto' => $x['auto']] : []);
             $kind === 'earning' ? $adjEarn += $amt : $adjDed += $amt;
         }
         $gross = round($afterAbsence + $earnings + $adjEarn, 2);
@@ -339,6 +347,10 @@ class PayrollService
         $lines = PayrollLine::with('user:id,name')->where('run_id', $run->id)->get();
         if ($lines->isEmpty()) {
             throw new BooksException('There is nobody to pay in this run.');
+        }
+        // chefs' overtime that a manager has not decided yet (Menus → Rota → Hours): decide it first, so nothing is paid that was not approved
+        if (($waiting = app(\App\Services\Menus\RotaOvertime::class)->pendingCount(Carbon::parse($run->period_start->toDateString()), Carbon::parse($run->period_end->toDateString()))) > 0) {
+            throw new BooksException("{$waiting} day(s) of chef overtime in this month still wait for approval (Menus → Rota → Hours). Decide them, then approve the run.");
         }
         $unv = $lines->filter(fn ($l) => $l->unverified_days > 0 && ! $l->accepted_unverified);
         if ($unv->isNotEmpty()) {

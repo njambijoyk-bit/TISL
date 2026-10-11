@@ -7,6 +7,9 @@ use App\Models\Location;
 use App\Models\Menus\Chef;
 use App\Models\Menus\DayOff;
 use App\Models\Menus\OpenShift;
+use App\Models\Menus\OvertimeEntry;
+use App\Models\Menus\Premium;
+use App\Models\Menus\Holiday;
 use App\Models\Menus\RotaPattern;
 use App\Models\Menus\Shift;
 use App\Models\Menus\Swap;
@@ -20,8 +23,11 @@ use App\Services\Menus\RotaAttendance;
 use App\Services\Menus\RotaBoard;
 use App\Services\Menus\RotaClock;
 use App\Services\Menus\RotaLeave;
+use App\Services\Menus\RotaOvertime;
 use App\Services\Menus\RotaPatterns;
 use App\Services\Menus\RotaPay;
+use App\Services\Menus\RotaPremium;
+use App\Services\Menus\RotaSites;
 use App\Services\Menus\RotaService;
 use App\Services\Menus\RotaSwaps;
 use App\Services\Notify\Staff;
@@ -34,7 +40,7 @@ use Illuminate\Http\Request;
  */
 class MenusRotaController extends Controller
 {
-    public function __construct(private RotaService $rota, private RotaPatterns $patterns, private RotaSwaps $swaps, private RotaBoard $board, private RotaClock $clock, private RotaPay $pay, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
+    public function __construct(private RotaService $rota, private RotaPatterns $patterns, private RotaSwaps $swaps, private RotaBoard $board, private RotaClock $clock, private RotaPay $pay, private RotaPremium $premiums, private RotaOvertime $overtime, private RotaSites $sites, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
     {
     }
 
@@ -76,7 +82,7 @@ class MenusRotaController extends Controller
 
         return response()->json(['ready' => true, 'can_manage' => $manager, 'me' => $me?->id, 'more' => RotaPatterns::installed() && RotaSwaps::installed(), 'attendance' => RotaAttendance::ready(), 'leave' => RotaLeave::active(),
             'patterns' => $manager ? $this->patterns->rows($scope) : [], 'swaps' => $this->swaps->rows($me, $manager, $scope), 'board' => RotaBoard::installed(), 'open_shifts' => $this->board->rows($me, $manager, $scope), 'clock' => $this->clock->status($request->user()),
-            'can_see_pay' => $this->access->allows($request->user(), 'payroll.run'), 'swaps_need_approval' => (bool) $settings['rota_swaps_need_approval'], 'claims_need_approval' => (bool) $settings['rota_claims_need_approval']] + $week + [
+            'can_see_pay' => $this->access->allows($request->user(), 'payroll.run'), 'overtime_required' => $this->overtime->required(), 'premium_source' => $settings['rota_premium_source'], 'swaps_need_approval' => (bool) $settings['rota_swaps_need_approval'], 'claims_need_approval' => (bool) $settings['rota_claims_need_approval']] + $week + [
             'locations' => Location::query()->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values(),
             'stations' => KitchenService::installed() ? Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : [],
             'limits' => ['max_week_hours' => $settings['rota_max_week_hours'], 'min_rest_hours' => $settings['rota_min_rest_hours']], 'kinds' => DayOff::KINDS]);
@@ -428,22 +434,173 @@ class MenusRotaController extends Controller
 
     // ── clocking in from the rota page ────────────────────────────────────
 
+    /** Where the phone says it is (lat, lng, accuracy in metres): only asked for when Menus settings check the place. */
+    private function position(Request $request): array
+    {
+        $d = $request->validate(['lat' => 'nullable|numeric|between:-90,90', 'lng' => 'nullable|numeric|between:-180,180', 'accuracy' => 'nullable|numeric|min:0|max:100000']);
+
+        return array_filter(['lat' => $d['lat'] ?? null, 'lng' => $d['lng'] ?? null, 'accuracy' => $d['accuracy'] ?? null], fn ($v) => $v !== null);
+    }
+
     public function clockIn(Request $request): JsonResponse
     {
-        return $this->guard(function () use ($request) {
-            $this->clock->clockIn($request->user());
+        $pos = $this->position($request);
 
-            return response()->json(['message' => 'Clocked in.', 'clock' => $this->clock->status($request->user())]);
+        return $this->guard(function () use ($request, $pos) {
+            $this->clock->clockIn($request->user(), $pos);
+
+            return response()->json(['message' => 'Clocked in.', 'notice' => $this->clock->notice, 'clock' => $this->clock->status($request->user())]);
         });
     }
 
     public function clockOut(Request $request): JsonResponse
     {
-        return $this->guard(function () use ($request) {
-            $this->clock->clockOut($request->user());
+        $pos = $this->position($request);
+
+        return $this->guard(function () use ($request, $pos) {
+            $this->clock->clockOut($request->user(), $pos);
 
             return response()->json(['message' => 'Clocked out.', 'clock' => $this->clock->status($request->user())]);
         });
+    }
+
+    // ── places to clock in at ─────────────────────────────────────────────
+
+    public function sites(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => response()->json(['sites' => $this->sites->rows(), 'events' => $this->sites->events(14, true), 'mode' => MenusSettings::all()['rota_clock_location'], 'ready' => RotaSites::installed()]));
+    }
+
+    public function saveSite(Request $request, int $locationId): JsonResponse
+    {
+        $d = $request->validate(['latitude' => 'nullable|numeric', 'longitude' => 'nullable|numeric', 'radius_m' => 'nullable|integer|min:20|max:5000', 'is_active' => 'nullable|boolean']);
+
+        return $this->guard(function () use ($d, $locationId) {
+            $this->branches->assertVisible($locationId, 'stock', 'the rota');
+            $this->sites->save($locationId, $d);
+
+            return response()->json(['message' => 'Saved.']);
+        });
+    }
+
+    // ── shift premiums (payroll access) ───────────────────────────────────
+
+    private function premiumsReady(): void
+    {
+        abort_unless(RotaPremium::installed(), 422, 'Run database script 148_menus_rota_pay.sql first.');
+    }
+
+    public function premiumRules(): JsonResponse
+    {
+        return $this->guard(function () {
+            $this->premiumsReady();
+
+            return response()->json($this->premiums->overview());
+        });
+    }
+
+    public function saveRule(Request $request, ?int $id = null): JsonResponse
+    {
+        $d = $request->validate(['name' => 'nullable|string|max:80', 'kind' => 'nullable|string|in:night,weekend,holiday', 'starts_at' => 'nullable|string|max:8', 'ends_at' => 'nullable|string|max:8', 'weekdays' => 'nullable|array|max:7', 'weekdays.*' => 'integer|min:1|max:7',
+            'extra_pct' => 'nullable|numeric|min:0|max:500', 'flat_per_hour' => 'nullable|numeric|min:0|max:100000', 'is_active' => 'nullable|boolean']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $this->premiumsReady();
+            $this->premiums->saveRule($d, $id ? Premium::findOrFail($id) : null, $request->user()->id);
+
+            return response()->json(['message' => 'Rule saved.'], $id ? 200 : 201);
+        });
+    }
+
+    public function deleteRule(int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id) {
+            $this->premiumsReady();
+            Premium::findOrFail($id)->delete();
+
+            return response()->json(['message' => 'Rule removed.']);
+        });
+    }
+
+    public function saveHoliday(Request $request): JsonResponse
+    {
+        $d = $request->validate(['date' => 'required|date', 'name' => 'required|string|max:80', 'location_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($d) {
+            $this->premiumsReady();
+            $this->premiums->saveHoliday($d);
+
+            return response()->json(['message' => 'Holiday added.'], 201);
+        });
+    }
+
+    public function deleteHoliday(int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id) {
+            $this->premiumsReady();
+            Holiday::findOrFail($id)->delete();
+
+            return response()->json(['message' => 'Holiday removed.']);
+        });
+    }
+
+    // ── overtime approval ─────────────────────────────────────────────────
+
+    /** The overtime days of a stretch: a manager sees every chef's, a chef only their own. A manager's visit brings the list up to date first. */
+    public function overtimeList(Request $request): JsonResponse
+    {
+        $d = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date']);
+
+        return $this->guard(function () use ($d, $request) {
+            [$from, $to] = $this->period($d);
+            $manager = $this->manager($request);
+            $me = $this->mineChef($request);
+            if (! $manager && ! $me) {
+                return response()->json(['rows' => [], 'required' => $this->overtime->required()]);
+            }
+            if ($manager) {
+                $this->overtime->sync($from, $to, false);
+            }
+
+            return response()->json(['rows' => $this->overtime->rows($from, $to, $manager ? null : $me->id), 'required' => $this->overtime->required(), 'can_manage' => $manager]);
+        });
+    }
+
+    public function overtimeDecide(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['decision' => 'required|string|in:approved,rejected', 'note' => 'nullable|string|max:300']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $e = OvertimeEntry::findOrFail($id);
+            $this->overtime->decide($e, $d['decision'] === 'approved', $d['note'] ?? null, $request->user(), $this->otherManagers($request));
+
+            return response()->json(['message' => $d['decision'] === 'approved' ? 'Approved.' : 'Not approved.']);
+        });
+    }
+
+    public function overtimeDecideMany(Request $request): JsonResponse
+    {
+        $d = $request->validate(['ids' => 'required|array|min:1|max:200', 'ids.*' => 'integer', 'decision' => 'required|string|in:approved,rejected', 'note' => 'nullable|string|max:300']);
+
+        return $this->guard(function () use ($d, $request) {
+            $done = 0;
+            $left = [];
+            foreach (OvertimeEntry::whereIn('id', $d['ids'])->get() as $e) {
+                try {
+                    $this->overtime->decide($e, $d['decision'] === 'approved', $d['note'] ?? null, $request->user(), $this->otherManagers($request));
+                    $done++;
+                } catch (BooksException $x) {
+                    $left[] = $x->getMessage();
+                }
+            }
+
+            return response()->json(['message' => "{$done} decided.".($left ? ' '.count($left).' left for someone else.' : ''), 'decided' => $done, 'left' => array_values(array_unique($left))]);
+        });
+    }
+
+    private function otherManagers(Request $request): bool
+    {
+        return $this->staff->holding('menus.manage')->where('id', '!=', $request->user()->id)->count() > 0;
     }
 
     // ── hours and pay ─────────────────────────────────────────────────────

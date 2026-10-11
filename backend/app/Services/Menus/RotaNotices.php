@@ -137,6 +137,16 @@ class RotaNotices
         });
     }
 
+    /** Overtime entries are waiting for a decision (only when the settings ask for approval). */
+    public function overtimeWaiting(int $n): void
+    {
+        $this->safely(function () use ($n) {
+            foreach ($this->staff->holding('menus.manage') as $u) {
+                $this->notifier->send($u, 'menu_overtime_waiting', "{$n} day(s) of chef overtime to approve", 'Payroll pays only the overtime you approve, and the month can not be approved while any waits.', ['action_url' => '/admin/menus/rota', 'action_text' => 'Open the hours']);
+            }
+        });
+    }
+
     // ── attendance and patterns ───────────────────────────────────────────
 
     /** A rostered chef has not signed in (or did not come): the managers are told once per shift. */
