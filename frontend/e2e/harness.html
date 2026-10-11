@@ -26,11 +26,13 @@
         MenusRecipes: () => import('/src/menus/pages/admin/Recipes.jsx'),
         MenusSettings: () => import('/src/menus/pages/admin/MenusSettings.jsx'),
         MenuCards: () => import('/src/menus/pages/admin/MenuCards.jsx'),
+        MenusOrders: () => import('/src/menus/pages/admin/MenusOrders.jsx'),
+        OrderTrack: () => import('/e2e/TrackProbe.jsx'),
         MenuPublic: () => import('/src/menus/pages/public/MenuPage.jsx'),
         ResetSigninMethods: () => import('/e2e/ResetProbe.jsx'),   // the "reset sign-in methods" window on its own (the real users page needs a far bigger database)
       };
       const { default: Component } = await parts[which]();
-      if (['PasskeyRule', 'SensitiveActions', 'PaymentSettings', 'Approvals', 'MenusIngredients', 'MenusDishes', 'MenusRecipes', 'MenusSettings', 'MenuCards'].includes(which)) document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
+      if (['PasskeyRule', 'SensitiveActions', 'PaymentSettings', 'Approvals', 'MenusIngredients', 'MenusDishes', 'MenusRecipes', 'MenusSettings', 'MenuCards', 'MenusOrders'].includes(which)) document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
       const { BrowserRouter } = await import('react-router-dom');
       const { default: StepUpModal } = await import('/src/core/components/account/StepUpModal.jsx');   // (the app mounts it once; here it is part of the frame)
       createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component), React.createElement(StepUpModal)));

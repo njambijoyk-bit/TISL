@@ -10,6 +10,7 @@ import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
+import ChannelsCard from '../../components/ChannelsCard';
 
 /** Menus → Settings: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
@@ -53,6 +54,7 @@ export default function MenusSettings() {
             </FormStack>
           </div>
         )}
+        {s && <ChannelsCard canEdit={canEdit} />}
       </div>
     </AdminLayout>
   );

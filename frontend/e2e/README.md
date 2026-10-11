@@ -22,6 +22,7 @@ node e2e/council.mjs                            # the Council of Two in two brow
 node e2e/email-link.mjs                        # the emailed sign-in link for customers: the same answer for staff and strangers, tied to the asking browser, a button before anything happens, once only
 node e2e/security-nav.mjs                      # the breadcrumb and the row that moves between the four security pages
 node e2e/menus-ui.mjs                          # the Menus screens (ingredients with substitutes, dishes with allergens, recipes with units, waste and steps): what they show and what they send (the Menus API is answered by the check itself)
+node e2e/menus-orders-ui.mjs                    # ordering food online (basket, choices, checkout, following an order), the kitchen's board with taking payment, and switching the ways to order on (the API is answered by the check itself)
 node e2e/actions.mjs                            # the owner's page for sensitive actions and the sign-in check, and the real payment keys screen asking once (passkey) instead of the password
 ```
 

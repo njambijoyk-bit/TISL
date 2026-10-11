@@ -47,6 +47,8 @@ export default function PaymentReturn() {
 
   const body = () => {
     if (lost) return <Result icon={<XCircle size={36} color="#b91c1c" />} title="We could not find that payment" text="This link is not valid. If you were charged, your order will still be confirmed: check My orders, or contact us." />;
+    if (s?.menu_order && s.status === 'confirmed') return <Result icon={<CheckCircle2 size={36} color="#047857" />} title="Payment received. Thank you!" text={`Order ${s.menu_order.number} is with the kitchen.`} to={`/menu/order/${s.menu_order.token}`} cta="Follow my order" />;
+    if (s?.menu_order && s.status === 'failed') return <Result icon={<XCircle size={36} color="#b91c1c" />} title="The payment did not go through" text={`${s.failure_reason || 'It was declined or timed out.'} Nothing was charged for order ${s.menu_order.number}. You can order again from the menu.`} to="/menu" cta="Back to the menu" />;
     if (s?.event && s.status === 'confirmed') return <Tickets s={s} />;
     if (s?.status === 'confirmed') return <Result icon={<CheckCircle2 size={36} color="#047857" />} title="Payment received. Thank you!" text={`${s.order_number ? `Order ${s.order_number} is paid. ` : ''}We have emailed you a receipt.`} primary />;
     if (s?.event && s.status === 'failed') return <Result icon={<XCircle size={36} color="#b91c1c" />} title="The payment did not go through" text={`${s.failure_reason || 'It was declined or timed out.'} Nothing was bought. You can try again from the event page: ${s.event.title}.`} to={`/events/${s.event.slug}`} cta="Back to the event" />;

@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { ShoppingBasket } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import menusPublicAPI from '../../../_shared/api/menusPublic';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
+import DishPicker from '../../components/DishPicker';
+import OrderCheckout from '../../components/OrderCheckout';
+import { useBasket } from '../../lib/basket';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const chipBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 700, border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line, #e5e7eb)'}`, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)' : 'transparent', color: on ? 'var(--color-primary-600)' : 'var(--text-secondary)' });
 
-function DishCard({ d, avoid, data }) {
+function DishCard({ d, avoid, data, ordering, onAdd }) {
   const hit = d.allergens.filter((a) => avoid.includes(a));
   const unsure = avoid.length > 0 && !d.info_complete;
   const price = d.price_incl ?? d.price;
@@ -29,6 +33,11 @@ function DishCard({ d, avoid, data }) {
           <DietChips codes={d.diets} names={data.diets} />
         </div>
         <div style={{ marginTop: 2 }}><AllergenChips codes={d.allergens} names={data.allergens} /></div>
+        {ordering && d.available && d.price != null && (
+          <button type="button" onClick={() => onAdd(d)} aria-label={`Add ${d.name}`} style={{ marginTop: 8, padding: '7px 16px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.8rem', color: '#fff', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' }}>
+            {d.options.length ? 'Choose' : 'Add'}
+          </button>
+        )}
         {d.options.length > 0 && (
           <details style={{ marginTop: 6, fontSize: '0.8rem' }}>
             <summary style={{ cursor: 'pointer', color: 'var(--color-primary-600)', fontWeight: 700 }}>Choices</summary>
@@ -52,7 +61,13 @@ export default function MenuPage() {
   const [current, setCurrent] = useState(null);
   const [diet, setDiet] = useState('');
   const [avoid, setAvoid] = useState([]);
+  const basket = useBasket();
+  const [ordering, setOrdering] = useState(false);   // is any way to order switched on?
+  const [picking, setPicking] = useState(null);
+  const [checkout, setCheckout] = useState(false);
 
+  useEffect(() => { menusPublicAPI.channels().then((r) => setOrdering(r.channels.length > 0)).catch(() => setOrdering(false)); }, []);
+  const addDish = (d) => (d.options.length ? setPicking(d) : basket.add(d));
   useEffect(() => { menusPublicAPI.get().then((r) => { setData(r); setCurrent((c) => c ?? (r.menus.find((m) => m.serving_now) ?? r.menus[0])?.id ?? null); }).catch(() => setError(true)); }, []);
   const menu = data?.menus.find((m) => m.id === current);
   const sections = useMemo(() => (menu?.sections ?? []).map((s) => ({ ...s, dishes: s.dishes.filter((d) => (!diet || d.diets.includes(diet)) && !d.allergens.some((a) => avoid.includes(a))) })).filter((s) => s.dishes.length), [menu, diet, avoid]);
@@ -89,7 +104,7 @@ export default function MenuPage() {
               <section key={s.id} style={{ marginBottom: 26 }}>
                 <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800 }}>{s.name}</h2>
                 {s.description && <p style={{ margin: '0 0 10px', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>{s.description}</p>}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 12 }}>{s.dishes.map((d) => <DishCard key={d.id} d={d} avoid={avoid} data={data} />)}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 12 }}>{s.dishes.map((d) => <DishCard key={d.id} d={d} avoid={avoid} data={data} ordering={ordering} onAdd={addDish} />)}</div>
               </section>
             ))}
             {menu && sections.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>Nothing here matches your choices.</p>}
@@ -97,6 +112,13 @@ export default function MenuPage() {
           </>
         )}
       </main>
+      {ordering && basket.count > 0 && (
+        <button type="button" data-testid="basket-bar" onClick={() => setCheckout(true)} style={{ position: 'fixed', left: '50%', bottom: 18, transform: 'translateX(-50%)', zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '12px 22px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 6px 24px rgba(0,0,0,0.25)' }}>
+          <ShoppingBasket size={18} aria-hidden="true" /> Your order · {basket.count} item{basket.count === 1 ? '' : 's'} · {money(basket.subtotal)} + tax
+        </button>
+      )}
+      {picking && <DishPicker dish={picking} onClose={() => setPicking(null)} onAdd={(d, o) => { basket.add(d, o); setPicking(null); }} />}
+      {checkout && basket.count > 0 && <OrderCheckout basket={basket} onClose={() => setCheckout(false)} />}
       <Footer />
     </div>
   );
