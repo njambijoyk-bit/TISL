@@ -7,6 +7,7 @@ use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\Currency;
 use App\Models\Location;
+use App\Models\Menus\Chef;
 use App\Models\Menus\CookingRequest;
 use App\Models\Menus\CookingRequestLine;
 use App\Models\Menus\Dish;
@@ -21,7 +22,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
 /**
- * Cooking services, first slice: made-to-order cakes and catering.
+ * Cooking services: made-to-order cakes, catering and a private chef at home.
  *
  * A customer asks (no sign-in needed). A cake is priced from its dishes and choices and is quoted at once; a catering request waits for staff to price it. The quote carries a deposit.
  * Accepting needs a customer account (the balance is owed on an invoice): the quote becomes a Sales Order and an invoice (no stock moves yet), and the deposit goes through the same
@@ -33,6 +34,9 @@ class CookingService
 
     private const TZ_DEFAULT = 'Africa/Nairobi';
 
+    /** Minutes a chef needs on each side of a job to get there and away. */
+    private const TRAVEL_MINUTES = 60;
+
     public static function installed(): bool
     {
         if (app()->runningUnitTests()) {
@@ -40,6 +44,12 @@ class CookingService
         }
 
         return self::$installed ??= Schema::hasTable('menus_requests') && Schema::hasTable('menus_request_lines');
+    }
+
+    /** Has script 144 been run (the chef and how long they stay)? */
+    public static function chefInstalled(): bool
+    {
+        return self::installed() && Schema::hasColumn('menus_requests', 'chef_id') && Schema::hasColumn('menus_requests', 'duration_minutes');
     }
 
     public function __construct(private VoucherService $vouchers, private GatewayPaymentService $gateway, private DishInfo $info, private DishPricing $pricing, private MenuOrderService $orders,
@@ -90,21 +100,27 @@ class CookingService
         $now ??= now();
         $kind = (string) ($in['kind'] ?? '');
         if (! isset(CookingRequest::KINDS[$kind])) {
-            throw new BooksException('Choose a cake or catering.');
+            throw new BooksException('Choose a cake, catering or a private chef.');
+        }
+        if ($kind === 'private_chef' && ! self::chefInstalled()) {
+            throw new BooksException('Private chef bookings are not set up yet.');
         }
         $settings = MenusSettings::all();
         $loc = $this->orders->location($in['location_id'] ?? null);
         $contact = $this->contact($in, $user);
         $fulfil = (string) ($in['fulfil'] ?? 'pickup');
+        if ($kind === 'private_chef') {
+            $fulfil = 'serve';   // the chef cooks at the customer's home
+        }
         if (! in_array($fulfil, $kind === 'cake' ? ['pickup', 'delivery'] : ['pickup', 'delivery', 'serve'], true)) {
             throw new BooksException('Choose how you would like it: '.($kind === 'cake' ? 'collect or delivered.' : 'collect, delivered or served at your venue.'));
         }
         $address = trim((string) ($in['address'] ?? ''));
         if ($fulfil !== 'pickup' && $address === '') {
-            throw new BooksException($fulfil === 'serve' ? 'Enter the venue.' : 'Enter the delivery address.');
+            throw new BooksException($kind === 'private_chef' ? 'Enter the address the chef should come to.' : ($fulfil === 'serve' ? 'Enter the venue.' : 'Enter the delivery address.'));
         }
         $headcount = isset($in['headcount']) && $in['headcount'] !== '' ? (int) $in['headcount'] : null;
-        if (($kind === 'catering' && (! $headcount || $headcount < 1)) || ($headcount !== null && ($headcount < 1 || $headcount > 5000))) {
+        if ((in_array($kind, ['catering', 'private_chef'], true) && (! $headcount || $headcount < 1)) || ($headcount !== null && ($headcount < 1 || $headcount > 5000))) {
             throw new BooksException('How many people is it for?');
         }
         $wanted = ! empty($in['items']) ? $this->orders->wanted($in['items']) : [];
@@ -112,20 +128,42 @@ class CookingService
             throw new BooksException('Choose the cake.');
         }
 
-        [$lines, $needHours] = $this->requestLines($kind, $loc, $wanted, (int) $settings['custom_lead_hours']);
+        [$lines, $needHours] = $this->requestLines($kind, $loc, $wanted, (int) $settings[$kind === 'private_chef' ? 'chef_lead_hours' : 'custom_lead_hours']);
         $at = $this->eventTime($in['event_at'] ?? null, $now);
         if ($at->lt($now->copy()->addHours($needHours))) {
-            throw new BooksException($kind === 'cake' ? "We need at least {$this->hours($needHours)} notice for this cake. Choose a later date." : "We need at least {$this->hours($needHours)} notice for catering. Choose a later date.");
+            $what = ['cake' => 'this cake', 'catering' => 'catering', 'private_chef' => 'a private chef'][$kind];
+            throw new BooksException("We need at least {$this->hours($needHours)} notice for {$what}. Choose a later date.");
+        }
+        $chef = [];
+        if ($kind === 'private_chef') {
+            $minutes = isset($in['duration_minutes']) && $in['duration_minutes'] !== '' ? (int) $in['duration_minutes'] : 180;
+            if ($minutes < 60 || $minutes > 720) {
+                throw new BooksException('The chef can stay between 1 and 12 hours.');
+            }
+            $shopping = (string) ($in['shopping'] ?? 'chef');
+            if (! isset(CookingRequest::SHOPPING[$shopping])) {
+                throw new BooksException('Say who buys the ingredients.');
+            }
+            $preferred = ! empty($in['chef_id']) ? Chef::where('is_active', true)->where('is_public', true)->find((int) $in['chef_id']) : null;
+            if (! empty($in['chef_id']) && ! $preferred) {
+                throw new BooksException('That chef is not available to ask for.');
+            }
+            $chef = ['chef_id' => $preferred?->id, 'duration_minutes' => $minutes, 'details' => ['shopping' => $shopping, 'dietary' => mb_substr(trim((string) ($in['dietary'] ?? '')), 0, 500)]];
         }
 
         $message = trim((string) ($in['message'] ?? ''));
         $wishes = trim((string) ($in['wishes'] ?? ''));
 
-        $r = DB::transaction(function () use ($kind, $loc, $contact, $at, $fulfil, $address, $headcount, $message, $wishes, $in, $user, $lines, $now) {
-            $r = CookingRequest::create(['number' => 'CR-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'kind' => $kind, 'location_id' => $loc->id, 'customer_id' => $user?->customer?->id,
+        $r = DB::transaction(function () use ($kind, $loc, $contact, $at, $fulfil, $address, $headcount, $message, $wishes, $in, $user, $lines, $now, $chef) {
+            $row = ['number' => 'CR-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'kind' => $kind, 'location_id' => $loc->id, 'customer_id' => $user?->customer?->id,
                 'user_id' => $user?->id, 'name' => $contact['name'], 'email' => $contact['email'], 'phone' => $contact['phone'], 'event_at' => $at, 'fulfil' => $fulfil, 'address' => $address ?: null,
-                'headcount' => $headcount, 'details' => array_filter(['message' => mb_substr($message, 0, 200), 'wishes' => mb_substr($wishes, 0, 1000)]) ?: null,
-                'notes' => filled($in['notes'] ?? null) ? mb_substr(trim((string) $in['notes']), 0, 1000) : null, 'status' => 'requested', 'currency_id' => Currency::getBaseCurrency()?->id]);
+                'headcount' => $headcount, 'details' => array_filter(['message' => mb_substr($message, 0, 200), 'wishes' => mb_substr($wishes, 0, 1000)] + ($chef['details'] ?? [])) ?: null,
+                'chef_id' => $chef['chef_id'] ?? null, 'duration_minutes' => $chef['duration_minutes'] ?? null,
+                'notes' => filled($in['notes'] ?? null) ? mb_substr(trim((string) $in['notes']), 0, 1000) : null, 'status' => 'requested', 'currency_id' => Currency::getBaseCurrency()?->id];
+            if (! self::chefInstalled()) {   // (script 144)
+                unset($row['chef_id'], $row['duration_minutes']);
+            }
+            $r = CookingRequest::create($row);
             $r->update(['number' => 'CR-'.str_pad((string) $r->id, 6, '0', STR_PAD_LEFT)]);
             $this->storeLines($r, $lines);
             if ($kind === 'cake') {   // priced from the dish and its choices: quoted at once
@@ -294,6 +332,9 @@ class CookingService
             }
             $r->headcount = $hc;
         }
+        if ($r->kind === 'private_chef' && self::chefInstalled()) {
+            $this->assignChef($r, $in);
+        }
         $lines = [];
         foreach ((array) ($in['lines'] ?? []) as $l) {
             $dish = ! empty($l['dish_id']) ? Dish::find((int) $l['dish_id']) : null;
@@ -334,6 +375,45 @@ class CookingService
         return $r;
     }
 
+    /** The chef who will cook a private chef job and how long they stay; a chef can not be booked twice at once. */
+    private function assignChef(CookingRequest $r, array $in): void
+    {
+        $chefId = array_key_exists('chef_id', $in) ? ($in['chef_id'] ? (int) $in['chef_id'] : null) : ($r->chef_id ? (int) $r->chef_id : null);
+        if (! $chefId) {
+            throw new BooksException('Choose the chef who will cook it.');
+        }
+        if (! Chef::where('is_active', true)->whereKey($chefId)->exists()) {
+            throw new BooksException('That chef is not available.');
+        }
+        if (array_key_exists('duration_minutes', $in) && $in['duration_minutes'] !== null && $in['duration_minutes'] !== '') {
+            $m = (int) $in['duration_minutes'];
+            if ($m < 60 || $m > 720) {
+                throw new BooksException('The chef can stay between 1 and 12 hours.');
+            }
+            $r->duration_minutes = $m;
+        }
+        $r->chef_id = $chefId;
+        $this->assertFree($r);
+    }
+
+    /** Refuse when the chef already holds a job (accepted, confirmed or being prepared) that overlaps this one, with an hour either side to get there. */
+    private function assertFree(CookingRequest $r): void
+    {
+        if (! $r->chef_id || ! self::chefInstalled()) {
+            return;
+        }
+        $mine = $r->duration_minutes ?: 180;
+        $from = $r->event_at->copy()->subMinutes(self::TRAVEL_MINUTES);
+        $to = $r->event_at->copy()->addMinutes($mine + self::TRAVEL_MINUTES);
+        $clash = CookingRequest::where('chef_id', $r->chef_id)->where('id', '!=', $r->id ?: 0)->whereIn('status', ['accepted', 'confirmed', 'preparing'])
+            ->whereBetween('event_at', [$from->copy()->subHours(13), $to])->get()
+            ->first(fn ($o) => $o->event_at->copy()->addMinutes(($o->duration_minutes ?: 180))->gt($from) && $o->event_at->lt($to));
+        if ($clash) {
+            $name = Chef::whereKey($r->chef_id)->value('display_name') ?: 'That chef';
+            throw new BooksException("{$name} already has a job on {$clash->event_at->copy()->timezone($this->tz())->format('D j M, H:i')} that is too close to this one.");
+        }
+    }
+
     // ── saying yes, paying ────────────────────────────────────────────────
 
     /**
@@ -357,6 +437,7 @@ class CookingService
         if ($r->customer_id && (int) $r->customer_id !== (int) $customer->id) {
             throw new BooksException('This quote was made for another account. Sign in with the one you asked with.');
         }
+        $this->assertFree($r);   // another customer may have taken the chef since this quote was made
         $deposit = (float) $r->deposit_amount;
         $method = $deposit > 0 ? $this->method($in) : null;
         $contact = ['phone' => $r->phone, 'email' => $r->email, 'name' => $r->name];
@@ -451,6 +532,9 @@ class CookingService
     {
         $r->update(['status' => 'confirmed', 'confirmed_at' => now()]);
         $this->notices->confirmed($r->fresh());
+        if ($r->chef_id && ($chef = Chef::find($r->chef_id))) {
+            $this->notices->chefBooked($r->fresh(), $chef);
+        }
 
         return $r->fresh('lines');
     }
@@ -601,7 +685,7 @@ class CookingService
     {
         $r->loadMissing('lines');
 
-        return $this->base($r) + ['id' => $r->id, 'phone' => $r->phone, 'email' => $r->email, 'location_id' => $r->location_id, 'customer_id' => $r->customer_id, 'notes' => $r->notes,
+        return $this->base($r) + ['id' => $r->id, 'phone' => $r->phone, 'email' => $r->email, 'location_id' => $r->location_id, 'customer_id' => $r->customer_id, 'chef_id' => $r->chef_id ?? null, 'notes' => $r->notes,
             'voucher_id' => $r->voucher_id, 'invoice_id' => $r->invoice_id, 'refund_due' => $r->refundDue(), 'stock' => $r->details['stock'] ?? null,
             'next' => CookingRequest::NEXT[$r->status] ?? [], 'can_quote' => in_array($r->status, ['requested', 'quoted'], true),
             'can_take_payment' => $r->invoice_id && in_array($r->status, ['accepted', 'confirmed', 'preparing', 'ready'], true) && $r->balance() > 0, 'created_at' => $r->created_at?->toIso8601String()];
@@ -612,7 +696,9 @@ class CookingService
     {
         return ['number' => $r->number, 'kind' => $r->kind, 'kind_label' => CookingRequest::KINDS[$r->kind] ?? $r->kind, 'status' => $r->status, 'status_label' => CookingRequest::STATUSES[$r->status] ?? $r->status,
             'name' => $r->name, 'event_at' => $r->event_at?->toIso8601String(), 'fulfil' => $r->fulfil, 'address' => $r->address, 'headcount' => $r->headcount,
-            'message' => $r->details['message'] ?? null, 'wishes' => $r->details['wishes'] ?? null, 'cancel_reason' => $r->cancel_reason,
+            'message' => $r->details['message'] ?? null, 'wishes' => $r->details['wishes'] ?? null,
+            'chef' => $r->chef_id ? Chef::whereKey($r->chef_id)->value('display_name') : null, 'duration_minutes' => $r->duration_minutes ?? null,
+            'shopping' => $r->details['shopping'] ?? null, 'shopping_label' => CookingRequest::SHOPPING[$r->details['shopping'] ?? ''] ?? null, 'dietary' => $r->details['dietary'] ?? null, 'cancel_reason' => $r->cancel_reason,
             'valid_until' => $r->valid_until?->toDateString(), 'subtotal' => (float) $r->subtotal, 'tax_total' => (float) $r->tax_total, 'total' => (float) $r->total, 'deposit_pct' => (float) $r->deposit_pct,
             'deposit_amount' => (float) $r->deposit_amount, 'paid_total' => (float) $r->paid_total, 'balance' => $r->balance(),
             'lines' => $r->lines->map(fn ($l) => ['id' => $l->id, 'dish_id' => $l->dish_id, 'name' => $l->name, 'quantity' => (float) $l->quantity, 'per_head' => (bool) $l->per_head, 'unit_price' => (float) $l->unit_price,

@@ -23,6 +23,7 @@ final class MenusSettings
         'custom_deposit_pct' => 50,      // the share of a quote paid to confirm it
         'custom_quote_days' => 7,        // how long a quote can be accepted
         'custom_lead_hours' => 72,       // the least notice for a catering job
+        'chef_lead_hours' => 48,         // the least notice for a private chef
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
     ];
 
@@ -83,7 +84,7 @@ final class MenusSettings
                 $cur[$key] = (bool) $in[$key];
             }
         }
-        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720]] as $key => [$lo, $hi]) {
+        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720]] as $key => [$lo, $hi]) {
             if (array_key_exists($key, $in)) {
                 $n = round((float) $in[$key], 2);
                 if ($n < $lo || $n > $hi) {

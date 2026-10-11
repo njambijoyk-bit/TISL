@@ -8,7 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 /** A customer's request for a made-to-order cake or a catering job: the quote, the deposit and the job itself. It points at the Sales Order (and the invoice it becomes) in the books. */
 class CookingRequest extends Model
 {
-    public const KINDS = ['cake' => 'Custom cake', 'catering' => 'Catering'];
+    public const KINDS = ['cake' => 'Custom cake', 'catering' => 'Catering', 'private_chef' => 'Private chef'];
+
+    /** The shopping for a private chef job: the chef buys it, the client has it, or it comes from our stock. */
+    public const SHOPPING = ['chef' => 'The chef shops for the ingredients', 'client' => 'I will have the ingredients ready', 'stock' => 'From the kitchen\'s stock'];
 
     public const STATUSES = ['requested' => 'Requested', 'quoted' => 'Quoted', 'accepted' => 'Waiting for the deposit', 'confirmed' => 'Confirmed', 'preparing' => 'Being prepared', 'ready' => 'Ready',
         'completed' => 'Completed', 'declined' => 'Declined', 'expired' => 'Expired', 'cancelled' => 'Cancelled'];
@@ -22,7 +25,7 @@ class CookingRequest extends Model
 
     protected $casts = ['event_at' => 'datetime', 'quoted_at' => 'datetime', 'valid_until' => 'date:Y-m-d', 'accepted_at' => 'datetime', 'confirmed_at' => 'datetime', 'completed_at' => 'datetime',
         'cancelled_at' => 'datetime', 'details' => 'array', 'subtotal' => 'decimal:2', 'tax_total' => 'decimal:2', 'total' => 'decimal:2', 'deposit_pct' => 'decimal:2', 'deposit_amount' => 'decimal:2',
-        'paid_total' => 'decimal:2', 'headcount' => 'integer'];
+        'paid_total' => 'decimal:2', 'headcount' => 'integer', 'duration_minutes' => 'integer'];
 
     protected $hidden = ['track_token'];
 

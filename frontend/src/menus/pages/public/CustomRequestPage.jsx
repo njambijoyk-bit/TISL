@@ -14,6 +14,7 @@ const day = (iso) => new Date(iso).toLocaleString('en-KE', { weekday: 'long', da
 const card = { background: 'var(--surface-card, #fff)', borderRadius: 14, border: '1px solid var(--line, #e5e7eb)', padding: 18 };
 const btn = { padding: '12px 20px', borderRadius: 12, border: 'none', background: 'var(--color-primary-500, #e11d48)', color: '#fff', font: 'inherit', fontWeight: 800, cursor: 'pointer' };
 const HOW = { pickup: 'You collect it', delivery: 'Delivered to', serve: 'Served at' };
+const hrs = (m) => `${Math.round((m / 60) * 10) / 10} hours`;
 
 /** A cake or catering request, by the link we sent: the quote, accepting it, the deposit, the balance. No sign-in to look; accepting and paying need your account. */
 export default function CustomRequestPage() {
@@ -97,7 +98,9 @@ export default function CustomRequestPage() {
             {r.status === 'completed' && <div style={{ ...card, display: 'flex', gap: 10, alignItems: 'center' }} role="status"><CheckCircle2 color="#047857" aria-hidden="true" /><strong>Done. Thank you!</strong></div>}
 
             <section style={card} aria-label="The details">
-              <p style={{ margin: 0, fontSize: '0.9rem' }}>{HOW[r.fulfil]}{r.address ? `: ${r.address}` : ''}</p>
+              <p style={{ margin: 0, fontSize: '0.9rem' }}>{r.kind === 'private_chef' ? 'At your home' : HOW[r.fulfil]}{r.address ? `: ${r.address}` : ''}</p>
+              {r.kind === 'private_chef' && <p style={{ margin: '6px 0 0', fontSize: '0.9rem' }} data-testid="chef-details">{r.chef ? <>Your chef: <strong>{r.chef}</strong>. </> : 'We will choose your chef. '}{r.duration_minutes ? `Stays ${hrs(r.duration_minutes)}. ` : ''}{r.shopping_label ? `${r.shopping_label}.` : ''}</p>}
+              {r.dietary && <p style={{ margin: '6px 0 0', fontSize: '0.9rem' }}>Allergies and diets: {r.dietary}</p>}
               {r.message && <p style={{ margin: '6px 0 0', fontSize: '0.9rem' }}>On the cake: “{r.message}”</p>}
               {r.wishes && <p style={{ margin: '6px 0 0', fontSize: '0.9rem' }}>{r.wishes}</p>}
               {r.lines.length > 0 && (

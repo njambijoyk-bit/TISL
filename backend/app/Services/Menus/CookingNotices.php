@@ -52,6 +52,17 @@ class CookingNotices
         });
     }
 
+    /** The chef is told once their job is booked (the deposit is in). */
+    public function chefBooked(CookingRequest $r, \App\Models\Menus\Chef $chef): void
+    {
+        $this->safely(function () use ($r, $chef) {
+            if ($u = \App\Models\User::find($chef->user_id)) {
+                $this->notifier->send($u, 'menu_request_chef', "You are booked: {$r->number}", "{$r->name}, {$this->day($r)}".($r->duration_minutes ? ' for '.round($r->duration_minutes / 60, 1).' h' : '').($r->headcount ? ", {$r->headcount} people" : '').($r->address ? ", at {$r->address}" : '').'.',
+                    ['action_url' => '/admin/menus/custom', 'action_text' => 'Open the job']);
+            }
+        });
+    }
+
     public function ready(CookingRequest $r): void
     {
         $this->safely(fn () => $this->tell($r, 'menu_request_ready', "{$r->number} is ready", $r->balance() > 0 ? 'It is ready. The balance of '.number_format($r->balance(), 2).' is due on '.($r->fulfil === 'delivery' ? 'delivery.' : 'collection.') : 'It is ready.'));

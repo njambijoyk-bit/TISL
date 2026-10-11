@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
-import { CakeSlice, UtensilsCrossed } from 'lucide-react';
+import { CakeSlice, ChefHat, UtensilsCrossed } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import menusPublicAPI from '../../../_shared/api/menusPublic';
@@ -25,7 +25,7 @@ export default function CustomOrderPage() {
   const [cakeId, setCakeId] = useState('');
   const [picked, setPicked] = useState({});   // group name -> option ids
   const [qty, setQty] = useState(1);
-  const [f, setF] = useState({ location_id: '', event_at: '', fulfil: 'pickup', address: '', headcount: '', message: '', wishes: '', name: user?.name ?? '', email: user?.email ?? '', phone: customer?.phone ?? '', notes: '' });
+  const [f, setF] = useState({ location_id: '', event_at: '', fulfil: 'pickup', address: '', headcount: '', message: '', wishes: '', duration_minutes: '180', shopping: 'chef', dietary: '', chef_id: '', name: user?.name ?? '', email: user?.email ?? '', phone: customer?.phone ?? '', notes: '' });
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState(null);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
@@ -38,7 +38,7 @@ export default function CustomOrderPage() {
     cake.groups.forEach((g) => { init[g.name] = g.options.filter((o) => o.is_default).map((o) => o.id); });
     setPicked(init);
   }, [cake]);
-  const notice = kind === 'cake' ? (cake?.lead_hours ?? 0) : (info?.catering_lead_hours ?? 0);
+  const notice = kind === 'cake' ? (cake?.lead_hours ?? 0) : (kind === 'private_chef' ? (info?.chef_lead_hours ?? 0) : (info?.catering_lead_hours ?? 0));
   const earliest = useMemo(() => stamp(new Date(Date.now() + notice * 3600000)), [notice]);
   const extra = cake ? cake.groups.reduce((t, g) => t + g.options.filter((o) => (picked[g.name] ?? []).includes(o.id)).reduce((s, o) => s + o.price_delta, 0), 0) : 0;
 
@@ -53,8 +53,9 @@ export default function CustomOrderPage() {
     e.preventDefault(); setBusy(true); setProblem(null);
     try {
       const r = await menusPublicAPI.customAsk({
-        kind, location_id: f.location_id ? Number(f.location_id) : undefined, event_at: f.event_at, fulfil: f.fulfil, address: f.address || undefined, headcount: f.headcount ? Number(f.headcount) : undefined,
-        message: kind === 'cake' ? f.message || undefined : undefined, wishes: kind === 'catering' ? f.wishes || undefined : undefined, name: f.name || undefined, email: f.email || undefined, phone: f.phone || undefined, notes: f.notes || undefined,
+        kind, location_id: f.location_id ? Number(f.location_id) : undefined, event_at: f.event_at, fulfil: kind === 'private_chef' ? 'serve' : f.fulfil, address: f.address || undefined, headcount: f.headcount ? Number(f.headcount) : undefined,
+        message: kind === 'cake' ? f.message || undefined : undefined, wishes: kind !== 'cake' ? f.wishes || undefined : undefined,
+        ...(kind === 'private_chef' ? { duration_minutes: Number(f.duration_minutes) || undefined, shopping: f.shopping, dietary: f.dietary || undefined, chef_id: f.chef_id ? Number(f.chef_id) : undefined } : {}), name: f.name || undefined, email: f.email || undefined, phone: f.phone || undefined, notes: f.notes || undefined,
         items: kind === 'cake' && cake ? [{ dish_id: cake.id, quantity: Number(qty) || 1, option_ids: Object.values(picked).flat() }] : [],
       });
       toast.success(r.message);
@@ -69,14 +70,14 @@ export default function CustomOrderPage() {
       <main style={{ maxWidth: 680, margin: '0 auto', padding: '40px 20px 64px', display: 'grid', gap: 16 }} data-testid="custom-order">
         <header>
           <h1 style={{ margin: 0, fontSize: 'clamp(1.5rem, 4vw, 2rem)', fontWeight: 900 }}>Cakes and catering</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>Tell us what you need and when. A cake is priced straight away; for catering we send you a quote.</p>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>Tell us what you need and when. A cake is priced straight away; for catering or a private chef we send you a quote.</p>
         </header>
         {!info && <p>Loading…</p>}
         {info && !info.enabled && <div style={card} role="status"><strong>We are not taking cake or catering requests online right now.</strong><p style={{ margin: '6px 0 0', color: 'var(--text-secondary)' }}>Please call us.</p></div>}
         {info?.enabled && (
           <form onSubmit={send} style={{ display: 'grid', gap: 16 }}>
             <div role="tablist" aria-label="What do you need" style={{ display: 'flex', gap: 8 }}>
-              {[['cake', 'A cake', CakeSlice], ['catering', 'Catering', UtensilsCrossed]].map(([k, t, icon]) => {
+              {[['cake', 'A cake', CakeSlice], ['catering', 'Catering', UtensilsCrossed], ['private_chef', 'Private chef', ChefHat]].map(([k, t, icon]) => {
                 const Icon = icon;
 
                 return (
@@ -131,6 +132,37 @@ export default function CustomOrderPage() {
               </section>
             )}
 
+            {kind === 'private_chef' && (
+              <section style={{ ...card, display: 'grid', gap: 12 }} aria-label="The chef at home">
+                <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>A chef comes to your home, cooks for you and your guests and leaves the kitchen clean. We send you a price for the evening.</p>
+                <label style={label}>How many people
+                  <input type="number" required min="1" max="5000" value={f.headcount} onChange={set('headcount')} style={{ ...field, maxWidth: 140 }} />
+                </label>
+                <label style={label}>How long should the chef stay
+                  <select value={f.duration_minutes} onChange={set('duration_minutes')} style={field} aria-label="How long should the chef stay">
+                    {[120, 180, 240, 300, 360, 480].map((m) => <option key={m} value={m}>{m / 60} hours</option>)}
+                  </select>
+                </label>
+                <label style={label}>The ingredients
+                  <select value={f.shopping} onChange={set('shopping')} style={field} aria-label="The ingredients">
+                    {Object.entries(info.shopping ?? {}).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+                  </select>
+                </label>
+                {(info.chefs ?? []).length > 0 && (
+                  <label style={label}>A chef you would like (optional)
+                    <select value={f.chef_id} onChange={set('chef_id')} style={field} aria-label="A chef you would like"><option value="">Whoever is free</option>{info.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}{c.title ? `, ${c.title}` : ''}</option>)}</select>
+                  </label>
+                )}
+                <label style={label}>What would you like cooked
+                  <textarea rows={3} maxLength={1000} value={f.wishes} onChange={set('wishes')} style={field} placeholder="A three-course dinner for six, Swahili flavours" />
+                </label>
+                <label style={label}>Allergies and diets (optional)
+                  <input maxLength={500} value={f.dietary} onChange={set('dietary')} style={field} placeholder="One guest is vegetarian, no nuts" />
+                </label>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-secondary)' }}>We need at least {info.chef_lead_hours >= 24 && info.chef_lead_hours % 24 === 0 ? `${info.chef_lead_hours / 24} days` : `${info.chef_lead_hours} hours`} notice.</p>
+              </section>
+            )}
+
             <section style={{ ...card, display: 'grid', gap: 12 }} aria-label="When and where">
               <label style={label}>When do you need it
                 <input type="datetime-local" required min={earliest} value={f.event_at} onChange={set('event_at')} style={field} />
@@ -140,12 +172,14 @@ export default function CustomOrderPage() {
                   <select value={f.location_id} onChange={set('location_id')} style={field}><option value="">Nearest to you</option>{info.locations.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
                 </label>
               )}
-              <label style={label}>How would you like it
-                <select value={f.fulfil} onChange={set('fulfil')} style={field}>
-                  <option value="pickup">I will collect it</option><option value="delivery">Deliver it</option>{kind === 'catering' && <option value="serve">Serve it at my venue</option>}
-                </select>
-              </label>
-              {f.fulfil !== 'pickup' && <label style={label}>{f.fulfil === 'serve' ? 'Venue' : 'Delivery address'}<textarea rows={2} required maxLength={500} value={f.address} onChange={set('address')} style={field} /></label>}
+              {kind !== 'private_chef' && (
+                <label style={label}>How would you like it
+                  <select value={f.fulfil} onChange={set('fulfil')} style={field}>
+                    <option value="pickup">I will collect it</option><option value="delivery">Deliver it</option>{kind === 'catering' && <option value="serve">Serve it at my venue</option>}
+                  </select>
+                </label>
+              )}
+              {(kind === 'private_chef' || f.fulfil !== 'pickup') && <label style={label}>{kind === 'private_chef' ? 'Where the chef should come (your address)' : f.fulfil === 'serve' ? 'Venue' : 'Delivery address'}<textarea rows={2} required maxLength={500} value={f.address} onChange={set('address')} style={field} /></label>}
             </section>
 
             <section style={{ ...card, display: 'grid', gap: 12 }} aria-label="About you">

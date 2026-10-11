@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Books\PaymentMethod;
+use App\Models\Menus\Chef;
 use App\Models\Menus\CookingRequest;
 use App\Services\Access\BranchFilter;
 use App\Services\Books\BooksException;
@@ -51,10 +52,14 @@ class MenusCookingController extends Controller
         } else {
             $q->whereNotIn('status', ['completed', 'cancelled', 'declined', 'expired']);
         }
+        if ($request->filled('chef_id') && CookingService::chefInstalled()) {
+            $q->where('chef_id', (int) $request->input('chef_id'));
+        }
         $this->branches->apply($q, 'location_id', 'stock', 'cakes and catering');
 
-        return response()->json(['ready' => true, 'requests' => $q->limit(300)->get()->map(fn ($r) => $this->cooking->staffView($r))->values(), 'statuses' => CookingRequest::STATUSES, 'kinds' => CookingRequest::KINDS,
-            'payment_methods' => PaymentMethod::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'kind'])]);
+        return response()->json(['ready' => true, 'chef_ready' => CookingService::chefInstalled(), 'requests' => $q->limit(300)->get()->map(fn ($r) => $this->cooking->staffView($r))->values(), 'statuses' => CookingRequest::STATUSES, 'kinds' => CookingRequest::KINDS,
+            'payment_methods' => PaymentMethod::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'kind']),
+            'chefs' => CookingService::chefInstalled() ? Chef::where('is_active', true)->orderBy('display_name')->get(['id', 'display_name'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->display_name])->values() : []]);
     }
 
     public function show(int $id): JsonResponse
@@ -66,7 +71,7 @@ class MenusCookingController extends Controller
     {
         $d = $request->validate(['lines' => 'required|array|min:1|max:60', 'lines.*.dish_id' => 'nullable|integer', 'lines.*.name' => 'nullable|string|max:200', 'lines.*.quantity' => 'nullable|numeric|min:0',
             'lines.*.per_head' => 'nullable|boolean', 'lines.*.unit_price' => 'required|numeric|min:0', 'lines.*.note' => 'nullable|string|max:300', 'deposit_pct' => 'nullable|numeric|min:0|max:100',
-            'valid_days' => 'nullable|integer|min:1|max:90', 'headcount' => 'nullable|integer|min:1|max:5000']);
+            'valid_days' => 'nullable|integer|min:1|max:90', 'headcount' => 'nullable|integer|min:1|max:5000', 'chef_id' => 'nullable|integer', 'duration_minutes' => 'nullable|integer|min:60|max:720']);
 
         return $this->guard(fn () => response()->json(['message' => 'Quote sent.', 'request' => $this->cooking->staffView($this->cooking->quote($this->find($id), $d, $request->user()))]));
     }

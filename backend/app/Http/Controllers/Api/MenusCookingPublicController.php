@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Books\PaymentMethod;
 use App\Models\Location;
+use App\Models\Menus\Chef;
 use App\Models\Menus\CookingRequest;
 use App\Services\Books\BooksException;
 use App\Services\Books\GatewayPaymentService;
@@ -42,15 +43,17 @@ class MenusCookingPublicController extends Controller
         }
         $pay = PaymentMethod::offeredAtCheckout()->orderBy('sort_order')->get(['id', 'name', 'kind', 'gateway'])->filter(fn ($m) => GatewayPaymentService::isAutomatic($m))->values();
 
-        return response()->json(['enabled' => true, 'cakes' => $this->cooking->cakes(), 'catering_lead_hours' => (int) $s['custom_lead_hours'], 'deposit_pct' => (float) $s['custom_deposit_pct'],
+        return response()->json(['enabled' => true, 'cakes' => $this->cooking->cakes(), 'catering_lead_hours' => (int) $s['custom_lead_hours'], 'chef_lead_hours' => (int) $s['chef_lead_hours'], 'shopping' => CookingRequest::SHOPPING,
+            'chefs' => CookingService::chefInstalled() ? Chef::where('is_active', true)->where('is_public', true)->orderBy('sort_order')->orderBy('display_name')->get(['id', 'display_name', 'title'])->map(fn ($c) => ['id' => $c->id, 'name' => $c->display_name, 'title' => $c->title])->values() : [], 'deposit_pct' => (float) $s['custom_deposit_pct'],
             'locations' => Location::query()->sellsToCustomers()->ordered()->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values(), 'payment_methods' => $pay]);
     }
 
     public function store(Request $request): JsonResponse
     {
-        $d = $request->validate(['kind' => 'required|string|in:cake,catering', 'location_id' => 'nullable|integer', 'name' => 'nullable|string|max:160', 'email' => 'nullable|email|max:190', 'phone' => 'nullable|string|max:40',
+        $d = $request->validate(['kind' => 'required|string|in:cake,catering,private_chef', 'location_id' => 'nullable|integer', 'name' => 'nullable|string|max:160', 'email' => 'nullable|email|max:190', 'phone' => 'nullable|string|max:40',
             'event_at' => 'required|string|max:40', 'fulfil' => 'nullable|string|in:pickup,delivery,serve', 'address' => 'nullable|string|max:500', 'headcount' => 'nullable|integer|min:1|max:5000',
-            'message' => 'nullable|string|max:200', 'wishes' => 'nullable|string|max:1000', 'notes' => 'nullable|string|max:1000', 'items' => 'nullable|array|max:30', 'items.*.dish_id' => 'required|integer',
+            'message' => 'nullable|string|max:200', 'wishes' => 'nullable|string|max:1000', 'notes' => 'nullable|string|max:1000', 'duration_minutes' => 'nullable|integer|min:60|max:720', 'shopping' => 'nullable|string|in:chef,client,stock', 'dietary' => 'nullable|string|max:500', 'chef_id' => 'nullable|integer',
+            'items' => 'nullable|array|max:30', 'items.*.dish_id' => 'required|integer',
             'items.*.quantity' => 'required|integer|min:1|max:50', 'items.*.option_ids' => 'nullable|array|max:40', 'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200']);
 
         return $this->guard(function () use ($d, $request) {

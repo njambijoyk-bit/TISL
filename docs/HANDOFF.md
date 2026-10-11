@@ -6,19 +6,20 @@ Written at the end of a session. Read this first, then `docs/MENUS_PLAN.md` (sta
 
 - Repo: `njambijoyk-bit/tisl` (GitHub). Work branch: **`tisl_v2`**. Last commit: see `git log` (Menus step 10, cakes and catering, is the newest Menus work). Never push to another branch without being told to; **never open a pull request unless asked**.
 - Stack: Laravel 12 backend (`backend/`), React/Vite frontend (`frontend/`).
-- Done and pushed: the security work (break-glass recovery, Council of Two, passkey strength per role, assisted recovery, reset sign-in methods, email sign-in link, faster approvals) and the **Menus module steps 1 to 10**: foundation, menus and choices, online pickup/delivery, kitchen screens, counter/till, tables and floor, self-order kiosk, chefs, kitchen operations, cakes and catering (first slice of cooking services).
+- Done and pushed: the security work (break-glass recovery, Council of Two, passkey strength per role, assisted recovery, reset sign-in methods, email sign-in link, faster approvals) and the **Menus module steps 1 to 10**: foundation, menus and choices, online pickup/delivery, kitchen screens, counter/till, tables and floor, self-order kiosk, chefs, kitchen operations, cakes and catering (first slice of cooking services), private chef (step 11).
 - Full backend suite: 1596 tests. Known failures, both unrelated to Menus: `ExampleTest` (home `/` gives 404, fails always) and `SecurityLogTest::test_the_lines_can_be_narrowed_by_how_serious_which_kind_who_and_when` (breaks after midnight Nairobi time). Note: `vendor/` and `node_modules/` are not in a fresh container: run `composer install --ignore-platform-reqs` (the lock wants PHP 8.4, the container has 8.3) and `npm ci`; then `git checkout backend/bootstrap/cache` so the tracked cache files are not committed.
 
 ## What the owner must do (not code)
 
-1. Run SQL scripts **132 to 143** in `backend/database/sql/` in MySQL Workbench, in order, each one separately. They are safe to run twice. Script 132 was fixed and should be re-run if it was run earlier.
+1. Run SQL scripts **132 to 144** in `backend/database/sql/` in MySQL Workbench, in order, each one separately. They are safe to run twice. Script 132 was fixed and should be re-run if it was run earlier.
 2. Admin → Menus → Settings (new: *Cakes and catering*: switch on, deposit %, quote days, catering notice; and set *Made to order: notice needed* on the dishes that are cakes): sales account, tip ledger, service-charge ledger and percentage, table-QR ordering switches. Then switch on the channels (online pickup/delivery, counter, kiosk) and make the stations, kiosks and chef profiles.
 3. Books → Settings → Default ledgers: **Stock Loss** and **Stock** (the waste log needs them). Turn on the **Purchase Order** voucher type. Set `reorder_level` on ingredient items.
 4. Keep the scheduler running. Menus jobs: `menus:sweep-orders` (every 5 min; also lapses old cake/catering quotes) and `menus:chef-certs` (daily 07:35). Also earlier: `access:seed`, `security:check`.
 
 ## Next work, in order
 
-1. **The rest of cooking services** (private chef, meal plans, cooking classes, pop-up dinners; see `MENUS_PLAN.md` section 5). Cakes and catering are done (step 10). Follow the same recipe (below).
+0. **Step 11 (private chef) has no tests yet**: the owner asked for tests and the mutation check to wait. Write them in `MenusCookingTest.php` (chef required on the quote, clash rule with the hour either side, re-check on accept, the chef told on deposit, duration and notice limits, public chefs only, script-144 guard when the columns are missing), run the suite, run the mutation check, then add a private-chef line to `frontend/e2e/menus-cooking-ui.mjs`.
+1. **Meal plans** (cooking classes and anything taught go to the **Courses** module by the owner's decision; private chef and cakes/catering are done). Follow the same recipe (below).
 2. **Courses** (plan in `docs/COURSES_PLAN.md`, written, nothing built yet; owner chose it before cooking services). Includes the Courses hook: The chef profile already has an "teaches" switch (`is_instructor`) waiting for it.
 3. Backlog from the "not built yet" lists (confirm priority with the owner before starting any):
    - Till: discounts, cash drawer and shift close, offline till (the owner wants this later), refunds from the till.

@@ -31,7 +31,7 @@ export default function MenusSettings() {
       const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
         tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
         qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
-        custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0 });
+        custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0 });
       setS(r.settings); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -67,11 +67,12 @@ export default function MenusSettings() {
               </div>
               <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
                 <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Cakes and catering</legend>
-                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.custom_orders)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_orders: e.target.checked }))} /> Take requests for cakes and catering online (page /menu/custom)</label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.custom_orders)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_orders: e.target.checked }))} /> Take requests for cakes, catering and a private chef online (page /menu/custom)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                   <Field label="Deposit to confirm (%)" htmlFor="ms-dep" hint="Paid when the customer accepts the quote."><NumberInput id="ms-dep" min="0" max="100" step="any" value={s.custom_deposit_pct ?? 50} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_deposit_pct: e.target.value }))} /></Field>
                   <Field label="A quote stays open (days)" htmlFor="ms-qd"><NumberInput id="ms-qd" min="1" max="90" value={s.custom_quote_days ?? 7} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_quote_days: e.target.value }))} /></Field>
                   <Field label="Least notice for catering (hours)" htmlFor="ms-lh" hint="Cakes use the notice set on each dish."><NumberInput id="ms-lh" min="0" max="720" value={s.custom_lead_hours ?? 72} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_lead_hours: e.target.value }))} /></Field>
+                  <Field label="Least notice for a private chef (hours)" htmlFor="ms-ch"><NumberInput id="ms-ch" min="0" max="720" value={s.chef_lead_hours ?? 48} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, chef_lead_hours: e.target.value }))} /></Field>
                 </div>
               </fieldset>
               {canEdit && <div><button type="button" style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }} disabled={busy || !ready} onClick={save}>{busy ? 'Saving…' : 'Save settings'}</button></div>}

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { CakeSlice, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
+import { CakeSlice, ChefHat, Plus, Trash2, UtensilsCrossed } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import Modal from '../../../core/components/admin/ui/Modal';
@@ -19,7 +19,10 @@ const TONE = { requested: 'warn', quoted: 'neutral', accepted: 'warn', confirmed
 const VERB = { preparing: 'Start preparing', ready: 'Ready', completed: 'Done' };
 const HOW = { pickup: 'Collected', delivery: 'Delivered to', serve: 'Served at' };
 
-function QuoteModal({ req, onClose, onDone }) {
+function QuoteModal({ req, chefs, onClose, onDone }) {
+  const isChef = req.kind === 'private_chef';
+  const [chef, setChef] = useState(req.chef_id ?? '');
+  const [minutes, setMinutes] = useState(req.duration_minutes ?? 180);
   const [lines, setLines] = useState(req.lines.length ? req.lines.map((l) => ({ dish_id: l.dish_id, name: l.name, quantity: l.quantity, per_head: l.per_head, unit_price: l.unit_price, note: l.note ?? '' }))
     : [{ dish_id: null, name: '', quantity: 1, per_head: false, unit_price: '', note: '' }]);
   const [headcount, setHeadcount] = useState(req.headcount ?? '');
@@ -34,15 +37,22 @@ function QuoteModal({ req, onClose, onDone }) {
     setBusy(true);
     try {
       const r = await menusAPI.quoteCooking(req.id, { lines: lines.map((l) => ({ dish_id: l.dish_id || undefined, name: l.name, quantity: l.per_head ? undefined : Number(l.quantity), per_head: l.per_head, unit_price: Number(l.unit_price), note: l.note || undefined })),
-        headcount: headcount === '' ? undefined : Number(headcount), deposit_pct: deposit === '' ? undefined : Number(deposit), valid_days: days === '' ? undefined : Number(days) });
+        headcount: headcount === '' ? undefined : Number(headcount), deposit_pct: deposit === '' ? undefined : Number(deposit), valid_days: days === '' ? undefined : Number(days),
+        ...(isChef ? { chef_id: chef ? Number(chef) : undefined, duration_minutes: Number(minutes) || undefined } : {}) });
       toast.success(r.message); onDone();
     } catch (e) { toast.error(errMsg(e, 'Could not send the quote'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
   return (
     <Modal title={`Quote · ${req.number}`} subtitle={`${req.kind_label} for ${req.name}, ${when(req.event_at)}`} onClose={onClose} width={720}
-      footer={<ModalActions onCancel={onClose} onSubmit={send} submitLabel="Send the quote" busyLabel="Sending…" busy={busy} disabled={lines.some((l) => !l.name.trim() || l.unit_price === '')} />}>
+      footer={<ModalActions onCancel={onClose} onSubmit={send} submitLabel="Send the quote" busyLabel="Sending…" busy={busy} disabled={lines.some((l) => !l.name.trim() || l.unit_price === '') || (isChef && !chef)} />}>
       <FormStack>
+        {isChef && (
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+            <Field label="Chef" htmlFor="q-chef" hint="The chef can not hold two jobs close together."><SelectInput id="q-chef" value={chef} onChange={(e) => setChef(e.target.value)}><option value="">Choose a chef</option>{chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput></Field>
+            <Field label="Stays (minutes)" htmlFor="q-min"><NumberInput id="q-min" min="60" max="720" step="30" value={minutes} onChange={(e) => setMinutes(e.target.value)} /></Field>
+          </div>
+        )}
         <div style={{ display: 'grid', gap: 8 }} data-testid="quote-lines">
           {lines.map((l, i) => (
             <div key={i} style={{ display: 'grid', gridTemplateColumns: '2fr 70px auto 110px auto', gap: 8, alignItems: 'end' }}>
@@ -72,6 +82,7 @@ export default function MenusCooking() {
   const canAct = canWriteFinance(user);
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('');
+  const [chefFilter, setChefFilter] = useState('');
   const [all, setAll] = useState(false);
   const [busy, setBusy] = useState(null);
   const [quoting, setQuoting] = useState(null);
@@ -79,7 +90,7 @@ export default function MenusCooking() {
   const [method, setMethod] = useState('');
   const [amount, setAmount] = useState('');
 
-  const load = useCallback(() => menusAPI.cooking({ ...(status ? { status } : {}), ...(all ? { all: 1 } : {}) }).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the requests'))), [status, all]);
+  const load = useCallback(() => menusAPI.cooking({ ...(status ? { status } : {}), ...(all ? { all: 1 } : {}), ...(chefFilter ? { chef_id: chefFilter } : {}) }).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the requests'))), [status, all, chefFilter]);
   useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, [load]);
 
   const move = async (r, to) => {
@@ -116,12 +127,17 @@ export default function MenusCooking() {
               {data && Object.entries(data.statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </SelectInput>
           </label>
+          {data && data.chefs && data.chefs.length > 0 && (
+            <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>Chef
+              <SelectInput aria-label="Chef" value={chefFilter} onChange={(e) => setChefFilter(e.target.value)} style={{ width: 'auto' }}><option value="">Everyone</option>{data.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput>
+            </label>
+          )}
           <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} /> Include the finished (last 60 days)</label>
         </div>
         {!data ? <p style={{ color: colors.textMuted, fontSize: '0.82rem' }}>Loading…</p> : rows.length === 0 ? <p style={{ color: colors.textFaint, fontSize: '0.85rem' }}>Nothing here.</p> : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(330px, 1fr))', gap: 14, alignItems: 'start' }}>
             {rows.map((r) => {
-              const Icon = r.kind === 'cake' ? CakeSlice : UtensilsCrossed;
+              const Icon = r.kind === 'cake' ? CakeSlice : r.kind === 'private_chef' ? ChefHat : UtensilsCrossed;
 
               return (
                 <article key={r.id} data-request={r.number} style={{ ...card, padding: 14, display: 'grid', gap: 8 }}>
@@ -131,7 +147,9 @@ export default function MenusCooking() {
                   </div>
                   <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>{when(r.event_at)}{r.headcount ? ` · ${r.headcount} people` : ''}</div>
                   <div style={{ fontSize: '0.84rem' }}>{r.name} · <a href={`tel:${r.phone}`}>{r.phone}</a></div>
-                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{HOW[r.fulfil]}{r.address ? `: ${r.address}` : ''}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{r.kind === 'private_chef' ? 'At their home' : HOW[r.fulfil]}{r.address ? `: ${r.address}` : ''}</div>
+                  {r.kind === 'private_chef' && <div style={{ fontSize: '0.84rem' }} data-testid="chef-line"><strong>{r.chef ?? 'No chef yet'}</strong>{r.duration_minutes ? ` · stays ${Math.round((r.duration_minutes / 60) * 10) / 10} h` : ''}{r.shopping_label ? ` · ${r.shopping_label}` : ''}</div>}
+                  {r.dietary && <p style={{ margin: 0, fontSize: '0.82rem', color: '#b45309' }}>Diets: {r.dietary}</p>}
                   {r.message && <p style={{ margin: 0, fontSize: '0.85rem' }}>On the cake: “{r.message}”</p>}
                   {r.wishes && <p style={{ margin: 0, fontSize: '0.85rem' }}>{r.wishes}</p>}
                   {r.notes && <p style={{ margin: 0, fontSize: '0.8rem', color: '#b45309' }}>Note: {r.notes}</p>}
@@ -163,7 +181,7 @@ export default function MenusCooking() {
           </div>
         )}
       </div>
-      {quoting && <QuoteModal req={quoting} onClose={() => setQuoting(null)} onDone={() => { setQuoting(null); load(); }} />}
+      {quoting && <QuoteModal req={quoting} chefs={data?.chefs ?? []} onClose={() => setQuoting(null)} onDone={() => { setQuoting(null); load(); }} />}
       {paying && (
         <Modal title={`Take payment · ${paying.number}`} subtitle={`${money(paying.balance)} still to pay`} onClose={() => setPaying(null)}
           footer={<ModalActions onCancel={() => setPaying(null)} onSubmit={take} submitLabel="Record payment" busyLabel="Recording…" busy={Boolean(busy)} disabled={!method || !(Number(amount) > 0)} />}>
