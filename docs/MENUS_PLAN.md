@@ -1,0 +1,154 @@
+# Menus module (food and drink) — plan
+
+Status: **plan only, nothing built yet.** Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes. Written after reading what already exists (below), so the module reuses it instead of rebuilding it.
+
+## 1. What the owner asked for
+
+A Menus module with a **differential layer** (the same food sold through different "ways in": kiosk, tables, counter, online…), plus **tables, chefs, ingredients, recipes, inventory and ingredient variants**. Later the **Courses** module can **sell recipes, teaching courses and cooking books**. There should also be **different kinds of cooking service** (catering, private chef, classes, custom cakes…).
+
+## 2. What already exists (so we do not rebuild it)
+
+| Need | Already built | How Menus uses it |
+|---|---|---|
+| Stock of ingredients, batches, expiry, first-expiring-first, held/recalled stock | Core stock engine (`stock_batches`, `stock_movements`, polymorphic `item_type`), purchases / goods received, transfers, counts, write-offs | Ingredients are stock items, bought and counted exactly like products |
+| Units and conversions (g ↔ kg, ml ↔ l, "each", packs) | `UnitOfMeasure.to_base_factor`, per-variant units | Recipes are written in small units, bought in big ones |
+| **Recipes and production** | `recipes`, `recipe_items`, `RecipeService`, `ProductionService`, Admin → Menus → Recipes. Two modes: **made ahead** (a production run turns ingredients into a costed batch) and **made to order** (a sale consumes the ingredients). Already filed under the Menus module key | Becomes the engine under every dish. We extend it, we do not replace it |
+| Places and what each may do | Locations with `produces`, `sells_to_customers`, `fulfils_orders` (script 97); per-location offering and price | A kitchen is a location that produces; a café, a food truck and a central kitchen are just locations |
+| Tables, rooms, staff, equipment that can be booked | `BookableResource` (types include `table`), hours, time off, buffers, bookings, calendar | Tables and the reservation of a table are bookable resources, no new booking engine |
+| Selling and money | Checkout, sales vouchers, payments (M-Pesa, card), credit, tax, books, refunds; guest checkout (as Events does) | A menu order is an ordinary sales order, so the books, VAT and cost of sales are right with no new accounting |
+| Quotes, deposits, projects | Quotes module, projects | Catering and custom cakes: quote → deposit → make → deliver |
+| Delivery | Delivery module (manifests, drivers, routes, ratings, proof) | Menu delivery orders ride the same drivers |
+| QR codes and labels | Codes module | A QR on every table and every kiosk |
+| Events and ticketing | Events module | Chef's table, pop-up dinners, paid cooking classes with a date |
+| Messages | Notification system (bell, email, WhatsApp) | "Your order is ready", "your table is free", kitchen alerts |
+| Services and packages with materials | Services, service materials (script 27), bookings | Private chef, cooking-lesson-at-home and similar are Services that already use stock |
+| Access | Roles and permissions engine | `menus.*` permissions, no role names in code |
+
+## 3. The shape of it
+
+### 3.1 The core idea: one kitchen, one menu catalogue, many ways in
+
+```
+Ingredients ─▶ Recipes ─▶ Dishes (menu items) ─▶ Menus (sections) ─▶ Channels ─▶ Orders ─▶ Kitchen stations (KDS) ─▶ Served
+ (stock)       (BOM,        (price, photo,         (breakfast,        (the         (sales      (grill, cold, bar…)
+               method)       allergens, options)    lunch, bar…)       differential  order)
+                                                                        layer)
+```
+
+### 3.2 The differential layer: **Channels**
+A **channel** is one way a customer or staff member orders. The same dish can be on all of them or only some, at different prices, hours and rules.
+
+| Channel | Who orders | Pays | Notes |
+|---|---|---|---|
+| **Dine-in, waiter** | Staff on a tablet/phone at the table | At the end (a *tab*), split bill, tips | Table must be open; orders go to the kitchen as rounds |
+| **Dine-in, QR at the table** | Guest scans the table QR | Pay now or add to the tab | Table is known from the QR; no sign-in needed |
+| **Kiosk** | Guest at a self-order screen in the venue | Pay at the screen or at the counter | Large-button mode, fixed to one location, auto-resets, no account |
+| **Counter / POS** | Cashier | Straight away (cash, M-Pesa, card) | Quick-service restaurants and cafés |
+| **Online takeaway / pickup** | Customer on the website | Online | Pickup time slots, prep time, order ahead |
+| **Online delivery** | Customer on the website | Online or on delivery | Uses the Delivery module, a delivery fee and zones |
+| **Catering / custom order** | Customer or staff | Deposit, balance later | Lead time, headcount, date, quote first (see §5) |
+
+Each channel carries its own: which menus are visible, **price override** (kiosk and online can differ from dine-in), opening hours, prep-time estimate, order type rules (needs a table? needs an address? needs a pickup slot?), payment rule (pay first / tab / either), and which **kitchen stations** receive it. A venue can switch a channel off without touching the menu.
+
+### 3.3 Ingredients and ingredient variants
+- **An ingredient is a stock item**, bought, received, counted and expired like any product, so purchases, batches, expiry, supplier bills and the stock reconciliation work with no new code.
+- ✋ **Decision A (the big one):** how do "variants" work for ingredients?
+  - **Recommended:** an **ingredient family** ("Wheat flour") with **variants** that are real stock items ("Exe 2 kg", "Pembe 24 kg", "Brown, organic"). A recipe line says *"200 g wheat flour"* and the kitchen consumes from a **preferred variant first, then allowed substitutes** (cheapest, or first-expiring). Costs follow the batch actually used. This is what a real kitchen does when a supplier is out.
+  - Simpler alternative: a recipe line points at one exact stock item only (what the current recipes do). Safe and already built, but a stock-out of that exact brand blocks the dish.
+- **Units:** recipes in g/ml/each, purchases in kg/l/packs, conversion by the existing unit tables. A **yield / waste %** per ingredient ("peeled potatoes lose 15 %") is part of the recipe line, so the cost and the stock use are honest.
+- **Not for sale by default:** ingredients are hidden from the shop. A flag lets an ingredient also be sold retail (spice jars, a bottle of house sauce).
+
+### 3.4 Recipes (the existing engine, extended)
+Today a recipe is a cost-and-stock list (yield, ingredients, made ahead / made to order). We add, without breaking what is there:
+- **Method**: ordered steps with a photo or short video, timings, equipment, notes. Separate from the stock list so a kitchen can print a *prep card* and a course can later publish the same content.
+- **Sub-recipes**: a sauce, dough or stock is itself a recipe that other recipes use (made ahead, with its own shelf life).
+- **Costing**: cost per portion from the real batch costs, margin against the menu price, and a "food cost %" flag when it drifts.
+- **Scaling**: write once for 1 portion, cook for 40.
+- **Allergens and diet tags** are set on ingredients and **inherited** by dishes (a dish is "contains nuts" because an ingredient is), with a manual override. Calories/nutrition can come later from the same data.
+- **Publishing level:** *internal* (kitchen only) or *publishable* (can appear on the website, and later in Courses). Default internal.
+
+### 3.5 Dishes, menus, sections, options
+- **Dish (menu item):** name, description, photos, price (tax-exclusive like everywhere), allergen and diet badges, prep time, station, availability, a link to its recipe.
+- **Menu:** a named set (Breakfast, Lunch, Dinner, Bar, Kids, Catering list) with days and hours; **sections** inside it; the same dish can be in several.
+- **Options and modifiers:** size, add-ons ("extra cheese +50"), removals ("no onion"), required choices ("choose a side"), **combos / set meals**. A modifier can **use extra ingredients** (extra cheese consumes cheese) or remove some, so stock stays right.
+- **Availability** follows stock automatically: a made-to-order dish disappears (or says "sold out") when an ingredient cannot cover one more portion; staff can also "86" a dish by hand for the day. Per-location offering and price override use the axes that already exist.
+- ✋ **Decision B:** the recommended link to money and stock is that **every dish owns a hidden finished-item stock variant**, created automatically. Then vouchers, cost of sales, refunds, credit notes, batches and `ProductionService` all work unchanged, and `menu_items` only add the presentation (sections, modifiers, allergens, channels). The alternative (a separate sellable type) means teaching the books and stock about a new thing: more work and more risk.
+
+### 3.6 Tables and the floor
+- **Floor plans** per location: areas (indoor, patio, bar), tables with seats, drag-to-arrange layout; a table is a `BookableResource` of type `table`, so **reservations** use the bookings engine and show in the calendar.
+- **Table states:** free → reserved → seated → ordered → eating → bill asked → paying → cleaning → free. One tap to move each; staff see the whole floor at a glance.
+- **Table QR:** each table has a printed QR (Codes module) that opens that table's menu; opening a table by QR needs the table to be *open* (seated by staff) or allowed open-by-scan (setting).
+- **Merge / move / split a table**, transfer an order between tables, **split the bill** by item, by seat or equally, **tips and optional service charge** (a setting, off by default).
+
+### 3.7 Chefs and the kitchen
+- **Chefs are staff** (existing employees and users) with a **kitchen profile**: stations they work (grill, cold, pastry, bar), certifications (food-handler certificate with expiry date, using the existing document/vault dates), a public bio and photo that can show on the website ("Chef Wanjiru"), and later **become an instructor in Courses**.
+- **Stations and KDS (kitchen display):** each station has a screen showing its tickets, the timer, allergens and modifiers in bold; a chef taps *started* → *ready*; when every station for a table's round is ready the waiter is alerted. **Expo** screen for the pass. Optional printed ticket fallback.
+- **Rota and time** reuse the attendance and scheduling that exist. Dish → station routing is configured per dish.
+- **Roles (permissions, seeded):** `menus.view`, `menus.edit`, `menus.recipes`, `menus.orders`, `menus.floor`, `menus.kitchen`, `menus.pos`, `menus.refund`, `menus.reports`, `menus.settings`.
+
+### 3.8 Inventory and kitchen operations
+- **Made to order:** a sale consumes the ingredients (already built). **Made ahead:** production runs, batch, shelf life (already built), plus a **prep list** generated from tomorrow's reservations and sales history.
+- **Waste log** (spoilage, over-prep, plate waste, staff meal) with a reason, valued at cost: feeds food-cost reports and the stock count.
+- **Reorder suggestions:** from par levels and forecast use, creating a purchase draft for the supplier.
+- **Theoretical vs actual usage:** what the recipes say should have been used vs what the counts show was used; the gap is the leak (waste, theft, over-portioning).
+- **Central kitchen → branches:** production at a location with `produces`, then the existing **stock transfers** to cafés.
+
+## 4. Orders and money
+- A menu order is a normal **sales order**, so the books, VAT, discounts, loyalty and refunds already apply. Tabs are an open order that is settled at the end. Tips and service charge post to their own ledgers.
+- **Order lifecycle:** received → accepted → preparing → ready → (served | picked up | out for delivery | delivered) → closed; or cancelled / refunded with a reason. Customers see it live on their phone ("My orders").
+- **Notifications (new types):** `menu_order_received`, `menu_order_ready`, `menu_order_delayed`, `menu_table_ready`, `menu_reservation`, plus **staff** alerts (new online order, order waiting too long, ingredient low, certificate expiring).
+- **Payments at the table:** guest pays by M-Pesa STK prompt from the QR page; waiter can take card/cash and close the tab.
+- **Offline-tolerant POS:** the waiter app should keep working through a short internet drop and sync after (a decision for the build, see §7).
+
+## 5. "Different kinds of cooking service"
+
+These reuse existing modules. Menus supplies the food side (recipes, costing, ingredients); the booking and money side already exists.
+
+| Service | How it is sold | Built from |
+|---|---|---|
+| **Restaurant / café** | Channels above | Menus |
+| **Catering (events, weddings, offices)** | Request → **quote** (per head, packages, add-ons) → **deposit** → balance → prepare → deliver or serve; ingredient needs pulled into a prep and purchase list | Quotes + Menus catering list + Delivery + Events if ticketed |
+| **Custom cakes / made-to-order bakes** | Customer picks a base, size, flavour, message; **lead time** by item, **deposit**, **pickup/delivery date and slot**, photo reference | Menus (lead-time dishes) + deposits |
+| **Private chef at home** | A **Service** with packages (dinner for 6, weekly cook); a chef is the booked resource; ingredients shopped or stocked | Services + Bookings + the chef profile |
+| **Meal prep / weekly meal plans / office lunch subscriptions** | A plan the customer subscribes to, a rotating weekly menu, skip-a-day, delivery days | Menus + **Memberships** (later) + Delivery |
+| **Cooking classes** | A dated class with a chef and a seat count | **Events** now; **Courses** later (see §6) |
+| **Chef's table / pop-up dinners** | Ticketed set menu | Events + a fixed menu |
+| **Food truck / outside catering** | A location (mobile) with its own channel and stock | Locations |
+
+## 6. Hooks for Courses (later), so we design for it now
+- A **recipe is structured data** (ingredients, quantities, steps, media), so a **Courses lesson can embed a recipe** and a **recipe card or cookbook chapter** can be generated from it.
+- **Sellable content:** recipe packs and cooking books are products (physical or **digital download**, which the platform plan already lists), a course is a Courses item taught by a chef from the chef profile; a class can have both a live Event date and a Course for the video version.
+- **"Cook it" button:** from a course or recipe page, "add the ingredients to the basket" buys the ingredient list from the shop, using the ingredient variants as the product choices. This is the real payoff of selling ingredients retail and of the *publishable* flag on recipes.
+- **Rule:** a recipe made *publishable* never exposes cost, supplier or margin; those stay internal.
+
+## 7. Decisions needed from the owner (what changes the build)
+1. **First business to serve** and its size: a single restaurant/café, a bakery/cake business, a catering kitchen, or a multi-branch brand? This sets the order of the phases below.
+2. **Ingredient variants** (Decision A): ingredient families with preferred and substitute variants (recommended), or one exact item per recipe line.
+3. **Dish ↔ stock link** (Decision B): hidden finished-item variant per dish (recommended) vs a new sellable type.
+4. **Which channels first:** the recommended order is online pickup/delivery → counter/POS → dine-in with tables → kiosk, because the first uses the checkout that exists.
+5. **Kitchen screens:** KDS on a tablet/monitor, printed tickets, or both. (Hardware is the owner's; we build the screens.)
+6. **Tips and service charge** in scope for the first release, or later?
+7. **Offline POS** needed (spotty internet at the venue), or online-only first?
+8. **Allergen promise:** we show allergens, but the business is responsible for what it declares; wording to be agreed (a disclaimer line on the menu).
+9. **Table QR ordering without a sign-in:** allowed (recommended, like Events guest checkout)?
+
+## 8. Build order (each step tested and pushed, like Events and Security)
+1. **Foundation:** module registration and permissions; ingredient families and variants with substitutes; recipe upgrade (method steps, sub-recipes, yield/waste, scaling, costing, allergens inherited); the dish ↔ stock link. *No customer-facing screens yet.*
+2. **Menus and dishes:** menus, sections, dishes, options/modifiers (with ingredient use), availability from stock, "86" a dish; admin screens and the **public menu page**.
+3. **First channel: online pickup and delivery:** pickup slots and prep time, checkout, order lifecycle, notifications, "My menu orders", reorder.
+4. **Kitchen:** stations, KDS, expo, printed ticket fallback, order timers.
+5. **Counter / POS and tabs:** cashier screen, payments, receipts, tips.
+6. **Tables and floor:** floor plan, table states, reservations (bookings), table QR ordering, split and merge bills.
+7. **Kiosk mode.**
+8. **Chefs:** kitchen profiles, certificates, public chef pages.
+9. **Operations:** waste log, prep list, reorder suggestions, theoretical vs actual usage, food-cost and sales reports.
+10. **Cooking services:** catering quotes and deposits, custom cakes with lead time, private chef service, meal plans.
+11. **Courses hook** (when Courses starts): publishable recipes, "cook it" basket, chefs as instructors.
+
+## 9. Data (database scripts, numbered from 132; exact list fixed when step 1 starts)
+New tables, all `menus_*`-prefixed and added to the Menus backup list: ingredient families and their variant links with substitute order, recipe method steps, sub-recipe links, allergens and diet tags, menus, sections, dishes, option groups and options (with ingredient use), channels with their rules and prices, kitchen stations, orders' kitchen tickets, floor plans and tables (linked to `bookable_resources`), tabs and bill splits, waste log, chef kitchen profiles. Existing `recipes` / `recipe_items` keep working unchanged.
+
+## 10. What I will not do without asking
+- Change how the books, VAT or cost of sales work.
+- Reinterpret any existing recipe: today's recipes stay valid and keep behaving as they do.
+- Add hardware-specific code (printers, card readers) in the first releases.
