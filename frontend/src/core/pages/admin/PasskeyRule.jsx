@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, Fingerprint, ShieldCheck } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import SecurityNav from '../../components/admin/SecurityNav';
 import HubHeader from '../../components/admin/ui/HubHeader';
 import SimpleTable from '../../components/admin/ui/SimpleTable';
 import { Field, SelectInput, TextInput } from '../../components/admin/ui/Form';
@@ -117,6 +118,7 @@ export default function PasskeyRule() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="passkey-rule">
+        <SecurityNav />
         <HubHeader title="Who must use a passkey" description="A passkey is a fingerprint, face or screen PIN on a device the person holds. Staff who can move money or change who may do what can be asked to sign in with one, so a stolen password alone is not enough." />
 
         {data && !data.ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.84rem' }}>{data.message}</p>}

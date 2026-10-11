@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import SecurityNav from '../../components/admin/SecurityNav';
 import HubHeader, { Toolbar } from '../../components/admin/ui/HubHeader';
 import SimpleTable from '../../components/admin/ui/SimpleTable';
 import { SelectInput, TextInput } from '../../components/admin/ui/Form';
@@ -103,6 +104,7 @@ export default function SecurityLog() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
+        <SecurityNav />
         <HubHeader title="Sign-in log" description="Who signed in, wrong passwords, people made to wait, requests turned away and alerts. Lines are only ever added; routine ones are kept for 90 days, alerts for two years." />
         {!data.ready && <p role="status" style={{ margin: '0 0 12px', fontSize: '0.82rem', color: colors.textMuted }}>{data.message}</p>}
 

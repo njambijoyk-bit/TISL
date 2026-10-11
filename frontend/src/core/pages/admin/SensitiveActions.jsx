@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertTriangle, KeyRound, ShieldAlert } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import SecurityNav from '../../components/admin/SecurityNav';
 import HubHeader from '../../components/admin/ui/HubHeader';
 import securityAPI from '../../../_shared/api/security';
 import { useAuthStore } from '../../../_shared/store/index';
@@ -167,6 +168,7 @@ export default function SensitiveActions() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }} data-testid="sensitive-actions">
+        <SecurityNav />
         <HubHeader title="Sensitive actions" description="For the things that can move money or change who may do what, ask the person for one more step: their passkey (fingerprint, face or screen PIN), or their password until they have a passkey. Start every one in Test, look at how often it would have asked, then switch it on." />
 
         {data && !data.ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.84rem' }}>{data.message}</p>}

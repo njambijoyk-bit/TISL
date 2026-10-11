@@ -4,7 +4,7 @@ import {
   Users, ChevronRight, Ruler, BrainCircuit, Vault, Network, Palette, Compass, Blocks,
   Settings as SettingsIcon, FootprintsIcon, Truck,
   BellRing, KeyRound, Building2, PieChart, CalendarClock, ShieldCheck, MessagesSquare, MapPin, DatabaseBackup,
-  ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle,
+  ChevronDown, ChevronUp, Copy, ArrowRight, AlertCircle, ScrollText, Fingerprint, ShieldAlert, UserCheck,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../../../_shared/store/authStore';
@@ -39,6 +39,10 @@ const LOOK = {
   '/admin/settings/stock':            { icon: CalendarClock,  bg: 'linear-gradient(135deg,#b45309,#fbbf24)', color: '#fbbf24' },
   '/admin/settings/payments':         { icon: KeyRound,       bg: 'linear-gradient(135deg,#15803d,#4ade80)', color: '#4ade80' },
   '/admin/settings/notifications':    { icon: BellRing,       bg: 'linear-gradient(135deg,#c026d3,#e879f9)', color: '#e879f9' },
+  '/admin/security':                  { icon: ScrollText,     bg: 'linear-gradient(135deg,#0369a1,#38bdf8)', color: '#38bdf8' },
+  '/admin/security/passkeys':         { icon: Fingerprint,    bg: 'linear-gradient(135deg,#047857,#34d399)', color: '#34d399' },
+  '/admin/security/actions':          { icon: ShieldAlert,    bg: 'linear-gradient(135deg,#c2410c,#fb923c)', color: '#fb923c' },
+  '/admin/security/approvals':        { icon: UserCheck,      bg: 'linear-gradient(135deg,#6d28d9,#a78bfa)', color: '#a78bfa' },
   '/admin/access':                    { icon: ShieldCheck,    bg: 'linear-gradient(135deg,#4338ca,#818cf8)', color: '#818cf8' },
   '/admin/settings/engagement':       { icon: MessagesSquare, bg: 'linear-gradient(135deg,#e11d48,#fb7185)', color: '#fb7185' },
   '/admin/settings/locations':        { icon: MapPin,         bg: 'linear-gradient(135deg,#0f766e,#2dd4bf)', color: '#2dd4bf' },

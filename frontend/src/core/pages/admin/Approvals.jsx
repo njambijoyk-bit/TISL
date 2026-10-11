@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Fingerprint, ShieldAlert, Users } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
+import SecurityNav from '../../components/admin/SecurityNav';
 import HubHeader from '../../components/admin/ui/HubHeader';
 import councilAPI from '../../../_shared/api/council';
 import recoveryRequestsAPI from '../../../_shared/api/recoveryRequests';
@@ -228,6 +229,7 @@ export default function Approvals() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 760, margin: '0 auto' }} data-testid="approvals">
+        <SecurityNav />
         <HubHeader title="Approvals" description="For the most serious actions, one person is not enough: a second person who can do it too has to look at the same details and approve. Requests that are waiting for you are here, and so is help for a colleague who has lost their way back into their account." />
         {data && !data.ready && !help?.ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.84rem' }}>Asking a second person is not set up yet: run database scripts 129 and 130 in Workbench.</p>}
         {gone && <p role="status" data-testid="approvals-gone" style={{ ...card, padding: 14, fontSize: '0.84rem', marginBottom: 14 }}>The request in that alert is no longer open: it was answered, stopped or ran out.</p>}
