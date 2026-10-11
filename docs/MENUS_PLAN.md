@@ -121,7 +121,16 @@ These reuse existing modules. Menus supplies the food side (recipes, costing, in
 - **"Cook it" button:** from a course or recipe page, "add the ingredients to the basket" buys the ingredient list from the shop, using the ingredient variants as the product choices. This is the real payoff of selling ingredients retail and of the *publishable* flag on recipes.
 - **Rule:** a recipe made *publishable* never exposes cost, supplier or margin; those stay internal.
 
-## 7. Decisions needed from the owner (what changes the build)
+## 7. Decisions
+
+✔ **Decided by the owner:**
+- **First business: all of them** (restaurant/café, bakery and custom cakes, catering kitchen, multi-branch brand). So nothing in the foundation may assume one kind of business: channels, lead times, deposits, central kitchen and per-branch menus are all designed in from step 1, and the build order in section 8 is kept (it starts with what every one of them needs).
+- **Ingredient variants: families with preferred and substitute variants** (Decision A, recommended option).
+- **Dish link: a hidden finished-item stock variant per dish** (Decision B, recommended option).
+
+**Still open (I will use the recommended answer unless told otherwise):** items 4 to 9 below.
+
+### Decisions needed from the owner (what changes the build)
 1. **First business to serve** and its size: a single restaurant/café, a bakery/cake business, a catering kitchen, or a multi-branch brand? This sets the order of the phases below.
 2. **Ingredient variants** (Decision A): ingredient families with preferred and substitute variants (recommended), or one exact item per recipe line.
 3. **Dish ↔ stock link** (Decision B): hidden finished-item variant per dish (recommended) vs a new sellable type.
