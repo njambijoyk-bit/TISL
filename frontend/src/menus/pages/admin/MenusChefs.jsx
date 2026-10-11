@@ -130,6 +130,7 @@ export default function MenusChefs() {
                     </div>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                       {c.on_duty && <Pill tone="ok"><UserCheck size={11} aria-hidden="true" /> On duty</Pill>}
+                      {c.rostered_today && <Pill tone="neutral">Rota today {c.rostered_today}</Pill>}
                       {c.is_public ? <Pill tone="ok">Shown to guests</Pill> : <Pill>Not shown</Pill>}
                       {c.is_instructor && <Pill>Teaches</Pill>}
                       {!c.is_active && <Pill tone="danger">Not working here</Pill>}

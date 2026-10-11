@@ -172,14 +172,15 @@ class ChefService
         $today ??= today();
         $duty = $this->onDuty($today);
         $stations = KitchenService::installed() ? Station::pluck('name', 'id') : collect();
+        $rostered = app(RotaService::class)->rosteredOn($today);   // (script 145; empty until it is run)
 
-        return Chef::with('user:id,name,email', 'certs')->orderBy('sort_order')->orderBy('display_name')->get()->map(function (Chef $c) use ($today, $duty, $stations) {
+        return Chef::with('user:id,name,email', 'certs')->orderBy('sort_order')->orderBy('display_name')->get()->map(function (Chef $c) use ($today, $duty, $stations, $rostered) {
             $certs = $c->certs->map(fn (ChefCert $x) => ['id' => $x->id, 'kind' => $x->kind, 'kind_label' => ChefCert::KINDS[$x->kind] ?? $x->kind, 'name' => $x->name, 'number' => $x->number, 'issued_on' => $x->issued_on?->toDateString(),
                 'expires_on' => $x->expires_on?->toDateString(), 'standing' => $x->standing($today), 'days_left' => $x->expires_on ? (int) $today->copy()->startOfDay()->diffInDays($x->expires_on, false) : null, 'notes' => $x->notes])->values()->all();
 
             return ['id' => $c->id, 'user_id' => $c->user_id, 'user' => $c->user?->name, 'email' => $c->user?->email, 'display_name' => $c->display_name, 'title' => $c->title, 'bio' => $c->bio, 'photo' => $c->photo,
                 'station_ids' => $c->station_ids ?? [], 'stations' => collect($c->station_ids ?? [])->map(fn ($id) => $stations[$id] ?? null)->filter()->values()->all(), 'is_instructor' => $c->is_instructor, 'is_public' => $c->is_public,
-                'is_active' => $c->is_active, 'sort_order' => $c->sort_order, 'on_duty' => in_array((int) $c->user_id, $duty, true), 'certs' => $certs,
+                'is_active' => $c->is_active, 'sort_order' => $c->sort_order, 'on_duty' => in_array((int) $c->user_id, $duty, true), 'rostered_today' => $rostered[$c->id] ?? null, 'certs' => $certs,
                 'attention' => count(array_filter($certs, fn ($x) => in_array($x['standing'], ['expiring', 'expired'], true))), 'dishes' => Schema::hasColumn('menus_dishes', 'chef_id') ? Dish::where('chef_id', $c->id)->count() : 0];
         })->values()->all();
     }

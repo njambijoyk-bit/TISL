@@ -77,7 +77,7 @@ class MenusDishController extends Controller
     public function saveSettings(Request $request): JsonResponse
     {
         $d = $request->validate(['sales_ledger_id' => 'nullable|integer', 'category_id' => 'nullable|integer', 'allergen_note' => 'nullable|string|max:600', 'receipt_footer' => 'nullable|string|max:200',
-            'tip_ledger_id' => 'nullable|integer', 'service_charge_ledger_id' => 'nullable|integer', 'service_charge_pct' => 'nullable|numeric|min:0|max:30', 'custom_orders' => 'nullable|boolean', 'custom_deposit_pct' => 'nullable|numeric|min:0|max:100', 'custom_quote_days' => 'nullable|numeric|min:1|max:90', 'custom_lead_hours' => 'nullable|numeric|min:0|max:720', 'chef_lead_hours' => 'nullable|numeric|min:0|max:720', 'qr_ordering' => 'nullable|boolean', 'qr_open_by_scan' => 'nullable|boolean']);
+            'tip_ledger_id' => 'nullable|integer', 'service_charge_ledger_id' => 'nullable|integer', 'service_charge_pct' => 'nullable|numeric|min:0|max:30', 'custom_orders' => 'nullable|boolean', 'custom_deposit_pct' => 'nullable|numeric|min:0|max:100', 'custom_quote_days' => 'nullable|numeric|min:1|max:90', 'custom_lead_hours' => 'nullable|numeric|min:0|max:720', 'chef_lead_hours' => 'nullable|numeric|min:0|max:720', 'rota_max_week_hours' => 'nullable|numeric|min:1|max:120', 'rota_min_rest_hours' => 'nullable|numeric|min:0|max:24', 'qr_ordering' => 'nullable|boolean', 'qr_open_by_scan' => 'nullable|boolean']);
 
         return $this->guard(fn () => response()->json(['message' => 'Menus settings saved.', 'settings' => MenusSettings::save($d, $request->user()?->id)]));
     }

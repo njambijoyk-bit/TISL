@@ -396,21 +396,43 @@ class CookingService
         $this->assertFree($r);
     }
 
-    /** Refuse when the chef already holds a job (accepted, confirmed or being prepared) that overlaps this one, with an hour either side to get there. */
+    /** A private chef job (accepted, confirmed or being prepared) this chef holds that overlaps this time, with the travel time either side. */
+    public function heldJob(int $chefId, Carbon $start, Carbon $end, int $exceptId = 0): ?CookingRequest
+    {
+        if (! self::chefInstalled()) {
+            return null;
+        }
+        $from = $start->copy()->subMinutes(self::TRAVEL_MINUTES);
+        $to = $end->copy()->addMinutes(self::TRAVEL_MINUTES);
+
+        return CookingRequest::where('chef_id', $chefId)->where('id', '!=', $exceptId)->whereIn('status', ['accepted', 'confirmed', 'preparing'])
+            ->whereBetween('event_at', [$from->copy()->subHours(13), $to])->get()
+            ->first(fn ($o) => $o->event_at->copy()->addMinutes(($o->duration_minutes ?: 180))->gt($from) && $o->event_at->lt($to));
+    }
+
+    /**
+     * Refuse when the chef already holds a job that overlaps this one (an hour either side to get there), is off that day, or is rostered at the kitchen then.
+     * The rota is only asked when its script has been run.
+     */
     private function assertFree(CookingRequest $r): void
     {
         if (! $r->chef_id || ! self::chefInstalled()) {
             return;
         }
-        $mine = $r->duration_minutes ?: 180;
-        $from = $r->event_at->copy()->subMinutes(self::TRAVEL_MINUTES);
-        $to = $r->event_at->copy()->addMinutes($mine + self::TRAVEL_MINUTES);
-        $clash = CookingRequest::where('chef_id', $r->chef_id)->where('id', '!=', $r->id ?: 0)->whereIn('status', ['accepted', 'confirmed', 'preparing'])
-            ->whereBetween('event_at', [$from->copy()->subHours(13), $to])->get()
-            ->first(fn ($o) => $o->event_at->copy()->addMinutes(($o->duration_minutes ?: 180))->gt($from) && $o->event_at->lt($to));
-        if ($clash) {
-            $name = Chef::whereKey($r->chef_id)->value('display_name') ?: 'That chef';
+        $start = $r->event_at->copy();
+        $end = $start->copy()->addMinutes($r->duration_minutes ?: 180);
+        $name = Chef::whereKey($r->chef_id)->value('display_name') ?: 'That chef';
+        if ($clash = $this->heldJob((int) $r->chef_id, $start, $end, (int) $r->id)) {
             throw new BooksException("{$name} already has a job on {$clash->event_at->copy()->timezone($this->tz())->format('D j M, H:i')} that is too close to this one.");
+        }
+        if (RotaService::installed()) {
+            $rota = app(RotaService::class);
+            if ($off = $rota->offDuring((int) $r->chef_id, $start, $end)) {
+                throw new BooksException("{$name} is off from {$off->from_date->format('D j M')} to {$off->to_date->format('D j M')}.");
+            }
+            if ($shift = $rota->shiftClash((int) $r->chef_id, $start, $end, self::TRAVEL_MINUTES)) {
+                throw new BooksException("{$name} works at the kitchen on {$shift->shift_date->format('D j M')}, ".substr((string) $shift->starts_at, 0, 5).' to '.substr((string) $shift->ends_at, 0, 5).', too close to this job.');
+            }
         }
     }
 

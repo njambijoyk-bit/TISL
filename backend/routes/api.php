@@ -691,6 +691,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/operations/prep', [$op, 'prep']);
         Route::get('/operations/reorder', [$op, 'suggest']);
         Route::get('/operations/waste', [$op, 'wasteIndex']);
+        $ro = \App\Http\Controllers\Admin\MenusRotaController::class;
+        Route::get('/rota', [$ro, 'index']);
+        Route::get('/rota/mine', [$ro, 'mine']);
+        Route::post('/rota/days-off', [$ro, 'requestOff']);
+        Route::post('/rota/days-off/{id}/cancel', [$ro, 'cancelOff'])->whereNumber('id');
         $ck = \App\Http\Controllers\Admin\MenusCookingController::class;
         Route::get('/custom', [$ck, 'index']);
         Route::get('/custom/{id}', [$ck, 'show'])->whereNumber('id');
@@ -705,7 +710,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kitchen/stations', [$kc, 'stations']);
         Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
         Route::get('/kitchen/expo', [$kc, 'expo']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch, $op, $ck) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch, $op, $ck, $ro) {
             Route::post('/floor/areas', [$fc, 'saveArea']);
             Route::put('/floor/areas/{id}', [$fc, 'saveArea'])->whereNumber('id');
             Route::delete('/floor/areas/{id}', [$fc, 'deleteArea'])->whereNumber('id');
@@ -717,6 +722,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/operations/reorder', [$op, 'makeOrders']);
             Route::post('/operations/waste', [$op, 'wasteStore']);
             Route::post('/operations/waste/{id}/void', [$op, 'wasteVoid'])->whereNumber('id');
+            Route::post('/rota/shifts', [$ro, 'saveShift']);
+            Route::put('/rota/shifts/{id}', [$ro, 'saveShift'])->whereNumber('id');
+            Route::delete('/rota/shifts/{id}', [$ro, 'deleteShift'])->whereNumber('id');
+            Route::post('/rota/publish', [$ro, 'publish']);
+            Route::post('/rota/copy', [$ro, 'copy']);
+            Route::post('/rota/days-off/{id}/decide', [$ro, 'decide'])->whereNumber('id');
             Route::post('/custom/{id}/quote', [$ck, 'quote'])->whereNumber('id');
             Route::post('/custom/{id}/status', [$ck, 'status'])->whereNumber('id');
             Route::post('/custom/{id}/pay', [$ck, 'pay'])->whereNumber('id');

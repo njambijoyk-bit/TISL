@@ -1,0 +1,185 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Location;
+use App\Models\Menus\Chef;
+use App\Models\Menus\DayOff;
+use App\Models\Menus\Shift;
+use App\Models\Menus\Station;
+use App\Services\Access\Authorizer;
+use App\Services\Access\BranchFilter;
+use App\Services\Books\BooksException;
+use App\Services\Menus\KitchenService;
+use App\Services\Menus\MenusSettings;
+use App\Services\Menus\RotaService;
+use App\Services\Notify\Staff;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+/**
+ * Menus → Rota: the week of shifts, publishing it, and time off. Any Menus user may read the rota, see their own shifts and ask for time off; changing shifts, publishing and deciding
+ * on time off need menus.manage. Shifts belong to a branch, so a person only sees and changes the branches they are cleared for.
+ */
+class MenusRotaController extends Controller
+{
+    public function __construct(private RotaService $rota, private BranchFilter $branches, private Authorizer $access, private Staff $staff)
+    {
+    }
+
+    private function guard(callable $fn): JsonResponse
+    {
+        try {
+            abort_unless(RotaService::installed(), 422, 'Run database script 145_menus_rota.sql first.');
+
+            return $fn();
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    private function manager(Request $request): bool
+    {
+        return $this->access->allows($request->user(), 'menus.manage');
+    }
+
+    private function shift(int $id): Shift
+    {
+        $s = Shift::findOrFail($id);
+        $this->branches->assertVisible((int) $s->location_id, 'stock', 'the rota');
+
+        return $s;
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        if (! RotaService::installed()) {
+            return response()->json(['ready' => false]);
+        }
+        $d = $request->validate(['week' => 'nullable|date', 'location_id' => 'nullable|integer']);
+        $week = $this->rota->week($this->rota->monday($d['week'] ?? null), $d['location_id'] ?? null, fn ($q) => $this->branches->apply($q, 'location_id', 'stock', 'the rota'));
+        $settings = MenusSettings::all();
+
+        return response()->json(['ready' => true, 'can_manage' => $this->manager($request), 'me' => Chef::where('user_id', $request->user()->id)->value('id')] + $week + [
+            'locations' => Location::query()->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values(),
+            'stations' => KitchenService::installed() ? Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : [],
+            'limits' => ['max_week_hours' => $settings['rota_max_week_hours'], 'min_rest_hours' => $settings['rota_min_rest_hours']], 'kinds' => DayOff::KINDS]);
+    }
+
+    public function mine(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => response()->json($this->rota->mine($request->user()) + ['kinds' => DayOff::KINDS]));
+    }
+
+    private function shiftRules(): array
+    {
+        return ['chef_id' => 'nullable|integer', 'location_id' => 'nullable|integer', 'station_id' => 'nullable|integer', 'date' => 'nullable|date', 'starts_at' => 'nullable|string|max:8', 'ends_at' => 'nullable|string|max:8', 'note' => 'nullable|string|max:200'];
+    }
+
+    public function saveShift(Request $request, ?int $id = null): JsonResponse
+    {
+        $d = $request->validate($this->shiftRules());
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $shift = $id ? $this->shift($id) : null;
+            if (! empty($d['location_id'])) {
+                $this->branches->assertVisible((int) $d['location_id'], 'stock', 'the rota');
+            }
+            $r = $this->rota->saveShift($d, $shift, $request->user());
+
+            return response()->json(['message' => 'Shift saved.', 'shift' => $this->rota->shiftRow($r['shift']), 'warnings' => $r['warnings']], $id ? 200 : 201);
+        });
+    }
+
+    public function deleteShift(int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id) {
+            $this->rota->deleteShift($this->shift($id));
+
+            return response()->json(['message' => 'Shift removed.']);
+        });
+    }
+
+    public function publish(Request $request): JsonResponse
+    {
+        $d = $request->validate(['week' => 'required|date', 'location_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($d) {
+            if (! empty($d['location_id'])) {
+                $this->branches->assertVisible((int) $d['location_id'], 'stock', 'the rota');
+            }
+            $n = $this->rota->publish($this->rota->monday($d['week']), $d['location_id'] ?? null);
+
+            return response()->json(['message' => $n ? "Published {$n} shift(s). Each chef has been told." : 'There was nothing new to publish.', 'published' => $n]);
+        });
+    }
+
+    public function copy(Request $request): JsonResponse
+    {
+        $d = $request->validate(['from' => 'required|date', 'to' => 'required|date', 'location_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($d, $request) {
+            if (! empty($d['location_id'])) {
+                $this->branches->assertVisible((int) $d['location_id'], 'stock', 'the rota');
+            }
+            $r = $this->rota->copyWeek($this->rota->monday($d['from']), $this->rota->monday($d['to']), $d['location_id'] ?? null, $request->user());
+
+            return response()->json(['message' => "Copied {$r['copied']} shift(s) as drafts.".($r['skipped'] ? ' '.count($r['skipped']).' left out.' : '')] + $r);
+        });
+    }
+
+    /** A chef asks for time off for themselves; a manager records it for someone (approved at once). Nobody approves their own while someone else could. */
+    public function requestOff(Request $request): JsonResponse
+    {
+        $d = $request->validate(['chef_id' => 'nullable|integer', 'from' => 'required|date', 'to' => 'nullable|date', 'kind' => 'nullable|string|max:10', 'reason' => 'nullable|string|max:300']);
+
+        return $this->guard(function () use ($d, $request) {
+            $me = $request->user();
+            $mine = Chef::where('user_id', $me->id)->first();
+            $chef = ! empty($d['chef_id']) ? Chef::findOrFail((int) $d['chef_id']) : $mine;
+            if (! $chef) {
+                throw new BooksException('You do not have a chef profile: choose the chef the time off is for.');
+            }
+            $own = $mine && $mine->id === $chef->id;
+            if (! $own && ! $this->manager($request)) {
+                abort(403, 'Only a manager can record time off for someone else.');
+            }
+            $record = ! $own;
+            $off = $this->rota->requestDayOff($chef, $d, $me, $record);
+
+            return response()->json(['message' => $record ? 'Time off recorded.' : 'Your request has been sent.', 'dayoff' => $this->rota->dayOffRow($off)], 201);
+        });
+    }
+
+    public function decide(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['decision' => 'required|string|in:approved,declined', 'note' => 'nullable|string|max:300']);
+
+        return $this->guard(function () use ($d, $id, $request) {
+            $off = DayOff::findOrFail($id);
+            $chef = Chef::find($off->chef_id);
+            $others = $this->staff->holding('menus.manage')->where('id', '!=', $request->user()->id)->count();
+            if ($chef && $chef->user_id === $request->user()->id && $others > 0) {
+                throw new BooksException('Someone else has to decide your own time off.');
+            }
+            $r = $this->rota->decide($off, $d['decision'], $d['note'] ?? null, $request->user());
+
+            return response()->json(['message' => $d['decision'] === 'approved' ? 'Approved.'.($r['shifts_removed'] ? " {$r['shifts_removed']} shift(s) came off the rota." : '') : 'Declined.',
+                'dayoff' => $this->rota->dayOffRow($r['dayoff']), 'shifts_removed' => $r['shifts_removed'], 'jobs' => $r['jobs']]);
+        });
+    }
+
+    public function cancelOff(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id, $request) {
+            $off = DayOff::findOrFail($id);
+            $own = Chef::where('user_id', $request->user()->id)->value('id') === $off->chef_id;
+            if (! $own && ! $this->manager($request)) {
+                abort(403, 'Only the chef or a manager can cancel this.');
+            }
+
+            return response()->json(['dayoff' => $this->rota->dayOffRow($this->rota->cancelDayOff($off))]);
+        });
+    }
+}
