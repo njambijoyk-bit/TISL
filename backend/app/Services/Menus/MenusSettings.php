@@ -15,6 +15,9 @@ final class MenusSettings
         'category_id' => null,           // the category the hidden products behind dishes sit in
         'allergen_note' => 'Please tell us about any allergy before you order. Allergen information is given in good faith from our ingredients; our kitchen also handles nuts, milk, eggs, wheat and other allergens.',
         'receipt_footer' => '',          // a line printed at the foot of every receipt
+        'tip_ledger_id' => null,         // where tips are booked (usually money held for staff); empty = the till takes no tips
+        'service_charge_ledger_id' => null,
+        'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
     ];
 
     public static function ready(): bool
@@ -59,6 +62,25 @@ final class MenusSettings
             if (array_key_exists($key, $in)) {
                 $cur[$key] = mb_substr(trim((string) $in[$key]), 0, $max);
             }
+        }
+        foreach (['tip_ledger_id', 'service_charge_ledger_id'] as $key) {
+            if (array_key_exists($key, $in)) {
+                $id = $in[$key] ? (int) $in[$key] : null;
+                if ($id && ! DB::table('ledgers')->where('id', $id)->exists()) {
+                    throw new BooksException('That account does not exist.');
+                }
+                $cur[$key] = $id;
+            }
+        }
+        if (array_key_exists('service_charge_pct', $in)) {
+            $pct = round((float) $in['service_charge_pct'], 2);
+            if ($pct < 0 || $pct > 30) {
+                throw new BooksException('The service charge is between 0 and 30 percent.');
+            }
+            $cur['service_charge_pct'] = $pct;
+        }
+        if ((float) $cur['service_charge_pct'] > 0 && ! $cur['service_charge_ledger_id']) {
+            throw new BooksException('Choose the account the service charge is booked to (it is managed in the books like VAT).');
         }
         $row = ['settings' => json_encode($cur), 'updated_by' => $by, 'updated_at' => now()];
         DB::table('menus_settings')->where('id', 1)->exists() ? DB::table('menus_settings')->where('id', 1)->update($row) : DB::table('menus_settings')->insert(['id' => 1, 'created_at' => now()] + $row);

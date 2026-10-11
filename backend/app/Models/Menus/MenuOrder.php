@@ -16,7 +16,8 @@ class MenuOrder extends Model
     protected $guarded = [];
 
     protected $casts = ['asap' => 'boolean', 'fulfil_at' => 'datetime', 'placed_at' => 'datetime', 'accepted_at' => 'datetime', 'ready_at' => 'datetime', 'completed_at' => 'datetime', 'cancelled_at' => 'datetime',
-        'subtotal' => 'decimal:2', 'tax_total' => 'decimal:2', 'total' => 'decimal:2', 'delivery_fee' => 'decimal:2'];
+        'subtotal' => 'decimal:2', 'tax_total' => 'decimal:2', 'total' => 'decimal:2', 'delivery_fee' => 'decimal:2', 'tip' => 'decimal:2', 'service_charge' => 'decimal:2', 'tendered' => 'decimal:2', 'change_due' => 'decimal:2',
+        'tax_breakdown' => 'array', 'tenders' => 'array', 'settled_at' => 'datetime'];
 
     protected $hidden = ['track_token'];
 
@@ -28,6 +29,12 @@ class MenuOrder extends Model
     public function channel(): BelongsTo
     {
         return $this->belongsTo(Channel::class, 'channel_id');
+    }
+
+    /** A tab: ordered, not yet paid, can still be added to. */
+    public function isTab(): bool
+    {
+        return $this->payment === 'open';
     }
 
     /** Is it still going (not finished, not cancelled)? */

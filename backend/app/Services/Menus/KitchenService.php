@@ -47,25 +47,28 @@ class KitchenService
     /** Make the tickets for an order (once). @return int how many tickets */
     public function fire(MenuOrder $o): int
     {
-        if (! self::installed() || Ticket::where('order_id', $o->id)->exists()) {
+        if (! self::installed()) {
             return 0;
         }
-        $o->loadMissing('lines');
-        $groups = [];
-        foreach ($o->lines as $line) {
+        $groups = [];   // [station][round] => line ids: only lines that are not on a ticket yet (a tab's later rounds, or an order fired twice, make nothing twice)
+        foreach ($o->lines()->whereNull('ticket_id')->get() as $line) {
             $station = $this->stationFor(Dish::find($line->dish_id), (int) $o->location_id);
             if ($station) {
-                $groups[$station->id][] = $line->id;
+                $groups[$station->id][(int) $line->round][] = $line->id;
             }
         }
 
         return DB::transaction(function () use ($o, $groups) {
-            foreach ($groups as $stationId => $lineIds) {
-                $t = Ticket::create(['order_id' => $o->id, 'station_id' => $stationId, 'status' => 'new', 'due_at' => $o->fulfil_at]);
-                \App\Models\Menus\MenuOrderLine::whereIn('id', $lineIds)->update(['ticket_id' => $t->id]);
+            $made = 0;
+            foreach ($groups as $stationId => $rounds) {
+                foreach ($rounds as $round => $lineIds) {
+                    $t = Ticket::firstOrCreate(['order_id' => $o->id, 'station_id' => $stationId, 'round' => $round], ['status' => 'new', 'due_at' => $o->fulfil_at]);
+                    \App\Models\Menus\MenuOrderLine::whereIn('id', $lineIds)->update(['ticket_id' => $t->id]);
+                    $made += $t->wasRecentlyCreated ? 1 : 0;
+                }
             }
 
-            return count($groups);
+            return $made;
         });
     }
 
@@ -118,8 +121,8 @@ class KitchenService
     /** All tickets ready (and nothing without a ticket still to make): the order is ready and the customer is told. */
     private function orderMaybeReady(MenuOrder $o): void
     {
-        if (! in_array($o->status, ['placed', 'accepted', 'preparing'], true)) {
-            return;
+        if (! in_array($o->status, ['placed', 'accepted', 'preparing'], true) || $o->isTab()) {
+            return;   // a tab is not "ready": more may still be ordered
         }
         $open = Ticket::where('order_id', $o->id)->whereNotIn('status', ['ready', 'cancelled'])->exists();
         $loose = $o->lines()->whereNull('ticket_id')->exists();
@@ -183,7 +186,7 @@ class KitchenService
         $o = $t->order;
         $waited = (int) $o->created_at->diffInMinutes($now);
 
-        return ['id' => $t->id, 'status' => $t->status, 'order_id' => $o->id, 'number' => $o->number, 'name' => explode(' ', trim($o->name))[0], 'order_type' => $o->order_type, 'asap' => $o->asap,
+        return ['id' => $t->id, 'status' => $t->status, 'order_id' => $o->id, 'number' => $o->number, 'name' => explode(' ', trim($o->name))[0], 'order_type' => $o->order_type, 'service' => $o->service, 'short_no' => $o->short_no, 'label' => $o->label, 'round' => (int) $t->round, 'tab' => $o->isTab(), 'asap' => $o->asap,
             'due_at' => $t->due_at->toIso8601String(), 'waited' => $waited, 'late' => $t->status !== 'ready' && $waited >= $s->target_minutes, 'started_at' => $t->started_at?->toIso8601String(), 'notes' => $o->notes,
             'lines' => $t->lines->map(function ($l) {
                 $dish = Dish::find($l->dish_id);

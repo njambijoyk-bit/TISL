@@ -657,11 +657,21 @@ Route::middleware('auth:sanctum')->group(function () {
         $oc = \App\Http\Controllers\Admin\MenusOrderAdminController::class;
         Route::get('/orders', [$oc, 'index']);
         Route::get('/channels', [$oc, 'channelList']);
+        $tc = \App\Http\Controllers\Admin\MenusCounterController::class;
+        Route::get('/till', [$tc, 'till']);
+        Route::get('/orders/{id}/receipt', [$tc, 'receipt'])->whereNumber('id');
         $kc = \App\Http\Controllers\Admin\MenusKitchenController::class;
         Route::get('/kitchen/stations', [$kc, 'stations']);
         Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
         Route::get('/kitchen/expo', [$kc, 'expo']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc) {
+            Route::post('/till/quote', [$tc, 'quote']);
+            Route::post('/till/sell', [$tc, 'sell']);
+            Route::post('/till/tabs', [$tc, 'openTab']);
+            Route::post('/till/tabs/{id}/add', [$tc, 'addToTab'])->whereNumber('id');
+            Route::delete('/till/tabs/{id}/lines/{line}', [$tc, 'voidLine'])->whereNumber(['id', 'line']);
+            Route::post('/till/tabs/{id}/settle', [$tc, 'settleTab'])->whereNumber('id');
+            Route::post('/till/tabs/{id}/cancel', [$tc, 'cancelTab'])->whereNumber('id');
             Route::post('/kitchen/stations', [$kc, 'saveStation']);
             Route::put('/kitchen/stations/{id}', [$kc, 'saveStation'])->whereNumber('id');
             Route::delete('/kitchen/stations/{id}', [$kc, 'destroyStation'])->whereNumber('id');

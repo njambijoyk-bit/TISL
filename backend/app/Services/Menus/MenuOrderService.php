@@ -49,6 +49,27 @@ class MenuOrderService
         [$at, $asap] = $this->when($channel, $in['fulfil'] ?? 'asap', $now);
         $wanted = $this->wanted($in['items'] ?? []);
 
+        [$lines, $dishes] = $this->dishLines($channel, $location, $at, $wanted);
+
+        $delivery = $channel->order_type === 'delivery' ? $this->delivery($channel, $in) : null;
+        $contact = $this->contact($in, $user);
+        $mode = $this->mode($channel, $in);
+        $customerId = $user?->customer?->id;
+
+        $payload = $this->payload($channel, $location, $lines, $delivery, $contact, $customerId, $at, $asap, trim((string) ($in['notes'] ?? '')));
+
+        return ['channel' => $channel, 'location' => $location, 'at' => $at, 'asap' => $asap, 'lines' => $lines, 'payload' => $payload, 'dishes' => $dishes, 'delivery' => $delivery, 'contact' => $contact, 'mode' => $mode,
+            'customer_id' => $customerId, 'notes' => trim((string) ($in['notes'] ?? '')) ?: null];
+    }
+
+    /**
+     * The dishes asked for, checked and priced: on a menu the channel shows at that time, enough to make them (set-meal sides too), the choices allowed.
+     *
+     * @param array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string}> $wanted
+     * @return array{0: array, 1: array<int, Dish>} the lines and the dishes by id
+     */
+    public function dishLines(Channel $channel, Location $location, Carbon $at, array $wanted): array
+    {
         $menus = $this->slots->menus($channel)->filter(fn ($m) => MenuSchedule::serving($m, $at))->pluck('id')->all();
         $onMenu = $menus ? DB::table('menus_section_dishes as sd')->join('menus_sections as s', 's.id', '=', 'sd.section_id')->whereIn('s.menu_id', $menus)->pluck('sd.dish_id')->map(fn ($i) => (int) $i)->all() : [];
 
@@ -89,18 +110,10 @@ class MenuOrderService
             }
         }
 
-        $delivery = $channel->order_type === 'delivery' ? $this->delivery($channel, $in) : null;
-        $contact = $this->contact($in, $user);
-        $mode = $this->mode($channel, $in);
-        $customerId = $user?->customer?->id;
-
-        $payload = $this->payload($channel, $location, $lines, $delivery, $contact, $customerId, $at, $asap, trim((string) ($in['notes'] ?? '')));
-
-        return ['channel' => $channel, 'location' => $location, 'at' => $at, 'asap' => $asap, 'lines' => $lines, 'payload' => $payload, 'dishes' => $dishes, 'delivery' => $delivery, 'contact' => $contact, 'mode' => $mode,
-            'customer_id' => $customerId, 'notes' => trim((string) ($in['notes'] ?? '')) ?: null];
+        return [$lines, $dishes];
     }
 
-    private function location(mixed $id): Location
+    public function location(mixed $id): Location
     {
         $q = Location::query()->sellsToCustomers();
         $loc = $id ? $q->whereKey((int) $id)->first() : Location::defaultSelling();
@@ -139,7 +152,7 @@ class MenuOrderService
     }
 
     /** @return array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string}> */
-    private function wanted(mixed $items): array
+    public function wanted(mixed $items): array
     {
         $out = [];
         foreach ((array) $items as $it) {
@@ -218,8 +231,8 @@ class MenuOrderService
         return ['mode' => 'online', 'method' => $method];
     }
 
-    /** The Sales Order the books will hold. */
-    private function payload(Channel $c, Location $loc, array $lines, ?array $delivery, array $contact, ?int $customerId, Carbon $at, bool $asap, string $notes): array
+    /** The Sales Order's product lines for dishes ordered: the dish at its price with the choices, and a set meal's sides as free lines (so their stock is taken). */
+    public function lineRows(array $lines, Location $loc): array
     {
         $rows = [];
         foreach ($lines as $l) {
@@ -236,6 +249,14 @@ class MenuOrderService
                 $rows[] = ['type' => 'product', 'product_id' => $ld->product_id, 'variant_id' => $ld->variant_id, 'quantity' => $l['quantity'], 'rate' => 0, 'location_id' => $loc->id, 'notes' => 'Part of '.$d->name];
             }
         }
+
+        return $rows;
+    }
+
+    /** The Sales Order the books will hold. */
+    private function payload(Channel $c, Location $loc, array $lines, ?array $delivery, array $contact, ?int $customerId, Carbon $at, bool $asap, string $notes): array
+    {
+        $rows = $this->lineRows($lines, $loc);
         if ($delivery) {
             $rows[] = ['type' => 'charge', 'kind' => 'shipping', 'shipping_option_id' => $delivery['option']->id];
         }
@@ -278,7 +299,7 @@ class MenuOrderService
             throw new BooksException('The smallest order is '.number_format((float) $p['channel']->min_order, 2).' before tax and delivery.');
         }
 
-        return ['subtotal' => (float) $pre['subtotal'], 'delivery_fee' => round($fee, 2), 'tax_total' => (float) $pre['tax_total'], 'total' => (float) $pre['total']];
+        return ['subtotal' => (float) $pre['subtotal'], 'delivery_fee' => round($fee, 2), 'tax_total' => (float) $pre['tax_total'], 'total' => (float) $pre['total'], 'tax_breakdown' => $pre['tax_breakdown'] ?? null];
     }
 
     // ── placing ───────────────────────────────────────────────────────────
@@ -303,7 +324,7 @@ class MenuOrderService
                 'voucher_id' => $voucher->id, 'customer_id' => $p['customer_id'], 'user_id' => $user?->id, 'name' => $contact['name'], 'email' => $contact['email'], 'phone' => $contact['phone'],
                 'status' => 'placed', 'payment' => $later ? 'later' : 'pending', 'payment_method_id' => $method?->id, 'asap' => $p['asap'], 'fulfil_at' => $p['at'],
                 'delivery_address' => $p['delivery']['address'] ?? null, 'shipping_option_id' => $p['delivery']['option']->id ?? null, 'delivery_fee' => $priced['delivery_fee'],
-                'subtotal' => $priced['subtotal'], 'tax_total' => $priced['tax_total'], 'total' => (float) $voucher->total_amount, 'currency_id' => $voucher->currency_id,
+                'subtotal' => $priced['subtotal'], 'tax_total' => $priced['tax_total'], 'tax_breakdown' => $priced['tax_breakdown'], 'total' => (float) $voucher->total_amount, 'currency_id' => $voucher->currency_id,
                 'notes' => $p['notes'], 'placed_at' => now(),
             ]);
             $order->update(['number' => 'MO-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
@@ -393,6 +414,9 @@ class MenuOrderService
         }
         if ($to === 'completed' && $o->order_type === 'delivery' && $o->status === 'ready') {
             throw new BooksException('Send it out for delivery first.');
+        }
+        if ($to === 'completed' && $o->payment === 'open') {
+            throw new BooksException('Settle the tab first.');
         }
         if ($to === 'completed' && $o->payment === 'later') {
             throw new BooksException('Take the payment first.');

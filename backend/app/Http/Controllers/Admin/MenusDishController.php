@@ -75,7 +75,8 @@ class MenusDishController extends Controller
 
     public function saveSettings(Request $request): JsonResponse
     {
-        $d = $request->validate(['sales_ledger_id' => 'nullable|integer', 'category_id' => 'nullable|integer', 'allergen_note' => 'nullable|string|max:600', 'receipt_footer' => 'nullable|string|max:200']);
+        $d = $request->validate(['sales_ledger_id' => 'nullable|integer', 'category_id' => 'nullable|integer', 'allergen_note' => 'nullable|string|max:600', 'receipt_footer' => 'nullable|string|max:200',
+            'tip_ledger_id' => 'nullable|integer', 'service_charge_ledger_id' => 'nullable|integer', 'service_charge_pct' => 'nullable|numeric|min:0|max:30']);
 
         return $this->guard(fn () => response()->json(['message' => 'Menus settings saved.', 'settings' => MenusSettings::save($d, $request->user()?->id)]));
     }

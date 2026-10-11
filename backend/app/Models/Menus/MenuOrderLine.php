@@ -11,5 +11,5 @@ class MenuOrderLine extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['quantity' => 'decimal:2', 'base_price' => 'decimal:2', 'unit_price' => 'decimal:2', 'options' => 'array'];
+    protected $casts = ['quantity' => 'decimal:2', 'base_price' => 'decimal:2', 'unit_price' => 'decimal:2', 'options' => 'array', 'uses' => 'array', 'linked' => 'array', 'round' => 'integer'];
 }
