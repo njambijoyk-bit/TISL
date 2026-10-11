@@ -89,6 +89,13 @@ class SensitiveActionsTest extends TestCase
         return collect($payload['rules'])->firstWhere('key', $key);
     }
 
+    /** The counts beside a rule, as the page gets them (the Council's four are zero unless a test says otherwise). @return array<string, int> */
+    private function stats(int $asked, int $approved, int $failed, int $wouldAsk, array $council = []): array
+    {
+        return array_replace(['asked' => 0, 'approved' => 0, 'failed' => 0, 'would_ask' => 0, 'council_asked' => 0, 'council_approved' => 0, 'council_declined' => 0, 'council_would_ask' => 0],
+            ['asked' => $asked, 'approved' => $approved, 'failed' => $failed, 'would_ask' => $wouldAsk], $council);
+    }
+
     private function event(string $event, array $detail, ?int $daysAgo = null): void
     {
         SecurityEvent::create(['subject_type' => 'user', 'subject_id' => 1, 'event' => $event, 'severity' => 'info', 'detail' => $detail, 'created_at' => now()->subDays($daysAgo ?? 0)->subMinute()]);
@@ -217,10 +224,10 @@ class SensitiveActionsTest extends TestCase
         $this->event('sign_in', []);
 
         $p = $this->page($token)->json();
-        $this->assertSame(['asked' => 0, 'approved' => 0, 'failed' => 0, 'would_ask' => 2], $this->rule($p, 'payroll_run')['stats']);
-        $this->assertSame(['asked' => 0, 'approved' => 0, 'failed' => 0, 'would_ask' => 1], $this->rule($p, 'export_bulk')['stats']);
-        $this->assertSame(['asked' => 2, 'approved' => 1, 'failed' => 1, 'would_ask' => 0], $this->rule($p, 'payment_keys')['stats']);
-        $this->assertSame(['asked' => 0, 'approved' => 0, 'failed' => 0, 'would_ask' => 0], $this->rule($p, 'backup_restore')['stats']);
+        $this->assertSame($this->stats(0, 0, 0, 2), $this->rule($p, 'payroll_run')['stats']);
+        $this->assertSame($this->stats(0, 0, 0, 1), $this->rule($p, 'export_bulk')['stats']);
+        $this->assertSame($this->stats(2, 1, 1, 0), $this->rule($p, 'payment_keys')['stats']);
+        $this->assertSame($this->stats(0, 0, 0, 0), $this->rule($p, 'backup_restore')['stats']);
         $this->assertSame(7, $p['days']);
     }
 
@@ -252,6 +259,126 @@ class SensitiveActionsTest extends TestCase
         StepUp::forget();
         $this->page($token)->assertOk()->assertJsonPath('ready', false)->assertJsonPath('rules.0.stats.asked', 0);
         $this->save($token, ['rules' => ['payment_keys' => 'log']])->assertStatus(409);
+        $this->assertSame(0, DB::table('security_settings')->count());
+    }
+
+    // ------------------------------------------------------------ the second person (Council of Two)
+
+    public function test_the_two_person_rules_show_their_second_person_switch_and_who_else_could_approve(): void
+    {
+        $owner = $this->person('super_admin');
+        $token = $this->openSession($owner);
+        $this->person('super_admin', 'Second Owner');
+        $this->person('admin', 'Chao Admin');
+        $p = $this->page($token)->assertOk()->json();
+        $this->assertTrue($p['council_ready']);
+        $this->assertSame(30, $p['council_minutes']);
+        $this->assertSame(['mode' => 'off', 'in_force' => 'off', 'others' => 2], $this->rule($p, 'access_change')['council']);   // the other owner and the admin
+        $this->assertSame(1, $this->rule($p, 'security_settings')['council']['others']);                                   // only an owner can change these
+        $this->assertSame(1, $this->rule($p, 'payroll_run')['council']['others']);
+        foreach (['payment_keys', 'backup_restore', 'staff_account', 'export_bulk', 'voucher_cancel', 'bank_details'] as $rule) {
+            $this->assertNull($this->rule($p, $rule)['council'], $rule);
+        }
+    }
+
+    public function test_the_second_person_switch_is_saved_and_written_down(): void
+    {
+        $owner = $this->person('super_admin');
+        $token = $this->openSession($owner);
+        $this->person('super_admin', 'Second Owner');
+        $r = $this->save($token, ['council' => ['access_change' => 'log', 'payroll_run' => 'enforce']])->assertOk();
+        $this->assertSame('log', $this->rule($r->json(), 'access_change')['council']['mode']);
+        $this->assertSame('enforce', $this->rule($r->json(), 'payroll_run')['council']['mode']);
+        $this->assertSame('log', app(SecuritySettings::class)->get('stepup.access_change.two'));
+        $this->assertSame('off', app(SecuritySettings::class)->get('stepup.access_change.mode'));   // a different setting from the rule itself
+        $e = SecurityEvent::where('event', 'stepup_rules_changed')->first();
+        $this->assertEquals(['stepup.access_change.two' => ['from' => 'off', 'to' => 'log'], 'stepup.payroll_run.two' => ['from' => 'off', 'to' => 'enforce']], $e->detail['changes']);
+        $this->save($token, ['council' => ['access_change' => 'log']])->assertOk();               // no change, no new line
+        $this->assertSame(1, SecurityEvent::where('event', 'stepup_rules_changed')->count());
+    }
+
+    public function test_only_a_two_person_action_can_be_given_a_second_person(): void
+    {
+        $token = $this->openSession($this->person('super_admin'));
+        $this->save($token, ['council' => ['payment_keys' => 'log']])->assertStatus(422)->assertJsonPath('errors.council.0', 'Not a two-person action: payment_keys.');
+        $this->save($token, ['council' => ['no_such_rule' => 'log']])->assertStatus(422);
+        $this->save($token, ['council' => ['access_change' => 'sometimes']])->assertStatus(422);
+        $this->assertSame(0, DB::table('security_settings')->count());
+    }
+
+    public function test_it_can_not_be_switched_on_while_nobody_else_could_approve(): void
+    {
+        $owner = $this->person('super_admin');
+        $token = $this->openSession($owner);
+        $r = $this->save($token, ['council' => ['security_settings' => 'enforce']])->assertStatus(422);                  // the owner is alone: only an owner can change these
+        $r->assertJsonPath('reason', 'no_second_person')->assertJsonPath('rule', 'security_settings');
+        $this->assertSame(0, DB::table('security_settings')->count());
+        $this->save($token, ['council' => ['security_settings' => 'log']])->assertOk();                                  // trying it out is always fine
+        $this->save($token, ['council' => ['access_change' => 'enforce'], 'risk_mode' => 'log'])->assertStatus(422);      // one refused switch stops the whole change
+        $this->assertNull(DB::table('security_settings')->where('setting_key', 'risk.mode')->first());
+        $this->person('admin', 'Chao Admin');                                                                             // somebody who holds the access permission, and could answer
+        $this->save($token, ['council' => ['access_change' => 'enforce']])->assertOk();
+    }
+
+    public function test_someone_who_could_not_answer_the_question_does_not_count_as_a_second_person(): void
+    {
+        $owner = $this->person('super_admin');
+        $token = $this->openSession($owner);
+        $other = $this->person('super_admin', 'Second Owner');
+        config(['security.stepup.password_fallback' => false]);                                   // a passkey is the only way, and the other owner has none
+        $this->save($token, ['council' => ['security_settings' => 'enforce']])->assertStatus(422)->assertJsonPath('reason', 'no_second_person');
+        $this->passkey($other, 100);
+        $this->save($token, ['council' => ['security_settings' => 'enforce']])->assertOk();
+    }
+
+    public function test_switching_it_off_is_never_refused(): void
+    {
+        $owner = $this->person('super_admin');
+        $token = $this->openSession($owner);
+        $other = $this->person('admin', 'Chao Admin');
+        $this->save($token, ['council' => ['access_change' => 'enforce']])->assertOk();
+        $other->forceFill(['status' => 'suspended'])->save();
+        $this->save($token, ['council' => ['access_change' => 'off']])->assertOk()->assertJsonPath('rules.1.council.mode', 'off');
+    }
+
+    public function test_without_the_council_script_the_switch_says_so(): void
+    {
+        $token = $this->openSession($this->person('super_admin'));
+        $this->person('admin', 'Chao Admin');
+        Schema::table('auth_pending_actions', fn ($t) => $t->dropColumn(['second_required', 'second_user_id', 'second_approved_at', 'second_with', 'second_credential_id', 'second_note', 'second_rejected_at']));
+        \App\Services\Security\StepUp\Council::forget();
+        $p = $this->page($token)->assertOk()->json();
+        $this->assertFalse($p['council_ready']);
+        $this->assertSame('off', $this->rule($p, 'access_change')['council']['in_force']);
+        $this->save($token, ['council' => ['access_change' => 'log']])->assertStatus(409);
+        $this->save($token, ['council' => ['access_change' => 'off']])->assertOk();               // (nothing to change, and nothing refused)
+        $this->save($token, ['rules' => ['access_change' => 'log']])->assertOk();                 // everything else on the page works as before
+    }
+
+    public function test_the_counts_include_the_second_person(): void
+    {
+        $token = $this->openSession($this->person('super_admin'));
+        $this->event('council_asked', ['rule' => 'access_change']);
+        $this->event('council_asked', ['rule' => 'access_change']);
+        $this->event('council_approved', ['rule' => 'access_change']);
+        $this->event('council_declined', ['rule' => 'access_change']);
+        $this->event('stepup_council_would_ask', ['rule' => 'payroll_run']);
+        $this->event('council_asked', ['rule' => 'access_change'], 8);
+        $p = $this->page($token)->json();
+        $this->assertSame($this->stats(0, 0, 0, 0, ['council_asked' => 2, 'council_approved' => 1, 'council_declined' => 1]), $this->rule($p, 'access_change')['stats']);
+        $this->assertSame($this->stats(0, 0, 0, 0, ['council_would_ask' => 1]), $this->rule($p, 'payroll_run')['stats']);
+    }
+
+    public function test_changing_the_second_person_switch_reads_in_plain_words_when_it_asks_its_own_question(): void
+    {
+        $owner = $this->person('super_admin', 'Olive Owner');
+        $token = $this->openSession($owner);
+        $this->person('admin', 'Chao Admin');
+        config(['security.policy.stepup.security_settings.mode' => 'enforce']);
+        SecuritySettings::forget();
+        $r = $this->save($token, ['council' => ['access_change' => 'enforce']])->assertStatus(403);
+        $facts = collect($r->json('step_up.facts'))->pluck('value', 'label');
+        $this->assertStringContainsString('On: a second person must approve too', $facts['Change who may do what (roles, permissions, clearance, branch access): a second person']);
         $this->assertSame(0, DB::table('security_settings')->count());
     }
 

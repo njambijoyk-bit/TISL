@@ -120,6 +120,8 @@ return [
         'new_passkey_hours' => (int) env('SECURITY_STEPUP_NEW_PASSKEY_HOURS', 24),
         // someone with no passkey at all may answer a rule that asks for one with their password, until they have one
         'password_fallback' => (bool) env('SECURITY_STEPUP_PASSWORD_FALLBACK', true),
+        // the Council of Two: how many minutes a request waits for the second person before it runs out
+        'council_minutes' => (int) env('SECURITY_COUNCIL_MINUTES', 30),
     ],
 
     // Tell the person (email and bell) when a passkey is added, removed or switched off, or recovery codes are made or used. Off with SECURITY_ALERTS_EMAIL=false.

@@ -9,6 +9,7 @@ use App\Services\Security\SecurityLog;
 use App\Services\Security\SecuritySettings;
 use App\Services\Security\Sessions;
 use App\Services\Security\StepUp\Catalogue;
+use App\Services\Security\StepUp\Council;
 use App\Services\Security\StepUp\StepUp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,7 +27,9 @@ class SensitiveActionsController extends Controller
 
     private const MODES = ['off', 'log', 'enforce'];
 
-    public function __construct(private StepUp $stepUp, private SecuritySettings $settings, private RiskSignals $risk)
+    private const EMPTY_STATS = ['asked' => 0, 'approved' => 0, 'failed' => 0, 'would_ask' => 0, 'council_asked' => 0, 'council_approved' => 0, 'council_declined' => 0, 'council_would_ask' => 0];
+
+    public function __construct(private StepUp $stepUp, private SecuritySettings $settings, private RiskSignals $risk, private Council $council)
     {
     }
 
@@ -56,8 +59,11 @@ class SensitiveActionsController extends Controller
                 'key' => $key, 'label' => $r['label'], 'class' => $r['class'], 'strength' => $r['strength'], 'reason' => $r['reason'], 'window' => $r['window'], 'fresh' => $r['fresh'], 'two' => $r['two'],
                 'mode' => $this->chosen("stepup.{$key}.mode"), 'in_force' => $this->stepUp->mode($key),
                 'you_could_answer' => $this->stepUp->couldAnswer($actor, $key),
-                'stats' => $stats[$key] ?? ['asked' => 0, 'approved' => 0, 'failed' => 0, 'would_ask' => 0],
+                'council' => $r['two'] ? ['mode' => $this->chosen("stepup.{$key}.two"), 'in_force' => $this->council->mode($key), 'others' => $ready ? $this->council->approvers($key, $actor)->count() : 0] : null,
+                'stats' => $stats[$key] ?? self::EMPTY_STATS,
             ])->values()->all(),
+            'council_ready' => Council::ready(),
+            'council_minutes' => Council::waitMinutes(),
             'risk' => [
                 'ready' => Sessions::tracked(),
                 'mode' => $this->chosen('risk.mode'), 'in_force' => $this->risk->mode(),
@@ -75,18 +81,19 @@ class SensitiveActionsController extends Controller
         return in_array($mode, self::MODES, true) ? $mode : 'off';
     }
 
-    /** @return array<string, array{asked: int, approved: int, failed: int, would_ask: int}> */
+    /** @return array<string, array<string, int>> */
     private function ruleStats(): array
     {
         $out = [];
         if (! SecurityLog::ready()) {
             return $out;
         }
-        $count = ['stepup_asked' => 'asked', 'stepup_approved' => 'approved', 'stepup_failed' => 'failed', 'stepup_would_ask' => 'would_ask'];
+        $count = ['stepup_asked' => 'asked', 'stepup_approved' => 'approved', 'stepup_failed' => 'failed', 'stepup_would_ask' => 'would_ask',
+            'council_asked' => 'council_asked', 'council_approved' => 'council_approved', 'council_declined' => 'council_declined', 'stepup_council_would_ask' => 'council_would_ask'];
         foreach ($this->recent(array_keys($count)) as $row) {
             $rule = (string) ($row['detail']['rule'] ?? '');
             if (Catalogue::has($rule)) {
-                $out[$rule] ??= ['asked' => 0, 'approved' => 0, 'failed' => 0, 'would_ask' => 0];
+                $out[$rule] ??= self::EMPTY_STATS;
                 $out[$rule][$count[$row['event']]]++;
             }
         }
@@ -133,6 +140,7 @@ class SensitiveActionsController extends Controller
         }
         $data = $request->validate([
             'rules' => 'sometimes|array', 'rules.*' => ['string', Rule::in(self::MODES)],
+            'council' => 'sometimes|array', 'council.*' => ['string', Rule::in(self::MODES)],
             'risk_mode' => ['sometimes', 'string', Rule::in(self::MODES)],
         ]);
         foreach (array_keys((array) ($data['rules'] ?? [])) as $rule) {
@@ -140,7 +148,12 @@ class SensitiveActionsController extends Controller
                 return response()->json(['message' => "There is no sensitive action called {$rule}.", 'errors' => ['rules' => ["Unknown action {$rule}."]]], 422);
             }
         }
-        if (! isset($data['rules']) && ! isset($data['risk_mode'])) {
+        foreach (array_keys((array) ($data['council'] ?? [])) as $rule) {
+            if (! Catalogue::has((string) $rule) || ! Catalogue::rule((string) $rule)['two']) {
+                return response()->json(['message' => "{$rule} is not an action a second person can be asked to approve.", 'errors' => ['council' => ["Not a two-person action: {$rule}."]]], 422);
+            }
+        }
+        if (! isset($data['rules']) && ! isset($data['council']) && ! isset($data['risk_mode'])) {
             return response()->json(['message' => 'Nothing to change.', 'errors' => ['rules' => ['Choose at least one.']]], 422);
         }
 
@@ -157,6 +170,21 @@ class SensitiveActionsController extends Controller
                 }
                 $changes["stepup.{$rule}.mode"] = [$from, $mode];
             }
+        }
+        foreach ((array) ($data['council'] ?? []) as $rule => $mode) {
+            $from = $this->chosen("stepup.{$rule}.two");
+            if ($from === $mode) {
+                continue;
+            }
+            if ($mode !== 'off' && ! Council::ready()) {
+                return response()->json(['message' => 'Asking a second person is not set up yet: run database script 129 in Workbench.'], 409);
+            }
+            // never a rule nobody could ever satisfy: somebody else must be able to approve it
+            if ($mode === 'enforce' && $this->council->approvers((string) $rule, $actor)->isEmpty()) {
+                return response()->json(['message' => 'Nobody else could approve this yet: it needs another person who can do it themselves ('.Catalogue::rule((string) $rule)['label'].') and who could answer the question. Give someone else that access first, then turn it on.',
+                    'reason' => 'no_second_person', 'rule' => $rule], 422);
+            }
+            $changes["stepup.{$rule}.two"] = [$from, $mode];
         }
         if (isset($data['risk_mode']) && $this->chosen('risk.mode') !== $data['risk_mode']) {
             $changes['risk.mode'] = [$this->chosen('risk.mode'), $data['risk_mode']];

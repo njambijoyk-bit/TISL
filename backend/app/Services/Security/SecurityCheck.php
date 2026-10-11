@@ -5,6 +5,7 @@ namespace App\Services\Security;
 use App\Models\User;
 use App\Services\Security\Passkeys\PasskeyConfig;
 use App\Services\Security\StepUp\Catalogue;
+use App\Services\Security\StepUp\Council;
 use App\Services\Security\StepUp\StepUp;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -117,6 +118,20 @@ final class SecurityCheck
             $test = $modes->filter(fn ($m) => $m === 'log')->count();
             $add($on === 0 ? self::NOTE : self::OK, "Sensitive actions ask for more proof: {$on} of ".$modes->count().' on'.($test ? ", {$test} in test" : ''),
                 $on === 0 ? 'None is switched on yet, so payment keys, roles, payroll and the rest only ask what they always asked. Try them in test mode first (Admin → Security → Sensitive actions).' : null);
+            // the Council of Two: the most serious actions waiting for a second person
+            if (! Council::ready()) {
+                $add(self::NOTE, 'Asking a second person is not set up', 'Optional: run database script 129_council_of_two.sql, then switch it on under Admin → Security → Sensitive actions.');
+            } else {
+                $council = app(Council::class);
+                $two = collect(Catalogue::RULES)->filter(fn ($r) => $r['two'])->keys();
+                $onTwo = $two->filter(fn ($k) => $council->mode($k) === 'enforce');
+                $add($onTwo->isEmpty() ? self::NOTE : self::OK, "A second person approves the most serious actions: {$onTwo->count()} of {$two->count()} on",
+                    $onTwo->isEmpty() ? 'None is switched on yet, so one person is still enough for each. Try it in test mode first (Admin → Security → Sensitive actions).' : null);
+                $stuck = $onTwo->filter(fn ($k) => $stepUp->mode($k) === 'enforce' && $council->approvers($k, null)->count() < 2);
+                if ($stuck->isNotEmpty()) {
+                    $add(self::WARN, 'Some actions could never get a second person', 'Only one person could approve: '.$stuck->map(fn ($k) => Catalogue::rule($k)['label'])->implode('; ').'. Give a second person that access, or switch the second person off for it.');
+                }
+            }
             $risk = app(RiskSignals::class)->mode();
             $add($risk === 'off' ? self::NOTE : self::OK, 'Unusual sign-ins are '.($risk === 'off' ? 'not checked' : ($risk === 'log' ? 'checked in test mode' : 'checked')), $risk === 'off' ? 'Switch the check on (test mode first) under Admin → Security → Sensitive actions.' : null);
         }

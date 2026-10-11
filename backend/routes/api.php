@@ -453,6 +453,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/approve',   [$c, 'approve']);
         Route::delete('/',        [$c, 'cancel']);
     });
+    // The Council of Two, from the second person's side: what waits for them, and approving or declining it
+    Route::prefix('auth/council')->middleware('throttle:step-up')->group(function () {
+        $c = \App\Http\Controllers\Api\CouncilController::class;
+        Route::get('/',                [$c, 'index']);
+        Route::post('/{id}/options',   [$c, 'options']);
+        Route::post('/{id}/approve',   [$c, 'approve']);
+        Route::post('/{id}/reject',    [$c, 'reject']);
+    });
     // Recovery codes: the way back from a lost passkey device. Using one does not sign anyone in; it lets this session add a new passkey for 15 minutes.
     Route::prefix('auth/recovery-codes')->group(function () {
         $c = \App\Http\Controllers\Api\RecoveryCodeController::class;

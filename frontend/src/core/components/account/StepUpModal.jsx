@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Fingerprint, ShieldAlert, X } from 'lucide-react';
+import { Fingerprint, ShieldAlert, Users, X } from 'lucide-react';
 import stepUpAPI from '../../../_shared/api/stepUp';
 import { getPasskey, passkeyProblem, passkeysSupported } from '../../../_shared/lib/webauthn';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -35,6 +35,7 @@ function Question({ request, onDone }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState('');
+  const [second, setSecond] = useState(null);      // set once the first answer is in and a second person has to approve too: { state, by, note, until }
   const settled = useRef(false);
 
   const needReason = info.reason_required && reason.trim().length < 3;
@@ -49,9 +50,32 @@ function Question({ request, onDone }) {
 
   useEffect(() => () => { if (!settled.current) { settled.current = true; reject(new Error('cancelled')); } }, [reject]);
 
+  // While a second person is asked, look for their answer every few seconds; when they approve, the action goes ahead by itself.
+  useEffect(() => {
+    if (!second || second.state !== 'waiting') return undefined;
+    let stop = false;
+    const look = async () => {
+      try {
+        const r = await stepUpAPI.show(info.pending);
+        if (stop) return;
+        if (r.second?.state === 'approved') finish(true);
+        else if (r.second && r.second.state !== 'waiting') setSecond(r.second);
+      } catch { /* try again in a moment */ }
+    };
+    const timer = setInterval(look, 2000);
+
+    return () => { stop = true; clearInterval(timer); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [second?.state, info.pending]);
+
   const cancel = async () => {
     stepUpAPI.cancel(info.pending).catch(() => {});
     finish(false);
+  };
+
+  const answered = (r) => {
+    if (r?.waiting_for_second) setSecond(r.second ?? { state: 'waiting' });
+    else finish(true);
   };
 
   const withPasskey = async () => {
@@ -60,8 +84,7 @@ function Question({ request, onDone }) {
     try {
       const q = await stepUpAPI.options(info.pending);
       const credential = await getPasskey(q.options);
-      await stepUpAPI.approve(info.pending, { challenge_id: q.challenge_id, credential, ...(reason.trim() ? { reason: reason.trim() } : {}) });
-      finish(true);
+      answered(await stepUpAPI.approve(info.pending, { challenge_id: q.challenge_id, credential, ...(reason.trim() ? { reason: reason.trim() } : {}) }));
     } catch (e) {
       const p = passkeyProblem(e);
       if (!p.cancelled || p.text) setProblem(p.text || errMsg(e, 'That did not work'));
@@ -75,14 +98,39 @@ function Question({ request, onDone }) {
     setBusy(true);
     setProblem('');
     try {
-      await stepUpAPI.approve(info.pending, { current_password: password, ...(reason.trim() ? { reason: reason.trim() } : {}) });
-      finish(true);
+      answered(await stepUpAPI.approve(info.pending, { current_password: password, ...(reason.trim() ? { reason: reason.trim() } : {}) }));
     } catch (err) {
       setProblem(errMsg(err, 'That did not work'));
     } finally {
       setBusy(false);
     }
   };
+
+  if (second) {
+    const state = second.state;
+    const title = state === 'waiting' ? 'Waiting for a second person' : state === 'declined' ? 'A second person declined' : state === 'cancelled' ? 'Given up' : 'It ran out';
+    const text = state === 'waiting'
+      ? 'Someone else who can do this too has been asked to look at the same details and approve. This closes by itself when they answer, and the action then goes ahead.'
+      : state === 'declined'
+        ? `${second.by ?? 'The second person'} declined${second.note ? `: "${second.note}"` : '.'} Nothing was done.`
+        : 'Nobody approved it in time. Nothing was done: try again when they are ready.';
+
+    return (
+      <div role="dialog" aria-modal="true" aria-label="Waiting for a second person" data-testid="step-up-waiting"
+        style={{ position: 'fixed', inset: 0, zIndex: 9600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(0,0,0,0.5)' }}>
+        <div style={{ width: '100%', maxWidth: 440, borderRadius: 16, padding: 24, background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', border: '2px solid var(--color-primary-600)', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ width: 40, height: 40, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)', color: 'var(--color-primary-600)' }}><Users size={22} /></span>
+            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }} data-testid="step-up-waiting-title">{title}</h2>
+          </div>
+          <p style={{ margin: '0 0 14px', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>{text}</p>
+          {state === 'waiting' && second.until && <p style={{ margin: '0 0 14px', fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>It runs out at {new Date(second.until).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })}.</p>}
+          <button type="button" onClick={state === 'waiting' ? cancel : () => finish(false)} data-testid={state === 'waiting' ? 'step-up-cancel' : 'step-up-close'}
+            style={{ height: 40, borderRadius: 12, border: '1.5px solid var(--line)', background: 'transparent', color: 'inherit', fontWeight: 700, cursor: 'pointer', width: '100%' }}>{state === 'waiting' ? 'Give this up' : 'Close'}</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div role="dialog" aria-modal="true" aria-label="Confirm this action" data-testid="step-up"
@@ -115,7 +163,7 @@ function Question({ request, onDone }) {
             <textarea aria-label="Reason" rows={2} maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} style={{ ...field, resize: 'vertical', fontWeight: 400 }} placeholder="A few words, for the record" />
           </label>
         )}
-        {info.needs_second_person && <p style={{ margin: '0 0 12px', fontSize: '0.74rem', color: 'var(--text-tertiary)' }}>This kind of action will also need a second person to approve it once that step is switched on. It is recorded now.</p>}
+        {info.will_need_second && <p data-testid="step-up-second-note" style={{ margin: '0 0 12px', fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', gap: 6 }}><Users size={14} style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true" /> After you confirm, a second person who can do this too has to look at the same details and approve it before it goes through.</p>}
 
         {problem && <p role="alert" style={{ margin: '0 0 10px', fontSize: '0.8rem', color: '#b91c1c' }}>{problem}</p>}
 

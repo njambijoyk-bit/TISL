@@ -6,6 +6,7 @@ use App\Models\CompanyProfile;
 use App\Models\Security\AuthCredential;
 use App\Models\User;
 use App\Services\Notify\Notifier;
+use App\Services\Security\StepUp\Council;
 use Illuminate\Http\Request;
 
 /**
@@ -121,5 +122,35 @@ final class SecurityAlerts
             $this->tell($other, 'break_glass_used_other', 'The emergency recovery was used on an account',
                 "The emergency recovery command was run on the server for {$who->name} ({$who->email}) at ".$this->when().":\n{$what}\nIf nobody told you this was going to happen, treat it as serious: check who has access to the server.", false);
         }
+    }
+
+    /** Workflow messages rather than warnings, so they are sent whatever the alerts switch says: a second person is waiting to be asked. */
+    private function say(User $to, string $type, string $title, string $message, array $options = []): void
+    {
+        try {
+            $this->notifier->send($to, $type, $title, $message, ['subject' => $title] + $options);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    /** The Council of Two: somebody has asked for something serious and needs a second person. @param iterable<int, User> $approvers */
+    public function councilAsked(iterable $approvers, User $asker, string $what): void
+    {
+        foreach ($approvers as $approver) {
+            $this->say($approver, 'council_request', 'A second person is needed to approve something',
+                "{$asker->name} has asked to: {$what}.\n\nIt only goes through if a second person looks at the details and approves. Open Approvals to see what exactly is being asked and to approve or decline. It runs out in ".Council::waitMinutes().' minutes.',
+                ['action_url' => '/admin/security/approvals', 'action_text' => 'Look at it']);
+        }
+    }
+
+    /** The second person has answered: tell the first. */
+    public function councilAnswered(?User $asker, User $by, bool $approved, string $what): void
+    {
+        if (! $asker) {
+            return;
+        }
+        $this->say($asker, 'council_answer', $approved ? 'A second person approved' : 'A second person declined',
+            $approved ? "{$by->name} approved: {$what}. It goes through now if you still have the page open." : "{$by->name} declined: {$what}. Nothing was done.");
     }
 }

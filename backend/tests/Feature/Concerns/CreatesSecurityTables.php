@@ -11,6 +11,7 @@ trait CreatesSecurityTables
 {
     protected function createSecurityTables(): void
     {
+        \App\Services\Security\StepUp\Council::forget();   // (what a test last found out about script 129 is not true of this fresh database)
         Schema::create('users', function ($t) {
             $t->id(); $t->string('name')->nullable(); $t->string('email')->unique(); $t->timestamp('email_verified_at')->nullable(); $t->string('password'); $t->string('remember_token', 100)->nullable();
             $t->string('phone')->nullable(); $t->string('role')->default('customer'); $t->string('status')->default('active'); $t->string('oauth_provider')->default('email');
@@ -46,7 +47,7 @@ trait CreatesSecurityTables
         });
         Schema::create('auth_pending_actions', function ($t) {
             $t->string('id', 40)->primary(); $t->unsignedBigInteger('user_id'); $t->unsignedBigInteger('token_id'); $t->string('rule', 40); $t->string('params_hash', 64); $t->json('facts'); $t->unsignedTinyInteger('strength_needed')->default(2);
-            $t->boolean('reason_required')->default(false); $t->boolean('needs_second_person')->default(false); $t->string('reason', 300)->nullable(); $t->dateTime('approved_at')->nullable(); $t->string('approved_with', 10)->nullable();
+            $t->boolean('reason_required')->default(false); $t->boolean('needs_second_person')->default(false); $t->boolean('second_required')->default(false); $t->unsignedBigInteger('second_user_id')->nullable(); $t->dateTime('second_approved_at')->nullable(); $t->string('second_with', 10)->nullable(); $t->unsignedBigInteger('second_credential_id')->nullable(); $t->string('second_note', 300)->nullable(); $t->dateTime('second_rejected_at')->nullable(); $t->string('reason', 300)->nullable(); $t->dateTime('approved_at')->nullable(); $t->string('approved_with', 10)->nullable();
             $t->unsignedBigInteger('approved_credential_id')->nullable(); $t->dateTime('covers_until')->nullable(); $t->dateTime('used_at')->nullable(); $t->dateTime('cancelled_at')->nullable(); $t->dateTime('expires_at'); $t->timestamps();
         });
         Schema::create('auth_seals', function ($t) { $t->unsignedBigInteger('user_id')->primary(); $t->string('phrase', 60); $t->timestamps(); });

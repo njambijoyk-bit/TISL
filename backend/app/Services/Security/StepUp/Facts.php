@@ -72,6 +72,9 @@ final class Facts
         foreach ((array) $r->input('rules', []) as $rule => $mode) {
             $facts[] = ['label' => Catalogue::has((string) $rule) ? Catalogue::rule((string) $rule)['label'] : Str::headline((string) $rule), 'value' => $word[(string) $mode] ?? (string) $mode];
         }
+        foreach ((array) $r->input('council', []) as $rule => $mode) {
+            $facts[] = ['label' => (Catalogue::has((string) $rule) ? Catalogue::rule((string) $rule)['label'] : Str::headline((string) $rule)).': a second person', 'value' => ['off' => 'Off: one person is enough', 'log' => 'Test: nobody is stopped, it is only written down', 'enforce' => 'On: a second person must approve too'][(string) $mode] ?? (string) $mode];
+        }
         if ($r->has('risk_mode')) {
             $facts[] = ['label' => 'Unusual sign-in check', 'value' => ['off' => 'Off: nothing is done', 'log' => 'Test: nothing is done, it is only written down', 'enforce' => 'On: the person is told, or must confirm with a passkey'][(string) $r->input('risk_mode')] ?? (string) $r->input('risk_mode')];
         }

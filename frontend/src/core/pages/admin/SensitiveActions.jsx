@@ -64,9 +64,28 @@ function statsLine(s) {
   return parts.length ? `Last 7 days: ${parts.join(', ')}.` : 'Not used in the last 7 days.';
 }
 
-function Rule({ rule, value, onChange, canChange }) {
+const COUNCIL_TEXT = {
+  off: 'One person is enough.',
+  log: 'Nobody is stopped. Each time a second person would have been asked is written to the sign-in log.',
+  enforce: 'Once the first person has confirmed, a second person who can do this too must look at the same details and approve before it goes through.',
+};
+
+function councilLine(s) {
+  const parts = [];
+  if (s.council_would_ask) parts.push(`would have asked a second person ${times(s.council_would_ask)}`);
+  if (s.council_asked) parts.push(`asked ${times(s.council_asked)}`);
+  if (s.council_approved) parts.push(`${s.council_approved} approved`);
+  if (s.council_declined) parts.push(`${s.council_declined} declined`);
+
+  return parts.length ? `Second person, last 7 days: ${parts.join(', ')}.` : null;
+}
+
+function Rule({ rule, value, onChange, canChange, council, onCouncil, councilReady }) {
   const line = statsLine(rule.stats);
   const blockOn = !rule.you_could_answer && rule.mode !== 'enforce';
+  const second = rule.council;
+  const blockCouncil = second && second.mode !== 'enforce' && second.others === 0;
+  const secondLine = councilLine(rule.stats);
 
   return (
     <div data-rule={rule.key} style={{ ...card, padding: 14, display: 'grid', gap: 8 }}>
@@ -77,12 +96,23 @@ function Rule({ rule, value, onChange, canChange }) {
             <span>{rule.strength >= 2 ? 'Needs a passkey (the password only until they have one)' : 'A passkey or the password'}</span>
             {rule.reason && <span>They say why</span>}
             {rule.window && <span>One confirmation covers {rule.fresh} minutes</span>}
-            {rule.two && <span>A second person will also be needed once that is switched on</span>}
           </div>
         </div>
         <ModePicker name={`rule-${rule.key}`} label={`${rule.label}: how it is set`} value={value} onChange={onChange} disabled={!canChange} blockOn={blockOn} />
       </div>
       <div style={{ fontSize: '0.76rem', color: colors.textMuted }} data-line="stats">{line}</div>
+      {second && (
+        <div data-council={rule.key} style={{ borderTop: '1px solid var(--line)', paddingTop: 8, display: 'grid', gap: 6 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>A second person must approve too</span>
+            <ModePicker name={`council-${rule.key}`} label={`${rule.label}: a second person`} value={council} onChange={onCouncil} disabled={!canChange || !councilReady} blockOn={blockCouncil} />
+          </div>
+          <div style={{ fontSize: '0.74rem', color: colors.textMuted }}>{COUNCIL_TEXT[council]} {second.others === 1 ? '1 other person could approve it.' : `${second.others} other people could approve it.`}</div>
+          {secondLine && <div style={{ fontSize: '0.74rem', color: colors.textMuted }} data-line="council-stats">{secondLine}</div>}
+          {blockCouncil && canChange && councilReady && <div role="note" style={{ fontSize: '0.74rem', color: colors.warningText }}>Nobody else could approve this yet, so it can not be switched on. It needs another person who can do it themselves and who could answer the question.</div>}
+          {second.mode !== second.in_force && <div style={{ fontSize: '0.74rem', color: colors.warningText }}>Chosen: {second.mode}, but it is not in force: it is asleep (the emergency switch, or its database script has not been run).</div>}
+        </div>
+      )}
       {rule.mode !== rule.in_force && <div style={{ fontSize: '0.74rem', color: colors.warningText }}>Chosen: {rule.mode}, but it is not in force: {rule.in_force === 'off' ? 'it is asleep (the emergency switch, or its database script has not been run)' : rule.in_force}.</div>}
       {blockOn && canChange && <div role="note" style={{ fontSize: '0.74rem', color: colors.warningText }}>You could not answer this yourself yet, so it can not be switched on. Add a passkey first{rule.class === 'critical' ? ' (for serious actions it must be a day old)' : ''}.</div>}
     </div>
@@ -97,7 +127,10 @@ export default function SensitiveActions() {
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState(null);
 
-  const adopt = (r) => { setData(r); setForm({ rules: Object.fromEntries(r.rules.map((x) => [x.key, x.mode])), risk: r.risk.mode }); };
+  const adopt = (r) => {
+    setData(r);
+    setForm({ rules: Object.fromEntries(r.rules.map((x) => [x.key, x.mode])), council: Object.fromEntries(r.rules.filter((x) => x.council).map((x) => [x.key, x.council.mode])), risk: r.risk.mode });
+  };
   const load = useCallback(() => securityAPI.actions().then(adopt).catch((e) => toast.error(errMsg(e, 'Could not load the page'))), []);
   useEffect(() => { load(); }, [load]);
 
@@ -105,7 +138,9 @@ export default function SensitiveActions() {
     if (!data || !form) return {};
     const rules = Object.fromEntries(data.rules.filter((r) => form.rules[r.key] !== r.mode).map((r) => [r.key, form.rules[r.key]]));
 
-    return { ...(Object.keys(rules).length ? { rules } : {}), ...(form.risk !== data.risk.mode ? { risk_mode: form.risk } : {}) };
+    const council = Object.fromEntries(data.rules.filter((r) => r.council && form.council[r.key] !== r.council.mode).map((r) => [r.key, form.council[r.key]]));
+
+    return { ...(Object.keys(rules).length ? { rules } : {}), ...(Object.keys(council).length ? { council } : {}), ...(form.risk !== data.risk.mode ? { risk_mode: form.risk } : {}) };
   }, [data, form]);
   const dirty = Object.keys(changes).length > 0;
 
@@ -154,7 +189,8 @@ export default function SensitiveActions() {
                 <p style={{ margin: '0 0 10px', fontSize: '0.76rem', color: colors.textMuted }}>{c.text}</p>
                 <div style={{ display: 'grid', gap: 10 }}>
                   {data.rules.filter((r) => r.class === c.key).map((r) => (
-                    <Rule key={r.key} rule={r} value={form.rules[r.key]} canChange={canChange && data.ready} onChange={(v) => setForm({ ...form, rules: { ...form.rules, [r.key]: v } })} />
+                    <Rule key={r.key} rule={r} value={form.rules[r.key]} canChange={canChange && data.ready} onChange={(v) => setForm({ ...form, rules: { ...form.rules, [r.key]: v } })}
+                      council={form.council[r.key]} councilReady={data.council_ready} onCouncil={(v) => setForm({ ...form, council: { ...form.council, [r.key]: v } })} />
                   ))}
                 </div>
               </section>

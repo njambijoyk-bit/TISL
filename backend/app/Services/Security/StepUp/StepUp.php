@@ -173,8 +173,9 @@ final class StepUp
     public function ask(Request $request, User $user, PersonalAccessToken $token, string $rule): AuthPendingAction
     {
         $hash = $this->paramsHash($request, $user, $rule);
-        $open = AuthPendingAction::where('user_id', $user->id)->where('token_id', $token->id)->where('rule', $rule)->where('params_hash', $hash)
-            ->whereNull('approved_at')->whereNull('cancelled_at')->where('expires_at', '>', now())->first();
+        $mine = AuthPendingAction::where('user_id', $user->id)->where('token_id', $token->id)->where('rule', $rule)->where('params_hash', $hash)->whereNull('cancelled_at')->where('expires_at', '>', now());
+        $open = (clone $mine)->whereNull('approved_at')->first()
+            ?? (Council::ready() ? (clone $mine)->where('second_required', true)->whereNull('second_approved_at')->whereNull('second_rejected_at')->whereNull('used_at')->first() : null);   // or one still waiting for the second person
         if ($open) {
             return $open;
         }
@@ -194,7 +195,9 @@ final class StepUp
         $hasPasskey = $this->store->usableFor($user)->isNotEmpty();
 
         return ['pending' => $p->id, 'rule' => $p->rule, 'label' => $r['label'], 'class' => $r['class'], 'strength' => $p->strength_needed, 'reason_required' => $p->reason_required, 'needs_second_person' => $p->needs_second_person,
-            'facts' => $p->facts, 'expires_at' => $p->expires_at->toIso8601String(), 'has_passkey' => $hasPasskey, 'can_use_password' => $this->passwordAllowed($user, $p->strength_needed), 'approved' => $p->approved_at !== null];
+            'facts' => $p->facts, 'expires_at' => $p->expires_at->toIso8601String(), 'has_passkey' => $hasPasskey, 'can_use_password' => $this->passwordAllowed($user, $p->strength_needed), 'approved' => $p->approved_at !== null,
+            'will_need_second' => $p->needs_second_person && Council::ready() && app(Council::class)->mode($p->rule) === 'enforce',   // so the screen can say, before they confirm, that someone else will be asked
+            'second' => Council::ready() ? app(Council::class)->state($p) : null];
     }
 
     /** Could this person answer the rule today? (Asked before the owner switches a rule on, so the switch can never be one they could not get through themselves.) */
@@ -213,7 +216,7 @@ final class StepUp
         return $keys->isNotEmpty();
     }
 
-    private function passwordAllowed(User $user, int $strength): bool
+    public function passwordAllowed(User $user, int $strength): bool
     {
         if ($strength <= 1) {
             return true;
@@ -289,6 +292,9 @@ final class StepUp
             'covers_until' => $rule['window'] ? now()->addMinutes($rule['fresh']) : null,
             'expires_at' => now()->addMinutes(self::PENDING_MINUTES)])->save();   // the retry has a few minutes from now
         SecurityLog::record('stepup_approved', $user, $request, ['rule' => $p->rule, 'pending' => $p->id, 'with' => $with, 'reason' => $p->reason, 'second_person_needed' => $p->needs_second_person], SecurityLog::NOTICE);
+        if ($p->needs_second_person && Council::ready()) {
+            app(Council::class)->firstApproved($p, $user, $request);   // for the most serious actions a second person is asked next
+        }
 
         return $p->refresh();
     }
@@ -296,20 +302,29 @@ final class StepUp
     /** @param array<string, mixed> $rule @param array<string, mixed> $credential */
     private function approveWithPasskey(User $user, PersonalAccessToken $token, AuthPendingAction $p, array $rule, string $challengeId, array $credential, ?Request $request): int
     {
+        return $this->verifyPasskey($user, $token, $p->rule, $rule, $this->contextFor($p), $challengeId, $credential, $request);
+    }
+
+    /**
+     * A passkey answer to a question: its challenge must be the one made for exactly this question (`$context`), it must verify, and for a serious action the passkey must not be a brand-new one.
+     * Shared by the person who asked and (see Council) the second person. @param array<string, mixed> $rule @param array<string, mixed> $credential @return int the passkey's id
+     */
+    public function verifyPasskey(User $user, PersonalAccessToken $token, string $ruleKey, array $rule, string $context, string $challengeId, array $credential, ?Request $request): int
+    {
         try {
             $row = $this->challenges->take($challengeId, Challenges::STEP_UP, $user->id);
-            if (! hash_equals((string) $row->context_hash, $this->contextFor($p))) {
+            if (! hash_equals((string) $row->context_hash, $context)) {
                 throw new PasskeyException('That passkey answer was meant for something else. Please try again.', 'wrong_context');   // a recorded answer to another question is no use here
             }
             $credential = $this->passkeys->answerFor($user, $row, $credential, $request)['credential'];
         } catch (PasskeyException $e) {
-            SecurityLog::record('stepup_failed', $user, $request, ['rule' => $p->rule, 'why' => $e->reason], SecurityLog::WARNING);
+            SecurityLog::record('stepup_failed', $user, $request, ['rule' => $ruleKey, 'why' => $e->reason], SecurityLog::WARNING);
             throw new StepUpException($e->getMessage(), $e->reason, $e->httpStatus, $e);
         }
         // a passkey added a moment ago may belong to whoever just got into the account: for the serious things it must have been there a while
         $hours = (int) config('security.stepup.new_passkey_hours', 24);
         if ($rule['class'] === 'critical' && $hours > 0 && $credential->created_at && $credential->created_at->gt(now()->subHours($hours))) {
-            SecurityLog::record('stepup_failed', $user, $request, ['rule' => $p->rule, 'why' => 'passkey_too_new', 'credential' => $credential->id], SecurityLog::WARNING);
+            SecurityLog::record('stepup_failed', $user, $request, ['rule' => $ruleKey, 'why' => 'passkey_too_new', 'credential' => $credential->id], SecurityLog::WARNING);
             throw new StepUpException("This passkey was added less than {$hours} hours ago. For something this serious, use a passkey that has been on your account longer, or wait.", 'passkey_too_new', 403);
         }
         $this->sessions->markStrong($token, $credential->id);   // the session is now strong and fresh, as after any proof
@@ -320,7 +335,7 @@ final class StepUp
     public function cancel(User $user, PersonalAccessToken $token, string $id): void
     {
         $p = $this->mine($user, $token, $id);
-        if ($p->approved_at === null && $p->cancelled_at === null) {
+        if ($p->cancelled_at === null && ($p->approved_at === null || $p->awaitingSecond())) {
             $p->forceFill(['cancelled_at' => now()])->save();
             SecurityLog::record('stepup_cancelled', $user, null, ['rule' => $p->rule, 'pending' => $p->id]);
         }
@@ -341,6 +356,9 @@ final class StepUp
         $id = (string) $request->header('X-Step-Up', '');
         if ($id !== '') {
             $p = AuthPendingAction::where('id', $id)->where('user_id', $user->id)->where('token_id', $token->id)->where('rule', $rule)->whereNotNull('approved_at')->whereNull('cancelled_at')->first();
+            if ($p && $p->second_required && $p->second_approved_at === null) {
+                $p = null;   // the second person has not answered yet: it does not go through
+            }
             if ($p) {
                 if ($r['window']) {
                     if ($p->covers_until && $p->covers_until->isFuture()) {
@@ -353,7 +371,8 @@ final class StepUp
             }
         }
         if ($r['window']) {
-            return AuthPendingAction::where('user_id', $user->id)->where('token_id', $token->id)->where('rule', $rule)->whereNotNull('approved_at')->whereNull('cancelled_at')->where('covers_until', '>', now())->exists();
+            return AuthPendingAction::where('user_id', $user->id)->where('token_id', $token->id)->where('rule', $rule)->whereNotNull('approved_at')->whereNull('cancelled_at')->where('covers_until', '>', now())
+                ->when(Council::ready(), fn ($q) => $q->where(fn ($w) => $w->where('second_required', false)->orWhereNotNull('second_approved_at')))->exists();
         }
 
         return false;

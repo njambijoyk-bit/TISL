@@ -10,25 +10,26 @@ namespace App\Services\Security\StepUp;
  *  fresh      minutes an approval may cover related actions, for rules that allow a run (`window`)
  *  reason     the person must say why, in a few words (it is written in the log)
  *  window     one approval covers a short run of the same kind of action; otherwise each action needs its own
- *  two        a second person must also approve (recorded now, enforced with the Council of Two)
+ *  two        a second person must also approve (the Council of Two: StepUp\Council, off / test / on per rule)
+ *  approver   the permission the second person must hold (they must be someone who could do the thing themselves)
  *
  * Whether a rule is asked at all is the owner's setting (off / test / on, see StepUp::mode), and starts off. Authorization always comes first: the route's own permission check runs before any question,
  * so nobody is ever asked to prove who they are for something they may not do.
  */
 final class Catalogue
 {
-    /** @var array<string, array{label: string, class: string, strength: int, fresh: int, reason: bool, window: bool, two: bool, ignore: string[]}> */
+    /** @var array<string, array{label: string, class: string, strength: int, fresh: int, reason: bool, window: bool, two: bool, approver: ?string, ignore: string[]}> */
     public const RULES = [
-        'payment_keys' => ['label' => 'Change the payment keys', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => false, 'ignore' => ['current_password', 'password']],
-        'access_change' => ['label' => 'Change who may do what (roles, permissions, clearance, branch access)', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'ignore' => []],
-        'signin_reset' => ['label' => 'Reset someone\'s sign-in methods, or lower an account\'s strength', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'ignore' => []],
-        'security_settings' => ['label' => 'Change the security rules', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'ignore' => ['confirm']],
-        'payroll_run' => ['label' => 'Run or pay payroll', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'ignore' => []],
-        'backup_restore' => ['label' => 'Restore the database from a backup', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => false, 'ignore' => []],
-        'staff_account' => ['label' => 'Create, switch off or change the role of a staff account', 'class' => 'elevated', 'strength' => 2, 'fresh' => 10, 'reason' => false, 'window' => true, 'two' => false, 'ignore' => []],
-        'export_bulk' => ['label' => 'Export a large list (customers, payroll, ledgers)', 'class' => 'elevated', 'strength' => 1, 'fresh' => 15, 'reason' => false, 'window' => true, 'two' => false, 'ignore' => []],
-        'voucher_cancel' => ['label' => 'Cancel a posted voucher, or refund above the limit', 'class' => 'elevated', 'strength' => 1, 'fresh' => 10, 'reason' => false, 'window' => true, 'two' => false, 'ignore' => []],
-        'bank_details' => ['label' => 'Change bank or payee details', 'class' => 'elevated', 'strength' => 1, 'fresh' => 10, 'reason' => false, 'window' => true, 'two' => false, 'ignore' => []],
+        'payment_keys' => ['label' => 'Change the payment keys', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => false, 'approver' => null, 'ignore' => ['current_password', 'password']],
+        'access_change' => ['label' => 'Change who may do what (roles, permissions, clearance, branch access)', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'approver' => 'access.manage', 'ignore' => []],
+        'signin_reset' => ['label' => 'Reset someone\'s sign-in methods, or lower an account\'s strength', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'approver' => 'users.manage', 'ignore' => []],
+        'security_settings' => ['label' => 'Change the security rules', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'approver' => 'security.manage', 'ignore' => ['confirm']],
+        'payroll_run' => ['label' => 'Run or pay payroll', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => true, 'approver' => 'payroll.run', 'ignore' => []],
+        'backup_restore' => ['label' => 'Restore the database from a backup', 'class' => 'critical', 'strength' => 2, 'fresh' => 5, 'reason' => true, 'window' => false, 'two' => false, 'approver' => null, 'ignore' => []],
+        'staff_account' => ['label' => 'Create, switch off or change the role of a staff account', 'class' => 'elevated', 'strength' => 2, 'fresh' => 10, 'reason' => false, 'window' => true, 'two' => false, 'approver' => null, 'ignore' => []],
+        'export_bulk' => ['label' => 'Export a large list (customers, payroll, ledgers)', 'class' => 'elevated', 'strength' => 1, 'fresh' => 15, 'reason' => false, 'window' => true, 'two' => false, 'approver' => null, 'ignore' => []],
+        'voucher_cancel' => ['label' => 'Cancel a posted voucher, or refund above the limit', 'class' => 'elevated', 'strength' => 1, 'fresh' => 10, 'reason' => false, 'window' => true, 'two' => false, 'approver' => null, 'ignore' => []],
+        'bank_details' => ['label' => 'Change bank or payee details', 'class' => 'elevated', 'strength' => 1, 'fresh' => 10, 'reason' => false, 'window' => true, 'two' => false, 'approver' => null, 'ignore' => []],
     ];
 
     /** @return string[] */
@@ -42,7 +43,7 @@ final class Catalogue
         return isset(self::RULES[$key]);
     }
 
-    /** @return array{label: string, class: string, strength: int, fresh: int, reason: bool, window: bool, two: bool, ignore: string[]} */
+    /** @return array{label: string, class: string, strength: int, fresh: int, reason: bool, window: bool, two: bool, approver: ?string, ignore: string[]} */
     public static function rule(string $key): array
     {
         return self::RULES[$key] ?? throw new \InvalidArgumentException("No step-up rule called {$key}.");

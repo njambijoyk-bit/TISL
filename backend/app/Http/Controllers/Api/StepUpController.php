@@ -65,7 +65,10 @@ class StepUpController extends Controller
             return $this->refuse($e);
         }
 
-        return response()->json(['message' => 'Confirmed. Now your action can go through.', 'pending' => $p->id, 'covers_until' => $p->covers_until?->toIso8601String(), 'expires_at' => $p->expires_at->toIso8601String()]);
+        $waiting = $p->awaitingSecond();
+
+        return response()->json(['message' => $waiting ? 'Confirmed. A second person has to approve it too.' : 'Confirmed. Now your action can go through.', 'pending' => $p->id, 'covers_until' => $p->covers_until?->toIso8601String(), 'expires_at' => $p->expires_at->toIso8601String(),
+            'waiting_for_second' => $waiting, 'second' => $this->stepUp->describe($p, $request->user())['second']]);
     }
 
     /** DELETE /auth/step-up/{id}: never mind. */

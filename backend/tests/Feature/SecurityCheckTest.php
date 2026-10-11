@@ -329,6 +329,43 @@ class SecurityCheckTest extends TestCase
         }
     }
 
+    public function test_a_second_person_for_the_serious_actions_is_a_note_until_it_is_switched_on(): void
+    {
+        $line = fn () => collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'A second person approves') || str_starts_with($label, 'Asking a second person'));
+        \Illuminate\Support\Facades\Schema::table('auth_pending_actions', fn ($t) => $t->dropColumn(['second_required', 'second_user_id', 'second_approved_at', 'second_with', 'second_credential_id', 'second_note', 'second_rejected_at']));
+        \App\Services\Security\StepUp\Council::forget();
+        $this->assertSame('note', $line()['status']);
+        $this->assertStringContainsString('129_council_of_two.sql', $line()['advice']);
+    }
+
+    public function test_a_second_person_that_is_on_is_ok_and_one_nobody_could_satisfy_is_a_warning(): void
+    {
+        Schema::create('employees', function ($t) { $t->id(); $t->unsignedBigInteger('user_id')->nullable(); $t->softDeletes(); $t->timestamps(); });   // (looked up when someone's access is read)
+        $line = fn (string $start) => collect($this->results())->first(fn ($r, $label) => str_starts_with($label, $start));
+        $this->assertSame('note', $line('A second person approves')['status']);
+        $this->assertSame('A second person approves the most serious actions: 0 of 4 on', $line('A second person approves')['label']);
+
+        config(['security.policy.stepup.access_change.mode' => 'enforce', 'security.policy.stepup.access_change.two' => 'enforce']);
+        \App\Services\Security\SecuritySettings::forget();
+        User::forceCreate(['name' => 'One', 'email' => 'one@example.com', 'password' => Hash::make('x'), 'role' => 'super_admin']);
+        $this->assertSame('ok', $line('A second person approves')['status']);
+        $this->assertStringContainsString('1 of 4 on', $line('A second person approves')['label']);
+        $stuck = $line('Some actions could never');                                                // only one person can do it: nobody could be the second
+        $this->assertSame('warn', $stuck['status']);
+        $this->assertStringContainsString('Change who may do what', $stuck['advice']);
+
+        // while the rule itself is only being tried out nothing is asked of anyone, so nothing is stuck
+        config(['security.policy.stepup.access_change.mode' => 'log']);
+        \App\Services\Security\SecuritySettings::forget();
+        $this->assertNull($line('Some actions could never'));
+        config(['security.policy.stepup.access_change.mode' => 'enforce']);
+        \App\Services\Security\SecuritySettings::forget();
+        $this->assertNotNull($line('Some actions could never'));
+
+        User::forceCreate(['name' => 'Two', 'email' => 'two@example.com', 'password' => Hash::make('x'), 'role' => 'super_admin']);
+        $this->assertNull($line('Some actions could never'));
+    }
+
     public function test_the_step_up_table_missing_is_a_warning_that_names_the_script(): void
     {
         Schema::drop('auth_pending_actions');

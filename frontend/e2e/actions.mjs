@@ -7,7 +7,7 @@ const payments = '/e2e/harness.html?c=PaymentSettings';
 const manager = '/e2e/harness.html?c=PasskeyManager';
 const setting = (k) => { const r = rows(`SELECT value FROM security_settings WHERE setting_key = '${k}'`)[0]; return r ? JSON.parse(r.value) : undefined; };
 const question = (page) => page.locator('[data-testid="step-up"]');
-const pick = (page, rule, mode) => page.locator(`[data-rule="${rule}"] input[value="${mode}"]`).check();
+const pick = (page, rule, mode) => page.locator(`input[name="rule-${rule}"][value="${mode}"]`).check();
 const save = (page) => page.locator('[data-testid="actions-save"]').click();
 /** The save went through (the server answered 200 to the change; a held one answers 403 first and 200 when it is tried again after the answer). */
 const saved = (page) => page.waitForResponse((r) => r.url().includes('/admin/security-policy/actions') && r.request().method() === 'PUT' && r.status() === 200, { timeout: 15000 });
@@ -33,13 +33,13 @@ const saved = (page) => page.waitForResponse((r) => r.url().includes('/admin/sec
   await page.screenshot({ path: D + 'actions-1.png', fullPage: true });
 
   // the owner could not answer a serious question yet with a passkey added a moment ago: it can not be switched on, an everyday one can
-  ok('a serious action can not be switched on with a passkey added today', await page.locator('[data-rule="payment_keys"] input[value="enforce"]').isDisabled());
+  ok('a serious action can not be switched on with a passkey added today', await page.locator('input[name="rule-payment_keys"][value="enforce"]').isDisabled());
   ok('and it says why', /could not answer this yourself yet/.test(await page.locator('[data-rule="payment_keys"]').innerText()));
-  ok('an everyday one can', await page.locator('[data-rule="export_bulk"] input[value="enforce"]').isEnabled());
+  ok('an everyday one can', await page.locator('input[name="rule-export_bulk"][value="enforce"]').isEnabled());
   sql("UPDATE auth_credentials SET created_at = datetime('now','-3 days')");
   await page.reload({ waitUntil: 'networkidle' });
   await page.locator('[data-rule="payment_keys"]').waitFor({ timeout: 10000 });
-  ok('a day later the serious ones can be switched on too', await page.locator('[data-rule="payment_keys"] input[value="enforce"]').isEnabled());
+  ok('a day later the serious ones can be switched on too', await page.locator('input[name="rule-payment_keys"][value="enforce"]').isEnabled());
 
   // Test mode first, for two actions and the sign-in check
   await pick(page, 'payroll_run', 'log');
@@ -104,7 +104,7 @@ const saved = (page) => page.waitForResponse((r) => r.url().includes('/admin/sec
   ok('giving up leaves everything as it was', setting('stepup.export_bulk.mode') === undefined);
   ok('the page still has the unsaved choice, ready to try again', await page.locator('[data-testid="actions-save"]').isEnabled());
   await page.getByRole('button', { name: 'Undo changes' }).click();
-  ok('undo puts it back', await page.locator('[data-rule="export_bulk"] input[value="off"]').isChecked());
+  ok('undo puts it back', await page.locator('input[name="rule-export_bulk"][value="off"]').isChecked());
 
   // the payment keys screen, with that rule on: the door asks once, and the screen does not ask for the password as well
   const answer = async (reason) => {
@@ -113,6 +113,24 @@ const saved = (page) => page.waitForResponse((r) => r.url().includes('/admin/sec
     await page.locator('[data-testid="step-up-passkey"]').click();
     await question(page).waitFor({ state: 'detached', timeout: 15000 });
   };
+  // the second person: how many others could approve, and the switch that can not be thrown while nobody could
+  ok('a two-person action shows how many others could approve it', /1 other person could approve it/.test(await page.locator('[data-council="access_change"]').innerText()), (await page.locator('[data-council="access_change"]').innerText()).replace(/\n+/g, ' | ').slice(0, 200));
+  ok('one that nobody else could approve can not be switched on, and says why', (await page.locator('[data-council="security_settings"] input[value="enforce"]').isDisabled()) && /Nobody else could approve this yet/.test(await page.locator('[data-council="security_settings"]').innerText()));
+  ok('only the two-person actions have it', (await page.locator('[data-council]').count()) === 4);
+  await page.locator('[data-council="access_change"] input[value="log"]').check();
+  await save(page);
+  await answer('Trying a second person out');
+  await page.waitForTimeout(600);
+  ok('Test for the second person is saved, apart from the rule itself', setting('stepup.access_change.two') === 'log' && setting('stepup.access_change.mode') === undefined);
+  await page.locator('[data-council="access_change"] input[value="enforce"]').check();
+  await save(page);
+  await answer('Switching the second person on');
+  await page.waitForTimeout(600);
+  ok('On is saved when somebody else could approve', setting('stepup.access_change.two') === 'enforce');
+  ok('the change is on the record', rows("SELECT detail FROM security_events WHERE event = 'stepup_rules_changed'").some((r) => /stepup\.access_change\.two/.test(r.detail)));
+  await page.screenshot({ path: D + 'actions-council.png', fullPage: true });
+  sql("INSERT OR REPLACE INTO security_settings (setting_key, value, created_at, updated_at) VALUES ('stepup.access_change.two', '\"off\"', datetime('now'), datetime('now'))");
+
   await page.goto(SITE + payments, { waitUntil: 'networkidle' });
   await page.getByLabel('Consumer key').waitFor({ timeout: 15000 });
   await page.getByLabel('Consumer key').fill('KEY-AAAA-1111');
@@ -165,8 +183,14 @@ const saved = (page) => page.waitForResponse((r) => r.url().includes('/admin/sec
   sql('ALTER TABLE auth_pending_actions RENAME TO auth_pending_actions_away');
   await page.goto(SITE + actions, { waitUntil: 'networkidle' });
   await page.locator('[data-rule="payment_keys"]').waitFor({ timeout: 15000 });
-  ok('a rule that is chosen but asleep says so', /not in force/.test(await page.locator('[data-rule="payment_keys"]').innerText()) && (await page.locator('[data-rule="payment_keys"] input[value="log"]').isDisabled()));
+  ok('a rule that is chosen but asleep says so', /not in force/.test(await page.locator('[data-rule="payment_keys"]').innerText()) && (await page.locator('input[name="rule-payment_keys"][value="log"]').isDisabled()));
   sql('ALTER TABLE auth_pending_actions_away RENAME TO auth_pending_actions');
+
+  // before the second-person script is run the switch is there but can not be used, and says nothing is asked
+  for (const c of ['second_required', 'second_user_id', 'second_approved_at', 'second_with', 'second_credential_id', 'second_note', 'second_rejected_at']) sql(`ALTER TABLE auth_pending_actions DROP COLUMN ${c}`);
+  await page.goto(SITE + actions, { waitUntil: 'networkidle' });
+  await page.locator('[data-council="access_change"]').waitFor({ timeout: 15000 });
+  ok('without the second-person script its switch can not be used', (await page.locator('input[name="council-access_change"][value="log"]').isDisabled()) && (await page.locator('input[name="rule-access_change"][value="log"]').isEnabled()));
   await ctx.close();
 }
 
@@ -189,7 +213,7 @@ const saved = (page) => page.waitForResponse((r) => r.url().includes('/admin/sec
   await signInWithPassword(page, 'admin@example.com');
   await page.goto(SITE + actions, { waitUntil: 'networkidle' });
   await page.locator('[data-rule="payment_keys"]').waitFor({ timeout: 15000 });
-  ok('an admin sees the rules but has no way to change them', (await page.locator('[data-rule="payment_keys"] input[value="log"]').isDisabled()) && (await page.locator('[data-testid="actions-save"]').count()) === 0 && /not change them/.test(await page.locator('[data-testid="tally"]').innerText()));
+  ok('an admin sees the rules but has no way to change them', (await page.locator('input[name="rule-payment_keys"][value="log"]').isDisabled()) && (await page.locator('[data-testid="actions-save"]').count()) === 0 && /not change them/.test(await page.locator('[data-testid="tally"]').innerText()));
   await ctx.close();
 }
 

@@ -138,6 +138,7 @@ const Dashboard          = lazy(() => import('./core/pages/admin/Dashboard'));
 const PolicySettings     = lazy(() => import('./core/pages/admin/settings/policies/PolicySettings'))
 const PasskeyRule        = lazy(() => import('./core/pages/admin/PasskeyRule'));
 const SensitiveActions   = lazy(() => import('./core/pages/admin/SensitiveActions'));
+const Approvals          = lazy(() => import('./core/pages/admin/Approvals'));
 const AdminProducts      = lazy(() => import('./ecommerce/pages/admin/Products'));
 const ProductForm        = lazy(() => import('./ecommerce/pages/admin/ProductForm'));
 const AdminPurchases     = lazy(() => import('./core/pages/admin/stock/Purchases'));
@@ -1457,6 +1458,14 @@ function App() {
                 element={
                   <ProtectedRoute requireAdmin permission="security.view">
                     <SensitiveActions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/security/approvals"
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Approvals />
                   </ProtectedRoute>
                 }
               />
