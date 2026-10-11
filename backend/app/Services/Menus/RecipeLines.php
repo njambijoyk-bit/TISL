@@ -33,19 +33,65 @@ class RecipeLines
         self::$extended = null;
     }
 
-    /** What has to be taken from the shelf to make `$factor` yields at a branch: one row per stock item, same items added together. @return array<int, array{variant_id: int, quantity: float, from: string}> */
-    public function requirements(Recipe $r, float $factor, int $locationId): array
+    /**
+     * What has to be taken from the shelf to make `$factor` yields at a branch: one row per stock item, same items added together.
+     * `$uses` are the changes a customer's choices make to one portion (extra cheese adds, "no onion" leaves a recipe line out); `$portions` is how many portions are made.
+     *
+     * @param array<int, array{mode: string, family_id?: ?int, variant_id?: ?int, quantity?: ?float, unit_id?: ?int}> $uses
+     * @return array<int, array{variant_id: int, quantity: float, from: string}>
+     */
+    public function requirements(Recipe $r, float $factor, int $locationId, array $uses = [], float $portions = 0.0): array
     {
         $r->loadMissing('items');
+        $leftOut = array_filter($uses, fn ($u) => ($u['mode'] ?? '') === 'remove');
         $merged = [];
         foreach ($r->items as $line) {
-            foreach ($this->resolve($line, $factor, $locationId) as $piece) {
-                $v = $piece['variant_id'];
-                $merged[$v] = isset($merged[$v]) ? ['quantity' => round($merged[$v]['quantity'] + $piece['quantity'], 4)] + $merged[$v] : $piece;
+            if ($leftOut && $this->isLeftOut($line, $leftOut)) {
+                continue;
             }
+            $this->mergeInto($merged, $this->resolve($line, $factor, $locationId));
+        }
+        foreach ($this->extras($uses, $portions, $locationId) as $piece) {
+            $this->mergeInto($merged, [$piece]);
         }
 
         return array_values($merged);
+    }
+
+    /** What the "uses more of" choices take from the shelf for `$portions` portions (the leaving-out ones take nothing). @return array<int, array{variant_id: int, quantity: float, from: string}> */
+    public function extras(array $uses, float $portions, int $locationId): array
+    {
+        $out = [];
+        foreach ($uses as $u) {
+            if (($u['mode'] ?? '') !== 'add' || (float) ($u['quantity'] ?? 0) <= 0 || $portions <= 0) {
+                continue;
+            }
+            $line = new RecipeItem(['family_id' => $u['family_id'] ?? null, 'variant_id' => $u['variant_id'] ?? null, 'quantity' => (float) $u['quantity'], 'unit_id' => $u['unit_id'] ?? null, 'waste_pct' => 0]);
+            $this->mergeInto($out, $this->resolve($line, $portions, $locationId));
+        }
+
+        return array_values($out);
+    }
+
+    /** @param array<int, array<string, mixed>> $leftOut */
+    private function isLeftOut(RecipeItem $line, array $leftOut): bool
+    {
+        foreach ($leftOut as $u) {
+            if ((! empty($u['family_id']) && (int) $line->family_id === (int) $u['family_id']) || (! empty($u['variant_id']) && (int) $line->variant_id === (int) $u['variant_id'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @param array<int, array{variant_id: int, quantity: float, from: string}> $merged @param array<int, array{variant_id: int, quantity: float, from: string}> $pieces */
+    private function mergeInto(array &$merged, array $pieces): void
+    {
+        foreach ($pieces as $piece) {
+            $v = $piece['variant_id'];
+            $merged[$v] = isset($merged[$v]) ? ['quantity' => round($merged[$v]['quantity'] + $piece['quantity'], 4)] + $merged[$v] : $piece;
+        }
     }
 
     /** The line before the waste is added back: what ends up in the dish, in the line's unit. */

@@ -400,4 +400,160 @@ class MenusRecipesTest extends TestCase
         $this->expectExceptionMessage('can not be turned into it');
         $this->need($r->fresh());
     }
+
+    // ------------------------------------------------------------ what a customer's choices change
+
+    private function burgerRecipe(): array
+    {
+        $d = $this->dish('Burger');
+        $onion = $this->item('Onions', '1 kg');
+        $cheese = $this->item('Cheese', '1 kg');
+        $oil = $this->item('Oil', '1 l');
+        $onionFam = $this->family('Onion', $this->g, [[$onion, 1000]]);
+        $cheeseFam = $this->family('Cheese', $this->g, [[$cheese, 1000]]);
+        foreach ([[$onion, 100], [$cheese, 100], [$oil, 10]] as [$v, $q]) {
+            $this->stock($v, $q);
+        }
+        $r = $this->lines()->save($d, 1, true, null, [['family_id' => $onionFam, 'quantity' => 30], ['variant_id' => $oil, 'quantity' => 0.05]]);
+
+        return [$d, $r, $onion, $cheese, $oil, $onionFam, $cheeseFam];
+    }
+
+    public function test_a_choice_that_leaves_something_out_takes_that_line_out_of_what_is_used(): void
+    {
+        [, $r, $onion, , $oil, $onionFam] = $this->burgerRecipe();
+        $rows = app(RecipeLines::class)->requirements($r->fresh(), 2.0, self::BRANCH, [['mode' => 'remove', 'family_id' => $onionFam]], 2.0);
+        $this->assertSame([$oil => 0.1], array_column($rows, 'quantity', 'variant_id'), 'no onion for either burger');
+        $rows = app(RecipeLines::class)->requirements($r->fresh(), 2.0, self::BRANCH, [['mode' => 'remove', 'variant_id' => $oil]], 2.0);
+        $this->assertSame([$onion => 0.06], array_column($rows, 'quantity', 'variant_id'), 'or no oil: an exact item can be left out too');
+    }
+
+    public function test_leaving_out_something_the_recipe_does_not_use_changes_nothing(): void
+    {
+        [, $r, $onion, , $oil] = $this->burgerRecipe();
+        $rows = app(RecipeLines::class)->requirements($r->fresh(), 1.0, self::BRANCH, [['mode' => 'remove', 'variant_id' => 99999]], 1.0);
+        $this->assertSame([$onion => 0.03, $oil => 0.05], array_column($rows, 'quantity', 'variant_id'));
+    }
+
+    public function test_a_choice_that_uses_more_adds_that_much_per_portion_and_adds_to_what_the_recipe_already_uses(): void
+    {
+        [, $r, $onion, $cheese, , $onionFam, $cheeseFam] = $this->burgerRecipe();
+        $uses = [['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 20], ['mode' => 'add', 'family_id' => $onionFam, 'quantity' => 0.01, 'unit_id' => $this->kg]];
+        $rows = app(RecipeLines::class)->requirements($r->fresh(), 3.0, self::BRANCH, $uses, 3.0);
+        $by = array_column($rows, 'quantity', 'variant_id');
+        $this->assertSame(0.06, $by[$cheese], '20 g of cheese on each of three burgers');
+        $this->assertSame(round(30 / 1000 * 3 + 0.01 * 3, 4), $by[$onion], 'the recipe\'s onion and the extra onion are one number');
+    }
+
+    public function test_extras_for_a_made_to_order_dish_are_counted_per_portion_not_per_batch(): void
+    {
+        [$d, , , $cheese, , , $cheeseFam] = $this->burgerRecipe();
+        $used = $this->lines()->consumption($d, 2, self::BRANCH, [['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 20]]);
+        $this->assertSame(0.04, array_column($used, 'quantity', 'variant_id')[$cheese]);
+        $this->assertSame('Cheese', array_column($used, 'name', 'variant_id')[$cheese]);
+    }
+
+    public function test_a_dish_made_ahead_can_still_take_the_extras_that_were_asked_for(): void
+    {
+        [, , , $cheese, , , $cheeseFam] = $this->burgerRecipe();
+        $extras = $this->lines()->extrasFor(3, self::BRANCH, [['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 10], ['mode' => 'remove', 'family_id' => $cheeseFam]]);
+        $this->assertSame([[$cheese, 0.03]], array_map(fn ($e) => [$e['variant_id'], $e['quantity']], $extras), 'a removal takes nothing');
+        $this->assertSame([], $this->lines()->extrasFor(0, self::BRANCH, [['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 10]]));
+        $this->assertSame([], $this->lines()->extrasFor(3, self::BRANCH, [['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 0]]));
+    }
+
+    public function test_extras_that_the_shelf_cannot_cover_are_refused_with_the_ingredient_named(): void
+    {
+        [$d, , , , , , $cheeseFam] = $this->burgerRecipe();
+        $this->expectExceptionMessage('Not enough Cheese');
+        $this->lines()->consumption($d, 1, self::BRANCH, [['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 150000]]);
+    }
+
+    // ------------------------------------------------------------ the books carry the choices through
+
+    private function plan(array $lines, string $base = 'sales', string $effect = 'out'): array
+    {
+        $this->mock(\App\Services\Stock\StockPolicy::class, fn ($m) => $m->shouldReceive('forProduct')->andReturn(['min_days_online' => 0, 'min_days_till' => 0, 'sell_expired' => 'blocked']));
+        $type = (new \App\Models\Books\VoucherType())->forceFill(['base_type' => $base, 'stock_effect' => $effect]);
+        $m = new \ReflectionMethod(\App\Services\Books\VoucherService::class, 'stockPlan');
+        $m->setAccessible(true);
+
+        return $m->invoke(app(\App\Services\Books\VoucherService::class), $lines, $type, self::BRANCH);
+    }
+
+    private function soldLine(int $variantId, float $qty, array $uses): array
+    {
+        return ['is_header' => false, 'children' => [], 'variant_id' => $variantId, 'stock_qty' => $qty, 'description' => 'Burger', 'location_id' => self::BRANCH, 'menu_uses' => $uses, 'product_id' => null, 'track_expiry' => false];
+    }
+
+    public function test_a_sale_of_a_made_to_order_dish_takes_the_choices_into_account_when_stock_moves(): void
+    {
+        [$d, , $onion, $cheese, $oil, $onionFam, $cheeseFam] = $this->burgerRecipe();
+        $moves = $this->plan([$this->soldLine($d, 2, [['mode' => 'remove', 'family_id' => $onionFam], ['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 20]])]);
+        $this->assertSame([$oil => -0.1, $cheese => -0.04], array_column($moves, 'qty', 'variant_id'));
+    }
+
+    public function test_a_sale_with_no_choices_moves_stock_exactly_as_before(): void
+    {
+        [$d, , $onion, , $oil] = $this->burgerRecipe();
+        $moves = $this->plan([$this->soldLine($d, 2, [])]);
+        $this->assertSame([$onion => -0.06, $oil => -0.1], array_column($moves, 'qty', 'variant_id'));
+    }
+
+    public function test_a_credit_note_for_a_dish_made_to_order_moves_no_stock_whatever_the_choices_were(): void
+    {
+        [$d, , , , , , $cheeseFam] = $this->burgerRecipe();
+        $this->assertSame([], $this->plan([$this->soldLine($d, 1, [['mode' => 'add', 'family_id' => $cheeseFam, 'quantity' => 20]])], 'credit_note', 'in'));
+    }
+
+    public function test_a_dish_made_ahead_goes_out_of_stock_as_itself_and_takes_its_extras(): void
+    {
+        $d = $this->dish('Samosa');
+        $filling = $this->item('Filling', '1 kg');
+        $cheese = $this->item('Cheese', '1 kg');
+        $fam = $this->family('Cheese', $this->g, [[$cheese, 1000]]);
+        $this->stock($cheese, 10);
+        $this->lines()->save($d, 10, false, null, [['variant_id' => $filling, 'quantity' => 1]]);
+        $moves = $this->plan([$this->soldLine($d, 3, [['mode' => 'add', 'family_id' => $fam, 'quantity' => 10], ['mode' => 'remove', 'family_id' => $fam]])]);
+        $by = array_column($moves, 'qty', 'variant_id');
+        $this->assertSame([$cheese => -0.03, $d => -3.0], $by, 'the samosas themselves, and the extra cheese');
+    }
+
+    public function test_a_line_remembers_its_choices_when_the_books_copy_it_into_an_invoice(): void
+    {
+        $uses = [['mode' => 'add', 'family_id' => 3, 'quantity' => 20, 'variant_id' => null, 'unit_id' => null]];
+        $item = (new \App\Models\Books\VoucherItem())->forceFill(['item_type' => 'product', 'is_header' => false, 'unit_factor' => 1, 'rate' => 10, 'discount_amount' => 0, 'amount' => 10, 'cost_amount' => 0, 'menu_uses' => $uses]);
+        $item->setRelation('taxes', collect());
+        $m = new \ReflectionMethod(\App\Services\Books\VoucherService::class, 'cloneLine');
+        $m->setAccessible(true);
+        $line = $m->invoke(app(\App\Services\Books\VoucherService::class), $item, 1.0, 1.0, 1.0);
+        $this->assertSame($uses, $line['menu_uses']);
+        $plain = (new \App\Models\Books\VoucherItem())->forceFill(['item_type' => 'product', 'is_header' => false, 'unit_factor' => 1, 'rate' => 10, 'discount_amount' => 0, 'amount' => 10, 'cost_amount' => 0]);
+        $plain->setRelation('taxes', collect());
+        $this->assertNull($m->invoke(app(\App\Services\Books\VoucherService::class), $plain, 1.0, 1.0, 1.0)['menu_uses']);
+    }
+
+    public function test_a_line_with_choices_is_saved_with_them_and_a_line_without_never_mentions_the_column(): void
+    {
+        Schema::create('voucher_items', function ($t) {
+            $t->id(); $t->unsignedBigInteger('voucher_id'); $t->unsignedBigInteger('parent_item_id')->nullable(); $t->integer('line_no')->default(1); $t->string('item_type'); $t->boolean('is_header')->default(false);
+            foreach (['product_id', 'variant_id', 'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id', 'tax_rate_id', 'ledger_id', 'location_id', 'source_item_id', 'discount_ledger_id', 'shipping_option_id', 'gift_voucher_id', 'paid_ledger_id'] as $c) { $t->unsignedBigInteger($c)->nullable(); }
+            foreach (['description', 'variant_label', 'sku', 'unit_code', 'notes', 'discount_source', 'discount_ref', 'batch_no', 'material_mode'] as $c) { $t->string($c)->nullable(); }
+            foreach (['unit_factor', 'quantity', 'base_quantity', 'rate', 'discount_amount', 'amount', 'tax_amount', 'delivered_quantity', 'invoiced_quantity'] as $c) { $t->decimal($c, 18, 4)->default(0); }
+            $t->decimal('tax_rate_percent', 18, 4)->nullable(); $t->decimal('cost_amount', 18, 2)->nullable();
+            $t->boolean('pending_price')->default(false); $t->json('gift_meta')->nullable(); $t->date('mfg_date')->nullable(); $t->date('expiry_date')->nullable(); $t->json('menu_uses')->nullable(); $t->timestamps();
+        });
+        Schema::create('voucher_item_taxes', function ($t) { $t->id(); $t->unsignedBigInteger('item_id'); $t->unsignedBigInteger('tax_rate_id')->nullable(); $t->unsignedBigInteger('ledger_id')->nullable(); $t->string('label')->nullable(); $t->decimal('base_amount', 18, 2)->default(0); $t->decimal('tax_amount', 18, 2)->default(0); $t->timestamps(); });
+        $svc = app(\App\Services\Books\VoucherService::class);
+        $blank = new \ReflectionMethod($svc, 'blank');
+        $blank->setAccessible(true);
+        $make = new \ReflectionMethod($svc, 'createItem');
+        $make->setAccessible(true);
+        $voucher = (new \App\Models\Books\Voucher())->forceFill(['id' => 1, 'location_id' => self::BRANCH]);
+        $uses = [['mode' => 'add', 'family_id' => 3, 'variant_id' => null, 'quantity' => 20.0, 'unit_id' => null]];
+        $with = $make->invoke($svc, $voucher, ['menu_uses' => $uses, 'description' => 'Burger'] + $blank->invoke($svc, 'product'), 1, null);
+        $without = $make->invoke($svc, $voucher, ['description' => 'Tea'] + $blank->invoke($svc, 'product'), 2, null);
+        $this->assertEquals($uses, \App\Models\Books\VoucherItem::find($with->id)->menu_uses);
+        $this->assertNull(\App\Models\Books\VoucherItem::find($without->id)->menu_uses);
+    }
 }

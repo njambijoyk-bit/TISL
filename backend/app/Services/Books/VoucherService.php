@@ -977,7 +977,7 @@ class VoucherService
             'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null, 'pending_price' => false,
             'gift_meta' => null, 'batch_no' => null, 'mfg_date' => null, 'expiry_date' => null, 'track_expiry' => false, 'pick_batch_id' => null,
             'material_mode' => null, 'under_service' => false, 'cost_amount' => 0.0, 'paid_ledger_id' => null,
-            'taxes' => [], 'children' => [], 'stock_qty' => 0.0,
+            'taxes' => [], 'children' => [], 'stock_qty' => 0.0, 'menu_uses' => null,
         ];
     }
 
@@ -1112,6 +1112,7 @@ class VoucherService
             'expiry_date' => filled($l['expiry_date'] ?? null) ? $l['expiry_date'] : null,
             'track_expiry' => (bool) $product->track_expiry,
             'pick_batch_id' => filled($l['batch_id'] ?? null) ? (int) $l['batch_id'] : null,   // a sale may name the batch to take from; otherwise first-expiring goes first
+            'menu_uses' => ! empty($l['menu_uses']) && is_array($l['menu_uses']) ? array_values($l['menu_uses']) : null,   // what a dish's choices change in its recipe (Menus)
         ] + $this->discountMeta($l));
         $line['stock_qty'] = $line['base_quantity'];
         $line['pending_price'] = $pending;
@@ -1316,6 +1317,7 @@ class VoucherService
                   'batch_no', 'mfg_date', 'expiry_date', 'material_mode', 'paid_ledger_id'] as $k) {
             $line[$k] = $it->{$k};
         }
+        $line['menu_uses'] = $it->menu_uses ?? null;
         $line['track_expiry'] = $it->product_id ? (bool) \App\Models\Product::whereKey($it->product_id)->value('track_expiry') : false;
         $line['unit_factor'] = (float) $it->unit_factor;
         $line['quantity'] = $qty;
@@ -1956,15 +1958,22 @@ class VoucherService
                 throw new BooksException('Choose the branch stock moves from.');
             }
             // made to order (a recipe that uses its ingredients when sold): the ingredients leave stock, the item itself holds none
+            $uses = (array) ($l['menu_uses'] ?? []);   // what the customer's choices change in the recipe (extra cheese, no onion)
             if ($type->isSalesSide() && app(\App\Services\Stock\RecipeService::class)->isMadeToOrder((int) $l['variant_id'])) {
                 if ($sign < 0) {
-                    foreach (app(\App\Services\Stock\RecipeService::class)->consumption((int) $l['variant_id'], (float) $l['stock_qty'], (int) $loc) ?? [] as $ing) {
+                    foreach (app(\App\Services\Stock\RecipeService::class)->consumption((int) $l['variant_id'], (float) $l['stock_qty'], (int) $loc, $uses) ?? [] as $ing) {
                         $moves[] = ['variant_id' => $ing['variant_id'], 'location_id' => (int) $loc, 'qty' => -$ing['quantity'],
                             'product' => $ing['name'], 'purpose' => null, 'window' => $this->sellWindow($ing['product_id'], $channel, $override)];
                     }
                 }
 
                 continue;
+            }
+            if ($uses && $sign < 0 && $type->isSalesSide()) {   // a dish made ahead still takes the extras that were asked for
+                foreach (app(\App\Services\Stock\RecipeService::class)->extrasFor((float) $l['stock_qty'], (int) $loc, $uses) as $ing) {
+                    $moves[] = ['variant_id' => $ing['variant_id'], 'location_id' => (int) $loc, 'qty' => -$ing['quantity'],
+                        'product' => $ing['name'], 'purpose' => null, 'window' => $this->sellWindow($ing['product_id'], $channel, $override)];
+                }
             }
             $move = ['variant_id' => $l['variant_id'], 'location_id' => (int) $loc, 'qty' => $sign * (float) $l['stock_qty'], 'product' => $l['description']];
             if ($sign > 0 && $type->isSalesSide()) {
@@ -2516,7 +2525,7 @@ class VoucherService
             'pending_price' => ! empty($l['pending_price']), 'gift_meta' => $l['gift_meta'] ?? null,
             'batch_no' => $l['batch_no'] ?? null, 'mfg_date' => $l['mfg_date'] ?? null, 'expiry_date' => $l['expiry_date'] ?? null,
             'material_mode' => $l['material_mode'] ?? null, 'cost_amount' => ($l['cost_amount'] ?? 0) > 0 ? $l['cost_amount'] : null, 'paid_ledger_id' => $l['paid_ledger_id'] ?? null,
-        ]);
+        ] + (! empty($l['menu_uses']) ? ['menu_uses' => $l['menu_uses']] : []));   // (the column exists once Menus' script 136 is run; a line without choices never mentions it)
         foreach ($l['taxes'] as $t) {
             VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
         }

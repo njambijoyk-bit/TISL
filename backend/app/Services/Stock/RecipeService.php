@@ -125,13 +125,26 @@ class RecipeService
      *
      * @return ?array<int, array{variant_id:int, product_id:?int, quantity:float, name:string}>
      */
-    public function consumption(int $variantId, float $stockQty, int $locationId): ?array
+    public function consumption(int $variantId, float $stockQty, int $locationId, array $uses = []): ?array
     {
         $recipe = $this->madeToOrder($variantId);
         if (! $recipe) {
             return null;
         }
-        $rows = app(RecipeLines::class)->requirements($recipe, $stockQty / (float) $recipe->yield_qty, $locationId);
+        $rows = app(RecipeLines::class)->requirements($recipe, $stockQty / (float) $recipe->yield_qty, $locationId, $uses, $stockQty);
+
+        return $this->named($rows);
+    }
+
+    /** What a dish's "uses more of" choices take for `$stockQty` portions, for a dish that is made ahead (its own stock goes out as usual). */
+    public function extrasFor(float $stockQty, int $locationId, array $uses): array
+    {
+        return $this->named(app(RecipeLines::class)->extras($uses, $stockQty, $locationId));
+    }
+
+    /** @param array<int, array{variant_id: int, quantity: float, from: string}> $rows @return array<int, array{variant_id:int, product_id:?int, quantity:float, name:string}> */
+    private function named(array $rows): array
+    {
         $info = DB::table('product_variants as pv')->join('products as p', 'p.id', '=', 'pv.product_id')->whereIn('pv.id', array_column($rows, 'variant_id'))->get(['pv.id', 'pv.product_id', 'p.name'])->keyBy('id');
 
         return array_map(fn ($r) => ['variant_id' => $r['variant_id'], 'product_id' => ($info[$r['variant_id']]->product_id ?? null) ? (int) $info[$r['variant_id']]->product_id : null,

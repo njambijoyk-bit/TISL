@@ -60,8 +60,12 @@ class DishService
                 }
                 [$product, $variant] = $this->items->make($name, (float) $d['price'], $ledger, $settings['category_id'] ? (int) $settings['category_id'] : null, $by);
                 $dish = new Dish(['product_id' => $product->id, 'variant_id' => $variant->id, 'created_by' => $by, 'slug' => $this->slug($name)]);
-            } elseif (array_key_exists('price', $d)) {
-                $this->items->setPrice(Product::findOrFail($dish->product_id), $dish->variant, (float) $d['price']);
+            } else {
+                $product = Product::findOrFail($dish->product_id);
+                $this->items->makeSellable($product);
+                if (array_key_exists('price', $d)) {
+                    $this->items->setPrice($product, $dish->variant, (float) $d['price']);
+                }
             }
             $dish->fill(['name' => $name] + $override + array_intersect_key($d, array_flip(['description', 'photo', 'prep_minutes', 'sort_order', 'is_active'])));
             if ($dish->exists && $dish->isDirty('name')) {

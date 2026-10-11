@@ -214,13 +214,22 @@ class MenusDishesTest extends TestCase
     {
         $d = $this->make('Beef stew', 450, ['description' => 'Slow cooked', 'prep_minutes' => 20]);
         $product = Product::find($d->product_id);
-        $this->assertSame(['Beef stew', 'dish', 0, 0, 450.0], [$product->name, $product->type, (int) $product->is_for_sale, (int) $product->is_visible, (float) $product->price], 'kept out of the shop');
+        $this->assertSame(['Beef stew', 'dish', 1, 0, 450.0], [$product->name, $product->type, (int) $product->is_for_sale, (int) $product->is_visible, (float) $product->price], 'sellable on a voucher, never listed in the shop');
         $this->assertSame($this->ledger, (int) $product->sales_ledger_id);
         $variant = DB::table('product_variants')->where('id', $d->variant_id)->first();
         $this->assertSame([(int) $product->id, 'Standard'], [(int) $variant->product_id, $variant->name]);
         $this->assertSame(450.0, (float) DB::table('product_variant_units')->where('variant_id', $d->variant_id)->where('role', 'base')->value('price'));
         $this->assertSame(['beef-stew', 'Slow cooked', 20], [$d->slug, $d->description, $d->prep_minutes]);
         $this->assertSame(1, Dish::count() + 0);
+    }
+
+    public function test_a_dish_made_before_orders_existed_is_put_right_the_next_time_it_is_saved(): void
+    {
+        $d = $this->make('Old stew');
+        Product::where('id', $d->product_id)->update(['is_for_sale' => false, 'is_visible' => true]);
+        $this->dishes()->save(['name' => 'Old stew'], $d->id);
+        $p = Product::find($d->product_id);
+        $this->assertSame([1, 0], [(int) $p->is_for_sale, (int) $p->is_visible]);
     }
 
     public function test_two_dishes_with_the_same_name_get_different_addresses(): void
