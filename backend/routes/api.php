@@ -657,7 +657,15 @@ Route::middleware('auth:sanctum')->group(function () {
         $oc = \App\Http\Controllers\Admin\MenusOrderAdminController::class;
         Route::get('/orders', [$oc, 'index']);
         Route::get('/channels', [$oc, 'channelList']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc) {
+        $kc = \App\Http\Controllers\Admin\MenusKitchenController::class;
+        Route::get('/kitchen/stations', [$kc, 'stations']);
+        Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
+        Route::get('/kitchen/expo', [$kc, 'expo']);
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc) {
+            Route::post('/kitchen/stations', [$kc, 'saveStation']);
+            Route::put('/kitchen/stations/{id}', [$kc, 'saveStation'])->whereNumber('id');
+            Route::delete('/kitchen/stations/{id}', [$kc, 'destroyStation'])->whereNumber('id');
+            Route::post('/kitchen/tickets/{id}/{action}', [$kc, 'ticket'])->whereNumber('id')->where('action', 'start|ready|recall');
             Route::post('/orders/{id}/status', [$oc, 'status'])->whereNumber('id');
             Route::post('/orders/{id}/pay', [$oc, 'pay'])->whereNumber('id');
             Route::put('/channels/{id}', [$oc, 'saveChannel'])->whereNumber('id');

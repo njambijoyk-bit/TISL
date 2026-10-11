@@ -71,6 +71,13 @@ class DishService
             if ($dish->exists && $dish->isDirty('name')) {
                 Product::where('id', $dish->product_id)->update(['name' => $name]);
             }
+            if (array_key_exists('station_id', $d) && KitchenService::installed()) {
+                $st = $d['station_id'] ? \App\Models\Menus\Station::find($d['station_id']) : null;
+                if ($d['station_id'] && ! $st) {
+                    throw new BooksException('That kitchen station does not exist.');
+                }
+                $dish->station_id = $st?->id;
+            }
             $dish->save();
 
             return $dish->fresh();

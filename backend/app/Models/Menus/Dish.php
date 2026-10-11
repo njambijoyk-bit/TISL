@@ -14,7 +14,7 @@ class Dish extends Model
 {
     protected $table = 'menus_dishes';
 
-    protected $fillable = ['name', 'slug', 'description', 'photo', 'product_id', 'variant_id', 'prep_minutes', 'allergens_override', 'tags_override', 'sold_out_on', 'sort_order', 'is_active', 'created_by'];
+    protected $fillable = ['name', 'slug', 'description', 'photo', 'product_id', 'variant_id', 'prep_minutes', 'station_id', 'allergens_override', 'tags_override', 'sold_out_on', 'sort_order', 'is_active', 'created_by'];
 
     protected $casts = ['allergens_override' => 'array', 'tags_override' => 'array', 'sold_out_on' => 'date:Y-m-d', 'is_active' => 'boolean', 'prep_minutes' => 'integer', 'sort_order' => 'integer'];
 

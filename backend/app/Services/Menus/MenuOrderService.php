@@ -31,7 +31,7 @@ class MenuOrderService
     private const MAX_PER_LINE = 50;
 
     public function __construct(private VoucherService $vouchers, private GatewayPaymentService $gateway, private DishInfo $info, private DishPricing $pricing,
-        private OrderSlots $slots, private MenuOrderNotices $notices)
+        private OrderSlots $slots, private MenuOrderNotices $notices, private KitchenService $kitchen)
     {
     }
 
@@ -324,6 +324,7 @@ class MenuOrderService
 
         $order = $result['order'];
         if ($later) {
+            $this->fireTickets($order);
             $this->notices->placed($order);
 
             return $result + ['status' => 'placed', 'message' => 'Thank you! Your order is with the kitchen.'];
@@ -341,7 +342,18 @@ class MenuOrderService
             return;
         }
         $mo->update(['payment' => 'paid', 'sale_id' => $sale->id]);
+        $this->fireTickets($mo);
         $this->notices->paid($mo->fresh());
+    }
+
+    /** The kitchen screens get their tickets. A problem here must never undo an order that was taken. */
+    private function fireTickets(MenuOrder $o): void
+    {
+        try {
+            $this->kitchen->fire($o);
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     /** Is this voucher the books side of a food order? */
@@ -388,6 +400,7 @@ class MenuOrderService
         $at = ['accepted' => 'accepted_at', 'ready' => 'ready_at', 'completed' => 'completed_at'][$to] ?? null;
         $o->update(['status' => $to] + ($at ? [$at => now()] : []));
         if ($to === 'ready') {
+            $this->kitchen->orderReady($o);
             $this->notices->ready($o);
         } elseif ($to === 'out') {
             $this->notices->out($o);
@@ -443,6 +456,7 @@ class MenuOrderService
             }
             $o->update(['status' => 'cancelled', 'cancel_reason' => $reason, 'cancelled_at' => now()] + ($o->payment === 'pending' ? ['payment' => 'failed'] : []));
         });
+        $this->kitchen->orderCancelled($o);
         $this->notices->cancelled($o->fresh());
 
         return $o->fresh();
