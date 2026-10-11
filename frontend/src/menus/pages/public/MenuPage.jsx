@@ -12,7 +12,7 @@ import { useBasket } from '../../lib/basket';
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const chipBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 700, border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line, #e5e7eb)'}`, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)' : 'transparent', color: on ? 'var(--color-primary-600)' : 'var(--text-secondary)' });
 
-function DishCard({ d, avoid, data, ordering, onAdd }) {
+export function DishCard({ d, avoid, data, ordering, onAdd }) {
   const hit = d.allergens.filter((a) => avoid.includes(a));
   const unsure = avoid.length > 0 && !d.info_complete;
   const price = d.price_incl ?? d.price;

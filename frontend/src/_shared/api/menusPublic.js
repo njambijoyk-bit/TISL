@@ -7,6 +7,10 @@ const menusPublicAPI = {
   quote: async (payload) => (await api.post('/menu/quote', payload)).data,
   place: async (payload) => (await api.post('/menu/orders', payload)).data,
   order: async (token) => (await api.get(`/menu/orders/${token}`)).data,
+  table: async (qr) => (await api.get(`/menu/table/${qr}`)).data,
+  tableOrder: async (qr, payload) => (await api.post(`/menu/table/${qr}/order`, payload)).data,
+  tableBill: async (qr) => (await api.post(`/menu/table/${qr}/bill`)).data,
+  tablePay: async (qr, payload) => (await api.post(`/menu/table/${qr}/pay`, payload)).data,
   cancelOrder: async (token) => (await api.post(`/menu/orders/${token}/cancel`)).data,
 };
 

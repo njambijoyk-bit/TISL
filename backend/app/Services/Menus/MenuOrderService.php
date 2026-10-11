@@ -365,6 +365,11 @@ class MenuOrderService
         }
         $mo->update(['payment' => 'paid', 'sale_id' => $sale->id]);
         $this->fireTickets($mo);
+        if ($mo->order_type === 'counter') {   // a tab paid by phone: it closes, and nobody is messaged
+            app(CounterService::class)->tabPaid($mo->fresh());
+
+            return;
+        }
         $this->notices->paid($mo->fresh());
     }
 
@@ -492,7 +497,7 @@ class MenuOrderService
     {
         $cut = ($now ?? now())->copy()->subMinutes($minutes);
         $n = 0;
-        foreach (MenuOrder::where('payment', 'pending')->where('status', 'placed')->where('created_at', '<', $cut)->get() as $o) {
+        foreach (MenuOrder::where('payment', 'pending')->where('status', 'placed')->where('order_type', '!=', 'counter')->where('created_at', '<', $cut)->get() as $o) {
             try {
                 $this->cancel($o, 'The payment did not arrive in time.');
                 $n++;

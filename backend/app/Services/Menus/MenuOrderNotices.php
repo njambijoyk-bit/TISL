@@ -61,6 +61,16 @@ class MenuOrderNotices
             .($o->refundDue() ? ' We will give your money back.' : '')));
     }
 
+    /** A table asked for the bill (a guest scanned the QR, or staff pressed the button). */
+    public function billAsked(\App\Models\Menus\Table $t, ?MenuOrder $o = null): void
+    {
+        $this->safely(function () use ($t, $o) {
+            foreach ($this->staff->holding('menus.manage') as $u) {
+                $this->notifier->send($u, 'menu_bill_asked', "{$t->name} asked for the bill", $o ? number_format((float) $o->total, 2).' so far.' : 'Please take the payment.', ['action_url' => '/admin/menus/floor', 'action_text' => 'Open the floor']);
+            }
+        });
+    }
+
     private function staffNew(MenuOrder $o, bool $paid = false): void
     {
         if ($o->payment === 'pending') {

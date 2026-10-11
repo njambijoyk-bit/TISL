@@ -89,6 +89,9 @@ class PaymentController extends Controller
 
         if ($order && ! empty($order->meta['menu_order_id'])) {   // a food order: the page can send the customer on to follow it
             $mo = \App\Models\Menus\MenuOrder::withoutGlobalScopes()->find($order->meta['menu_order_id']);
+            if ($mo && $a->status === 'failed' && $mo->order_type === 'counter') {   // a table's tab paid by phone that did not go through: the tab is open again
+                app(\App\Services\Menus\CounterService::class)->phoneFailed($mo);
+            }
             $res['menu_order'] = $mo ? ['number' => $mo->number, 'token' => $mo->track_token] : null;
         }
 

@@ -13,7 +13,7 @@ class MenusSweepOrders extends Command
 
     public function handle(MenuOrderService $orders): int
     {
-        $n = $orders->sweep(max(5, (int) $this->option('minutes')));
+        $n = $orders->sweep(max(5, (int) $this->option('minutes'))) + app(\App\Services\Menus\CounterService::class)->sweepPhone();
         if ($n) {
             $this->info("Cancelled {$n} unpaid food order(s).");
         }

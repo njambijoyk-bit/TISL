@@ -156,6 +156,8 @@ const MenusSettings      = lazy(() => import('./menus/pages/admin/MenusSettings'
 const MenuCards          = lazy(() => import('./menus/pages/admin/MenuCards'));
 const PublicMenuPage     = lazy(() => import('./menus/pages/public/MenuPage'));
 const MenuOrderTrack     = lazy(() => import('./menus/pages/public/OrderTrackPage'));
+const MenusFloor         = lazy(() => import('./menus/pages/admin/MenusFloor'));
+const MenuTablePage      = lazy(() => import('./menus/pages/public/TablePage'));
 const MenusTill          = lazy(() => import('./menus/pages/admin/MenusTill'));
 const MenusKitchen       = lazy(() => import('./menus/pages/admin/MenusKitchen'));
 const MenusOrders        = lazy(() => import('./menus/pages/admin/MenusOrders'));
@@ -488,6 +490,7 @@ function App() {
             <Route path="/tickets/:code" element={<ModuleRoute module="events"><TicketPage /></ModuleRoute>} />
             <Route path="/my-events" element={<ProtectedRoute><ModuleRoute module="events"><MyEventTickets /></ModuleRoute></ProtectedRoute>} />
             <Route path="/menu" element={<ModuleRoute module="menus"><PublicMenuPage /></ModuleRoute>} />
+ <Route path="/menu/table/:qr" element={<ModuleRoute module="menus"><MenuTablePage /></ModuleRoute>} />
             <Route path="/menu/order/:token" element={<ModuleRoute module="menus"><MenuOrderTrack /></ModuleRoute>} />
             <Route path="/events" element={<ModuleRoute module="events"><EventsPage /></ModuleRoute>} />
             <Route path="/events/:slug" element={<ModuleRoute module="events"><EventPage /></ModuleRoute>} />
@@ -821,6 +824,7 @@ function App() {
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />
               <Route path="/admin/menus" element={<Navigate to="/admin/menus/dishes" replace />} />
               <Route path="/admin/menus/dishes" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusDishes /></ProtectedRoute>} />
+              <Route path="/admin/menus/floor" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusFloor /></ProtectedRoute>} />
               <Route path="/admin/menus/till" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusTill /></ProtectedRoute>} />
               <Route path="/admin/menus/kitchen" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusKitchen /></ProtectedRoute>} />
               <Route path="/admin/menus/orders" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusOrders /></ProtectedRoute>} />

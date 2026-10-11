@@ -17,6 +17,8 @@ final class MenusSettings
         'receipt_footer' => '',          // a line printed at the foot of every receipt
         'tip_ledger_id' => null,         // where tips are booked (usually money held for staff); empty = the till takes no tips
         'service_charge_ledger_id' => null,
+        'qr_ordering' => true,           // guests may order from the table's QR code
+        'qr_open_by_scan' => false,      // may a scan open an empty table? (off: staff seat the guests first)
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
     ];
 
@@ -70,6 +72,11 @@ final class MenusSettings
                     throw new BooksException('That account does not exist.');
                 }
                 $cur[$key] = $id;
+            }
+        }
+        foreach (['qr_ordering', 'qr_open_by_scan'] as $key) {
+            if (array_key_exists($key, $in)) {
+                $cur[$key] = (bool) $in[$key];
             }
         }
         if (array_key_exists('service_charge_pct', $in)) {

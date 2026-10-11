@@ -9,6 +9,7 @@ use App\Models\Menus\Channel;
 use App\Models\Menus\MenuOrder;
 use App\Services\Books\BooksException;
 use App\Services\Menus\CounterService;
+use App\Services\Menus\FloorService;
 use App\Services\Menus\MenuOrderView;
 use App\Services\Menus\PublicMenu;
 use App\Services\Menus\ReceiptService;
@@ -46,20 +47,26 @@ class MenusCounterController extends Controller
         return response()->json(['on' => (bool) ($ch && $ch->is_active), 'menu' => $menu, 'rules' => $this->counter->rules(), 'services' => CounterService::SERVICES, 'location_id' => $loc,
             'branches' => Location::query()->sellsToCustomers()->ordered()->get(['id', 'name']),
             'payment_methods' => PaymentMethod::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'kind', 'requires_reference']),
-            'tabs' => $b['tabs']->map(fn ($o) => $this->row($o))->values(), 'ready' => $b['ready']->map(fn ($o) => $this->row($o))->values()]);
+            'tabs' => $b['tabs']->map(fn ($o) => $this->row($o))->values(), 'tables' => FloorService::installed() && $loc ? $this->tables($loc) : null, 'ready' => $b['ready']->map(fn ($o) => $this->row($o))->values()]);
+    }
+
+    /** The tables at the branch that can take a new tab, for the till to choose from. */
+    private function tables(int $loc): array
+    {
+        return collect(app(FloorService::class)->floor($loc)['areas'])->flatMap(fn ($a) => collect($a['tables'])->map(fn ($t) => ['id' => $t['id'], 'name' => $t['name'], 'area' => $a['name'], 'state' => $t['state'], 'seats' => $t['seats'], 'tab_id' => $t['tab']['id'] ?? null]))->values()->all();
     }
 
     private function row(MenuOrder $o): array
     {
         $o->loadMissing('lines');
 
-        return $this->view->staff($o) + ['short_no' => $o->short_no, 'label' => $o->label, 'service' => $o->service, 'service_charge' => (float) $o->service_charge, 'tip' => (float) $o->tip,
+        return $this->view->staff($o) + ['short_no' => $o->short_no, 'label' => $o->label, 'table_id' => $o->table_id, 'guests' => $o->guests, 'service' => $o->service, 'service_charge' => (float) $o->service_charge, 'tip' => (float) $o->tip,
             'lines_full' => $o->lines->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'quantity' => (float) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'note' => $l->note, 'round' => (int) $l->round])->values()->all()];
     }
 
     private function rules(): array
     {
-        return ['location_id' => 'nullable|integer', 'service' => 'nullable|string|in:dine_in,take_out', 'label' => 'nullable|string|max:80', 'tip' => 'nullable|numeric|min:0|max:10000000', 'waive_service' => 'nullable|boolean',
+        return ['table_id' => 'nullable|integer', 'guests' => 'nullable|integer|min:1|max:200', 'line_ids' => 'nullable|array|max:80', 'line_ids.*' => 'integer', 'location_id' => 'nullable|integer', 'service' => 'nullable|string|in:dine_in,take_out', 'label' => 'nullable|string|max:80', 'tip' => 'nullable|numeric|min:0|max:10000000', 'waive_service' => 'nullable|boolean',
             'items' => 'nullable|array|max:80', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:50', 'items.*.option_ids' => 'nullable|array|max:40', 'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200',
             'tenders' => 'nullable|array|max:6', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric|min:0', 'tenders.*.reference' => 'nullable|string|max:100'];
     }
@@ -97,6 +104,20 @@ class MenusCounterController extends Controller
         $d = $request->validate($this->rules());
 
         return $this->guard(fn () => response()->json(['order' => $this->row($this->counter->addToTab(MenuOrder::findOrFail($id), $d, $request->user())), 'message' => 'Sent to the kitchen.']));
+    }
+
+    public function moveTab(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['table_id' => 'required|integer']);
+
+        return $this->guard(fn () => response()->json(['order' => $this->row($this->counter->moveTab(MenuOrder::findOrFail($id), (int) $d['table_id'])), 'message' => 'Moved.']));
+    }
+
+    public function splitTab(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate($this->rules());
+
+        return $this->guard(fn () => response()->json(['order' => $this->row($this->counter->splitTab(MenuOrder::findOrFail($id), (array) ($d['line_ids'] ?? []))), 'message' => 'The dishes are on a new bill.']));
     }
 
     public function voidLine(int $id, int $line): JsonResponse

@@ -28,7 +28,8 @@ export default function MenusSettings() {
     setBusy(true);
     try {
       const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
-        tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0 });
+        tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
+        qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan) });
       setS(r.settings); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -52,6 +53,11 @@ export default function MenusSettings() {
               <Field label="A line at the foot of every receipt" htmlFor="ms-footer" hint="For example: Thank you for dining with us. Prices include VAT.">
                 <TextInput id="ms-footer" maxLength={200} value={s.receipt_footer ?? ''} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, receipt_footer: e.target.value }))} />
               </Field>
+              <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+                <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Ordering from a table&apos;s QR code</legend>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.qr_ordering)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, qr_ordering: e.target.checked }))} /> Guests may order and pay from the table&apos;s QR code</label>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.qr_open_by_scan)} disabled={!canEdit || !ready || !s.qr_ordering} onChange={(e) => setS((x) => ({ ...x, qr_open_by_scan: e.target.checked }))} /> A scan may open an empty table (otherwise staff seat the guests first)</label>
+              </fieldset>
               <LedgerSelect id="ms-tip" label="Tips are booked to" value={s.tip_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, tip_ledger_id: v }))} hint="Usually money held for staff. Empty: the till takes no tips. Set up the account in the books (Chart of accounts)." />
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <LedgerSelect id="ms-svc" label="Service charge is booked to" value={s.service_charge_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, service_charge_ledger_id: v }))} />

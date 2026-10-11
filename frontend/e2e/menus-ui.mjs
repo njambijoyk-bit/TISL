@@ -55,7 +55,7 @@ await page.locator('[data-testid="ingredients"]').waitFor({ timeout: 15000 });
 let text = await page.locator('[data-testid="ingredients"]').innerText();
 ok('the list shows the ingredient, its items in order, what is on hand and the cost', /Wheat flour/.test(text) && /1\. Exe flour/.test(text) && /2\. Pembe flour/.test(text) && /14,000 g/.test(text) && /0\.15 \/ g/.test(text), text.replace(/\n+/g, ' | ').slice(0, 220));
 ok('and its allergens', /Wheat/.test(await page.locator('[data-testid="allergens"]').first().innerText()));
-ok('the Menus navigation is there with its eight pages', (await page.locator('[data-testid="menus-nav"] [role="tab"]').count()) === 8);
+ok('the Menus navigation is there with its nine pages', (await page.locator('[data-testid="menus-nav"] [role="tab"]').count()) === 9);
 
 await page.getByRole('button', { name: /New ingredient/ }).click();
 await page.getByLabel('Name', { exact: true }).fill('Cooking oil');

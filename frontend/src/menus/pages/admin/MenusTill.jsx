@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Minus, Plus, Printer, Receipt, X } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -118,13 +119,18 @@ export default function MenusTill() {
   const [receipt, setReceipt] = useState(null);
   const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [params, setParams] = useSearchParams();
+  const [tableId, setTableId] = useState(params.get('table') ?? '');
+  const [splitIds, setSplitIds] = useState([]);
 
   const load = useCallback(() => menusAPI.till().then((r) => { setData(r); setMenuId((m) => m ?? (r.menu.menus.find((x) => x.serving_now) ?? r.menu.menus[0])?.id ?? null); }).catch((e) => toast.error(errMsg(e, 'Could not load the till'))), []);
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
 
   const tab = data?.tabs.find((t) => t.id === tabId) ?? null;
   const menu = data?.menu.menus.find((m) => m.id === menuId);
-  const payload = useMemo(() => ({ service: tab?.service ?? service, label: label || undefined, items: items(basket) }), [tab, service, label, basket.lines]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const payload = useMemo(() => ({ service: tab?.service ?? (tableId ? 'dine_in' : service), label: label || undefined, table_id: tableId ? Number(tableId) : undefined, items: items(basket) }), [tab, service, label, tableId, basket.lines]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => { const t = Number(params.get('tab')); if (t && data?.tabs.some((x) => x.id === t)) { setTabId(t); setParams({}, { replace: true }); } }, [data]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!basket.lines.length || tab) { setQuote(null); return undefined; }
@@ -138,13 +144,13 @@ export default function MenusTill() {
     setBusy(true);
     try { const r = await fn(); if (ok) toast.success(ok); await load(); return r; } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 8000 }); return null; } finally { setBusy(false); }
   };
-  const reset = () => { basket.clear(); setLabel(''); setTabId(null); setQuote(null); };
+  const reset = () => { basket.clear(); setLabel(''); setTabId(null); setTableId(''); setSplitIds([]); setQuote(null); };
 
   const pay = async (extra) => {
     const r = tab ? await menusAPI.settleTab(tab.id, { ...extra }) : await menusAPI.sell({ ...payload, ...extra });
     setPaying(false); reset(); await load(); setReceipt(r.order);
   };
-  const sendRound = () => run(async () => { const r = tab ? await menusAPI.addToTab(tab.id, { items: items(basket) }) : await menusAPI.openTab(payload); basket.clear(); if (!tab) { setLabel(''); setTabId(r.order.id); } return r; }, tab ? 'Sent to the kitchen.' : 'Tab opened and sent to the kitchen.');
+  const sendRound = () => run(async () => { const r = tab ? await menusAPI.addToTab(tab.id, { items: items(basket) }) : await menusAPI.openTab(payload); basket.clear(); if (!tab) { setLabel(''); setTableId(''); setTabId(r.order.id); } return r; }, tab ? 'Sent to the kitchen.' : 'Tab opened and sent to the kitchen.');
   const handOver = (o) => run(() => menusAPI.setOrderStatus(o.id, 'completed'), `#${o.short_no} handed over.`);
   const cancelTab = () => { const reason = window.prompt(`Cancel the tab ${tab.label}? Say why:`, ''); if (reason === null) return null; return run(async () => { await menusAPI.cancelTab(tab.id, reason || undefined); reset(); }, 'Tab cancelled.'); };
 
@@ -188,11 +194,19 @@ export default function MenusTill() {
                     <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'grid', gap: 4, fontSize: '0.86rem' }}>
                       {tab.lines_full.map((l) => (
                         <li key={l.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                          <span>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: colors.textMuted }}> · {l.options.join(', ')}</small>} <small style={{ color: colors.textMuted }}>(round {l.round})</small></span>
+                          <input type="checkbox" aria-label={`Split off ${l.name}`} checked={splitIds.includes(l.id)} onChange={(e) => setSplitIds((xs) => (e.target.checked ? [...xs, l.id] : xs.filter((x) => x !== l.id)))} />
+                          <span style={{ flex: 1 }}>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: colors.textMuted }}> · {l.options.join(', ')}</small>} <small style={{ color: colors.textMuted }}>(round {l.round})</small></span>
                           <button type="button" aria-label={`Take ${l.name} off`} disabled={busy} onClick={() => run(() => menusAPI.voidLine(tab.id, l.id), 'Taken off the tab.')} style={{ ...line, borderRadius: 6, cursor: 'pointer' }}><X size={12} /></button>
                         </li>
                       ))}
                     </ul>
+                    {splitIds.length > 0 && <button type="button" disabled={busy} style={{ ...big('#6366f1'), marginTop: 8, padding: '8px 12px' }} onClick={() => run(async () => { const r = await menusAPI.splitTab(tab.id, splitIds); setSplitIds([]); setTabId(r.order.id); return r; }, 'The chosen dishes are on a new bill.')}>Split {splitIds.length} onto a new bill</button>}
+                    {tab.table_id && data.tables && (
+                      <select aria-label="Move the tab to" value="" onChange={(e) => e.target.value && run(() => menusAPI.moveTab(tab.id, Number(e.target.value)), 'Moved.')} style={{ marginTop: 8, padding: 8, borderRadius: 8, ...line, width: '100%' }}>
+                        <option value="">Move the tab to another table…</option>
+                        {data.tables.filter((t) => !t.tab_id && ['free', 'seated', 'reserved'].includes(t.state) && t.id !== tab.table_id).map((t) => <option key={t.id} value={t.id}>{t.name} ({t.area})</option>)}
+                      </select>
+                    )}
                     <div style={{ marginTop: 6, fontWeight: 800 }}>So far {money(tab.total)} <small style={{ fontWeight: 500, color: colors.textMuted }}>(with tax; service charge and tip are added when it is paid)</small></div>
                   </div>
                 ) : (
@@ -200,6 +214,12 @@ export default function MenusTill() {
                     <div role="group" aria-label="Service" style={{ display: 'flex', gap: 8 }}>
                       {Object.entries(data.services).map(([k, name]) => <button key={k} type="button" aria-pressed={service === k} onClick={() => setService(k)} style={{ ...big(service === k ? '#0f172a' : 'transparent', service === k ? '#fff' : 'inherit'), ...line, flex: 1 }}>{name}</button>)}
                     </div>
+                    {data.tables && data.tables.length > 0 && (
+                      <select aria-label="Table" value={tableId} onChange={(e) => { setTableId(e.target.value); if (e.target.value) setService('dine_in'); }} style={{ padding: 10, borderRadius: 8, ...line }}>
+                        <option value="">No table (counter)</option>
+                        {data.tables.filter((t) => !t.tab_id && ['free', 'seated', 'reserved'].includes(t.state)).map((t) => <option key={t.id} value={t.id}>{t.name} · {t.area} · {t.seats} seats</option>)}
+                      </select>
+                    )}
                     <input aria-label="Name or table" placeholder="Name or table (needed for a tab)" value={label} maxLength={80} onChange={(e) => setLabel(e.target.value)} style={{ padding: 10, borderRadius: 8, ...line }} />
                   </>
                 )}
@@ -231,7 +251,7 @@ export default function MenusTill() {
                     ) : (
                       <>
                         <button type="button" disabled={busy || !basket.lines.length} style={{ ...big('#059669'), opacity: basket.lines.length ? 1 : 0.5 }} onClick={() => setPaying(true)}>Pay</button>
-                        <button type="button" disabled={busy || !basket.lines.length || !label.trim()} style={{ ...big('#d97706'), opacity: basket.lines.length && label.trim() ? 1 : 0.5 }} onClick={sendRound}>Open a tab</button>
+                        <button type="button" disabled={busy || !basket.lines.length || (!label.trim() && !tableId)} style={{ ...big('#d97706'), opacity: basket.lines.length && (label.trim() || tableId) ? 1 : 0.5 }} onClick={sendRound}>Open a tab</button>
                       </>
                     )}
                   </div>

@@ -10,10 +10,12 @@ use App\Models\Menus\Channel;
 use App\Models\Menus\Dish;
 use App\Models\Menus\MenuOrder;
 use App\Models\Menus\MenuOrderLine;
+use App\Models\Menus\Table;
 use App\Models\Menus\Ticket;
 use App\Models\User;
 use App\Services\Books\BooksException;
 use App\Services\Books\CheckoutService;
+use App\Services\Books\GatewayPaymentService;
 use App\Services\Books\VoucherService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -30,7 +32,7 @@ class CounterService
 {
     public const SERVICES = ['dine_in' => 'Dine in', 'take_out' => 'Take out'];
 
-    public function __construct(private MenuOrderService $orders, private VoucherService $vouchers, private CheckoutService $checkout, private KitchenService $kitchen)
+    public function __construct(private MenuOrderService $orders, private VoucherService $vouchers, private CheckoutService $checkout, private KitchenService $kitchen, private FloorService $floor, private GatewayPaymentService $gateway)
     {
     }
 
@@ -203,6 +205,12 @@ class CounterService
     /** A tab: ordered and sent to the kitchen, paid at the end. */
     public function openTab(array $in, ?User $by = null, ?Carbon $now = null): MenuOrder
     {
+        $table = ! empty($in['table_id']) ? $this->tableFor((int) $in['table_id']) : null;
+        if ($table) {   // a tab at a table: sold at the table's branch, dine in, named after the table
+            $in['location_id'] = $this->floor->locationOf($table);
+            $in['label'] = trim((string) ($in['label'] ?? '')) !== '' ? $in['label'] : $table->name;
+            $in['service'] = $in['service'] ?? 'dine_in';
+        }
         [$channel, $loc, $lines] = $this->prepare($in, $now);
         $service = (string) ($in['service'] ?? '');
         $label = $this->label($in);
@@ -210,9 +218,12 @@ class CounterService
             throw new BooksException('Give the tab a name (a table, a person) so it can be found again.');
         }
         $p = $this->price($loc, $lines, $service, true, 0.0, $label);   // a tab's running total leaves out the service charge and tip: they are settled at the end
-        $order = DB::transaction(function () use ($channel, $loc, $lines, $service, $by, $label, $p) {
-            $order = $this->create($channel, $loc, $service, $by, $label, 'open', $p);
+        $order = DB::transaction(function () use ($channel, $loc, $lines, $service, $by, $label, $p, $table, $in) {
+            $order = $this->create($channel, $loc, $service, $by, $label, 'open', $p, $table ? ['table_id' => $table->id, 'guests' => ! empty($in['guests']) ? (int) $in['guests'] : $table->guests] : []);
             $this->addLines($order, $lines, 1);
+            if ($table && $table->state === 'free') {
+                $table->update(['state' => 'seated', 'seated_at' => now(), 'guests' => ! empty($in['guests']) ? (int) $in['guests'] : $table->guests]);
+            }
 
             return $order;
         });
@@ -269,20 +280,181 @@ class CounterService
         $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
         DB::transaction(function () use ($o, $p, $paid, $by) {
             $this->book($o, $p, $paid, $by);
-            $o->refresh();
-            if (! Ticket::where('order_id', $o->id)->whereIn('status', ['new', 'started'])->exists()) {
-                $o->update(['status' => 'completed', 'completed_at' => now()]);   // everything was served: the table is done
+            $this->closeTab($o);
+        });
+
+        return $o->fresh();
+    }
+
+    /** A tab was paid: if everything was served it is complete, and its table is to be cleaned. */
+    private function closeTab(MenuOrder $o): void
+    {
+        $o->refresh();
+        if (! Ticket::where('order_id', $o->id)->whereIn('status', ['new', 'started'])->exists()) {
+            $o->update(['status' => 'completed', 'completed_at' => now()]);   // everything was served: the table is done
+        }
+        $this->afterTab($o, 'cleaning');
+    }
+
+    /** The table of a tab that is over goes to "cleaning" (paid) or "free" (cancelled), unless another tab (a split bill) is still open there. */
+    private function afterTab(MenuOrder $o, string $state): void
+    {
+        if (! $o->table_id || ! FloorService::installed() || ! ($t = Table::find($o->table_id))) {
+            return;
+        }
+        if (! $this->floor->tabOf($t)) {
+            $t->update(['state' => $state, 'bill_asked_at' => null] + ($state === 'free' ? ['guests' => null, 'seated_at' => null] : []));
+        }
+    }
+
+    private function tableFor(int $id): Table
+    {
+        if (! FloorService::installed()) {
+            throw new BooksException('Tables are not set up: run database script 139_menus_floor.sql.');
+        }
+        $t = Table::find($id) ?? throw new BooksException('That table does not exist.');
+        $this->floor->assertUsable($t);
+        if ($this->floor->tabOf($t)) {
+            throw new BooksException("{$t->name} already has a tab: add to it.");
+        }
+
+        return $t;
+    }
+
+    /** Move a tab to another (empty) table. */
+    public function moveTab(MenuOrder $o, int $toId): MenuOrder
+    {
+        $this->assertTab($o);
+        $to = $this->tableFor($toId);
+        if (! $o->table_id) {
+            throw new BooksException('This tab is not at a table.');
+        }
+        if ($this->floor->locationOf($to) !== (int) $o->location_id) {
+            throw new BooksException("{$to->name} is at another branch.");
+        }
+        $from = Table::find($o->table_id);
+        DB::transaction(function () use ($o, $to, $from) {
+            $o->update(['table_id' => $to->id, 'label' => $o->label === $from?->name ? $to->name : $o->label, 'name' => $o->label === $from?->name ? $to->name : $o->name]);
+            $to->update(['state' => 'seated', 'guests' => $from?->guests, 'seated_at' => $from?->seated_at ?? now(), 'bill_asked_at' => $from?->bill_asked_at]);
+            if ($from) {
+                $from->update(['state' => 'free', 'guests' => null, 'seated_at' => null, 'bill_asked_at' => null]);
             }
         });
 
         return $o->fresh();
     }
 
+    /**
+     * Split the bill by dish: the chosen dishes move to a new tab at the same table, which is paid on its own. (The kitchen's tickets stay with the first tab.)
+     *
+     * @param int[] $lineIds
+     */
+    public function splitTab(MenuOrder $o, array $lineIds): MenuOrder
+    {
+        $this->assertTab($o);
+        $moving = $o->lines()->whereIn('id', $lineIds)->get();
+        if ($moving->isEmpty()) {
+            throw new BooksException('Choose the dishes that go on the new bill.');
+        }
+        if ($moving->count() === $o->lines()->count()) {
+            throw new BooksException('That is the whole tab: pay it instead.');
+        }
+        $new = DB::transaction(function () use ($o, $moving) {
+            $n = MenuOrder::where('table_id', $o->table_id)->whereNotNull('table_id')->whereIn('payment', ['open', 'pending'])->whereNotIn('status', ['cancelled'])->count() + 1;
+            $label = trim(($o->label ?? 'Tab').' ('.$n.')');
+            $new = $this->create($this->channel(), Location::findOrFail($o->location_id), (string) $o->service, null, $label, 'open', ['subtotal' => 0, 'tax_total' => 0, 'total' => 0, 'tax_breakdown' => null],
+                ['table_id' => $o->table_id, 'guests' => $o->guests]);
+            MenuOrderLine::whereIn('id', $moving->pluck('id'))->update(['order_id' => $new->id]);
+            $new->update(['status' => 'preparing']);
+            $this->retotal($o);
+            $this->retotal($new);
+
+            return $new;
+        });
+
+        return $new->fresh();
+    }
+
+    // ── paying a tab from the phone (the table's QR page) ───────────────
+
+    /**
+     * Start an M-Pesa (or card) payment for the whole tab. The tab waits as "pending" until the money arrives (tabPaid) or the payment fails (phoneFailed).
+     *
+     * @return array{order: MenuOrder, attempt: array, redirect_url: ?string}
+     */
+    public function startPhonePayment(MenuOrder $o, PaymentMethod $method, string $phone, array $in = []): array
+    {
+        $this->assertTab($o);
+        if (! PaymentMethod::offeredAtCheckout()->whereKey($method->id)->exists() || ! GatewayPaymentService::isAutomatic($method)) {
+            throw new BooksException('Choose M-Pesa or a card.');
+        }
+        if (trim($phone) === '') {
+            throw new BooksException('Enter your phone number.');
+        }
+        $p = $this->price(Location::findOrFail($o->location_id), $this->rebuild($o), (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label);
+
+        return DB::transaction(function () use ($o, $method, $phone, $p) {
+            $voucher = $this->vouchers->placeOrder($p['payload'], null);
+            $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menu_order_id' => $o->id])]);
+            $o->update(['voucher_id' => $voucher->id, 'payment' => 'pending', 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => (float) $voucher->total_amount, 'tax_breakdown' => $p['tax_breakdown'],
+                'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'payment_method_id' => $method->id]);
+            $r = $this->gateway->start($voucher, $method, ['phone' => $phone, 'name' => (string) $o->label], [], (float) $voucher->total_amount, null);
+            $a = $r['attempt'];
+
+            return ['order' => $o->fresh(), 'attempt' => ['id' => $a->id, 'status' => $a->status, 'amount' => (float) $a->amount, 'token' => GatewayPaymentService::returnToken((int) $a->id)], 'redirect_url' => $r['redirect_url']];
+        });
+    }
+
+    /** The payment did not go through: the tab is open again and can be added to or paid another way. */
+    public function phoneFailed(MenuOrder $o): MenuOrder
+    {
+        if ($o->order_type !== 'counter' || $o->payment !== 'pending') {
+            return $o;
+        }
+        DB::transaction(function () use ($o) {
+            $v = $o->voucher_id ? Voucher::find($o->voucher_id) : null;
+            if ($v && $v->status !== Voucher::CANCELLED) {
+                $this->vouchers->cancel($v, 'Payment for the tab did not go through', null);
+            }
+            $o->update(['voucher_id' => null, 'payment' => 'open', 'payment_method_id' => null, 'service_charge' => 0, 'tip' => 0]);
+            $this->retotal($o);
+        });
+
+        return $o->fresh();
+    }
+
+    /** The money for a tab came in by phone (called when the payment is confirmed). */
+    public function tabPaid(MenuOrder $o): void
+    {
+        $method = $o->payment_method_id ? PaymentMethod::find($o->payment_method_id) : null;
+        $o->update(['tendered' => $o->total, 'change_due' => 0, 'tenders' => [['method' => $method?->name ?? 'M-Pesa', 'amount' => (float) $o->total, 'reference' => null]], 'settled_at' => now()]);
+        $this->closeTab($o);
+    }
+
+    /** Phone payments that never finished: give the tabs back. @return int how many */
+    public function sweepPhone(int $minutes = 10): int
+    {
+        $n = 0;
+        foreach (MenuOrder::where('order_type', 'counter')->where('payment', 'pending')->where('updated_at', '<', now()->subMinutes($minutes))->get() as $o) {
+            try {
+                $this->phoneFailed($o);
+                $n++;
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $n;
+    }
+
     public function cancelTab(MenuOrder $o, ?string $reason, ?User $by = null): MenuOrder
     {
         $this->assertTab($o);
 
-        return $this->orders->cancel($o, $reason, $by);
+        $r = $this->orders->cancel($o, $reason, $by);
+        $this->afterTab($o, 'free');
+
+        return $r;
     }
 
     /** Tabs still open, and paid orders waiting to be handed over. @return array{tabs: Collection, ready: Collection} */
@@ -301,11 +473,11 @@ class CounterService
         }
     }
 
-    private function create(Channel $channel, Location $loc, string $service, ?User $by, string $label, string $payment, array $p): MenuOrder
+    private function create(Channel $channel, Location $loc, string $service, ?User $by, string $label, string $payment, array $p, array $extra = []): MenuOrder
     {
         $today = today();
         $next = (int) MenuOrder::where('order_type', 'counter')->where('location_id', $loc->id)->where('created_at', '>=', $today)->max('short_no') + 1;
-        $o = MenuOrder::create(['number' => 'MO-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'channel_id' => $channel->id, 'order_type' => 'counter', 'service' => $service, 'location_id' => $loc->id,
+        $o = MenuOrder::create($extra + ['number' => 'MO-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'channel_id' => $channel->id, 'order_type' => 'counter', 'service' => $service, 'location_id' => $loc->id,
             'name' => $label !== '' ? $label : 'Counter', 'label' => $label !== '' ? $label : null, 'cashier_id' => $by?->id, 'status' => 'placed', 'payment' => $payment, 'asap' => true, 'fulfil_at' => now(), 'short_no' => $next,
             'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'], 'currency_id' => Currency::getBaseCurrency()?->id, 'placed_at' => now()]);
         $o->update(['number' => 'MO-'.str_pad((string) $o->id, 6, '0', STR_PAD_LEFT)]);
