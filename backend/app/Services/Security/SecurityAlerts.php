@@ -153,4 +153,75 @@ final class SecurityAlerts
         $this->say($asker, 'council_answer', $approved ? 'A second person approved' : 'A second person declined',
             $approved ? "{$by->name} approved: {$what}. It goes through now if you still have the page open." : "{$by->name} declined: {$what}. Nothing was done.");
     }
+
+    // ------------------------------------------------------------ assisted recovery
+
+    private function names(iterable $users): string
+    {
+        $names = [];
+        foreach ($users as $u) {
+            $names[] = $u->name;
+        }
+
+        return $names ? implode(' and ', $names) : 'nobody yet';
+    }
+
+    private function at(\DateTimeInterface $when): string
+    {
+        return \Illuminate\Support\Carbon::instance($when)->timezone((string) config('app.timezone', 'Africa/Nairobi'))->format('j M Y, H:i');
+    }
+
+    /** Someone asked for help getting back in: tell the person (with the way to stop it), the administrators who can help, and everyone else who manages security. @param iterable<int, User> $approvers @param iterable<int, User> $managers */
+    public function recoveryAsked(User $who, iterable $approvers, iterable $managers, ?Request $request, ?string $note): void
+    {
+        $company = CompanyProfile::name();
+        $said = $note ? "\nThey said: \"{$note}\"" : '';
+        $this->tell($who, 'recovery_asked', 'Help getting back into your account was asked for',
+            "Someone asked two administrators to help get back into your {$company} account ({$who->email}).{$said}\n\n".$this->where($request)
+            ."\n\nIf this was you, two administrators will check with you another way and approve, then there is a waiting day before you can start it. If this was NOT you, press the button now: it stops the request.".self::NOT_ME);
+        foreach ($approvers as $a) {
+            $this->say($a, 'recovery_request', 'Someone needs help getting back into their account',
+                "{$who->name} ({$who->email}) says they can no longer use their passkey device or their recovery codes and asked for help getting back in.{$said}\n\nBefore you approve, check it is really them another way: phone them on a number you already have, or ask in person. Open Approvals to look at it and to approve or decline.",
+                ['action_url' => '/admin/security/approvals', 'action_text' => 'Look at it']);
+        }
+        foreach ($managers as $m) {
+            $this->say($m, 'recovery_asked_other', 'Someone asked for help getting back into their account', "{$who->name} ({$who->email}) asked two administrators to help them back in.{$said}\n\nNothing is needed from you unless something looks wrong.");
+        }
+    }
+
+    /** The last approval is in: the waiting day starts. @param iterable<int, User> $approvedBy @param iterable<int, User> $approvers @param iterable<int, User> $managers */
+    public function recoveryReleased(User $who, \DateTimeInterface $release, iterable $approvedBy, iterable $approvers, iterable $managers, ?Request $request): void
+    {
+        $by = $this->names($approvedBy);
+        $this->tell($who, 'recovery_approved', 'Your recovery was approved',
+            "{$by} approved getting you back into your account. You can start it from {$this->at($release)} on the sign-in screen: until then nothing changes. The wait is there so that, if this was not you, you have time to stop it.\n\n".$this->where($request).self::NOT_ME);
+        $told = [];
+        foreach ([...$approvers, ...$managers] as $u) {
+            if (isset($told[$u->getKey()]) || $u->getKey() === $who->getKey()) {
+                continue;
+            }
+            $told[$u->getKey()] = true;
+            $this->say($u, 'recovery_approved_other', 'A recovery was approved',
+                "{$by} approved getting {$who->name} ({$who->email}) back into their account. They can start it from {$this->at($release)}. Any administrator who could approve it may still cancel it under Approvals until then.",
+                ['action_url' => '/admin/security/approvals', 'action_text' => 'See it']);
+        }
+    }
+
+    /** A request ended without being used. @param 'declined'|'cancelled' $how @param iterable<int, User> $approvedBy */
+    public function recoveryEnded(User $who, string $how, ?string $byName, iterable $approvedBy, ?Request $request): void
+    {
+        $this->tell($who, 'recovery_ended', $how === 'declined' ? 'Your request for help was declined' : 'The request for help getting into your account was cancelled',
+            ($how === 'declined' ? 'An administrator'.($byName ? " ({$byName})" : '').' declined the request for help getting back into your account. Nothing was changed.' : 'The request for help getting back into your account was cancelled'.($byName ? " by {$byName}" : '').'. Nothing was changed.')
+            ."\n\n".$this->where($request), false);
+    }
+
+    /** The person started the recovery. @param iterable<int, User> $approvedBy @param iterable<int, User> $managers */
+    public function recoveryStarted(User $who, iterable $approvedBy, iterable $managers, ?Request $request): void
+    {
+        $this->tell($who, 'recovery_started', 'Recovery started on your account',
+            "Recovery was started on your account. Every other sign-in of yours was ended, and the sign-in that started it may add a new passkey for the next 15 minutes.\n\n".$this->where($request).self::NOT_ME);
+        foreach ($managers as $m) {
+            $this->say($m, 'recovery_started_other', 'A recovery was started', "{$who->name} ({$who->email}) started the recovery that was approved. They can add a new passkey for 15 minutes.");
+        }
+    }
 }

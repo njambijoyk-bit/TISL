@@ -129,6 +129,7 @@ Run these in Workbench, in order, each on its own, then `php artisan access:seed
 | `127_seal_phrase.sql` | the seal phrase on the sign-in page (optional) |
 | `128_step_up.sql` | "one more step" questions for sensitive actions (payment keys, roles, payroll, restore, exports, voucher cancel, staff accounts, bank details) |
 | `129_council_of_two.sql` | a second person approving the most serious actions (run it after 128) |
+| `130_assisted_recovery.sql` | help from two administrators for staff who have lost every device and every recovery code (run it after 126) |
 
 Server settings (the project has no `.env` file of its own, so these go wherever the other settings live):
 
@@ -141,6 +142,7 @@ Server settings (the project has no `.env` file of its own, so these go wherever
 | `SECURITY_RISK_MODE=off` | The starting value of the unusual-sign-in check: `off`, `log` (only written down) or `enforce`. |
 | `SECURITY_RISK_NOTICE_AT=1`, `SECURITY_RISK_STRONGER_AT=2` | How many signals tell the person (1) and hold the sign-in until a passkey confirms it (2). New browser, new network, an odd hour = 1 each; a new country, or several wrong passwords just before = 2 each. |
 | `SECURITY_STEPUP_PASSWORD_FALLBACK=true` | Someone with no passkey yet may answer a question that asks for one with their password. Set it to `false` once everyone has a passkey. |
+| `SECURITY_RECOVERY_APPROVALS=2`, `SECURITY_RECOVERY_COOLING_HOURS=24`, `SECURITY_RECOVERY_REQUEST_HOURS=72`, `SECURITY_RECOVERY_USE_HOURS=48` | Assisted recovery: how many administrators must approve, the waiting day, how long a request waits for approvals, and how long the person has to start it afterwards. |
 | `SECURITY_COUNCIL_MINUTES=30` | How long a request waits for the second person before it runs out. |
 | `SECURITY_STEPUP_NEW_PASSKEY_HOURS=24` | A passkey added more recently than this can not approve a critical action (someone who just got into an account adds their own device first). |
 | `SECURITY_ALERTS_EMAIL=false` | Stops the emails about passkeys and recovery codes being added, removed or used. |
@@ -173,6 +175,17 @@ For the four most serious actions (changing who may do what, resetting someone's
 3. Admin → Security → **Sensitive actions**: under each of those actions, "A second person must approve too": **Test** first (nobody is stopped; the page shows how often one would have been asked), then **On**. The page refuses to switch it on while nobody else could approve it.
 4. The second person finds the request under Admin → Security → **Approvals** (they are also told by email and bell), sees the details and the first person's reason, and approves with their passkey or declines. The first person's screen waits and the action then goes ahead by itself. Nobody can approve their own request.
 5. It only applies once the action's own rule (the same page) is **On**, and `SECURITY_POLICY_OFF=true` puts it to sleep with the rest.
+
+### When a colleague has lost every device and every recovery code (assisted recovery)
+
+This is the rung between "use a recovery code" and the owner's emergency command. It needs script 130 and at least two other administrators who could reset a sign-in themselves (each with a passkey that is a day old, or no passkey yet and the password fallback on).
+
+1. The colleague signs in with their password. They meet the "confirm it is you" screen; under "I can't use my passkey device" they type what happened and press **Ask 2 administrators to help me**.
+2. Every administrator who could help is told (email and bell) and finds the request under Admin → Security → **Approvals**, "Help getting back in". **Check it is really them another way before you approve**: phone them on a number you already had, or ask in person; do not use the number or email in the request. Approve with your passkey and say how you checked. Two different administrators are needed. Anyone can decline.
+3. After the second approval there is a **waiting day**. The colleague (with the "This was not me" button in their email), and any of the administrators (Approvals → "Cancel it"), can stop it. It is also told to everyone who manages security.
+4. After the day the colleague signs in again, opens the same panel and presses **Start the recovery**. Every other sign-in of theirs ends, and this one may add a new passkey for 15 minutes (afterwards: remove the lost one under My devices and make new recovery codes).
+5. A request nobody answers runs out after three days; an approved one that is not started runs out two days after the waiting day.
+6. If there are not two administrators who could approve (a small team), the screen says so: use the owner's emergency command below.
 
 ### When nobody can sign in (the owner's break-glass)
 

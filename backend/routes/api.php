@@ -446,20 +446,36 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id');
     });
     // "One more step" for a sensitive action: the question, the device's challenge for it, the answer, and giving it up
-    Route::prefix('auth/step-up/{id}')->middleware('throttle:step-up')->group(function () {
+    Route::prefix('auth/step-up/{id}')->group(function () {
         $c = \App\Http\Controllers\Api\StepUpController::class;
-        Route::get('/',           [$c, 'show']);
-        Route::post('/options',   [$c, 'options']);
-        Route::post('/approve',   [$c, 'approve']);
-        Route::delete('/',        [$c, 'cancel']);
+        Route::get('/',           [$c, 'show'])->middleware('throttle:approvals');   // (while a second person is asked the window looks every few seconds: its own bucket, so answering is never starved)
+        Route::post('/options',   [$c, 'options'])->middleware('throttle:step-up');
+        Route::post('/approve',   [$c, 'approve'])->middleware('throttle:step-up');
+        Route::delete('/',        [$c, 'cancel'])->middleware('throttle:step-up');
     });
     // The Council of Two, from the second person's side: what waits for them, and approving or declining it
-    Route::prefix('auth/council')->middleware('throttle:step-up')->group(function () {
+    Route::prefix('auth/council')->group(function () {
         $c = \App\Http\Controllers\Api\CouncilController::class;
-        Route::get('/',                [$c, 'index']);
-        Route::post('/{id}/options',   [$c, 'options']);
-        Route::post('/{id}/approve',   [$c, 'approve']);
-        Route::post('/{id}/reject',    [$c, 'reject']);
+        Route::get('/',                [$c, 'index'])->middleware('throttle:approvals');   // (the page looks every few seconds: its own bucket, so answering is never starved)
+        Route::post('/{id}/options',   [$c, 'options'])->middleware('throttle:step-up');
+        Route::post('/{id}/approve',   [$c, 'approve'])->middleware('throttle:step-up');
+        Route::post('/{id}/reject',    [$c, 'reject'])->middleware('throttle:step-up');
+    });
+    // Assisted recovery: the locked-out person asks and later starts it (also reachable from the restricted sign-in), and the administrators look at it, approve, decline or cancel
+    Route::prefix('auth/recovery-requests')->group(function () {
+        $c = \App\Http\Controllers\Api\RecoveryRequestController::class;
+        Route::get('/mine',          [$c, 'mine']);
+        Route::post('/',             [$c, 'store'])->middleware('throttle:recovery-request');
+        Route::delete('/{id}',       [$c, 'destroy'])->middleware('throttle:passkey-manage');
+        Route::post('/{id}/start',   [$c, 'start'])->middleware('throttle:passkey-manage');
+    });
+    Route::prefix('auth/recovery-approvals')->group(function () {
+        $c = \App\Http\Controllers\Api\RecoveryApprovalController::class;
+        Route::get('/',                [$c, 'index'])->middleware('throttle:approvals');
+        Route::post('/{id}/options',   [$c, 'options'])->middleware('throttle:step-up');
+        Route::post('/{id}/approve',   [$c, 'approve'])->middleware('throttle:step-up');
+        Route::post('/{id}/decline',   [$c, 'decline'])->middleware('throttle:step-up');
+        Route::post('/{id}/cancel',    [$c, 'cancel'])->middleware('throttle:step-up');
     });
     // Recovery codes: the way back from a lost passkey device. Using one does not sign anyone in; it lets this session add a new passkey for 15 minutes.
     Route::prefix('auth/recovery-codes')->group(function () {

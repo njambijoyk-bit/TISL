@@ -366,6 +366,30 @@ class SecurityCheckTest extends TestCase
         $this->assertNull($line('Some actions could never'));
     }
 
+    public function test_assisted_recovery_is_a_note_until_there_are_enough_administrators(): void
+    {
+        Schema::create('employees', function ($t) { $t->id(); $t->unsignedBigInteger('user_id')->nullable(); $t->softDeletes(); $t->timestamps(); });
+        $line = fn () => collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Staff who lose every device') || str_starts_with($label, 'Help from administrators'));
+        $this->assertSame('note', $line()['status']);
+        $this->assertSame('Staff who lose every device can ask administrators for help', $line()['label']);
+        $this->assertStringContainsString('Only 0 administrator(s)', $line()['advice']);
+        User::forceCreate(['name' => 'One', 'email' => 'one@example.com', 'password' => Hash::make('x'), 'role' => 'super_admin']);
+        User::forceCreate(['name' => 'Two', 'email' => 'two@example.com', 'password' => Hash::make('x'), 'role' => 'admin']);
+        $this->assertSame('note', $line()['status']);                                              // two approvers are needed and the person asking can not be one of them: three people
+        $this->assertStringContainsString('Only 2 administrator(s)', $line()['advice']);
+        $this->assertStringContainsString('3 are needed', $line()['advice']);
+        User::forceCreate(['name' => 'Cass', 'email' => 'cass@example.com', 'password' => Hash::make('x'), 'role' => 'cashier']);   // staff, but not someone who could reset a sign-in
+        $this->assertSame('note', $line()['status']);
+        $this->assertStringContainsString('Only 2 administrator(s)', $line()['advice']);
+        User::forceCreate(['name' => 'Three', 'email' => 'three@example.com', 'password' => Hash::make('x'), 'role' => 'admin']);
+        $this->assertSame('ok', $line()['status']);
+        $this->assertNull($line()['advice']);
+        Schema::drop('auth_recovery_approvals');
+        \App\Services\Security\AssistedRecovery::forget();
+        $this->assertSame('note', $line()['status']);
+        $this->assertStringContainsString('130_assisted_recovery.sql', $line()['advice']);
+    }
+
     public function test_the_step_up_table_missing_is_a_warning_that_names_the_script(): void
     {
         Schema::drop('auth_pending_actions');

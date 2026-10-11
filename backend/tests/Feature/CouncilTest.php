@@ -649,12 +649,34 @@ class CouncilTest extends TestCase
         $this->as($ta)->deleteJson('/api/auth/step-up/'.$this->ask($ta, 5)->json('step_up.pending'))->assertOk();
     }
 
+    public function test_looking_at_the_list_never_uses_up_the_answers(): void
+    {
+        config(['security.rate_limits.step_up' => ['user' => [[3, 15]]], 'security.rate_limits.approvals' => ['user' => [[50, 15]]]]);
+        $b = $this->person('super_admin', 'Bola Backer');
+        [$tb, $db] = $this->withPasskey($b);
+        [, $id] = $this->waiting();
+        for ($i = 0; $i < 20; $i++) {                                                             // the page asks every few seconds
+            $this->as($tb)->getJson('/api/auth/council')->assertOk();
+        }
+        $this->secondAnswer($tb, $id, $db)->assertOk();                                           // and the answer still goes through
+    }
+
+    public function test_the_first_person_waiting_and_looking_every_few_seconds_never_uses_up_their_own_answers(): void
+    {
+        config(['security.rate_limits.step_up' => ['user' => [[4, 15]]], 'security.rate_limits.approvals' => ['user' => [[100, 15]]]]);
+        [$ta, $id] = $this->waiting();
+        for ($i = 0; $i < 40; $i++) {                                                             // (the window asks every few seconds for up to half an hour)
+            $this->as($ta)->getJson("/api/auth/step-up/{$id}")->assertOk();
+        }
+        $this->as($ta)->deleteJson("/api/auth/step-up/{$id}")->assertOk();                         // and giving up still works
+    }
+
     public function test_the_routes_are_behind_the_sign_in_and_the_speed_limit(): void
     {
         $routes = collect(Route::getRoutes()->getRoutes())->filter(fn ($r) => str_starts_with($r->uri(), 'api/auth/council'));
         $this->assertCount(4, $routes);
         foreach ($routes as $r) {
-            $this->assertContains('throttle:step-up', $r->gatherMiddleware(), $r->uri());
+            $this->assertContains(in_array('GET', $r->methods(), true) ? 'throttle:approvals' : 'throttle:step-up', $r->gatherMiddleware(), $r->uri());
             $this->assertContains('auth:sanctum', $r->gatherMiddleware(), $r->uri());
         }
         $this->getJson('/api/auth/council')->assertStatus(401);

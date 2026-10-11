@@ -55,8 +55,12 @@ return [
         // trying recovery codes while signed in (counted per person; a code is 49 bits, so a handful of tries an hour is plenty for a real person), and asking the sign-in page for a seal phrase (per address)
         'recovery' => ['user' => [[5, 15], [15, 60]]],
         'seal' => ['ip' => [[60, 1], [300, 60]]],
+        // asking administrators for help getting back in (per person), and approving such a request (per person)
+        'recovery_request' => ['user' => [[3, 60], [6, 1440]]],
         // answering "one more step" questions about sensitive actions (per person)
         'step_up' => ['user' => [[20, 15], [60, 60]]],
+        // looking at what is waiting for them (the Approvals page asks every few seconds, so this is its own, wider, bucket: it must never use up the one for answering)
+        'approvals' => ['user' => [[600, 15]]],
     ],
 
     // Headers added to every response (see Http/Middleware/SecurityHeaders). HSTS is only sent over HTTPS; switch it off if the site must also be reached over plain HTTP.
@@ -123,6 +127,15 @@ return [
         'password_fallback' => (bool) env('SECURITY_STEPUP_PASSWORD_FALLBACK', true),
         // the Council of Two: how many minutes a request waits for the second person before it runs out
         'council_minutes' => (int) env('SECURITY_COUNCIL_MINUTES', 30),
+    ],
+
+    // Assisted recovery for staff who have lost every device and every recovery code (Services/Security/AssistedRecovery): the person asks, `approvals` other administrators who could reset a sign-in approve,
+    // then `cooling_hours` pass (the person and the administrators can cancel), then the person has `use_hours` to start it. A request nobody answers runs out after `request_hours`.
+    'recovery' => [
+        'approvals' => (int) env('SECURITY_RECOVERY_APPROVALS', 2),
+        'cooling_hours' => (int) env('SECURITY_RECOVERY_COOLING_HOURS', 24),
+        'request_hours' => (int) env('SECURITY_RECOVERY_REQUEST_HOURS', 72),
+        'use_hours' => (int) env('SECURITY_RECOVERY_USE_HOURS', 48),
     ],
 
     // Tell the person (email and bell) when a passkey is added, removed or switched off, or recovery codes are made or used. Off with SECURITY_ALERTS_EMAIL=false.

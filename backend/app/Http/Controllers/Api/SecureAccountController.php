@@ -7,6 +7,7 @@ use App\Models\Applicant;
 use App\Models\Security\AuthCredential;
 use App\Models\Security\AuthRecoveryCode;
 use App\Models\User;
+use App\Services\Security\AssistedRecovery;
 use App\Services\Security\SecureAccountLink;
 use App\Services\Security\SecurityLog;
 use App\Services\Security\Sessions;
@@ -34,7 +35,9 @@ class SecureAccountController extends Controller
                 AuthRecoveryCode::where('user_id', $who->id)->good()->update(['revoked_at' => now()]);
             }
         }
-        SecurityLog::record('secure_account', $who, $request, ['sessions_ended' => $ended, 'passkeys_removed' => $removed], SecurityLog::ALERT);
+        // a request for help getting back in (assisted recovery) is stopped too: the person did not ask for it
+        $stopped = $who instanceof User ? app(AssistedRecovery::class)->cancelAllFor($who, 'link', $request) : 0;
+        SecurityLog::record('secure_account', $who, $request, ['sessions_ended' => $ended, 'passkeys_removed' => $removed, 'recovery_stopped' => $stopped], SecurityLog::ALERT);
         try {
             $who instanceof Applicant ? Password::broker('applicants')->sendResetLink(['email' => $who->email]) : Password::sendResetLink(['email' => $who->email]);
         } catch (\Throwable $e) {

@@ -8,6 +8,7 @@ import { passkeyProblem, passkeysSupported, suggestedName } from '../../../_shar
 import { addPasskey, proveWithPasskey, withProtection } from '../../../_shared/lib/passkeyFlows';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import RecoveryUse from './RecoveryUse';
+import AssistedRecoveryPanel from './AssistedRecoveryPanel';
 
 const WORDS = {
   passkey_missing: {
@@ -120,7 +121,12 @@ export default function SecurityGate() {
         )}
 
         {gate !== 'passkey_missing' && !recoveredNow && (
-          lost ? <RecoveryUse onRecovered={() => { setLost(false); setRecovered(Date.now()); }} />
+          lost ? (
+            <>
+              <RecoveryUse onRecovered={() => { setLost(false); setRecovered(Date.now()); }} />
+              <AssistedRecoveryPanel onStarted={() => { setLost(false); setRecovered(Date.now()); }} />
+            </>
+          )
             : <button type="button" onClick={() => setLost(true)} data-testid="gate-lost" style={{ marginTop: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--color-primary-600)', fontWeight: 700, fontSize: '0.8rem', padding: 0, display: 'block' }}>I can't use my passkey device (lost or broken)</button>
         )}
 

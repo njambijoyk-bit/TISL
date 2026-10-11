@@ -62,7 +62,7 @@ function Question({ request, onDone }) {
         else if (r.second && r.second.state !== 'waiting') setSecond(r.second);
       } catch { /* try again in a moment */ }
     };
-    const timer = setInterval(look, 2000);
+    const timer = setInterval(look, 3000);
 
     return () => { stop = true; clearInterval(timer); };
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -4,6 +4,7 @@ namespace App\Services\Security;
 
 use App\Models\User;
 use App\Services\Security\Passkeys\PasskeyConfig;
+use App\Services\Access\Authorizer;
 use App\Services\Security\StepUp\Catalogue;
 use App\Services\Security\StepUp\Council;
 use App\Services\Security\StepUp\StepUp;
@@ -130,6 +131,18 @@ final class SecurityCheck
                 $stuck = $onTwo->filter(fn ($k) => $stepUp->mode($k) === 'enforce' && $council->approvers($k, null)->count() < 2);
                 if ($stuck->isNotEmpty()) {
                     $add(self::WARN, 'Some actions could never get a second person', 'Only one person could approve: '.$stuck->map(fn ($k) => Catalogue::rule($k)['label'])->implode('; ').'. Give a second person that access, or switch the second person off for it.');
+                }
+            }
+            // assisted recovery: the way back for staff with no device and no code, and whether there are enough administrators to give it
+            if (! AssistedRecovery::ready()) {
+                $add(self::NOTE, 'Help from administrators for staff who lose every device is not set up', 'Optional: run database script 130_assisted_recovery.sql. Until then the only rung below recovery codes is the owner\'s emergency command (php artisan security:recover).');
+            } else {
+                try {
+                    $enough = User::query()->whereIn('role', app(Authorizer::class)->staffRoleKeys())->get()->filter(fn (User $u) => app(Council::class)->eligible($u, 'signin_reset', null))->count();
+                    $need = AssistedRecovery::needed() + 1;   // the person who is locked out can not be one of the approvers
+                    $add($enough >= $need ? self::OK : self::NOTE, 'Staff who lose every device can ask administrators for help', $enough >= $need ? null : "Only {$enough} administrator(s) could approve a request, and {$need} are needed (the person asking is never one of them). Until there are more, the owner's emergency command (php artisan security:recover) is the way back.");
+                } catch (\Throwable $e) {
+                    report($e);   // a half-built database must not stop the rest of the check
                 }
             }
             $risk = app(RiskSignals::class)->mode();

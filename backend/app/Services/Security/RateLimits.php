@@ -25,7 +25,9 @@ class RateLimits
         'passkey' => 'passkey',
         'passkey-manage' => 'passkey_manage',
         'recovery' => 'recovery',
+        'recovery-request' => 'recovery_request',
         'step-up' => 'step_up',
+        'approvals' => 'approvals',
         'seal' => 'seal',
     ];
 

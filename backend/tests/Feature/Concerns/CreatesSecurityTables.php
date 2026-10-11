@@ -50,6 +50,15 @@ trait CreatesSecurityTables
             $t->boolean('reason_required')->default(false); $t->boolean('needs_second_person')->default(false); $t->boolean('second_required')->default(false); $t->unsignedBigInteger('second_user_id')->nullable(); $t->dateTime('second_approved_at')->nullable(); $t->string('second_with', 10)->nullable(); $t->unsignedBigInteger('second_credential_id')->nullable(); $t->string('second_note', 300)->nullable(); $t->dateTime('second_rejected_at')->nullable(); $t->string('reason', 300)->nullable(); $t->dateTime('approved_at')->nullable(); $t->string('approved_with', 10)->nullable();
             $t->unsignedBigInteger('approved_credential_id')->nullable(); $t->dateTime('covers_until')->nullable(); $t->dateTime('used_at')->nullable(); $t->dateTime('cancelled_at')->nullable(); $t->dateTime('expires_at'); $t->timestamps();
         });
+        Schema::create('auth_recovery_requests', function ($t) {
+            $t->string('id', 40)->primary(); $t->unsignedBigInteger('user_id'); $t->string('kind', 12)->default('self'); $t->unsignedBigInteger('asked_by_id'); $t->string('note', 300)->nullable(); $t->string('ip', 45)->nullable(); $t->string('user_agent')->nullable();
+            $t->unsignedTinyInteger('needed')->default(2); $t->dateTime('release_at')->nullable(); $t->dateTime('declined_at')->nullable(); $t->unsignedBigInteger('declined_by_id')->nullable(); $t->string('decline_note', 300)->nullable();
+            $t->dateTime('cancelled_at')->nullable(); $t->string('cancelled_by', 12)->nullable(); $t->unsignedBigInteger('cancelled_by_id')->nullable(); $t->dateTime('used_at')->nullable(); $t->dateTime('executed_at')->nullable(); $t->dateTime('expires_at'); $t->timestamps();
+        });
+        Schema::create('auth_recovery_approvals', function ($t) {
+            $t->id(); $t->string('request_id', 40); $t->unsignedBigInteger('user_id'); $t->string('approved_with', 10); $t->unsignedBigInteger('credential_id')->nullable(); $t->string('note', 300)->nullable(); $t->string('ip', 45)->nullable(); $t->timestamps();
+            $t->unique(['request_id', 'user_id']);
+        });
         Schema::create('auth_seals', function ($t) { $t->unsignedBigInteger('user_id')->primary(); $t->string('phrase', 60); $t->timestamps(); });
         Schema::create('security_settings', function ($t) {
             $t->string('setting_key', 80)->primary(); $t->json('value')->nullable(); $t->unsignedBigInteger('updated_by_id')->nullable(); $t->timestamps();
