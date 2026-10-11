@@ -1846,6 +1846,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/update-status',      [UserController::class, 'updateStatus']);
             Route::post('/{id}/unlock',             [UserController::class, 'unlockAccount']);
             Route::post('/{id}/reset-password',     [UserController::class, 'resetPassword']);
+            Route::post('/{id}/reset-signin-methods', [UserController::class, 'resetSigninMethods']);   // passkeys, recovery codes and sign-ins (not the password): serious, and a day's wait for staff
 
             Route::post('/{id}/verify-email',   [VerificationController::class, 'adminVerifyEmail']);
             Route::post('/{id}/unverify-email', [VerificationController::class, 'adminUnverifyEmail']);

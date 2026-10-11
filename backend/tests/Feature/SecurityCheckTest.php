@@ -378,7 +378,7 @@ class SecurityCheckTest extends TestCase
         $this->assertSame('note', $line()['status']);                                              // two approvers are needed and the person asking can not be one of them: three people
         $this->assertStringContainsString('Only 2 administrator(s)', $line()['advice']);
         $this->assertStringContainsString('3 are needed', $line()['advice']);
-        User::forceCreate(['name' => 'Cass', 'email' => 'cass@example.com', 'password' => Hash::make('x'), 'role' => 'cashier']);   // staff, but not someone who could reset a sign-in
+        User::forceCreate(['name' => 'Cass', 'email' => 'cass@example.com', 'password' => Hash::make('x'), 'role' => 'logistics']);   // staff, but not someone who could reset a sign-in
         $this->assertSame('note', $line()['status']);
         $this->assertStringContainsString('Only 2 administrator(s)', $line()['advice']);
         User::forceCreate(['name' => 'Three', 'email' => 'three@example.com', 'password' => Hash::make('x'), 'role' => 'admin']);

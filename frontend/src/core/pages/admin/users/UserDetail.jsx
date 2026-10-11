@@ -5,10 +5,11 @@ import {
   UserX, UserCheck, Trash2, RotateCcw, Mail,
   Phone, Building2, Calendar, BadgeCheck,
   AlertCircle, Clock, Monitor, MapPin, Save, Eye, EyeOff,
-  Edit2, X, Check, User, FileText, Bell, Settings,
+  Edit2, X, Check, User, FileText, Bell, Settings, ShieldAlert,
 } from 'lucide-react';
 import useUsersStore from '../../../../_shared/store/usersStore';
 import toast from 'react-hot-toast';
+import ResetSigninMethods from '../../../components/admin/users/ResetSigninMethods';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -272,6 +273,7 @@ export default function UserDetail() {
   const [editMode,        setEditMode]        = useState(false);
   const [formData,        setFormData]        = useState({});
   const [showResetModal,  setShowResetModal]  = useState(false);
+  const [showMethodsModal, setShowMethodsModal] = useState(false);
   const [showLockModal,   setShowLockModal]   = useState(false);
 
   useEffect(() => {
@@ -417,6 +419,7 @@ export default function UserDetail() {
                   {isLocked && <ActionBtn icon={Unlock} label="Unlock" onClick={handleUnlock} loading={actionLoading} />}
                   <ActionBtn icon={KeyRound} label="Force reset" onClick={handleForceReset} loading={actionLoading} />
                   <ActionBtn icon={KeyRound} label="Reset password" onClick={() => setShowResetModal(true)} />
+                  <ActionBtn icon={ShieldAlert} label="Reset sign-in methods" onClick={() => setShowMethodsModal(true)} />
                   {user.status === 'suspended'
                     ? <ActionBtn icon={UserCheck} label="Activate" onClick={() => handleStatusChange('active')}    loading={actionLoading} />
                     : <ActionBtn icon={UserX}     label="Suspend"  onClick={() => handleStatusChange('suspended')} loading={actionLoading} danger />
@@ -669,6 +672,7 @@ export default function UserDetail() {
       </div>
 
       {/* ── Modals ── */}
+      {showMethodsModal && <ResetSigninMethods user={user} onClose={() => setShowMethodsModal(false)} />}
       {showResetModal && (
         <ResetPasswordModal
           onClose={() => setShowResetModal(false)}

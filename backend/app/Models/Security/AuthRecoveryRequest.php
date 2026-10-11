@@ -30,10 +30,11 @@ class AuthRecoveryRequest extends Model
         return $this->hasMany(AuthRecoveryApproval::class, 'request_id');
     }
 
-    /** Where it stands: pending (waiting for approvals), cooling (approved, the waiting day), ready (the person may start it), or an end: used, declined, cancelled, expired. */
+    /** Where it stands: pending (waiting for approvals), cooling (the waiting day), ready (the person may start it; for a reset, it is due), or an end: used, done (a reset carried out), declined, cancelled, expired. */
     public function state(): string
     {
         return match (true) {
+            $this->executed_at !== null => 'done',
             $this->used_at !== null => 'used',
             $this->cancelled_at !== null => 'cancelled',
             $this->declined_at !== null => 'declined',

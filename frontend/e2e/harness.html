@@ -21,6 +21,7 @@
         SensitiveActions: () => import('/src/core/pages/admin/SensitiveActions.jsx'),
         PaymentSettings: () => import('/src/core/pages/admin/settings/PaymentSettings.jsx'),
         Approvals: () => import('/src/core/pages/admin/Approvals.jsx'),
+        ResetSigninMethods: () => import('/e2e/ResetProbe.jsx'),   // the "reset sign-in methods" window on its own (the real users page needs a far bigger database)
       };
       const { default: Component } = await parts[which]();
       if (['PasskeyRule', 'SensitiveActions', 'PaymentSettings', 'Approvals'].includes(which)) document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)

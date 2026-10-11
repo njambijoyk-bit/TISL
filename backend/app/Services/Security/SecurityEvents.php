@@ -35,6 +35,8 @@ final class SecurityEvents
         'recovery_declined' => ['An administrator declined a request for help getting back in', SecurityLog::NOTICE],
         'recovery_cancelled' => ['A request for help getting back in was cancelled', SecurityLog::NOTICE],
         'recovery_started' => ['Recovery was started: one sign-in may add a new passkey', SecurityLog::ALERT],
+        'signin_reset_asked' => ['An administrator asked to reset someone\'s sign-in methods (it waits a day)', SecurityLog::WARNING],
+        'signin_methods_reset' => ['Sign-in methods were reset: every passkey, recovery code and sign-in of this account was taken away', SecurityLog::ALERT],
         'break_glass_used' => ['The emergency recovery command was run on the server for this account', SecurityLog::ALERT],
         'seal_phrase_changed' => ['The seal phrase was changed', SecurityLog::INFO],
         'stepup_asked' => ['Asked to confirm a sensitive action', SecurityLog::INFO],

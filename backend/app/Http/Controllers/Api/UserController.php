@@ -558,6 +558,31 @@ class UserController extends Controller
         return response()->json(['message' => 'User will be required to reset their password on next login.']);
     }
 
+    /**
+     * POST /admin/users/{id}/reset-signin-methods {reason}: take away every passkey and recovery code of a person and end all their sign-ins (NOT a password reset). A serious action, and for staff the passkey rule
+     * is for it waits a day, during which they and the other administrators are told and can cancel it. See Services/Security/SignInReset.
+     */
+    public function resetSigninMethods(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+        $this->authorize('manageAccount', $user);
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'signin_reset', fn () => $user->isStaff())) {
+            return $held;
+        }
+        $data = $request->validate(['reason' => 'required|string|min:3|max:300']);
+        try {
+            $r = app(\App\Services\Security\SignInReset::class)->begin($user, $request->user(), $data['reason'], $request);
+        } catch (\App\Services\Security\StepUp\StepUpException $e) {
+            return response()->json(['message' => $e->getMessage(), 'reason' => $e->reason], $e->httpStatus);
+        }
+        if ($r['done']) {
+            return response()->json(['message' => 'Done: every passkey, recovery code and sign-in of '.$user->name.' was taken away. They sign in with their password and add a new passkey.', 'done' => true, 'summary' => $r['summary']]);
+        }
+
+        return response()->json(['message' => 'Asked. '.$user->name.' and the other administrators were told, and it happens at '.$r['release_at']->timezone((string) config('app.timezone', 'Africa/Nairobi'))->format('j M, H:i').' unless somebody cancels it.',
+            'done' => false, 'release_at' => $r['release_at']->toIso8601String(), 'request' => $r['request']->id]);
+    }
+
     public function updateStatus(Request $request, $id)
     {
         $user = User::findOrFail($id);

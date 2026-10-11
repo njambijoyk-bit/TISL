@@ -150,6 +150,7 @@ final class Facts
         $who = $r->route('id') ? User::find((int) $r->route('id')) : null;
         $what = match (true) {
             str_contains($uri, 'force-password-reset') => 'They must choose a new password, and every sign-in of theirs ends now',
+            str_contains($uri, 'reset-signin-methods') => 'Take away ALL their passkeys and recovery codes and end every sign-in of theirs (their password stays)'.($who && app(\App\Services\Security\SignInReset::class)->delayed($who) ? '. It happens after a waiting day, when they and the other administrators can cancel it' : ''),
             str_contains($uri, 'reset-password') => 'Set a new password for them',
             str_contains($uri, 'update-status') => 'Change their status to "'.$r->input('status').'"'.($r->input('status') === 'suspended' ? ' (they are signed out and cannot sign in)' : ''),
             $r->isMethod('delete') => 'Delete the account',

@@ -44,6 +44,10 @@ const usersAPI = {
   resetPassword: (id, password) =>
     api.post(`/admin/users/${id}/reset-password`, { password }).then(r => r.data),
 
+  // Take away every passkey and recovery code and end all sign-ins (not the password). A serious action: the server asks the administrator to confirm, and for staff it waits a day.
+  resetSigninMethods: (id, reason) =>
+    api.post(`/admin/users/${id}/reset-signin-methods`, { reason }).then(r => r.data),
+
   // Verification
     verifyEmail:   (id) => api.post(`/admin/users/${id}/verify-email`).then(r => r.data),
     unverifyEmail: (id) => api.post(`/admin/users/${id}/unverify-email`).then(r => r.data),

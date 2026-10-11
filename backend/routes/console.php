@@ -43,3 +43,4 @@ Schedule::command('vault:archive')
     ->runInBackground()
     ->onFailure(fn() => \Illuminate\Support\Facades\Log::error('Vault archiver scheduled run failed.'))
     ->onSuccess(fn() => \Illuminate\Support\Facades\Log::info('Vault archiver completed successfully.'));
+Schedule::command('security:release-resets')->everyFiveMinutes()->withoutOverlapping();   // carries out the "reset sign-in methods" requests whose waiting day is over

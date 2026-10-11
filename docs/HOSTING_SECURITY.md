@@ -176,6 +176,15 @@ For the four most serious actions (changing who may do what, resetting someone's
 4. The second person finds the request under Admin → Security → **Approvals** (they are also told by email and bell), sees the details and the first person's reason, and approves with their passkey or declines. The first person's screen waits and the action then goes ahead by itself. Nobody can approve their own request.
 5. It only applies once the action's own rule (the same page) is **On**, and `SECURITY_POLICY_OFF=true` puts it to sleep with the rest.
 
+### Resetting someone's sign-in methods
+
+Users → the person → **Reset sign-in methods** takes away all their passkeys and recovery codes and signs them out everywhere. It does **not** change their password (use "Reset password" for that); the two are separate on purpose, so a stolen administrator login can not strip someone's passkeys and then sign in as them.
+
+- You give a reason, and confirm with your own passkey (and, once the Council of Two is on for it, a second administrator approves too).
+- For staff the passkey rule is for, it **waits a day**: they and the other administrators are told, the person can press "This was not me", and any administrator who could do it can cancel under Approvals. After the day the sweep carries it out. **The scheduler must be running** (`php artisan schedule:run` every minute, as for the rest of the system); `security:release-resets` runs every five minutes.
+- For everyone else (a customer, a driver) it happens at once.
+- Afterwards the person signs in with their password and adds a new passkey.
+
 ### When a colleague has lost every device and every recovery code (assisted recovery)
 
 This is the rung between "use a recovery code" and the owner's emergency command. It needs script 130 and at least two other administrators who could reset a sign-in themselves (each with a passkey that is a day old, or no passkey yet and the password fallback on).

@@ -224,4 +224,27 @@ final class SecurityAlerts
             $this->say($m, 'recovery_started_other', 'A recovery was started', "{$who->name} ({$who->email}) started the recovery that was approved. They can add a new passkey for 15 minutes.");
         }
     }
+
+    /** An administrator asked to reset a person's sign-in methods and it waits a day. @param iterable<int, User> $admins */
+    public function resetAsked(User $who, User $by, \DateTimeInterface $release, string $reason, iterable $admins, ?Request $request): void
+    {
+        $said = $reason !== '' ? "\nTheir reason: \"{$reason}\"" : '';
+        $this->tell($who, 'signin_reset_asked', 'An administrator asked to reset your sign-in methods',
+            "{$by->name} asked to take away all your passkeys and recovery codes and sign you out everywhere.{$said}\n\nNothing changes until {$this->at($release)}. If you were not expecting this, press the button now: it stops it. If you were, you can sign in with your password after that and add a new passkey.\n\n".$this->where($request).self::NOT_ME);
+        foreach ($admins as $a) {
+            if ($a->getKey() === $by->getKey()) {
+                continue;
+            }
+            $this->say($a, 'signin_reset_asked_other', 'A reset of sign-in methods is waiting',
+                "{$by->name} asked to reset the sign-in methods of {$who->name} ({$who->email}).{$said}\n\nIt happens at {$this->at($release)}. Any administrator who could do it may cancel it until then under Approvals.", ['action_url' => '/admin/security/approvals', 'action_text' => 'See it']);
+        }
+    }
+
+    /** The reset has been carried out. @param array{passkeys_removed: int, codes_revoked: int, sessions_ended: int} $done */
+    public function resetDone(User $who, ?User $by, array $done, ?Request $request): void
+    {
+        $what = ($done['passkeys_removed'] ? "- {$done['passkeys_removed']} passkey".($done['passkeys_removed'] === 1 ? ' was' : 's were')." taken away\n" : '').($done['codes_revoked'] ? "- your recovery codes no longer work\n" : '')."- every sign-in of yours was ended ({$done['sessions_ended']})\n";
+        $this->tell($who, 'signin_methods_reset', 'Your sign-in methods were reset',
+            ($by ? "{$by->name} reset" : 'Your sign-in methods were reset').": \n{$what}\nSign in with your password and add a new passkey. Your password was not changed.\n\n".$this->where($request).self::NOT_ME);
+    }
 }

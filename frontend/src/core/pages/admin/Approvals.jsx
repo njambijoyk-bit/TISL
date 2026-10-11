@@ -137,20 +137,31 @@ function RecoveryCard({ r, onDone }) {
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <ShieldAlert size={20} aria-hidden="true" />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{r.person?.name ?? 'Someone'} needs help getting back into their account</div>
+          <div style={{ fontWeight: 800, fontSize: '0.95rem' }}>{r.kind === 'reset' ? `The sign-in methods of ${r.person?.name ?? 'someone'} will be reset` : `${r.person?.name ?? 'Someone'} needs help getting back into their account`}</div>
           <div style={{ fontSize: '0.76rem', color: colors.textMuted }}>{r.person?.email} · {r.person?.role}{r.person?.phone ? ` · ${r.person.phone}` : ''}</div>
         </div>
       </div>
       <dl data-testid="recovery-facts" style={{ margin: 0, display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 14px', fontSize: '0.84rem', padding: 12, borderRadius: 10, background: 'color-mix(in srgb, var(--text-primary) 4%, transparent)' }}>
-        <dt style={{ color: colors.textFaint, fontWeight: 700 }}>They say</dt><dd style={{ margin: 0 }}>{r.note ?? 'Nothing written'}</dd>
-        <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Asked</dt><dd style={{ margin: 0 }}>{when(r.asked_at)} from {r.from}</dd>
-        <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Their account has</dt><dd style={{ margin: 0 }}>{r.passkeys} passkey{r.passkeys === 1 ? '' : 's'} they can not use, and {r.codes_left} recovery code{r.codes_left === 1 ? '' : 's'} left</dd>
-        <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Approvals</dt><dd data-testid="recovery-approvals" style={{ margin: 0 }}>{r.approved} of {r.needed}{r.approved_by.length > 0 && ` (${r.approved_by.join(' and ')})`}</dd>
+        {r.kind === 'reset' ? (
+          <>
+            <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Started by</dt><dd style={{ margin: 0 }}>{r.started_by ?? 'an administrator'}, {when(r.asked_at)}</dd>
+            <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Their reason</dt><dd style={{ margin: 0 }}>{r.note ?? 'Nothing written'}</dd>
+            <dt style={{ color: colors.textFaint, fontWeight: 700 }}>What happens</dt><dd style={{ margin: 0 }}>Every passkey and recovery code of theirs is taken away and every sign-in ends. Their password stays. They sign in again and add a new passkey.</dd>
+          </>
+        ) : (
+          <>
+            <dt style={{ color: colors.textFaint, fontWeight: 700 }}>They say</dt><dd style={{ margin: 0 }}>{r.note ?? 'Nothing written'}</dd>
+            <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Asked</dt><dd style={{ margin: 0 }}>{when(r.asked_at)} from {r.from}</dd>
+            <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Their account has</dt><dd style={{ margin: 0 }}>{r.passkeys} passkey{r.passkeys === 1 ? '' : 's'} they can not use, and {r.codes_left} recovery code{r.codes_left === 1 ? '' : 's'} left</dd>
+            <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Approvals</dt><dd data-testid="recovery-approvals" style={{ margin: 0 }}>{r.approved} of {r.needed}{r.approved_by.length > 0 && ` (${r.approved_by.join(' and ')})`}</dd>
+          </>
+        )}
         <dt style={{ color: colors.textFaint, fontWeight: 700 }}>Where it stands</dt>
         <dd data-testid="recovery-state" style={{ margin: 0 }}>
           {r.state === 'pending' && `Waiting for approvals. Runs out ${when(r.expires_at)}.`}
-          {r.state === 'cooling' && `Approved. The waiting day ends ${when(r.release_at)}; until then any administrator may cancel it.`}
-          {r.state === 'ready' && `Approved and ready: they may start it until ${when(r.expires_at)}.`}
+          {r.kind === 'reset' && r.state !== 'pending' && `It happens ${when(r.release_at)}, unless somebody cancels it first. They have been told and can stop it too.`}
+          {r.kind !== 'reset' && r.state === 'cooling' && `Approved. The waiting day ends ${when(r.release_at)}; until then any administrator may cancel it.`}
+          {r.kind !== 'reset' && r.state === 'ready' && `Approved and ready: they may start it until ${when(r.expires_at)}.`}
         </dd>
       </dl>
       {r.can_approve && <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Before you approve, check it is really them another way: phone them on a number you already have, or ask in person. Do not use the number or email they just gave.</p>}
@@ -174,7 +185,7 @@ function RecoveryCard({ r, onDone }) {
         )}
         {r.can_approve && !r.has_passkey && !r.can_use_password && <p style={{ margin: 0, fontSize: '0.82rem' }}>This needs a passkey, and you have not added one yet. Add one under your profile, "My devices".</p>}
         {r.can_approve && <button type="button" style={{ ...btnGhost, color: colors.danger }} disabled={busy} onClick={() => run(() => recoveryRequestsAPI.decline(r.id, reason.trim()), 'Declined')} data-testid="recovery-decline">No, decline it</button>}
-        <button type="button" style={{ ...btnGhost, color: colors.danger }} disabled={busy} onClick={() => run(() => recoveryRequestsAPI.stop(r.id, reason.trim()), 'Cancelled')} data-testid="recovery-cancel">{r.can_approve ? 'Stop this request altogether' : 'Cancel it'}</button>
+        <button type="button" style={{ ...btnGhost, color: colors.danger }} disabled={busy} onClick={() => run(() => recoveryRequestsAPI.stop(r.id, reason.trim()), 'Cancelled')} data-testid="recovery-cancel">{r.can_approve ? 'Stop this request altogether' : r.kind === 'reset' ? 'Cancel the reset' : 'Cancel it'}</button>
       </div>
     </div>
   );

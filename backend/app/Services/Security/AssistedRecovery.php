@@ -233,7 +233,7 @@ final class AssistedRecovery
             return collect();
         }
 
-        return AuthRecoveryRequest::where('user_id', '!=', $me->getKey())->where('expires_at', '>', now())->whereNull('cancelled_at')->whereNull('declined_at')->whereNull('used_at')->orderBy('created_at')->get()
+        return AuthRecoveryRequest::where('user_id', '!=', $me->getKey())->where('expires_at', '>', now())->whereNull('cancelled_at')->whereNull('declined_at')->whereNull('used_at')->whereNull('executed_at')->orderBy('created_at')->get()
             ->filter(fn (AuthRecoveryRequest $r) => $this->mayHelp($me, $r))->values();
     }
 
@@ -245,7 +245,9 @@ final class AssistedRecovery
         $state = $r->state();
         $mine = AuthRecoveryApproval::where('request_id', $r->id)->where('user_id', $me->getKey())->exists();
 
-        return ['id' => $r->id, 'state' => $state, 'person' => $person ? ['name' => $person->name, 'email' => $person->email, 'role' => $person->role, 'phone' => $person->phone] : null,
+        $by = $r->kind === 'reset' ? User::find($r->asked_by_id)?->name : null;
+
+        return ['id' => $r->id, 'kind' => $r->kind, 'started_by' => $by, 'state' => $state, 'person' => $person ? ['name' => $person->name, 'email' => $person->email, 'role' => $person->role, 'phone' => $person->phone] : null,
             'note' => $r->note, 'asked_at' => $r->created_at?->toIso8601String(), 'from' => DeviceInfo::describe($r->user_agent)['label'].($r->ip ? ' ('.$r->ip.')' : ''),
             'passkeys' => $person ? $this->store->usableFor($person)->count() : 0, 'codes_left' => $person ? $this->codes->status($person)['remaining'] : 0,
             'needed' => $r->needed, 'approved' => $names->count(), 'approved_by' => $names->pluck('name')->all(), 'release_at' => $r->release_at?->toIso8601String(), 'expires_at' => $r->expires_at->toIso8601String(),
