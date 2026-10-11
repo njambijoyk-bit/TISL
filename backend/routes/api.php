@@ -634,6 +634,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(['module:menus', 'permission:menus.view'])->prefix('admin/menus')->group(function () {
         $r = \App\Http\Controllers\Admin\RecipeController::class;
         Route::get('/recipes', [$r, 'index']);
+        Route::get('/recipes/{id}/cost', [$r, 'cost'])->whereNumber('id');
         $in = \App\Http\Controllers\Admin\MenusIngredientController::class;
         Route::get('/ingredients', [$in, 'index']);
         Route::middleware('permission:menus.manage')->group(function () use ($r, $in) {

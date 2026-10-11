@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Production;
 use App\Models\Recipe;
 use App\Services\Books\BooksException;
+use App\Services\Menus\RecipeCosting;
+use App\Services\Menus\RecipeLines;
 use App\Services\Stock\ProductionService;
 use App\Services\Stock\RecipeService;
 use Illuminate\Http\JsonResponse;
@@ -35,11 +37,15 @@ class RecipeController extends Controller
     {
         $d = $request->validate([
             'variant_id' => 'required|integer|exists:product_variants,id', 'yield_qty' => 'required|numeric|min:0.0001', 'deduct_on_sale' => 'nullable|boolean', 'note' => 'nullable|string|max:255',
-            'items' => 'required|array|min:1', 'items.*.variant_id' => 'required|integer|exists:product_variants,id', 'items.*.quantity' => 'required|numeric|min:0.0001',
+            'items' => 'required|array|min:1', 'items.*.variant_id' => 'nullable|integer|exists:product_variants,id', 'items.*.family_id' => 'nullable|integer', 'items.*.unit_id' => 'nullable|integer|exists:units_of_measure,id',
+            'items.*.waste_pct' => 'nullable|numeric|min:0|max:90', 'items.*.quantity' => 'required|numeric|min:0.0001',
+            'visibility' => 'nullable|string|max:12', 'prep_minutes' => 'nullable|integer|min:0|max:6000', 'cook_minutes' => 'nullable|integer|min:0|max:6000',
+            'steps' => 'nullable|array|max:60', 'steps.*.body' => 'nullable|string|max:2000', 'steps.*.minutes' => 'nullable|integer|min:0|max:6000', 'steps.*.image' => 'nullable|string|max:255',
         ]);
 
         return $this->guard(function () use ($d) {
-            $r = $this->recipes->save((int) $d['variant_id'], (float) $d['yield_qty'], (bool) ($d['deduct_on_sale'] ?? false), $d['note'] ?? null, $d['items']);
+            $extra = array_intersect_key($d, array_flip(['visibility', 'prep_minutes', 'cook_minutes', 'steps']));
+            $r = $this->recipes->save((int) $d['variant_id'], (float) $d['yield_qty'], (bool) ($d['deduct_on_sale'] ?? false), $d['note'] ?? null, $d['items'], $extra);
 
             return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r)]);
         });
@@ -54,6 +60,14 @@ class RecipeController extends Controller
         });
 
         return response()->json(['message' => 'Recipe removed.']);
+    }
+
+    /** What it costs to make, from what the ingredients really cost at a branch (query: location_id). */
+    public function cost(Request $request, int $id): JsonResponse
+    {
+        $loc = $request->integer('location_id') ?: (int) DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('id')->value('id');
+
+        return response()->json(['location_id' => $loc] + app(RecipeCosting::class)->for(Recipe::with('items')->findOrFail($id), $loc));
     }
 
     /** Body: quantity, location_id, batch_no?, expiry_date?, note?. */
@@ -89,8 +103,13 @@ class RecipeController extends Controller
         return [
             'id' => $r->id, 'variant_id' => (int) $r->variant_id, 'item' => $this->variantName((int) $r->variant_id), 'yield_qty' => (float) $r->yield_qty,
             'deduct_on_sale' => (bool) $r->deduct_on_sale, 'note' => $r->note,
-            'items' => $r->items->map(fn ($i) => ['variant_id' => (int) $i->variant_id, 'name' => $this->variantName((int) $i->variant_id), 'quantity' => (float) $i->quantity])->values(),
-        ];
+            'items' => $r->items->map(fn ($i) => ['variant_id' => $i->variant_id ? (int) $i->variant_id : null, 'family_id' => RecipeLines::extended() && $i->family_id ? (int) $i->family_id : null,
+                'name' => RecipeLines::extended() && $i->family_id ? \App\Models\Menus\IngredientFamily::where('id', $i->family_id)->value('name') : $this->variantName((int) $i->variant_id),
+                'quantity' => (float) $i->quantity, 'unit_id' => RecipeLines::extended() && $i->unit_id ? (int) $i->unit_id : null, 'waste_pct' => RecipeLines::extended() ? (float) $i->waste_pct : 0.0])->values(),
+        ] + (RecipeLines::extended() ? [
+            'visibility' => $r->visibility ?? 'internal', 'prep_minutes' => $r->prep_minutes, 'cook_minutes' => $r->cook_minutes,
+            'steps' => $r->steps->map(fn ($s) => ['body' => $s->body, 'minutes' => $s->minutes, 'image' => $s->image])->values(),
+        ] : []);
     }
 
     private function guard(\Closure $fn): JsonResponse

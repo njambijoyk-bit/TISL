@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
  */
 class ProductionService
 {
-    public function __construct(private VariantStockService $stock, private BatchService $batches) {}
+    public function __construct(private VariantStockService $stock, private BatchService $batches, private \App\Services\Menus\RecipeLines $lines) {}
 
     /** @param array $o batch_no, expiry_date, note */
     public function run(Recipe $r, int $locationId, float $qty, array $o = [], ?User $user = null): Production
@@ -45,17 +45,17 @@ class ProductionService
             $p->update(['number' => 'PR-' . str_pad((string) $p->id, 6, '0', STR_PAD_LEFT)]);
 
             $cost = 0.0;
-            foreach ($r->items as $i) {
-                $need = round((float) $i->quantity * $factor, 4);
-                $have = $this->batches->sellable((int) $i->variant_id, $locationId);
+            foreach ($this->lines->requirements($r, $factor, $locationId) as $i) {   // families already decided: the preferred item first, the next when it runs out
+                $need = round((float) $i['quantity'], 4);
+                $have = $this->batches->sellable((int) $i['variant_id'], $locationId);
                 if ($have + 0.00005 < $need) {
-                    $name = DB::table('product_variants as pv')->join('products as pr', 'pr.id', '=', 'pv.product_id')->where('pv.id', $i->variant_id)->value('pr.name');
+                    $name = DB::table('product_variants as pv')->join('products as pr', 'pr.id', '=', 'pv.product_id')->where('pv.id', $i['variant_id'])->value('pr.name');
                     throw new BooksException("Not enough {$name} to make {$qty}: need {$need}, have " . round($have, 4) . '.');
                 }
-                foreach ($this->stock->applyDelta((int) $i->variant_id, $locationId, -$need) as $a) {
+                foreach ($this->stock->applyDelta((int) $i['variant_id'], $locationId, -$need) as $a) {
                     $q = abs($a['qty']);
-                    ProductionLine::create(['production_id' => $p->id, 'variant_id' => $i->variant_id, 'batch_id' => $a['batch_id'], 'quantity' => $q, 'unit_cost' => $a['unit_cost']]);
-                    $this->move($p, (int) $i->variant_id, $locationId, -$q, 'production_use', $a['batch_id'], $a['unit_cost']);
+                    ProductionLine::create(['production_id' => $p->id, 'variant_id' => $i['variant_id'], 'batch_id' => $a['batch_id'], 'quantity' => $q, 'unit_cost' => $a['unit_cost']]);
+                    $this->move($p, (int) $i['variant_id'], $locationId, -$q, 'production_use', $a['batch_id'], $a['unit_cost']);
                     $cost += $q * $a['unit_cost'];
                 }
             }
