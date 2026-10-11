@@ -152,4 +152,21 @@ class NotifyChannelResolverTest extends TestCase
     {
         $this->assertSame(['email', 'whatsapp'], $this->r->resolve($this->company(), [], true, $this->person(['has_account' => false]))['channels']);
     }
+
+    public function test_a_colleague_is_sent_a_whatsapp_only_when_the_message_asks_for_it_and_everything_allows_it(): void
+    {
+        $staff = ['kind' => 'staff', 'has_account' => true, 'email' => 'b@example.com', 'whatsapp' => '0722000111', 'whatsapp_source' => 'profile', 'staff_whatsapp' => true];
+        $on = $this->r->resolve($this->company(), [], true, $staff);
+        $this->assertSame(['database', 'email', 'whatsapp'], $on['channels']);
+        $this->assertFalse($on['staff_list']);
+
+        $this->assertSame(['database', 'email'], $this->r->resolve($this->company(), [], true, ['staff_whatsapp' => false] + $staff)['channels'], 'not asked for: bell and email as always');
+        $this->assertSame(['database', 'email'], $this->r->resolve($this->company(['whatsapp_enabled' => false]), [], true, $staff)['channels']);
+        $this->assertSame(['database', 'email'], $this->r->resolve($this->company(), ['channels' => ['email']], true, $staff)['channels']);
+        $none = $this->r->resolve($this->company(), [], true, ['whatsapp' => null, 'whatsapp_source' => null] + $staff);
+        $this->assertSame(['database', 'email'], $none['channels']);
+        $this->assertSame('no_number', $none['skipped']['whatsapp']);
+        $this->assertSame(['database'], $this->r->resolve($this->company(), ['enabled' => false], true, $staff)['channels'], 'a type switched off is the bell only');
+        $this->assertSame(['database', 'whatsapp'], $this->r->resolve($this->company(['email_enabled' => false]), [], true, $staff)['channels']);
+    }
 }

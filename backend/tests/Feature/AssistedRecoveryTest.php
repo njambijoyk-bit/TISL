@@ -257,7 +257,9 @@ class AssistedRecoveryTest extends TestCase
         $this->assertEqualsCanonicalizing([$admins[0][0]->id, $admins[1][0]->id, $boss->id], array_column($told, 'to'));
         $this->assertStringContainsString('Lena Locked', $told[0]['message']);
         $this->assertStringContainsString('check it is really them another way', $told[0]['message']);
-        $this->assertSame('/admin/security/approvals', $told[0]['options']['action_url']);
+        $this->assertSame('/admin/security/approvals?open='.AuthRecoveryRequest::where('user_id', $p->id)->first()->id, $told[0]['options']['action_url'], 'the link opens that very request');
+        $this->assertTrue($told[0]['options']['link_in_whatsapp']);
+        $this->assertStringNotContainsString('Lena', $told[0]['options']['short'], 'the WhatsApp text names nobody');
         $this->assertNotContains($p->id, array_column($told, 'to'));
     }
 
@@ -384,6 +386,7 @@ class AssistedRecoveryTest extends TestCase
         $others = $this->ofType('recovery_approved_other');
         $this->assertEqualsCanonicalizing([$admins[0][0]->id, $admins[1][0]->id], array_column($others, 'to'));
         $this->assertStringContainsString('may still cancel it', $others[0]['message']);
+        $this->assertSame('/admin/security/approvals?open='.$id, $others[0]['options']['action_url'], 'opens that very request');
     }
 
     public function test_an_administrator_can_say_no_and_it_ends(): void

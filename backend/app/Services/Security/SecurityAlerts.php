@@ -134,13 +134,19 @@ final class SecurityAlerts
         }
     }
 
+    /** The Approvals page, opened on one request when we know which. */
+    private function approvals(?string $id): string
+    {
+        return '/admin/security/approvals'.($id ? '?open='.rawurlencode($id) : '');
+    }
+
     /** The Council of Two: somebody has asked for something serious and needs a second person. @param iterable<int, User> $approvers */
-    public function councilAsked(iterable $approvers, User $asker, string $what): void
+    public function councilAsked(iterable $approvers, User $asker, string $what, ?string $id = null): void
     {
         foreach ($approvers as $approver) {
             $this->say($approver, 'council_request', 'A second person is needed to approve something',
                 "{$asker->name} has asked to: {$what}.\n\nIt only goes through if a second person looks at the details and approves. Open Approvals to see what exactly is being asked and to approve or decline. It runs out in ".Council::waitMinutes().' minutes.',
-                ['action_url' => '/admin/security/approvals', 'action_text' => 'Look at it']);
+                ['action_url' => $this->approvals($id), 'action_text' => 'Look at it', 'short' => 'A second person is needed to approve something. Open Approvals to see what it is and to answer:', 'link_in_whatsapp' => true]);
         }
     }
 
@@ -172,7 +178,7 @@ final class SecurityAlerts
     }
 
     /** Someone asked for help getting back in: tell the person (with the way to stop it), the administrators who can help, and everyone else who manages security. @param iterable<int, User> $approvers @param iterable<int, User> $managers */
-    public function recoveryAsked(User $who, iterable $approvers, iterable $managers, ?Request $request, ?string $note): void
+    public function recoveryAsked(User $who, iterable $approvers, iterable $managers, ?Request $request, ?string $note, ?string $id = null): void
     {
         $company = CompanyProfile::name();
         $said = $note ? "\nThey said: \"{$note}\"" : '';
@@ -182,7 +188,7 @@ final class SecurityAlerts
         foreach ($approvers as $a) {
             $this->say($a, 'recovery_request', 'Someone needs help getting back into their account',
                 "{$who->name} ({$who->email}) says they can no longer use their passkey device or their recovery codes and asked for help getting back in.{$said}\n\nBefore you approve, check it is really them another way: phone them on a number you already have, or ask in person. Open Approvals to look at it and to approve or decline.",
-                ['action_url' => '/admin/security/approvals', 'action_text' => 'Look at it']);
+                ['action_url' => $this->approvals($id), 'action_text' => 'Look at it', 'short' => 'Someone needs help getting back into their account. Check it is really them another way before you approve. Open Approvals:', 'link_in_whatsapp' => true]);
         }
         foreach ($managers as $m) {
             $this->say($m, 'recovery_asked_other', 'Someone asked for help getting back into their account', "{$who->name} ({$who->email}) asked two administrators to help them back in.{$said}\n\nNothing is needed from you unless something looks wrong.");
@@ -190,7 +196,7 @@ final class SecurityAlerts
     }
 
     /** The last approval is in: the waiting day starts. @param iterable<int, User> $approvedBy @param iterable<int, User> $approvers @param iterable<int, User> $managers */
-    public function recoveryReleased(User $who, \DateTimeInterface $release, iterable $approvedBy, iterable $approvers, iterable $managers, ?Request $request): void
+    public function recoveryReleased(User $who, \DateTimeInterface $release, iterable $approvedBy, iterable $approvers, iterable $managers, ?Request $request, ?string $id = null): void
     {
         $by = $this->names($approvedBy);
         $this->tell($who, 'recovery_approved', 'Your recovery was approved',
@@ -203,7 +209,7 @@ final class SecurityAlerts
             $told[$u->getKey()] = true;
             $this->say($u, 'recovery_approved_other', 'A recovery was approved',
                 "{$by} approved getting {$who->name} ({$who->email}) back into their account. They can start it from {$this->at($release)}. Any administrator who could approve it may still cancel it under Approvals until then.",
-                ['action_url' => '/admin/security/approvals', 'action_text' => 'See it']);
+                ['action_url' => $this->approvals($id), 'action_text' => 'See it']);
         }
     }
 
@@ -226,7 +232,7 @@ final class SecurityAlerts
     }
 
     /** An administrator asked to reset a person's sign-in methods and it waits a day. @param iterable<int, User> $admins */
-    public function resetAsked(User $who, User $by, \DateTimeInterface $release, string $reason, iterable $admins, ?Request $request): void
+    public function resetAsked(User $who, User $by, \DateTimeInterface $release, string $reason, iterable $admins, ?Request $request, ?string $id = null): void
     {
         $said = $reason !== '' ? "\nTheir reason: \"{$reason}\"" : '';
         $this->tell($who, 'signin_reset_asked', 'An administrator asked to reset your sign-in methods',
@@ -236,7 +242,7 @@ final class SecurityAlerts
                 continue;
             }
             $this->say($a, 'signin_reset_asked_other', 'A reset of sign-in methods is waiting',
-                "{$by->name} asked to reset the sign-in methods of {$who->name} ({$who->email}).{$said}\n\nIt happens at {$this->at($release)}. Any administrator who could do it may cancel it until then under Approvals.", ['action_url' => '/admin/security/approvals', 'action_text' => 'See it']);
+                "{$by->name} asked to reset the sign-in methods of {$who->name} ({$who->email}).{$said}\n\nIt happens at {$this->at($release)}. Any administrator who could do it may cancel it until then under Approvals.", ['action_url' => $this->approvals($id), 'action_text' => 'See it']);
         }
     }
 

@@ -1,5 +1,7 @@
 # Security Phase 4: convenience features — what, how hard, and how it fits TISL
 
+**Status: 4.1 (email link for customers) and 4.4 (faster approvals using the existing notification system, not Web Push) are built and pushed; the rest is not planned.** See HOSTING_SECURITY.md (last section) for what to run and set.
+
 Phases 0–3 are built. Phase 4 is **convenience**: ways to sign in or approve things with less typing. None of it makes TISL safer than it is now (passkeys, step-up, the Council of Two and recovery already do that). Each item adds a new door, so each needs care. It is optional and can be done in any order.
 
 **Where TISL stands today** (read from the code): passkeys are the strong proof; the PWA plugin (`vite-plugin-pwa`) is installed; there is **no Web Push** (no VAPID keys, no push subscriptions); there are **no QR or authenticator-app libraries**; email and the in-app bell already work for notices; the cookie session, sessions list, rate limits and alert emails from earlier phases are all reusable.

@@ -22,6 +22,7 @@ class Notifier
     public function __construct(private NotifySettings $settings, private ChannelResolver $resolver, private Recipients $recipients, private WhatsAppProviders $providers) {}
 
     /**
+     * `short` is the text for WhatsApp when the full message is too much to put there (no names, no details); `link_in_whatsapp` adds the action link to it.
      * `only` limits the message to some channels (a sign-in link goes by email, never to a WhatsApp list a person sends by hand); `no_bell` keeps it out of the bell (a link that signs someone in should not sit in a list).
      *
      * @param  array{action_url?: ?string, action_text?: ?string, data?: ?array, priority?: string, subject?: ?string, email?: ?string, whatsapp?: ?string, whatsapp_source?: ?string, only?: string[], no_bell?: bool}  $o
@@ -30,7 +31,13 @@ class Notifier
     public function send(Model $to, string $type, string $title, string $message, array $o = []): array
     {
         try {
-            return $this->run($this->recipients->for($to, array_intersect_key($o, array_flip(['email', 'whatsapp', 'whatsapp_source']))), $to, $type, $title, $message, $o);
+            $r = $this->recipients->for($to, array_intersect_key($o, array_flip(['email', 'whatsapp', 'whatsapp_source'])));
+            if (in_array($type, NotificationTypes::STAFF_WHATSAPP, true) && $r['person']['kind'] !== 'customer') {   // a colleague who is needed now: their staff profile's phone
+                $phone = trim((string) ($to->phone ?? ''));
+                $r['person'] = ['staff_whatsapp' => true, 'whatsapp' => $phone !== '' ? $phone : null, 'whatsapp_source' => $phone !== '' ? 'profile' : null] + $r['person'];
+            }
+
+            return $this->run($r, $to, $type, $title, $message, $o);
         } catch (\Throwable $e) {
             report($e);
 
@@ -76,7 +83,11 @@ class Notifier
             $this->queueEmail($bell, $r['bell'] ?? $to, $type, (string) $r['person']['email'], $subject, $message, $o);
         }
         if (in_array('whatsapp', $plan['channels'], true)) {
-            $this->prepareWhatsApp($bell, $r['bell'] ?? $to, $type, (string) $r['person']['whatsapp'], $message, $title, $o['action_url'] ?? null, $r['person']);
+            $text = (string) ($o['short'] ?? $message);
+            if (! empty($o['link_in_whatsapp']) && ! empty($o['action_url'])) {
+                $text .= ' ' . $this->absolute((string) $o['action_url']);
+            }
+            $this->prepareWhatsApp($bell, $r['bell'] ?? $to, $type, (string) $r['person']['whatsapp'], $text, $title, $o['action_url'] ?? null, $r['person']);
         }
         foreach ($plan['skipped'] as $channel => $why) {
             if (in_array($why, ['no_email', 'no_number', 'number_source'], true)) {   // worth knowing; a channel the company has switched off is not
@@ -163,12 +174,17 @@ class Notifier
         $d->forceFill(['via' => 'link', 'wa_url' => 'https://wa.me/' . $digits . '?text=' . rawurlencode($text)])->save();
     }
 
+    private function absolute(string $link): string
+    {
+        return preg_match('#^https?://#i', $link) ? $link : rtrim((string) config('app.frontend_url'), '/') . '/' . ltrim($link, '/');
+    }
+
     /** The values for {{1}}, {{2}} ... in the order the type's template expects. WhatsApp does not allow line breaks in a value. @return string[] */
     private function variables(array $keys, array $person, ?Model $to, string $title, string $body, ?string $link): array
     {
         $name = trim((string) ($person['name'] ?? '')) ?: 'there';
         $map = ['name' => $name, 'title' => $title, 'message' => $body, 'company' => CompanyProfile::name(),
-            'link' => $link ? (preg_match('#^https?://#i', $link) ? $link : rtrim((string) config('app.frontend_url'), '/') . '/' . ltrim($link, '/')) : ''];
+            'link' => $link ? $this->absolute($link) : ''];
 
         return array_map(fn ($k) => trim(preg_replace('/\s{2,}|[\r\n\t]+/', ' ', (string) ($map[$k] ?? ''))) ?: '-', $keys);
     }

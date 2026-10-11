@@ -104,7 +104,7 @@ final class Council
         $p->forceFill(['second_required' => true, 'expires_at' => now()->addMinutes(self::waitMinutes())])->save();
         $approvers = $this->approvers($p->rule, $asker);
         SecurityLog::record('council_asked', $asker, $request, ['rule' => $p->rule, 'pending' => $p->id, 'approvers' => $approvers->count()], SecurityLog::NOTICE);
-        $this->alerts->councilAsked($approvers, $asker, Catalogue::rule($p->rule)['label']);
+        $this->alerts->councilAsked($approvers, $asker, Catalogue::rule($p->rule)['label'], (string) $p->id);
     }
 
     // ------------------------------------------------------------ the second person

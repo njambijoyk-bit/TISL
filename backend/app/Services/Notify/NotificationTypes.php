@@ -34,6 +34,22 @@ class NotificationTypes
         'password_reset' => ['Password reset', true, 'customer'],
         'new_sign_in' => ['A new browser signed in to your account', true, 'customer'],
         'email_sign_in_link' => ['Your sign-in link', true, 'customer'],
+        // security messages (Services/Security/SecurityAlerts). Essential: a security message is never silent.
+        'council_request' => ['A second person is needed to approve something', true, 'staff'],
+        'council_answer' => ['A second person answered your request', true, 'staff'],
+        'recovery_request' => ['Someone needs help getting back into their account', true, 'staff'],
+        'recovery_asked' => ['Help getting back into your account was asked for', true, 'customer'],
+        'recovery_asked_other' => ['Someone asked for help getting back into their account', true, 'staff'],
+        'recovery_approved' => ['Your recovery was approved', true, 'customer'],
+        'recovery_approved_other' => ['A recovery was approved', true, 'staff'],
+        'recovery_ended' => ['A request for help getting into an account ended', true, 'customer'],
+        'recovery_started' => ['Recovery started on your account', true, 'customer'],
+        'recovery_started_other' => ['A recovery was started', true, 'staff'],
+        'signin_reset_asked' => ['An administrator asked to reset your sign-in methods', true, 'customer'],
+        'signin_reset_asked_other' => ['A reset of sign-in methods is waiting', true, 'staff'],
+        'signin_methods_reset' => ['Your sign-in methods were reset', true, 'customer'],
+        'break_glass_used' => ['The emergency recovery was used on your account', true, 'customer'],
+        'break_glass_used_other' => ['The emergency recovery was used on an account', true, 'staff'],
         'passkey_added' => ['A passkey was added to your account', true, 'customer'],
         'passkey_removed' => ['A passkey was removed from your account', true, 'customer'],
         'passkey_clone' => ['A passkey on your account was switched off', true, 'customer'],
@@ -52,7 +68,13 @@ class NotificationTypes
      * Messages nobody has to send by hand: they go out by WhatsApp only through the automatic API. A reminder is sent to many people at once, so with tap-to-send each
      * one would become a job for staff to do; they are email (and the bell) unless the API is on.
      */
-    public const WHATSAPP_ONLY_AUTOMATIC = ['cart_reminder', 'price_drop'];
+    public const WHATSAPP_ONLY_AUTOMATIC = ['cart_reminder', 'price_drop', 'council_request', 'recovery_request'];
+
+    /**
+     * Messages that need a colleague to act now (a second person to approve). Besides the bell and email they also go to the colleague's WhatsApp, from the phone on their staff profile, when the company has the
+     * WhatsApp API on and an approved template is set for the type (they are in the list above: never a hand-send chore). Each carries a short text with no names or details, and a link to the Approvals page.
+     */
+    public const STAFF_WHATSAPP = ['council_request', 'recovery_request'];
 
     /** @return string[] */
     public static function keys(): array

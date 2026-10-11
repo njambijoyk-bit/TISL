@@ -56,7 +56,7 @@ final class SignInReset
             'user_agent' => $http?->userAgent() ? mb_substr($http->userAgent(), 0, 255) : null, 'needed' => 0, 'release_at' => $release, 'expires_at' => $release->copy()->addDays(7)]);
         SecurityLog::record('signin_reset_asked', $target, $http, ['request' => $r->id, 'by' => $by->getKey(), 'reason' => $reason, 'release_at' => $release->toIso8601String()], SecurityLog::WARNING);
         $others = $this->staff->holding('users.manage')->reject(fn (User $u) => in_array($u->getKey(), [$target->getKey()], true))->values();
-        $this->alerts->resetAsked($target, $by, $release, $reason, $others, $http);
+        $this->alerts->resetAsked($target, $by, $release, $reason, $others, $http, $r->id);
 
         return ['done' => false, 'request' => $r, 'release_at' => $release, 'summary' => null];
     }

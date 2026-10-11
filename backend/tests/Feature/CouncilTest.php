@@ -299,7 +299,10 @@ class CouncilTest extends TestCase
         $this->assertEqualsCanonicalizing([$b->id, $c->id], array_column($told, 'to'));          // everyone who could answer, not the one who asked, not someone who could not
         $this->assertStringContainsString('Alice Asker has asked to', $told[0]['message']);
         $this->assertStringContainsString('Change who may do what', $told[0]['message']);
-        $this->assertSame('/admin/security/approvals', $told[0]['options']['action_url']);
+        $this->assertSame('/admin/security/approvals?open='.$id, $told[0]['options']['action_url'], 'the link opens that very request');
+        $this->assertTrue($told[0]['options']['link_in_whatsapp']);
+        $this->assertStringNotContainsString('Alice', $told[0]['options']['short']);
+        $this->assertStringNotContainsString('Change who may do what', $told[0]['options']['short'], 'the WhatsApp text holds no details');
         $this->assertStringContainsString('30 minutes', $told[0]['message']);
         $this->assertNotContains($none->id, array_column($told, 'to'));
         $this->assertSame(2, SecurityEvent::where('event', 'council_asked')->first()->detail['approvers']);

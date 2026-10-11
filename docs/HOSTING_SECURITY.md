@@ -130,6 +130,7 @@ Run these in Workbench, in order, each on its own, then `php artisan access:seed
 | `128_step_up.sql` | "one more step" questions for sensitive actions (payment keys, roles, payroll, restore, exports, voucher cancel, staff accounts, bank details) |
 | `129_council_of_two.sql` | a second person approving the most serious actions (run it after 128) |
 | `130_assisted_recovery.sql` | help from two administrators for staff who have lost every device and every recovery code (run it after 126) |
+| `131_email_sign_in_links.sql` | the one-time sign-in link a customer can ask for by email (optional; without it the "Email me a sign-in link" button quietly does nothing) |
 
 Server settings (the project has no `.env` file of its own, so these go wherever the other settings live):
 
@@ -143,6 +144,7 @@ Server settings (the project has no `.env` file of its own, so these go wherever
 | `SECURITY_RISK_NOTICE_AT=1`, `SECURITY_RISK_STRONGER_AT=2` | How many signals tell the person (1) and hold the sign-in until a passkey confirms it (2). New browser, new network, an odd hour = 1 each; a new country, or several wrong passwords just before = 2 each. |
 | `SECURITY_STEPUP_PASSWORD_FALLBACK=true` | Someone with no passkey yet may answer a question that asks for one with their password. Set it to `false` once everyone has a passkey. |
 | `SECURITY_RECOVERY_APPROVALS=2`, `SECURITY_RECOVERY_COOLING_HOURS=24`, `SECURITY_RECOVERY_REQUEST_HOURS=72`, `SECURITY_RECOVERY_USE_HOURS=48` | Assisted recovery: how many administrators must approve, the waiting day, how long a request waits for approvals, and how long the person has to start it afterwards. |
+| `SECURITY_EMAIL_LINK=true`, `SECURITY_EMAIL_LINK_MINUTES=15`, `SECURITY_EMAIL_LINK_RESEND_SECONDS=60` | The emailed sign-in link for customers: on or off, how long a link lives, and the least time between two emails to the same person. Customers only, never staff. Needs working email (Settings → Notifications → Email). |
 | `SECURITY_COUNCIL_MINUTES=30` | How long a request waits for the second person before it runs out. |
 | `SECURITY_STEPUP_NEW_PASSKEY_HOURS=24` | A passkey added more recently than this can not approve a critical action (someone who just got into an account adds their own device first). |
 | `SECURITY_ALERTS_EMAIL=false` | Stops the emails about passkeys and recovery codes being added, removed or used. |
@@ -205,3 +207,18 @@ For the day the owner has lost every passkey **and** every recovery code, and no
 3. The person signs in with their password (or the temporary one, which they must change straight away), uses a code to add a new passkey, and makes fresh recovery codes under "My devices".
 4. The use is written to the sign-in log as an alert ("The emergency recovery command was run on the server for this account") and emailed to the person and to everyone who can change the security rules. If nobody expected it, treat it as serious: someone has access to the server.
 5. If even this fails because the rules are locking everyone out: set `SECURITY_POLICY_OFF=true` in the server settings, reload, sign in, fix, take the setting out again.
+
+## Faster approvals (Phase 4.4) and the emailed sign-in link (4.1)
+
+Both use the notification system that is already there (Settings → Notifications), so there is nothing new to install.
+
+**Approvals reach people faster.** When a second person is needed (the Council of Two) or a colleague asks for help getting back in, the people who can answer get the bell and an email, each with a button that opens **that very request** on the Approvals page (it is brought into view; if it has been answered meanwhile the page says so). The security messages now appear in Settings → Notifications → Types, all marked essential.
+
+To also reach them on **WhatsApp**:
+1. Switch the WhatsApp API on (Settings → Notifications → WhatsApp) and have Meta approve a template for it. A message with two values (`{{1}}` name, `{{2}}` message) is enough.
+2. In Settings → Notifications → Types, set that template on **A second person is needed to approve something** and **Someone needs help getting back into their account** (leave the variables at name and message).
+3. Make sure each administrator has a **phone number on their staff profile** (it is the number used). Anyone without one still gets the bell and the email.
+
+The WhatsApp text is short on purpose: it says that something needs them and gives the link, with **no names and no details** (those are only in the bell and email, and on the page after signing in). Without the API and a template these two messages are **never** added to the "WhatsApp to send" list for someone to send by hand: it would only slow things down. The approval itself is still a passkey on the Approvals page, so it is as safe as before.
+
+**Emailed sign-in link for customers.** On the sign-in page a customer can press "Email me a sign-in link instead". The email holds a button; the link works once, only in the browser that asked for it, for 15 minutes, and only after the button on the page is pressed (so a mail program that opens links to check them can not use it up). Staff never get one (the answer on the page is the same for them and for an email we do not know). It goes by email only, never WhatsApp, and is kept out of the bell. Run script 131; a daily job clears old links.

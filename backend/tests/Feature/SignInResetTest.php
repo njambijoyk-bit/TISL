@@ -225,6 +225,7 @@ class SignInResetTest extends TestCase
         $this->assertStringContainsString('This was not me', $own[0]['options']['action_text']);
         $others = $this->ofType('signin_reset_asked_other');
         $this->assertContains($admin->id, array_column($others, 'to'));
+        $this->assertSame('/admin/security/approvals?open='.AuthRecoveryRequest::where('kind', 'reset')->first()->id, $others[0]['options']['action_url'], 'opens that very request');
         $this->assertNotContains($owner->id, array_column($others, 'to'));                         // the one who asked knows
         $this->assertNotContains($fin->id, array_column($others, 'to'));
     }

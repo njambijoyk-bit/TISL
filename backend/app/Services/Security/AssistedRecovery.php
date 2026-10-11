@@ -135,7 +135,7 @@ final class AssistedRecovery
         $r = AuthRecoveryRequest::create(['id' => Str::random(40), 'user_id' => $person->getKey(), 'kind' => 'self', 'asked_by_id' => $person->getKey(), 'note' => $note !== '' ? mb_substr($note, 0, 300) : null,
             'ip' => $http?->ip(), 'user_agent' => $http?->userAgent() ? mb_substr($http->userAgent(), 0, 255) : null, 'needed' => self::needed(), 'expires_at' => now()->addHours((int) config('security.recovery.request_hours', 72))]);
         SecurityLog::record('recovery_requested', $person, $http, ['request' => $r->id, 'approvers' => $approvers->count()], SecurityLog::WARNING);
-        $this->alerts->recoveryAsked($person, $approvers, $this->managers($person, $approvers), $http, $r->note);
+        $this->alerts->recoveryAsked($person, $approvers, $this->managers($person, $approvers), $http, $r->note, $r->id);
 
         return $r;
     }
@@ -340,7 +340,7 @@ final class AssistedRecovery
         SecurityLog::record('recovery_approved', $me, $http, ['request' => $r->id, 'person' => $r->user_id, 'with' => $with, 'reason' => mb_substr($note, 0, 300), 'approvals' => $this->approvedBy($done)->count(), 'needed' => $done->needed], SecurityLog::NOTICE);
         $person = User::find($r->user_id);
         if ($person && $done->release_at !== null) {
-            $this->alerts->recoveryReleased($person, $done->release_at, $this->approvedBy($done), $this->approvers($person), $this->managers($person, $this->approvers($person)), $http);
+            $this->alerts->recoveryReleased($person, $done->release_at, $this->approvedBy($done), $this->approvers($person), $this->managers($person, $this->approvers($person)), $http, $done->id);
         }
 
         return $done;

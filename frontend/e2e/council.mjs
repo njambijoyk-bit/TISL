@@ -57,6 +57,16 @@ const asked = async (pg, mode, reason) => {
   const facts = await other.locator('[data-testid="council-facts"]').innerText();
   ok('the second person sees who asked, what, and the values', /Wanjiku Owner/.test(facts) && /Change the security rules/.test(facts) && /The passkey rule\s+Test/.test(facts), facts.replace(/\n+/g, ' | ').slice(0, 200));
   ok('and the first person\'s reason', /Their reason:\s*Trying the rule out/.test(await other.locator('[data-testid="approvals"]').innerText()));
+  // the alert's link opens that very request (the second person's email, bell and WhatsApp all point at it), and says so when it is not open any more
+  const pendingId = rows("SELECT id FROM auth_pending_actions WHERE second_required = 1 AND used_at IS NULL ORDER BY created_at DESC LIMIT 1")[0].id;
+  const linked = await B.ctx.newPage();
+  await linked.goto(`${SITE}${approvals}&open=${pendingId}`, { waitUntil: 'networkidle' });
+  await linked.locator(`[data-request="${pendingId}"][data-opened="true"]`).waitFor({ timeout: 15000 });
+  ok('the link from the alert brings that request into view and marks it', (await linked.locator('[data-opened="true"]').count()) === 1 && (await linked.locator('[data-testid="approvals-gone"]').count()) === 0);
+  await linked.goto(`${SITE}${approvals}&open=does-not-exist`, { waitUntil: 'networkidle' });
+  await linked.locator('[data-testid="approvals-gone"]').waitFor({ timeout: 15000 });
+  ok('a link to a request that is no longer open says so', /no longer open/.test(await linked.locator('[data-testid="approvals-gone"]').innerText()) && (await linked.locator('[data-opened="true"]').count()) === 0);
+  await linked.close();
   // the one who asked, in another tab of the same sign-in, is not offered their own request
   const tab = await A.ctx.newPage();
   await tab.goto(SITE + approvals, { waitUntil: 'networkidle' });

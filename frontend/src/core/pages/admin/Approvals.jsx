@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Fingerprint, ShieldAlert, Users } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -133,7 +134,7 @@ function RecoveryCard({ r, onDone }) {
   }, 'Approved');
 
   return (
-    <div data-recovery={r.id} style={{ ...card, padding: 18, display: 'grid', gap: 12, border: `2px solid ${colors.primary}` }}>
+    <div data-recovery={r.id} data-request={r.id} style={{ ...card, padding: 18, display: 'grid', gap: 12, border: `2px solid ${colors.primary}` }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
         <ShieldAlert size={20} aria-hidden="true" />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -195,6 +196,10 @@ function RecoveryCard({ r, onDone }) {
 export default function Approvals() {
   const [data, setData] = useState(null);
   const [help, setHelp] = useState(null);
+  // An alert (email, bell, WhatsApp) links to one request: bring it into view once, and say so when it is no longer open.
+  const [params] = useSearchParams();
+  const open = params.get('open');
+  const shown = useRef(false);
   const load = useCallback(() => Promise.all([
     councilAPI.list().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the requests'))),
     recoveryRequestsAPI.approvals().then(setHelp).catch(() => setHelp({ ready: false, data: [] })),
@@ -206,6 +211,18 @@ export default function Approvals() {
     return () => clearInterval(t);
   }, [load]);
 
+  useEffect(() => {
+    if (!open || shown.current) return;
+    const el = document.querySelector(`[data-request="${CSS.escape(open)}"]`);
+    if (!el) return;
+    shown.current = true;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.style.outline = `3px solid ${colors.primary}`;
+    el.style.outlineOffset = '3px';
+    el.setAttribute('data-opened', 'true');
+  }, [open, data, help]);
+  const gone = open && data !== null && help !== null && ![...data.data, ...help.data].some((r) => String(r.id) === open);   // answered, stopped or ran out since the alert was sent
+
   const nothing = data !== null && help !== null && data.data.length === 0 && help.data.length === 0;   // (once both lists have been heard from)
 
   return (
@@ -213,6 +230,7 @@ export default function Approvals() {
       <div style={{ padding: '32px 24px', maxWidth: 760, margin: '0 auto' }} data-testid="approvals">
         <HubHeader title="Approvals" description="For the most serious actions, one person is not enough: a second person who can do it too has to look at the same details and approve. Requests that are waiting for you are here, and so is help for a colleague who has lost their way back into their account." />
         {data && !data.ready && !help?.ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.84rem' }}>Asking a second person is not set up yet: run database scripts 129 and 130 in Workbench.</p>}
+        {gone && <p role="status" data-testid="approvals-gone" style={{ ...card, padding: 14, fontSize: '0.84rem', marginBottom: 14 }}>The request in that alert is no longer open: it was answered, stopped or ran out.</p>}
         {nothing && (
           <p data-testid="approvals-empty" style={{ ...card, padding: 18, fontSize: '0.88rem', color: colors.textMuted, display: 'flex', gap: 8, alignItems: 'center' }}><Users size={16} aria-hidden="true" /> Nothing is waiting for you.</p>
         )}

@@ -7,7 +7,7 @@ namespace App\Services\Notify;
  *
  * $company  the general settings: default_mode, email_enabled, whatsapp_enabled, whatsapp_number_sources, essential_only_default
  * $rule     this type's company rule: enabled (bool), channels (null = any)
- * $person   kind customer|staff|other, has_account, email, whatsapp (number), whatsapp_source profile|checkout|null, mode (null = company default), essential_only (null = company default)
+ * $person   kind customer|staff|other, staff_whatsapp (true: this message may also go to a colleague's WhatsApp), has_account, email, whatsapp (number), whatsapp_source profile|checkout|null, mode (null = company default), essential_only (null = company default)
  *
  * @return array{channels: string[], skipped: array<string,string>, staff_list: bool}
  */
@@ -31,6 +31,10 @@ class ChannelResolver
             // staff and other accounts: email when allowed and possible; no personal preferences
             if (in_array('email', $allowed, true)) {
                 $email === true ? $channels[] = 'email' : $skipped['email'] = $email;
+            }
+            // a message that needs a colleague now (a second person to approve) may also go to their WhatsApp
+            if (! empty($person['staff_whatsapp']) && in_array('whatsapp', $allowed, true)) {
+                $wa === true ? $channels[] = 'whatsapp' : $skipped['whatsapp'] = $wa;
             }
 
             return ['channels' => $channels, 'skipped' => $skipped, 'staff_list' => false];
