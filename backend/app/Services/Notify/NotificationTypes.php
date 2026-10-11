@@ -41,6 +41,7 @@ class NotificationTypes
         'menu_order_cancelled' => ['Your food order was cancelled', true, 'customer'],
         'menu_order_new' => ['A new food order', true, 'staff'],
         'menu_bill_asked' => ['A table asked for the bill', true, 'staff'],
+        'menu_cert_expiring' => ['A chef\'s certificate is running out', true, 'staff'],
         // security messages (Services/Security/SecurityAlerts). Essential: a security message is never silent.
         'council_request' => ['A second person is needed to approve something', true, 'staff'],
         'council_answer' => ['A second person answered your request', true, 'staff'],

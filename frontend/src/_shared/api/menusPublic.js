@@ -3,6 +3,7 @@ import api from './axios';
 /** The menu as a customer reads it, and ordering from it. No sign-in needed. */
 const menusPublicAPI = {
   get: async () => (await api.get('/menu')).data,
+  chefs: async () => (await api.get('/menu-chefs')).data,
   channels: async () => (await api.get('/menu/channels')).data,
   quote: async (payload) => (await api.post('/menu/quote', payload)).data,
   place: async (payload) => (await api.post('/menu/orders', payload)).data,

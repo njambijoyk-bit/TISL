@@ -44,8 +44,18 @@ class PublicMenu
             'price' => $d->product ? (float) $d->product->price : null, 'price_incl' => $this->inclusive($d),
             'available' => $portions > 0, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'allergens' => $profile['allergens'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'],
-            'options' => $this->options($d),
+            'options' => $this->options($d), 'chef' => $this->chefName($d),
         ];
+    }
+
+    /** "Chef Wanjiru", for a dish by a chef who is shown to guests. */
+    private function chefName(Dish $d): ?string
+    {
+        if (! $d->chef_id || ! ChefService::installed()) {
+            return null;
+        }
+
+        return \App\Models\Menus\Chef::where('id', $d->chef_id)->where('is_public', true)->where('is_active', true)->value('display_name');
     }
 
     private function inclusive(Dish $d): ?float

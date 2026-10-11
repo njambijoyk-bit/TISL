@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ShoppingBasket } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
@@ -25,6 +26,7 @@ export function DishCard({ d, avoid, data, ordering, onAdd }) {
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>{d.name}</h3>
           {price != null && <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{money(price)}{d.price_incl == null && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}> + tax</small>}</span>}
         </div>
+        {d.chef && <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }} data-testid="by-chef">by {d.chef}</p>}
         {d.description && <p style={{ margin: '4px 0 6px', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{d.description}</p>}
         <div>
           {!d.available && <Pill tone="danger">{d.sold_out_today ? 'Sold out today' : 'Not available right now'}</Pill>}
@@ -79,6 +81,7 @@ export default function MenuPage() {
       <Header />
       <main style={{ maxWidth: 980, margin: '0 auto', padding: '40px 24px 64px' }} data-testid="public-menu">
         <h1 style={{ margin: '0 0 6px', fontSize: 'clamp(1.7rem, 4vw, 2.4rem)', fontWeight: 900, color: 'var(--color-primary-500)', letterSpacing: '-0.02em' }}>Menu</h1>
+        <p style={{ margin: '0 0 8px' }}><Link to="/chefs" style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>Meet our chefs</Link></p>
         {error && <p style={{ color: 'var(--text-secondary)' }}>We could not load the menu. Please try again.</p>}
         {data && data.menus.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>The menu is not ready yet. Please check back soon.</p>}
         {data && data.menus.length > 0 && (

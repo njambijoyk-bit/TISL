@@ -59,6 +59,7 @@ function DishModal({ dish, data, onClose, onDone }) {
   const [sort, setSort] = useState(dish?.sort_order ?? 0);
   const [active, setActive] = useState(dish?.is_active ?? true);
   const [station, setStation] = useState(dish?.station_id ?? '');
+  const [chef, setChef] = useState(dish?.chef_id ?? '');
   const [ledger, setLedger] = useState(null);
   const [allergens, setAllergens] = useState(dish?.allergens_declared ? dish.allergens : null);
   const [tags, setTags] = useState(dish?.tags_declared ? dish.tags : null);
@@ -71,7 +72,7 @@ function DishModal({ dish, data, onClose, onDone }) {
     try {
       const res = await menusAPI.saveDish({
         name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), sort_order: Number(sort) || 0, is_active: active,
-        ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), allergens, tags,
+        ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), ...(data.chefs ? { chef_id: chef === '' ? null : Number(chef) } : {}), allergens, tags,
       }, dish?.id);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the dish')); } finally { setBusy(false); }
@@ -92,6 +93,9 @@ function DishModal({ dish, data, onClose, onDone }) {
             <Field label="Takes about (minutes)" htmlFor="dish-prep"><NumberInput id="dish-prep" min="0" max="6000" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
             {data.stations && data.stations.length > 0 && (
               <Field label="Made at" htmlFor="dish-station" hint="The kitchen screen that gets this dish. Empty: the station that takes everything else."><SelectInput id="dish-station" value={station} onChange={(e) => setStation(e.target.value)}><option value="">The default station</option>{data.stations.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field>
+            )}
+            {data.chefs && data.chefs.length > 0 && (
+              <Field label="A dish by" htmlFor="dish-chef" hint="The chef is named on the menu if they are shown on the chefs page."><SelectInput id="dish-chef" value={chef} onChange={(e) => setChef(e.target.value)}><option value="">No one in particular</option>{data.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput></Field>
             )}
             <Field label="Order on the menu" htmlFor="dish-sort" hint="Smaller numbers come first."><NumberInput id="dish-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>

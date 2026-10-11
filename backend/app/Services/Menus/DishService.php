@@ -78,6 +78,13 @@ class DishService
                 }
                 $dish->station_id = $st?->id;
             }
+            if (array_key_exists('chef_id', $d) && ChefService::installed() && \Illuminate\Support\Facades\Schema::hasColumn('menus_dishes', 'chef_id')) {
+                $chef = $d['chef_id'] ? \App\Models\Menus\Chef::where('is_active', true)->find($d['chef_id']) : null;
+                if ($d['chef_id'] && ! $chef) {
+                    throw new BooksException('That chef does not exist or is switched off.');
+                }
+                $dish->chef_id = $chef?->id;
+            }
             $dish->save();
 
             return $dish->fresh();
