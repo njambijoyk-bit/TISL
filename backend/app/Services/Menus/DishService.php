@@ -67,7 +67,8 @@ class DishService
                     $this->items->setPrice($product, $dish->variant, (float) $d['price']);
                 }
             }
-            $dish->fill(['name' => $name] + $override + array_intersect_key($d, array_flip(['description', 'photo', 'prep_minutes', 'sort_order', 'is_active'])));
+            $dish->fill(['name' => $name] + $override + array_intersect_key($d, array_flip(['description', 'photo', 'prep_minutes', 'sort_order', 'is_active']))
+                + (array_key_exists('lead_hours', $d) && Schema::hasColumn('menus_dishes', 'lead_hours') ? ['lead_hours' => $d['lead_hours'] ?: null] : []));   // (script 143)
             if ($dish->exists && $dish->isDirty('name')) {
                 Product::where('id', $dish->product_id)->update(['name' => $name]);
             }

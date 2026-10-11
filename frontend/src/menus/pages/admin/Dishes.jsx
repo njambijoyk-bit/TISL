@@ -56,6 +56,7 @@ function DishModal({ dish, data, onClose, onDone }) {
   const [price, setPrice] = useState(dish?.price ?? '');
   const [description, setDescription] = useState(dish?.description ?? '');
   const [prep, setPrep] = useState(dish?.prep_minutes ?? '');
+  const [lead, setLead] = useState(dish?.lead_hours ?? '');
   const [sort, setSort] = useState(dish?.sort_order ?? 0);
   const [active, setActive] = useState(dish?.is_active ?? true);
   const [station, setStation] = useState(dish?.station_id ?? '');
@@ -71,7 +72,7 @@ function DishModal({ dish, data, onClose, onDone }) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const res = await menusAPI.saveDish({
-        name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), sort_order: Number(sort) || 0, is_active: active,
+        name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), lead_hours: lead === '' ? null : Number(lead), sort_order: Number(sort) || 0, is_active: active,
         ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), ...(data.chefs ? { chef_id: chef === '' ? null : Number(chef) } : {}), allergens, tags,
       }, dish?.id);
       toast.success(res.message); onDone();
@@ -97,6 +98,7 @@ function DishModal({ dish, data, onClose, onDone }) {
             {data.chefs && data.chefs.length > 0 && (
               <Field label="A dish by" htmlFor="dish-chef" hint="The chef is named on the menu if they are shown on the chefs page."><SelectInput id="dish-chef" value={chef} onChange={(e) => setChef(e.target.value)}><option value="">No one in particular</option>{data.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput></Field>
             )}
+            <Field label="Made to order: notice needed (hours)" htmlFor="dish-lead" hint="For a cake or anything customers ask for ahead. Empty: an ordinary dish. Dishes with a notice appear under Cakes &amp; catering."><NumberInput id="dish-lead" min="0" max="2000" value={lead} onChange={(e) => setLead(e.target.value)} /></Field>
             <Field label="Order on the menu" htmlFor="dish-sort" hint="Smaller numbers come first."><NumberInput id="dish-sort" min="0" value={sort} onChange={(e) => setSort(e.target.value)} /></Field>
           </div>
           <Declare title="Allergens" options={data.allergens} inherited={dish?.allergens ?? []} value={allergens} onChange={setAllergens} />

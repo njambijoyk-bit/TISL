@@ -39,7 +39,7 @@ class MenusDishController extends Controller
     public function save(Request $request, ?int $id = null): JsonResponse
     {
         $d = $request->validate([
-            'name' => 'required|string|max:150', 'price' => 'nullable|numeric|min:0', 'description' => 'nullable|string|max:3000', 'photo' => 'nullable|string|max:255', 'prep_minutes' => 'nullable|integer|min:0|max:6000',
+            'name' => 'required|string|max:150', 'price' => 'nullable|numeric|min:0', 'description' => 'nullable|string|max:3000', 'photo' => 'nullable|string|max:255', 'prep_minutes' => 'nullable|integer|min:0|max:6000', 'lead_hours' => 'nullable|integer|min:0|max:2000',
             'sort_order' => 'nullable|integer|min:0|max:9999', 'is_active' => 'nullable|boolean', 'sales_ledger_id' => 'nullable|integer', 'station_id' => 'nullable|integer', 'chef_id' => 'nullable|integer',
             'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20',
         ]);
@@ -77,7 +77,7 @@ class MenusDishController extends Controller
     public function saveSettings(Request $request): JsonResponse
     {
         $d = $request->validate(['sales_ledger_id' => 'nullable|integer', 'category_id' => 'nullable|integer', 'allergen_note' => 'nullable|string|max:600', 'receipt_footer' => 'nullable|string|max:200',
-            'tip_ledger_id' => 'nullable|integer', 'service_charge_ledger_id' => 'nullable|integer', 'service_charge_pct' => 'nullable|numeric|min:0|max:30', 'qr_ordering' => 'nullable|boolean', 'qr_open_by_scan' => 'nullable|boolean']);
+            'tip_ledger_id' => 'nullable|integer', 'service_charge_ledger_id' => 'nullable|integer', 'service_charge_pct' => 'nullable|numeric|min:0|max:30', 'custom_orders' => 'nullable|boolean', 'custom_deposit_pct' => 'nullable|numeric|min:0|max:100', 'custom_quote_days' => 'nullable|numeric|min:1|max:90', 'custom_lead_hours' => 'nullable|numeric|min:0|max:720', 'qr_ordering' => 'nullable|boolean', 'qr_open_by_scan' => 'nullable|boolean']);
 
         return $this->guard(fn () => response()->json(['message' => 'Menus settings saved.', 'settings' => MenusSettings::save($d, $request->user()?->id)]));
     }
@@ -88,7 +88,7 @@ class MenusDishController extends Controller
         $recipe = $d->recipe;
 
         return [
-            'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'sort_order' => $d->sort_order, 'is_active' => $d->is_active,
+            'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'lead_hours' => $d->lead_hours ?? null, 'sort_order' => $d->sort_order, 'is_active' => $d->is_active,
             'variant_id' => (int) $d->variant_id, 'product_id' => (int) $d->product_id, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'has_recipe' => (bool) $recipe, 'made_to_order' => (bool) ($recipe && $recipe->deduct_on_sale),
             'allergens' => $profile['allergens'], 'tags' => $profile['tags'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'], 'declared' => $profile['declared'],

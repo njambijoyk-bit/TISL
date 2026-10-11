@@ -63,6 +63,10 @@ export const menusAPI = {
   screen: async (stationId) => (await api.get(`/admin/menus/kitchen/screen/${stationId}`)).data,
   expo: async () => (await api.get('/admin/menus/kitchen/expo')).data,
   ticket: async (id, action) => (await api.post(`/admin/menus/kitchen/tickets/${id}/${action}`)).data,
+  cooking: async (params) => (await api.get('/admin/menus/custom', { params })).data,
+  quoteCooking: async (id, payload) => (await api.post(`/admin/menus/custom/${id}/quote`, payload)).data,
+  setCookingStatus: async (id, to, reason) => (await api.post(`/admin/menus/custom/${id}/status`, { to, reason })).data,
+  payCooking: async (id, tenders) => (await api.post(`/admin/menus/custom/${id}/pay`, { tenders })).data,
   settings: async () => (await api.get('/admin/menus/settings')).data,
   saveSettings: async (payload) => (await api.put('/admin/menus/settings', payload)).data,
 };

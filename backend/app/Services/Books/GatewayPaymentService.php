@@ -270,6 +270,19 @@ class GatewayPaymentService
         }
     }
 
+    /** A deposit or balance on a cake or catering job is paid. A problem there must never undo a payment that has been received. */
+    private function cookingPaid(Voucher $invoice, float $amount): void
+    {
+        if (empty($invoice->meta['menu_request_id'])) {
+            return;
+        }
+        try {
+            app(\App\Services\Menus\CookingService::class)->paid($invoice, $amount);
+        } catch (\Throwable $e) {
+            Log::error('Gateway: the cooking job could not be marked paid', ['invoice' => $invoice->id, 'error' => $e->getMessage()]);
+        }
+    }
+
     /** Money is in: the order becomes a Cash Sale, or the payment is a Receipt against the invoice. */
     private function settle(PaymentAttempt $attempt): void
     {
@@ -289,6 +302,7 @@ class GatewayPaymentService
             $receipt = $vouchers->receive($voucher, ['tenders' => $tenders, 'amount' => (float) $attempt->amount + array_sum(array_column($attempt->tenders ?? [], 'amount')), 'reference_no' => $attempt->receipt_number, 'channel' => 'storefront'], null);
             $attempt->update(['settled_voucher_id' => $receipt->id]);
             app(\App\Services\Notify\OrderNotices::class)->invoicePaid($voucher, $receipt);
+            $this->cookingPaid($voucher, (float) $attempt->amount);   // a cake or catering job: its deposit or balance is in
 
             return;
         }

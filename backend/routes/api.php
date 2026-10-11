@@ -273,6 +273,15 @@ Route::prefix('menu/table')->middleware('module:menus')->group(function () {   /
     Route::post('/{qr}/bill',    [$c, 'bill'])->middleware('throttle:10,1')->where('qr', '[A-Za-z0-9]{24}');
     Route::post('/{qr}/pay',     [$c, 'pay'])->middleware('throttle:10,1')->where('qr', '[A-Za-z0-9]{24}');
 });
+Route::prefix('menu/custom')->middleware('module:menus')->group(function () {   // asking for a cake or catering: no sign-in to ask; accepting a quote and paying need a signed-in customer
+    $c = \App\Http\Controllers\Api\MenusCookingPublicController::class;
+    Route::get('/',                          [$c, 'info'])->middleware('throttle:120,1');
+    Route::post('/requests',                 [$c, 'store'])->middleware('throttle:10,1');
+    Route::get('/requests/{token}',          [$c, 'show'])->middleware('throttle:120,1')->where('token', '[A-Za-z0-9]{40}');
+    Route::post('/requests/{token}/accept',  [$c, 'accept'])->middleware('throttle:10,1')->where('token', '[A-Za-z0-9]{40}');
+    Route::post('/requests/{token}/pay',     [$c, 'pay'])->middleware('throttle:10,1')->where('token', '[A-Za-z0-9]{40}');
+    Route::post('/requests/{token}/decline', [$c, 'decline'])->middleware('throttle:10,1')->where('token', '[A-Za-z0-9]{40}');
+});
 Route::prefix('menu')->middleware('module:menus')->group(function () {   // ordering food online: no sign-in needed; a signed-in customer's token (if sent) links the order to them
     $c = \App\Http\Controllers\Api\MenusOrderController::class;
     Route::get('/channels',                 [$c, 'channels'])->middleware('throttle:120,1');
@@ -682,6 +691,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/operations/prep', [$op, 'prep']);
         Route::get('/operations/reorder', [$op, 'suggest']);
         Route::get('/operations/waste', [$op, 'wasteIndex']);
+        $ck = \App\Http\Controllers\Admin\MenusCookingController::class;
+        Route::get('/custom', [$ck, 'index']);
+        Route::get('/custom/{id}', [$ck, 'show'])->whereNumber('id');
         $ch = \App\Http\Controllers\Admin\MenusChefController::class;
         Route::get('/chefs', [$ch, 'index']);
         Route::get('/chefs/candidates', [$ch, 'candidates']);
@@ -693,7 +705,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kitchen/stations', [$kc, 'stations']);
         Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
         Route::get('/kitchen/expo', [$kc, 'expo']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch, $op) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch, $op, $ck) {
             Route::post('/floor/areas', [$fc, 'saveArea']);
             Route::put('/floor/areas/{id}', [$fc, 'saveArea'])->whereNumber('id');
             Route::delete('/floor/areas/{id}', [$fc, 'deleteArea'])->whereNumber('id');
@@ -705,6 +717,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/operations/reorder', [$op, 'makeOrders']);
             Route::post('/operations/waste', [$op, 'wasteStore']);
             Route::post('/operations/waste/{id}/void', [$op, 'wasteVoid'])->whereNumber('id');
+            Route::post('/custom/{id}/quote', [$ck, 'quote'])->whereNumber('id');
+            Route::post('/custom/{id}/status', [$ck, 'status'])->whereNumber('id');
+            Route::post('/custom/{id}/pay', [$ck, 'pay'])->whereNumber('id');
             Route::post('/chefs', [$ch, 'save']);
             Route::put('/chefs/{id}', [$ch, 'save'])->whereNumber('id');
             Route::delete('/chefs/{id}', [$ch, 'destroy'])->whereNumber('id');

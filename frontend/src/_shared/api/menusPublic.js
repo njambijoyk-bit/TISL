@@ -12,6 +12,12 @@ const menusPublicAPI = {
   tableOrder: async (qr, payload) => (await api.post(`/menu/table/${qr}/order`, payload)).data,
   tableBill: async (qr) => (await api.post(`/menu/table/${qr}/bill`)).data,
   tablePay: async (qr, payload) => (await api.post(`/menu/table/${qr}/pay`, payload)).data,
+  customInfo: async () => (await api.get('/menu/custom')).data,
+  customAsk: async (payload) => (await api.post('/menu/custom/requests', payload)).data,
+  customRequest: async (token) => (await api.get(`/menu/custom/requests/${token}`)).data,
+  customAccept: async (token, payload) => (await api.post(`/menu/custom/requests/${token}/accept`, payload)).data,
+  customPay: async (token, payload) => (await api.post(`/menu/custom/requests/${token}/pay`, payload)).data,
+  customDecline: async (token) => (await api.post(`/menu/custom/requests/${token}/decline`)).data,
   cancelOrder: async (token) => (await api.post(`/menu/orders/${token}/cancel`)).data,
 };
 

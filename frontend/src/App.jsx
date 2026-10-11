@@ -165,6 +165,9 @@ const MenuTablePage      = lazy(() => import('./menus/pages/public/TablePage'));
 const MenusTill          = lazy(() => import('./menus/pages/admin/MenusTill'));
 const MenusKitchen       = lazy(() => import('./menus/pages/admin/MenusKitchen'));
 const MenusOrders        = lazy(() => import('./menus/pages/admin/MenusOrders'));
+const MenusCooking       = lazy(() => import('./menus/pages/admin/MenusCooking'));
+const CustomOrderPage    = lazy(() => import('./menus/pages/public/CustomOrderPage'));
+const CustomRequestPage  = lazy(() => import('./menus/pages/public/CustomRequestPage'));
 const StockJournal       = lazy(() => import('./core/pages/admin/stock/StockJournal'));
 const StockReports       = lazy(() => import('./core/pages/admin/stock/StockReports'));
 const StockJobs          = lazy(() => import('./core/pages/admin/stock/StockJobs'));
@@ -498,6 +501,8 @@ function App() {
  <Route path="/kiosk/:token" element={<ModuleRoute module="menus"><KioskPage /></ModuleRoute>} />
  <Route path="/menu/table/:qr" element={<ModuleRoute module="menus"><MenuTablePage /></ModuleRoute>} />
             <Route path="/menu/order/:token" element={<ModuleRoute module="menus"><MenuOrderTrack /></ModuleRoute>} />
+            <Route path="/menu/custom" element={<ModuleRoute module="menus"><CustomOrderPage /></ModuleRoute>} />
+            <Route path="/menu/request/:token" element={<ModuleRoute module="menus"><CustomRequestPage /></ModuleRoute>} />
             <Route path="/events" element={<ModuleRoute module="events"><EventsPage /></ModuleRoute>} />
             <Route path="/events/:slug" element={<ModuleRoute module="events"><EventPage /></ModuleRoute>} />
             <Route path="/campaigns" element={<ModuleRoute module="campaigns"><CampaignsPage /></ModuleRoute>} />
@@ -835,6 +840,7 @@ function App() {
               <Route path="/admin/menus/floor" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusFloor /></ProtectedRoute>} />
               <Route path="/admin/menus/till" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusTill /></ProtectedRoute>} />
               <Route path="/admin/menus/kitchen" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusKitchen /></ProtectedRoute>} />
+              <Route path="/admin/menus/custom" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusCooking /></ProtectedRoute>} />
               <Route path="/admin/menus/orders" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusOrders /></ProtectedRoute>} />
               <Route path="/admin/menus/menus" element={<ProtectedRoute requireAdmin permission="menus.view"><MenuCards /></ProtectedRoute>} />
               <Route path="/admin/menus/ingredients" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusIngredients /></ProtectedRoute>} />

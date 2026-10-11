@@ -4,21 +4,21 @@ Written at the end of a session. Read this first, then `docs/MENUS_PLAN.md` (sta
 
 ## Where things stand
 
-- Repo: `njambijoyk-bit/tisl` (GitHub). Work branch: **`tisl_v2`**. Last commit: `70d274c` (Menus step 9). Never push to another branch without being told to; **never open a pull request unless asked**.
+- Repo: `njambijoyk-bit/tisl` (GitHub). Work branch: **`tisl_v2`**. Last commit: see `git log` (Menus step 10, cakes and catering, is the newest Menus work). Never push to another branch without being told to; **never open a pull request unless asked**.
 - Stack: Laravel 12 backend (`backend/`), React/Vite frontend (`frontend/`).
-- Done and pushed: the security work (break-glass recovery, Council of Two, passkey strength per role, assisted recovery, reset sign-in methods, email sign-in link, faster approvals) and the **Menus module steps 1 to 9**: foundation, menus and choices, online pickup/delivery, kitchen screens, counter/till, tables and floor, self-order kiosk, chefs, kitchen operations.
-- Full backend suite: 1556 tests. Two known failures, both unrelated to Menus: `ExampleTest` (home `/` gives 404) and `SecurityLogTest::test_the_lines_can_be_narrowed_by_how_serious_which_kind_who_and_when` (breaks after midnight Nairobi time).
+- Done and pushed: the security work (break-glass recovery, Council of Two, passkey strength per role, assisted recovery, reset sign-in methods, email sign-in link, faster approvals) and the **Menus module steps 1 to 10**: foundation, menus and choices, online pickup/delivery, kitchen screens, counter/till, tables and floor, self-order kiosk, chefs, kitchen operations, cakes and catering (first slice of cooking services).
+- Full backend suite: 1596 tests. Known failures, both unrelated to Menus: `ExampleTest` (home `/` gives 404, fails always) and `SecurityLogTest::test_the_lines_can_be_narrowed_by_how_serious_which_kind_who_and_when` (breaks after midnight Nairobi time). Note: `vendor/` and `node_modules/` are not in a fresh container: run `composer install --ignore-platform-reqs` (the lock wants PHP 8.4, the container has 8.3) and `npm ci`; then `git checkout backend/bootstrap/cache` so the tracked cache files are not committed.
 
 ## What the owner must do (not code)
 
-1. Run SQL scripts **132 to 142** in `backend/database/sql/` in MySQL Workbench, in order, each one separately. They are safe to run twice. Script 132 was fixed and should be re-run if it was run earlier.
-2. Admin → Menus → Settings: sales account, tip ledger, service-charge ledger and percentage, table-QR ordering switches. Then switch on the channels (online pickup/delivery, counter, kiosk) and make the stations, kiosks and chef profiles.
+1. Run SQL scripts **132 to 143** in `backend/database/sql/` in MySQL Workbench, in order, each one separately. They are safe to run twice. Script 132 was fixed and should be re-run if it was run earlier.
+2. Admin → Menus → Settings (new: *Cakes and catering*: switch on, deposit %, quote days, catering notice; and set *Made to order: notice needed* on the dishes that are cakes): sales account, tip ledger, service-charge ledger and percentage, table-QR ordering switches. Then switch on the channels (online pickup/delivery, counter, kiosk) and make the stations, kiosks and chef profiles.
 3. Books → Settings → Default ledgers: **Stock Loss** and **Stock** (the waste log needs them). Turn on the **Purchase Order** voucher type. Set `reorder_level` on ingredient items.
-4. Keep the scheduler running. Menus jobs: `menus:sweep-orders` (every 5 min) and `menus:chef-certs` (daily 07:35). Also earlier: `access:seed`, `security:check`.
+4. Keep the scheduler running. Menus jobs: `menus:sweep-orders` (every 5 min; also lapses old cake/catering quotes) and `menus:chef-certs` (daily 07:35). Also earlier: `access:seed`, `security:check`.
 
 ## Next work, in order
 
-1. **Cooking services** (next in `MENUS_PLAN.md`). Read the plan section on it first; it was not started. Follow the same recipe as steps 3 to 9 (below).
+1. **The rest of cooking services** (private chef, meal plans, cooking classes, pop-up dinners; see `MENUS_PLAN.md` section 5). Cakes and catering are done (step 10). Follow the same recipe (below).
 2. **Courses** (plan in `docs/COURSES_PLAN.md`, written, nothing built yet; owner chose it before cooking services). Includes the Courses hook: The chef profile already has an "teaches" switch (`is_instructor`) waiting for it.
 3. Backlog from the "not built yet" lists (confirm priority with the owner before starting any):
    - Till: discounts, cash drawer and shift close, offline till (the owner wants this later), refunds from the till.
@@ -48,7 +48,7 @@ Written at the end of a session. Read this first, then `docs/MENUS_PLAN.md` (sta
 5. Tests in `backend/tests/Feature/Menus*Test.php`. Reuse the helper traits in `tests/Feature/Concerns/`: `CreatesCounterWorld` (all Menus tables, mocked voucher and payment services, channels, a station), `CreatesDishTables`, `CreatesMenusTables`. Test-fixture traps: use uniform keys in multi-row inserts; mocks must return real models or Collections; re-fetch models after a failed transaction (`->fresh()`); `voucher_types` needs `is_active`; the `users` test table needs soft deletes.
 6. **Mutation check**: a small script changes one line, runs the step's test file, and expects a failure. Write the list of rules to break, run it, and add a test for every survivor (or note it as equivalent). Keep the script in your scratchpad, not the repo.
 7. Frontend: API methods in `frontend/src/_shared/api/menus.js` (or `menusPublic.js`, `kiosk.js`), pages in `frontend/src/menus/pages/admin|public/`, a tab in `MenusNav.jsx`, a lazy route in `App.jsx`. Run `npx eslint src/menus` and `npx vite build`.
-8. Browser check: `frontend/e2e/menus-<name>-ui.mjs`. Register the page in `frontend/e2e/harness.html` (and add it to the wide-page list if it is a whole page), update the nav-tab count in `e2e/menus-ui.mjs` (now **11**), add a line to `frontend/e2e/README.md`.
+8. Browser check: `frontend/e2e/menus-<name>-ui.mjs`. Register the page in `frontend/e2e/harness.html` (and add it to the wide-page list if it is a whole page), update the nav-tab count in `e2e/menus-ui.mjs` (now **12**), add a line to `frontend/e2e/README.md`.
    - Servers: `php backend/tests/e2e/boot.php /tmp/tisl-e2e.sqlite`, `bash backend/tests/e2e/serve.sh` (API on :8000), `cd frontend && npx vite --port 5177 --strictPort`. Chromium is pre-installed; do not run `playwright install`.
    - Gotchas: with `page.route`, the **last registered route wins**, so register specific routes after general ones; `**/x/*` also matches `?query`; `innerText` applies CSS uppercase.
 9. Update the status paragraph in `docs/MENUS_PLAN.md`, run the full backend suite (`cd backend && vendor/bin/phpunit`, about 3.5 minutes), commit, push to `tisl_v2`, then report to the owner.

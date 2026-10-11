@@ -27,6 +27,7 @@ node e2e/menus-kitchen-ui.mjs                   # the kitchen screens: a station
 node e2e/menus-till-ui.mjs                      # the till: ringing up with choices, paying with change and a split, tabs in rounds, handing over, the receipt, tips and service charge in settings
 node e2e/menus-floor-ui.mjs                     # the floor plan with table states and actions, editing the plan, the table QR code, and the guest's page behind it (order, bill, pay from the phone)
 node e2e/menus-kiosk-ui.mjs                     # the kiosk screen (welcome, big dishes, choices, review, pay at the screen or the counter, the number, resetting itself) and setting kiosks up
+node e2e/menus-cooking-ui.mjs                   # cakes and catering: the request page (cake priced at once, catering asks for a quote), the quote page (sign in, accept, pay the deposit) and the staff screen (quote, take payment, move a job along)
 node e2e/menus-chefs-ui.mjs                     # the chefs screen (profiles, certificate standing, on duty), the chefs page guests see and the chef named on a dish
 node e2e/menus-operations-ui.mjs                # kitchen operations: the prep list for a day, the waste log with its report and taking an entry back, and what to buy with the purchase orders it makes
 node e2e/actions.mjs                            # the owner's page for sensitive actions and the sign-in check, and the real payment keys screen asking once (passkey) instead of the password

@@ -145,6 +145,25 @@ class PrepService
         foreach ($rows as $r) {
             $out[$r->dish_id] = ($out[$r->dish_id] ?? 0) + (float) $r->quantity;
         }
+        foreach ($this->jobs($date, $locationId) as $dish => $qty) {   // cakes and catering whose deposit is in
+            $out[$dish] = ($out[$dish] ?? 0) + $qty;
+        }
+
+        return $out;
+    }
+
+    /** Dishes in cake and catering jobs that are booked (deposit paid) for that day and not yet ready. @return array<int, float> dish id => portions (script 143) */
+    private function jobs(Carbon $date, int $locationId): array
+    {
+        if (! Schema::hasTable('menus_requests') || ! Schema::hasTable('menus_request_lines')) {
+            return [];
+        }
+        $rows = DB::table('menus_request_lines as l')->join('menus_requests as r', 'r.id', '=', 'l.request_id')->where('r.location_id', $locationId)->whereIn('r.status', ['confirmed', 'preparing'])
+            ->whereNotNull('l.dish_id')->whereBetween('r.event_at', [$date->copy()->startOfDay(), $date->copy()->endOfDay()])->get(['l.dish_id', 'l.quantity']);
+        $out = [];
+        foreach ($rows as $r) {
+            $out[$r->dish_id] = ($out[$r->dish_id] ?? 0) + (float) $r->quantity;
+        }
 
         return $out;
     }
