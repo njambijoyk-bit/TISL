@@ -11,12 +11,22 @@ const sent = [];
 const go = async (which) => { await page.goto(`${SITE}/e2e/harness.html?c=${which}`, { waitUntil: 'networkidle' }); };
 await page.addInitScript(() => { window.prompt = () => 'Guest left'; window.__printed = null; window.open = () => ({ document: { write: (h) => { window.__printed = h; }, close() {} }, focus() {}, print() {} }); });
 
+const pay0 = async () => {
+  const p = page.locator('[data-testid="pay"]');
+  await p.locator('[data-testid="due"]').waitFor({ timeout: 10000 });
+  ok('paying a kiosk order shows what it comes to and offers no tip or service charge', /116\.00/.test(await p.locator('[data-testid="due"]').innerText()) && !(await p.getByLabel('Tip').count()));
+  await p.getByRole('button', { name: 'Exact' }).click();
+  await page.getByRole('button', { name: /^Take 116/ }).click();
+  await page.locator('[data-testid="receipt"]').waitFor({ timeout: 10000 });
+  ok('the cashier\'s payment is sent for that order', sent.some((x) => x[0] === 'settleKiosk' && x[1] === '30/settle' && x[2].tenders[0].amount === 116));
+  await page.getByRole('button', { name: 'Done' }).click();
+};
 const dish = (o) => ({ id: 1, name: 'Chapati', slug: 'chapati', description: null, photo: null, prep_minutes: 5, price: 50, price_incl: 58, available: true, sold_out_today: false, allergens: [], diets: [], info_complete: true, options: [], ...o });
 const row = (o) => ({ id: 5, number: 'MO-000005', short_no: 7, label: 'Table 4', service: 'dine_in', status: 'preparing', payment: 'open', name: 'Table 4', total: 580, tip: 0, service_charge: 0, order_type: 'counter', lines_full: [{ id: 51, name: 'Burger', quantity: 1, unit_price: 500, options: [], note: null, round: 1 }], ...o });
 let state = { on: true, rules: { service_charge_pct: 10, service_charge_on: true, tips_on: true }, services: { dine_in: 'Dine in', take_out: 'Take out' }, location_id: 1, branches: [{ id: 1, name: 'Kitchen' }],
   payment_methods: [{ id: 1, name: 'Cash', kind: 'cash' }, { id: 2, name: 'M-Pesa', kind: 'mpesa' }],
   menu: { menus: [{ id: 1, name: 'All day', slug: 'all-day', serves: 'Every day', serving_now: true, sections: [{ id: 1, name: 'Mains', description: null, dishes: [dish({}), dish({ id: 2, name: 'Burger', price: 500, options: [{ id: 1, name: 'Extras', kind: 'multiple', min_choices: 0, max_choices: null, options: [{ id: 5, name: 'Cheese', price_delta: 50, is_default: false, dish: null }] }] }), dish({ id: 3, name: 'Ribs', price: 900, available: false })] }] }], allergens: {}, diets: {}, note: null },
-  tabs: [row({})], ready: [{ id: 9, number: 'MO-000009', short_no: 3, status: 'ready', payment: 'paid' }, { id: 10, number: 'MO-000010', short_no: 4, status: 'preparing', payment: 'paid' }] };
+  kiosk: [{ id: 30, short_no: 12, session_code: 'KIOSK12345', service: 'take_out', subtotal: 100, tax_total: 16, service_charge: 0, total: 116, lines: [{ name: 'Chapati', quantity: 2, unit_price: 50, options: [], note: null }] }], tabs: [row({})], ready: [{ id: 9, number: 'MO-000009', short_no: 3, status: 'ready', payment: 'paid' }, { id: 10, number: 'MO-000010', short_no: 4, status: 'preparing', payment: 'paid' }] };
 await page.route('**/api/admin/menus/till', (route) => json(route, state));
 let quoteBodies = [];
 await page.route('**/api/admin/menus/till/quote', (route) => {
@@ -34,6 +44,7 @@ await page.route('**/api/admin/menus/till/tabs/*/add', (route) => { sent.push(['
 await page.route('**/api/admin/menus/till/tabs/*/settle', (route) => { sent.push(['settle', route.request().postDataJSON()]); return json(route, { order: row({ payment: 'paid', status: 'completed' }) }); });
 await page.route('**/api/admin/menus/till/tabs/*/cancel', (route) => { sent.push(['cancelTab', route.request().postDataJSON()]); return json(route, { order: row({ status: 'cancelled' }) }); });
 await page.route('**/api/admin/menus/till/tabs/*/lines/*', (route) => { sent.push(['void', route.request().url().replace(/.*tabs\//, '')]); return json(route, { order: row({}) }); });
+await page.route('**/api/admin/menus/till/kiosk/*/settle', (route) => { sent.push(['settleKiosk', route.request().url().replace(/.*kiosk\//, ''), route.request().postDataJSON()]); return json(route, { order: row({ id: 30, short_no: 12, payment: 'paid', status: 'placed', label: null, service: 'take_out' }) }); });
 await page.route('**/api/admin/menus/orders/*/status', (route) => { sent.push(['status', route.request().url().replace(/.*orders\//, ''), route.request().postDataJSON()]); return json(route, { order: {} }); });
 await page.route('**/api/admin/menus/orders/*/receipt**', (route) => json(route, { width: 32, text: '        TISL LTD\n--------------------------------\nOrder Type                Take Out\nOrder #                          8\n--------------------------------\n2  Chapati                  100.00\n--------------------------------\nTOTAL                       116.00\n' }));
 
@@ -44,6 +55,10 @@ ok('the menu being served is a grid of dishes; a dish that is sold out can not b
 ok('open tabs and orders to hand over are listed', (await page.locator('[data-tab="Table 4"]').count()) === 1 && /#3\s*READY/.test((await page.locator('[data-order="3"]').innerText()).replace(/\n/g, '')) && /being made/.test(await page.locator('[data-order="4"]').innerText()));
 ok('only a ready order can be handed over', !(await page.locator('[data-order="3"]').getByRole('button', { name: 'Handed over' }).isDisabled()) && await page.locator('[data-order="4"]').getByRole('button', { name: 'Handed over' }).isDisabled());
 
+// a kiosk order waiting to be paid at the counter
+ok('kiosk orders waiting for payment are listed with their number and session', /#12/.test(await page.locator('[data-kiosk="12"]').innerText()) && /KIOSK12345/.test(await page.locator('[data-kiosk="12"]').innerText()) && /Chapati/.test(await page.locator('[data-kiosk="12"]').innerText()));
+await page.locator('[data-kiosk="12"]').getByRole('button', { name: 'Take payment' }).click();
+await pay0();
 // a quick sale
 await page.locator('[data-dish="Chapati"]').click();
 await page.locator('[data-dish="Chapati"]').click();

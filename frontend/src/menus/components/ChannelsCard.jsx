@@ -14,6 +14,7 @@ function Channel({ c, data, canEdit, onSaved }) {
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const num = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value === '' ? '' : Number(e.target.value) }));
   const delivery = c.order_type === 'delivery';
+  const simple = ['counter', 'kiosk'].includes(c.order_type);   // the till and the kiosk are on or off and show chosen menus: no times, no payment choice
 
   const save = async () => {
     setBusy(true);
@@ -32,17 +33,17 @@ function Channel({ c, data, canEdit, onSaved }) {
         <input type="checkbox" checked={Boolean(f.is_active)} disabled={!canEdit} onChange={(e) => setF((x) => ({ ...x, is_active: e.target.checked }))} /> {c.name} is {f.is_active ? 'on' : 'off'}
       </label>
       <FormStack gap={12}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+        {!simple && <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
           <Field label="Kitchen needs (minutes)" htmlFor={`${c.code}-prep`}><NumberInput id={`${c.code}-prep`} min={0} max={240} value={f.prep_minutes} disabled={!canEdit} onChange={num('prep_minutes')} /></Field>
           <Field label="Times are (minutes apart)" htmlFor={`${c.code}-slot`}><NumberInput id={`${c.code}-slot`} min={5} max={120} value={f.slot_minutes} disabled={!canEdit} onChange={num('slot_minutes')} /></Field>
           <Field label="Order up to (days ahead)" htmlFor={`${c.code}-days`}><NumberInput id={`${c.code}-days`} min={0} max={14} value={f.max_days_ahead} disabled={!canEdit} onChange={num('max_days_ahead')} /></Field>
           <Field label="Smallest order (before tax)" htmlFor={`${c.code}-min`}><NumberInput id={`${c.code}-min`} min={0} step="0.01" value={f.min_order} disabled={!canEdit} onChange={num('min_order')} /></Field>
-        </div>
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.86rem' }}><input type="checkbox" checked={Boolean(f.allow_asap)} disabled={!canEdit} onChange={(e) => setF((x) => ({ ...x, allow_asap: e.target.checked }))} /> Offer “as soon as possible”</label>
-        <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.86rem' }}>
+        </div>}
+        {!simple && <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.86rem' }}><input type="checkbox" checked={Boolean(f.allow_asap)} disabled={!canEdit} onChange={(e) => setF((x) => ({ ...x, allow_asap: e.target.checked }))} /> Offer “as soon as possible”</label>}
+        {!simple && <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: '0.86rem' }}>
           <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>How customers may pay</legend>
           {Object.entries(data.payment_modes).map(([k, name]) => <label key={k} style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.payment_modes.includes(k)} disabled={!canEdit} onChange={() => setF((x) => ({ ...x, payment_modes: toggle(x.payment_modes, k) }))} /> {name}</label>)}
-        </fieldset>
+        </fieldset>}
         <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: '0.86rem' }}>
           <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Menus it shows (none ticked = all)</legend>
           {data.menus.map((m) => <label key={m.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.menu_ids.includes(m.id)} disabled={!canEdit} onChange={() => setF((x) => ({ ...x, menu_ids: toggle(x.menu_ids, m.id) }))} /> {m.name}</label>)}
@@ -54,7 +55,7 @@ function Channel({ c, data, canEdit, onSaved }) {
             {data.shipping_options.map((o) => <label key={o.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.shipping_option_ids.includes(o.id)} disabled={!canEdit} onChange={() => setF((x) => ({ ...x, shipping_option_ids: toggle(x.shipping_option_ids, o.id) }))} /> {o.name}</label>)}
           </fieldset>
         )}
-        <Field label="A line shown at checkout" htmlFor={`${c.code}-note`} hint="For example: Delivery within 5 km of the restaurant."><TextInput id={`${c.code}-note`} maxLength={300} value={f.note} disabled={!canEdit} onChange={set('note')} /></Field>
+        {!simple && <Field label="A line shown at checkout" htmlFor={`${c.code}-note`} hint="For example: Delivery within 5 km of the restaurant."><TextInput id={`${c.code}-note`} maxLength={300} value={f.note} disabled={!canEdit} onChange={set('note')} /></Field>}
         {canEdit && <div><button type="button" style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={save}>{busy ? 'Saving…' : `Save ${c.name}`}</button></div>}
       </FormStack>
     </section>
@@ -67,7 +68,7 @@ export default function ChannelsCard({ canEdit }) {
   const load = () => menusAPI.channels().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the ways to order')));
   useEffect(() => { load(); }, []);
   if (!data) return null;
-  const online = data.channels.filter((c) => ['pickup', 'delivery'].includes(c.order_type));
+  const online = data.channels.filter((c) => ['pickup', 'delivery', 'counter', 'kiosk'].includes(c.order_type));
 
   return (
     <div style={{ marginTop: 22, display: 'grid', gap: 12 }} data-testid="channels">

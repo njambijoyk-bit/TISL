@@ -256,6 +256,15 @@ Route::prefix('checkout')->group(function () {
 
 // Menus — the menu a customer reads (open to everyone)
 Route::get('/menu', [\App\Http\Controllers\Api\MenusPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
+Route::prefix('kiosk/{token}')->middleware(['module:menus', 'throttle:240,1'])->where(['token' => '[A-Za-z0-9]{32}'])->group(function () {   // a self-order screen: no sign-in, the secret in the address is the key
+    $c = \App\Http\Controllers\Api\MenusKioskController::class;
+    Route::get('/',                          [$c, 'show']);
+    Route::post('/quote',                    [$c, 'quote']);
+    Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
+    Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
+    Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
+    Route::get('/orders/{session}/receipt',  [$c, 'receipt'])->where('session', '[A-Z0-9]{10}');
+});
 Route::prefix('menu/table')->middleware('module:menus')->group(function () {   // the page behind a table's QR code: no sign-in, the code in the link is the key
     $c = \App\Http\Controllers\Api\MenusTableController::class;
     Route::get('/{qr}',          [$c, 'show'])->middleware('throttle:60,1')->where('qr', '[A-Za-z0-9]{24}');
@@ -668,13 +677,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/till', [$tc, 'till']);
         Route::get('/orders/{id}/receipt', [$tc, 'receipt'])->whereNumber('id');
         $fc = \App\Http\Controllers\Admin\MenusFloorController::class;
+        $kk = \App\Http\Controllers\Admin\MenusKioskAdminController::class;
+        Route::get('/kiosks', [$kk, 'index']);
         Route::get('/floor', [$fc, 'show']);
         Route::get('/floor/tables/{id}/qr', [$fc, 'qr'])->whereNumber('id');
         $kc = \App\Http\Controllers\Admin\MenusKitchenController::class;
         Route::get('/kitchen/stations', [$kc, 'stations']);
         Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
         Route::get('/kitchen/expo', [$kc, 'expo']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk) {
             Route::post('/floor/areas', [$fc, 'saveArea']);
             Route::put('/floor/areas/{id}', [$fc, 'saveArea'])->whereNumber('id');
             Route::delete('/floor/areas/{id}', [$fc, 'deleteArea'])->whereNumber('id');
@@ -683,6 +694,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/floor/tables/{id}', [$fc, 'deleteTable'])->whereNumber('id');
             Route::put('/floor/layout', [$fc, 'layout']);
             Route::post('/floor/tables/{id}/{action}', [$fc, 'act'])->whereNumber('id')->where('action', 'seat|clear|bill|merge|unmerge|renew-qr');
+            Route::post('/kiosks', [$kk, 'save']);
+            Route::put('/kiosks/{id}', [$kk, 'save'])->whereNumber('id');
+            Route::post('/kiosks/{id}/renew', [$kk, 'renew'])->whereNumber('id');
+            Route::delete('/kiosks/{id}', [$kk, 'destroy'])->whereNumber('id');
+            Route::post('/till/kiosk/{id}/settle', [$tc, 'settleKiosk'])->whereNumber('id');
             Route::post('/till/quote', [$tc, 'quote']);
             Route::post('/till/sell', [$tc, 'sell']);
             Route::post('/till/tabs', [$tc, 'openTab']);

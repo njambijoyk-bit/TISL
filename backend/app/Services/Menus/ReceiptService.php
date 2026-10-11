@@ -39,9 +39,12 @@ class ReceiptService
         $center(trim(implode(' · ', array_filter([$co->phone, $co->tax_pin ? 'PIN '.$co->tax_pin : null]))));
         $center(($o->settled_at ?? $o->placed_at ?? $o->created_at)->timezone((string) config('app.timezone', 'Africa/Nairobi'))->format('d/m/Y, h:i:s A'));
         $out[] = $rule;
-        $type = $o->order_type === 'counter' ? (self::TYPES[$o->service] ?? 'Counter') : ($o->order_type === 'delivery' ? 'Delivery' : 'Pickup');
+        $type = in_array($o->order_type, ['counter', 'kiosk'], true) ? (self::TYPES[$o->service] ?? 'Counter') : ($o->order_type === 'delivery' ? 'Delivery' : 'Pickup');
         $out[] = $pair('Order Type', $type);
         $out[] = $pair('Order #', $o->short_no ? (string) $o->short_no : $o->number);
+        if ($o->session_code) {
+            $out[] = $pair('Kiosk Session', $o->session_code);
+        }
         if ($o->label) {
             $out[] = $pair('Tab', $o->label);
         }
@@ -92,7 +95,7 @@ class ReceiptService
         } elseif ($o->payment === 'paid') {
             $out[] = 'PAID';
         } elseif ($o->payment === 'open') {
-            $out[] = 'NOT PAID YET (open tab)';
+            $out[] = $o->order_type === 'kiosk' ? 'PAY AT THE COUNTER' : 'NOT PAID YET (open tab)';
         } elseif ($o->payment === 'later') {
             $out[] = 'TO PAY ON '.($o->order_type === 'delivery' ? 'DELIVERY' : 'COLLECTION');
         }

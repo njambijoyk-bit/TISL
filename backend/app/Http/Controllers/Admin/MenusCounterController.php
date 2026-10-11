@@ -42,12 +42,12 @@ class MenusCounterController extends Controller
         if ($ch?->menu_ids) {
             $menu['menus'] = array_values(array_filter($menu['menus'], fn ($m) => in_array($m['id'], $ch->menu_ids, true)));
         }
-        $b = $ch && $ch->is_active ? $this->counter->board() : ['tabs' => collect(), 'ready' => collect()];
+        $b = $ch && $ch->is_active ? $this->counter->board() : ['tabs' => collect(), 'kiosk' => collect(), 'ready' => collect()];
 
         return response()->json(['on' => (bool) ($ch && $ch->is_active), 'menu' => $menu, 'rules' => $this->counter->rules(), 'services' => CounterService::SERVICES, 'location_id' => $loc,
             'branches' => Location::query()->sellsToCustomers()->ordered()->get(['id', 'name']),
             'payment_methods' => PaymentMethod::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'kind', 'requires_reference']),
-            'tabs' => $b['tabs']->map(fn ($o) => $this->row($o))->values(), 'tables' => FloorService::installed() && $loc ? $this->tables($loc) : null, 'ready' => $b['ready']->map(fn ($o) => $this->row($o))->values()]);
+            'tabs' => $b['tabs']->map(fn ($o) => $this->row($o))->values(), 'kiosk' => $b['kiosk']->map(fn ($o) => $this->row($o))->values(), 'tables' => FloorService::installed() && $loc ? $this->tables($loc) : null, 'ready' => $b['ready']->map(fn ($o) => $this->row($o))->values()]);
     }
 
     /** The tables at the branch that can take a new tab, for the till to choose from. */
@@ -60,7 +60,7 @@ class MenusCounterController extends Controller
     {
         $o->loadMissing('lines');
 
-        return $this->view->staff($o) + ['short_no' => $o->short_no, 'label' => $o->label, 'table_id' => $o->table_id, 'guests' => $o->guests, 'service' => $o->service, 'service_charge' => (float) $o->service_charge, 'tip' => (float) $o->tip,
+        return $this->view->staff($o) + ['short_no' => $o->short_no, 'session_code' => $o->session_code, 'label' => $o->label, 'table_id' => $o->table_id, 'guests' => $o->guests, 'service' => $o->service, 'service_charge' => (float) $o->service_charge, 'tip' => (float) $o->tip,
             'lines_full' => $o->lines->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'quantity' => (float) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'note' => $l->note, 'round' => (int) $l->round])->values()->all()];
     }
 
@@ -130,6 +130,13 @@ class MenusCounterController extends Controller
         $d = $request->validate($this->rules());
 
         return $this->guard(fn () => response()->json(['order' => $this->row($this->counter->settleTab(MenuOrder::findOrFail($id), $d, $request->user())), 'message' => 'Tab paid.']));
+    }
+
+    public function settleKiosk(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate($this->rules());
+
+        return $this->guard(fn () => response()->json(['order' => $this->row($this->counter->settleKiosk(MenuOrder::findOrFail($id), $d, $request->user())), 'message' => 'Paid. The kitchen has the order.']));
     }
 
     public function cancelTab(Request $request, int $id): JsonResponse

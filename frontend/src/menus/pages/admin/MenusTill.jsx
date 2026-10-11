@@ -122,6 +122,7 @@ export default function MenusTill() {
   const [params, setParams] = useSearchParams();
   const [tableId, setTableId] = useState(params.get('table') ?? '');
   const [splitIds, setSplitIds] = useState([]);
+  const [kioskPay, setKioskPay] = useState(null);
 
   const load = useCallback(() => menusAPI.till().then((r) => { setData(r); setMenuId((m) => m ?? (r.menu.menus.find((x) => x.serving_now) ?? r.menu.menus[0])?.id ?? null); }).catch((e) => toast.error(errMsg(e, 'Could not load the till'))), []);
   useEffect(() => { load(); const t = setInterval(load, 15000); return () => clearInterval(t); }, [load]);
@@ -266,6 +267,21 @@ export default function MenusTill() {
                 </div>
               </div>
 
+                      {data.kiosk?.length > 0 && (
+                <div style={{ border: '2px solid #f59e0b', borderRadius: 14, padding: 12 }} data-testid="kiosk-orders">
+                  <h2 style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: 800 }}>Kiosk orders to pay · {data.kiosk.length}</h2>
+                  <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
+                    {data.kiosk.map((o) => (
+                      <li key={o.id} data-kiosk={o.short_no} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <strong style={{ fontSize: '1.3rem', minWidth: 44 }}>#{o.short_no}</strong>
+                        <span style={{ flex: 1, fontSize: '0.78rem', color: colors.textMuted }}>{o.lines.map((l) => `${l.quantity} × ${l.name}`).join(', ')}<br />{money(o.total)} · {o.session_code}</span>
+                        {canAct && <button type="button" disabled={busy} onClick={() => setKioskPay(o)} style={{ ...big('#059669'), padding: '6px 12px', fontSize: '0.8rem' }}>Take payment</button>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div style={{ border: '1.5px solid var(--line, #cbd5e1)', borderRadius: 14, padding: 12 }} data-testid="handover">
                 <h2 style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: 800 }}>To hand over · {data.ready.length}</h2>
                 {data.ready.length === 0 && <span style={{ color: colors.textMuted, fontSize: '0.82rem' }}>Nothing waiting.</span>}
@@ -288,6 +304,11 @@ export default function MenusTill() {
       {paying && data && (
         <PayModal data={data} rules={data.rules} service={tab?.service ?? service} total={tab ? tab.total : quote?.total ?? 0} onClose={() => setPaying(false)} onPay={pay}
           quote={(extra) => (tab ? menusAPI.quoteTab(tab.id, extra) : menusAPI.tillQuote({ ...payload, ...extra }))} />
+      )}
+      {kioskPay && data && (
+        <PayModal data={data} rules={{ ...data.rules, tips_on: false, service_charge_on: false }} service={kioskPay.service} total={kioskPay.total} onClose={() => setKioskPay(null)}
+          quote={() => Promise.resolve({ subtotal: kioskPay.subtotal, tax_total: kioskPay.tax_total, service_charge: kioskPay.service_charge, tip: 0, total: kioskPay.total })}
+          onPay={async (extra) => { const r = await menusAPI.settleKiosk(kioskPay.id, { tenders: extra.tenders }); setKioskPay(null); await load(); setReceipt(r.order); }} />
       )}
       {receipt && <ReceiptModal order={receipt} onClose={() => setReceipt(null)} />}
     </AdminLayout>

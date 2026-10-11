@@ -13,6 +13,7 @@ import MenusNav from '../../components/MenusNav';
 import LedgerSelect from '../../components/LedgerSelect';
 import ChannelsCard from '../../components/ChannelsCard';
 import StationsCard from '../../components/StationsCard';
+import KiosksCard from '../../components/KiosksCard';
 
 /** Menus → Settings: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
@@ -69,6 +70,7 @@ export default function MenusSettings() {
         )}
         {s && <ChannelsCard canEdit={canEdit} />}
         {s && <StationsCard canEdit={canEdit} />}
+        {s && <KiosksCard canEdit={canEdit} />}
       </div>
     </AdminLayout>
   );

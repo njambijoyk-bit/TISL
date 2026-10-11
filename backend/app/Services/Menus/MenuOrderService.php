@@ -365,6 +365,9 @@ class MenuOrderService
         }
         $mo->update(['payment' => 'paid', 'sale_id' => $sale->id]);
         $this->fireTickets($mo);
+        if ($mo->order_type === 'kiosk') {   // paid at the kiosk screen: the kitchen has its ticket; the guest follows the number on the screen
+            return;
+        }
         if ($mo->order_type === 'counter') {   // a tab paid by phone: it closes, and nobody is messaged
             app(CounterService::class)->tabPaid($mo->fresh());
 

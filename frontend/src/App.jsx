@@ -156,6 +156,7 @@ const MenusSettings      = lazy(() => import('./menus/pages/admin/MenusSettings'
 const MenuCards          = lazy(() => import('./menus/pages/admin/MenuCards'));
 const PublicMenuPage     = lazy(() => import('./menus/pages/public/MenuPage'));
 const MenuOrderTrack     = lazy(() => import('./menus/pages/public/OrderTrackPage'));
+const KioskPage          = lazy(() => import('./menus/pages/public/KioskPage'));
 const MenusFloor         = lazy(() => import('./menus/pages/admin/MenusFloor'));
 const MenuTablePage      = lazy(() => import('./menus/pages/public/TablePage'));
 const MenusTill          = lazy(() => import('./menus/pages/admin/MenusTill'));
@@ -490,6 +491,7 @@ function App() {
             <Route path="/tickets/:code" element={<ModuleRoute module="events"><TicketPage /></ModuleRoute>} />
             <Route path="/my-events" element={<ProtectedRoute><ModuleRoute module="events"><MyEventTickets /></ModuleRoute></ProtectedRoute>} />
             <Route path="/menu" element={<ModuleRoute module="menus"><PublicMenuPage /></ModuleRoute>} />
+ <Route path="/kiosk/:token" element={<ModuleRoute module="menus"><KioskPage /></ModuleRoute>} />
  <Route path="/menu/table/:qr" element={<ModuleRoute module="menus"><MenuTablePage /></ModuleRoute>} />
             <Route path="/menu/order/:token" element={<ModuleRoute module="menus"><MenuOrderTrack /></ModuleRoute>} />
             <Route path="/events" element={<ModuleRoute module="events"><EventsPage /></ModuleRoute>} />

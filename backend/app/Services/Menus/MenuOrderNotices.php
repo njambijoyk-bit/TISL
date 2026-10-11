@@ -84,8 +84,8 @@ class MenuOrderNotices
 
     private function tell(MenuOrder $o, string $type, string $title, string $message): void
     {
-        if ($o->order_type === 'counter') {
-            return;   // someone at the counter is told face to face, by the number they hold
+        if (in_array($o->order_type, ['counter', 'kiosk'], true)) {
+            return;   // someone at the counter or the kiosk is told face to face, by the number they hold
         }
         $customer = $o->customer_id ? Customer::find($o->customer_id) : null;
         $options = ['action_url' => '/menu/order/'.$o->track_token, 'action_text' => 'Follow your order'];

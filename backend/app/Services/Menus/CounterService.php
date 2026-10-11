@@ -36,11 +36,11 @@ class CounterService
     {
     }
 
-    public function channel(): Channel
+    public function channel(string $code = 'counter'): Channel
     {
-        $c = Channel::where('code', 'counter')->first();
+        $c = Channel::where('code', $code)->first();
         if (! $c || ! $c->is_active) {
-            throw new BooksException('The counter is not switched on (Menus → Settings → Ways to order).');
+            throw new BooksException($code === 'counter' ? 'The counter is not switched on (Menus → Settings → Ways to order).' : 'This way of ordering is not switched on (Menus → Settings → Ways to order).');
         }
 
         return $c;
@@ -447,6 +447,20 @@ class CounterService
         return $n;
     }
 
+    /** A guest ordered at the kiosk and chose to pay at the counter: the cashier takes the money, the sale is booked and only then does the kitchen get the ticket. */
+    public function settleKiosk(MenuOrder $o, array $in, ?User $by = null): MenuOrder
+    {
+        if ($o->order_type !== 'kiosk' || $o->payment !== 'open' || ! $o->open()) {
+            throw new BooksException('That is not a kiosk order waiting to be paid.');
+        }
+        $p = $this->price(Location::findOrFail($o->location_id), $this->rebuild($o), (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '');
+        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
+        DB::transaction(fn () => $this->book($o, $p, $paid, $by));
+        $this->fire($o);
+
+        return $o->fresh();
+    }
+
     public function cancelTab(MenuOrder $o, ?string $reason, ?User $by = null): MenuOrder
     {
         $this->assertTab($o);
@@ -457,11 +471,12 @@ class CounterService
         return $r;
     }
 
-    /** Tabs still open, and paid orders waiting to be handed over. @return array{tabs: Collection, ready: Collection} */
+    /** Tabs still open, kiosk orders waiting for their payment, and paid orders waiting to be handed over. @return array{tabs: Collection, kiosk: Collection, ready: Collection} */
     public function board(): array
     {
         return ['tabs' => MenuOrder::with('lines')->where('order_type', 'counter')->where('payment', 'open')->whereNotIn('status', ['cancelled', 'completed'])->orderBy('id')->get(),
-            'ready' => MenuOrder::with('lines')->where('order_type', 'counter')->where('payment', 'paid')->whereIn('status', ['placed', 'accepted', 'preparing', 'ready'])->orderBy('id')->get()];
+            'kiosk' => MenuOrder::with('lines')->where('order_type', 'kiosk')->where('payment', 'open')->where('status', 'placed')->orderBy('id')->get(),
+            'ready' => MenuOrder::with('lines')->whereIn('order_type', ['counter', 'kiosk'])->where('payment', 'paid')->whereIn('status', ['placed', 'accepted', 'preparing', 'ready'])->orderBy('id')->get()];
     }
 
     // ── inside ───────────────────────────────────────────────────────────
@@ -473,19 +488,19 @@ class CounterService
         }
     }
 
-    private function create(Channel $channel, Location $loc, string $service, ?User $by, string $label, string $payment, array $p, array $extra = []): MenuOrder
+    public function create(Channel $channel, Location $loc, string $service, ?User $by, string $label, string $payment, array $p, array $extra = []): MenuOrder
     {
         $today = today();
-        $next = (int) MenuOrder::where('order_type', 'counter')->where('location_id', $loc->id)->where('created_at', '>=', $today)->max('short_no') + 1;
-        $o = MenuOrder::create($extra + ['number' => 'MO-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'channel_id' => $channel->id, 'order_type' => 'counter', 'service' => $service, 'location_id' => $loc->id,
-            'name' => $label !== '' ? $label : 'Counter', 'label' => $label !== '' ? $label : null, 'cashier_id' => $by?->id, 'status' => 'placed', 'payment' => $payment, 'asap' => true, 'fulfil_at' => now(), 'short_no' => $next,
+        $next = (int) MenuOrder::whereIn('order_type', ['counter', 'kiosk'])->where('location_id', $loc->id)->where('created_at', '>=', $today)->max('short_no') + 1;
+        $o = MenuOrder::create($extra + ['number' => 'MO-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'channel_id' => $channel->id, 'order_type' => $channel->order_type === 'kiosk' ? 'kiosk' : 'counter', 'service' => $service, 'location_id' => $loc->id,
+            'name' => $label !== '' ? $label : ($channel->order_type === 'kiosk' ? 'Kiosk' : 'Counter'), 'label' => $label !== '' ? $label : null, 'cashier_id' => $by?->id, 'status' => 'placed', 'payment' => $payment, 'asap' => true, 'fulfil_at' => now(), 'short_no' => $next,
             'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'], 'currency_id' => Currency::getBaseCurrency()?->id, 'placed_at' => now()]);
         $o->update(['number' => 'MO-'.str_pad((string) $o->id, 6, '0', STR_PAD_LEFT)]);
 
         return $o;
     }
 
-    private function addLines(MenuOrder $o, array $lines, int $round): void
+    public function addLines(MenuOrder $o, array $lines, int $round): void
     {
         foreach ($lines as $l) {
             MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'variant_id' => $l['dish']->variant_id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
@@ -495,7 +510,7 @@ class CounterService
     }
 
     /** The lines of a tab as the pricing wants them again. */
-    private function rebuild(MenuOrder $o): array
+    public function rebuild(MenuOrder $o): array
     {
         $out = [];
         foreach ($o->lines()->get() as $l) {
@@ -507,14 +522,14 @@ class CounterService
         return $out;
     }
 
-    private function retotal(MenuOrder $o): void
+    public function retotal(MenuOrder $o): void
     {
         $p = $this->price(Location::findOrFail($o->location_id), $this->rebuild($o), (string) $o->service, true, 0.0, (string) $o->label);
         $o->update(['subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown']]);
     }
 
     /** The sale goes into the books and the order records how it was paid. */
-    private function book(MenuOrder $o, array $p, array $paid, ?User $by): void
+    public function book(MenuOrder $o, array $p, array $paid, ?User $by): void
     {
         $voucher = $this->vouchers->placeOrder($p['payload'], $by);
         $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menu_order_id' => $o->id])]);
@@ -524,7 +539,7 @@ class CounterService
             'payment_method_id' => $paid['tenders'][0]['payment_method_id'] ?? null, 'settled_at' => now()]);
     }
 
-    private function fire(MenuOrder $o): void
+    public function fire(MenuOrder $o): void
     {
         try {
             $this->kitchen->fire($o);
