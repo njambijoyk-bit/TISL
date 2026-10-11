@@ -1,6 +1,6 @@
 # Security: how TISL knows who you are — plan
 
-Status: **Phase 0 is built and pushed; Phases 1 and 2 (with the cookie move and the seal phrase) are being built.** Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
+Status: **Phases 0, 1, 2 and 3 are built, tested and pushed** (with the cookie move and the seal phrase). The first release (Phases 1 and 2) can go out as soon as the database scripts are run and the settings are in place (docs/HOSTING_SECURITY.md, section 4); Phase 3 (per-role strength, the Council of Two, assisted recovery, the break-glass command and the "reset sign-in methods" action) ships switched off in the same way. **Phase 4 (convenience: tap-to-approve, QR sign-in, email links, authenticator codes) is not started** and is waiting for the owner's say. Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
 
 The idea in one line: **how a person proves who they are** (real cryptography, standard and vetted) is separate from **how we show it** (the ceremony: a seal, a dispatch, a cross-examination). The ceremony is skin. The proof is passkeys (WebAuthn / FIDO2), never a homemade cipher.
 
@@ -188,7 +188,7 @@ RP ID and origins configuration · WebAuthn endpoints (register options/verify, 
 **Phase 2 — Step-up and risk (Socratic).**
 The catalogue · `assurance` middleware on routes · the cross-examination screen with server-held context · risk rules in **log mode** · the owner dashboard of "would have asked" · move payment-keys from "password again" to the unified step-up (password stays as the fallback for S1 users until the policy flips).
 
-**Phase 3 — Policy and recovery.**
+**Phase 3 — Policy and recovery (built: steps 3.1 – 3.5 below).**
 Strength per role in the role builder · grace and enforcement dates · enrolment campaigns · assisted recovery with cooling-off · **Council of Two** · break-glass command and runbook · "reset sign-in methods" action.
 
 **Phase 4 — Convenience.**
@@ -243,7 +243,7 @@ Each step is tested, mutation-checked and pushed on its own.
 | 0.8 ✔ | Security headers on the API; a hosting recipe for the frontend | `SecurityHeaders` middleware; `docs/HOSTING_SECURITY.md` (server settings, website headers, a report-only CSP to try); `frontend/public/_headers`; `php artisan security:check [--fix]` (also finds accounts still on the old default passwords) |
 
 
-## 11. Phases 1 and 2, as they will be built
+## 11. Phases 1, 2 and 3, as they were built
 
 Decided by the owner: RP ID `targetisl.co.ke`; protected cookie instead of a stored token; seal phrase yes; first release = Phases 1 and 2 together. Each step is tested, mutation-checked, checked in a real browser where a browser is involved, and pushed on its own.
 
