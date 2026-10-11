@@ -119,6 +119,24 @@ class RecipeLines
         return ['family' => null, 'qty' => $stock, 'variant_id' => (int) $line->variant_id];
     }
 
+    /**
+     * What a recipe would ask for at `$factor` times its yield, without looking at the shelf (for forecasts): an ingredient family in the family's unit, or an exact item in its stock unit.
+     *
+     * @return array<int, array{family_id: ?int, variant_id: ?int, qty: float}>
+     */
+    public function demand(Recipe $r, float $factor): array
+    {
+        $r->loadMissing('items');
+        $out = [];
+        foreach ($r->items as $line) {
+            $n = $this->need($line, $factor);
+            $key = $n['family'] ? 'f'.$n['family']->id : 'v'.$n['variant_id'];
+            $out[$key] = ['family_id' => $n['family']?->id, 'variant_id' => $n['variant_id'], 'qty' => round(($out[$key]['qty'] ?? 0) + $n['qty'], 4)];
+        }
+
+        return array_values($out);
+    }
+
     /** @return array<int, array{variant_id: int, quantity: float, from: string}> */
     private function resolve(RecipeItem $line, float $factor, int $locationId): array
     {

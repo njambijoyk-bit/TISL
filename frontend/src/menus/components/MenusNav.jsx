@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BellRing, BookOpenText, ChefHat, Coins, Armchair, Users, ChevronRight, ClipboardList, LayoutList, Salad, Settings2, UtensilsCrossed } from 'lucide-react';
+import { BellRing, BookOpenText, ChefHat, Coins, Armchair, Users, ClipboardCheck, ChevronRight, ClipboardList, LayoutList, Salad, Settings2, UtensilsCrossed } from 'lucide-react';
 
 const PAGES = [
   { path: '/admin/menus/till', title: 'Till', icon: Coins, color: '#10b981' },
@@ -7,6 +7,7 @@ const PAGES = [
   { path: '/admin/menus/orders', title: 'Orders', icon: BellRing, color: '#ef4444' },
   { path: '/admin/menus/kitchen', title: 'Kitchen', icon: ChefHat, color: '#0ea5e9' },
   { path: '/admin/menus/chefs', title: 'Chefs', icon: Users, color: '#ec4899' },
+  { path: '/admin/menus/operations', title: 'Operations', icon: ClipboardCheck, color: '#14b8a6' },
   { path: '/admin/menus/dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316' },
   { path: '/admin/menus/menus', title: 'Menus', icon: LayoutList, color: '#a855f7' },
   { path: '/admin/menus/ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e' },

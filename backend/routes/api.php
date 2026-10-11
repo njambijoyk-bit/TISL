@@ -678,6 +678,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/till', [$tc, 'till']);
         Route::get('/orders/{id}/receipt', [$tc, 'receipt'])->whereNumber('id');
         $fc = \App\Http\Controllers\Admin\MenusFloorController::class;
+        $op = \App\Http\Controllers\Admin\MenusOperationsController::class;
+        Route::get('/operations/prep', [$op, 'prep']);
+        Route::get('/operations/reorder', [$op, 'suggest']);
+        Route::get('/operations/waste', [$op, 'wasteIndex']);
         $ch = \App\Http\Controllers\Admin\MenusChefController::class;
         Route::get('/chefs', [$ch, 'index']);
         Route::get('/chefs/candidates', [$ch, 'candidates']);
@@ -689,7 +693,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kitchen/stations', [$kc, 'stations']);
         Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
         Route::get('/kitchen/expo', [$kc, 'expo']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch, $op) {
             Route::post('/floor/areas', [$fc, 'saveArea']);
             Route::put('/floor/areas/{id}', [$fc, 'saveArea'])->whereNumber('id');
             Route::delete('/floor/areas/{id}', [$fc, 'deleteArea'])->whereNumber('id');
@@ -698,6 +702,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/floor/tables/{id}', [$fc, 'deleteTable'])->whereNumber('id');
             Route::put('/floor/layout', [$fc, 'layout']);
             Route::post('/floor/tables/{id}/{action}', [$fc, 'act'])->whereNumber('id')->where('action', 'seat|clear|bill|merge|unmerge|renew-qr');
+            Route::post('/operations/reorder', [$op, 'makeOrders']);
+            Route::post('/operations/waste', [$op, 'wasteStore']);
+            Route::post('/operations/waste/{id}/void', [$op, 'wasteVoid'])->whereNumber('id');
             Route::post('/chefs', [$ch, 'save']);
             Route::put('/chefs/{id}', [$ch, 'save'])->whereNumber('id');
             Route::delete('/chefs/{id}', [$ch, 'destroy'])->whereNumber('id');
