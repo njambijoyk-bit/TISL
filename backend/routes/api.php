@@ -254,6 +254,9 @@ Route::prefix('checkout')->group(function () {
     Route::post('/place', [CheckoutController::class, 'place']);
 });
 
+// Menus — the menu a customer reads (open to everyone)
+Route::get('/menu', [\App\Http\Controllers\Api\MenusPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
+
 // Events — open to everyone, no sign-in needed to buy; a signed-in customer's token (if sent) links the purchase to them
 Route::prefix('events')->middleware('module:events')->group(function () {
     $c = \App\Http\Controllers\Api\EventPublicController::class;
@@ -638,9 +641,16 @@ Route::middleware('auth:sanctum')->group(function () {
         $in = \App\Http\Controllers\Admin\MenusIngredientController::class;
         $dc = \App\Http\Controllers\Admin\MenusDishController::class;
         Route::get('/ingredients', [$in, 'index']);
+        $mc = \App\Http\Controllers\Admin\MenusMenuController::class;
+        Route::get('/menus', [$mc, 'index']);
+        Route::get('/dishes/{id}/options', [$mc, 'options'])->whereNumber('id');
         Route::get('/dishes', [$dc, 'index']);
         Route::get('/settings', [$dc, 'settings']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc) {
+            Route::post('/menus', [$mc, 'save']);
+            Route::put('/menus/{id}', [$mc, 'save'])->whereNumber('id');
+            Route::delete('/menus/{id}', [$mc, 'destroy'])->whereNumber('id');
+            Route::put('/dishes/{id}/options', [$mc, 'saveOptions'])->whereNumber('id');
             Route::post('/dishes', [$dc, 'save']);
             Route::put('/dishes/{id}', [$dc, 'save'])->whereNumber('id');
             Route::post('/dishes/{id}/sold-out', [$dc, 'soldOut'])->whereNumber('id');

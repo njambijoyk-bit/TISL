@@ -102,8 +102,8 @@ class RecipeService
         });
     }
 
-    /** A line written in a recipe unit must be convertible to what it is made from. */
-    private function checkUnit(array $i): void
+    /** A line written in a recipe unit must be convertible to what it is made from. (Also used for what an option adds.) */
+    public function checkUnit(array $i): void
     {
         $unit = \App\Models\UnitOfMeasure::find((int) $i['unit_id']);
         if (! $unit) {
