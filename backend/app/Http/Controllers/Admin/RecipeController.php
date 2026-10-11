@@ -19,9 +19,14 @@ class RecipeController extends Controller
 {
     public function __construct(private RecipeService $recipes, private ProductionService $production) {}
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $rows = Recipe::with('items')->orderByDesc('id')->get()->map(fn (Recipe $r) => $this->row($r))->values();
+        $location = $request->integer('location_id') ?: (int) DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('id')->value('id');
+        $rows = Recipe::with('items')->orderByDesc('id')->get()->map(function (Recipe $r) use ($location) {
+            $cost = app(RecipeCosting::class)->for($r, $location);
+
+            return $this->row($r) + ['cost_each' => $cost['per_unit'], 'cost_complete' => $cost['complete']];
+        })->values();
         $runs = Production::orderByDesc('id')->limit(50)->get()->map(function (Production $p) {
             $v = $this->variantName((int) $p->variant_id);
 
@@ -29,7 +34,7 @@ class RecipeController extends Controller
                 'location' => DB::table('locations')->where('id', $p->location_id)->value('name'), 'created_at' => (string) $p->created_at];
         })->values();
 
-        return response()->json(['recipes' => $rows, 'runs' => $runs, 'branches' => DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name'])]);
+        return response()->json(['recipes' => $rows, 'runs' => $runs, 'location_id' => $location, 'branches' => DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name'])]);
     }
 
     /** Body: variant_id, yield_qty, deduct_on_sale?, note?, items[{variant_id, quantity}]. */

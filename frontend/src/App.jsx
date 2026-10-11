@@ -150,6 +150,9 @@ const Vendors            = lazy(() => import('./core/pages/admin/stock/Vendors')
 const StockTransfers     = lazy(() => import('./core/pages/admin/stock/StockTransfers'));
 const StockCounts        = lazy(() => import('./core/pages/admin/stock/StockCounts'));
 const Recipes            = lazy(() => import('./menus/pages/admin/Recipes'));
+const MenusIngredients   = lazy(() => import('./menus/pages/admin/Ingredients'));
+const MenusDishes        = lazy(() => import('./menus/pages/admin/Dishes'));
+const MenusSettings      = lazy(() => import('./menus/pages/admin/MenusSettings'));
 const StockJournal       = lazy(() => import('./core/pages/admin/stock/StockJournal'));
 const StockReports       = lazy(() => import('./core/pages/admin/stock/StockReports'));
 const StockJobs          = lazy(() => import('./core/pages/admin/stock/StockJobs'));
@@ -808,7 +811,11 @@ function App() {
               <Route path="/admin/vendors" element={<ProtectedRoute requireAdmin permission="vendors.view"><Vendors /></ProtectedRoute>} />
               <Route path="/admin/stock/transfers" element={<ProtectedRoute requireAdmin permission="stock.view"><StockTransfers /></ProtectedRoute>} />
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />
+              <Route path="/admin/menus" element={<Navigate to="/admin/menus/dishes" replace />} />
+              <Route path="/admin/menus/dishes" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusDishes /></ProtectedRoute>} />
+              <Route path="/admin/menus/ingredients" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusIngredients /></ProtectedRoute>} />
               <Route path="/admin/menus/recipes" element={<ProtectedRoute requireAdmin permission="menus.view"><Recipes /></ProtectedRoute>} />
+              <Route path="/admin/menus/settings" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusSettings /></ProtectedRoute>} />
               <Route path="/admin/stock/reports" element={<ProtectedRoute requireAdmin permission="stock.view"><StockReports /></ProtectedRoute>} />
               <Route path="/admin/stock/journal" element={<ProtectedRoute requireAdmin permission="stock.view"><StockJournal /></ProtectedRoute>} />
               <Route path="/admin/stock/jobs" element={<ProtectedRoute requireAdmin permission="stock.view"><StockJobs /></ProtectedRoute>} />

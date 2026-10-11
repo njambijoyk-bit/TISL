@@ -3,7 +3,7 @@ import {
   Package, PackagePlus, Wrench, Award, Gift, Gavel, CalendarCheck,
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
-  Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog,
+  Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2,
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
@@ -213,8 +213,17 @@ export const ADMIN_NAV = [
     module: MODULES.MENUS,
     items: [
       {
+        id: 'dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316', path: '/admin/menus/dishes', perm: 'menus.view', keywords: 'menu dish food allergens price sold out 86',
+        tabs: [
+          { title: 'Dishes', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316' },
+          { title: 'Ingredients', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e' },
+          { title: 'Recipes & production', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b' },
+          { title: 'Settings', path: '/admin/menus/settings', icon: Settings2, color: '#64748b' },
+        ],
+      },
+      { id: 'ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e', path: '/admin/menus/ingredients', perm: 'menus.view', keywords: 'ingredient flour oil substitutes allergens stock items' },
+      {
         id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', perm: 'menus.view', keywords: 'recipe ingredients manufacture production made to order dish',
-        tabs: [{ title: 'Recipes & production', path: '/admin/menus/recipes' }],
       },
     ],
   },
@@ -326,6 +335,7 @@ export const ADMIN_NAV = [
           { group: 'System', title: 'Departments', path: '/admin/settings/departments', perm: 'hr.view', description: 'Each branch\'s departments and their cost centres' },
           { group: 'System', title: 'Stock & expiry', path: '/admin/settings/stock', perm: 'stock.settings', description: 'Expired goods, warnings and which batch is used first' },
           { group: 'System', title: 'Payment keys', path: '/admin/settings/payments', perm: 'payments.keys', description: 'M-Pesa keys set here instead of on the server (owner only), their history and rollback' },
+          { group: 'System', title: 'Menus', path: '/admin/menus/settings', module: MODULES.MENUS, perm: 'menus.view', description: 'Where dish sales are booked, allergen wording and the receipt footer' },
           { group: 'System', title: 'Notifications', path: '/admin/settings/notifications', perm: ['notifications.view', 'notifications.settings'], description: 'Email, which messages go out, the delivery log and the history of these settings' },
           { group: 'Content', title: 'About', path: '/admin/settings/content/about', perm: 'content.manage' },
           { group: 'Content', title: 'Contact', path: '/admin/settings/content/contact', perm: 'content.manage' },

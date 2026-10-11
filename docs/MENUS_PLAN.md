@@ -1,6 +1,6 @@
 # Menus module (food and drink) — plan
 
-Status: **plan only, nothing built yet.** Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes. Written after reading what already exists (below), so the module reuses it instead of rebuilding it.
+Status: **step 1 (the foundation) is built and pushed**: ingredient families with preferred and substitute stock items (script 132), recipe lines that name an ingredient, use recipe units and waste, the method steps, costing and publishable flag (script 133), dishes with a hidden stock item, inherited allergens and diets, availability, the Menus settings (script 134), and the admin screens (Admin → Menus: Dishes, Ingredients, Recipes, Settings). Also built: the location *kind* text box with suggestions that follow the modules. **Next: step 2 (menus, sections, options and modifiers, the public menu page).** Run scripts 132, 133, 134 in that order, then set the sales account under Menus → Settings. Tests: `LocationKindTest`, `MenusIngredientsTest`, `MenusRecipesTest`, `MenusDishesTest` (every rule mutation-checked); browser check `frontend/e2e/menus-ui.mjs`. Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes. Written after reading what already exists (below), so the module reuses it instead of rebuilding it.
 
 ## 1. What the owner asked for
 
