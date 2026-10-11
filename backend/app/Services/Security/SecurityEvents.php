@@ -30,6 +30,7 @@ final class SecurityEvents
         'recovery_codes_made' => ['Recovery codes were made', SecurityLog::NOTICE],
         'recovery_code_used' => ['A recovery code was used (a lost passkey device)', SecurityLog::ALERT],
         'recovery_code_failed' => ['A wrong recovery code was tried', SecurityLog::WARNING],
+        'break_glass_used' => ['The emergency recovery command was run on the server for this account', SecurityLog::ALERT],
         'seal_phrase_changed' => ['The seal phrase was changed', SecurityLog::INFO],
         'stepup_asked' => ['Asked to confirm a sensitive action', SecurityLog::INFO],
         'stepup_approved' => ['Confirmed a sensitive action', SecurityLog::NOTICE],

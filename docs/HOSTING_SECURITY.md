@@ -161,3 +161,13 @@ Admin → Security → **Sensitive actions** lists every action that can be aske
 3. Switch a rule to **On** when the count is something people can live with. A serious action can only be switched on by someone who could answer it themselves (a passkey that has been on their account for a day, or no passkey and the password fallback); the page says so if not.
 4. Once **Payment keys** is On, the screen asks one question at the door (passkey) and no longer asks for the password as well. The KES 1 test prompt still asks for the password.
 5. Every change on this page is written to the sign-in log (`stepup_rules_changed`, with before and after), and once **Change the security rules** is On, changing them asks its own question first. `SECURITY_POLICY_OFF=true` puts all of these to sleep.
+
+### When nobody can sign in (the owner's break-glass)
+
+For the day the owner has lost every passkey **and** every recovery code, and no two administrators can approve a recovery. It is a command on the server, not a page, so only someone who can already run commands there can use it. Use it as the last step, not the first: try another passkey, a recovery code, then the two-administrator recovery.
+
+1. On the server, in the project folder: `php artisan security:recover owner@yourcompany.com` and answer `yes` (`--yes` skips the question; `--keep-passkeys` leaves the passkeys alone; `--temporary-password` also sets a password that must be changed at the next sign-in).
+2. It ends every sign-in of that account, takes away its passkeys, and prints a new set of ten recovery codes **once**. Write them down; they are not kept anywhere readable. Give them to the person in person (not by email or chat).
+3. The person signs in with their password (or the temporary one, which they must change straight away), uses a code to add a new passkey, and makes fresh recovery codes under "My devices".
+4. The use is written to the sign-in log as an alert ("The emergency recovery command was run on the server for this account") and emailed to the person and to everyone who can change the security rules. If nobody expected it, treat it as serious: someone has access to the server.
+5. If even this fails because the rules are locking everyone out: set `SECURITY_POLICY_OFF=true` in the server settings, reload, sign in, fix, take the setting out again.

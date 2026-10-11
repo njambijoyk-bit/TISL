@@ -97,4 +97,29 @@ final class SecurityAlerts
         $this->tell($who, 'recovery_code_used', 'A recovery code was used on your account',
             "A recovery code was used, which lets a new passkey be added to your account for 15 minutes. You have {$remaining} left.\n\n".$this->where($request).self::NOT_ME);
     }
+
+    /**
+     * The server's break-glass command was used on this account: tell the person, and everyone who can change the security rules (so it is never a secret between one person and the server).
+     *
+     * @param array{sessions_ended: int, passkeys_removed: int, codes_made: int, temporary_password: bool} $done
+     * @param iterable<int, User> $others
+     */
+    public function breakGlassUsed(User $who, array $done, iterable $others): void
+    {
+        $company = CompanyProfile::name();
+        $what = "- every sign-in of the account was ended ({$done['sessions_ended']})\n"
+            .($done['passkeys_removed'] ? "- {$done['passkeys_removed']} passkey".($done['passkeys_removed'] === 1 ? ' was' : 's were')." taken away\n" : '')
+            .($done['codes_made'] ? "- a new set of recovery codes was made\n" : '')
+            .($done['temporary_password'] ? "- a temporary password was set, to be changed at the next sign-in\n" : '');
+        $this->tell($who, 'break_glass_used', 'The emergency recovery was used on your account',
+            "Someone with access to the {$company} server used the emergency recovery command on your account ({$who->email}) at ".$this->when().":\n{$what}\n"
+            .'If you asked for this, you will have been given what you need to sign in again: add a new passkey as soon as you do. '.self::NOT_ME);
+        foreach ($others as $other) {
+            if ($other->getKey() === $who->getKey()) {
+                continue;
+            }
+            $this->tell($other, 'break_glass_used_other', 'The emergency recovery was used on an account',
+                "The emergency recovery command was run on the server for {$who->name} ({$who->email}) at ".$this->when().":\n{$what}\nIf nobody told you this was going to happen, treat it as serious: check who has access to the server.", false);
+        }
+    }
 }
