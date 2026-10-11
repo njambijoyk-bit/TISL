@@ -231,6 +231,7 @@ await page.screenshot({ path: D + 'menus-public.png', fullPage: true });
 // ---------------------------------------------------------------- settings
 await go('MenusSettings');
 await page.locator('[data-testid="menus-settings"]').waitFor({ timeout: 15000 });
-ok('the settings page has the tip and service charge accounts (managed in the books)', /Tips are booked to/.test(await page.locator('[data-testid="menus-settings"]').innerText()) && /Service charge on dine-in/.test(await page.locator('[data-testid="menus-settings"]').innerText()));
+await page.getByLabel('Tips are booked to').waitFor({ timeout: 10000 });
+ok('the settings page has the tip and service charge accounts (managed in the books)', /Tips are booked to/i.test(await page.locator('[data-testid="menus-settings"]').innerText()) && /Service charge on dine-in/i.test(await page.locator('[data-testid="menus-settings"]').innerText()));
 
 await finish();
