@@ -16,16 +16,18 @@ class PreorderOffer extends Model
     public static function ready(): bool
     {
         static $ready;
+        $check = fn () => Schema::hasTable('preorder_offers') && Schema::hasTable('preorder_lines') && Schema::hasColumn('variant_location_stock', 'preorder_enabled');
 
-        return $ready ??= Schema::hasTable('preorder_offers') && Schema::hasTable('preorder_lines') && Schema::hasColumn('variant_location_stock', 'preorder_enabled');
+        return app()->runningUnitTests() ? $check() : ($ready ??= $check());   // (tests build their own tables, so they must not be told yesterday's answer)
     }
 
     /** Has script 107 been run (the per-customer maximum exists)? */
     public static function hasMax(): bool
     {
         static $has;
+        $check = fn () => Schema::hasTable('preorder_offers') && Schema::hasColumn('preorder_offers', 'max_per_customer');
 
-        return $has ??= Schema::hasTable('preorder_offers') && Schema::hasColumn('preorder_offers', 'max_per_customer');
+        return app()->runningUnitTests() ? $check() : ($has ??= $check());
     }
 
     /** Has script 115 been run (an offer can take a deposit)? */
