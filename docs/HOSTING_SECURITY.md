@@ -127,6 +127,7 @@ Run these in Workbench, in order, each on its own, then `php artisan access:seed
 | `125_security_policy.sql` | the owner's settings for the passkey rule |
 | `126_recovery_codes.sql` | recovery codes, the way back from a lost phone |
 | `127_seal_phrase.sql` | the seal phrase on the sign-in page (optional) |
+| `128_step_up.sql` | "one more step" questions for sensitive actions (payment keys, roles, payroll, restore, exports, voucher cancel, staff accounts, bank details) |
 
 Server settings (the project has no `.env` file of its own, so these go wherever the other settings live):
 
@@ -136,7 +137,11 @@ Server settings (the project has no `.env` file of its own, so these go wherever
 | `PASSKEY_ORIGINS=https://targetisl.co.ke,https://www.targetisl.co.ke` | The exact website addresses that may ask for a passkey (https only; subdomains are not accepted unless listed). |
 | `SECURITY_PASSKEY_MODE=off` | The starting value of the passkey rule: `off`, `log` or `enforce`. Once the owner chooses on the Passkey rule page, that choice wins. |
 | `SECURITY_PASSKEY_ENFORCE_FROM=2026-12-01` | The starting value of the date from which the rule holds people back. |
-| `SECURITY_POLICY_OFF=true` | **Emergency only.** Puts the whole passkey rule to sleep whatever the page says (for a lock-out). Take it out again afterwards; `security:check` warns while it is set. |
+| `SECURITY_RISK_MODE=off` | The starting value of the unusual-sign-in check: `off`, `log` (only written down) or `enforce`. |
+| `SECURITY_RISK_NOTICE_AT=1`, `SECURITY_RISK_STRONGER_AT=2` | How many signals tell the person (1) and hold the sign-in until a passkey confirms it (2). New browser, new network, an odd hour = 1 each; a new country, or several wrong passwords just before = 2 each. |
+| `SECURITY_STEPUP_NEW_PASSKEY_HOURS=24` | A passkey added more recently than this can not approve a critical action (someone who just got into an account adds their own device first). |
+| `SECURITY_ALERTS_EMAIL=false` | Stops the emails about passkeys and recovery codes being added, removed or used. |
+| `SECURITY_POLICY_OFF=true` | **Emergency only.** Puts the whole passkey rule, the sensitive-action questions and the unusual-sign-in check to sleep whatever the page says (for a lock-out). Take it out again afterwards; `security:check` warns while it is set. |
 
 ### Turning the passkey rule on, safely
 

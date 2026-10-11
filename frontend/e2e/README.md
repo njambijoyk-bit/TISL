@@ -13,6 +13,9 @@ node e2e/cookie-session.mjs                     # prints PASS / FAIL lines
 node e2e/passkeys.mjs                           # passkeys with Chromium's pretend fingerprint reader (it remakes the database itself, so run it as often as you like)
 node e2e/passkey-policy.mjs                     # the passkey rule for staff: the reminder, the "one more step" screen, the owner needing two devices, a lost device and a recovery code
 node e2e/recovery-seal.mjs                      # recovery codes (make, save, use) and the seal phrase on the sign-in page
+node e2e/passkey-rule.mjs                       # the owner's page for the passkey rule
+node e2e/step-up.mjs                            # "is this what you meant?": a sensitive action held, the facts, the reason, the passkey, the action finishing by itself
+node e2e/risk.mjs                               # a sign-in that does not look like the person: let in (test mode), held until the passkey confirms it (on), never for a passkey sign-in
 ```
 
 Needs Playwright (`PLAYWRIGHT_MODULE_DIR` points at the folder holding it, default `/opt/node22/lib/node_modules/`) and a Chromium (`CHROME`).

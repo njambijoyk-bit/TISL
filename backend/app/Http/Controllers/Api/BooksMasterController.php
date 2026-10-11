@@ -105,6 +105,9 @@ class BooksMasterController extends Controller
         return response()->json($out);
     }
 
+    /** The fields that say where money is to be paid: changing one is a "change bank or payee details". */
+    private const PAYEE_FIELDS = ['bank_name', 'account_number', 'account_name', 'swift_code', 'branch_code', 'mobile_kind', 'mobile_number'];
+
     public function storeLedger(Request $request): JsonResponse
     {
         $d = $request->validate([
@@ -119,6 +122,9 @@ class BooksMasterController extends Controller
             'settings.refundable' => 'nullable|boolean', 'settings.tax_follows' => 'nullable|in:' . implode(',', \App\Services\Books\AuctionChargeService::TAX_FOLLOWS), 'settings.default_on' => 'nullable|boolean', 'settings.free_days' => 'nullable|integer|min:0|max:3650',
             'settings.tax_rate_id' => ['nullable', 'integer', \Illuminate\Validation\Rule::exists('ledgers', 'id')->whereNotNull('rate_type')], 'settings.description' => 'nullable|string|max:500', 'settings.icon' => 'nullable|string|max:40', 'settings.sort_order' => 'nullable|integer',
         ]);
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'bank_details', fn () => collect(self::PAYEE_FIELDS)->contains(fn ($k) => ! empty($d[$k])))) {
+            return $held;
+        }
         $this->assertBehaviourFields($d, $d['group_id']);
         $mode = $d['checkout_mode'] ?? null;
         unset($d['checkout_mode']);
@@ -154,6 +160,10 @@ class BooksMasterController extends Controller
             if (array_key_exists($k, $d) && $d[$k] === null) {
                 unset($d[$k]);
             }
+        }
+        // where customers are told to pay (bank, account, mobile number) is sensitive; the rest of a ledger is not. Only asked when one of those is actually being changed.
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'bank_details', fn () => collect(self::PAYEE_FIELDS)->contains(fn ($k) => array_key_exists($k, $d) && trim((string) $d[$k]) !== trim((string) $l->{$k})))) {
+            return $held;
         }
         $this->assertBehaviourFields($d, $d['group_id'] ?? $l->group_id, $l);
         if ($l->is_system) {

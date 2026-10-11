@@ -20,8 +20,8 @@ export async function finish() {
 }
 
 /** A fresh browser with a pretend authenticator that always "verifies" the person. */
-export async function open({ authenticator = true, conditional = true, credentials = [], picksFromList = false } = {}) {
-  const ctx = await browser.newContext({ viewport: { width: 1100, height: 1000 } });
+export async function open({ authenticator = true, conditional = true, credentials = [], picksFromList = false, userAgent, headers } = {}) {
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 1000 }, ...(userAgent ? { userAgent } : {}), ...(headers ? { extraHTTPHeaders: headers } : {}) });
   await ctx.addInitScript(() => { localStorage.setItem('tisl_cookie_consent', 'accepted'); });
   if (!conditional) await ctx.addInitScript(() => { PublicKeyCredential.isConditionalMediationAvailable = async () => false; });   // a browser without the email-field list: only the button
   // The email field's list is a piece of the browser that a test can not click. Here the "person" picks a saved passkey from it 0.8 s after the page starts waiting (the pretend device then answers as it would).

@@ -44,6 +44,11 @@ trait CreatesSecurityTables
         Schema::create('auth_recovery_codes', function ($t) {
             $t->id(); $t->unsignedBigInteger('user_id'); $t->string('batch', 26); $t->string('code_hash', 64)->unique(); $t->dateTime('used_at')->nullable(); $t->string('used_ip', 45)->nullable(); $t->dateTime('revoked_at')->nullable(); $t->timestamps();
         });
+        Schema::create('auth_pending_actions', function ($t) {
+            $t->string('id', 40)->primary(); $t->unsignedBigInteger('user_id'); $t->unsignedBigInteger('token_id'); $t->string('rule', 40); $t->string('params_hash', 64); $t->json('facts'); $t->unsignedTinyInteger('strength_needed')->default(2);
+            $t->boolean('reason_required')->default(false); $t->boolean('needs_second_person')->default(false); $t->string('reason', 300)->nullable(); $t->dateTime('approved_at')->nullable(); $t->string('approved_with', 10)->nullable();
+            $t->unsignedBigInteger('approved_credential_id')->nullable(); $t->dateTime('covers_until')->nullable(); $t->dateTime('used_at')->nullable(); $t->dateTime('cancelled_at')->nullable(); $t->dateTime('expires_at'); $t->timestamps();
+        });
         Schema::create('auth_seals', function ($t) { $t->unsignedBigInteger('user_id')->primary(); $t->string('phrase', 60); $t->timestamps(); });
         Schema::create('security_settings', function ($t) {
             $t->string('setting_key', 80)->primary(); $t->json('value')->nullable(); $t->unsignedBigInteger('updated_by_id')->nullable(); $t->timestamps();
@@ -54,5 +59,7 @@ trait CreatesSecurityTables
         \App\Services\Security\SecuritySettings::forget();
         \App\Services\Security\RecoveryCodes::forget();
         \App\Services\Security\SealPhrase::forget();
+        \App\Services\Security\StepUp\StepUp::forget();
+        \App\Services\Security\StepUp\StepUp::forgetFacts();
     }
 }

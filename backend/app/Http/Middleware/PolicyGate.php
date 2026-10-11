@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\User;
 use App\Services\Security\PasskeyPolicy;
+use App\Services\Security\RiskSignals;
 use App\Services\Security\SecurityLog;
 use App\Services\Security\Sessions;
 use Closure;
@@ -27,7 +28,7 @@ class PolicyGate
     public function handle(Request $request, Closure $next): Response
     {
         $policy = app(PasskeyPolicy::class);
-        if ($policy->mode() === 'off') {
+        if ($policy->mode() === 'off' && app(RiskSignals::class)->mode() !== 'enforce') {
             return $next($request);
         }
         $user = Auth::guard('sanctum')->user();   // the route's own check comes later: this only asks who it is, and says nothing about a missing or ended sign-in
@@ -62,6 +63,7 @@ class PolicyGate
     private function words(string $gate): string
     {
         return match ($gate) {
+            'risk_check' => 'This sign-in looks unusual. Confirm it is really you with your passkey to carry on.',
             'passkey_missing' => 'Add a passkey to your account to carry on. Your role needs one.',
             'second_missing' => 'Add another passkey, on a second device, to carry on. Your role needs two.',
             'device_bound_missing' => 'Your role needs two passkeys that stay on their device (a security key, or this computer\'s own sign-in), not ones copied to a cloud account. Add one to carry on.',

@@ -82,6 +82,16 @@ final class SecurityAlerts
             "A new set of recovery codes was made. Any earlier set no longer works.\n\n".$this->where($request).self::NOT_ME);
     }
 
+    /** @param string[] $signals */
+    public function unusualSignIn(User $who, array $signals, bool $heldBack, ?Request $request): void
+    {
+        $why = implode("\n", array_map(fn ($s) => '- '.ucfirst(RiskSignals::words($s)), $signals));
+        $this->tell($who, 'unusual_sign_in', 'An unusual sign-in to your account',
+            "Someone signed in to your account in a way that does not look like you:\n{$why}\n\n"
+            .($heldBack ? 'We held that sign-in: it can do nothing until the person confirms with your passkey.' : 'It went through, because the password was right.')
+            ."\n\n".$this->where($request).self::NOT_ME);
+    }
+
     public function recoveryCodeUsed(User $who, int $remaining, ?Request $request): void
     {
         $this->tell($who, 'recovery_code_used', 'A recovery code was used on your account',

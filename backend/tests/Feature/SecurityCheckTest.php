@@ -305,6 +305,46 @@ class SecurityCheckTest extends TestCase
         $this->assertStringContainsString('SECURITY_POLICY_OFF', $line['advice']);
     }
 
+    public function test_sensitive_actions_not_switched_on_are_a_note_and_the_count_moves_as_they_are(): void
+    {
+        $line = fn () => collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Sensitive actions ask for more proof'));
+        $this->assertSame('note', $line()['status']);
+        $this->assertStringContainsString('0 of 10 on', $line()['label']);
+        config(['security.policy.stepup.payment_keys.mode' => 'enforce', 'security.policy.stepup.access_change.mode' => 'log']);
+        \App\Services\Security\SecuritySettings::forget();
+        $this->assertSame('ok', $line()['status']);
+        $this->assertStringContainsString('1 of 10 on, 1 in test', $line()['label']);
+    }
+
+    public function test_the_unusual_sign_in_check_is_reported_by_its_mode(): void
+    {
+        $line = fn () => collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Unusual sign-ins are'));
+        $this->assertSame('note', $line()['status']);
+        $this->assertStringContainsString('not checked', $line()['label']);
+        foreach (['log' => 'checked in test mode', 'enforce' => 'checked'] as $mode => $words) {
+            config(['security.policy.risk.mode' => $mode]);
+            \App\Services\Security\SecuritySettings::forget();
+            $this->assertSame('ok', $line()['status']);
+            $this->assertSame("Unusual sign-ins are {$words}", $line()['label']);
+        }
+    }
+
+    public function test_the_step_up_table_missing_is_a_warning_that_names_the_script(): void
+    {
+        Schema::drop('auth_pending_actions');
+        \App\Services\Security\StepUp\StepUp::forget();
+        $line = collect($this->results())->first(fn ($r, $label) => str_starts_with($label, '"One more step"'));
+        $this->assertSame('warn', $line['status']);
+        $this->assertStringContainsString('128_step_up.sql', $line['advice']);
+        $this->assertNull(collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Sensitive actions ask')));   // and there is no point counting rules that can not ask
+    }
+
+    public function test_the_emergency_switch_hides_the_rule_counts(): void
+    {
+        config(['security.policy.kill_switch' => true]);
+        $this->assertNull(collect($this->results())->first(fn ($r, $label) => str_starts_with($label, 'Sensitive actions ask')));
+    }
+
     public function test_the_policy_table_is_part_of_what_must_exist(): void
     {
         Schema::drop('security_settings');

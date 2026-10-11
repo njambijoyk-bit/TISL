@@ -37,6 +37,7 @@ class NotificationTypes
         'passkey_removed' => ['A passkey was removed from your account', true, 'customer'],
         'passkey_clone' => ['A passkey on your account was switched off', true, 'customer'],
         'recovery_codes_made' => ['New recovery codes were made', true, 'customer'],
+        'unusual_sign_in' => ['An unusual sign-in to your account', true, 'customer'],
         'recovery_code_used' => ['A recovery code was used', true, 'customer'],
         'event_ticket' => ['Your event tickets', true, 'customer'],
         'event_reminder' => ['Reminder: your event is coming up', false, 'customer'],

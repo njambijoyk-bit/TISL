@@ -4,6 +4,8 @@ namespace App\Services\Security;
 
 use App\Models\User;
 use App\Services\Security\Passkeys\PasskeyConfig;
+use App\Services\Security\StepUp\Catalogue;
+use App\Services\Security\StepUp\StepUp;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
@@ -73,6 +75,7 @@ final class SecurityCheck
         // recovery codes (the way back from a lost passkey device) and the seal phrase
         $codes = Schema::hasTable('auth_recovery_codes') && Schema::hasColumn('auth_sessions', 'recovery_at');
         $add($codes ? self::OK : self::WARN, 'Recovery codes are set up', $codes ? null : 'Run database script 126_recovery_codes.sql in Workbench. Without it, someone who loses the phone their passkey is on has no way back in but an administrator.');
+        $add(Schema::hasTable('auth_pending_actions') ? self::OK : self::WARN, '"One more step" for sensitive actions is set up', Schema::hasTable('auth_pending_actions') ? null : 'Run database script 128_step_up.sql in Workbench. Until then payment keys, roles, payroll and the other sensitive actions only ask what they always asked.');
         $add(Schema::hasTable('auth_seals') ? self::OK : self::NOTE, 'The seal phrase is set up', Schema::hasTable('auth_seals') ? null : 'Optional: run database script 127_seal_phrase.sql to let people choose a few words the sign-in page shows them.');
 
         // passkeys are made for one domain and can never move: it must be the website's
@@ -105,6 +108,17 @@ final class SecurityCheck
                 $add($mode === 'enforce' && $due ? self::OK : self::NOTE, 'The passkey rule is on ('.$mode.($mode === 'enforce' ? ($due ? '' : ', not yet in force') : ': nobody is stopped').')',
                     $roster['missing'] ? "{$roster['missing']} of {$roster['applies']} people it is for still have to add the passkeys it asks for." : null);
             }
+        }
+        // the sensitive-action questions and the "does this look like you?" check
+        if (! config('security.policy.kill_switch') && StepUp::ready()) {
+            $stepUp = app(StepUp::class);
+            $modes = collect(Catalogue::keys())->mapWithKeys(fn ($k) => [$k => $stepUp->mode($k)]);
+            $on = $modes->filter(fn ($m) => $m === 'enforce')->count();
+            $test = $modes->filter(fn ($m) => $m === 'log')->count();
+            $add($on === 0 ? self::NOTE : self::OK, "Sensitive actions ask for more proof: {$on} of ".$modes->count().' on'.($test ? ", {$test} in test" : ''),
+                $on === 0 ? 'None is switched on yet, so payment keys, roles, payroll and the rest only ask what they always asked. Try them in test mode first (Admin → Security → Sensitive actions).' : null);
+            $risk = app(RiskSignals::class)->mode();
+            $add($risk === 'off' ? self::NOTE : self::OK, 'Unusual sign-ins are '.($risk === 'off' ? 'not checked' : ($risk === 'log' ? 'checked in test mode' : 'checked')), $risk === 'off' ? 'Switch the check on (test mode first) under Admin → Security → Sensitive actions.' : null);
         }
         $add(RateLimiter::limiter('sign-in') ? self::OK : self::FAIL, 'Sign-in has a speed limit', RateLimiter::limiter('sign-in') ? null : 'The speed limits are not registered.');
         $add(PasswordPolicy::minLength() >= 10 ? self::OK : self::WARN, 'Passwords must be at least 10 characters', PasswordPolicy::minLength() >= 10 ? null : 'SECURITY_PASSWORD_MIN is '.PasswordPolicy::minLength().'.');

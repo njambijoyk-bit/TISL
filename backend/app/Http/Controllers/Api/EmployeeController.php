@@ -382,6 +382,12 @@ class EmployeeController extends Controller
             }
         }
 
+        // where a person's pay goes is sensitive; the rest of their record is not. Only asked when a bank detail is actually being changed.
+        $bankChanged = fn () => collect(['bank_name', 'bank_account_number', 'bank_account_name'])->contains(fn ($k) => $request->has($k) && trim((string) $request->input($k)) !== trim((string) $employee->{$k}));
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'bank_details', $bankChanged)) {
+            return $held;
+        }
+
         DB::beginTransaction();
         try {
             $org = \App\Models\Department::ready() && ($request->filled('department_id') || $request->filled('location_id'))

@@ -4,6 +4,7 @@ import { execSync } from 'child_process';
 const require = createRequire(process.env.PLAYWRIGHT_MODULE_DIR || '/opt/node22/lib/node_modules/');
 const { chromium } = require('playwright');
 const D = process.env.SHOTS || '/tmp/';
+execSync(`php tests/e2e/boot.php ${process.env.E2E_DB || '/tmp/tisl-e2e.sqlite'}`, { cwd: new URL('../../backend/', import.meta.url).pathname, stdio: 'ignore' });   // a clean database every run
 const SITE = process.env.SITE || 'http://localhost:5177', API = 'http://localhost:8000/api';
 const browser = await chromium.launch({ executablePath: process.env.CHROME || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', args: ['--no-sandbox'] });
 const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });

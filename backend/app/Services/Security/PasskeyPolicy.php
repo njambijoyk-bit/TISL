@@ -82,6 +82,24 @@ final class PasskeyPolicy
      */
     public function report(User $user, ?AuthSession $session): array
     {
+        $report = $this->ruleReport($user, $session);
+        if ($report['gate'] === null && $this->heldByRisk($session)) {   // a sign-in that looked unusual is held until the person confirms with their passkey, whoever they are
+            $report['gate'] = $report['would_gate'] = 'risk_check';
+            $report['mode'] = 'enforce';   // (it holds, whatever mode the passkey rule itself is in)
+        }
+
+        return $report;
+    }
+
+    /** Was this sign-in held because it looked unusual (RiskGate), and not yet confirmed with a passkey? */
+    public function heldByRisk(?AuthSession $session): bool
+    {
+        return $session !== null && (bool) $session->restricted && $session->strength < 2 && app(RiskSignals::class)->mode() === 'enforce';
+    }
+
+    /** @return array<string, mixed> */
+    private function ruleReport(User $user, ?AuthSession $session): array
+    {
         $mode = $this->mode();
         $strong = $session !== null && $session->strength >= 2;
         $base = ['mode' => $mode, 'applies' => false, 'needs' => 0, 'passkeys' => 0, 'phase' => 'off', 'enforce_from' => null, 'days_left' => null, 'gate' => null, 'would_gate' => null, 'session_strong' => $strong];

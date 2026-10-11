@@ -362,8 +362,12 @@ class AuthController extends Controller
         Auth::guard('web')->login($user, $request->remember ?? false);
         $user->recordLogin($request);
 
+        // Does this sign-in look like the person? (judged by what came before it, so before the new session is written)
+        $risk = app(\App\Services\Security\RiskGate::class)->judge($user, $request, $method);
+
         // Create API token (a passkey sign-in is the strongest kind of proof we accept, and the session says so)
         $token = app(Sessions::class)->issue($user, $request, 'auth-token', $method, $credential?->id, $credential ? 2 : 0);
+        app(\App\Services\Security\RiskGate::class)->act($risk, $user, $request, $token, $method);
 
         // NEW: Load customer with referral code
         $customer = null;

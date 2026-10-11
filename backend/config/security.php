@@ -55,6 +55,8 @@ return [
         // trying recovery codes while signed in (counted per person; a code is 49 bits, so a handful of tries an hour is plenty for a real person), and asking the sign-in page for a seal phrase (per address)
         'recovery' => ['user' => [[5, 15], [15, 60]]],
         'seal' => ['ip' => [[60, 1], [300, 60]]],
+        // answering "one more step" questions about sensitive actions (per person)
+        'step_up' => ['user' => [[20, 15], [60, 60]]],
     ],
 
     // Headers added to every response (see Http/Middleware/SecurityHeaders). HSTS is only sent over HTTPS; switch it off if the site must also be reached over plain HTTP.
@@ -91,6 +93,7 @@ return [
     // SECURITY_POLICY_OFF=true is the emergency way out for a lock-out: it puts the whole rule to sleep from the server's settings, whatever the screen says.
     'policy' => [
         'kill_switch' => (bool) env('SECURITY_POLICY_OFF', false),
+        'risk' => ['mode' => env('SECURITY_RISK_MODE', 'off')],
         'passkeys' => [
             'mode' => env('SECURITY_PASSKEY_MODE', 'off'),
             'enforce_from' => env('SECURITY_PASSKEY_ENFORCE_FROM'),   // a date, 2026-12-01; empty = not set yet (people are only reminded)
@@ -103,6 +106,21 @@ return [
 
     // Email a person when a kind of browser they have not signed in from before signs in (with a button that signs everyone out). Off with SECURITY_NEW_SIGN_IN_EMAIL=false.
     'new_sign_in_email' => (bool) env('SECURITY_NEW_SIGN_IN_EMAIL', true),
+
+    // "Does this sign-in look like the person?" (Services/Security/RiskSignals). Signals add up: from `notice_at` the person is told, from `stronger_at` a person with a passkey must confirm with it too.
+    // The mode starts off; the owner sets it to test (only written down) or on from the Security screen.
+    'risk' => [
+        'notice_at' => (int) env('SECURITY_RISK_NOTICE_AT', 1),
+        'stronger_at' => (int) env('SECURITY_RISK_STRONGER_AT', 2),
+    ],
+
+    // "One more step" for sensitive actions (Services/Security/StepUp). Each rule starts off; the owner sets it to test or on from the Security screen.
+    'stepup' => [
+        // a passkey added less than this many hours ago can not approve a critical action (someone who just got into an account adds their own device first)
+        'new_passkey_hours' => (int) env('SECURITY_STEPUP_NEW_PASSKEY_HOURS', 24),
+        // someone with no passkey at all may answer a rule that asks for one with their password, until they have one
+        'password_fallback' => (bool) env('SECURITY_STEPUP_PASSWORD_FALLBACK', true),
+    ],
 
     // Tell the person (email and bell) when a passkey is added, removed or switched off, or recovery codes are made or used. Off with SECURITY_ALERTS_EMAIL=false.
     'alerts_email' => (bool) env('SECURITY_ALERTS_EMAIL', true),

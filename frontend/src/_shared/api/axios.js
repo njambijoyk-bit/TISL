@@ -68,26 +68,58 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle 403 Forbidden
-    if (error.response?.status === 403) {
-      console.error('Access forbidden');
-      // "One more step": the passkey rule holds this sign-in to adding or using a passkey. The gate screen (SecurityGate) listens and covers the page.
-      if (error.response?.data?.restricted) {
-        window.dispatchEvent(new CustomEvent('tisl:restricted', { detail: error.response.data.restricted }));
-      }
-    }
+    // A sensitive action the server holds back until the person confirms it ("One more step"): show them the question and, once it is answered, try the very same request again with the answer.
+    if (error.response?.status === 403 && error.config && !error.config._stepUpRetried) {
+      return readBody(error.response.data).then((body) => {
+        if (!body?.step_up) throw error;   // a plain refusal: on to the usual handling below
 
-    // Handle 404 Not Found
-    if (error.response?.status === 404) {
-      console.error('Resource not found');
+        return new Promise((resolve, reject) => {
+          new Promise((ok, no) => window.dispatchEvent(new CustomEvent('tisl:step-up', { detail: { info: body.step_up, resolve: ok, reject: no } })))
+            .then((pending) => {
+              const cfg = error.config;
+              cfg._stepUpRetried = true;
+              cfg.headers = { ...(cfg.headers?.toJSON ? cfg.headers.toJSON() : cfg.headers), 'X-Step-Up': pending };
+              resolve(api.request(cfg));
+            })
+            .catch(() => reject(error));   // they said no: the action simply did not happen, as if it had been refused
+        });
+      }).catch((e) => (e === error ? finish(error) : Promise.reject(e)));
     }
-
-    // Handle 500 Server Error
-    if (error.response?.status === 500) {
-      console.error('Server error');
-    }
-    return Promise.reject(error);
+    return finish(error);
   }
 );
+
+/** An error body as an object, even when the request asked for a file (the refusal then arrives as a blob or raw bytes). */
+async function readBody(data) {
+  try {
+    if (typeof Blob !== 'undefined' && data instanceof Blob) return JSON.parse(await data.text());
+    if (data instanceof ArrayBuffer) return JSON.parse(new TextDecoder().decode(data));
+  } catch { return null; }
+
+  return data && typeof data === 'object' ? data : null;
+}
+
+/** What every refusal gets once the one-more-step question (if any) has been dealt with: say so in the console, tell the gate screen, and pass the error on. */
+function finish(error) {
+  // Handle 403 Forbidden
+  if (error.response?.status === 403) {
+    console.error('Access forbidden');
+    // the passkey rule holds this sign-in to adding or using a passkey: the gate screen (SecurityGate) listens and covers the page
+    if (error.response?.data?.restricted) {
+      window.dispatchEvent(new CustomEvent('tisl:restricted', { detail: error.response.data.restricted }));
+    }
+  }
+
+  // Handle 404 Not Found
+  if (error.response?.status === 404) {
+    console.error('Resource not found');
+  }
+
+  // Handle 500 Server Error
+  if (error.response?.status === 500) {
+    console.error('Server error');
+  }
+  return Promise.reject(error);
+}
 
 export default api;

@@ -165,6 +165,7 @@ final class ModuleTables
         'jobs', 'job_batches', 'failed_jobs',
         'password_reset_tokens', 'personal_access_tokens',
         'auth_challenges',   // single-use questions that run out in two minutes
+        'auth_pending_actions',   // "one more step" questions about sensitive actions: they run out in minutes, and a restored one would be a stale approval
     ];
 
     /** Tables declared for a module (empty array if none yet). */

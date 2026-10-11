@@ -30,6 +30,12 @@ class UserController extends Controller
         return array_merge($az->staffRoleKeys(), $az->portalRoleKeys('customer'), $az->portalRoleKeys('vendor'));
     }
 
+    /** Is this a staff role (the kind that signs in to the admin or the driver app), as against a customer, vendor or applicant? */
+    private function isStaffRole(string $role): bool
+    {
+        return $role !== '' && in_array($role, $this->access()->staffRoleKeys(), true);
+    }
+
     /** `$current` is the role the account already has: sending it back unchanged is always fine. */
     private function roleRule(?string $current = null): array
     {
@@ -201,6 +207,11 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
 
+        // making a staff account is sensitive; making a customer's is not (the answer is only asked for once the rule is on: see Services/Security/StepUp)
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'staff_account', fn () => $this->isStaffRole((string) $request->input('role')))) {
+            return $held;
+        }
+
         $actor = $request->user();
 
         $validator = Validator::make($request->all(), [
@@ -326,6 +337,11 @@ class UserController extends Controller
     {
         $user  = User::findOrFail($id);
         $this->authorize('update', $user);
+
+        // changing a staff account (or giving anyone a staff role) is sensitive
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'staff_account', fn () => $user->isStaff() || ($request->filled('role') && $this->isStaffRole((string) $request->input('role'))))) {
+            return $held;
+        }
 
         $actor = $request->user();
 
@@ -459,6 +475,9 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $this->authorize('delete', $user);
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'staff_account', fn () => $user->isStaff())) {
+            return $held;
+        }
 
         DB::beginTransaction();
         try {
@@ -530,6 +549,9 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $this->authorize('manageAccount', $user);
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'signin_reset', fn () => $user->isStaff())) {
+            return $held;
+        }
         $user->forceFill(['force_password_change' => true])->save();
         $ended = app(\App\Services\Security\Sessions::class)->revokeAll($user, null, 'admin');   // "must change it" means now, not whenever the old session happens to end
         \App\Services\Security\SecurityLog::record('password_reset_forced', $user, $request, ['by' => $request->user()?->id, 'sessions_ended' => $ended], \App\Services\Security\SecurityLog::WARNING);
@@ -540,6 +562,9 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $this->authorize('manageAccount', $user);
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'staff_account', fn () => $user->isStaff())) {
+            return $held;
+        }
 
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:active,inactive,suspended,pending_verification',
@@ -589,6 +614,9 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
         $this->authorize('manageAccount', $user);
+        if ($held = \App\Http\Middleware\Assurance::check($request, 'signin_reset', fn () => $user->isStaff())) {
+            return $held;
+        }
 
         $validator = Validator::make($request->all(), [
             'password' => ['required', 'string', new \App\Rules\StrongPassword([$user->name, $user->email, $user->phone])],

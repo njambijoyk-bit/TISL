@@ -165,7 +165,9 @@ class OAuthController extends Controller
             }
 
             // Generate token using Laravel Sanctum
+            $risk = app(\App\Services\Security\RiskGate::class)->judge($user, request(), $provider);   // does this look like the person? (judged before the new session is written)
             $token = app(\App\Services\Security\Sessions::class)->issue($user, request(), 'auth_token', $provider);
+            app(\App\Services\Security\RiskGate::class)->act($risk, $user, request(), $token, $provider);
             // Auto-accept policies for OAuth users — no checkbox needed
             if ($user->customer) {
                 $customer = $user->customer;

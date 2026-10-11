@@ -14,6 +14,7 @@ import Mimi from './core/components/chat/Mimi';
 import PasskeyOffer from './core/components/account/PasskeyOffer';
 import PasskeyReminder from './core/components/account/PasskeyReminder';
 import SecurityGate from './core/components/account/SecurityGate';
+import StepUpModal from './core/components/account/StepUpModal';
 import MemoDock from './core/components/finance/MemoDock';
 import Portal from './_shared/pwa/Portal';
 import PWANavBar from './_shared/pwa/PWANavBar';
@@ -455,6 +456,7 @@ function App() {
         <PasskeyOffer />
         <PasskeyReminder />
         <SecurityGate />
+        <StepUpModal />
         <PWANavBar /> 
 
         {/* All routes are lazy — Suspense handles the loading state */}

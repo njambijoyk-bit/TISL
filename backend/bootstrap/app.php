@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'applicant' => \App\Http\Middleware\EnsureApplicant::class,
             'module' => \App\Http\Middleware\EnsureModuleActive::class,
             'exchange.key' => \App\Http\Middleware\ExchangeKeyAuth::class,
+            'assurance' => \App\Http\Middleware\Assurance::class,   // a sensitive action: asks for more proof when the owner has switched its rule on (see Services/Security/StepUp)
         ]);
 
         $middleware->append(\App\Http\Middleware\SecurityHeaders::class);   // nosniff, no referrer, HSTS over HTTPS, JSON may not be framed, sign-in answers are never cached

@@ -25,6 +25,11 @@ const WORDS = {
     body: 'Your role needs two passkeys that stay on their device: a security key you plug in or tap, or this computer’s own sign-in. Passkeys that are copied to a Google or Apple account do not count for this role.',
     action: 'Add a passkey',
   },
+  risk_check: {
+    title: 'Confirm it is you',
+    body: 'This sign-in looks different from your usual ones (a new browser, place or time of day). Please confirm it with your passkey: your fingerprint, face or screen PIN. If this was not you, sign out and change your password.',
+    action: 'Use my passkey',
+  },
   passkey_needed: {
     title: 'Confirm it is you',
     body: 'You signed in with your password. Your role also needs your passkey, so that someone who only learned your password can not get in. Use your fingerprint, face or screen PIN.',
@@ -64,7 +69,7 @@ export default function SecurityGate() {
   const go = async () => {
     setBusy(true);
     try {
-      if (gate === 'passkey_needed' && !recoveredNow) {
+      if ((gate === 'passkey_needed' || gate === 'risk_check') && !recoveredNow) {
         await proveWithPasskey();
       } else {
         await withProtection((password) => addPasskey({ name: suggestedName(), password }), { askPassword: () => new Promise((resolve, reject) => { setTyped(''); setAsking({ resolve, reject }); }) });
@@ -93,7 +98,7 @@ export default function SecurityGate() {
         </div>
         <h2 style={{ margin: '0 0 8px', fontSize: '1.2rem', fontWeight: 800 }}>{words.title}</h2>
         <p style={{ margin: '0 0 6px', fontSize: '0.86rem', color: 'var(--text-secondary)' }}>{words.body}</p>
-        {security?.needs === 2 && gate !== 'passkey_needed' && <p style={{ margin: '0 0 14px', fontSize: '0.8rem', fontWeight: 700 }}>{security.passkeys} of 2 added so far.</p>}
+        {security?.needs === 2 && gate !== 'passkey_needed' && gate !== 'risk_check' && <p style={{ margin: '0 0 14px', fontSize: '0.8rem', fontWeight: 700 }}>{security.passkeys} of 2 added so far.</p>}
 
         {!passkeysSupported() && <p style={{ margin: '10px 0', fontSize: '0.82rem', color: '#b91c1c' }}>This browser can not use passkeys. Open the site in a recent Chrome, Edge, Safari or Firefox on a phone or laptop with a fingerprint, face or PIN.</p>}
 

@@ -49,6 +49,7 @@ final class Sessions
         $newDevice = $this->hasHistory($tokenable) && ! $this->seenBefore($tokenable, $request);   // asked before this session is recorded
         $made = $tokenable->createToken($name, ['*'], SessionPolicy::expiry($tokenable, $now, $now));
         SecurityLog::record('sign_in', $tokenable, $request, ['method' => $method, 'device' => DeviceInfo::describe($request?->userAgent())['label'], 'new_device' => $newDevice]
+            + (RiskSignals::country($request) ? ['country' => RiskSignals::country($request)] : [])
             + ($credentialId ? ['credential' => $credentialId, 'strength' => $strength] : []));
         if ($newDevice) {
             rescue(fn () => app(NewSignInNotice::class)->send($tokenable, $request, $method), null, true);   // telling them must never stop them signing in
@@ -146,7 +147,7 @@ final class Sessions
     public function markStrong(?PersonalAccessToken $token, int $credentialId): void
     {
         if ($token && self::strongTracked()) {
-            AuthSession::where('token_id', $token->id)->update(['strength' => 2, 'last_strong_at' => now()]);
+            AuthSession::where('token_id', $token->id)->update(['strength' => 2, 'last_strong_at' => now(), 'restricted' => false]);
             AuthSession::where('token_id', $token->id)->whereNull('credential_id')->update(['credential_id' => $credentialId]);
         }
     }

@@ -445,6 +445,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::patch('/{id}',                [$c, 'rename'])->whereNumber('id');
         Route::delete('/{id}',               [$c, 'destroy'])->whereNumber('id');
     });
+    // "One more step" for a sensitive action: the question, the device's challenge for it, the answer, and giving it up
+    Route::prefix('auth/step-up/{id}')->middleware('throttle:step-up')->group(function () {
+        $c = \App\Http\Controllers\Api\StepUpController::class;
+        Route::get('/',           [$c, 'show']);
+        Route::post('/options',   [$c, 'options']);
+        Route::post('/approve',   [$c, 'approve']);
+        Route::delete('/',        [$c, 'cancel']);
+    });
     // Recovery codes: the way back from a lost passkey device. Using one does not sign anyone in; it lets this session add a new passkey for 15 minutes.
     Route::prefix('auth/recovery-codes')->group(function () {
         $c = \App\Http\Controllers\Api\RecoveryCodeController::class;
@@ -653,7 +661,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/movement/item-ledgers',    [\App\Http\Controllers\Api\MovementReportController::class, 'itemLedgers']);
         Route::get('/movement/products',        [\App\Http\Controllers\Api\MovementReportController::class, 'products']);
         Route::get('/movement/money-flow',      [\App\Http\Controllers\Api\MovementReportController::class, 'moneyFlow']);
-        Route::get('/vouchers/export',          [BooksVoucherController::class, 'exportList']);
+        Route::get('/vouchers/export',          [BooksVoucherController::class, 'exportList'])->middleware('assurance:export_bulk');
         Route::get('/lookup',                   [BooksVoucherController::class, 'lookup']);
         Route::get('/products/{id}/variants',   [BooksVoucherController::class, 'productVariants']);
         Route::get('/stock-batches',            [BooksVoucherController::class, 'stockBatches']);
@@ -698,7 +706,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/reconciliation/stock-refresh', [BooksVoucherController::class, 'stockRefresh']);
             Route::post('/vouchers',                [BooksVoucherController::class, 'store']);
             Route::put('/vouchers/{id}',            [BooksVoucherController::class, 'update']);
-            Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel']);
+            Route::post('/vouchers/{id}/cancel',    [BooksVoucherController::class, 'cancel'])->middleware('assurance:voucher_cancel');
             Route::post('/vouchers/{id}/refund-to-gift-voucher', [BooksVoucherController::class, 'refundToGiftVoucher']);
             Route::post('/vouchers/{id}/convert',   [BooksVoucherController::class, 'convert']);
             Route::post('/vouchers/{id}/return',    [BooksVoucherController::class, 'createReturn'])->whereNumber('id');
@@ -755,8 +763,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::middleware('permission:system.restore')->prefix('admin/backups')->group(function () {
         Route::get('/restore/files',   [BackupController::class, 'restoreFiles']);
-        Route::post('/restore/upload', [BackupController::class, 'restoreUpload']);
-        Route::post('/restore/pull',   [BackupController::class, 'restorePull']);
+        Route::post('/restore/upload', [BackupController::class, 'restoreUpload'])->middleware('assurance:backup_restore');
+        Route::post('/restore/pull',   [BackupController::class, 'restorePull'])->middleware('assurance:backup_restore');
     });
 
     // ============================================
@@ -996,7 +1004,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/people',      [$c, 'people']);
                 Route::get('/users/{id}',  [$c, 'user'])->whereNumber('id');
             });
-            Route::middleware('permission:access.manage')->group(function () use ($c) {
+            Route::middleware(['permission:access.manage', 'assurance:access_change'])->group(function () use ($c) {
                 Route::put('/users/{id}/clearance',        [$c, 'setClearance'])->whereNumber('id');
                 Route::put('/users/{id}/default-location', [$c, 'setDefaultLocation'])->whereNumber('id');
                 Route::put('/users/{id}/primary-role',     [$c, 'setPrimaryRole'])->whereNumber('id');
@@ -1005,7 +1013,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/users/{id}/grants',          [$c, 'addGrant'])->whereNumber('id');
                 Route::delete('/users/{id}/grants/{grantId}', [$c, 'revokeGrant'])->whereNumber(['id', 'grantId']);
             });
-            Route::middleware('permission:access.roles')->group(function () use ($c) {
+            Route::middleware(['permission:access.roles', 'assurance:access_change'])->group(function () use ($c) {
                 Route::post('/roles',             [$c, 'createRole']);
                 Route::put('/roles/{id}',         [$c, 'updateRole'])->whereNumber('id');
                 Route::delete('/roles/{id}',      [$c, 'deleteRole'])->whereNumber('id');
@@ -1121,7 +1129,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('exchange')->group(function () {   // books exchange: .wnkjap files out, other companies' files opened in the browser (nothing of theirs is stored)
             $c = \App\Http\Controllers\Api\ExchangeController::class;
             Route::get('/options',                     [$c, 'options'])->middleware('permission:imports.view,imports.export');
-            Route::post('/export',                     [$c, 'exportFile'])->middleware('permission:imports.export');
+            Route::post('/export',                     [$c, 'exportFile'])->middleware(['permission:imports.export', 'assurance:export_bulk']);
             Route::get('/keys',                        [$c, 'keys'])->middleware('permission:imports.export');
             Route::post('/keys',                       [$c, 'makeKey'])->middleware('permission:imports.export');
             Route::delete('/keys/{id}',                [$c, 'revokeKey'])->whereNumber('id')->middleware('permission:imports.export');
@@ -1186,15 +1194,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('payments')->middleware('permission:payments.keys')->group(function () {   // the payment keys: the owner only; every change asks for the password again, is logged and emailed to the owners
             $c = \App\Http\Controllers\Api\PaymentSettingsController::class;
             Route::get('/settings',                                [$c, 'show']);
-            Route::put('/settings/{part}',                         [$c, 'update'])->middleware('throttle:10,1');
+            Route::put('/settings/{part}',                         [$c, 'update'])->middleware(['throttle:10,1', 'assurance:payment_keys']);
             Route::post('/settings/mpesa/test',                    [$c, 'test'])->middleware('throttle:10,1');
             Route::post('/settings/{part}/test',                   [$c, 'testCard'])->middleware('throttle:10,1');
             Route::post('/settings/mpesa/test-prompt',             [$c, 'testPrompt'])->middleware('throttle:5,1');
-            Route::post('/settings/purge-keys',                    [$c, 'purgeKeys'])->middleware('throttle:10,1');
-            Route::post('/settings/{part}/rotate-token',           [$c, 'rotateToken'])->middleware('throttle:10,1');
-            Route::post('/settings/{part}/reset',                  [$c, 'reset'])->middleware('throttle:10,1');
+            Route::post('/settings/purge-keys',                    [$c, 'purgeKeys'])->middleware(['throttle:10,1', 'assurance:payment_keys']);
+            Route::post('/settings/{part}/rotate-token',           [$c, 'rotateToken'])->middleware(['throttle:10,1', 'assurance:payment_keys']);
+            Route::post('/settings/{part}/reset',                  [$c, 'reset'])->middleware(['throttle:10,1', 'assurance:payment_keys']);
             Route::get('/settings/{part}/versions',                [$c, 'versions']);
-            Route::post('/settings/{part}/versions/{id}/rollback', [$c, 'rollback'])->whereNumber('id')->middleware('throttle:10,1');
+            Route::post('/settings/{part}/versions/{id}/rollback', [$c, 'rollback'])->whereNumber('id')->middleware(['throttle:10,1', 'assurance:payment_keys']);
             Route::get('/log',                                     [$c, 'log']);
         });
 
@@ -1525,8 +1533,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/runs/{id}',                 [$c, 'show'])->whereNumber('id');
             Route::post('/runs/{id}/refresh',        [$c, 'refresh'])->whereNumber('id');
             Route::post('/runs/{id}/adjust',         [$c, 'adjust'])->whereNumber('id');
-            Route::post('/runs/{id}/approve',        [$c, 'approve'])->whereNumber('id');
-            Route::post('/runs/{id}/pay',            [$c, 'pay'])->whereNumber('id');
+            Route::post('/runs/{id}/approve',        [$c, 'approve'])->whereNumber('id')->middleware('assurance:payroll_run');
+            Route::post('/runs/{id}/pay',            [$c, 'pay'])->whereNumber('id')->middleware('assurance:payroll_run');
             Route::post('/runs/{id}/cancel',         [$c, 'cancel'])->whereNumber('id');
             Route::get('/runs/{id}/csv',             [$c, 'csv'])->whereNumber('id');
             Route::get('/gratuity',                  [$c, 'gratuity']);
@@ -2481,12 +2489,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::prefix('security-policy')->group(function () {   // Who must use a passkey: the switch, the date, the roles, and who has not yet
             Route::get('/', [\App\Http\Controllers\Api\SecurityPolicyController::class, 'show'])->middleware('permission:security.view');
-            Route::put('/', [\App\Http\Controllers\Api\SecurityPolicyController::class, 'update'])->middleware('permission:security.manage');
+            Route::put('/', [\App\Http\Controllers\Api\SecurityPolicyController::class, 'update'])->middleware(['permission:security.manage', 'assurance:security_settings']);
         });
 
         Route::prefix('logs')->middleware('permission:system.logs')->group(function () {
             Route::get('/export/meta',   [LogExportController::class, 'meta']);
-            Route::post('/export',       [LogExportController::class, 'export']);
+            Route::post('/export',       [LogExportController::class, 'export'])->middleware('assurance:export_bulk');
         });
 
         

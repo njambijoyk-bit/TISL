@@ -22,7 +22,8 @@
       const { default: Component } = await parts[which]();
       if (which === 'PasskeyRule') document.getElementById('root').style.maxWidth = 'none';   // (a whole page, not a card)
       const { BrowserRouter } = await import('react-router-dom');
-      createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component)));
+      const { default: StepUpModal } = await import('/src/core/components/account/StepUpModal.jsx');   // (the app mounts it once; here it is part of the frame)
+      createRoot(document.getElementById('root')).render(React.createElement(BrowserRouter, null, React.createElement(Toaster, { position: 'top-right' }), React.createElement(Component), React.createElement(StepUpModal)));
     </script>
   </body>
 </html>
