@@ -10,6 +10,11 @@ export const menusAPI = {
   saveDish: async (payload, id) => (id ? (await api.put(`/admin/menus/dishes/${id}`, payload)) : (await api.post('/admin/menus/dishes', payload))).data,
   soldOut: async (id, soldOut) => (await api.post(`/admin/menus/dishes/${id}/sold-out`, { sold_out: soldOut })).data,
   removeDish: async (id) => (await api.delete(`/admin/menus/dishes/${id}`)).data,
+  menus: async () => (await api.get('/admin/menus/menus')).data,
+  saveMenu: async (payload, id) => (id ? (await api.put(`/admin/menus/menus/${id}`, payload)) : (await api.post('/admin/menus/menus', payload))).data,
+  removeMenu: async (id) => (await api.delete(`/admin/menus/menus/${id}`)).data,
+  dishOptions: async (dishId) => (await api.get(`/admin/menus/dishes/${dishId}/options`)).data,
+  saveDishOptions: async (dishId, groups) => (await api.put(`/admin/menus/dishes/${dishId}/options`, { groups })).data,
   settings: async () => (await api.get('/admin/menus/settings')).data,
   saveSettings: async (payload) => (await api.put('/admin/menus/settings', payload)).data,
 };

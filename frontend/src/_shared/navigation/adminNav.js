@@ -3,7 +3,7 @@ import {
   Package, PackagePlus, Wrench, Award, Gift, Gavel, CalendarCheck,
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
-  Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2,
+  Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
@@ -216,6 +216,7 @@ export const ADMIN_NAV = [
         id: 'dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316', path: '/admin/menus/dishes', perm: 'menus.view', keywords: 'menu dish food allergens price sold out 86',
         tabs: [
           { title: 'Dishes', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316' },
+          { title: 'Menus', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7' },
           { title: 'Ingredients', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e' },
           { title: 'Recipes & production', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b' },
           { title: 'Settings', path: '/admin/menus/settings', icon: Settings2, color: '#64748b' },

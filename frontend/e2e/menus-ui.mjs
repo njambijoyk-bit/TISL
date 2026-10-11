@@ -55,7 +55,7 @@ await page.locator('[data-testid="ingredients"]').waitFor({ timeout: 15000 });
 let text = await page.locator('[data-testid="ingredients"]').innerText();
 ok('the list shows the ingredient, its items in order, what is on hand and the cost', /Wheat flour/.test(text) && /1\. Exe flour/.test(text) && /2\. Pembe flour/.test(text) && /14,000 g/.test(text) && /0\.15 \/ g/.test(text), text.replace(/\n+/g, ' | ').slice(0, 220));
 ok('and its allergens', /Wheat/.test(await page.locator('[data-testid="allergens"]').first().innerText()));
-ok('the Menus navigation is there with its four pages', (await page.locator('[data-testid="menus-nav"] [role="tab"]').count()) === 4);
+ok('the Menus navigation is there with its five pages', (await page.locator('[data-testid="menus-nav"] [role="tab"]').count()) === 5);
 
 await page.getByRole('button', { name: /New ingredient/ }).click();
 await page.getByLabel('Name', { exact: true }).fill('Cooking oil');
@@ -128,6 +128,105 @@ const rec = sent.find((x) => x[0] === 'recipe' && x[1] === 'PUT');
 ok('the recipe is saved with ingredient and exact lines, units, waste, steps and who may see it',
   rec && rec[2].items.length === 2 && rec[2].items[0].family_id === 7 && rec[2].items[0].unit_id === 1 && rec[2].items[0].waste_pct === 20
   && rec[2].items[1].variant_id === 11 && rec[2].items[1].unit_id === 2 && rec[2].items[1].waste_pct === 10 && rec[2].steps[0].body === 'Knead the dough' && rec[2].steps[0].minutes === 10 && rec[2].visibility === 'publishable', JSON.stringify(rec?.[2]));
+
+
+// ---------------------------------------------------------------- menus (the cards)
+await page.route('**/api/admin/menus/menus**', async (route) => {
+  const m = route.request().method();
+  if (m === 'GET') return json(route, { days: { 0: 'Sun', 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat' }, dishes: [{ id: 1, name: 'Chapati', is_active: true }, { id: 2, name: 'Tea', is_active: true }, { id: 3, name: 'Old dish', is_active: false }],
+    menus: [{ id: 1, name: 'Breakfast', slug: 'breakfast', description: null, days: [1, 2, 3, 4, 5], starts_at: '06:00', ends_at: '11:00', sort_order: 0, is_active: true, serves: 'Mon–Fri, 06:00–11:00', serving_now: true, sections: [{ name: 'Mains', description: null, dishes: [{ id: 1, name: 'Chapati' }] }] }] });
+  sent.push(['menu', m, route.request().postDataJSON()]);
+
+  return json(route, { message: 'Menu saved.' }, 201);
+});
+await go('MenuCards');
+await page.locator('[data-testid="menu-cards"]').waitFor({ timeout: 15000 });
+text = await page.locator('[data-menu="Breakfast"]').innerText();
+ok('the menu list shows when it is served, that it is on now and what is in it', /Serving now/.test(text) && /Mon–Fri, 06:00–11:00/.test(text) && /Mains/.test(text) && /Chapati/.test(text), text.replace(/\n+/g, ' | '));
+await page.getByRole('button', { name: /New menu/ }).click();
+await page.getByLabel('Name', { exact: true }).fill('Dinner');
+await page.getByLabel('Mon').check();
+await page.getByLabel('Tue').check();
+await page.getByLabel('From (blank = all day)').fill('18:00');
+await page.getByLabel('Until').fill('23:30');
+await page.getByRole('button', { name: 'Add a section' }).click();
+await page.getByLabel('Section 1 name').fill('Mains');
+await page.getByLabel('Add a dish to Mains').selectOption({ label: 'Chapati' });
+await page.getByLabel('Add a dish to Mains').selectOption({ label: 'Tea' });
+await page.getByLabel('Move Tea up').click();
+ok('dishes can be moved within a section and one already added is not offered again', (await page.locator('[data-testid="section-dish"]').first().innerText()).includes('Tea') && !(await page.getByLabel('Add a dish to Mains').innerText()).includes('Chapati'));
+ok('a dish that is off the menu is marked as such in the list', /Old dish \(off the menu\)/.test(await page.getByLabel('Add a dish to Mains').innerText()));
+await page.screenshot({ path: D + 'menus-card-modal.png' });
+await page.getByRole('button', { name: 'Save menu' }).click();
+await page.waitForTimeout(500);
+const mn = sent.find((x) => x[0] === 'menu' && x[1] === 'POST');
+ok('the save sends the days, the hours and the sections with the dishes in order', mn && mn[2].name === 'Dinner' && mn[2].days.join() === '1,2' && mn[2].starts_at === '18:00' && mn[2].ends_at === '23:30' && mn[2].sections[0].dishes.join() === '2,1', JSON.stringify(mn?.[2]));
+
+// ---------------------------------------------------------------- choices on a dish
+await page.route('**/api/admin/menus/dishes/*/options', async (route) => {
+  const m = route.request().method();
+  if (m === 'GET') return json(route, { dish: { id: 1, name: 'Chapati', has_recipe: true }, groups: [], families: [{ id: 7, name: 'Wheat flour', unit: 'g', unit_id: 1 }, { id: 9, name: 'Cheese', unit: 'g', unit_id: 1 }], units, dishes: [{ id: 2, name: 'Tea' }], recipe_lines: [{ family_id: 7, variant_id: null, name: 'Wheat flour' }] });
+  sent.push(['options', m, route.request().postDataJSON()]);
+
+  return json(route, { message: 'Choices saved.', groups: [] });
+});
+await go('MenusDishes');
+await page.locator('[data-testid="dishes"]').waitFor({ timeout: 15000 });
+await page.locator('[data-dish="Chapati"]').getByRole('button', { name: 'Choices' }).click();
+await page.getByRole('button', { name: 'Add a group of choices' }).click();
+await page.getByLabel('Group', { exact: true }).fill('Extras');
+await page.getByLabel('People').selectOption('multiple');
+await page.getByLabel('At most').fill('2');
+await page.getByLabel(/Choice 1 of Extras/).fill('Extra cheese');
+await page.getByLabel(/Price change of Extra cheese/).fill('50');
+await page.getByRole('button', { name: 'The kitchen uses…' }).click();
+await page.getByLabel('Which ingredient').selectOption({ label: 'Cheese (g)' });
+await page.getByLabel('How much').fill('20');
+await page.getByRole('button', { name: 'Add a choice' }).click();
+await page.getByLabel(/Choice 2 of Extras/).fill('No flour');
+await page.getByLabel(/Price change of No flour/).fill('30');
+await page.locator('[data-testid="option"]').nth(1).getByRole('button', { name: 'The kitchen uses…' }).click();
+await page.locator('[data-testid="option"]').nth(1).getByLabel('What it does').selectOption('remove');
+await page.locator('[data-testid="option"]').nth(1).getByLabel('Which ingredient').selectOption({ label: 'Wheat flour' });
+ok('leaving something out shows no price (it is free)', await page.getByLabel(/Price change of No flour/).isDisabled() && (await page.getByLabel(/Price change of No flour/).inputValue()) === '0');
+await page.getByLabel('charge for leaving it out').check();
+ok('unless it is charged for on purpose', !(await page.getByLabel(/Price change of No flour/).isDisabled()));
+await page.screenshot({ path: D + 'menus-options-modal.png' });
+await page.getByRole('button', { name: 'Save choices' }).click();
+await page.waitForTimeout(500);
+const op = sent.find((x) => x[0] === 'options' && x[1] === 'PUT');
+const g0 = op?.[2].groups[0];
+ok('the choices are saved with their price, what they use and what they leave out', op && g0.name === 'Extras' && g0.kind === 'multiple' && g0.max_choices === 2 && g0.options[0].price_delta === 50 && g0.options[0].uses[0].mode === 'add' && g0.options[0].uses[0].family_id === 9 && g0.options[0].uses[0].quantity === 20
+  && g0.options[1].uses[0].mode === 'remove' && g0.options[1].uses[0].family_id === 7 && g0.options[1].charge_removal === true && g0.options[1].price_delta === 30, JSON.stringify(g0));
+
+// ---------------------------------------------------------------- the public menu
+const pubDish = (o) => ({ id: 1, name: 'Chapati', slug: 'chapati', description: 'Soft', photo: null, prep_minutes: 5, price: 50, price_incl: 58, available: true, sold_out_today: false, allergens: ['wheat'], diets: ['vegetarian'], info_complete: true, options: [], ...o });
+await page.route('**/api/menu', (route) => json(route, {
+  menus: [
+    { id: 1, name: 'Breakfast', slug: 'breakfast', description: 'Until eleven', serves: 'Mon–Fri, 06:00–11:00', serving_now: false, sections: [{ id: 1, name: 'Mains', description: null, dishes: [pubDish({}), pubDish({ id: 2, name: 'Fruit bowl', allergens: [], diets: ['vegetarian', 'vegan'], price: 200, price_incl: null }), pubDish({ id: 3, name: 'Mystery pie', allergens: [], diets: [], info_complete: false, available: false, sold_out_today: true }),
+      pubDish({ id: 4, name: 'Burger', allergens: ['milk'], diets: [], options: [{ id: 1, name: 'Size', kind: 'single', min_choices: 1, max_choices: 1, options: [{ id: 1, name: 'Regular', price_delta: 0, is_default: true, dish: null }, { id: 2, name: 'Large', price_delta: 100, is_default: false, dish: null }] }] })] }] },
+    { id: 2, name: 'Dinner', slug: 'dinner', description: null, serves: 'Every day, 18:00–23:30', serving_now: true, sections: [{ id: 2, name: 'Grill', description: 'From the fire', dishes: [pubDish({ id: 5, name: 'Nyama choma', allergens: [], diets: [], price: 900, price_incl: 1044 })] }] },
+  ],
+  allergens: { milk: 'Milk', wheat: 'Wheat / gluten' }, diets: { vegetarian: 'Vegetarian', vegan: 'Vegan' }, note: 'Please tell us about any allergy before you order.', now: '2026-10-12T08:00:00+03:00' }));
+await go('MenuPublic');
+await page.locator('[data-testid="public-menu"]').waitFor({ timeout: 15000 });
+ok('the menu being served now opens first', /Nyama choma/.test(await page.locator('[data-testid="public-menu"]').innerText()) && /Serving now/.test(await page.locator('[data-testid="serves"]').innerText()));
+await page.getByRole('tab', { name: /Breakfast/ }).click();
+ok('another menu says when it is served', /Not being served right now · Mon–Fri, 06:00–11:00/.test(await page.locator('[data-testid="serves"]').innerText()));
+text = await page.locator('[data-dish="Chapati"]').innerText();
+ok('a dish shows its price with tax, its allergens and its diet badges', /58/.test(text) && /Wheat/.test(text) && /Vegetarian/.test(text), text.replace(/\n+/g, ' | '));
+ok('a price with no tax figure says plus tax', /200\s*\+ tax/.test(await page.locator('[data-dish="Fruit bowl"]').innerText()));
+ok('a sold-out dish says so', /Sold out today/.test(await page.locator('[data-dish="Mystery pie"]').innerText()));
+await page.locator('[data-dish="Burger"] summary').click();
+ok('the choices open with their prices', /Size/.test(await page.locator('[data-dish="Burger"]').innerText()) && /Large \(\+100\)/.test(await page.locator('[data-dish="Burger"]').innerText()));
+await page.getByRole('button', { name: 'Vegan', exact: true }).click();
+ok('the diet filter shows only dishes that suit it', (await page.locator('[data-dish]').count()) === 1 && /Fruit bowl/.test(await page.locator('[data-testid="public-menu"]').innerText()));
+await page.getByRole('button', { name: 'Vegan', exact: true }).click();
+await page.getByRole('button', { name: 'Wheat / gluten', exact: true }).click();
+ok('avoiding an allergen hides the dishes that contain it and says how many', !(await page.locator('[data-dish="Chapati"]').count()) && /1 dish hidden/.test(await page.locator('[data-testid="hidden-count"]').innerText()));
+ok('a dish whose ingredients are not all classified is not called safe: it says to ask', /Ask us: not every ingredient is classified/.test(await page.locator('[data-dish="Mystery pie"]').innerText()));
+ok('the allergen note is shown', /tell us about any allergy/.test(await page.locator('[data-testid="allergen-note"]').innerText()));
+await page.screenshot({ path: D + 'menus-public.png', fullPage: true });
 
 // ---------------------------------------------------------------- settings
 await go('MenusSettings');
