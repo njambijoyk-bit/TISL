@@ -80,7 +80,10 @@ class RotaPremium
     public function saveHoliday(array $d, ?int $locationScope = null): Holiday
     {
         try {
-            $day = Carbon::parse((string) ($d['date'] ?? ''), $this->tz())->startOfDay();
+            if (trim((string) ($d['date'] ?? '')) === '') {
+                throw new \InvalidArgumentException('no day');
+            }
+            $day = Carbon::parse((string) $d['date'], $this->tz())->startOfDay();
         } catch (\Throwable) {
             throw new BooksException('Choose the day.');
         }

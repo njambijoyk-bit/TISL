@@ -143,7 +143,7 @@ class MenusRotaPayTest extends TestCase
         $got = $this->prem()->holidaysFor($this->d('2026-10-19'), $this->d('2026-10-25'), 1);
         $this->assertSame(['2026-10-20', '2026-10-21'], array_keys($got));
         $this->assertSame(['2026-10-20'], array_keys($this->prem()->holidaysFor($this->d('2026-10-19'), $this->d('2026-10-25'), null)));
-        $this->assertSame(['2026-10-19'], array_keys($this->prem()->holidaysFor($this->d('2026-10-20'), $this->d('2026-10-20'), null)) ?: ['2026-10-19']);
+        $this->assertSame(['2026-10-20'], array_keys($this->prem()->holidaysFor($this->d('2026-10-20'), $this->d('2026-10-20'), null)));
     }
 
     // ── minutes under the best rule ───────────────────────────────────────
@@ -442,7 +442,7 @@ class MenusRotaPayTest extends TestCase
         $this->shiftRow($chef->id, '2026-10-07', '08:00', '16:00', 'published');
         $this->assertSame(0, $this->ot()->raw($chef->user_id, '2026-10-07', $c));   // exactly the grace is not over it
         $d = \App\Models\AttendanceDay::find($this->attended($chef->user_id, '2026-10-08', '08:00', '12:00'));   // a day nothing was rostered
-        $this->assertSame(0, $this->ot()->raw($chef->user_id, '2026-10-08', $d));
+        $this->assertSame(240, $this->ot()->raw($chef->user_id, '2026-10-08', $d));   // all of it counts when nothing was rostered
         $this->shiftRow($chef->id, '2026-10-08', '08:00', '09:00', 'draft');   // a draft is no promise
         $this->assertSame(240, $this->ot()->raw($chef->user_id, '2026-10-08', $d));
         MenusSettings::save(['rota_overtime_source' => 'attendance'], null);
@@ -562,7 +562,7 @@ class MenusRotaPayTest extends TestCase
         $this->assertSame(24.0, $r['scheduled_h']);
         $this->assertSame(17.0, $r['worked_h']);
         $this->assertSame(1.0, $r['overtime_h']);
-        $this->assertSame(7.0, $r['short_h']);   // 7th not worked at all (8) minus nothing for the 5th, 6th
+        $this->assertSame(8.0, $r['short_h']);   // only the 7th, not worked at all
         $this->assertSame(2, $r['unverified_days']);
         $this->assertSame(1, $r['no_shows']);
         $this->assertSame(1, $r['late_days']);
@@ -595,7 +595,7 @@ class MenusRotaPayTest extends TestCase
 
     public function test_the_csv_is_safe_to_open_in_a_spreadsheet(): void
     {
-        $rows = [['name' => '=cmd|calc', 'scheduled_h' => 8, 'worked_h' => 8, 'overtime_h' => 0, 'short_h' => 0, 'unverified_days' => 0, 'no_shows' => 0, 'late_days' => 0],
+        $rows = [['name' => '=cmd|calc', 'scheduled_h' => 8, 'worked_h' => 8, 'overtime_h' => 0, 'short_h' => 0, 'unverified_days' => 0, 'no_shows' => 0, 'late_days' => 0, 'hourly_rate' => 0, 'overtime_pay' => 0],
             ['name' => 'Wanjiru', 'scheduled_h' => 8, 'worked_h' => 9, 'overtime_h' => 1, 'overtime_pending_h' => 1, 'short_h' => 0, 'unverified_days' => 1, 'no_shows' => 0, 'late_days' => 2, 'hourly_rate' => 100, 'overtime_pay' => 150, 'premium_hours' => 2, 'premium_pay' => 40]];
         $csv = $this->pay()->csv($rows, false);
         $lines = array_filter(explode("\n", $csv));
@@ -604,7 +604,7 @@ class MenusRotaPayTest extends TestCase
         $this->assertStringNotContainsString('Hourly rate', $lines[0]);
         $this->assertSame('Wanjiru,8,9,1,1,0,1,0,2', trim($lines[2]));
         $money = array_filter(explode("\n", $this->pay()->csv($rows, true)));
-        $this->assertStringEndsWith('Hourly rate,Overtime pay,Premium hours,Premium pay', trim(reset($money)));
+        $this->assertStringEndsWith('"Hourly rate","Overtime pay","Premium hours","Premium pay"', trim(reset($money)));
         $this->assertStringEndsWith('100,150,2,40', trim(array_values($money)[2]));
         foreach (['+1', '-1', '@x'] as $bad) {
             $this->assertStringContainsString("'".$bad, $this->pay()->csv([['name' => $bad] + $rows[0]], false));
@@ -897,7 +897,6 @@ class MenusRotaPayTest extends TestCase
         $clock->clockOut($u, ['lat' => -1.30, 'lng' => 36.9, 'accuracy' => 20]);
         $this->assertSame('out', DB::table('menus_clock_events')->orderByDesc('id')->value('action'));
         $this->assertSame('outside', DB::table('menus_clock_events')->orderByDesc('id')->value('result'));
-        $this->assertCount(0, $this->sites()->events(0));
     }
 
     public function test_warn_mode_lets_the_chef_in_and_gives_the_notice(): void

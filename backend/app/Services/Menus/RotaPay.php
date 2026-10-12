@@ -145,6 +145,9 @@ class RotaPay
         $out = [];
         foreach ($chefs as $c) {
             $mine = $shifts->get($c->id, collect());
+            if ($scope && $mine->isEmpty()) {
+                continue;   // someone not rostered in the branches this person may see: their attendance is not theirs to read here
+            }
             $rows = ($att->get($c->user_id) ?? collect())->keyBy(fn ($r) => $r->work_date->toDateString());
             $days = $mine->pluck('shift_date')->map(fn ($d) => $d->toDateString())->merge($rows->keys())->unique()->sort()->values();
             if ($days->isEmpty()) {

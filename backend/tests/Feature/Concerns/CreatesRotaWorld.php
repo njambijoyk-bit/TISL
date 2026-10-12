@@ -26,6 +26,9 @@ trait CreatesRotaWorld
         if (! Schema::hasTable('users')) {
             Schema::create('users', function ($t) { $t->id(); $t->string('name'); $t->string('email')->nullable(); $t->softDeletes(); $t->timestamps(); });
         }
+        if (! Schema::hasColumn('locations', 'latitude')) {
+            Schema::table('locations', function ($t) { $t->decimal('latitude', 10, 7)->nullable(); $t->decimal('longitude', 10, 7)->nullable(); });
+        }
         Schema::create('menus_chefs', function ($t) { $t->id(); $t->unsignedBigInteger('user_id')->unique(); $t->string('display_name', 80); $t->string('title', 80)->nullable(); $t->text('bio')->nullable(); $t->string('photo')->nullable(); $t->json('station_ids')->nullable();
             $t->boolean('is_instructor')->default(false); $t->boolean('is_public')->default(false); $t->boolean('is_active')->default(true); $t->integer('sort_order')->default(0); $t->string('pay_mode', 10)->default('salary'); $t->decimal('shift_rate', 12, 2)->nullable(); $t->decimal('hour_rate', 12, 2)->nullable(); $t->timestamps(); });
         Schema::create('menus_chef_certs', function ($t) { $t->id(); $t->unsignedBigInteger('chef_id'); $t->string('kind', 20)->default('food_handler'); $t->string('name', 120); $t->string('number', 60)->nullable(); $t->date('issued_on')->nullable(); $t->date('expires_on')->nullable(); $t->dateTime('warned_at')->nullable(); $t->dateTime('expired_told_at')->nullable(); $t->string('notes')->nullable(); $t->timestamps(); });
