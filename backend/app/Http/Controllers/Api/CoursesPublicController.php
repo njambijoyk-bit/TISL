@@ -109,6 +109,7 @@ class CoursesPublicController extends Controller
         $enrolment = $user && EnrolmentService::installed() ? Enrolment::where('offering_id', $o->id)->where('student_user_id', $user->id)->whereIn('status', ['pending', 'active', 'completed'])->orderByDesc('id')->first() : null;
         $held = EnrolmentService::installed() ? Enrolment::where('offering_id', $o->id)->whereIn('status', ['pending', 'active', 'completed'])->count() : 0;
         $left = $o->capacity ? max(0, (int) $o->capacity - $held) : null;
+        $runs = app(\App\Services\Courses\IntakeService::class)->publicView($o, $user);
         $has = $user ? $this->access->can($user, $o) : false;
         $feeRows = $fees->map(fn (Fee $f) => ['id' => $f->id, 'kind' => $f->kind, 'kind_label' => Fee::KINDS[$f->kind] ?? $f->kind, 'name' => $f->name, 'amount' => (float) $f->amount, 'is_optional' => (bool) $f->is_optional, 'once_per_student' => (bool) $f->once_per_student])->values();
         $outline = $this->curriculum->outline($o, $user);
@@ -118,6 +119,8 @@ class CoursesPublicController extends Controller
             'plan' => ['deposit_pct' => $o->deposit_pct !== null ? (float) $o->deposit_pct : null, 'instalments' => $o->instalments, 'instalment_days' => $o->instalment_days ?? 30, 'grant_on' => $o->grant_on ?? 'paid', 'refund_days' => $o->refund_days],
             'teacher_profile' => $this->teacher($o)], 'fees' => $feeRows, 'outline' => $outline, 'books' => app(\App\Services\Courses\BookLibrary::class)->forOffering($o->id),
             'me' => ['signed_in' => (bool) $user, 'has_access' => $has, 'enrolment' => $enrolment ? $this->enrolments->row($enrolment, false) : null,
-                'can_enrol' => EnrolmentService::installed() && ! $enrolment && ($left === null || $left > 0)]]);
+                'can_enrol' => EnrolmentService::installed() && ! $enrolment && ($runs['has_intakes'] ? collect($runs['intakes'])->contains(fn ($i) => $i['places_left'] === null || $i['places_left'] > 0) : ($left === null || $left > 0)) && ! ($runs['has_intakes'] && ! $runs['intakes']),
+                'can_wait' => EnrolmentService::installed() && ! $enrolment && ! $runs['waitlist'] && \App\Services\Courses\IntakeService::installed(), 'waitlist' => $runs['waitlist']],
+            'intakes' => $runs['intakes'], 'has_intakes' => $runs['has_intakes']]);
     }
 }

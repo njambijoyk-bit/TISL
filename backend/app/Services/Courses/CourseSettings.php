@@ -19,6 +19,7 @@ final class CourseSettings
         'checkin_late_minutes' => 10,    // ...and are marked late after this many minutes
         'pending_hours' => 48,           // an enrolment nobody has paid for lets the place go after this many hours (0 = never)
         'reminder_days' => 3,            // a payment is reminded this many days before it is due
+        'waitlist_hold_hours' => 48,     // a place offered to someone on the waiting list is held this long
         'cert_signatory' => '',          // the name printed under a certificate
         'cert_signatory_title' => '',    // ...and their title
         'max_discount_pct' => 100,       // the most a member of staff may take off an enrolment
@@ -48,7 +49,7 @@ final class CourseSettings
             throw new BooksException('Run database script 152_courses.sql first.');
         }
         $cur = self::all();
-        foreach (['live_open_minutes' => [0, 240], 'live_grace_minutes' => [0, 480], 'download_minutes' => [1, 60], 'max_file_mb' => [1, 500], 'pending_hours' => [0, 720], 'checkin_open_minutes' => [0, 120], 'checkin_late_minutes' => [0, 120], 'reminder_days' => [0, 30], 'max_discount_pct' => [0, 100]] as $key => [$lo, $hi]) {
+        foreach (['live_open_minutes' => [0, 240], 'live_grace_minutes' => [0, 480], 'download_minutes' => [1, 60], 'max_file_mb' => [1, 500], 'pending_hours' => [0, 720], 'checkin_open_minutes' => [0, 120], 'checkin_late_minutes' => [0, 120], 'reminder_days' => [0, 30], 'max_discount_pct' => [0, 100], 'waitlist_hold_hours' => [1, 720]] as $key => [$lo, $hi]) {
             if (array_key_exists($key, $in)) {
                 $v = (int) $in[$key];
                 if ($v < $lo || $v > $hi) {

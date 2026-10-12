@@ -14,6 +14,7 @@ class CoursesSweep extends Command
     public function handle(EnrolmentService $enrolments, \App\Services\Courses\CertificateService $certificates): int
     {
         $certificates->remindExpiring();
+        app(\App\Services\Courses\IntakeService::class)->sweep();
         $r = $enrolments->sweep();
         if ($r['released'] || $r['held'] || $r['reminded']) {
             $this->info("Courses: {$r['released']} unpaid enrolment(s) released, {$r['held']} held back for late payment, {$r['reminded']} reminder(s) sent.");

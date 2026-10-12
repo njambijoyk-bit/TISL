@@ -120,6 +120,16 @@ class CourseNotices
         $this->tell((int) $c->user_id, 'course_certificate_expiring', "Your certificate for {$o->title} expires soon", 'Certificate '.$c->number.' is valid until '.$c->expires_at->format('j M Y').'. Contact us to renew it.', '/learn/my');
     }
 
+    public function waitlistOffered(\App\Models\Courses\WaitlistEntry $w, Offering $o, ?string $run): void
+    {
+        $this->tell((int) $w->user_id, 'course_waitlist_offer', "A place is held for you in {$o->title}", 'You are first in line'.($run ? " for {$run}" : '').'. Enrol before '.$w->offer_expires_at->format('j M, H:i').' or the place goes to the next person.', '/learn/'.$o->slug);
+    }
+
+    public function waitlistExpired(\App\Models\Courses\WaitlistEntry $w, Offering $o): void
+    {
+        $this->tell((int) $w->user_id, 'course_waitlist_expired', "Your held place in {$o->title} has ended", 'You did not enrol in time, so the place went to the next person. You can join the waiting list again.', '/learn/'.$o->slug);
+    }
+
     private function staffTell(string $type, string $title, string $message): void
     {
         $this->safely(function () use ($type, $title, $message) {

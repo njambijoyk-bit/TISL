@@ -169,6 +169,7 @@ const LearnBooksPage    = lazy(() => import('./courses/pages/public/LearnBooksPa
 const LearnBookPage     = lazy(() => import('./courses/pages/public/LearnBookPage'));
 const LearnVerifyPage   = lazy(() => import('./courses/pages/public/LearnVerifyPage'));
 const CoursesBooks      = lazy(() => import('./courses/pages/admin/CoursesBooks'));
+const CoursesTeaching   = lazy(() => import('./courses/pages/admin/CoursesTeaching'));
 const LearnOfferingPage = lazy(() => import('./courses/pages/public/LearnOfferingPage'));
 const CoursesEnrolments = lazy(() => import('./courses/pages/admin/CoursesEnrolments'));
 const ChefsPublicPage    = lazy(() => import('./menus/pages/public/ChefsPage'));
@@ -863,6 +864,7 @@ function App() {
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />
               <Route path="/admin/courses" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesOfferings /></ProtectedRoute>} />
               <Route path="/admin/courses/enrolments" element={<ProtectedRoute requireAdmin permission="courses.enrol"><CoursesEnrolments /></ProtectedRoute>} />
+              <Route path="/admin/courses/teaching" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesTeaching /></ProtectedRoute>} />
               <Route path="/admin/courses/books" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesBooks /></ProtectedRoute>} />
               <Route path="/admin/courses/settings" element={<ProtectedRoute requireAdmin permission="courses.manage"><CoursesSettings /></ProtectedRoute>} />
               <Route path="/admin/courses/:id" element={<ProtectedRoute requireAdmin permission="courses.view"><CourseBuilder /></ProtectedRoute>} />

@@ -56,12 +56,12 @@ class CoursesController extends Controller
     {
         return response()->json(['ready' => CourseAccess::installed(), 'kinds' => Offering::KINDS, 'levels' => Offering::LEVELS, 'delivery' => Offering::DELIVERY, 'statuses' => Offering::STATUSES,
             'lesson_kinds' => Lesson::KINDS, 'providers' => LiveSession::PROVIDERS, 'sources' => Access::SOURCES, 'allowed_files' => CourseFiles::ALLOWED, 'settings' => CourseSettings::all(), 'timezone' => config('app.timezone', 'Africa/Nairobi'),
-            'locations' => \App\Models\Location::orderBy('name')->get(['id', 'name']), 'can_manage' => $this->authz->allows(request()->user(), 'courses.manage'), 'can_grant' => $this->authz->allows(request()->user(), 'courses.grant')]);
+            'locations' => \App\Models\Location::orderBy('name')->get(['id', 'name']), 'instructors' => app(\App\Services\Courses\TeachingService::class)->instructors(), 'can_manage' => $this->authz->allows(request()->user(), 'courses.manage'), 'can_grant' => $this->authz->allows(request()->user(), 'courses.grant')]);
     }
 
     public function saveSettings(Request $request): JsonResponse
     {
-        $d = $request->validate(['live_open_minutes' => 'sometimes|integer', 'live_grace_minutes' => 'sometimes|integer', 'download_minutes' => 'sometimes|integer', 'max_file_mb' => 'sometimes|integer', 'default_access_days' => 'sometimes|nullable|integer', 'cert_signatory' => 'sometimes|nullable|string|max:80', 'cert_signatory_title' => 'sometimes|nullable|string|max:80']);
+        $d = $request->validate(['live_open_minutes' => 'sometimes|integer', 'live_grace_minutes' => 'sometimes|integer', 'download_minutes' => 'sometimes|integer', 'max_file_mb' => 'sometimes|integer', 'default_access_days' => 'sometimes|nullable|integer', 'waitlist_hold_hours' => 'sometimes|integer', 'cert_signatory' => 'sometimes|nullable|string|max:80', 'cert_signatory_title' => 'sometimes|nullable|string|max:80']);
 
         return $this->guard(fn () => response()->json(['message' => 'Courses settings saved.', 'settings' => CourseSettings::save($d, $request->user()?->id)]));
     }

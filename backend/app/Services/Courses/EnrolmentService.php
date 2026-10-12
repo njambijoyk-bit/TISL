@@ -186,7 +186,10 @@ class EnrolmentService
         if ((clone $held)->where('student_user_id', $student->id)->exists()) {
             throw new BooksException("{$student->name} is enrolled in this already.");
         }
-        if ($o->capacity && (clone $held)->count() >= (int) $o->capacity) {
+        $intakeId = null;
+        if (IntakeService::installed()) {
+            $intakeId = app(IntakeService::class)->resolve($o, $in['intake_id'] ?? null, $student);
+        } elseif ($o->capacity && (clone $held)->count() >= (int) $o->capacity) {
             throw new BooksException('Every place is taken.');
         }
         $pct = round((float) ($in['discount_pct'] ?? 0), 2);
@@ -211,11 +214,11 @@ class EnrolmentService
         }
         $now = ($now ?? Carbon::now($this->tz()))->copy();
 
-        $e = DB::transaction(function () use ($o, $student, $payer, $customer, $plan, $pct, $note, $by, $channel, $in, $now) {
+        $e = DB::transaction(function () use ($o, $student, $payer, $customer, $plan, $pct, $note, $by, $channel, $in, $now, $intakeId) {
             $e = Enrolment::create(['number' => 'EN-'.strtoupper(bin2hex(random_bytes(5))), 'offering_id' => $o->id, 'student_user_id' => $student->id, 'payer_user_id' => $payer->id === $student->id ? null : $payer->id,
                 'customer_id' => $customer?->id, 'status' => 'pending', 'channel' => $channel === 'counter' ? 'counter' : 'online', 'discount_pct' => $pct, 'discount_note' => $note === '' ? null : mb_substr($note, 0, 200),
                 'created_by' => $by?->id, 'notes' => filled($in['notes'] ?? null) ? mb_substr(trim((string) $in['notes']), 0, 500) : null]);
-            $e->update(['number' => 'EN-'.str_pad((string) $e->id, 6, '0', STR_PAD_LEFT)]);
+            $e->update(['number' => 'EN-'.str_pad((string) $e->id, 6, '0', STR_PAD_LEFT)] + ($intakeId ? ['intake_id' => $intakeId] : []));
             foreach ($plan['lines'] as $l) {
                 EnrolmentLine::create(['enrolment_id' => $e->id] + $l);
             }
@@ -240,6 +243,7 @@ class EnrolmentService
 
             return $e->fresh();
         });
+        app(IntakeService::class)->enrolled($o, $student);
         $this->notices->enrolled($e, $o, (float) ($e->instalments()->value('amount') ?? 0));
 
         return $e->fresh(['lines', 'instalments']);
@@ -435,6 +439,7 @@ class EnrolmentService
         });
         if ($o = Offering::find($e->offering_id)) {
             $this->notices->cancelled($e->fresh(), $o, false);
+            app(IntakeService::class)->fill($o);
         }
 
         return $e->fresh(['lines', 'instalments']);
@@ -499,6 +504,7 @@ class EnrolmentService
         });
         if ($o) {
             $this->notices->cancelled($e->fresh(), $o, true);
+            app(IntakeService::class)->fill($o);
         }
 
         return $e->fresh(['lines', 'instalments']);

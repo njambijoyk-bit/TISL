@@ -54,7 +54,10 @@ function EnrolCard({ data, reload }) {
   const [phone, setPhone] = useState(customer?.phone ?? '');
   const [busy, setBusy] = useState(false);
   const [waiting, setWaiting] = useState(null);
+  const [intake, setIntake] = useState('');
   const enrolment = data.me.enrolment;
+  const wl = data.me.waitlist;
+  const pickedFull = data.has_intakes && data.intakes.some((i) => String(i.id) === intake && i.places_left === 0);
   const optional = data.fees.filter((x) => x.is_optional);
 
   useEffect(() => {
@@ -99,7 +102,18 @@ function EnrolCard({ data, reload }) {
         </ul>
       )}
       {(o.plan.deposit_pct || o.plan.instalments > 1) && <p style={{ margin: 0, fontSize: '0.84rem' }}>You can pay{o.plan.deposit_pct ? ` a ${o.plan.deposit_pct}% deposit` : ''}{o.plan.instalments > 1 ? `${o.plan.deposit_pct ? ' and the rest' : ''} in ${o.plan.instalments} instalments, ${o.plan.instalment_days} days apart` : ' and the rest later'}. {o.plan.grant_on === 'deposit' ? 'Your access starts with the first payment.' : 'Your access starts when it is paid in full.'}</p>}
-      {o.capacity_left !== null && <p style={{ margin: 0, fontSize: '0.84rem' }}>{o.capacity_left > 0 ? `${o.capacity_left} place${o.capacity_left === 1 ? '' : 's'} left.` : 'Every place is taken.'}</p>}
+      {data.has_intakes && (
+        <div style={{ display: 'grid', gap: 4 }}>
+          <label htmlFor="intake" style={{ fontWeight: 700, fontSize: '0.88rem' }}>Intake</label>
+          {data.intakes.length === 0
+            ? <span style={{ fontSize: '0.86rem' }}>Enrolment is closed for now.</span>
+            : <select id="intake" value={intake} onChange={(e) => setIntake(e.target.value)} style={field}>
+              <option value="">Choose when you will start</option>
+              {data.intakes.map((i) => <option key={i.id} value={i.id}>{i.name}{i.starts_on ? ` · starts ${i.starts_on}` : ''}{i.places_left !== null ? (i.places_left > 0 ? ` · ${i.places_left} left` : ' · full') : ''}</option>)}
+            </select>}
+        </div>
+      )}
+      {!data.has_intakes && o.capacity_left !== null && <p style={{ margin: 0, fontSize: '0.84rem' }}>{o.capacity_left > 0 ? `${o.capacity_left} place${o.capacity_left === 1 ? '' : 's'} left.` : 'Every place is taken.'}</p>}
 
       {!signedIn && <Link to={`/login?redirect=${encodeURIComponent(`/learn/${o.slug}`)}`} style={{ ...primaryBtn, textAlign: 'center', textDecoration: 'none' }}>Sign in to enrol</Link>}
 
@@ -116,8 +130,19 @@ function EnrolCard({ data, reload }) {
         </div>
       )}
 
+      {signedIn && wl && (
+        <div style={{ display: 'grid', gap: 6, fontSize: '0.88rem' }} data-testid="waitlist-state">
+          {wl.status === 'offered'
+            ? <strong>A place is held for you until {new Date(wl.offer_expires_at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}. Enrol below.</strong>
+            : <span>You are number <strong>{wl.position}</strong> on the waiting list. We will tell you when a place is free.</span>}
+          <button type="button" disabled={busy} onClick={() => go(() => coursesPublicAPI.leaveWaitlist(o.id))} style={{ background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer', color: 'inherit', padding: 0, justifySelf: 'start', font: 'inherit' }}>Leave the waiting list</button>
+        </div>
+      )}
+      {signedIn && !enrolment && !wl && (!data.me.can_enrol || pickedFull) && data.me.can_wait && (!data.has_intakes || data.intakes.length > 0) && (
+        <button type="button" disabled={busy || (data.has_intakes && !intake)} onClick={() => go(() => coursesPublicAPI.joinWaitlist(o.id, intake ? Number(intake) : undefined))} style={primaryBtn}>Join the waiting list</button>
+      )}
       {signedIn && data.me.can_enrol && quote && (
-        <form onSubmit={(e) => { e.preventDefault(); go(() => coursesPublicAPI.enrol(o.id, { optional_fee_ids: extras, payment_method_id: method ? Number(method) : undefined, phone: phone || undefined })); }} style={{ display: 'grid', gap: 8 }}>
+        <form onSubmit={(e) => { e.preventDefault(); go(() => coursesPublicAPI.enrol(o.id, { intake_id: intake ? Number(intake) : undefined, optional_fee_ids: extras, payment_method_id: method ? Number(method) : undefined, phone: phone || undefined })); }} style={{ display: 'grid', gap: 8 }}>
           {optional.length > 0 && (
             <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 4, fontSize: '0.88rem' }}>
               <legend style={{ fontWeight: 700, marginBottom: 2 }}>Extras</legend>
@@ -137,7 +162,7 @@ function EnrolCard({ data, reload }) {
               <input aria-label="Phone for M-Pesa" placeholder="Phone for M-Pesa" value={phone} onChange={(e) => setPhone(e.target.value)} style={field} autoComplete="tel" />
             </>
           )}
-          <button type="submit" disabled={busy || (quote.total > 0 && !method)} style={primaryBtn}>{busy ? 'Working…' : quote.total > 0 ? `Enrol and pay ${money(quote.schedule[0]?.amount ?? quote.total)}` : 'Enrol free'}</button>
+          <button type="submit" disabled={busy || (quote.total > 0 && !method) || (data.has_intakes && !intake)} style={primaryBtn}>{busy ? 'Working…' : quote.total > 0 ? `Enrol and pay ${money(quote.schedule[0]?.amount ?? quote.total)}` : 'Enrol free'}</button>
         </form>
       )}
       {waiting !== null && <p role="status" style={{ margin: 0 }}>Waiting for your payment… check your phone and enter your M-Pesa PIN.</p>}

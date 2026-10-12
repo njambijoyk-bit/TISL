@@ -291,6 +291,8 @@ Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(
     Route::post('/my/lessons/{lesson}/progress', [$l, 'progress'])->middleware('throttle:240,1')->whereNumber('lesson');
     Route::get('/my/live/{live}/ics', [$l, 'ics'])->middleware('throttle:60,1')->whereNumber('live');
     Route::post('/offerings/{id}/quote', [$c, 'quote'])->middleware('throttle:60,1')->whereNumber('id');
+    Route::post('/offerings/{id}/waitlist', [$c, 'joinWaitlist'])->middleware('throttle:10,1')->whereNumber('id');
+    Route::delete('/offerings/{id}/waitlist', [$c, 'leaveWaitlist'])->middleware('throttle:10,1')->whereNumber('id');
     Route::post('/offerings/{id}/enrol', [$c, 'enrol'])->middleware('throttle:10,1')->whereNumber('id');
     Route::post('/enrolments/{id}/pay', [$c, 'pay'])->middleware('throttle:10,1')->whereNumber('id');
 });
@@ -794,6 +796,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/offerings/{id}/sessions/{session}/roll', [$ac, 'roll'])->whereNumber(['id', 'session']);
         Route::post('/offerings/{id}/sessions/{session}/marks', [$ac, 'mark'])->whereNumber(['id', 'session'])->middleware('throttle:120,1');
         Route::post('/offerings/{id}/excuses/{entry}', [$ac, 'decideExcuse'])->whereNumber(['id', 'entry']);
+        $tc = \App\Http\Controllers\Admin\CoursesTeachingController::class;
+        Route::get('/teaching', [$tc, 'dashboard']);
+        Route::get('/offerings/{id}/students', [$tc, 'students'])->whereNumber('id');
+        Route::get('/offerings/{id}/intakes', [$tc, 'intakes'])->whereNumber('id');
+        Route::post('/offerings/{id}/intakes', [$tc, 'saveIntake'])->whereNumber('id');
+        Route::put('/offerings/{id}/intakes/{intake}', [$tc, 'saveIntake'])->whereNumber(['id', 'intake']);
+        Route::delete('/offerings/{id}/intakes/{intake}', [$tc, 'deleteIntake'])->whereNumber(['id', 'intake']);
+        Route::post('/offerings/{id}/waitlist/{entry}/offer', [$tc, 'offer'])->whereNumber(['id', 'entry']);
+        Route::delete('/offerings/{id}/waitlist/{entry}', [$tc, 'removeFromWaitlist'])->whereNumber(['id', 'entry']);
         $cc = \App\Http\Controllers\Admin\CoursesCertificateController::class;
         Route::get('/offerings/{id}/certificates', [$cc, 'index'])->whereNumber('id');
         Route::post('/offerings/{id}/certificates', [$cc, 'issue'])->whereNumber('id');

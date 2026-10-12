@@ -52,6 +52,12 @@ export function OfferingForm({ meta, offering, onClose, onDone }) {
         </div>
         {meta.can_manage && (
           <Field label="Teacher" htmlFor="of-teacher" hint={f.instructor_user_id ? `Chosen: ${f.instructor || 'someone'}` : 'Search for a member of staff.'}>
+            {meta.instructors?.length > 0 && (
+              <SelectInput id="of-chef" aria-label="Teacher from the kitchen team" value={meta.instructors.some((c) => c.user_id === f.instructor_user_id) ? f.instructor_user_id : ''} onChange={(e) => { const c = meta.instructors.find((x) => String(x.user_id) === e.target.value); setF((x) => ({ ...x, instructor_user_id: c ? c.user_id : null, instructor: c ? c.name : '' })); }}>
+                <option value="">Choose a chef who teaches</option>
+                {meta.instructors.map((c) => <option key={c.user_id} value={c.user_id}>{c.name}{c.title ? ` · ${c.title}` : ''}</option>)}
+              </SelectInput>
+            )}
             <UserPicker id="of-teacher" onPick={(u) => setF((x) => ({ ...x, instructor_user_id: u.id, instructor: u.name }))} />
           </Field>
         )}

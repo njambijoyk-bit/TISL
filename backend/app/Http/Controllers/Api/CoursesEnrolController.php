@@ -46,10 +46,10 @@ class CoursesEnrolController extends Controller
     /** Enrol yourself. With a payment method the first payment is started at once. */
     public function enrol(Request $request, int $id): JsonResponse
     {
-        $d = $request->validate(['optional_fee_ids' => 'nullable|array', 'optional_fee_ids.*' => 'integer', 'payment_method_id' => 'nullable|integer', 'phone' => 'nullable|string|max:40']);
+        $d = $request->validate(['optional_fee_ids' => 'nullable|array', 'optional_fee_ids.*' => 'integer', 'payment_method_id' => 'nullable|integer', 'phone' => 'nullable|string|max:40', 'intake_id' => 'nullable|integer']);
 
         return $this->guard(function () use ($request, $id, $d) {
-            $e = $this->enrolments->enrol($this->open($id), ['student_user_id' => $request->user()->id, 'optional_fee_ids' => $d['optional_fee_ids'] ?? []], null, 'online');
+            $e = $this->enrolments->enrol($this->open($id), ['student_user_id' => $request->user()->id, 'optional_fee_ids' => $d['optional_fee_ids'] ?? [], 'intake_id' => $d['intake_id'] ?? null], null, 'online');
             $pay = null;
             if ($e->status === 'pending' && ! empty($d['payment_method_id'])) {
                 $pay = $this->enrolments->pay($e, ['payment_method_id' => $d['payment_method_id'], 'phone' => $d['phone'] ?? null], $request->user());
@@ -57,6 +57,24 @@ class CoursesEnrolController extends Controller
 
             return response()->json(['message' => $pay['message'] ?? ($e->status === 'active' ? 'You are enrolled.' : 'Your place is held: pay to confirm it.'), 'enrolment' => $this->enrolments->row($e, false), 'attempt' => $pay['attempt'] ?? null, 'redirect_url' => $pay['redirect_url'] ?? null], 201);
         });
+    }
+
+    public function joinWaitlist(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['intake_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($request, $id, $d) {
+            app(\App\Services\Courses\IntakeService::class)->join($this->open($id), $request->user(), $d['intake_id'] ?? null);
+
+            return response()->json(['message' => 'You are on the waiting list. We will tell you when a place is free.']);
+        });
+    }
+
+    public function leaveWaitlist(Request $request, int $id): JsonResponse
+    {
+        app(\App\Services\Courses\IntakeService::class)->leave(Offering::findOrFail($id), $request->user());
+
+        return response()->json(['message' => 'You are off the waiting list.']);
     }
 
     public function mine(Request $request): JsonResponse
