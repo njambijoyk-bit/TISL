@@ -555,18 +555,24 @@ class MenusRotaPayTest extends TestCase
         $this->attended($a->user_id, '2026-10-05', '08:00', '17:00', ['status' => 'late']);   // an hour over: overtime past the grace
         $this->attended($a->user_id, '2026-10-06', '08:00', '16:00', ['verify_status' => 'marked']);   // not verified
         // the 7th: no sign-in at all
+        $this->shiftRow($a->id, '2026-10-08', '08:00', '16:00');
+        $this->attended($a->user_id, '2026-10-08', '08:00', '16:00');   // verified, present, on time
         $this->shiftRow($b->id, '2026-10-05', '08:00', '12:00');
         $rows = collect($this->pay()->report($this->d('2026-10-05'), $this->d('2026-10-11')));
         $this->assertSame(['Otieno Odhiambo', 'Wanjiru Kamau'], $rows->pluck('name')->all());
         $r = $rows->firstWhere('name', 'Wanjiru Kamau');
-        $this->assertSame(24.0, $r['scheduled_h']);
-        $this->assertSame(17.0, $r['worked_h']);
+        $this->assertSame(32.0, $r['scheduled_h']);
+        $this->assertSame(25.0, $r['worked_h']);
         $this->assertSame(1.0, $r['overtime_h']);
         $this->assertSame(8.0, $r['short_h']);   // only the 7th, not worked at all
         $this->assertSame(2, $r['unverified_days']);
         $this->assertSame(1, $r['no_shows']);
         $this->assertSame(1, $r['late_days']);
-        $this->assertCount(3, $r['days']);
+        $this->assertCount(4, $r['days']);
+        $this->assertSame('08:00', $r['days'][0]['in']);
+        $this->assertSame('17:00', $r['days'][0]['out']);
+        $this->assertTrue($r['days'][0]['verified']);
+        $this->assertFalse($r['days'][1]['verified']);
         $this->assertArrayNotHasKey('hourly_rate', $r);   // no money without the right
         $this->assertCount(1, $this->pay()->report($this->d('2026-10-05'), $this->d('2026-10-11'), false, null, $a->id));
         $this->assertCount(1, $this->pay()->report($this->d('2026-10-05'), $this->d('2026-10-11'), false, fn ($q) => $q->where('chef_id', $b->id)));
@@ -591,6 +597,44 @@ class MenusRotaPayTest extends TestCase
         $x = collect($this->pay()->report($this->d('2026-10-05'), $this->d('2026-10-11'), true))->firstWhere('name', 'No Employee Record');
         $this->assertNull($x['hourly_rate']);
         $this->assertNull($x['overtime_pay']);
+    }
+
+    public function test_the_hourly_rate_counts_the_last_day_of_the_month_and_a_chef_with_no_counted_shift_has_a_default_shift_length(): void
+    {
+        $chef = $this->chefOf('Wanjiru Kamau', [], ['base_salary' => 21000]);
+        $this->shiftRow($chef->id, '2026-11-30', '08:00', '16:00');
+        // November 2026 has 21 working days (Mon-Fri), ending on a Monday: 21000 / 21 / 9
+        $r = $this->pay()->report($this->d('2026-11-30'), $this->d('2026-11-30'), true)[0];
+        $this->assertEqualsWithDelta(21000 / 21 / 9, $r['hourly_rate'], 0.01);
+        $c = $this->chefOf('Otieno Odhiambo', ['pay_mode' => 'per_shift', 'shift_rate' => 800]);
+        $x = $this->pay()->contractPay(User::find($c->user_id), $this->d('2026-10-01'), $this->d('2026-10-31'));
+        $this->assertSame(0, $x['shifts']);
+        $this->assertSame(100.0, $x['hourly']);   // 800 over a default 8-hour shift
+    }
+
+    public function test_the_report_shows_overtime_waiting_for_approval(): void
+    {
+        $this->needApproval();
+        $chef = $this->chefOf('Wanjiru Kamau');
+        $this->shiftRow($chef->id, '2026-10-05', '08:00', '16:00');
+        $this->attended($chef->user_id, '2026-10-05', '08:00', '19:00');
+        $this->ot()->sync($this->d('2026-10-01'), $this->d('2026-10-31'));
+        $this->assertSame(2.0, $this->pay()->report($this->d('2026-10-05'), $this->d('2026-10-11'))[0]['overtime_pending_h']);
+        $this->ot()->decide(OvertimeEntry::first(), true, null, $this->person('Boss'), true);
+        $this->assertSame(0.0, $this->pay()->report($this->d('2026-10-05'), $this->d('2026-10-11'))[0]['overtime_pending_h']);
+    }
+
+    public function test_a_waiting_entry_that_shrinks_is_not_news_and_nothing_waits_when_approval_is_off(): void
+    {
+        $this->needApproval();
+        $chef = $this->chefOf('Wanjiru Kamau');
+        $id = $this->attended($chef->user_id, '2026-10-05', '08:00', '19:00');
+        $this->assertSame(1, $this->ot()->sync($this->d('2026-10-01'), $this->d('2026-10-31')));
+        \App\Models\AttendanceDay::whereKey($id)->update(['overtime_minutes' => 30]);
+        $this->assertSame(0, $this->ot()->sync($this->d('2026-10-01'), $this->d('2026-10-31')));
+        $this->assertSame(30, (int) OvertimeEntry::first()->minutes);
+        MenusSettings::save(['rota_overtime_needs_approval' => false], null);
+        $this->assertSame(0, $this->ot()->pendingCount($this->d('2026-10-01'), $this->d('2026-10-31')));
     }
 
     public function test_the_csv_is_safe_to_open_in_a_spreadsheet(): void
@@ -885,6 +929,9 @@ class MenusRotaPayTest extends TestCase
         $this->assertSame(1, DB::table('attendance_days')->count());
         $last = DB::table('menus_clock_events')->orderByDesc('id')->first();
         $this->assertSame('ok', $last->result);
+        $this->assertSame(-1.30, (float) $last->latitude);
+        $this->assertSame(36.9, (float) $last->longitude);
+        $this->assertSame(20, (int) $last->accuracy_m);
         $this->assertSame('qr', $last->method);
         $this->assertSame('in', $last->action);
         $this->assertSame($chef->id, (int) $last->chef_id);
