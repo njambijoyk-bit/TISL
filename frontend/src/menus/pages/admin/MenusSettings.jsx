@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
-import { Field, FormStack, NumberInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
+import { Field, FormStack, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
