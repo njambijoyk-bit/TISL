@@ -255,6 +255,11 @@ Route::prefix('checkout')->group(function () {
 });
 
 // Menus — the menu a customer reads (open to everyone)
+Route::prefix('learn')->middleware(['module:courses', 'throttle:120,1'])->group(function () {   // the catalogue: no sign-in to look
+    $c = \App\Http\Controllers\Api\CoursesPublicController::class;
+    Route::get('/', [$c, 'index']);
+    Route::get('/{slug}', [$c, 'show'])->where('slug', '[a-z0-9\-]+');
+});
 Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(function () {   // a signed-in person enrolling themselves, paying, and seeing their own enrolments
     $c = \App\Http\Controllers\Api\CoursesEnrolController::class;
     Route::get('/my/enrolments', [$c, 'mine'])->middleware('throttle:120,1');
