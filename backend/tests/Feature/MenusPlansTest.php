@@ -799,6 +799,84 @@ class MenusPlansTest extends TestCase
         $this->assertCount(0, $this->subs()->dayPlan(Carbon::parse('2026-10-14'))['stops']);
     }
 
+    public function test_a_week_of_owed_days_costs_nothing_and_is_confirmed_without_a_payment(): void
+    {
+        $p = $this->plan();
+        $s = $this->join($p);
+        $this->pay($s);
+        $s->fresh()->update(['credit_days' => 5]);
+        $period = $this->subs()->billWeek($s->fresh(), $p, Carbon::parse('2026-10-19'), Carbon::parse('2026-10-16 06:00', 'Africa/Nairobi'));
+        $this->assertSame(0.0, (float) $period->total);
+        $this->assertSame(2, $s->fresh()->credit_days);
+        $this->assertSame(0, $this->noted('weekReady'));   // nothing to pay: no "pay for it" notice
+        $this->started = [];
+        $r = $this->subs()->pay($s->fresh(), $period, ['payment_method_id' => 4]);
+        $this->assertSame([], $this->started);
+        $this->assertStringContainsString('free', $r['message']);
+        $this->assertSame('paid', $period->fresh()->status);
+        $this->subs()->run(Carbon::parse('2026-10-17 12:00', 'Africa/Nairobi'));
+        $this->assertSame(0, $this->noted('reminder'));
+    }
+
+    public function test_a_free_first_week_activates_a_pending_plan(): void
+    {
+        $p = $this->plan();
+        $s = $this->join($p);
+        $period = SubPeriod::first();
+        $period->update(['total' => 0]);
+        $this->subs()->pay($s, $period, ['payment_method_id' => 4]);
+        $this->assertSame('active', $s->fresh()->status);
+    }
+
+    public function test_a_week_is_billed_once_and_not_for_a_paused_week_or_a_switched_off_dish(): void
+    {
+        $p = $this->plan();
+        $s = $this->join($p, ['weekdays' => [1, 3, 5], 'start_date' => '2026-10-14']);
+        $this->pay($s);
+        $this->assertNull($this->subs()->billWeek($s->fresh(), $p, Carbon::parse('2026-10-12')));   // already billed
+        $this->subs()->pause($s->fresh(), '2026-10-19', '2026-10-25');
+        $this->assertNull($this->subs()->billWeek($s->fresh(), $p, Carbon::parse('2026-10-19'), Carbon::parse('2026-10-16 06:00', 'Africa/Nairobi')));
+        $this->subs()->resume($s->fresh());
+        $greens = \App\Models\Menus\Dish::where('name', 'Greens')->first();
+        $this->dishes()->save(['is_active' => false], $greens->id);
+        $period = $this->subs()->billWeek($s->fresh(), $p, Carbon::parse('2026-10-19'), Carbon::parse('2026-10-16 06:00', 'Africa/Nairobi'));
+        $this->assertSame(['Rice and beans'], SubDelivery::where('period_id', $period->id)->first()->meals ? array_column(SubDelivery::where('period_id', $period->id)->first()->meals, 'name') : []);
+    }
+
+    public function test_the_run_bills_no_more_than_three_weeks_ahead(): void
+    {
+        $p = $this->plan();
+        $s = $this->join($p);
+        $this->pay($s);
+        MenusSettings::save(['plans_bill_ahead_days' => 14], null);
+        $this->subs()->run(Carbon::parse('2026-10-12 12:05', 'Africa/Nairobi'));
+        $this->assertSame(3, SubPeriod::where('subscription_id', $s->id)->count());   // this week and the next two
+    }
+
+    public function test_the_email_is_kept_only_when_given_and_a_one_day_pause_is_allowed(): void
+    {
+        $p = $this->plan();
+        $a = $this->join($p);
+        $this->assertSame('amina@example.com', $a->email);
+        $b = $this->join($p, ['email' => '', 'phone' => '07']);
+        $this->assertNull($b->email);
+        $this->pay($a);
+        $x = $this->subs()->pause($a->fresh(), '2026-10-13', '2026-10-13');
+        $this->assertSame('2026-10-13', $x->paused_until->toDateString());
+    }
+
+    public function test_the_day_plan_shows_whether_the_meal_is_in_the_kitchen(): void
+    {
+        $p = $this->plan();
+        $s = $this->join($p);
+        $this->pay($s);
+        $this->assertSame('scheduled', $this->subs()->dayPlan(Carbon::parse('2026-10-14'))['stops'][0]['status']);
+        $this->subs()->makeDueOrders(Carbon::parse('2026-10-13 12:00', 'Africa/Nairobi'));
+        $stop = $this->subs()->dayPlan(Carbon::parse('2026-10-14'))['stops'][0];
+        $this->assertSame('ordered', $stop['status']);
+        $this->assertNotNull($stop['order_id']);
+    }
+
     // ── the menu rotates ──────────────────────────────────────────────────
 
     public function test_the_week_of_the_rotation_counts_from_the_week_the_subscriber_starts(): void

@@ -248,7 +248,7 @@ class MenusCookingTest extends TestCase
         $this->fails(fn () => $this->askCake($d, ['phone' => '']), 'phone number');
         $this->fails(fn () => $this->askCake($d, ['email' => 'nope']), 'email');
         $this->fails(fn () => $this->askCake($d, ['items' => []]), 'Choose the cake');
-        $this->fails(fn () => $this->svc()->request(['kind' => 'wedding'], null, $this->now), 'cake or catering');
+        $this->fails(fn () => $this->svc()->request(['kind' => 'wedding'], null, $this->now), 'cake, catering or a private chef');
         $this->assertSame('delivery', $this->askCake($d, ['fulfil' => 'delivery', 'address' => 'Westlands'])->fulfil);
     }
 
