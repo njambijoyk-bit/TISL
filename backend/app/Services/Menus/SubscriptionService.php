@@ -127,7 +127,10 @@ class SubscriptionService
             throw new BooksException("Choose at least {$plan->min_days} delivery day".($plan->min_days === 1 ? '' : 's').' a week.');
         }
         try {
-            $start = Carbon::parse((string) ($in['start_date'] ?? ''), $this->tz())->startOfDay();
+            if (trim((string) ($in['start_date'] ?? '')) === '') {
+                throw new \InvalidArgumentException('no start');
+            }
+            $start = Carbon::parse((string) $in['start_date'], $this->tz())->startOfDay();
         } catch (\Throwable) {
             throw new BooksException('Choose the day you want to start.');
         }
@@ -418,7 +421,13 @@ class SubscriptionService
             $this->rebuild($s, $period);
         }
 
-        return $d->fresh();
+        return $this->again($d);
+    }
+
+    /** The delivery as it is now: a re-billed week makes its rows again, so it is found by its day. */
+    private function again(SubDelivery $d): SubDelivery
+    {
+        return SubDelivery::where('subscription_id', $d->subscription_id)->where('delivery_date', $d->delivery_date->toDateString())->firstOrFail();
     }
 
     /** Change your mind: put a skipped day back (before its cut-off). */
@@ -444,7 +453,7 @@ class SubscriptionService
             throw new BooksException('That week can no longer be changed.');
         }
 
-        return $d->fresh();
+        return $this->again($d);
     }
 
     /** An unpaid week is billed again after a change (a skipped day leaves it, a put-back day returns): the old Sales Order is cancelled and a new one made. */
