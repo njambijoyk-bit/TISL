@@ -198,6 +198,9 @@ class EnrolmentService
         } elseif ($o->capacity && (clone $held)->count() >= (int) $o->capacity) {
             throw new BooksException('Every place is taken.');
         }
+        if (! empty($in['use_credits'])) {
+            return $this->enrolWithCredits($o, $student, $by, $channel, $intakeId);
+        }
         $pct = round((float) ($in['discount_pct'] ?? 0), 2);
         $note = trim((string) ($in['discount_note'] ?? ''));
         if ($pct > 0) {
@@ -251,6 +254,29 @@ class EnrolmentService
         });
         app(IntakeService::class)->enrolled($o, $student);
         $this->notices->enrolled($e, $o, (float) ($e->instalments()->value('amount') ?? 0));
+
+        return $e->fresh(['lines', 'instalments']);
+    }
+
+    /** Take the offering with credits from the student's membership instead of paying: every fee is covered, no invoice is made, and the credits come back if the enrolment is cancelled. */
+    private function enrolWithCredits(Offering $o, User $student, ?User $by, string $channel, ?int $intakeId): Enrolment
+    {
+        $cost = (int) ($o->credit_cost ?? 0);
+        if ($cost < 1) {
+            throw new BooksException('This cannot be taken with credits.');
+        }
+        $e = DB::transaction(function () use ($o, $student, $by, $channel, $intakeId, $cost) {
+            $e = Enrolment::create(['number' => 'EN-'.strtoupper(bin2hex(random_bytes(5))), 'offering_id' => $o->id, 'student_user_id' => $student->id, 'customer_id' => $student->customer?->id, 'status' => 'pending',
+                'channel' => $channel === 'counter' ? 'counter' : 'online', 'total' => 0, 'created_by' => $by?->id, 'notes' => 'Paid with credits']);
+            $e->update(['number' => 'EN-'.str_pad((string) $e->id, 6, '0', STR_PAD_LEFT)] + ($intakeId ? ['intake_id' => $intakeId] : []));
+            app(\App\Services\Memberships\Credits::class)->spend($student->id, $cost, 'course_enrolment', $e->id, $o->title, $by?->id);
+            $e->update(['credits_spent' => $cost]);
+            $this->open($e->fresh(), $o);
+
+            return $e->fresh();
+        });
+        app(IntakeService::class)->enrolled($o, $student);
+        $this->notices->enrolled($e, $o, 0);
 
         return $e->fresh(['lines', 'instalments']);
     }
@@ -442,6 +468,9 @@ class EnrolmentService
             }
             $this->access->revoke('invoice', $this->ref($e));
             $e->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancel_reason' => $reason, 'expires_at' => null]);
+            if ((int) ($e->credits_spent ?? 0) > 0) {
+                app(\App\Services\Memberships\Credits::class)->giveBack('course_enrolment', $e->id, 'Enrolment '.$e->number.' cancelled');
+            }
         });
         if ($o = Offering::find($e->offering_id)) {
             $this->notices->cancelled($e->fresh(), $o, false);

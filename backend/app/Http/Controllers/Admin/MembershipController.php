@@ -127,6 +127,17 @@ class MembershipController extends Controller
         return $this->guard(fn () => $this->one($this->memberships->refund(Period::findOrFail($period), $request->user(), $d['reason'] ?? null, $d['refund_ledger_id'] ?? null), 'Refunded: the credit note is in the books.'));
     }
 
+    public function adjustCredits(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['delta' => 'required|integer', 'reason' => 'required|string|max:200']);
+
+        return $this->guard(function () use ($request, $id, $d) {
+            app(\App\Services\Memberships\Credits::class)->adjust(Membership::findOrFail($id), (int) $d['delta'], $d['reason'], $request->user()->id);
+
+            return $this->one(Membership::findOrFail($id), 'Credits changed.');
+        });
+    }
+
     public function give(Request $request): JsonResponse
     {
         $d = $request->validate(['plan_id' => 'required|integer', 'member_user_id' => 'required|integer', 'until' => 'nullable|date', 'reason' => 'required|string|max:300']);

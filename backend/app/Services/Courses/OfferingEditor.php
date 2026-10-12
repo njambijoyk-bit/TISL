@@ -90,6 +90,16 @@ class OfferingEditor
                 $row['cert_valid_months'] = (int) $m;
             }
         }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('course_offerings', 'credit_cost') && array_key_exists('credit_cost', $d)) {
+            $cc = $d['credit_cost'];
+            if ($cc === null || $cc === '') {
+                $row['credit_cost'] = null;
+            } elseif ((int) $cc < 1 || (int) $cc > 1000) {
+                throw new BooksException('An offering costs 1 to 1000 credits (or empty for none).');
+            } else {
+                $row['credit_cost'] = (int) $cc;
+            }
+        }
         foreach (['free_preview', 'certificate', 'in_order'] as $k) {
             if ($k === 'in_order' && ! \Illuminate\Support\Facades\Schema::hasColumn('course_offerings', 'in_order')) {
                 continue;

@@ -130,6 +130,15 @@ function Detail({ id, meta, plans, can, onClose, onChanged }) {
             )}
           </div>
         )}
+        {m.credits && (m.credits.balance > 0 || m.credits.held > 0 || m.credits.ledger.length > 0) && (
+          <section style={{ display: 'grid', gap: 4 }} data-testid="member-credits">
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <strong>Credits: {m.credits.balance}</strong>{m.credits.held > 0 && <Pill tone="warn">{m.credits.held} on hold until the membership is in good standing</Pill>}
+              {can.grant && <button type="button" style={btnGhost} disabled={busy} onClick={() => { const n = window.prompt('Add (a number) or take away (a negative number) how many credits?', '1'); if (!n) return; const why = window.prompt('Why?', ''); if (why) run(() => membershipsAPI.adjustCredits(m.id, Number(n), why)); }}>Change credits</button>}
+            </div>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.82rem' }}>{m.credits.ledger.slice(0, 8).map((e) => <li key={e.id}>{new Date(e.at).toLocaleDateString()} · {e.kind} · {e.delta > 0 ? `+${e.delta}` : e.delta}{e.note ? ` · ${e.note}` : ''}</li>)}</ul>
+          </section>
+        )}
         {m.events && m.events.length > 0 && (
           <details>
             <summary style={{ cursor: 'pointer', fontWeight: 700 }}>History</summary>

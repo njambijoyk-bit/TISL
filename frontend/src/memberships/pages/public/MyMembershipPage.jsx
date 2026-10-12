@@ -114,6 +114,16 @@ export default function MyMembershipPage() {
         {user && !d && !failed && <p>Loading…</p>}
         {failed && <div style={card} role="status">We could not load your membership. Please try again.</div>}
         {d && !d.ready && <div style={card} role="status">Memberships are not available yet.</div>}
+        {d?.ready && d.credits && (d.credits.balance > 0 || d.credits.held > 0 || d.credits.ledger.length > 0) && (
+          <div style={{ ...card, display: 'grid', gap: 4 }} data-testid="my-credits">
+            <strong>My credits: {d.credits.balance}</strong>
+            {d.credits.held > 0 && <span style={{ fontSize: '0.84rem', color: '#92400e' }}>{d.credits.held} more are on hold until your membership is paid up.</span>}
+            <span style={{ fontSize: '0.84rem', color: 'var(--text-secondary)' }}>Spend them on classes marked with a credit price in <Link to="/learn">Learn</Link>.</span>
+            <details><summary style={{ cursor: 'pointer', fontWeight: 700 }}>History</summary>
+              <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: '0.82rem' }}>{d.credits.ledger.map((e) => <li key={e.id}>{new Date(e.at).toLocaleDateString()} · {e.note || e.kind} · {e.delta > 0 ? `+${e.delta}` : e.delta}{e.expires_at ? ` · use by ${new Date(e.expires_at).toLocaleDateString()}` : ''}</li>)}</ul>
+            </details>
+          </div>
+        )}
         {d?.ready && d.memberships.length === 0 && <div style={card}>You do not have a membership yet. <Link to="/membership" style={{ fontWeight: 800 }}>See the plans</Link></div>}
         {d?.ready && d.memberships.map((m) => <One key={m.id} m={m} methods={d.payment_methods} settings={d.settings} plans={plans} reload={load} />)}
       </main>

@@ -377,8 +377,8 @@ class MembershipService
         }
         $m->update(['status' => $m->trial_ends_on && $today->lt($m->trial_ends_on) ? 'trial' : 'active']);
         $this->log($m, 'renewed', $p->label);
+        $this->entitle($m->fresh(), true, $plan);   // every paid period: a benefit that is given each period (credits) gives it again
         if (! $wasGood) {
-            $this->entitle($m->fresh(), true, $plan);
             $this->log($m, 'reactivated');
         }
     }
@@ -715,6 +715,7 @@ class MembershipService
         }
 
         $this->guarded(fn () => $this->resync());
+        $this->guarded(fn () => app(Credits::class)->expire($nowC));
 
         return $r;
     }
@@ -762,6 +763,9 @@ class MembershipService
         if ($detail) {
             $out['periods'] = $m->periods()->get()->map(fn (Period $p) => ['id' => $p->id, 'seq' => $p->seq, 'kind' => $p->kind, 'label' => $p->label, 'period_from' => $p->period_from?->toDateString(), 'period_to' => $p->period_to?->toDateString(), 'due_date' => $p->due_date?->toDateString(),
                 'amount' => (float) $p->amount, 'paid_amount' => (float) $p->paid_amount, 'status' => $p->status, 'can_refund' => $staff && $p->status === 'paid' && $p->kind !== 'upgrade'])->values()->all();
+            if (Credits::installed()) {
+                $out['credits'] = app(Credits::class)->summary((int) $m->member_user_id);
+            }
             if ($staff) {
                 $out['events'] = $m->events()->limit(60)->get()->map(fn (MembershipEvent $e) => ['type' => $e->type, 'note' => $e->note, 'at' => $e->created_at?->toIso8601String()])->values()->all();
                 $out['notes'] = $m->notes;

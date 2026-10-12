@@ -771,6 +771,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
         Route::post('/periods/{period}/refund', [$mc, 'refund'])->whereNumber('period')->middleware('permission:memberships.refund');
         Route::post('/members/give', [$mc, 'give'])->middleware('permission:memberships.grant');
+        Route::post('/members/{id}/credits', [$mc, 'adjustCredits'])->whereNumber('id')->middleware('permission:memberships.grant');
     });
 
     // COURSES — offerings, lessons, files and access. Reading needs courses.view (or teach); changing is checked per offering in the controller (managers: any; teachers: their own); access needs courses.grant

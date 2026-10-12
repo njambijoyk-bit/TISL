@@ -46,10 +46,10 @@ class CoursesEnrolController extends Controller
     /** Enrol yourself. With a payment method the first payment is started at once. */
     public function enrol(Request $request, int $id): JsonResponse
     {
-        $d = $request->validate(['optional_fee_ids' => 'nullable|array', 'optional_fee_ids.*' => 'integer', 'payment_method_id' => 'nullable|integer', 'phone' => 'nullable|string|max:40', 'intake_id' => 'nullable|integer']);
+        $d = $request->validate(['optional_fee_ids' => 'nullable|array', 'optional_fee_ids.*' => 'integer', 'payment_method_id' => 'nullable|integer', 'phone' => 'nullable|string|max:40', 'intake_id' => 'nullable|integer', 'use_credits' => 'nullable|boolean']);
 
         return $this->guard(function () use ($request, $id, $d) {
-            $e = $this->enrolments->enrol($this->open($id), ['student_user_id' => $request->user()->id, 'optional_fee_ids' => $d['optional_fee_ids'] ?? [], 'intake_id' => $d['intake_id'] ?? null], null, 'online');
+            $e = $this->enrolments->enrol($this->open($id), ['student_user_id' => $request->user()->id, 'optional_fee_ids' => $d['optional_fee_ids'] ?? [], 'intake_id' => $d['intake_id'] ?? null, 'use_credits' => (bool) ($d['use_credits'] ?? false)], null, 'online');
             $pay = null;
             if ($e->status === 'pending' && ! empty($d['payment_method_id'])) {
                 $pay = $this->enrolments->pay($e, ['payment_method_id' => $d['payment_method_id'], 'phone' => $d['phone'] ?? null], $request->user());

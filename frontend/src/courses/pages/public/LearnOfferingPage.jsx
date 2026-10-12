@@ -149,6 +149,10 @@ function EnrolCard({ data, reload }) {
         <button type="button" disabled={busy || (data.has_intakes && !intake)} onClick={() => go(() => coursesPublicAPI.joinWaitlist(o.id, intake ? Number(intake) : undefined))} style={primaryBtn}>Join the waiting list</button>
       )}
       {signedIn && data.me.has_access && data.me.can_enrol && <p style={{ margin: 0, fontSize: '0.86rem' }} data-testid="member-access">Open to you with your membership: <Link to={`/learn/my/${o.slug}`} style={{ fontWeight: 800 }}>start learning</Link>. Enrol as well to join the classes, take the exams and earn the certificate.</p>}
+      {signedIn && data.me.can_enrol && data.credits && data.credits.balance >= data.credits.cost && (!data.has_intakes || intake) && (
+        <button type="button" disabled={busy} onClick={() => go(() => coursesPublicAPI.enrol(o.id, { use_credits: true, intake_id: intake ? Number(intake) : undefined }))} style={{ ...primaryBtn, background: '#0f766e' }} data-testid="pay-with-credits">Enrol with {data.credits.cost} credit{data.credits.cost === 1 ? '' : 's'} (you have {data.credits.balance})</button>
+      )}
+      {signedIn && data.me.can_enrol && data.credits && data.credits.balance < data.credits.cost && <p style={{ margin: 0, fontSize: '0.84rem' }}>Members can take this with {data.credits.cost} credit{data.credits.cost === 1 ? '' : 's'}.</p>}
       {signedIn && data.me.can_enrol && quote && (
         <form onSubmit={(e) => { e.preventDefault(); go(() => coursesPublicAPI.enrol(o.id, { intake_id: intake ? Number(intake) : undefined, optional_fee_ids: extras, payment_method_id: method ? Number(method) : undefined, phone: phone || undefined })); }} style={{ display: 'grid', gap: 8 }}>
           {optional.length > 0 && (

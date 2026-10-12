@@ -21,6 +21,7 @@ export const membershipsAPI = {
   resume: async (id) => (await api.post(`/admin/memberships/members/${id}/resume`)).data,
   changePlan: async (id, planId) => (await api.post(`/admin/memberships/members/${id}/change-plan`, { plan_id: planId })).data,
   refund: async (periodId, payload) => (await api.post(`/admin/memberships/periods/${periodId}/refund`, payload)).data,
+  adjustCredits: async (id, delta, reason) => (await api.post(`/admin/memberships/members/${id}/credits`, { delta, reason })).data,
   give: async (payload) => (await api.post('/admin/memberships/members/give', payload)).data,
   removePlan: async (id) => (await api.delete(`/admin/memberships/plans/${id}`)).data,
 };

@@ -42,7 +42,7 @@ function CoursesBenefit({ meta, value, onChange }) {
   );
 }
 
-const BLANK = { courses: { mode: 'all', kinds: [], categories: [], offering_ids: [], waive_tuition: false }, meals: { discount_pct: 0 } };
+const BLANK = { courses: { mode: 'all', kinds: [], categories: [], offering_ids: [], waive_tuition: false }, meals: { discount_pct: 0 }, credits: { amount: 4, rollover: false } };
 
 function PlanForm({ meta, plan, onClose, onDone }) {
   const [f, setF] = useState({ name: plan?.name ?? '', summary: plan?.summary ?? '', description: plan?.description ?? '', period_count: plan?.period_count ?? 1, period_unit: plan?.period_unit ?? 'month', price: plan?.price ?? '', joining_fee: plan?.joining_fee ?? '',
@@ -89,6 +89,12 @@ function PlanForm({ meta, plan, onClose, onDone }) {
             <div key={type} data-benefit={type} style={{ display: 'grid', gap: 6 }}>
               <label style={{ ...check, fontWeight: 700 }}><input type="checkbox" checked={type in ben} onChange={(e) => setBen((b) => { const n = { ...b }; if (e.target.checked) n[type] = { ...BLANK[type] }; else delete n[type]; return n; })} /> {label}</label>
               {type === 'courses' && type in ben && <CoursesBenefit meta={meta} value={ben.courses} onChange={(v) => setBen((b) => ({ ...b, courses: v }))} />}
+              {type === 'credits' && type in ben && (
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <Field label="Credits each paid period" htmlFor="mp-cred"><TextInput id="mp-cred" inputMode="numeric" value={ben.credits.amount} onChange={(e) => setBen((b) => ({ ...b, credits: { ...b.credits, amount: e.target.value } }))} /></Field>
+                  <label style={check}><input type="checkbox" checked={ben.credits.rollover} onChange={(e) => setBen((b) => ({ ...b, credits: { ...b.credits, rollover: e.target.checked } }))} /> Unused credits roll over (otherwise they expire when the period ends)</label>
+                </div>
+              )}
               {type === 'meals' && type in ben && <Field label="Discount on meal plans (%)" htmlFor="mp-meal"><TextInput id="mp-meal" inputMode="decimal" value={ben.meals.discount_pct} onChange={(e) => setBen((b) => ({ ...b, meals: { discount_pct: e.target.value } }))} /></Field>}
             </div>
           ))}

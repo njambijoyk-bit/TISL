@@ -55,7 +55,7 @@ class MembershipPublicController extends Controller
 
     public function mine(Request $request): JsonResponse
     {
-        return response()->json(['ready' => MembershipService::installed(), 'memberships' => $this->memberships->mine($request->user()), 'payment_methods' => $this->methods(),
+        return response()->json(['ready' => MembershipService::installed(), 'memberships' => $this->memberships->mine($request->user()), 'payment_methods' => $this->methods(), 'credits' => \App\Services\Memberships\Credits::installed() ? app(\App\Services\Memberships\Credits::class)->summary($request->user()->id) : null,
             'settings' => ['allow_member_cancel' => (bool) MembershipSettings::all()['allow_member_cancel'], 'pause_days_per_year' => (int) MembershipSettings::all()['pause_days_per_year']]]);
     }
 

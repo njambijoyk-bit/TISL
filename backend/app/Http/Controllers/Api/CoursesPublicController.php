@@ -121,6 +121,7 @@ class CoursesPublicController extends Controller
             'me' => ['signed_in' => (bool) $user, 'has_access' => $has, 'enrolment' => $enrolment ? $this->enrolments->row($enrolment, false) : null,
                 'can_enrol' => EnrolmentService::installed() && ! $enrolment && ($runs['has_intakes'] ? collect($runs['intakes'])->contains(fn ($i) => $i['places_left'] === null || $i['places_left'] > 0) : ($left === null || $left > 0)) && ! ($runs['has_intakes'] && ! $runs['intakes']),
                 'can_wait' => EnrolmentService::installed() && ! $enrolment && ! $runs['waitlist'] && \App\Services\Courses\IntakeService::installed(), 'waitlist' => $runs['waitlist']],
+            'credits' => ($o->credit_cost ?? null) && \App\Services\Memberships\Credits::installed() ? ['cost' => (int) $o->credit_cost, 'balance' => $user ? app(\App\Services\Memberships\Credits::class)->balance($user->id) : 0] : null,
             'intakes' => $runs['intakes'], 'has_intakes' => $runs['has_intakes'], 'kit' => app(\App\Services\Courses\KitService::class)->forStudent($o, $user)]);
     }
 }

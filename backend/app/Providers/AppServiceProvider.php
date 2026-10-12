@@ -52,6 +52,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->afterResolving(\App\Services\Memberships\MembershipBenefits::class, function ($r) {   // each module says what it can give to a member
             \App\Services\Courses\MembershipBenefit::register($r);
             \App\Services\Menus\MembershipBenefit::register($r);
+            \App\Services\Memberships\Credits::register($r);
         });
         $this->app->afterResolving(\App\Services\Codes\CodeResolvers::class, fn ($r) => \App\Services\Courses\CertificateCodes::register($r));
         $this->app->afterResolving(\App\Services\Codes\CodeResolvers::class, fn ($r) => \App\Services\Events\TicketCodes::register($r));   // an event ticket's QR means something
