@@ -51,7 +51,10 @@ class RotaBoard
             throw new BooksException('Choose the branch the shift is at.');
         }
         try {
-            $day = Carbon::parse((string) ($d['date'] ?? ''), $this->tz())->startOfDay();
+            if (trim((string) ($d['date'] ?? '')) === '') {
+                throw new \InvalidArgumentException('no day');
+            }
+            $day = Carbon::parse((string) $d['date'], $this->tz())->startOfDay();
         } catch (\Throwable) {
             throw new BooksException('Choose the day.');
         }
