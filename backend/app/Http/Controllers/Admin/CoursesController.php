@@ -73,7 +73,9 @@ class CoursesController extends Controller
         return ['id' => $o->id, 'kind' => $o->kind, 'kind_label' => Offering::KINDS[$o->kind] ?? $o->kind, 'title' => $o->title, 'slug' => $o->slug, 'summary' => $o->summary, 'body' => $o->body, 'cover' => $o->cover, 'category' => $o->category,
             'skill_level' => $o->skill_level, 'tags' => $o->tags ?? [], 'instructor_user_id' => $o->instructor_user_id, 'instructor' => $names[$o->instructor_user_id] ?? null, 'delivery' => $o->delivery, 'location_id' => $o->location_id,
             'status' => $o->status, 'status_label' => Offering::STATUSES[$o->status] ?? $o->status, 'free_preview' => $o->free_preview, 'access_days' => $o->access_days, 'min_attendance_pct' => $o->min_attendance_pct, 'certificate' => $o->certificate,
-            'lessons' => (int) ($o->lessons_count ?? $o->lessons()->count()), 'people' => (int) ($o->people_count ?? 0)];
+            'lessons' => (int) ($o->lessons_count ?? $o->lessons()->count()), 'people' => (int) ($o->people_count ?? 0),
+            'deposit_pct' => $o->deposit_pct !== null ? (float) $o->deposit_pct : null, 'instalments' => $o->instalments, 'instalment_days' => $o->instalment_days ?? 30, 'grant_on' => $o->grant_on ?? 'paid', 'grace_days' => $o->grace_days ?? 7,
+            'refund_days' => $o->refund_days, 'capacity' => $o->capacity];
     }
 
     public function index(Request $request): JsonResponse
@@ -116,7 +118,9 @@ class CoursesController extends Controller
     {
         return $request->validate(['kind' => 'sometimes|string|max:10', 'title' => 'sometimes|string|max:160', 'summary' => 'sometimes|nullable|string|max:400', 'body' => 'sometimes|nullable|string|max:60000', 'cover' => 'sometimes|nullable|string|max:255',
             'category' => 'sometimes|nullable|string|max:80', 'skill_level' => 'sometimes|string|max:12', 'tags' => 'sometimes|nullable', 'instructor_user_id' => 'sometimes|nullable|integer', 'delivery' => 'sometimes|string|max:10',
-            'location_id' => 'sometimes|nullable|integer', 'free_preview' => 'sometimes|boolean', 'access_days' => 'sometimes|nullable|integer', 'min_attendance_pct' => 'sometimes|nullable|integer', 'certificate' => 'sometimes|boolean']);
+            'location_id' => 'sometimes|nullable|integer', 'free_preview' => 'sometimes|boolean', 'access_days' => 'sometimes|nullable|integer', 'min_attendance_pct' => 'sometimes|nullable|integer', 'certificate' => 'sometimes|boolean',
+            'deposit_pct' => 'sometimes|nullable|numeric', 'instalments' => 'sometimes|nullable|integer', 'instalment_days' => 'sometimes|nullable|integer', 'grant_on' => 'sometimes|string|max:8', 'grace_days' => 'sometimes|nullable|integer',
+            'refund_days' => 'sometimes|nullable|integer', 'capacity' => 'sometimes|nullable|integer']);
     }
 
     public function create(Request $request): JsonResponse

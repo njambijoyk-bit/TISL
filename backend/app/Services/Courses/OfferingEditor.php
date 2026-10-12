@@ -73,7 +73,7 @@ class OfferingEditor
                 throw new BooksException('Use at most 10 tags.');
             }
         }
-        $row = ['kind' => $kind, 'title' => $title, 'skill_level' => $level, 'delivery' => $delivery, 'location_id' => $locId, 'instructor_user_id' => $teacher, 'access_days' => $days, 'min_attendance_pct' => $pct, 'tags' => $tags];
+        $row = $this->finance($d, $o) + ['kind' => $kind, 'title' => $title, 'skill_level' => $level, 'delivery' => $delivery, 'location_id' => $locId, 'instructor_user_id' => $teacher, 'access_days' => $days, 'min_attendance_pct' => $pct, 'tags' => $tags];
         foreach (['summary' => 400, 'body' => 60000, 'cover' => 255, 'category' => 80] as $k => $max) {
             if (array_key_exists($k, $d)) {
                 $v = trim((string) $d[$k]);
@@ -91,6 +91,44 @@ class OfferingEditor
         $o->fill($row)->save();
 
         return $o->fresh();
+    }
+
+    /** The payment plan and the number of places (script 153): checked and returned as columns, nothing at all before the script has been run. @return array<string, mixed> */
+    private function finance(array $d, Offering $o): array
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('course_offerings', 'capacity')) {
+            return [];
+        }
+        $int = function (string $key, int $lo, int $hi, string $what, bool $nullable = true) use ($d, $o) {
+            $v = array_key_exists($key, $d) ? $d[$key] : $o->{$key};
+            if ($v === null || $v === '') {
+                if (! $nullable) {
+                    throw new BooksException("Give {$what}.");
+                }
+
+                return null;
+            }
+            if (! is_numeric($v) || (int) $v < $lo || (int) $v > $hi) {
+                throw new BooksException(ucfirst($what)." is between {$lo} and {$hi}.");
+            }
+
+            return (int) $v;
+        };
+        $dep = array_key_exists('deposit_pct', $d) ? $d['deposit_pct'] : $o->deposit_pct;
+        $dep = ($dep === null || $dep === '') ? null : round((float) $dep, 2);
+        if ($dep !== null && ($dep <= 0 || $dep >= 100)) {
+            $dep = $dep <= 0 ? null : throw new BooksException('The deposit is a share between 0 and 100 percent.');
+        }
+        $grant = (string) ($d['grant_on'] ?? $o->grant_on ?? 'paid');
+        if (! in_array($grant, ['paid', 'deposit'], true)) {
+            throw new BooksException('Access begins when it is paid in full or at the deposit.');
+        }
+        if ($grant === 'deposit' && ! $dep && ! ((int) ($d['instalments'] ?? $o->instalments ?? 0) > 1)) {
+            throw new BooksException('Access at the deposit needs a deposit or instalments.');
+        }
+
+        return ['deposit_pct' => $dep, 'instalments' => $int('instalments', 1, 24, 'the number of instalments'), 'instalment_days' => $int('instalment_days', 1, 365, 'the days between payments', false) ?? 30,
+            'grant_on' => $grant, 'grace_days' => $int('grace_days', 0, 60, 'the days an instalment may be late', false) ?? 7, 'refund_days' => $int('refund_days', 0, 3650, 'the refund days'), 'capacity' => $int('capacity', 1, 5000, 'the number of places')];
     }
 
     private function slug(string $title): string

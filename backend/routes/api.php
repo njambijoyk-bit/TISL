@@ -255,6 +255,13 @@ Route::prefix('checkout')->group(function () {
 });
 
 // Menus — the menu a customer reads (open to everyone)
+Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(function () {   // a signed-in person enrolling themselves, paying, and seeing their own enrolments
+    $c = \App\Http\Controllers\Api\CoursesEnrolController::class;
+    Route::get('/my/enrolments', [$c, 'mine'])->middleware('throttle:120,1');
+    Route::post('/offerings/{id}/quote', [$c, 'quote'])->middleware('throttle:60,1')->whereNumber('id');
+    Route::post('/offerings/{id}/enrol', [$c, 'enrol'])->middleware('throttle:10,1')->whereNumber('id');
+    Route::post('/enrolments/{id}/pay', [$c, 'pay'])->middleware('throttle:10,1')->whereNumber('id');
+});
 Route::get('/courses/files/{file}/download', [\App\Http\Controllers\Api\CoursesFileController::class, 'download'])->middleware(['module:courses', 'signed', 'throttle:60,1'])->whereNumber('file')->name('courses.download');
 Route::get('/menu', [\App\Http\Controllers\Api\MenusPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
 Route::get('/menu-chefs', [\App\Http\Controllers\Api\MenusChefPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
@@ -704,6 +711,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/offerings/{id}/files', [$c, 'uploadFile'])->whereNumber('id')->middleware('throttle:60,1');
         Route::delete('/offerings/{id}/files/{file}', [$c, 'deleteFile'])->whereNumber(['id', 'file']);
         Route::get('/people', [$c, 'candidates'])->middleware('permission:courses.grant,courses.manage');
+        $ec = \App\Http\Controllers\Admin\CoursesEnrolmentController::class;
+        Route::get('/offerings/{id}/fees', [$ec, 'feeList'])->whereNumber('id')->middleware('permission:courses.manage,courses.enrol');
+        Route::middleware('permission:courses.manage')->group(function () use ($ec) {
+            Route::post('/offerings/{id}/fees', [$ec, 'feeSave'])->whereNumber('id');
+            Route::put('/offerings/{id}/fees/{fee}', [$ec, 'feeSave'])->whereNumber(['id', 'fee']);
+            Route::delete('/offerings/{id}/fees/{fee}', [$ec, 'feeDelete'])->whereNumber(['id', 'fee']);
+        });
+        Route::middleware('permission:courses.enrol,courses.manage,courses.refund')->group(function () use ($ec) {
+            Route::get('/enrolments/meta', [$ec, 'meta']);
+            Route::get('/enrolments', [$ec, 'index']);
+            Route::get('/enrolments/{id}', [$ec, 'show'])->whereNumber('id');
+        });
+        Route::middleware('permission:courses.enrol')->group(function () use ($ec) {
+            Route::post('/offerings/{id}/quote', [$ec, 'quote'])->whereNumber('id');
+            Route::post('/offerings/{id}/enrol', [$ec, 'enrol'])->whereNumber('id');
+            Route::post('/enrolments/{id}/payment', [$ec, 'payment'])->whereNumber('id');
+            Route::post('/enrolments/{id}/cancel', [$ec, 'cancel'])->whereNumber('id');
+        });
+        Route::post('/enrolments/{id}/refund', [$ec, 'refund'])->whereNumber('id')->middleware('permission:courses.refund');
         Route::put('/settings', [$c, 'saveSettings'])->middleware('permission:courses.manage');
         Route::middleware('permission:courses.grant')->group(function () use ($c) {
             Route::get('/offerings/{id}/access', [$c, 'accessList'])->whereNumber('id');

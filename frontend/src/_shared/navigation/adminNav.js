@@ -257,6 +257,7 @@ export const ADMIN_NAV = [
         id: 'offerings', title: 'Courses', icon: GraduationCap, color: '#6366f1', path: '/admin/courses', perm: 'courses.view', keywords: 'course recipe notes files live class zoom teach lesson',
         tabs: [
           { title: 'Offerings', path: '/admin/courses', icon: LibraryBig, color: '#6366f1' },
+          { title: 'Enrolments', path: '/admin/courses/enrolments', icon: Users, color: '#0ea5e9' },
           { title: 'Settings', path: '/admin/courses/settings', icon: Settings2, color: '#64748b' },
         ],
       },

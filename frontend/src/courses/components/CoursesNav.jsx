@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { GraduationCap, ChevronRight, Settings2, LibraryBig } from 'lucide-react';
+import { GraduationCap, ChevronRight, Settings2, LibraryBig, Users } from 'lucide-react';
 
 const PAGES = [
   { path: '/admin/courses', title: 'Offerings', icon: LibraryBig, color: '#6366f1' },
+  { path: '/admin/courses/enrolments', title: 'Enrolments', icon: Users, color: '#0ea5e9' },
   { path: '/admin/courses/settings', title: 'Settings', icon: Settings2, color: '#64748b' },
 ];
 

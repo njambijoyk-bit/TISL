@@ -14,6 +14,7 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 import CoursesNav from '../../components/CoursesNav';
 import Pill from '../../components/Pill';
 import UserPicker from '../../components/UserPicker';
+import FeesPanel from '../../components/FeesPanel';
 import { OfferingForm } from './CoursesOfferings';
 
 const TONE = { published: 'ok', draft: 'warn', archived: 'neutral' };
@@ -144,7 +145,7 @@ export default function CourseBuilder() {
     try { await coursesAPI.grant(o.id, { user_id: grant.user.id, until: grant.until || undefined, note: grant.note || undefined }); toast.success('Access given.'); setGrant({ user: null, until: '', note: '' }); loadAccess(); } catch (e) { toast.error(errMsg(e, 'Could not give access'), { duration: 8000 }); }
   };
 
-  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ...(meta.can_grant ? [['access', 'Access']] : [])];
+  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ...(meta.can_manage ? [['fees', 'Fees and payments']] : []), ...(meta.can_grant ? [['access', 'Access']] : [])];
 
   return (
     <AdminLayout>
@@ -203,6 +204,8 @@ export default function CourseBuilder() {
             </ul>
           </div>
         )}
+
+        {tab === 'fees' && meta.can_manage && <FeesPanel offering={o} onChanged={load} />}
 
         {tab === 'access' && meta.can_grant && (
           <div style={{ display: 'grid', gap: 12 }}>

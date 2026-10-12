@@ -122,6 +122,8 @@ class NoRoleNamesInCodeTest extends TestCase
         'courses.view' => ['super_admin', 'admin'],
         'courses.manage' => ['super_admin', 'admin'],
         'courses.teach' => ['super_admin', 'admin'],
+        'courses.enrol' => ['super_admin', 'admin'],
+        'courses.refund' => ['super_admin', 'admin'],
         'courses.grant' => ['super_admin', 'admin'],
         'system.restore' => ['super_admin'],
         'system.logs' => ['super_admin', 'admin'],
