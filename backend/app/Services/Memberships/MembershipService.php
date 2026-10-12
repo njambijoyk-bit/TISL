@@ -754,6 +754,35 @@ class MembershipService
         return $out;
     }
 
+    /** The plans a visitor can join, in words they understand. @return array<int, array<string, mixed>> */
+    public function publicPlans(?User $u = null): array
+    {
+        if (! PlanService::installed()) {
+            return [];
+        }
+        $mine = $u && self::installed() ? $this->live($u->id) : null;
+
+        return Plan::with('benefits')->where('status', 'published')->orderBy('sort_order')->orderBy('name')->get()->map(function (Plan $p) use ($u, $mine) {
+            $left = $p->capacity ? max(0, (int) $p->capacity - (self::installed() ? $this->seats($p) : 0)) : null;
+
+            return ['id' => $p->id, 'slug' => $p->slug, 'name' => $p->name, 'summary' => $p->summary, 'description' => $p->description, 'cover' => $p->cover, 'price' => (float) $p->price, 'period_label' => $this->plans->periodLabel($p), 'joining_fee' => $u && self::installed() ? ($this->owesJoiningFee($u->id, $p) ? (float) $p->joining_fee : 0.0) : (float) $p->joining_fee,
+                'trial_days' => (int) $p->trial_days, 'places_left' => $left, 'full' => $left !== null && $left < 1, 'all_branches' => (bool) $p->all_branches,
+                'benefits' => $p->benefits->filter(fn ($b) => $this->benefits->has($b->type))->map(fn ($b) => $this->benefits->describe($b->type, $b->config ?? []))->values()->all(),
+                'current' => $mine && (int) $mine->plan_id === (int) $p->id];
+        })->values()->all();
+    }
+
+    /** Memberships a person holds or pays for, newest first. @return array<int, array<string, mixed>> */
+    public function mine(User $u): array
+    {
+        if (! self::installed()) {
+            return [];
+        }
+
+        return Membership::where(fn ($w) => $w->where('member_user_id', $u->id)->orWhere('payer_user_id', $u->id))->orderByDesc('id')->limit(20)->get()
+            ->map(fn (Membership $m) => $this->row($m, false, true) + ['as_payer' => (int) $m->member_user_id !== (int) $u->id])->values()->all();
+    }
+
     /** @return array{memberships: array<int, array<string, mixed>>, total: int} */
     public function list(array $f = []): array
     {

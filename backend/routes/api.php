@@ -265,6 +265,21 @@ Route::prefix('learn')->middleware(['module:courses', 'throttle:120,1'])->group(
     Route::get('/', [$c, 'index']);
     Route::get('/{slug}', [$c, 'show'])->where('slug', '[a-z0-9\-]+');
 });
+Route::prefix('memberships')->middleware(['module:memberships'])->group(function () {   // the plans: no sign-in to look; a signed-in person joins and manages theirs
+    $mb = \App\Http\Controllers\Api\MembershipPublicController::class;
+    Route::get('/plans', [$mb, 'plans'])->middleware('throttle:120,1');
+    Route::middleware('auth:sanctum')->group(function () use ($mb) {
+        Route::get('/my', [$mb, 'mine'])->middleware('throttle:120,1');
+        Route::post('/plans/{plan}/quote', [$mb, 'quote'])->middleware('throttle:60,1')->whereNumber('plan');
+        Route::post('/plans/{plan}/join', [$mb, 'join'])->middleware('throttle:10,1')->whereNumber('plan');
+        Route::post('/my/{id}/pay', [$mb, 'pay'])->middleware('throttle:10,1')->whereNumber('id');
+        Route::post('/my/{id}/pause', [$mb, 'pause'])->middleware('throttle:20,1')->whereNumber('id');
+        Route::post('/my/{id}/resume', [$mb, 'resume'])->middleware('throttle:20,1')->whereNumber('id');
+        Route::post('/my/{id}/cancel', [$mb, 'cancel'])->middleware('throttle:20,1')->whereNumber('id');
+        Route::post('/my/{id}/keep', [$mb, 'keep'])->middleware('throttle:20,1')->whereNumber('id');
+        Route::post('/my/{id}/change-plan', [$mb, 'changePlan'])->middleware('throttle:20,1')->whereNumber('id');
+    });
+});
 Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(function () {   // a signed-in person enrolling themselves, paying, and seeing their own enrolments
     $c = \App\Http\Controllers\Api\CoursesEnrolController::class;
     Route::get('/my/enrolments', [$c, 'mine'])->middleware('throttle:120,1');
