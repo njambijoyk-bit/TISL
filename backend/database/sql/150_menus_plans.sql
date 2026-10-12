@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS menus_sub_deliveries (
     delivery_date    DATE NOT NULL,
     status           VARCHAR(10) NOT NULL DEFAULT 'scheduled',   -- scheduled | skipped | ordered | missed | cancelled
     free             TINYINT(1) NOT NULL DEFAULT 0,              -- a day owed from an earlier skip: not charged
-    lines            JSON NULL,                                  -- [{dish_id, name, price}] as billed
+    meals            JSON NULL,                                  -- [{dish_id, name, price}] as billed (the word LINES is reserved in MySQL)
     item_ids         JSON NULL,                                  -- the lines on the Sales Order, so stock can be taken when it is made
     order_id         BIGINT UNSIGNED NULL,                       -- the kitchen order made for it
     skipped_at       DATETIME NULL,

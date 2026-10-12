@@ -231,7 +231,7 @@ class SubscriptionService
             if (! $rows) {   // every day of the week was skipped: nothing to bill
                 SubDelivery::where('period_id', $period->id)->delete();
                 foreach ($plan as [$date, , $lines]) {
-                    SubDelivery::create(['subscription_id' => $s->id, 'period_id' => $period->id, 'delivery_date' => $date, 'status' => 'skipped', 'free' => false, 'lines' => $lines, 'item_ids' => [], 'skipped_at' => now()]);
+                    SubDelivery::create(['subscription_id' => $s->id, 'period_id' => $period->id, 'delivery_date' => $date, 'status' => 'skipped', 'free' => false, 'meals' => $lines, 'item_ids' => [], 'skipped_at' => now()]);
                 }
                 $period->update(['status' => 'paid', 'subtotal' => 0, 'tax_total' => 0, 'total' => 0, 'paid_at' => now()]);
                 $s->update(['credit_days' => max(0, $credit)]);
@@ -249,7 +249,7 @@ class SubscriptionService
             foreach ($plan as [$date, $free, $lines, $skipped]) {
                 $ids = $skipped ? [] : array_slice($items, $k, count($lines));
                 $k += $skipped ? 0 : count($lines);
-                SubDelivery::create(['subscription_id' => $s->id, 'period_id' => $period->id, 'delivery_date' => $date, 'status' => $skipped ? 'skipped' : 'scheduled', 'free' => $free, 'lines' => $lines, 'item_ids' => $ids, 'skipped_at' => $skipped ? now() : null]);
+                SubDelivery::create(['subscription_id' => $s->id, 'period_id' => $period->id, 'delivery_date' => $date, 'status' => $skipped ? 'skipped' : 'scheduled', 'free' => $free, 'meals' => $lines, 'item_ids' => $ids, 'skipped_at' => $skipped ? now() : null]);
             }
             $live = array_values(array_filter($plan, fn ($x) => ! $x[3]));
             $first1 = Carbon::parse($live[0][0], $this->tz());
@@ -346,7 +346,7 @@ class SubscriptionService
     {
         $channel = Channel::where('order_type', 'delivery')->orderByDesc('is_active')->orderBy('id')->first() ?? throw new BooksException('Set up a delivery way to order under Menus → Settings first.');
         $period = SubPeriod::findOrFail($d->period_id);
-        $lines = (array) $d->lines;
+        $lines = (array) $d->meals;
         $sub = round(array_sum(array_column($lines, 'price')), 2);
         $share = (float) $period->subtotal > 0 ? $sub / (float) $period->subtotal : 0.0;
         $tax = round((float) $period->tax_total * $share, 2);
@@ -658,7 +658,7 @@ class SubscriptionService
             'start_date' => $s->start_date->toDateString(), 'paused_from' => $s->paused_from?->toDateString(), 'paused_until' => $s->paused_until?->toDateString(), 'credit_days' => (int) $s->credit_days, 'cancel_reason' => $s->cancel_reason,
             'to_pay' => $periods->where('status', 'due')->map(fn (SubPeriod $x) => ['id' => $x->id, 'week_start' => $x->week_start->toDateString(), 'total' => (float) $x->total, 'pay_by' => $x->pay_by?->toIso8601String()])->values()->all(),
             'deliveries' => $deliveries->map(fn (SubDelivery $d) => ['id' => $d->id, 'date' => $d->delivery_date->toDateString(), 'status' => $d->status, 'status_label' => SubDelivery::STATUSES[$d->status] ?? $d->status, 'free' => $d->free,
-                'dishes' => array_column((array) $d->lines, 'name'), 'can_skip' => $d->status === 'scheduled' && $this->beforeCutoff($s, $d, $now), 'can_unskip' => $d->status === 'skipped' && $this->beforeCutoff($s, $d, $now),
+                'dishes' => array_column((array) $d->meals, 'name'), 'can_skip' => $d->status === 'scheduled' && $this->beforeCutoff($s, $d, $now), 'can_unskip' => $d->status === 'skipped' && $this->beforeCutoff($s, $d, $now),
                 'skip_until' => $this->cutoff($p, $d->delivery_date->copy())->toIso8601String()])->values()->all()];
     }
 
@@ -673,7 +673,7 @@ class SubscriptionService
             foreach (SubDelivery::where('subscription_id', $s->id)->where('status', 'cancelled')->where('free', false)->get() as $d) {
                 $period = SubPeriod::find($d->period_id);
                 if ($period && $period->status === 'paid' && (float) $period->subtotal > 0) {
-                    $refund += array_sum(array_column((array) $d->lines, 'price')) * (float) $period->total / (float) $period->subtotal;
+                    $refund += array_sum(array_column((array) $d->meals, 'price')) * (float) $period->total / (float) $period->subtotal;
                 }
             }
         }
@@ -702,11 +702,11 @@ class SubscriptionService
             if (! $s || ! $p || ($scope && ! $scope($p))) {
                 continue;
             }
-            foreach ((array) $d->lines as $l) {
+            foreach ((array) $d->meals as $l) {
                 $count[$l['name']] = ($count[$l['name']] ?? 0) + 1;
             }
             $stops[] = ['subscription' => $s->number, 'name' => $s->name, 'phone' => $s->phone, 'address' => $s->address, 'window' => substr((string) $p->slot_from, 0, 5).'–'.substr((string) $p->slot_to, 0, 5), 'plan' => $p->name,
-                'dishes' => array_column((array) $d->lines, 'name'), 'status' => $d->status, 'order_id' => $d->order_id, 'stock_note' => $d->stock_note && $d->stock_note !== 'taken' ? $d->stock_note : null];
+                'dishes' => array_column((array) $d->meals, 'name'), 'status' => $d->status, 'order_id' => $d->order_id, 'stock_note' => $d->stock_note && $d->stock_note !== 'taken' ? $d->stock_note : null];
         }
         ksort($count);
 

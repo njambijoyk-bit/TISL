@@ -13,5 +13,5 @@ class SubDelivery extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['delivery_date' => 'date:Y-m-d', 'free' => 'boolean', 'lines' => 'array', 'item_ids' => 'array', 'skipped_at' => 'datetime'];
+    protected $casts = ['delivery_date' => 'date:Y-m-d', 'free' => 'boolean', 'meals' => 'array', 'item_ids' => 'array', 'skipped_at' => 'datetime'];
 }
