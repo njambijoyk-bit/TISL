@@ -5,7 +5,7 @@
 --   menus_overtime.user_id                          overtime entries now belong to a person (chef or other staff); chef_id stays for chefs
 --   menus_clock_sites.networks                      the public internet addresses of a branch's Wi-Fi (an address or range, one per line or comma)
 --   menus_clock_events.method                       how the place was proved: gps, qr or wifi
--- Run 148 first. Safe to re-run. Run each part on its own in Workbench.
+-- Run 148 first. Safe to re-run (if it stopped part way, just run PART B again). Run each part on its own in Workbench.
 -- =====================================================================
 
 -- PART A - READ-ONLY CHECK
@@ -46,7 +46,8 @@ CALL add_column_if_missing('menus_clock_sites', 'networks', 'TEXT NULL');
 CALL add_column_if_missing('menus_clock_events', 'method', 'VARCHAR(8) NULL');
 
 -- existing entries belong to chefs: give them their person, let other staff have entries with no chef, and make a person's day unique
-UPDATE menus_overtime o JOIN menus_chefs c ON c.id = o.chef_id SET o.user_id = c.user_id WHERE o.user_id IS NULL;
+-- (a key column in the WHERE keeps MySQL Workbench's safe-update mode happy: id is the primary key)
+UPDATE menus_overtime o JOIN menus_chefs c ON c.id = o.chef_id SET o.user_id = c.user_id WHERE o.id > 0 AND o.user_id IS NULL;
 ALTER TABLE menus_overtime MODIFY chef_id BIGINT UNSIGNED NULL;
 CALL add_unique_if_missing('menus_overtime', 'uq_menus_overtime_user_day', 'user_id, work_date');
 
