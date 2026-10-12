@@ -270,6 +270,20 @@ class GatewayPaymentService
         }
     }
 
+    /** A week of a meal plan is paid: its delivery days are confirmed. A problem there must never undo a payment that has been received. */
+    private function planPaid(Voucher $order, Voucher $sale, PaymentAttempt $attempt): void
+    {
+        if (empty($order->meta['menu_period_id'])) {
+            return;
+        }
+        try {
+            app(\App\Services\Menus\SubscriptionService::class)->paid($order, $sale);
+        } catch (\Throwable $e) {
+            Log::error('Gateway: the meal plan week could not be marked paid', ['attempt' => $attempt->id, 'order' => $order->id, 'error' => $e->getMessage()]);
+            $attempt->update(['notes' => trim(($attempt->notes ? $attempt->notes . ' · ' : '') . "The payment is booked but the meal plan week could not be marked paid ({$e->getMessage()}): please check Menus → Plans.")]);
+        }
+    }
+
     /** A deposit or balance on a cake or catering job is paid. A problem there must never undo a payment that has been received. */
     private function cookingPaid(Voucher $invoice, float $amount): void
     {
@@ -310,6 +324,7 @@ class GatewayPaymentService
         $attempt->update(['settled_voucher_id' => $sale->id]);
         $this->issueTickets($voucher, $sale, $attempt);   // an order for event tickets: the tickets become valid now
         $this->menuOrderPaid($voucher, $sale, $attempt);   // a food order: the kitchen is told now
+        $this->planPaid($voucher, $sale, $attempt);   // a week of a meal plan: its days are confirmed
         if ($paired) {
             // The money has arrived and the first order is settled: a problem with the second must not undo that (the whole callback would roll back and the payment be lost). Staff finish it by hand.
             try {

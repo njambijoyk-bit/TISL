@@ -273,6 +273,22 @@ Route::prefix('menu/table')->middleware('module:menus')->group(function () {   /
     Route::post('/{qr}/bill',    [$c, 'bill'])->middleware('throttle:10,1')->where('qr', '[A-Za-z0-9]{24}');
     Route::post('/{qr}/pay',     [$c, 'pay'])->middleware('throttle:10,1')->where('qr', '[A-Za-z0-9]{24}');
 });
+Route::prefix('menu/plans')->middleware('module:menus')->group(function () {   // meal plans: no sign-in to look or subscribe
+    $c = \App\Http\Controllers\Api\MenusPlanPublicController::class;
+    Route::get('/',                    [$c, 'index'])->middleware('throttle:120,1');
+    Route::post('/{id}/subscribe',     [$c, 'subscribe'])->middleware('throttle:10,1')->whereNumber('id');
+});
+Route::prefix('menu/plan/{token}')->middleware('module:menus')->where(['token' => '[A-Za-z0-9]{40}'])->group(function () {   // a subscriber's page: the secret in the link is the key
+    $c = \App\Http\Controllers\Api\MenusPlanPublicController::class;
+    Route::get('/',                       [$c, 'show'])->middleware('throttle:120,1');
+    Route::post('/skip/{delivery}',       [$c, 'skip'])->middleware('throttle:30,1')->whereNumber('delivery');
+    Route::post('/unskip/{delivery}',     [$c, 'unskip'])->middleware('throttle:30,1')->whereNumber('delivery');
+    Route::post('/pause',                 [$c, 'pause'])->middleware('throttle:10,1');
+    Route::post('/resume',                [$c, 'resume'])->middleware('throttle:10,1');
+    Route::post('/cancel',                [$c, 'cancel'])->middleware('throttle:10,1');
+    Route::post('/update',                [$c, 'update'])->middleware('throttle:20,1');
+    Route::post('/pay/{period}',          [$c, 'pay'])->middleware('throttle:10,1')->whereNumber('period');
+});
 Route::prefix('menu/custom')->middleware('module:menus')->group(function () {   // asking for a cake or catering: no sign-in to ask; accepting a quote and paying need a signed-in customer
     $c = \App\Http\Controllers\Api\MenusCookingPublicController::class;
     Route::get('/',                          [$c, 'info'])->middleware('throttle:120,1');
@@ -691,6 +707,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/operations/prep', [$op, 'prep']);
         Route::get('/operations/reorder', [$op, 'suggest']);
         Route::get('/operations/waste', [$op, 'wasteIndex']);
+        $pl = \App\Http\Controllers\Admin\MenusPlanController::class;
+        Route::get('/plans', [$pl, 'index']);
+        Route::get('/plans/subscribers', [$pl, 'subscribers']);
+        Route::get('/plans/day', [$pl, 'day']);
         $ro = \App\Http\Controllers\Admin\MenusRotaController::class;
         Route::get('/rota', [$ro, 'index']);
         Route::get('/rota/mine', [$ro, 'mine']);
@@ -721,7 +741,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/kitchen/stations', [$kc, 'stations']);
         Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
         Route::get('/kitchen/expo', [$kc, 'expo']);
-        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch, $op, $ck, $ro) {
+        Route::middleware('permission:menus.manage')->group(function () use ($r, $in, $dc, $mc, $oc, $kc, $tc, $fc, $kk, $ch, $op, $ck, $ro, $pl) {
             Route::post('/floor/areas', [$fc, 'saveArea']);
             Route::put('/floor/areas/{id}', [$fc, 'saveArea'])->whereNumber('id');
             Route::delete('/floor/areas/{id}', [$fc, 'deleteArea'])->whereNumber('id');
@@ -733,6 +753,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/operations/reorder', [$op, 'makeOrders']);
             Route::post('/operations/waste', [$op, 'wasteStore']);
             Route::post('/operations/waste/{id}/void', [$op, 'wasteVoid'])->whereNumber('id');
+            Route::post('/plans', [$pl, 'save']);
+            Route::put('/plans/{id}', [$pl, 'save'])->whereNumber('id');
+            Route::delete('/plans/{id}', [$pl, 'destroy'])->whereNumber('id');
+            Route::put('/plans/{id}/menu', [$pl, 'saveMenu'])->whereNumber('id');
+            Route::post('/plans/subscribers/{id}/{action}', [$pl, 'act'])->whereNumber('id')->where('action', 'pause|resume|cancel');
+            Route::post('/plans/deliveries/{id}/skip', [$pl, 'skipDelivery'])->whereNumber('id');
+            Route::post('/plans/run', [$pl, 'run']);
             Route::post('/rota/shifts', [$ro, 'saveShift']);
             Route::put('/rota/shifts/{id}', [$ro, 'saveShift'])->whereNumber('id');
             Route::delete('/rota/shifts/{id}', [$ro, 'deleteShift'])->whereNumber('id');

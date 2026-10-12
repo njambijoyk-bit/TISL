@@ -42,6 +42,8 @@ final class MenusSettings
         'rota_clock_qr' => 'off',        // a code shown at the door proves the chef is there: 'rotating' (changes every few minutes, shown on a screen), 'fixed' (printed) or 'off'
         'rota_clock_qr_minutes' => 2,    // how long a rotating door code lasts
         'rota_clock_wifi' => false,      // clocking in from the branch's own Wi-Fi (its public internet address) proves the chef is there
+        'plans_enabled' => false,        // customers may subscribe to meal plans online (off until switched on)
+        'plans_bill_ahead_days' => 3,    // a week is billed this many days before it starts
         'rota_no_show_alerts' => true,   // managers are told when a rostered chef has not signed in
         'rota_min_rest_hours' => 10,     // ...and when the rest between one day's work and the next is shorter than this
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
@@ -99,12 +101,12 @@ final class MenusSettings
                 $cur[$key] = $id;
             }
         }
-        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts', 'rota_claims_need_approval', 'rota_clock_from_rota', 'rota_overtime_needs_approval', 'rota_overtime_staff', 'rota_clock_wifi'] as $key) {
+        foreach (['qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts', 'rota_claims_need_approval', 'rota_clock_from_rota', 'rota_overtime_needs_approval', 'rota_overtime_staff', 'rota_clock_wifi', 'plans_enabled'] as $key) {
             if (array_key_exists($key, $in)) {
                 $cur[$key] = (bool) $in[$key];
             }
         }
-        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24], 'rota_ahead_weeks' => [0, 8], 'rota_overtime_grace' => [0, 120], 'rota_clock_early' => [0, 240], 'rota_clock_radius' => [20, 5000], 'rota_clock_accuracy' => [10, 2000], 'rota_shift_min_share' => [1, 100], 'rota_clock_qr_minutes' => [1, 30]] as $key => [$lo, $hi]) {
+        foreach (['custom_deposit_pct' => [0, 100], 'custom_quote_days' => [1, 90], 'custom_lead_hours' => [0, 720], 'chef_lead_hours' => [0, 720], 'rota_max_week_hours' => [1, 120], 'rota_min_rest_hours' => [0, 24], 'rota_ahead_weeks' => [0, 8], 'rota_overtime_grace' => [0, 120], 'rota_clock_early' => [0, 240], 'rota_clock_radius' => [20, 5000], 'rota_clock_accuracy' => [10, 2000], 'rota_shift_min_share' => [1, 100], 'rota_clock_qr_minutes' => [1, 30], 'plans_bill_ahead_days' => [0, 14]] as $key => [$lo, $hi]) {
             if (array_key_exists($key, $in)) {
                 $n = round((float) $in[$key], 2);
                 if ($n < $lo || $n > $hi) {

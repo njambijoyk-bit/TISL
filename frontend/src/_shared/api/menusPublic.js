@@ -18,6 +18,16 @@ const menusPublicAPI = {
   customAccept: async (token, payload) => (await api.post(`/menu/custom/requests/${token}/accept`, payload)).data,
   customPay: async (token, payload) => (await api.post(`/menu/custom/requests/${token}/pay`, payload)).data,
   customDecline: async (token) => (await api.post(`/menu/custom/requests/${token}/decline`)).data,
+  plansList: async () => (await api.get('/menu/plans')).data,
+  planSubscribe: async (id, payload) => (await api.post(`/menu/plans/${id}/subscribe`, payload)).data,
+  plan: async (token) => (await api.get(`/menu/plan/${token}`)).data,
+  planSkip: async (token, id) => (await api.post(`/menu/plan/${token}/skip/${id}`)).data,
+  planUnskip: async (token, id) => (await api.post(`/menu/plan/${token}/unskip/${id}`)).data,
+  planPause: async (token, payload) => (await api.post(`/menu/plan/${token}/pause`, payload ?? {})).data,
+  planResume: async (token) => (await api.post(`/menu/plan/${token}/resume`)).data,
+  planCancel: async (token, reason) => (await api.post(`/menu/plan/${token}/cancel`, { reason })).data,
+  planUpdate: async (token, payload) => (await api.post(`/menu/plan/${token}/update`, payload)).data,
+  planPay: async (token, periodId, payload) => (await api.post(`/menu/plan/${token}/pay/${periodId}`, payload)).data,
   cancelOrder: async (token) => (await api.post(`/menu/orders/${token}/cancel`)).data,
 };
 

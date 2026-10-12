@@ -35,7 +35,7 @@ export default function MenusSettings() {
         custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0,
         rota_max_week_hours: Number(s.rota_max_week_hours) || 48, rota_min_rest_hours: Number(s.rota_min_rest_hours) || 0,
         rota_ahead_weeks: Number(s.rota_ahead_weeks) || 0, rota_overtime_source: s.rota_overtime_source ?? 'attendance', rota_overtime_grace: Number(s.rota_overtime_grace) || 0,
-        rota_claims_need_approval: Boolean(s.rota_claims_need_approval), rota_clock_from_rota: Boolean(s.rota_clock_from_rota), rota_clock_early: Number(s.rota_clock_early) || 0, rota_premium_source: s.rota_premium_source ?? 'off', rota_shift_min_share: Number(s.rota_shift_min_share) || 50, rota_overtime_staff: Boolean(s.rota_overtime_staff), rota_clock_qr: s.rota_clock_qr ?? 'off', rota_clock_qr_minutes: Number(s.rota_clock_qr_minutes) || 2, rota_clock_wifi: Boolean(s.rota_clock_wifi), rota_overtime_needs_approval: Boolean(s.rota_overtime_needs_approval),
+        rota_claims_need_approval: Boolean(s.rota_claims_need_approval), rota_clock_from_rota: Boolean(s.rota_clock_from_rota), rota_clock_early: Number(s.rota_clock_early) || 0, plans_enabled: Boolean(s.plans_enabled), plans_bill_ahead_days: Number(s.plans_bill_ahead_days) || 0, rota_premium_source: s.rota_premium_source ?? 'off', rota_shift_min_share: Number(s.rota_shift_min_share) || 50, rota_overtime_staff: Boolean(s.rota_overtime_staff), rota_clock_qr: s.rota_clock_qr ?? 'off', rota_clock_qr_minutes: Number(s.rota_clock_qr_minutes) || 2, rota_clock_wifi: Boolean(s.rota_clock_wifi), rota_overtime_needs_approval: Boolean(s.rota_overtime_needs_approval),
         rota_clock_location: s.rota_clock_location ?? 'off', rota_clock_radius: Number(s.rota_clock_radius) || 150, rota_clock_accuracy: Number(s.rota_clock_accuracy) || 200, rota_swaps_need_approval: Boolean(s.rota_swaps_need_approval), rota_no_show_alerts: Boolean(s.rota_no_show_alerts) });
       setS(r.settings); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
@@ -79,6 +79,11 @@ export default function MenusSettings() {
                   <Field label="Least notice for catering (hours)" htmlFor="ms-lh" hint="Cakes use the notice set on each dish."><NumberInput id="ms-lh" min="0" max="720" value={s.custom_lead_hours ?? 72} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_lead_hours: e.target.value }))} /></Field>
                   <Field label="Least notice for a private chef (hours)" htmlFor="ms-ch"><NumberInput id="ms-ch" min="0" max="720" value={s.chef_lead_hours ?? 48} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, chef_lead_hours: e.target.value }))} /></Field>
                 </div>
+              </fieldset>
+              <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+                <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Meal plans</legend>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.plans_enabled)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, plans_enabled: e.target.checked }))} /> Take meal plan subscriptions online (page /menu/plans)</label>
+                <Field label="A week is billed this many days before it starts" htmlFor="ms-pba"><NumberInput id="ms-pba" min="0" max="14" value={s.plans_bill_ahead_days ?? 3} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, plans_bill_ahead_days: e.target.value }))} /></Field>
               </fieldset>
               <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
                 <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Chef rota</legend>
