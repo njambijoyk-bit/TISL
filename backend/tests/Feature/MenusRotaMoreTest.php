@@ -268,6 +268,18 @@ class MenusRotaMoreTest extends TestCase
         $this->fails(fn () => $this->swaps()->cancel($sw->fresh()), 'settled already');
     }
 
+    public function test_a_shift_starting_this_very_minute_can_not_be_swapped_and_the_return_shift_is_checked_too(): void
+    {
+        $a = $this->chefOf('Wanjiru Kamau');
+        $b = $this->chefOf('Otieno Odhiambo');
+        $now = $this->shift($a->id, '2026-10-12', '12:00', '16:00');
+        $this->fails(fn () => $this->swaps()->ask(['shift_id' => $now->id, 'to_chef_id' => $b->id]), 'has not started');
+        $s1 = $this->shift($a->id, '2026-10-14', '08:00', '16:00');
+        $this->shift($a->id, '2026-10-14', '17:00', '20:00');
+        $s2 = $this->shift($b->id, '2026-10-14', '18:00', '22:00');
+        $this->fails(fn () => $this->swaps()->ask(['shift_id' => $s1->id, 'to_chef_id' => $b->id, 'return_shift_id' => $s2->id]), 'Wanjiru Kamau already works 17:00 to 20:00');
+    }
+
     // ── patterns ──────────────────────────────────────────────────────────
 
     private function patterns(): RotaPatterns
@@ -323,6 +335,18 @@ class MenusRotaMoreTest extends TestCase
         $other = $this->chefOf('Otieno Odhiambo');
         $this->pattern($other->id, ['weekdays' => [1]]);
         $this->assertSame(5, RotaPattern::count());
+    }
+
+    public function test_pattern_edges(): void
+    {
+        $c = $this->chefOf('Wanjiru Kamau');
+        $this->pattern($c->id, ['weekdays' => [2], 'starts_at' => '08:00', 'ends_at' => '09:00']);   // exactly one hour
+        $this->fails(fn () => $this->pattern($c->id, ['weekdays' => [3], 'station_id' => 99]), 'station does not exist');
+        $this->pattern($c->id, ['weekdays' => [1], 'valid_from' => '2026-10-12', 'valid_to' => '2026-12-31']);
+        $this->fails(fn () => $this->pattern($c->id, ['weekdays' => [1], 'valid_from' => '2026-12-31']), 'already has a pattern');
+        $this->pattern($c->id, ['weekdays' => [1], 'valid_from' => '2027-02-01', 'valid_to' => '2027-03-01']);
+        $this->fails(fn () => $this->pattern($c->id, ['weekdays' => [1], 'valid_from' => '2027-01-15', 'valid_to' => '2027-02-01']), 'already has a pattern');
+        $this->pattern($c->id, ['weekdays' => [1], 'valid_from' => '2027-01-15', 'valid_to' => '2027-01-31']);
     }
 
     public function test_editing_a_pattern_does_not_clash_with_itself_and_an_inactive_one_does_not_block(): void

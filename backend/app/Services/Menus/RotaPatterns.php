@@ -38,6 +38,9 @@ class RotaPatterns
 
     private function day(mixed $v, string $what): Carbon
     {
+        if (trim((string) $v) === '') {
+            throw new BooksException("Choose {$what}.");
+        }
         try {
             return Carbon::parse((string) $v, $this->tz())->startOfDay();
         } catch (\Throwable) {
