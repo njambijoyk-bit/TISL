@@ -30,6 +30,7 @@ Schedule::command('events:release-holds')->everyMinute()->withoutOverlapping(); 
 Schedule::command('menus:chef-certs')->dailyAt('07:35')->withoutOverlapping();   // chefs' certificates that run out within a month, or have
 Schedule::command('menus:sweep-orders')->everyFiveMinutes()->withoutOverlapping();   // online food orders whose payment never arrived are cancelled
 Schedule::command('courses:live-reminders')->everyTenMinutes()->withoutOverlapping();   // courses: students are reminded of a live class a day before and within the hour before it starts
+Schedule::command('courses:attendance-warnings')->hourlyAt(50)->withoutOverlapping();   // courses: students behind on attendance are told once
 Schedule::command('courses:sweep')->hourlyAt(40)->withoutOverlapping();   // courses: unpaid enrolments are released, late instalments hold access back, payments are reminded
 Schedule::command('menus:plans-run')->hourlyAt(25)->withoutOverlapping();   // meal plans: weeks billed ahead, unpaid weeks lapse, reminders, and each day's meals go to the kitchen after their cut-off
 Schedule::command('menus:rota-watch')->everyTenMinutes()->withoutOverlapping();   // a rostered chef who has not signed in; swaps whose shift has started run out

@@ -15,6 +15,8 @@ final class CourseSettings
         'download_minutes' => 5,         // a download link works this long
         'max_file_mb' => 50,             // the largest file that can be uploaded
         'default_access_days' => null,   // how long access lasts when an offering does not say (empty = for ever)
+        'checkin_open_minutes' => 15,    // students may check themselves in this long before a class starts
+        'checkin_late_minutes' => 10,    // ...and are marked late after this many minutes
         'pending_hours' => 48,           // an enrolment nobody has paid for lets the place go after this many hours (0 = never)
         'reminder_days' => 3,            // a payment is reminded this many days before it is due
         'max_discount_pct' => 100,       // the most a member of staff may take off an enrolment
@@ -44,7 +46,7 @@ final class CourseSettings
             throw new BooksException('Run database script 152_courses.sql first.');
         }
         $cur = self::all();
-        foreach (['live_open_minutes' => [0, 240], 'live_grace_minutes' => [0, 480], 'download_minutes' => [1, 60], 'max_file_mb' => [1, 500], 'pending_hours' => [0, 720], 'reminder_days' => [0, 30], 'max_discount_pct' => [0, 100]] as $key => [$lo, $hi]) {
+        foreach (['live_open_minutes' => [0, 240], 'live_grace_minutes' => [0, 480], 'download_minutes' => [1, 60], 'max_file_mb' => [1, 500], 'pending_hours' => [0, 720], 'checkin_open_minutes' => [0, 120], 'checkin_late_minutes' => [0, 120], 'reminder_days' => [0, 30], 'max_discount_pct' => [0, 100]] as $key => [$lo, $hi]) {
             if (array_key_exists($key, $in)) {
                 $v = (int) $in[$key];
                 if ($v < $lo || $v > $hi) {

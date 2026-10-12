@@ -95,7 +95,7 @@ class Curriculum
         }
         $live = $kind === 'live' ? $this->liveData($d['live'] ?? null, $l?->live) : null;
 
-        return DB::transaction(function () use ($o, $d, $l, $kind, $title, $sectionId, $video, $fileId, $dur, $drip, $live) {
+        $saved = DB::transaction(function () use ($o, $d, $l, $kind, $title, $sectionId, $video, $fileId, $dur, $drip, $live) {
             $l ??= new Lesson(['offering_id' => $o->id, 'sort_order' => (int) Lesson::where('offering_id', $o->id)->max('sort_order') + 10]);
             $body = array_key_exists('body', $d) ? (trim((string) $d['body']) === '' ? null : mb_substr(trim((string) $d['body']), 0, 60000)) : $l->body;
             $l->fill(['kind' => $kind, 'title' => $title, 'section_id' => $sectionId, 'body' => $body, 'video_url' => in_array($kind, ['video', 'recipe', 'text'], true) ? $video : null, 'file_id' => $fileId,
@@ -114,6 +114,9 @@ class Curriculum
 
             return $l->fresh();
         });
+        app(CourseAttendance::class)->syncLive($o, $saved);
+
+        return $saved;
     }
 
     private function url(mixed $v, string $what): ?string
@@ -176,6 +179,7 @@ class Curriculum
         if ((int) $l->offering_id !== (int) $o->id) {
             throw new BooksException('That lesson belongs to another offering.');
         }
+        app(CourseAttendance::class)->syncLive($o, $l, true);   // the class on the register goes with the lesson (or is cancelled if it has marks)
         DB::transaction(function () use ($l) {
             LiveSession::where('lesson_id', $l->id)->delete();
             $l->delete();

@@ -47,6 +47,36 @@ function LiveCard({ live }) {
   );
 }
 
+const STATE = { pending: 'No class has been held yet.', ok: 'You are on track.', at_risk: 'You are behind: come to the rest or ask about a make-up class.', failed: 'You can no longer reach the share needed: please speak to your teacher.' };
+
+/** Attendance for the student: where they stand, each class with their mark, check in with the teacher's code, or ask to be excused. */
+function AttendanceCard({ att, reload }) {
+  const [code, setCode] = useState({});
+  const st = att.standing;
+  const checkin = async (id) => { try { const r = await coursesPublicAPI.checkin(id, code[id] ?? ''); toast.success(r.message); await reload(); } catch (e) { toast.error(errMsg(e, 'Could not check you in'), { duration: 6000 }); } };
+  const excuse = async (id) => { const reason = window.prompt('Why can you not come?'); if (!reason) return; try { const r = await coursesPublicAPI.excuse(id, reason); toast.success(r.message); await reload(); } catch (e) { toast.error(errMsg(e, 'Could not send that'), { duration: 6000 }); } };
+
+  return (
+    <section style={{ ...card, display: 'grid', gap: 8 }} data-testid="attendance-card">
+      <strong>Attendance</strong>
+      {st.needed && <span style={{ fontSize: '0.86rem' }}>{st.rate !== null ? `You have attended ${st.rate}% of the classes held` : 'No class has been marked yet'}; {st.needed}% is needed. {STATE[st.state] ?? ''}</span>}
+      {att.sessions.map((x) => (
+        <div key={x.id} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', borderTop: '1px solid var(--line, #e5e7eb)', paddingTop: 6, fontSize: '0.88rem' }}>
+          <span style={{ flex: 1, minWidth: 180 }}><strong>{x.title}</strong> · {when(x.starts_at)} · {x.mode_label}{x.makeup_for ? ` · makes up for ${x.makeup_for}` : ''}</span>
+          {x.status_label && <span style={{ fontWeight: 700 }}>{x.status_label}</span>}
+          {x.self_checkin && new Date(x.ends_at) > new Date() && !['present', 'late', 'excused'].includes(x.status) && (
+            <span style={{ display: 'inline-flex', gap: 4 }}>
+              <input aria-label={`Code for ${x.title}`} placeholder="Code" inputMode="numeric" maxLength={8} value={code[x.id] ?? ''} onChange={(e) => setCode({ ...code, [x.id]: e.target.value })} style={{ width: 90, padding: '6px 8px', borderRadius: 8, border: '1px solid var(--line, #d1d5db)', font: 'inherit' }} />
+              <button type="button" onClick={() => checkin(x.id)} style={{ ...primaryBtn, padding: '6px 12px' }}>Check in</button>
+            </span>
+          )}
+          {x.can_excuse && x.status !== 'asked' && new Date(x.ends_at).getTime() > Date.now() - 7 * 86400000 && <button type="button" onClick={() => excuse(x.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', color: 'inherit', padding: 0 }}>Ask to be excused</button>}
+        </div>
+      ))}
+    </section>
+  );
+}
+
 /** The lesson player: the outline with ticks and locks on one side, the lesson on the other, and Mark as done / Next. */
 export default function LearnPlayerPage() {
   const { slug } = useParams();
@@ -109,6 +139,7 @@ export default function LearnPlayerPage() {
               {d.loose.length > 0 && <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>{d.loose.map(row)}</ul>}
             </nav>
             <section style={{ gridColumn: 'span 2', display: 'grid', gap: 14, minWidth: 0 }}>
+              {d.attendance && <AttendanceCard att={d.attendance} reload={load} />}
               {!lesson && <div style={card}>Nothing is open yet. {d.offering.summary}</div>}
               {lesson && (
                 <article style={{ ...card, display: 'grid', gap: 12 }} data-testid="lesson">

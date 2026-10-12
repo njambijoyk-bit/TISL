@@ -3,6 +3,7 @@
 namespace App\Services\Courses;
 
 use App\Models\Courses\Access;
+use App\Models\Courses\ClassSession;
 use App\Models\Courses\Enrolment;
 use App\Models\Courses\Lesson;
 use App\Models\Courses\LiveSession;
@@ -97,7 +98,7 @@ class Learning
             $next = LiveSession::where('offering_id', $o->id)->where('ends_at', '>', now())->orderBy('starts_at')->first();
             $last = Progress::where('user_id', $u->id)->where('offering_id', $o->id)->orderByDesc('updated_at')->first();
             $items[] = ['offering_id' => $o->id, 'slug' => $o->slug, 'title' => $o->title, 'kind' => $o->kind, 'kind_label' => Offering::KINDS[$o->kind] ?? $o->kind, 'cover' => $o->cover, 'state' => $active ? 'active' : 'ended',
-                'ends_at' => $best->ends_at?->toIso8601String(), 'days_left' => $active && $best->ends_at ? max(0, (int) ceil(now()->diffInDays($best->ends_at, false))) : null, 'progress' => $p, 'last_lesson_id' => $last?->lesson_id,
+                'ends_at' => $best->ends_at?->toIso8601String(), 'days_left' => $active && $best->ends_at ? max(0, (int) ceil(now()->diffInDays($best->ends_at, false))) : null, 'progress' => $p, 'attendance' => CourseAttendance::installed() && $o->min_attendance_pct ? app(CourseAttendance::class)->standing($u->id, $o) : null, 'last_lesson_id' => $last?->lesson_id,
                 'next_live' => $next ? $this->links->publicView($next) : null];
         }
         usort($items, fn ($a, $b) => [$a['state'] === 'active' ? 0 : 1, $a['title']] <=> [$b['state'] === 'active' ? 0 : 1, $b['title']]);
@@ -148,6 +149,7 @@ class Learning
 
         return ['offering' => ['id' => $o->id, 'slug' => $o->slug, 'title' => $o->title, 'kind' => $o->kind, 'summary' => $o->summary, 'body' => $o->body, 'in_order' => (bool) ($o->in_order ?? false), 'certificate' => (bool) $o->certificate],
             'access' => ['staff_preview' => $staff && ! $grant, 'ends_at' => $grant?->ends_at?->toIso8601String(), 'days_left' => $grant?->ends_at ? max(0, (int) ceil(now()->diffInDays($grant->ends_at, false))) : null],
+            'attendance' => CourseAttendance::installed() && ClassSession::where('offering_id', $o->id)->exists() ? app(CourseAttendance::class)->mine($u, $o) : null,
             'progress' => $this->percent($u->id, $o), 'sections' => $sections, 'loose' => $loose, 'resume_lesson_id' => $last && collect($sections)->pluck('lessons')->flatten(1)->merge($loose)->contains(fn ($r) => $r['id'] === $last->lesson_id && ! $r['locked'] && $r['status'] !== 'done') ? $last->lesson_id : $resume];
     }
 
@@ -188,9 +190,29 @@ class Learning
         }
         $p->save();
         $progress = $this->percent($u->id, $o);
-        $completed = $progress['total'] > 0 && $progress['percent'] >= 100 && $this->complete($u, $o);
 
-        return ['status' => $p->status, 'progress' => $progress, 'completed' => $completed];
+        return ['status' => $p->status, 'progress' => $progress, 'completed' => $this->tryComplete($u, $o)];
+    }
+
+    /**
+     * Is the offering finished for this student? Every required lesson done (when it has any) and the attendance asked for met. A fully paid, running enrolment then becomes completed.
+     * Called when a lesson is marked done and when the register changes.
+     */
+    public function tryComplete(User $u, Offering $o): bool
+    {
+        $p = $this->percent($u->id, $o);
+        $attendance = CourseAttendance::installed() && $o->min_attendance_pct;
+        if ($p['total'] === 0 && ! $attendance) {
+            return false;
+        }
+        if ($p['total'] > 0 && $p['percent'] < 100) {
+            return false;
+        }
+        if ($attendance && ! app(CourseAttendance::class)->meets($u->id, $o)) {
+            return false;
+        }
+
+        return $this->complete($u, $o);
     }
 
     /** Every required lesson is done: a fully paid, running enrolment becomes completed. */

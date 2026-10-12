@@ -274,6 +274,9 @@ Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(
     Route::post('/books/{id}/buy', [$bk, 'buy'])->middleware('throttle:10,1')->whereNumber('id');
     Route::post('/book-orders/{id}/pay', [$bk, 'pay'])->middleware('throttle:10,1')->whereNumber('id');
     Route::get('/book-orders/{id}/link', [$bk, 'link'])->middleware('throttle:30,1')->whereNumber('id');
+    $at = \App\Http\Controllers\Api\CoursesAttendanceController::class;
+    Route::post('/my/sessions/{session}/checkin', [$at, 'checkin'])->middleware('throttle:20,1')->whereNumber('session');
+    Route::post('/my/sessions/{session}/excuse', [$at, 'excuse'])->middleware('throttle:20,1')->whereNumber('session');
     Route::get('/my/library', [$l, 'library'])->middleware('throttle:120,1');
     Route::get('/my/offerings/{slug}', [$l, 'player'])->middleware('throttle:240,1')->where('slug', '[a-z0-9\-]+');
     Route::post('/my/lessons/{lesson}/progress', [$l, 'progress'])->middleware('throttle:240,1')->whereNumber('lesson');
@@ -773,6 +776,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/book-orders/{id}/cancel', [$bc, 'cancel'])->whereNumber('id');
         });
         Route::post('/book-orders/{id}/refund', [$bc, 'refund'])->whereNumber('id')->middleware('permission:courses.refund');
+        $ac = \App\Http\Controllers\Admin\CoursesAttendanceController::class;
+        Route::get('/offerings/{id}/attendance', [$ac, 'overview'])->whereNumber('id');
+        Route::post('/offerings/{id}/sessions', [$ac, 'saveSession'])->whereNumber('id');
+        Route::put('/offerings/{id}/sessions/{session}', [$ac, 'saveSession'])->whereNumber(['id', 'session']);
+        Route::post('/offerings/{id}/sessions/{session}/cancel', [$ac, 'cancelSession'])->whereNumber(['id', 'session']);
+        Route::delete('/offerings/{id}/sessions/{session}', [$ac, 'deleteSession'])->whereNumber(['id', 'session']);
+        Route::get('/offerings/{id}/sessions/{session}/roll', [$ac, 'roll'])->whereNumber(['id', 'session']);
+        Route::post('/offerings/{id}/sessions/{session}/marks', [$ac, 'mark'])->whereNumber(['id', 'session'])->middleware('throttle:120,1');
+        Route::post('/offerings/{id}/excuses/{entry}', [$ac, 'decideExcuse'])->whereNumber(['id', 'entry']);
         Route::put('/settings', [$c, 'saveSettings'])->middleware('permission:courses.manage');
         Route::middleware('permission:courses.grant')->group(function () use ($c) {
             Route::get('/offerings/{id}/access', [$c, 'accessList'])->whereNumber('id');

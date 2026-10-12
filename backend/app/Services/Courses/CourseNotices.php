@@ -78,6 +78,15 @@ class CourseNotices
         $this->tell($userId, 'course_live_soon', $when === 'hour' ? "{$o->title} starts within the hour" : "{$o->title} is tomorrow", ($when === 'hour' ? 'Your live class starts at ' : 'Your live class is on ').$at." ({$tz}). The join link appears on your course page shortly before it starts.", '/learn/my/'.$o->slug);
     }
 
+    /** @param array{state: string, needed: ?int, rate: ?float, best: ?float} $st */
+    public function attendance(int $userId, Offering $o, array $st): void
+    {
+        $msg = $st['state'] === 'failed'
+            ? "You have attended {$st['rate']}% of the classes and {$st['needed']}% is needed, which you can no longer reach. Please speak to your teacher."
+            : "You have attended {$st['rate']}% of the classes and {$st['needed']}% is needed. Come to the rest, or ask about a make-up class, to stay on track.";
+        $this->tell($userId, 'course_attendance', $st['state'] === 'failed' ? "Attendance on {$o->title}: please speak to your teacher" : "Attendance on {$o->title}: you are behind", $msg, '/learn/my/'.$o->slug);
+    }
+
     private function staffTell(string $type, string $title, string $message): void
     {
         $this->safely(function () use ($type, $title, $message) {

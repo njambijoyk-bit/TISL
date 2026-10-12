@@ -18,6 +18,8 @@ export const coursesPublicAPI = {
   myBooks: async () => (await api.get('/courses/my/books')).data,
   payBook: async (id, payload) => (await api.post(`/courses/book-orders/${id}/pay`, payload)).data,
   bookLink: async (id) => (await api.get(`/courses/book-orders/${id}/link`)).data,
+  checkin: async (sessionId, code) => (await api.post(`/courses/my/sessions/${sessionId}/checkin`, { code })).data,
+  excuse: async (sessionId, reason) => (await api.post(`/courses/my/sessions/${sessionId}/excuse`, { reason })).data,
   pay: async (id, payload) => (await api.post(`/courses/enrolments/${id}/pay`, payload)).data,
 };
 

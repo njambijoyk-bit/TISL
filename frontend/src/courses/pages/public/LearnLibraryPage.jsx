@@ -47,6 +47,7 @@ export default function LearnLibraryPage() {
                 <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{i.progress.done} of {i.progress.total} lessons · {i.progress.percent}%</span>
               </div>
             )}
+            {i.attendance && i.attendance.state !== 'none' && <span style={{ fontSize: '0.84rem', color: ['at_risk', 'failed'].includes(i.attendance.state) ? '#b91c1c' : 'inherit' }}>Attendance: {i.attendance.rate !== null ? `${i.attendance.rate}%` : 'none marked yet'} (needs {i.attendance.needed}%){i.attendance.state === 'at_risk' ? ' · behind' : i.attendance.state === 'failed' ? ' · cannot reach it' : ''}</span>}
             {i.next_live && <span style={{ fontSize: '0.86rem' }}><CalendarClock size={13} aria-hidden="true" /> Next live class: {new Date(i.next_live.starts_at).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>}
             <div>{i.state === 'active' ? <Link to={`/learn/my/${i.slug}`} style={{ ...primaryBtn, display: 'inline-block', textDecoration: 'none' }}>{i.progress.done > 0 ? 'Continue' : 'Start'}</Link> : <Link to={`/learn/${i.slug}`} style={{ fontWeight: 800 }}>Enrol again</Link>}</div>
           </article>
