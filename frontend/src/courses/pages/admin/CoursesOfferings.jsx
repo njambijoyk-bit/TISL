@@ -20,14 +20,14 @@ const TONE = { published: 'ok', draft: 'warn', archived: 'neutral' };
 export function OfferingForm({ meta, offering, onClose, onDone }) {
   const [f, setF] = useState({ kind: offering?.kind ?? 'course', title: offering?.title ?? '', summary: offering?.summary ?? '', category: offering?.category ?? '', skill_level: offering?.skill_level ?? 'all',
     delivery: offering?.delivery ?? 'online', location_id: offering?.location_id ?? '', tags: (offering?.tags ?? []).join(', '), instructor_user_id: offering?.instructor_user_id ?? null, instructor: offering?.instructor ?? '',
-    free_preview: offering?.free_preview ?? false, access_days: offering?.access_days ?? '', cover: offering?.cover ?? '', body: offering?.body ?? '' });
+    free_preview: offering?.free_preview ?? false, in_order: offering?.in_order ?? false, access_days: offering?.access_days ?? '', cover: offering?.cover ?? '', body: offering?.body ?? '' });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const save = async () => {
     setBusy(true);
     try {
       const payload = { kind: f.kind, title: f.title, summary: f.summary, category: f.category, skill_level: f.skill_level, delivery: f.delivery, location_id: f.delivery === 'online' ? null : (f.location_id ? Number(f.location_id) : null),
-        tags: f.tags, instructor_user_id: f.instructor_user_id, free_preview: f.free_preview, access_days: f.access_days === '' ? null : Number(f.access_days), cover: f.cover, body: f.body };
+        tags: f.tags, instructor_user_id: f.instructor_user_id, free_preview: f.free_preview, in_order: f.in_order, access_days: f.access_days === '' ? null : Number(f.access_days), cover: f.cover, body: f.body };
       const r = offering ? await coursesAPI.saveOffering(offering.id, payload) : await coursesAPI.createOffering(payload);
       toast.success('Saved.'); onDone(r.offering);
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
@@ -60,6 +60,7 @@ export function OfferingForm({ meta, offering, onClose, onDone }) {
           <Field label="Cover picture address" htmlFor="of-cover"><TextInput id="of-cover" maxLength={255} value={f.cover} onChange={set('cover')} /></Field>
         </div>
         <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.86rem' }}><input type="checkbox" checked={f.free_preview} onChange={set('free_preview')} /> Anyone may open the lessons marked as previews</label>
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.86rem' }}><input type="checkbox" checked={f.in_order} onChange={set('in_order')} /> Lessons must be finished in order</label>
         <Field label={f.kind === 'recipe' ? 'The recipe (ingredients and method)' : 'About it'} htmlFor="of-body"><TextArea id="of-body" rows={6} maxLength={60000} value={f.body} onChange={set('body')} /></Field>
       </FormStack>
     </Modal>

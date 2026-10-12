@@ -87,7 +87,7 @@ function EnrolCard({ data, reload }) {
   };
 
   if (data.me.has_access) {
-    return <aside style={{ ...card, display: 'grid', gap: 8 }} data-testid="enrol-card"><strong>You are enrolled.</strong><span style={{ fontSize: '0.88rem' }}>Everything below is open to you.</span>{enrolment?.access_paused && <span role="alert" style={{ color: '#b91c1c', fontWeight: 700 }}>A payment is overdue, so access is on hold until you pay.</span>}</aside>;
+    return <aside style={{ ...card, display: 'grid', gap: 8 }} data-testid="enrol-card"><strong>You are enrolled.</strong><span style={{ fontSize: '0.88rem' }}>Everything below is open to you.</span><Link to={`/learn/my/${o.slug}`} style={{ ...primaryBtn, textAlign: 'center', textDecoration: 'none' }}>Open in My learning</Link>{enrolment?.access_paused && <span role="alert" style={{ color: '#b91c1c', fontWeight: 700 }}>A payment is overdue, so access is on hold until you pay.</span>}</aside>;
   }
 
   return (

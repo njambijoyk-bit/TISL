@@ -75,7 +75,7 @@ class CoursesController extends Controller
             'status' => $o->status, 'status_label' => Offering::STATUSES[$o->status] ?? $o->status, 'free_preview' => $o->free_preview, 'access_days' => $o->access_days, 'min_attendance_pct' => $o->min_attendance_pct, 'certificate' => $o->certificate,
             'lessons' => (int) ($o->lessons_count ?? $o->lessons()->count()), 'people' => (int) ($o->people_count ?? 0),
             'deposit_pct' => $o->deposit_pct !== null ? (float) $o->deposit_pct : null, 'instalments' => $o->instalments, 'instalment_days' => $o->instalment_days ?? 30, 'grant_on' => $o->grant_on ?? 'paid', 'grace_days' => $o->grace_days ?? 7,
-            'refund_days' => $o->refund_days, 'capacity' => $o->capacity];
+            'refund_days' => $o->refund_days, 'capacity' => $o->capacity, 'in_order' => (bool) ($o->in_order ?? false)];
     }
 
     public function index(Request $request): JsonResponse
@@ -118,7 +118,7 @@ class CoursesController extends Controller
     {
         return $request->validate(['kind' => 'sometimes|string|max:10', 'title' => 'sometimes|string|max:160', 'summary' => 'sometimes|nullable|string|max:400', 'body' => 'sometimes|nullable|string|max:60000', 'cover' => 'sometimes|nullable|string|max:255',
             'category' => 'sometimes|nullable|string|max:80', 'skill_level' => 'sometimes|string|max:12', 'tags' => 'sometimes|nullable', 'instructor_user_id' => 'sometimes|nullable|integer', 'delivery' => 'sometimes|string|max:10',
-            'location_id' => 'sometimes|nullable|integer', 'free_preview' => 'sometimes|boolean', 'access_days' => 'sometimes|nullable|integer', 'min_attendance_pct' => 'sometimes|nullable|integer', 'certificate' => 'sometimes|boolean',
+            'location_id' => 'sometimes|nullable|integer', 'free_preview' => 'sometimes|boolean', 'access_days' => 'sometimes|nullable|integer', 'min_attendance_pct' => 'sometimes|nullable|integer', 'certificate' => 'sometimes|boolean', 'in_order' => 'sometimes|boolean',
             'deposit_pct' => 'sometimes|nullable|numeric', 'instalments' => 'sometimes|nullable|integer', 'instalment_days' => 'sometimes|nullable|integer', 'grant_on' => 'sometimes|string|max:8', 'grace_days' => 'sometimes|nullable|integer',
             'refund_days' => 'sometimes|nullable|integer', 'capacity' => 'sometimes|nullable|integer']);
     }

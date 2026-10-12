@@ -263,6 +263,11 @@ Route::prefix('learn')->middleware(['module:courses', 'throttle:120,1'])->group(
 Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(function () {   // a signed-in person enrolling themselves, paying, and seeing their own enrolments
     $c = \App\Http\Controllers\Api\CoursesEnrolController::class;
     Route::get('/my/enrolments', [$c, 'mine'])->middleware('throttle:120,1');
+    $l = \App\Http\Controllers\Api\CoursesLearnController::class;
+    Route::get('/my/library', [$l, 'library'])->middleware('throttle:120,1');
+    Route::get('/my/offerings/{slug}', [$l, 'player'])->middleware('throttle:240,1')->where('slug', '[a-z0-9\-]+');
+    Route::post('/my/lessons/{lesson}/progress', [$l, 'progress'])->middleware('throttle:240,1')->whereNumber('lesson');
+    Route::get('/my/live/{live}/ics', [$l, 'ics'])->middleware('throttle:60,1')->whereNumber('live');
     Route::post('/offerings/{id}/quote', [$c, 'quote'])->middleware('throttle:60,1')->whereNumber('id');
     Route::post('/offerings/{id}/enrol', [$c, 'enrol'])->middleware('throttle:10,1')->whereNumber('id');
     Route::post('/enrolments/{id}/pay', [$c, 'pay'])->middleware('throttle:10,1')->whereNumber('id');

@@ -80,7 +80,10 @@ class OfferingEditor
                 $row[$k] = $v === '' ? null : mb_substr($v, 0, $max);
             }
         }
-        foreach (['free_preview', 'certificate'] as $k) {
+        foreach (['free_preview', 'certificate', 'in_order'] as $k) {
+            if ($k === 'in_order' && ! \Illuminate\Support\Facades\Schema::hasColumn('course_offerings', 'in_order')) {
+                continue;
+            }
             if (array_key_exists($k, $d)) {
                 $row[$k] = (bool) $d[$k];
             }
@@ -135,7 +138,7 @@ class OfferingEditor
     {
         $base = Str::slug($title) ?: 'offering';
         $slug = $base;
-        for ($i = 2; Offering::where('slug', $slug)->exists(); $i++) {
+        for ($i = 2; in_array($slug, ['my'], true) || Offering::where('slug', $slug)->exists(); $i++) {   // 'my' is the student's own page
             $slug = "{$base}-{$i}";
         }
 

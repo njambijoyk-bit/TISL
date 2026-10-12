@@ -71,6 +71,13 @@ class CourseNotices
         }
     }
 
+    public function liveSoon(int $userId, Offering $o, \App\Models\Courses\LiveSession $l, string $when): void
+    {
+        $tz = $l->timezone ?: config('app.timezone', 'Africa/Nairobi');
+        $at = $l->starts_at->copy()->timezone($tz)->format('D j M, H:i');
+        $this->tell($userId, 'course_live_soon', $when === 'hour' ? "{$o->title} starts within the hour" : "{$o->title} is tomorrow", ($when === 'hour' ? 'Your live class starts at ' : 'Your live class is on ').$at." ({$tz}). The join link appears on your course page shortly before it starts.", '/learn/my/'.$o->slug);
+    }
+
     private function staffTell(string $type, string $title, string $message): void
     {
         $this->safely(function () use ($type, $title, $message) {

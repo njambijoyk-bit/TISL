@@ -94,7 +94,7 @@ class CourseAccess
         if ($this->staffMay($u, $o)) {
             return true;
         }
-        if (! $u || $o->status !== 'published') {
+        if (! $u || ! in_array($o->status, ['published', 'archived'], true)) {   // archived: nobody new, but people who have access keep it
             return false;
         }
 
@@ -116,7 +116,7 @@ class CourseAccess
         if ($this->staffMay($u, $o)) {
             return true;
         }
-        if ($o->status !== 'published') {
+        if (! in_array($o->status, ['published', 'archived'], true)) {
             return false;
         }
         if ($l->is_preview && $o->free_preview) {

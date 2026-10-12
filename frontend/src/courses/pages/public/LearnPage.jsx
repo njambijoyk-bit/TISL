@@ -30,7 +30,7 @@ export default function LearnPage() {
       <main style={{ maxWidth: 1100, margin: '0 auto', padding: '40px 20px 64px', display: 'grid', gap: 18 }} data-testid="learn-page">
         <header>
           <h1 style={{ margin: 0, fontSize: 'clamp(1.5rem, 4vw, 2.1rem)', fontWeight: 900 }}><GraduationCap size={26} aria-hidden="true" /> Learn with us</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>Courses, recipes, notes and live classes.</p>
+          <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)' }}>Courses, recipes, notes and live classes. <Link to="/learn/my" style={{ fontWeight: 700 }}>My learning</Link></p>
         </header>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <input aria-label="Search" placeholder="Search" value={f.q} onChange={(e) => set('q', e.target.value)} style={{ ...field, maxWidth: 260 }} />
