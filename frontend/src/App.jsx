@@ -170,6 +170,8 @@ const LearnBookPage     = lazy(() => import('./courses/pages/public/LearnBookPag
 const LearnVerifyPage   = lazy(() => import('./courses/pages/public/LearnVerifyPage'));
 const CoursesBooks      = lazy(() => import('./courses/pages/admin/CoursesBooks'));
 const CoursesTeaching   = lazy(() => import('./courses/pages/admin/CoursesTeaching'));
+const MembershipPlans   = lazy(() => import('./memberships/pages/admin/MembershipPlans'));
+const MembershipSettings = lazy(() => import('./memberships/pages/admin/MembershipSettings'));
 const LearnOfferingPage = lazy(() => import('./courses/pages/public/LearnOfferingPage'));
 const CoursesEnrolments = lazy(() => import('./courses/pages/admin/CoursesEnrolments'));
 const ChefsPublicPage    = lazy(() => import('./menus/pages/public/ChefsPage'));
@@ -864,6 +866,8 @@ function App() {
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />
               <Route path="/admin/courses" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesOfferings /></ProtectedRoute>} />
               <Route path="/admin/courses/enrolments" element={<ProtectedRoute requireAdmin permission="courses.enrol"><CoursesEnrolments /></ProtectedRoute>} />
+              <Route path="/admin/memberships" element={<ProtectedRoute requireAdmin permission="memberships.view"><ModuleRoute module="memberships"><MembershipPlans /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/memberships/settings" element={<ProtectedRoute requireAdmin permission="memberships.view"><ModuleRoute module="memberships"><MembershipSettings /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/courses/teaching" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesTeaching /></ProtectedRoute>} />
               <Route path="/admin/courses/books" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesBooks /></ProtectedRoute>} />
               <Route path="/admin/courses/settings" element={<ProtectedRoute requireAdmin permission="courses.manage"><CoursesSettings /></ProtectedRoute>} />

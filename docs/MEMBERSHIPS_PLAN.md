@@ -1,6 +1,6 @@
 # Memberships module plan
 
-Status: **plan only, nothing built.** Written 12 Oct 2026 after the owner asked to build Memberships and integrate it with Meals (Menus) subscriptions and Courses. Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
+Status: **plan agreed 12 Oct 2026 (the owner said "agree" to all five questions in §7). Step 1 (the foundation) is built, NOT yet tested** (as with Courses, steps are built first and tested together later; a throwaway smoke run of the plan service passed). Built: script `162_memberships.sql` (`membership_plans`, `membership_plan_benefits`, `membership_settings`); permissions `memberships.view`, `.manage`, `.enrol`, `.refund`, `.grant`, `.checkin` in the access catalogue (no roles defined); the benefit registry `MembershipBenefits` (a module registers a type with how to check its settings and how to describe them; grant and revoke are added in step 4) with the first two types, `courses` (every course, some kinds, some categories or a chosen list; tuition free for members) and `meals` (a % off meal plans), shown only while their module is on; plans (name, period of N days/weeks/months/years, price and joining fee before tax, sales account, trial, grace, renews by itself, most members, branches, benefits) with draft / published / archived; the settings; Admin → Memberships (Plans, Settings). Next: step 2 (join and bill).
 
 ## 1. What it is
 

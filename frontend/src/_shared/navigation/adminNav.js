@@ -5,7 +5,7 @@ import {
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
   Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck, LibraryBig, BookMarked,
-  GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
+  GitBranch, Layers, IdCard, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { accountType, hasPermission, isStaff } from '../lib/roles';
@@ -261,6 +261,21 @@ export const ADMIN_NAV = [
           { title: 'Enrolments', path: '/admin/courses/enrolments', icon: Users, color: '#0ea5e9' },
           { title: 'Books', path: '/admin/courses/books', icon: BookMarked, color: '#e11d48' },
           { title: 'Settings', path: '/admin/courses/settings', icon: Settings2, color: '#64748b' },
+        ],
+      },
+    ],
+  },
+
+  {
+    id: 'memberships',
+    label: 'Memberships',
+    module: MODULES.MEMBERSHIPS,
+    items: [
+      {
+        id: 'membership-plans', title: 'Memberships', icon: IdCard, color: '#8b5cf6', path: '/admin/memberships', perm: 'memberships.view', keywords: 'membership member plan subscription recurring renewal benefits',
+        tabs: [
+          { title: 'Plans', path: '/admin/memberships', icon: Layers, color: '#8b5cf6' },
+          { title: 'Settings', path: '/admin/memberships/settings', icon: Settings2, color: '#64748b' },
         ],
       },
     ],

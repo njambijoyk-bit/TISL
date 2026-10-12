@@ -121,6 +121,12 @@ class Catalog
         'courses.enrol'     => ['courses', 'Courses', 'Enrol students and take payments for their fees', true],
         'courses.refund'    => ['courses', 'Courses', 'Refund an enrolment, also after the refund window', true],
         'courses.grant'     => ['courses', 'Courses', 'Give people access to a course, or end it', true],
+        'memberships.view'    => ['memberships', 'Memberships', 'See membership plans and members', false],
+        'memberships.manage'  => ['memberships', 'Memberships', 'Make and change membership plans, their benefits and the settings', true],
+        'memberships.enrol'   => ['memberships', 'Memberships', 'Sign members up and take their payments', true],
+        'memberships.refund'  => ['memberships', 'Memberships', 'Refund a membership payment', true],
+        'memberships.grant'   => ['memberships', 'Memberships', 'Give a membership without billing, or end one', true],
+        'memberships.checkin' => ['memberships', 'Memberships', 'Check members in at the door or desk', false],
         // added in R2: one for each thing the route role lists used to guard
         'system.restore'    => [null, 'System', 'Restore the database from a backup', true],
         'system.logs'       => [null, 'System', 'Export the activity logs', false],

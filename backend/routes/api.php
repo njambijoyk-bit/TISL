@@ -726,6 +726,22 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    // MEMBERSHIPS — plans, their benefits and the settings. Reading needs memberships.view; changing needs memberships.manage
+    Route::middleware(['module:memberships', 'permission:memberships.view,memberships.manage'])->prefix('admin/memberships')->group(function () {
+        $mp = \App\Http\Controllers\Admin\MembershipPlanController::class;
+        Route::get('/meta', [$mp, 'meta']);
+        Route::get('/plans', [$mp, 'index']);
+        Route::get('/plans/{id}', [$mp, 'show'])->whereNumber('id');
+        Route::middleware('permission:memberships.manage')->group(function () use ($mp) {
+            Route::post('/plans', [$mp, 'store']);
+            Route::put('/plans/{id}', [$mp, 'update'])->whereNumber('id');
+            Route::put('/plans/{id}/benefits', [$mp, 'benefitsUpdate'])->whereNumber('id');
+            Route::post('/plans/{id}/{action}', [$mp, 'status'])->whereNumber('id')->where('action', 'publish|unpublish|archive|restore');
+            Route::delete('/plans/{id}', [$mp, 'destroy'])->whereNumber('id');
+            Route::put('/settings', [$mp, 'saveSettings']);
+        });
+    });
+
     // COURSES — offerings, lessons, files and access. Reading needs courses.view (or teach); changing is checked per offering in the controller (managers: any; teachers: their own); access needs courses.grant
     Route::middleware(['module:courses', 'permission:courses.view,courses.manage,courses.teach'])->prefix('admin/courses')->group(function () {
         $c = \App\Http\Controllers\Admin\CoursesController::class;
