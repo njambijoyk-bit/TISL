@@ -275,6 +275,7 @@ export const ADMIN_NAV = [
         id: 'membership-plans', title: 'Memberships', icon: IdCard, color: '#8b5cf6', path: '/admin/memberships', perm: 'memberships.view', keywords: 'membership member plan subscription recurring renewal benefits',
         tabs: [
           { title: 'Plans', path: '/admin/memberships', icon: Layers, color: '#8b5cf6' },
+          { title: 'Members', path: '/admin/memberships/members', icon: Users, color: '#0ea5e9' },
           { title: 'Settings', path: '/admin/memberships/settings', icon: Settings2, color: '#64748b' },
         ],
       },

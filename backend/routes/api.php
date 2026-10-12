@@ -740,6 +740,22 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/plans/{id}', [$mp, 'destroy'])->whereNumber('id');
             Route::put('/settings', [$mp, 'saveSettings']);
         });
+        $mc = \App\Http\Controllers\Admin\MembershipController::class;
+        Route::get('/members', [$mc, 'index']);
+        Route::get('/members/{id}', [$mc, 'show'])->whereNumber('id');
+        Route::get('/people', [$mc, 'candidates'])->middleware('permission:memberships.enrol,memberships.grant,memberships.manage');
+        Route::middleware('permission:memberships.enrol,memberships.manage')->group(function () use ($mc) {
+            Route::post('/members/quote', [$mc, 'quote'])->middleware('throttle:60,1');
+            Route::post('/members', [$mc, 'join']);
+            Route::post('/periods/{period}/payment', [$mc, 'payment'])->whereNumber('period');
+            Route::post('/members/{id}/cancel', [$mc, 'cancel'])->whereNumber('id');
+            Route::post('/members/{id}/keep', [$mc, 'keep'])->whereNumber('id');
+            Route::post('/members/{id}/pause', [$mc, 'pause'])->whereNumber('id');
+            Route::post('/members/{id}/resume', [$mc, 'resume'])->whereNumber('id');
+            Route::post('/members/{id}/change-plan', [$mc, 'changePlan'])->whereNumber('id');
+        });
+        Route::post('/periods/{period}/refund', [$mc, 'refund'])->whereNumber('period')->middleware('permission:memberships.refund');
+        Route::post('/members/give', [$mc, 'give'])->middleware('permission:memberships.grant');
     });
 
     // COURSES — offerings, lessons, files and access. Reading needs courses.view (or teach); changing is checked per offering in the controller (managers: any; teachers: their own); access needs courses.grant

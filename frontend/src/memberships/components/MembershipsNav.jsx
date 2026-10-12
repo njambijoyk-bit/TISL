@@ -1,8 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, IdCard, Settings2, Layers } from 'lucide-react';
+import { ChevronRight, IdCard, Settings2, Layers, Users } from 'lucide-react';
 
 const PAGES = [
   { path: '/admin/memberships', title: 'Plans', icon: Layers, color: '#8b5cf6' },
+  { path: '/admin/memberships/members', title: 'Members', icon: Users, color: '#0ea5e9' },
   { path: '/admin/memberships/settings', title: 'Settings', icon: Settings2, color: '#64748b' },
 ];
 

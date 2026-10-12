@@ -34,7 +34,8 @@ class MembershipPlanController extends Controller
     public function meta(): JsonResponse
     {
         return response()->json(['ready' => PlanService::installed(), 'units' => Plan::UNITS, 'statuses' => Plan::STATUSES, 'benefit_types' => $this->benefits->types(), 'course_modes' => CourseBenefit::MODES,
-            'offering_kinds' => \App\Models\Courses\Offering::KINDS, 'locations' => Location::orderBy('name')->get(['id', 'name']), 'settings' => MembershipSettings::all()]);
+            'offering_kinds' => \App\Models\Courses\Offering::KINDS, 'locations' => Location::orderBy('name')->get(['id', 'name']), 'settings' => MembershipSettings::all(),
+            'payment_methods' => \App\Models\Books\PaymentMethod::where('is_active', true)->orderBy('sort_order')->get(['id', 'name', 'kind', 'requires_reference'])]);
     }
 
     public function index(Request $request): JsonResponse

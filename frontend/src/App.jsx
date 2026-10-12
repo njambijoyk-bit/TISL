@@ -171,6 +171,7 @@ const LearnVerifyPage   = lazy(() => import('./courses/pages/public/LearnVerifyP
 const CoursesBooks      = lazy(() => import('./courses/pages/admin/CoursesBooks'));
 const CoursesTeaching   = lazy(() => import('./courses/pages/admin/CoursesTeaching'));
 const MembershipPlans   = lazy(() => import('./memberships/pages/admin/MembershipPlans'));
+const MembershipMembers = lazy(() => import('./memberships/pages/admin/MembershipMembers'));
 const MembershipSettings = lazy(() => import('./memberships/pages/admin/MembershipSettings'));
 const LearnOfferingPage = lazy(() => import('./courses/pages/public/LearnOfferingPage'));
 const CoursesEnrolments = lazy(() => import('./courses/pages/admin/CoursesEnrolments'));
@@ -867,6 +868,7 @@ function App() {
               <Route path="/admin/courses" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesOfferings /></ProtectedRoute>} />
               <Route path="/admin/courses/enrolments" element={<ProtectedRoute requireAdmin permission="courses.enrol"><CoursesEnrolments /></ProtectedRoute>} />
               <Route path="/admin/memberships" element={<ProtectedRoute requireAdmin permission="memberships.view"><ModuleRoute module="memberships"><MembershipPlans /></ModuleRoute></ProtectedRoute>} />
+              <Route path="/admin/memberships/members" element={<ProtectedRoute requireAdmin permission="memberships.view"><ModuleRoute module="memberships"><MembershipMembers /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/memberships/settings" element={<ProtectedRoute requireAdmin permission="memberships.view"><ModuleRoute module="memberships"><MembershipSettings /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/courses/teaching" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesTeaching /></ProtectedRoute>} />
               <Route path="/admin/courses/books" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesBooks /></ProtectedRoute>} />
