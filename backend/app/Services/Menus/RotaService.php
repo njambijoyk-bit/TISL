@@ -54,6 +54,9 @@ class RotaService
 
     private function date(mixed $v, string $what): Carbon
     {
+        if (trim((string) $v) === '') {
+            throw new BooksException("Choose {$what}.");
+        }
         try {
             return Carbon::parse((string) $v, $this->tz())->startOfDay();
         } catch (\Throwable) {
