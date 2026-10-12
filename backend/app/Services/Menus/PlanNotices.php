@@ -54,6 +54,12 @@ class PlanNotices
         $this->tell($s, 'menu_plan_order', 'Your meal is being prepared', 'Your meal for '.$d->delivery_date->format('D j M')." is in the kitchen and will be delivered between {$from} and {$to}.");
     }
 
+    public function membershipNeeded(Subscription $s, \App\Models\Menus\Plan $p): void
+    {
+        $this->tell($s, 'menu_plan_membership', 'Your meal plan is paused', 'This meal plan is for members, and your membership is not active. Renew it at /membership and your plan can carry on.');
+        $this->staff('menu_plan_paused', "{$s->name}'s meal plan was paused", 'Their membership is no longer active.');
+    }
+
     public function cancelled(Subscription $s): void
     {
         $this->tell($s, 'menu_plan_cancelled', 'Your meal plan was cancelled', 'Your plan '.$s->number.' was cancelled'.($s->cancel_reason ? ": {$s->cancel_reason}" : '.').' Any paid days that were not delivered will be given back.');

@@ -69,6 +69,14 @@ class PlanService
         }
         $row = ['name' => $name, 'location_id' => $loc->id, 'cycle_weeks' => $cycle, 'day_price' => $price, 'delivery_weekdays' => implode(',', $days), 'min_days' => $min, 'cutoff_hours' => $cut,
             'slot_from' => $from, 'slot_to' => $to];
+        if (MembershipRules::columns() && (array_key_exists('requires_membership', $d) || array_key_exists('membership_plan_ids', $d))) {
+            $row['requires_membership'] = (bool) ($d['requires_membership'] ?? $plan?->requires_membership ?? false);
+            $ids = array_values(array_unique(array_map('intval', (array) ($d['membership_plan_ids'] ?? $plan?->membership_plan_ids ?? []))));
+            if ($ids && \Illuminate\Support\Facades\Schema::hasTable('membership_plans') && \App\Models\Memberships\Plan::whereIn('id', $ids)->count() !== count($ids)) {
+                throw new BooksException('Choose membership plans that exist.');
+            }
+            $row['membership_plan_ids'] = $ids ?: null;
+        }
         foreach (['description' => 3000, 'photo' => 255] as $k => $max) {
             if (array_key_exists($k, $d)) {
                 $v = trim((string) $d[$k]);
@@ -169,6 +177,7 @@ class PlanService
 
         return $plans->map(fn (Plan $p) => ['id' => $p->id, 'name' => $p->name, 'slug' => $p->slug, 'description' => $p->description, 'photo' => $p->photo, 'location_id' => $p->location_id, 'cycle_weeks' => $p->cycle_weeks,
             'day_price' => (float) $p->day_price, 'delivery_weekdays' => $p->weekdays(), 'min_days' => $p->min_days, 'cutoff_hours' => $p->cutoff_hours, 'slot_from' => substr((string) $p->slot_from, 0, 5), 'slot_to' => substr((string) $p->slot_to, 0, 5),
+            'requires_membership' => MembershipRules::columns() ? (bool) $p->requires_membership : false, 'membership_plan_ids' => MembershipRules::columns() ? array_map('intval', (array) ($p->membership_plan_ids ?? [])) : [],
             'is_active' => $p->is_active, 'sort_order' => $p->sort_order, 'subscribers' => (int) ($subs[$p->id] ?? 0),
             'menu' => ($days[$p->id] ?? collect())->groupBy(fn ($d) => $d->week_no.'-'.$d->weekday)->map(fn ($g) => ['week_no' => (int) $g->first()->week_no, 'weekday' => (int) $g->first()->weekday,
                 'dishes' => $g->map(fn ($d) => ['id' => $d->dish_id, 'name' => $dishes[$d->dish_id]->name ?? '?'])->values()->all()])->values()->all()])->values()->all();

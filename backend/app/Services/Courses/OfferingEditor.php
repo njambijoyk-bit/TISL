@@ -170,6 +170,11 @@ class OfferingEditor
         }
 
         $o->update(['status' => 'published']);
+        try {
+            app(\App\Services\Memberships\MembershipService::class)->resync();   // members whose plan covers it get access
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $o->fresh();
     }

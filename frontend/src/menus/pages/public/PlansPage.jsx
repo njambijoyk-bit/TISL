@@ -82,7 +82,7 @@ export default function PlansPage() {
         {d?.enabled && d.plans.map((p) => (
           <section key={p.id} data-plan={p.name} style={{ display: 'grid', gap: 10 }}>
             <div style={{ ...card, display: 'grid', gap: 8 }}>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{p.name}</h2>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800 }}>{p.name}{p.requires_membership && <span style={{ marginLeft: 8, fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: 'rgba(99,102,241,0.14)' }}>Members</span>}</h2>
               {p.description && <p style={{ margin: 0, color: 'var(--text-secondary)' }}>{p.description}</p>}
               <p style={{ margin: 0, fontWeight: 800 }}>{money(p.day_price)} <span style={{ fontWeight: 500 }}>for each delivery day, before tax</span></p>
               <p style={{ margin: 0, fontSize: '0.88rem' }}>Delivers {p.delivery_weekdays.map((x) => DAYS[x]).join(', ')}, between {p.slot_from} and {p.slot_to}.{p.cycle_weeks > 1 ? ` The menu changes each week and comes round every ${p.cycle_weeks} weeks.` : ''}</p>

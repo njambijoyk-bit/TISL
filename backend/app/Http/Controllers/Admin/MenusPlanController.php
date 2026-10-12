@@ -55,6 +55,7 @@ class MenusPlanController extends Controller
 
         return response()->json(['ready' => true, 'plans' => $this->plans->rows($this->scope()), 'days' => Plan::DAYS,
             'dishes' => Dish::where('is_active', true)->whereNotNull('variant_id')->orderBy('name')->get(['id', 'name'])->map(fn ($d) => ['id' => $d->id, 'name' => $d->name])->values(),
+            'membership_plans' => \App\Services\Memberships\MemberStanding::on() ? \App\Models\Memberships\Plan::where('status', '!=', 'archived')->orderBy('name')->get(['id', 'name'])->map(fn ($m) => ['id' => $m->id, 'name' => $m->name])->values() : [],
             'locations' => Location::query()->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values()]);
     }
 
@@ -62,7 +63,7 @@ class MenusPlanController extends Controller
     {
         return ['name' => 'nullable|string|max:120', 'description' => 'nullable|string|max:3000', 'photo' => 'nullable|string|max:255', 'location_id' => 'nullable|integer', 'cycle_weeks' => 'nullable|integer|min:1|max:4',
             'day_price' => 'nullable|numeric|min:0|max:10000000', 'delivery_weekdays' => 'nullable|array|max:7', 'delivery_weekdays.*' => 'integer|min:1|max:7', 'min_days' => 'nullable|integer|min:1|max:7', 'cutoff_hours' => 'nullable|integer|min:6|max:168',
-            'slot_from' => 'nullable|string|max:8', 'slot_to' => 'nullable|string|max:8', 'is_active' => 'nullable|boolean', 'sort_order' => 'nullable|integer'];
+            'slot_from' => 'nullable|string|max:8', 'slot_to' => 'nullable|string|max:8', 'requires_membership' => 'nullable|boolean', 'membership_plan_ids' => 'nullable|array', 'membership_plan_ids.*' => 'integer', 'is_active' => 'nullable|boolean', 'sort_order' => 'nullable|integer'];
     }
 
     public function save(Request $request, ?int $id = null): JsonResponse

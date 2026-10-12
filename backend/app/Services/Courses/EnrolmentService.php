@@ -74,8 +74,14 @@ class EnrolmentService
         }
         $lines = [];
         $skipped = [];
+        $member = MembershipBenefit::coverage($student->id, $o);
         foreach ($fees as $f) {
             if ($f->is_optional && ! in_array($f->id, $optionalIds, true)) {
+                continue;
+            }
+            if ($member && $member['waive_tuition'] && $f->kind === 'tuition') {
+                $skipped[] = $f->name.' (free with your membership)';
+
                 continue;
             }
             if ($f->once_per_student && $this->charged($student->id, $f)) {

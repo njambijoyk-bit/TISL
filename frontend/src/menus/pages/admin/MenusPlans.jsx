@@ -21,7 +21,7 @@ const TONE = { pending: 'warn', active: 'ok', paused: 'neutral', cancelled: 'dan
 
 function PlanForm({ plan, data, onClose, onDone }) {
   const [f, setF] = useState({ name: plan?.name ?? '', description: plan?.description ?? '', location_id: plan?.location_id ?? data.locations[0]?.id ?? '', cycle_weeks: plan?.cycle_weeks ?? 1, day_price: plan?.day_price ?? '',
-    delivery_weekdays: plan?.delivery_weekdays ?? [1, 2, 3, 4, 5], min_days: plan?.min_days ?? 1, cutoff_hours: plan?.cutoff_hours ?? 24, slot_from: plan?.slot_from ?? '12:00', slot_to: plan?.slot_to ?? '14:00', is_active: plan?.is_active ?? true });
+    delivery_weekdays: plan?.delivery_weekdays ?? [1, 2, 3, 4, 5], min_days: plan?.min_days ?? 1, cutoff_hours: plan?.cutoff_hours ?? 24, slot_from: plan?.slot_from ?? '12:00', slot_to: plan?.slot_to ?? '14:00', is_active: plan?.is_active ?? true, requires_membership: plan?.requires_membership ?? false, membership_plan_ids: plan?.membership_plan_ids ?? [] });
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setF((x) => ({ ...x, [k]: e.target.value }));
   const toggle = (d) => setF((x) => ({ ...x, delivery_weekdays: x.delivery_weekdays.includes(d) ? x.delivery_weekdays.filter((i) => i !== d) : [...x.delivery_weekdays, d] }));
@@ -36,6 +36,18 @@ function PlanForm({ plan, data, onClose, onDone }) {
   return (
     <Modal title={plan ? `Edit ${plan.name}` : 'New meal plan'} onClose={onClose} width={620} footer={<ModalActions onCancel={onClose} onSubmit={save} submitLabel="Save plan" busy={busy} disabled={!f.name.trim() || !f.day_price} />}>
       <FormStack>
+        {(data.membership_plans?.length ?? 0) > 0 && (
+          <fieldset style={{ border: '1px solid rgba(148,163,184,0.3)', borderRadius: 10, padding: 10, display: 'grid', gap: 6, margin: 0 }}>
+            <legend style={{ fontSize: '0.78rem', fontWeight: 800, padding: '0 6px' }}>Members</legend>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.86rem' }}><input type="checkbox" checked={f.requires_membership} onChange={(e) => setF((x) => ({ ...x, requires_membership: e.target.checked }))} /> Only people with a membership can subscribe (the plan pauses if the membership ends)</label>
+            {f.requires_membership && (
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.84rem' }}>
+                <span style={{ color: colors.textMuted }}>Which memberships count (none ticked: any):</span>
+                {data.membership_plans.map((mp) => <label key={mp.id} style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.membership_plan_ids.includes(mp.id)} onChange={() => setF((x) => ({ ...x, membership_plan_ids: x.membership_plan_ids.includes(mp.id) ? x.membership_plan_ids.filter((i) => i !== mp.id) : [...x.membership_plan_ids, mp.id] }))} /> {mp.name}</label>)}
+              </div>
+            )}
+          </fieldset>
+        )}
         <Field label="Name" htmlFor="pl-name"><TextInput id="pl-name" maxLength={120} value={f.name} onChange={set('name')} placeholder="Office lunch" /></Field>
         <Field label="What it is" htmlFor="pl-desc"><TextArea id="pl-desc" rows={3} maxLength={3000} value={f.description} onChange={set('description')} /></Field>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>

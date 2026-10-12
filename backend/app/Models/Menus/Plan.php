@@ -14,7 +14,7 @@ class Plan extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['day_price' => 'decimal:2', 'is_active' => 'boolean', 'cycle_weeks' => 'integer', 'min_days' => 'integer', 'cutoff_hours' => 'integer'];
+    protected $casts = ['day_price' => 'decimal:2', 'is_active' => 'boolean', 'cycle_weeks' => 'integer', 'min_days' => 'integer', 'cutoff_hours' => 'integer', 'requires_membership' => 'boolean', 'membership_plan_ids' => 'array'];
 
     public function days(): HasMany
     {

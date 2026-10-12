@@ -89,7 +89,7 @@ function EnrolCard({ data, reload }) {
     } catch (e) { toast.error(errMsg(e, 'We could not do that. Please try again.'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
-  if (data.me.has_access) {
+  if (data.me.has_access && !data.me.can_enrol) {
     return <aside style={{ ...card, display: 'grid', gap: 8 }} data-testid="enrol-card"><strong>You are enrolled.</strong><span style={{ fontSize: '0.88rem' }}>Everything below is open to you.</span><Link to={`/learn/my/${o.slug}`} style={{ ...primaryBtn, textAlign: 'center', textDecoration: 'none' }}>Open in My learning</Link>{enrolment?.access_paused && <span role="alert" style={{ color: '#b91c1c', fontWeight: 700 }}>A payment is overdue, so access is on hold until you pay.</span>}</aside>;
   }
 
@@ -148,6 +148,7 @@ function EnrolCard({ data, reload }) {
       {signedIn && !enrolment && !wl && (!data.me.can_enrol || pickedFull) && data.me.can_wait && (!data.has_intakes || data.intakes.length > 0) && (
         <button type="button" disabled={busy || (data.has_intakes && !intake)} onClick={() => go(() => coursesPublicAPI.joinWaitlist(o.id, intake ? Number(intake) : undefined))} style={primaryBtn}>Join the waiting list</button>
       )}
+      {signedIn && data.me.has_access && data.me.can_enrol && <p style={{ margin: 0, fontSize: '0.86rem' }} data-testid="member-access">Open to you with your membership: <Link to={`/learn/my/${o.slug}`} style={{ fontWeight: 800 }}>start learning</Link>. Enrol as well to join the classes, take the exams and earn the certificate.</p>}
       {signedIn && data.me.can_enrol && quote && (
         <form onSubmit={(e) => { e.preventDefault(); go(() => coursesPublicAPI.enrol(o.id, { intake_id: intake ? Number(intake) : undefined, optional_fee_ids: extras, payment_method_id: method ? Number(method) : undefined, phone: phone || undefined })); }} style={{ display: 'grid', gap: 8 }}>
           {optional.length > 0 && (

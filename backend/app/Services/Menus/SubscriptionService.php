@@ -102,6 +102,9 @@ class SubscriptionService
         if (! $plan->is_active) {
             throw new BooksException('That plan is not taking new subscribers.');
         }
+        if (! MembershipRules::qualifies($plan, $user?->id)) {
+            throw new BooksException(MembershipRules::message($plan));
+        }
         $name = trim((string) ($in['name'] ?? $user?->name ?? ''));
         $phone = trim((string) ($in['phone'] ?? $user?->customer?->phone ?? ''));
         $email = trim((string) ($in['email'] ?? $user?->email ?? ''));
@@ -206,6 +209,7 @@ class SubscriptionService
             return null;
         }
         $credit = (int) $s->credit_days;
+        $dayPrice = round((float) $p->day_price * (1 - MembershipRules::discountPct($s->user_id) / 100), 2);   // members may get a percentage off
         $rows = [];      // the Sales Order's lines
         $plan = [];      // per day: [date, free, lines[]]
         foreach ($deliveries as $date => $dishes) {
@@ -217,10 +221,10 @@ class SubscriptionService
             $credit -= $free ? 1 : 0;
             $prices = array_map(fn (Dish $d) => (float) ($this->info->money($d, (int) $p->location_id)['price'] ?? 0), $dishes);
             $sum = array_sum($prices) ?: 1.0;
-            $left = (float) $p->day_price;
+            $left = $dayPrice;
             $lines = [];
             foreach ($dishes as $i => $d) {
-                $rate = $free ? 0.0 : ($i === count($dishes) - 1 ? round($left, 2) : round((float) $p->day_price * $prices[$i] / $sum, 2));
+                $rate = $free ? 0.0 : ($i === count($dishes) - 1 ? round($left, 2) : round($dayPrice * $prices[$i] / $sum, 2));
                 $left -= $rate;
                 $lines[] = ['dish_id' => $d->id, 'name' => $d->name, 'price' => $rate, 'base_price' => $prices[$i]];
                 $rows[] = ['type' => 'product', 'product_id' => $d->product_id, 'variant_id' => $d->variant_id, 'quantity' => 1, 'rate' => $rate, 'location_id' => $p->location_id,
@@ -501,6 +505,9 @@ class SubscriptionService
         if ($s->status !== 'paused') {
             throw new BooksException('The plan is not paused.');
         }
+        if (($plan = Plan::find($s->plan_id)) && ! MembershipRules::qualifies($plan, $s->user_id)) {
+            throw new BooksException(MembershipRules::message($plan));
+        }
         $s->update(['status' => 'active', 'paused_from' => null, 'paused_until' => null]);
 
         return $s->fresh();
@@ -584,6 +591,12 @@ class SubscriptionService
         foreach (Subscription::whereIn('status', ['active', 'paused'])->get() as $s) {
             $p = Plan::find($s->plan_id);
             if (! $p) {
+                continue;
+            }
+            if ($s->status === 'active' && ! MembershipRules::qualifies($p, $s->user_id)) {   // the membership this plan needs has ended
+                $s->update(['status' => 'paused', 'paused_from' => $this->today($now)->toDateString(), 'paused_until' => null]);
+                $this->notices->membershipNeeded($s->fresh(), $p);
+
                 continue;
             }
             for ($i = 0; $i < 3; $i++) {

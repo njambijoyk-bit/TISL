@@ -714,7 +714,24 @@ class MembershipService
             });
         }
 
+        $this->guarded(fn () => $this->resync());
+
         return $r;
+    }
+
+    /** Hand every running member their plan's benefits again: a course published after they joined, a benefit added to the plan. Handlers are safe to repeat. */
+    public function resync(): int
+    {
+        if (! self::installed()) {
+            return 0;
+        }
+        $n = 0;
+        foreach (Membership::whereIn('status', Membership::GOOD)->get() as $m) {
+            $this->entitle($m, true);
+            $n++;
+        }
+
+        return $n;
     }
 
     private function guarded(callable $fn): void
