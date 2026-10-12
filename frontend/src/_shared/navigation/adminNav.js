@@ -4,6 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
+  Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck,
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
@@ -212,9 +213,27 @@ export const ADMIN_NAV = [
     label: 'Menus',
     module: MODULES.MENUS,
     items: [
+      { id: 'till', title: 'Till', icon: Coins, color: '#10b981', path: '/admin/menus/till', perm: 'menus.view', keywords: 'till cashier pay tab receipt counter' },
+      { id: 'floor', title: 'Floor', icon: Armchair, color: '#8b5cf6', path: '/admin/menus/floor', perm: 'menus.view', keywords: 'tables floor plan seat bill qr' },
+      { id: 'orders', title: 'Orders', icon: BellRing, color: '#ef4444', path: '/admin/menus/orders', perm: 'menus.view', keywords: 'orders pickup delivery board' },
+      { id: 'plans', title: 'Meal plans', icon: Soup, color: '#16a34a', path: '/admin/menus/plans', perm: 'menus.view', keywords: 'meal plan subscription weekly delivery' },
+      { id: 'custom', title: 'Cakes & catering', icon: CakeSlice, color: '#e11d48', path: '/admin/menus/custom', perm: 'menus.view', keywords: 'cake catering private chef quote deposit' },
+      { id: 'kitchen', title: 'Kitchen', icon: ChefHat, color: '#0ea5e9', path: '/admin/menus/kitchen', perm: 'menus.view', keywords: 'kitchen screen tickets station' },
+      { id: 'chefs', title: 'Chefs', icon: Users, color: '#ec4899', path: '/admin/menus/chefs', perm: 'menus.view', keywords: 'chef certificates on duty' },
+      { id: 'rota', title: 'Rota', icon: CalendarDays, color: '#6366f1', path: '/admin/menus/rota', perm: 'menus.view', keywords: 'rota shifts days off swap overtime clock' },
+      { id: 'operations', title: 'Operations', icon: ClipboardCheck, color: '#14b8a6', path: '/admin/menus/operations', perm: 'menus.view', keywords: 'prep list waste what to buy' },
       {
         id: 'dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316', path: '/admin/menus/dishes', perm: 'menus.view', keywords: 'menu dish food allergens price sold out 86',
         tabs: [
+          { title: 'Till', path: '/admin/menus/till', icon: Coins, color: '#10b981' },
+          { title: 'Floor', path: '/admin/menus/floor', icon: Armchair, color: '#8b5cf6' },
+          { title: 'Orders', path: '/admin/menus/orders', icon: BellRing, color: '#ef4444' },
+          { title: 'Meal plans', path: '/admin/menus/plans', icon: Soup, color: '#16a34a' },
+          { title: 'Cakes & catering', path: '/admin/menus/custom', icon: CakeSlice, color: '#e11d48' },
+          { title: 'Kitchen', path: '/admin/menus/kitchen', icon: ChefHat, color: '#0ea5e9' },
+          { title: 'Chefs', path: '/admin/menus/chefs', icon: Users, color: '#ec4899' },
+          { title: 'Rota', path: '/admin/menus/rota', icon: CalendarDays, color: '#6366f1' },
+          { title: 'Operations', path: '/admin/menus/operations', icon: ClipboardCheck, color: '#14b8a6' },
           { title: 'Dishes', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316' },
           { title: 'Menus', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7' },
           { title: 'Ingredients', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e' },
