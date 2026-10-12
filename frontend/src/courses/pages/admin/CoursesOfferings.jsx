@@ -10,7 +10,8 @@ import coursesAPI from '../../../_shared/api/courses';
 import useAuthStore from '../../../_shared/store/authStore';
 import { hasAnyPermission, hasPermission } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
-import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import { RecipePicker } from '../../components/RecipeKitPanels';
 import CoursesNav from '../../components/CoursesNav';
 import Pill from '../../components/Pill';
 import UserPicker from '../../components/UserPicker';
@@ -82,6 +83,7 @@ export default function CoursesOfferings() {
   const [meta, setMeta] = useState(null);
   const [data, setData] = useState(null);
   const [form, setForm] = useState(false);
+  const [picker, setPicker] = useState(false);
   const [filter, setFilter] = useState({ q: '', kind: '', status: '' });
 
   const load = useCallback(() => coursesAPI.offerings(filter).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load'))), [filter]);
@@ -101,6 +103,7 @@ export default function CoursesOfferings() {
           <>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
               {canAdd && meta && <button type="button" style={btnPrimary} onClick={() => setForm(true)}><Plus size={14} aria-hidden="true" /> Add an offering</button>}
+              {canAdd && meta && <button type="button" style={btnGhost} onClick={() => setPicker(true)}>Copy a recipe from Menus</button>}
               <TextInput aria-label="Search" placeholder="Search" value={filter.q} onChange={(e) => setFilter({ ...filter, q: e.target.value })} style={{ maxWidth: 220 }} />
               {meta && <SelectInput aria-label="Kind" value={filter.kind} onChange={(e) => setFilter({ ...filter, kind: e.target.value })} style={{ maxWidth: 180 }}><option value="">All kinds</option>{Object.entries(meta.kinds).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput>}
               {meta && <SelectInput aria-label="Status" value={filter.status} onChange={(e) => setFilter({ ...filter, status: e.target.value })} style={{ maxWidth: 160 }}><option value="">Any status</option>{Object.entries(meta.statuses).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput>}
@@ -122,6 +125,7 @@ export default function CoursesOfferings() {
           </>
         )}
       </div>
+      {picker && <RecipePicker onClose={() => setPicker(false)} onDone={(r) => { setPicker(false); navigate(`/admin/courses/${r.offering_id}`); }} />}
       {form && meta && <OfferingForm meta={meta} onClose={() => setForm(false)} onDone={(o) => { setForm(false); navigate(`/admin/courses/${o.id}`); }} />}
     </AdminLayout>
   );

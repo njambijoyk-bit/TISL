@@ -102,6 +102,13 @@ function EnrolCard({ data, reload }) {
         </ul>
       )}
       {(o.plan.deposit_pct || o.plan.instalments > 1) && <p style={{ margin: 0, fontSize: '0.84rem' }}>You can pay{o.plan.deposit_pct ? ` a ${o.plan.deposit_pct}% deposit` : ''}{o.plan.instalments > 1 ? `${o.plan.deposit_pct ? ' and the rest' : ''} in ${o.plan.instalments} instalments, ${o.plan.instalment_days} days apart` : ' and the rest later'}. {o.plan.grant_on === 'deposit' ? 'Your access starts with the first payment.' : 'Your access starts when it is paid in full.'}</p>}
+      {data.kit && (
+        <div style={{ display: 'grid', gap: 3, fontSize: '0.86rem' }} data-testid="kit-list">
+          <strong>Your cooking kit</strong>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>{data.kit.items.map((k, i) => <li key={i}>{k.quantity} × {k.name}{k.note ? ` (${k.note})` : ''}</li>)}</ul>
+          {data.kit.handed_at && <span style={{ color: '#16a34a', fontWeight: 700 }}>You have collected your kit.</span>}
+        </div>
+      )}
       {data.has_intakes && (
         <div style={{ display: 'grid', gap: 4 }}>
           <label htmlFor="intake" style={{ fontWeight: 700, fontSize: '0.88rem' }}>Intake</label>

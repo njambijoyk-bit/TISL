@@ -20,6 +20,7 @@ import AttendancePanel from '../../components/AttendancePanel';
 import { MarkingPanel, QuizEditor } from '../../components/QuizPanel';
 import CertificatesPanel from '../../components/CertificatesPanel';
 import { IntakesPanel, StudentsPanel } from '../../components/TeachingPanels';
+import { KitPanel } from '../../components/RecipeKitPanels';
 import { OfferingForm } from './CoursesOfferings';
 
 const TONE = { published: 'ok', draft: 'warn', archived: 'neutral' };
@@ -92,7 +93,7 @@ function LessonForm({ offering, lesson, sections, files, meta, onClose, onDone }
   );
 }
 
-function LessonRow({ l, i, n, onEdit, onRemove, onMove, onQuiz }) {
+function LessonRow({ l, i, n, onEdit, onRemove, onMove, onQuiz, source, onRefresh }) {
   return (
     <li data-lesson={l.title} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '6px 0', borderTop: '1px solid rgba(148,163,184,0.18)', fontSize: '0.88rem' }}>
       <span style={{ flex: 1, minWidth: 180 }}>{l.kind === 'video' ? <Video size={13} aria-hidden="true" /> : l.kind === 'file' ? <FileText size={13} aria-hidden="true" /> : null} <strong>{l.title}</strong> <span style={{ color: colors.textMuted }}>{l.kind_label}</span></span>
@@ -102,6 +103,8 @@ function LessonRow({ l, i, n, onEdit, onRemove, onMove, onQuiz }) {
       {l.live?.join_url && <a href={l.live.join_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.78rem' }}><ExternalLink size={12} aria-hidden="true" /> Open link</a>}
       <button type="button" aria-label="Move up" style={btnGhost} disabled={i === 0} onClick={() => onMove(-1)}><ArrowUp size={13} aria-hidden="true" /></button>
       <button type="button" aria-label="Move down" style={btnGhost} disabled={i === n - 1} onClick={() => onMove(1)}><ArrowDown size={13} aria-hidden="true" /></button>
+      {source && <Pill tone={source.edited ? 'warn' : 'neutral'}>{source.edited ? 'Copied from Menus, then edited' : 'Copied from Menus'}</Pill>}
+      {source && onRefresh && <button type="button" style={btnGhost} onClick={onRefresh}>Update the copy</button>}
       {l.kind === 'quiz' && <button type="button" style={btnPrimary} onClick={onQuiz}>Questions</button>}
       <button type="button" style={btnGhost} onClick={onEdit}>Edit</button>
       <button type="button" aria-label="Remove lesson" style={{ ...btnGhost, color: colors.danger }} onClick={onRemove}><Trash2 size={13} aria-hidden="true" /></button>
@@ -122,10 +125,12 @@ export default function CourseBuilder() {
   const [sectionTitle, setSectionTitle] = useState('');
   const [access, setAccess] = useState([]);
   const [grant, setGrant] = useState({ user: null, until: '', note: '' });
+  const [sources, setSources] = useState([]);
 
   const load = useCallback(() => coursesAPI.offering(id).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load'))), [id]);
   useEffect(() => { coursesAPI.meta().then(setMeta).catch(() => {}); }, []);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (data) coursesAPI.recipeSources(id).then((r) => setSources(r.sources)).catch(() => setSources([])); }, [id, data]);
   const loadAccess = useCallback(() => coursesAPI.access(id).then((r) => setAccess(r.access)).catch(() => setAccess([])), [id]);
   useEffect(() => { if (tab === 'access' && meta?.can_grant) loadAccess(); }, [tab, meta, loadAccess]);
 
@@ -133,6 +138,11 @@ export default function CourseBuilder() {
   if (!data || !meta) return <AdminLayout><div style={{ padding: 32 }}>Loading…</div></AdminLayout>;
   const o = data.offering;
   const run = async (fn, ok) => { try { await fn(); if (ok) toast.success(ok); await load(); } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 8000 }); } };
+  const refreshRecipe = async (l) => {
+    const src = sources.find((x) => x.lesson_id === l.id);
+    if (src?.edited && !window.confirm('This lesson was edited after it was copied. Updating replaces your edits with the kitchen\'s recipe. Continue?')) return;
+    run(() => coursesAPI.refreshRecipe(o.id, l.id, Boolean(src?.edited)), 'Updated from Menus.');
+  };
   const all = [...data.outline.sections.flatMap((s) => s.lessons), ...data.outline.loose];
   const move = (l, dir) => {
     const groups = [...data.outline.sections.map((s) => ({ section_id: s.id, lessons: s.lessons })), { section_id: null, lessons: data.outline.loose }];
@@ -152,7 +162,7 @@ export default function CourseBuilder() {
     try { await coursesAPI.grant(o.id, { user_id: grant.user.id, until: grant.until || undefined, note: grant.note || undefined }); toast.success('Access given.'); setGrant({ user: null, until: '', note: '' }); loadAccess(); } catch (e) { toast.error(errMsg(e, 'Could not give access'), { duration: 8000 }); }
   };
 
-  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ['students', 'Students'], ['intakes', 'Intakes and waiting list'], ['classes', 'Classes and attendance'], ['marking', 'Quiz results'], ...(o.certificate ? [['certificates', 'Certificates']] : []), ...(meta.can_manage ? [['fees', 'Fees and payments'], ['books', 'Books']] : []), ...(meta.can_grant ? [['access', 'Access']] : [])];
+  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ['students', 'Students'], ...(o.kind !== 'notes' ? [['kit', 'Cooking kit']] : []), ['intakes', 'Intakes and waiting list'], ['classes', 'Classes and attendance'], ['marking', 'Quiz results'], ...(o.certificate ? [['certificates', 'Certificates']] : []), ...(meta.can_manage ? [['fees', 'Fees and payments'], ['books', 'Books']] : []), ...(meta.can_grant ? [['access', 'Access']] : [])];
 
   return (
     <AdminLayout>
@@ -183,13 +193,13 @@ export default function CourseBuilder() {
             {data.outline.sections.map((s) => (
               <section key={s.id} style={{ ...card, padding: 14 }} data-section={s.title}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong>{s.title}</strong><button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={() => window.confirm('Remove this section? Its lessons are kept.') && run(() => coursesAPI.removeSection(o.id, s.id), 'Section removed.')}>Remove section</button></div>
-                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{s.lessons.map((l, i) => <LessonRow key={l.id} l={l} i={i} n={s.lessons.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} onQuiz={() => setQuiz(l)} />)}</ul>
+                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{s.lessons.map((l, i) => <LessonRow key={l.id} source={sources.find((x) => x.lesson_id === l.id)} onRefresh={() => refreshRecipe(l)} l={l} i={i} n={s.lessons.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} onQuiz={() => setQuiz(l)} />)}</ul>
               </section>
             ))}
             {data.outline.loose.length > 0 && (
               <section style={{ ...card, padding: 14 }}>
                 {data.outline.sections.length > 0 && <strong>Not in a section</strong>}
-                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{data.outline.loose.map((l, i) => <LessonRow key={l.id} l={l} i={i} n={data.outline.loose.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} onQuiz={() => setQuiz(l)} />)}</ul>
+                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{data.outline.loose.map((l, i) => <LessonRow key={l.id} source={sources.find((x) => x.lesson_id === l.id)} onRefresh={() => refreshRecipe(l)} l={l} i={i} n={data.outline.loose.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} onQuiz={() => setQuiz(l)} />)}</ul>
               </section>
             )}
           </div>
@@ -212,6 +222,7 @@ export default function CourseBuilder() {
           </div>
         )}
 
+        {tab === 'kit' && <KitPanel offering={o} />}
         {tab === 'students' && <StudentsPanel offering={o} />}
         {tab === 'intakes' && <IntakesPanel offering={o} />}
         {tab === 'classes' && <AttendancePanel offering={o} meta={meta} />}

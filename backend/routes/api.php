@@ -796,6 +796,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/offerings/{id}/sessions/{session}/roll', [$ac, 'roll'])->whereNumber(['id', 'session']);
         Route::post('/offerings/{id}/sessions/{session}/marks', [$ac, 'mark'])->whereNumber(['id', 'session'])->middleware('throttle:120,1');
         Route::post('/offerings/{id}/excuses/{entry}', [$ac, 'decideExcuse'])->whereNumber(['id', 'entry']);
+        $rc = \App\Http\Controllers\Admin\CoursesRecipeController::class;
+        Route::get('/recipes/publishable', [$rc, 'publishable'])->middleware('permission:courses.manage');
+        Route::post('/recipes/{recipe}/publish', [$rc, 'publish'])->whereNumber('recipe')->middleware('permission:courses.manage');
+        Route::get('/offerings/{id}/recipe-sources', [$rc, 'sources'])->whereNumber('id');
+        Route::post('/offerings/{id}/recipe-sources/{lesson}/refresh', [$rc, 'refresh'])->whereNumber(['id', 'lesson'])->middleware('permission:courses.manage');
+        Route::get('/offerings/{id}/kit', [$rc, 'kit'])->whereNumber('id');
+        Route::put('/offerings/{id}/kit', [$rc, 'saveKit'])->whereNumber('id')->middleware('permission:courses.manage');
+        Route::post('/offerings/{id}/kit/{enrolment}/hand-out', [$rc, 'handOut'])->whereNumber(['id', 'enrolment'])->middleware('permission:courses.manage,courses.enrol');
         $tc = \App\Http\Controllers\Admin\CoursesTeachingController::class;
         Route::get('/teaching', [$tc, 'dashboard']);
         Route::get('/offerings/{id}/students', [$tc, 'students'])->whereNumber('id');
