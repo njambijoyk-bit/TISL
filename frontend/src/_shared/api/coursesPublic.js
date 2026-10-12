@@ -20,6 +20,10 @@ export const coursesPublicAPI = {
   bookLink: async (id) => (await api.get(`/courses/book-orders/${id}/link`)).data,
   checkin: async (sessionId, code) => (await api.post(`/courses/my/sessions/${sessionId}/checkin`, { code })).data,
   excuse: async (sessionId, reason) => (await api.post(`/courses/my/sessions/${sessionId}/excuse`, { reason })).data,
+  startQuiz: async (lessonId) => (await api.post(`/courses/my/quizzes/${lessonId}/start`)).data,
+  attemptOf: async (id) => (await api.get(`/courses/my/attempts/${id}`)).data,
+  saveAttempt: async (id, answers) => (await api.put(`/courses/my/attempts/${id}`, { answers })).data,
+  submitAttempt: async (id, answers) => (await api.post(`/courses/my/attempts/${id}/submit`, { answers })).data,
   pay: async (id, payload) => (await api.post(`/courses/enrolments/${id}/pay`, payload)).data,
 };
 

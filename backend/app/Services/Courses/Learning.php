@@ -121,10 +121,11 @@ class Learning
         $done = collect($prog)->filter(fn ($p) => $p->status === 'done')->all();
         $outline = $this->curriculum->outline($o, $u);
         $resume = null;
-        $decorate = function (array $row) use ($o, $seq, $prog, $done, $grant, &$resume) {
+        $decorate = function (array $row) use ($u, $o, $seq, $prog, $done, $grant, &$resume) {
             $l = $seq->firstWhere('id', $row['id']);
             $p = $prog[$row['id']] ?? null;
             $row['status'] = $p?->status ?? 'none';
+            $row['quiz'] = null;
             $row['position_seconds'] = $p?->position_seconds;
             $row['lock_reason'] = null;
             $row['opens_at'] = null;
@@ -136,6 +137,9 @@ class Learning
             } elseif ($l && ($by = $this->blockedBy($o, $l, $seq, $done))) {
                 $row = ['id' => $row['id'], 'kind' => $row['kind'], 'kind_label' => $row['kind_label'], 'title' => $row['title'], 'section_id' => $row['section_id'], 'duration_minutes' => $row['duration_minutes'], 'drip_days' => $row['drip_days'],
                     'is_preview' => $row['is_preview'], 'is_required' => $row['is_required'], 'locked' => true, 'status' => $row['status'], 'position_seconds' => null, 'lock_reason' => 'order', 'opens_at' => null, 'after' => $by->title];
+            }
+            if (! $row['locked'] && $row['kind'] === 'quiz' && QuizService::installed()) {
+                $row['quiz'] = app(QuizService::class)->info($u, $l);
             }
             if (! $row['locked'] && $row['status'] !== 'done' && $resume === null) {
                 $resume = $row['id'];
@@ -153,6 +157,35 @@ class Learning
             'progress' => $this->percent($u->id, $o), 'sections' => $sections, 'loose' => $loose, 'resume_lesson_id' => $last && collect($sections)->pluck('lessons')->flatten(1)->merge($loose)->contains(fn ($r) => $r['id'] === $last->lesson_id && ! $r['locked'] && $r['status'] !== 'done') ? $last->lesson_id : $resume];
     }
 
+    /** Is this lesson open to this person right now: access, drip, and any earlier required lesson done? @throws BooksException */
+    public function assertLessonOpen(User $u, Lesson $l): void
+    {
+        $o = Offering::findOrFail($l->offering_id);
+        if (! $this->access->canLesson($u, $o, $l)) {
+            throw new BooksException('That lesson is not open to you yet.');
+        }
+        $done = Progress::where('user_id', $u->id)->where('offering_id', $o->id)->where('status', 'done')->get()->keyBy('lesson_id')->all();
+        if ($by = $this->blockedBy($o, $l, $this->sequence($o), $done)) {
+            throw new BooksException("Finish \"{$by->title}\" first.");
+        }
+    }
+
+    /** A lesson is done because something other than the student's own button finished it (a passed quiz). */
+    public function finishLesson(User $u, Lesson $l): void
+    {
+        $p = Progress::firstOrNew(['user_id' => $u->id, 'lesson_id' => $l->id]);
+        $p->offering_id = $l->offering_id;
+        $p->started_at ??= now();
+        if ($p->status !== 'done') {
+            $p->status = 'done';
+            $p->done_at = now();
+        }
+        $p->save();
+        if ($o = Offering::find($l->offering_id)) {
+            $this->tryComplete($u, $o);
+        }
+    }
+
     /**
      * Note where a student is in a lesson: opened, the place in a video, or done. Done stays done. Refused for a lesson that is not open to them (no access, drip, or an earlier required lesson not done).
      *
@@ -165,13 +198,9 @@ class Learning
             throw new BooksException('Say whether the lesson is started or done.');
         }
         $o = Offering::findOrFail($l->offering_id);
-        if (! $this->access->canLesson($u, $o, $l)) {
-            throw new BooksException('That lesson is not open to you yet.');
-        }
-        $seq = $this->sequence($o);
-        $done = Progress::where('user_id', $u->id)->where('offering_id', $o->id)->where('status', 'done')->get()->keyBy('lesson_id')->all();
-        if ($by = $this->blockedBy($o, $l, $seq, $done)) {
-            throw new BooksException("Finish \"{$by->title}\" first.");
+        $this->assertLessonOpen($u, $l);
+        if ($l->kind === 'quiz' && $status === 'done') {
+            throw new BooksException('Pass the quiz to finish this lesson.');
         }
         if ($position !== null && ($position < 0 || $position > 864000)) {
             throw new BooksException('That place in the video is not valid.');

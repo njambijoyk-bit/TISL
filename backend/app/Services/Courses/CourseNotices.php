@@ -87,6 +87,24 @@ class CourseNotices
         $this->tell($userId, 'course_attendance', $st['state'] === 'failed' ? "Attendance on {$o->title}: please speak to your teacher" : "Attendance on {$o->title}: you are behind", $msg, '/learn/my/'.$o->slug);
     }
 
+    public function quizToMark(\App\Models\Courses\Attempt $a, ?Offering $o): void
+    {
+        if (! $o) {
+            return;
+        }
+        $who = User::whereKey($a->user_id)->value('name') ?? 'A student';
+        if ($o->instructor_user_id) {
+            $this->tell((int) $o->instructor_user_id, 'course_quiz_to_mark', "A quiz waits for you in {$o->title}", "{$who} handed in a quiz with answers that need your marks.", '/admin/courses/'.$o->id);
+        } else {
+            $this->staffTell('course_quiz_to_mark', "A quiz waits for marking in {$o->title}", "{$who} handed in a quiz with answers that need marks.");
+        }
+    }
+
+    public function quizMarked(\App\Models\Courses\Attempt $a, Offering $o): void
+    {
+        $this->tell((int) $a->user_id, 'course_quiz_marked', "Your quiz in {$o->title} is marked", $a->passed ? 'You passed. Well done!' : 'You did not reach the pass mark this time.'.' Open the course to see your result.', '/learn/my/'.$o->slug);
+    }
+
     private function staffTell(string $type, string $title, string $message): void
     {
         $this->safely(function () use ($type, $title, $message) {

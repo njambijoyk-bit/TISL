@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import toast from 'react-hot-toast';
@@ -77,6 +77,116 @@ function AttendanceCard({ att, reload }) {
   );
 }
 
+const inputStyle = { padding: '6px 8px', borderRadius: 8, border: '1px solid var(--line, #d1d5db)', font: 'inherit' };
+
+/** One question of an open attempt: single, multiple, true/false or a short written answer. */
+function QuestionInput({ q, value, onChange }) {
+  const opts = q.kind === 'truefalse' ? [{ id: 'true', text: 'True' }, { id: 'false', text: 'False' }] : q.options;
+  return (
+    <fieldset style={{ border: 'none', padding: 0, margin: 0, display: 'grid', gap: 6 }}>
+      <legend style={{ fontWeight: 700, marginBottom: 4 }}>{q.body} <span style={{ fontWeight: 400, fontSize: '0.78rem' }}>({q.points} pt{q.points === 1 ? '' : 's'})</span></legend>
+      {q.kind === 'short'
+        ? <textarea aria-label={q.body} rows={2} value={value ?? ''} onChange={(e) => onChange(e.target.value)} style={inputStyle} />
+        : opts.map((o) => {
+          const multi = q.kind === 'multiple';
+          const on = multi ? (value ?? []).includes(o.id) : value === o.id;
+          return (
+            <label key={o.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input type={multi ? 'checkbox' : 'radio'} name={`q${q.id}`} checked={!!on}
+                onChange={() => onChange(multi ? (on ? (value ?? []).filter((x) => x !== o.id) : [...(value ?? []), o.id]) : o.id)} />
+              {o.text}
+            </label>
+          );
+        })}
+    </fieldset>
+  );
+}
+
+/** What a finished attempt scored, and (when the quiz allows) the right answers. */
+function QuizResult({ r }) {
+  const a = r.attempt;
+  return (
+    <div style={{ display: 'grid', gap: 8 }} data-testid="quiz-result">
+      {a.waiting_for_teacher
+        ? <strong>Handed in. Your teacher will mark it and you will be told.</strong>
+        : <strong style={{ color: a.passed ? '#16a34a' : '#b91c1c' }}>{a.score_pct}% ({a.score} of {a.max_score}) · {a.passed ? 'Passed' : `Not passed: ${a.pass_pct}% is needed`}</strong>}
+      {r.questions.map((q) => (
+        <div key={q.id} style={{ borderTop: '1px solid var(--line, #e5e7eb)', paddingTop: 6, fontSize: '0.88rem' }}>
+          <div><strong>{q.body}</strong> {q.earned !== null && <span>· {q.earned} of {q.points}</span>}</div>
+          {r.answers_shown && q.explanation && <div>{q.explanation}</div>}
+          {q.comment && <div>Teacher: {q.comment}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** A quiz lesson: the rules and past attempts, then start or carry on, answer with autosave and a countdown, hand in, see the result. */
+function QuizCard({ lesson, reload }) {
+  const info = lesson.quiz;
+  const [run, setRun] = useState(null);       // { attempt, questions }
+  const [answers, setAnswers] = useState({});
+  const [result, setResult] = useState(null);
+  const [left, setLeft] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const answersRef = useRef({});
+  answersRef.current = answers;
+
+  useEffect(() => { setRun(null); setResult(null); }, [lesson.id]);
+
+  const open = (r) => { setRun(r); setAnswers(r.attempt.answers ?? {}); setResult(null); };
+  const start = async () => { setBusy(true); try { open(await coursesPublicAPI.startQuiz(lesson.id)); } catch (e) { toast.error(errMsg(e, 'Could not start the quiz'), { duration: 6000 }); await reload(); } finally { setBusy(false); } };
+  const submit = useCallback(async () => {
+    if (!run) return;
+    setBusy(true);
+    try { const r = await coursesPublicAPI.submitAttempt(run.attempt.id, answersRef.current); setRun(null); setResult(r); await reload(); }
+    catch (e) { toast.error(errMsg(e, 'Could not hand that in'), { duration: 6000 }); }
+    finally { setBusy(false); }
+  }, [run, reload]);
+
+  // keep what the student has typed (and fall back to a hand-in when the time is up)
+  useEffect(() => {
+    if (!run) return undefined;
+    const t = setInterval(() => { coursesPublicAPI.saveAttempt(run.attempt.id, answersRef.current).catch(() => {}); }, 20000);
+    return () => clearInterval(t);
+  }, [run]);
+  useEffect(() => {
+    if (!run?.attempt.expires_at) { setLeft(null); return undefined; }
+    const end = new Date(run.attempt.expires_at).getTime();
+    const tick = () => { const s = Math.max(0, Math.round((end - Date.now()) / 1000)); setLeft(s); if (s === 0) submit(); };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [run, submit]);
+
+  if (!info?.ready) return <div style={card}>This quiz is not ready yet.</div>;
+  if (run) {
+    return (
+      <section style={{ ...card, display: 'grid', gap: 14 }} data-testid="quiz-run">
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', flexWrap: 'wrap' }}>
+          <strong>Attempt {run.attempt.attempt_no}</strong>
+          {left !== null && <strong role="timer" style={{ color: left < 60 ? '#b91c1c' : 'inherit' }}>{Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')} left</strong>}
+        </div>
+        {run.quiz.instructions && <div style={{ whiteSpace: 'pre-wrap' }}>{run.quiz.instructions}</div>}
+        {run.questions.map((q) => <QuestionInput key={q.id} q={q} value={answers[q.id]} onChange={(v) => setAnswers({ ...answers, [q.id]: v })} />)}
+        <button type="button" disabled={busy} onClick={() => { if (window.confirm('Hand in your answers?')) submit(); }} style={{ ...primaryBtn, justifySelf: 'start' }}>Hand in</button>
+      </section>
+    );
+  }
+  const canStart = !info.passed && !info.waiting_for_teacher && info.attempts_left !== 0;
+  return (
+    <section style={{ ...card, display: 'grid', gap: 8 }} data-testid="quiz-card">
+      <span style={{ fontSize: '0.88rem' }}>{info.questions} question{info.questions === 1 ? '' : 's'} · {info.points} points · pass mark {info.pass_pct}%
+        {info.time_limit_minutes ? ` · ${info.time_limit_minutes} minutes` : ''}{info.max_attempts ? ` · ${info.attempts_left} of ${info.max_attempts} attempts left` : ''}</span>
+      {info.instructions && <div style={{ whiteSpace: 'pre-wrap' }}>{info.instructions}</div>}
+      {info.best_pct !== null && <span>Best score: <strong>{info.best_pct}%</strong>{info.passed && <strong style={{ color: '#16a34a' }}> · Passed</strong>}</span>}
+      {info.waiting_for_teacher && <span>Your last attempt is waiting for your teacher to mark it.</span>}
+      {result && <QuizResult r={result} />}
+      {canStart && <button type="button" disabled={busy} onClick={start} style={{ ...primaryBtn, justifySelf: 'start' }}>{info.open_attempt_id ? 'Carry on with your attempt' : info.attempts_used ? 'Try again' : 'Start the quiz'}</button>}
+    </section>
+  );
+}
+
 /** The lesson player: the outline with ticks and locks on one side, the lesson on the other, and Mark as done / Next. */
 export default function LearnPlayerPage() {
   const { slug } = useParams();
@@ -150,8 +260,9 @@ export default function LearnPlayerPage() {
                   {lesson.live && <LiveCard live={lesson.live} />}
                   {lesson.file?.url && <a href={lesson.file.url} download style={{ ...primaryBtn, display: 'inline-flex', gap: 6, alignItems: 'center', textDecoration: 'none', justifySelf: 'start' }}><Download size={14} aria-hidden="true" /> {lesson.file.name}</a>}
                   {lesson.body && <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{lesson.body}</div>}
+                  {lesson.kind === 'quiz' && <QuizCard lesson={lesson} reload={load} />}
                   <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {lesson.status !== 'done' ? <button type="button" onClick={done} style={primaryBtn}>Mark as done{next ? ' and continue' : ''}</button> : <span style={{ color: '#16a34a', fontWeight: 800 }}><Check size={14} aria-hidden="true" /> Done</span>}
+                    {lesson.kind === 'quiz' ? (lesson.status === 'done' && <span style={{ color: '#16a34a', fontWeight: 800 }}><Check size={14} aria-hidden="true" /> Passed</span>) : lesson.status !== 'done' ? <button type="button" onClick={done} style={primaryBtn}>Mark as done{next ? ' and continue' : ''}</button> : <span style={{ color: '#16a34a', fontWeight: 800 }}><Check size={14} aria-hidden="true" /> Done</span>}
                     {next && !next.locked && <button type="button" onClick={() => setCurrent(next.id)} style={{ ...primaryBtn, background: 'transparent', color: 'inherit', border: '1.5px solid var(--line, #d1d5db)' }}>Next lesson</button>}
                   </div>
                 </article>

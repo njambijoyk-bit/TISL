@@ -76,6 +76,9 @@ class Curriculum
         if (! in_array($kind, ['file', 'recipe', 'text'], true)) {
             $fileId = null;
         }
+        if ($l && $l->kind === 'quiz' && $kind !== 'quiz' && QuizService::installed() && \App\Models\Courses\Attempt::where('quiz_id', \App\Models\Courses\Quiz::where('lesson_id', $l->id)->value('id'))->exists()) {
+            throw new BooksException('Students have taken this quiz: its lesson stays a quiz.');
+        }
         if ($kind === 'file' && ! $fileId) {
             throw new BooksException('Choose one of this offering\'s files.');
         }
@@ -103,6 +106,11 @@ class Curriculum
                 'is_required' => array_key_exists('is_required', $d) ? (bool) $d['is_required'] : ($l->exists ? (bool) $l->is_required : true)])->save();
             if ($fileId && ! CourseFile::whereKey($fileId)->value('offering_id')) {
                 CourseFile::whereKey($fileId)->update(['offering_id' => $o->id]);   // a file used by a lesson belongs to that offering
+            }
+            if ($kind === 'quiz' && QuizService::installed()) {
+                \App\Models\Courses\Quiz::firstOrCreate(['lesson_id' => $l->id], ['offering_id' => $o->id]);
+            } elseif (QuizService::installed()) {
+                $this->dropQuiz($l);
             }
             if ($kind === 'live') {
                 $row = ['offering_id' => $o->id, 'lesson_id' => $l->id] + $live;
@@ -174,14 +182,30 @@ class Curriculum
             'join_url' => $url, 'meeting_id' => $text('meeting_id', 60), 'passcode' => $text('passcode', 60), 'replay_url' => $replay, 'capacity' => $cap];
     }
 
+    /** A quiz nobody has taken goes with its lesson (with its questions). */
+    private function dropQuiz(Lesson $l): void
+    {
+        $quiz = \App\Models\Courses\Quiz::where('lesson_id', $l->id)->first();
+        if ($quiz) {
+            \App\Models\Courses\Question::where('quiz_id', $quiz->id)->delete();
+            $quiz->delete();
+        }
+    }
+
     public function deleteLesson(Offering $o, Lesson $l): void
     {
+        if (QuizService::installed() && ($qid = \App\Models\Courses\Quiz::where('lesson_id', $l->id)->value('id')) && \App\Models\Courses\Attempt::where('quiz_id', $qid)->exists()) {
+            throw new BooksException('Students have taken this quiz: it can not be removed.');
+        }
         if ((int) $l->offering_id !== (int) $o->id) {
             throw new BooksException('That lesson belongs to another offering.');
         }
         app(CourseAttendance::class)->syncLive($o, $l, true);   // the class on the register goes with the lesson (or is cancelled if it has marks)
         DB::transaction(function () use ($l) {
             LiveSession::where('lesson_id', $l->id)->delete();
+            if (QuizService::installed()) {
+                $this->dropQuiz($l);
+            }
             $l->delete();
         });
     }

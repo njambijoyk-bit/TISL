@@ -17,6 +17,7 @@ import UserPicker from '../../components/UserPicker';
 import FeesPanel from '../../components/FeesPanel';
 import BooksPanel from '../../components/BooksPanel';
 import AttendancePanel from '../../components/AttendancePanel';
+import { MarkingPanel, QuizEditor } from '../../components/QuizPanel';
 import { OfferingForm } from './CoursesOfferings';
 
 const TONE = { published: 'ok', draft: 'warn', archived: 'neutral' };
@@ -89,7 +90,7 @@ function LessonForm({ offering, lesson, sections, files, meta, onClose, onDone }
   );
 }
 
-function LessonRow({ l, i, n, onEdit, onRemove, onMove }) {
+function LessonRow({ l, i, n, onEdit, onRemove, onMove, onQuiz }) {
   return (
     <li data-lesson={l.title} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', padding: '6px 0', borderTop: '1px solid rgba(148,163,184,0.18)', fontSize: '0.88rem' }}>
       <span style={{ flex: 1, minWidth: 180 }}>{l.kind === 'video' ? <Video size={13} aria-hidden="true" /> : l.kind === 'file' ? <FileText size={13} aria-hidden="true" /> : null} <strong>{l.title}</strong> <span style={{ color: colors.textMuted }}>{l.kind_label}</span></span>
@@ -99,6 +100,7 @@ function LessonRow({ l, i, n, onEdit, onRemove, onMove }) {
       {l.live?.join_url && <a href={l.live.join_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.78rem' }}><ExternalLink size={12} aria-hidden="true" /> Open link</a>}
       <button type="button" aria-label="Move up" style={btnGhost} disabled={i === 0} onClick={() => onMove(-1)}><ArrowUp size={13} aria-hidden="true" /></button>
       <button type="button" aria-label="Move down" style={btnGhost} disabled={i === n - 1} onClick={() => onMove(1)}><ArrowDown size={13} aria-hidden="true" /></button>
+      {l.kind === 'quiz' && <button type="button" style={btnPrimary} onClick={onQuiz}>Questions</button>}
       <button type="button" style={btnGhost} onClick={onEdit}>Edit</button>
       <button type="button" aria-label="Remove lesson" style={{ ...btnGhost, color: colors.danger }} onClick={onRemove}><Trash2 size={13} aria-hidden="true" /></button>
     </li>
@@ -114,6 +116,7 @@ export default function CourseBuilder() {
   const [tab, setTab] = useState('lessons');
   const [edit, setEdit] = useState(false);
   const [lesson, setLesson] = useState(null);
+  const [quiz, setQuiz] = useState(null);
   const [sectionTitle, setSectionTitle] = useState('');
   const [access, setAccess] = useState([]);
   const [grant, setGrant] = useState({ user: null, until: '', note: '' });
@@ -147,7 +150,7 @@ export default function CourseBuilder() {
     try { await coursesAPI.grant(o.id, { user_id: grant.user.id, until: grant.until || undefined, note: grant.note || undefined }); toast.success('Access given.'); setGrant({ user: null, until: '', note: '' }); loadAccess(); } catch (e) { toast.error(errMsg(e, 'Could not give access'), { duration: 8000 }); }
   };
 
-  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ['classes', 'Classes and attendance'], ...(meta.can_manage ? [['fees', 'Fees and payments'], ['books', 'Books']] : []), ...(meta.can_grant ? [['access', 'Access']] : [])];
+  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ['classes', 'Classes and attendance'], ['marking', 'Quiz results'], ...(meta.can_manage ? [['fees', 'Fees and payments'], ['books', 'Books']] : []), ...(meta.can_grant ? [['access', 'Access']] : [])];
 
   return (
     <AdminLayout>
@@ -178,13 +181,13 @@ export default function CourseBuilder() {
             {data.outline.sections.map((s) => (
               <section key={s.id} style={{ ...card, padding: 14 }} data-section={s.title}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong>{s.title}</strong><button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={() => window.confirm('Remove this section? Its lessons are kept.') && run(() => coursesAPI.removeSection(o.id, s.id), 'Section removed.')}>Remove section</button></div>
-                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{s.lessons.map((l, i) => <LessonRow key={l.id} l={l} i={i} n={s.lessons.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} />)}</ul>
+                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{s.lessons.map((l, i) => <LessonRow key={l.id} l={l} i={i} n={s.lessons.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} onQuiz={() => setQuiz(l)} />)}</ul>
               </section>
             ))}
             {data.outline.loose.length > 0 && (
               <section style={{ ...card, padding: 14 }}>
                 {data.outline.sections.length > 0 && <strong>Not in a section</strong>}
-                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{data.outline.loose.map((l, i) => <LessonRow key={l.id} l={l} i={i} n={data.outline.loose.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} />)}</ul>
+                <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0 }}>{data.outline.loose.map((l, i) => <LessonRow key={l.id} l={l} i={i} n={data.outline.loose.length} onEdit={() => setLesson(l)} onRemove={() => window.confirm('Remove this lesson?') && run(() => coursesAPI.removeLesson(o.id, l.id), 'Lesson removed.')} onMove={(d) => move(l, d)} onQuiz={() => setQuiz(l)} />)}</ul>
               </section>
             )}
           </div>
@@ -208,6 +211,8 @@ export default function CourseBuilder() {
         )}
 
         {tab === 'classes' && <AttendancePanel offering={o} meta={meta} />}
+
+        {tab === 'marking' && <MarkingPanel offering={o} />}
 
         {tab === 'books' && meta.can_manage && <BooksPanel offering={o} />}
 
@@ -240,6 +245,7 @@ export default function CourseBuilder() {
         )}
       </div>
       {edit && <OfferingForm meta={meta} offering={o} onClose={() => setEdit(false)} onDone={() => { setEdit(false); load(); }} />}
+      {quiz && <QuizEditor offering={o} lesson={quiz} onClose={() => setQuiz(null)} />}
       {lesson && <LessonForm offering={o} lesson={lesson.id ? lesson : null} sections={data.sections} files={data.files} meta={meta} onClose={() => setLesson(null)} onDone={() => { setLesson(null); load(); }} />}
     </AdminLayout>
   );

@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 /** One step of an offering. */
 class Lesson extends Model
 {
-    public const KINDS = ['text' => 'Reading', 'video' => 'Video', 'file' => 'File', 'recipe' => 'Recipe', 'live' => 'Live session'];
+    public const KINDS = ['text' => 'Reading', 'video' => 'Video', 'file' => 'File', 'recipe' => 'Recipe', 'live' => 'Live session', 'quiz' => 'Quiz'];
 
     protected $table = 'course_lessons';
 
