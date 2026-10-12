@@ -20,7 +20,7 @@ Written at the end of a session. Read this first, then `docs/MENUS_PLAN.md` (sta
 
 0. **Steps 11 to 17 are tested and mutation-checked** (`MenusRotaTest`, `MenusRotaMoreTest`, `MenusRotaPayTest`, `MenusPlansTest`; the cooking test also covers the private chef message). The owner still must run SQL scripts 143 to 150 in order (149 and 150 again in full if they failed before) and set up the new Menus settings (rota, clock places, premiums, plans).
 1. (Meal plans are done: step 17.) Cooking classes and anything taught go to the **Courses** module by the owner's decision.
-2. **Courses** (plan in `docs/COURSES_PLAN.md`, written, nothing built yet; owner chose it before cooking services). Includes the Courses hook: The chef profile already has an "teaches" switch (`is_instructor`) waiting for it.
+2. **Courses** (plan in `docs/COURSES_PLAN.md`; step 1 built, untested by the owner's choice: build all steps, then test and mutation-check together; owner chose it before cooking services). Includes the Courses hook: The chef profile already has an "teaches" switch (`is_instructor`) waiting for it.
 3. Backlog from the "not built yet" lists (confirm priority with the owner before starting any):
    - Till: discounts, cash drawer and shift close, offline till (the owner wants this later), refunds from the till.
    - Kiosk: "now serving" display, kiosk-only prices, card payment at the screen.

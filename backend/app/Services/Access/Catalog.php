@@ -115,6 +115,10 @@ class Catalog
         'campaigns.publish' => ['campaigns', 'Campaigns', 'Publish, pause and archive campaigns', true],
         'menus.view'        => ['menus', 'Menus', 'See recipes and production', false],
         'menus.manage'      => ['menus', 'Menus', 'Make recipes and record production', true],
+        'courses.view'      => ['courses', 'Courses', 'See the courses, recipes, notes and live classes', false],
+        'courses.manage'    => ['courses', 'Courses', 'Make and change courses, recipes, notes and live classes, and set them up', true],
+        'courses.teach'     => ['courses', 'Courses', 'Change the courses one teaches', false],
+        'courses.grant'     => ['courses', 'Courses', 'Give people access to a course, or end it', true],
         // added in R2: one for each thing the route role lists used to guard
         'system.restore'    => [null, 'System', 'Restore the database from a backup', true],
         'system.logs'       => [null, 'System', 'Export the activity logs', false],

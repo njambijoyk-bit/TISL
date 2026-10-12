@@ -255,6 +255,7 @@ Route::prefix('checkout')->group(function () {
 });
 
 // Menus — the menu a customer reads (open to everyone)
+Route::get('/courses/files/{file}/download', [\App\Http\Controllers\Api\CoursesFileController::class, 'download'])->middleware(['module:courses', 'signed', 'throttle:60,1'])->whereNumber('file')->name('courses.download');
 Route::get('/menu', [\App\Http\Controllers\Api\MenusPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
 Route::get('/menu-chefs', [\App\Http\Controllers\Api\MenusChefPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
 Route::prefix('kiosk/{token}')->middleware(['module:menus', 'throttle:240,1'])->where(['token' => '[A-Za-z0-9]{32}'])->group(function () {   // a self-order screen: no sign-in, the secret in the address is the key
@@ -680,6 +681,34 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/complete', [$c, 'complete'])->whereNumber('id');
             Route::post('/{id}/invoice', [$c, 'invoice'])->whereNumber('id');
             Route::post('/{id}/cancel', [$c, 'cancel'])->whereNumber('id');
+        });
+    });
+
+    // COURSES — offerings, lessons, files and access. Reading needs courses.view (or teach); changing is checked per offering in the controller (managers: any; teachers: their own); access needs courses.grant
+    Route::middleware(['module:courses', 'permission:courses.view,courses.manage,courses.teach'])->prefix('admin/courses')->group(function () {
+        $c = \App\Http\Controllers\Admin\CoursesController::class;
+        Route::get('/meta', [$c, 'meta']);
+        Route::get('/offerings', [$c, 'index']);
+        Route::get('/offerings/{id}', [$c, 'show'])->whereNumber('id');
+        Route::post('/offerings', [$c, 'create']);
+        Route::put('/offerings/{id}', [$c, 'update'])->whereNumber('id');
+        Route::post('/offerings/{id}/{to}', [$c, 'status'])->whereNumber('id')->where('to', 'publish|unpublish|archive|restore');
+        Route::delete('/offerings/{id}', [$c, 'destroy'])->whereNumber('id');
+        Route::post('/offerings/{id}/sections', [$c, 'saveSection'])->whereNumber('id');
+        Route::put('/offerings/{id}/sections/{section}', [$c, 'saveSection'])->whereNumber(['id', 'section']);
+        Route::delete('/offerings/{id}/sections/{section}', [$c, 'deleteSection'])->whereNumber(['id', 'section']);
+        Route::post('/offerings/{id}/lessons', [$c, 'saveLesson'])->whereNumber('id');
+        Route::put('/offerings/{id}/lessons/{lesson}', [$c, 'saveLesson'])->whereNumber(['id', 'lesson']);
+        Route::delete('/offerings/{id}/lessons/{lesson}', [$c, 'deleteLesson'])->whereNumber(['id', 'lesson']);
+        Route::put('/offerings/{id}/order', [$c, 'reorder'])->whereNumber('id');
+        Route::post('/offerings/{id}/files', [$c, 'uploadFile'])->whereNumber('id')->middleware('throttle:60,1');
+        Route::delete('/offerings/{id}/files/{file}', [$c, 'deleteFile'])->whereNumber(['id', 'file']);
+        Route::get('/people', [$c, 'candidates'])->middleware('permission:courses.grant,courses.manage');
+        Route::put('/settings', [$c, 'saveSettings'])->middleware('permission:courses.manage');
+        Route::middleware('permission:courses.grant')->group(function () use ($c) {
+            Route::get('/offerings/{id}/access', [$c, 'accessList'])->whereNumber('id');
+            Route::post('/offerings/{id}/access', [$c, 'grant'])->whereNumber('id');
+            Route::delete('/offerings/{id}/access/{access}', [$c, 'revoke'])->whereNumber(['id', 'access']);
         });
     });
 

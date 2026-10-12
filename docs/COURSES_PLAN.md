@@ -1,6 +1,6 @@
 # Courses module (teach, and sell what you teach) — plan
 
-Status: **planned, nothing built yet.** Revised 12 Oct 2026 (second revision, after the owner's corrections). Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
+Status: **step 1 (foundation) is built, NOT yet tested** (the owner asked for all steps to be built first and tested together later; a throwaway smoke run of the services passed). Built: script `152_courses.sql`; permissions `courses.view`, `courses.manage`, `courses.teach`, `courses.grant` in the access catalogue (no roles are defined by the module); offerings (course, recipe, notes and files, live class) with sections and lessons (reading, video link, file, recipe, live session with a Zoom/Meet/Teams link); private files with expiring signed downloads and a download log; the access service (`CourseAccess`: grant, revoke, can, canLesson, canFile, offeringsFor) with staff-granted access; settings; the admin pages under Admin → Courses (Offerings, the builder with Lessons, Files and Access tabs, Settings). Next: step 2 (fees and enrolment through the ledger). Revised 12 Oct 2026 (second revision, after the owner's corrections). Decisions marked ✔ are the owner's; the rest are recommendations waiting for a yes.
 
 ## 1. What the owner asked for (✔)
 

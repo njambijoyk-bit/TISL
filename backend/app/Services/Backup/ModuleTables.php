@@ -140,7 +140,7 @@ final class ModuleTables
         'listings'       => [/* built later */],
         'campaigns'      => ['campaigns', 'campaign_sections', 'campaign_items', 'campaign_events',
             'campaign_pins', 'campaign_boards', 'campaign_board_pins', 'campaign_moodboards', 'campaign_board_follows', 'campaign_access_log', 'campaign_settings', 'campaign_pin_uploads', 'preorder_offers', 'preorder_lines', 'preorder_offer_supply'],
-        'courses'        => [/* built later */],
+        'courses'        => ['course_offerings', 'course_sections', 'course_lessons', 'course_files', 'course_live', 'course_access', 'course_downloads', 'course_settings'],
         'accommodations' => [/* built later */],
         'menus'          => ['recipes', 'recipe_items', 'productions', 'production_lines', 'menus_ingredient_families', 'menus_ingredient_variants', 'recipe_steps', 'menus_dishes', 'menus_settings', 'menus_menus', 'menus_sections', 'menus_section_dishes', 'menus_option_groups', 'menus_options', 'menus_option_uses', 'menus_channels', 'menus_orders', 'menus_order_lines', 'menus_stations', 'menus_tickets', 'menus_areas', 'menus_tables', 'menus_kiosks', 'menus_chefs', 'menus_chef_certs', 'menus_waste', 'menus_requests', 'menus_request_lines', 'menus_shifts', 'menus_days_off', 'menus_rota_patterns', 'menus_swaps', 'menus_open_shifts', 'menus_open_claims', 'menus_premiums', 'menus_holidays', 'menus_overtime', 'menus_clock_sites', 'menus_clock_events', 'menus_plans', 'menus_plan_days', 'menus_subscriptions', 'menus_sub_periods', 'menus_sub_deliveries'],
         'events'         => ['events', 'event_sessions', 'event_ticket_types', 'event_ticket_type_sessions', 'event_tickets', 'event_checkins', 'event_refund_requests', 'event_settings', 'event_reminders'],

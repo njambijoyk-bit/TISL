@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
-  Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck,
+  Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck, LibraryBig,
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
@@ -244,6 +244,21 @@ export const ADMIN_NAV = [
       { id: 'ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e', path: '/admin/menus/ingredients', perm: 'menus.view', keywords: 'ingredient flour oil substitutes allergens stock items' },
       {
         id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', perm: 'menus.view', keywords: 'recipe ingredients manufacture production made to order dish',
+      },
+    ],
+  },
+
+  {
+    id: 'courses',
+    label: 'Courses',
+    module: MODULES.COURSES,
+    items: [
+      {
+        id: 'offerings', title: 'Courses', icon: GraduationCap, color: '#6366f1', path: '/admin/courses', perm: 'courses.view', keywords: 'course recipe notes files live class zoom teach lesson',
+        tabs: [
+          { title: 'Offerings', path: '/admin/courses', icon: LibraryBig, color: '#6366f1' },
+          { title: 'Settings', path: '/admin/courses/settings', icon: Settings2, color: '#64748b' },
+        ],
       },
     ],
   },
