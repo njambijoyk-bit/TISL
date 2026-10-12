@@ -99,7 +99,8 @@ class Learning
             $last = Progress::where('user_id', $u->id)->where('offering_id', $o->id)->orderByDesc('updated_at')->first();
             $items[] = ['offering_id' => $o->id, 'slug' => $o->slug, 'title' => $o->title, 'kind' => $o->kind, 'kind_label' => Offering::KINDS[$o->kind] ?? $o->kind, 'cover' => $o->cover, 'state' => $active ? 'active' : 'ended',
                 'ends_at' => $best->ends_at?->toIso8601String(), 'days_left' => $active && $best->ends_at ? max(0, (int) ceil(now()->diffInDays($best->ends_at, false))) : null, 'progress' => $p, 'attendance' => CourseAttendance::installed() && $o->min_attendance_pct ? app(CourseAttendance::class)->standing($u->id, $o) : null, 'last_lesson_id' => $last?->lesson_id,
-                'next_live' => $next ? $this->links->publicView($next) : null];
+                'next_live' => $next ? $this->links->publicView($next) : null,
+                'certificate' => $o->certificate && CertificateService::installed() && ($cert = app(CertificateService::class)->current($u->id, $o->id)) ? app(CertificateService::class)->row($cert) : null];
         }
         usort($items, fn ($a, $b) => [$a['state'] === 'active' ? 0 : 1, $a['title']] <=> [$b['state'] === 'active' ? 0 : 1, $b['title']]);
         $hold = ! Schema::hasTable('course_enrolments') ? [] : Enrolment::where('student_user_id', $u->id)->where('access_paused', true)->where('status', 'active')->get()->map(fn (Enrolment $e) => ['enrolment' => $e->number, 'offering' => Offering::whereKey($e->offering_id)->value('title'),
@@ -152,6 +153,7 @@ class Learning
         $last = collect($prog)->sortByDesc(fn ($p) => $p->updated_at?->timestamp ?? 0)->first();
 
         return ['offering' => ['id' => $o->id, 'slug' => $o->slug, 'title' => $o->title, 'kind' => $o->kind, 'summary' => $o->summary, 'body' => $o->body, 'in_order' => (bool) ($o->in_order ?? false), 'certificate' => (bool) $o->certificate],
+            'certificate' => $o->certificate && CertificateService::installed() && ($cert = app(CertificateService::class)->current($u->id, $o->id)) ? app(CertificateService::class)->row($cert) : null,
             'access' => ['staff_preview' => $staff && ! $grant, 'ends_at' => $grant?->ends_at?->toIso8601String(), 'days_left' => $grant?->ends_at ? max(0, (int) ceil(now()->diffInDays($grant->ends_at, false))) : null],
             'attendance' => CourseAttendance::installed() && ClassSession::where('offering_id', $o->id)->exists() ? app(CourseAttendance::class)->mine($u, $o) : null,
             'progress' => $this->percent($u->id, $o), 'sections' => $sections, 'loose' => $loose, 'resume_lesson_id' => $last && collect($sections)->pluck('lessons')->flatten(1)->merge($loose)->contains(fn ($r) => $r['id'] === $last->lesson_id && ! $r['locked'] && $r['status'] !== 'done') ? $last->lesson_id : $resume];
@@ -255,6 +257,7 @@ class Learning
             return false;
         }
         $e->update(['status' => 'completed']);
+        app(CertificateService::class)->issueFor($e->fresh());
 
         return true;
     }

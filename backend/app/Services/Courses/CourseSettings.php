@@ -19,6 +19,8 @@ final class CourseSettings
         'checkin_late_minutes' => 10,    // ...and are marked late after this many minutes
         'pending_hours' => 48,           // an enrolment nobody has paid for lets the place go after this many hours (0 = never)
         'reminder_days' => 3,            // a payment is reminded this many days before it is due
+        'cert_signatory' => '',          // the name printed under a certificate
+        'cert_signatory_title' => '',    // ...and their title
         'max_discount_pct' => 100,       // the most a member of staff may take off an enrolment
     ];
 
@@ -64,6 +66,11 @@ final class CourseSettings
                     throw new BooksException('Access lasts between 1 and 3650 days.');
                 }
                 $cur['default_access_days'] = (int) $v;
+            }
+        }
+        foreach (['cert_signatory' => 80, 'cert_signatory_title' => 80] as $key => $max) {
+            if (array_key_exists($key, $in)) {
+                $cur[$key] = mb_substr(trim((string) $in[$key]), 0, $max);
             }
         }
         $json = json_encode($cur);

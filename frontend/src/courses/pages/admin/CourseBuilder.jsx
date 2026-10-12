@@ -18,6 +18,7 @@ import FeesPanel from '../../components/FeesPanel';
 import BooksPanel from '../../components/BooksPanel';
 import AttendancePanel from '../../components/AttendancePanel';
 import { MarkingPanel, QuizEditor } from '../../components/QuizPanel';
+import CertificatesPanel from '../../components/CertificatesPanel';
 import { OfferingForm } from './CoursesOfferings';
 
 const TONE = { published: 'ok', draft: 'warn', archived: 'neutral' };
@@ -150,7 +151,7 @@ export default function CourseBuilder() {
     try { await coursesAPI.grant(o.id, { user_id: grant.user.id, until: grant.until || undefined, note: grant.note || undefined }); toast.success('Access given.'); setGrant({ user: null, until: '', note: '' }); loadAccess(); } catch (e) { toast.error(errMsg(e, 'Could not give access'), { duration: 8000 }); }
   };
 
-  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ['classes', 'Classes and attendance'], ['marking', 'Quiz results'], ...(meta.can_manage ? [['fees', 'Fees and payments'], ['books', 'Books']] : []), ...(meta.can_grant ? [['access', 'Access']] : [])];
+  const tabs = [['lessons', 'Lessons'], ['files', `Files (${data.files.length})`], ['classes', 'Classes and attendance'], ['marking', 'Quiz results'], ...(o.certificate ? [['certificates', 'Certificates']] : []), ...(meta.can_manage ? [['fees', 'Fees and payments'], ['books', 'Books']] : []), ...(meta.can_grant ? [['access', 'Access']] : [])];
 
   return (
     <AdminLayout>
@@ -213,6 +214,7 @@ export default function CourseBuilder() {
         {tab === 'classes' && <AttendancePanel offering={o} meta={meta} />}
 
         {tab === 'marking' && <MarkingPanel offering={o} />}
+        {tab === 'certificates' && o.certificate && <CertificatesPanel offering={o} />}
 
         {tab === 'books' && meta.can_manage && <BooksPanel offering={o} />}
 

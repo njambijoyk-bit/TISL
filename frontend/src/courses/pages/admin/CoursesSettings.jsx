@@ -20,7 +20,7 @@ export default function CoursesSettings() {
   const save = async () => {
     setBusy(true);
     try {
-      const r = await coursesAPI.saveSettings({ live_open_minutes: Number(s.live_open_minutes), live_grace_minutes: Number(s.live_grace_minutes), download_minutes: Number(s.download_minutes), max_file_mb: Number(s.max_file_mb), default_access_days: s.default_access_days === '' || s.default_access_days == null ? null : Number(s.default_access_days) });
+      const r = await coursesAPI.saveSettings({ live_open_minutes: Number(s.live_open_minutes), live_grace_minutes: Number(s.live_grace_minutes), download_minutes: Number(s.download_minutes), max_file_mb: Number(s.max_file_mb), default_access_days: s.default_access_days === '' || s.default_access_days == null ? null : Number(s.default_access_days), cert_signatory: s.cert_signatory ?? '', cert_signatory_title: s.cert_signatory_title ?? '' });
       setS(r.settings); toast.success('Saved.');
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -38,6 +38,8 @@ export default function CoursesSettings() {
               <Field label="A download link works for (minutes)" htmlFor="cs-dl"><TextInput id="cs-dl" inputMode="numeric" value={s.download_minutes} onChange={set('download_minutes')} /></Field>
               <Field label="Largest file (MB)" htmlFor="cs-mb"><TextInput id="cs-mb" inputMode="numeric" value={s.max_file_mb} onChange={set('max_file_mb')} /></Field>
               <Field label="Access lasts (days) when an offering does not say" htmlFor="cs-days" hint="Empty: for ever."><TextInput id="cs-days" inputMode="numeric" value={s.default_access_days ?? ''} onChange={set('default_access_days')} /></Field>
+              <Field label="Name printed under a certificate" htmlFor="cs-sign"><TextInput id="cs-sign" maxLength={80} value={s.cert_signatory ?? ''} onChange={set('cert_signatory')} /></Field>
+              <Field label="Their title" htmlFor="cs-signt"><TextInput id="cs-signt" maxLength={80} value={s.cert_signatory_title ?? ''} onChange={set('cert_signatory_title')} /></Field>
               <div><button type="button" style={btnPrimary} onClick={save} disabled={busy}>Save</button></div>
             </FormStack>
           </section>

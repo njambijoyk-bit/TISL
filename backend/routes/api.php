@@ -258,6 +258,7 @@ Route::prefix('checkout')->group(function () {
 Route::prefix('learn')->middleware(['module:courses', 'throttle:120,1'])->group(function () {   // the catalogue: no sign-in to look
     $c = \App\Http\Controllers\Api\CoursesPublicController::class;
     $b = \App\Http\Controllers\Api\CoursesBooksController::class;
+    Route::get('/verify/{code}', [\App\Http\Controllers\Api\CoursesCertificateController::class, 'verify'])->middleware('throttle:30,1')->where('code', '[A-Za-z0-9.\-]+');
     Route::get('/books', [$b, 'index']);
     Route::get('/books/{slug}', [$b, 'show'])->where('slug', '[a-z0-9\-]+');
     Route::get('/books/{id}/sample', [$b, 'sample'])->whereNumber('id');
@@ -277,6 +278,9 @@ Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(
     $at = \App\Http\Controllers\Api\CoursesAttendanceController::class;
     Route::post('/my/sessions/{session}/checkin', [$at, 'checkin'])->middleware('throttle:20,1')->whereNumber('session');
     Route::post('/my/sessions/{session}/excuse', [$at, 'excuse'])->middleware('throttle:20,1')->whereNumber('session');
+    $cf = \App\Http\Controllers\Api\CoursesCertificateController::class;
+    Route::get('/my/certificates', [$cf, 'mine'])->middleware('throttle:120,1');
+    Route::get('/certificates/{cert}/pdf', [$cf, 'pdf'])->middleware('throttle:30,1')->whereNumber('cert');
     $qz = \App\Http\Controllers\Api\CoursesQuizController::class;
     Route::post('/my/quizzes/{lesson}/start', [$qz, 'start'])->middleware('throttle:30,1')->whereNumber('lesson');
     Route::get('/my/attempts/{attempt}', [$qz, 'show'])->middleware('throttle:120,1')->whereNumber('attempt');
@@ -790,6 +794,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/offerings/{id}/sessions/{session}/roll', [$ac, 'roll'])->whereNumber(['id', 'session']);
         Route::post('/offerings/{id}/sessions/{session}/marks', [$ac, 'mark'])->whereNumber(['id', 'session'])->middleware('throttle:120,1');
         Route::post('/offerings/{id}/excuses/{entry}', [$ac, 'decideExcuse'])->whereNumber(['id', 'entry']);
+        $cc = \App\Http\Controllers\Admin\CoursesCertificateController::class;
+        Route::get('/offerings/{id}/certificates', [$cc, 'index'])->whereNumber('id');
+        Route::post('/offerings/{id}/certificates', [$cc, 'issue'])->whereNumber('id');
+        Route::post('/offerings/{id}/certificates/issue-missing', [$cc, 'issueMissing'])->whereNumber('id');
+        Route::post('/offerings/{id}/certificates/{cert}/revoke', [$cc, 'revoke'])->whereNumber(['id', 'cert']);
+        Route::post('/offerings/{id}/certificates/{cert}/renew', [$cc, 'renew'])->whereNumber(['id', 'cert']);
         $qc = \App\Http\Controllers\Admin\CoursesQuizController::class;
         Route::get('/offerings/{id}/quizzes/{lesson}', [$qc, 'show'])->whereNumber(['id', 'lesson']);
         Route::put('/offerings/{id}/quizzes/{lesson}', [$qc, 'settings'])->whereNumber(['id', 'lesson']);

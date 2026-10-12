@@ -80,6 +80,16 @@ class OfferingEditor
                 $row[$k] = $v === '' ? null : mb_substr($v, 0, $max);
             }
         }
+        if (\Illuminate\Support\Facades\Schema::hasColumn('course_offerings', 'cert_valid_months') && array_key_exists('cert_valid_months', $d)) {
+            $m = $d['cert_valid_months'];
+            if ($m === null || $m === '') {
+                $row['cert_valid_months'] = null;
+            } elseif ((int) $m < 1 || (int) $m > 600) {
+                throw new BooksException('A certificate stays valid for 1 to 600 months (or for ever).');
+            } else {
+                $row['cert_valid_months'] = (int) $m;
+            }
+        }
         foreach (['free_preview', 'certificate', 'in_order'] as $k) {
             if ($k === 'in_order' && ! \Illuminate\Support\Facades\Schema::hasColumn('course_offerings', 'in_order')) {
                 continue;
@@ -138,7 +148,7 @@ class OfferingEditor
     {
         $base = Str::slug($title) ?: 'offering';
         $slug = $base;
-        for ($i = 2; in_array($slug, ['my', 'books'], true) || Offering::where('slug', $slug)->exists(); $i++) {   // 'my' is the student's own page
+        for ($i = 2; in_array($slug, ['my', 'books', 'verify'], true) || Offering::where('slug', $slug)->exists(); $i++) {   // 'my' is the student's own page
             $slug = "{$base}-{$i}";
         }
 

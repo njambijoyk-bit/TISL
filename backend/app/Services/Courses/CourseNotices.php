@@ -105,6 +105,21 @@ class CourseNotices
         $this->tell((int) $a->user_id, 'course_quiz_marked', "Your quiz in {$o->title} is marked", $a->passed ? 'You passed. Well done!' : 'You did not reach the pass mark this time.'.' Open the course to see your result.', '/learn/my/'.$o->slug);
     }
 
+    public function certificateIssued(\App\Models\Courses\Certificate $c, Offering $o): void
+    {
+        $this->tell((int) $c->user_id, 'course_certificate', "Your certificate for {$o->title}", 'Congratulations! Certificate '.$c->number.' is ready: open it from My courses to download it.', '/learn/my');
+    }
+
+    public function certificateRevoked(\App\Models\Courses\Certificate $c, Offering $o): void
+    {
+        $this->tell((int) $c->user_id, 'course_certificate_revoked', "Your certificate for {$o->title} was withdrawn", 'Certificate '.$c->number.' is no longer valid. '.($c->revoked_reason ?: ''), '/learn/my');
+    }
+
+    public function certificateExpiring(\App\Models\Courses\Certificate $c, Offering $o): void
+    {
+        $this->tell((int) $c->user_id, 'course_certificate_expiring', "Your certificate for {$o->title} expires soon", 'Certificate '.$c->number.' is valid until '.$c->expires_at->format('j M Y').'. Contact us to renew it.', '/learn/my');
+    }
+
     private function staffTell(string $type, string $title, string $message): void
     {
         $this->safely(function () use ($type, $title, $message) {

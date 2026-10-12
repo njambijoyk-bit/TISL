@@ -167,6 +167,7 @@ const LearnLibraryPage  = lazy(() => import('./courses/pages/public/LearnLibrary
 const LearnPlayerPage   = lazy(() => import('./courses/pages/public/LearnPlayerPage'));
 const LearnBooksPage    = lazy(() => import('./courses/pages/public/LearnBooksPage'));
 const LearnBookPage     = lazy(() => import('./courses/pages/public/LearnBookPage'));
+const LearnVerifyPage   = lazy(() => import('./courses/pages/public/LearnVerifyPage'));
 const CoursesBooks      = lazy(() => import('./courses/pages/admin/CoursesBooks'));
 const LearnOfferingPage = lazy(() => import('./courses/pages/public/LearnOfferingPage'));
 const CoursesEnrolments = lazy(() => import('./courses/pages/admin/CoursesEnrolments'));
@@ -516,6 +517,8 @@ function App() {
             <Route path="/learn" element={<ModuleRoute module="courses"><LearnPage /></ModuleRoute>} />
             <Route path="/learn/books" element={<ModuleRoute module="courses"><LearnBooksPage /></ModuleRoute>} />
             <Route path="/learn/books/:slug" element={<ModuleRoute module="courses"><LearnBookPage /></ModuleRoute>} />
+            <Route path="/learn/verify" element={<ModuleRoute module="courses"><LearnVerifyPage /></ModuleRoute>} />
+            <Route path="/learn/verify/:code" element={<ModuleRoute module="courses"><LearnVerifyPage /></ModuleRoute>} />
             <Route path="/learn/my" element={<ModuleRoute module="courses"><LearnLibraryPage /></ModuleRoute>} />
             <Route path="/learn/my/:slug" element={<ModuleRoute module="courses"><LearnPlayerPage /></ModuleRoute>} />
             <Route path="/learn/:slug" element={<ModuleRoute module="courses"><LearnOfferingPage /></ModuleRoute>} />
