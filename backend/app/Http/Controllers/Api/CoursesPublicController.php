@@ -116,7 +116,7 @@ class CoursesPublicController extends Controller
         return response()->json(['offering' => $this->card($o, [$o->id => $feeRows->all()], [$o->id => $minutes], [$o->id => $next ? \Illuminate\Support\Carbon::parse($next)->toIso8601String() : null]) + [
             'body' => $o->body, 'free_preview' => $o->free_preview, 'access_days' => $o->access_days, 'certificate' => $o->certificate, 'min_attendance_pct' => $o->min_attendance_pct, 'capacity_left' => $left,
             'plan' => ['deposit_pct' => $o->deposit_pct !== null ? (float) $o->deposit_pct : null, 'instalments' => $o->instalments, 'instalment_days' => $o->instalment_days ?? 30, 'grant_on' => $o->grant_on ?? 'paid', 'refund_days' => $o->refund_days],
-            'teacher_profile' => $this->teacher($o)], 'fees' => $feeRows, 'outline' => $outline,
+            'teacher_profile' => $this->teacher($o)], 'fees' => $feeRows, 'outline' => $outline, 'books' => app(\App\Services\Courses\BookLibrary::class)->forOffering($o->id),
             'me' => ['signed_in' => (bool) $user, 'has_access' => $has, 'enrolment' => $enrolment ? $this->enrolments->row($enrolment, false) : null,
                 'can_enrol' => EnrolmentService::installed() && ! $enrolment && ($left === null || $left > 0)]]);
     }

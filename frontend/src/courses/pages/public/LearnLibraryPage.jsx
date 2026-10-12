@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { BookOpen, CalendarClock } from 'lucide-react';
+import { BookMarked, BookOpen, CalendarClock, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { errMsg } from '../../../_shared/store/helpers/apiState';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import coursesPublicAPI from '../../../_shared/api/coursesPublic';
@@ -13,7 +15,11 @@ export default function LearnLibraryPage() {
   const user = useAuthStore((s) => s.user);
   const [d, setD] = useState(null);
   const [failed, setFailed] = useState(false);
-  useEffect(() => { if (user) coursesPublicAPI.library().then(setD).catch(() => setFailed(true)); }, [user]);
+  const [books, setBooks] = useState([]);
+  useEffect(() => { if (user) { coursesPublicAPI.library().then(setD).catch(() => setFailed(true)); coursesPublicAPI.myBooks().then((r) => setBooks(r.orders)).catch(() => setBooks([])); } }, [user]);
+  const download = async (o) => {
+    try { const r = await coursesPublicAPI.bookLink(o.id); window.location.assign(r.url); setTimeout(() => coursesPublicAPI.myBooks().then((x) => setBooks(x.orders)).catch(() => {}), 2500); } catch (e) { toast.error(errMsg(e, 'Could not start the download.'), { duration: 8000 }); }
+  };
 
   return (
     <div className="min-h-screen">
@@ -45,6 +51,17 @@ export default function LearnLibraryPage() {
             <div>{i.state === 'active' ? <Link to={`/learn/my/${i.slug}`} style={{ ...primaryBtn, display: 'inline-block', textDecoration: 'none' }}>{i.progress.done > 0 ? 'Continue' : 'Start'}</Link> : <Link to={`/learn/${i.slug}`} style={{ fontWeight: 800 }}>Enrol again</Link>}</div>
           </article>
         ))}
+        {books.length > 0 && (
+          <section style={{ display: 'grid', gap: 10 }} aria-label="My books">
+            <h2 style={{ margin: '12px 0 0', fontSize: '1.2rem', fontWeight: 800 }}><BookMarked size={18} aria-hidden="true" /> My books</h2>
+            {books.map((o) => (
+              <article key={o.id} data-book-order={o.number} style={{ ...card, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: 200 }}><strong>{o.book}</strong>{o.quantity > 1 ? ` × ${o.quantity}` : ''}<div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{o.number} · {o.status_label} · {o.fulfil_label}</div></div>
+                {o.can_download && <button type="button" onClick={() => download(o)} style={primaryBtn}><Download size={14} aria-hidden="true" /> Download{o.download_limit ? ` (${Math.max(0, o.download_limit - o.downloads)} left)` : ''}</button>}
+              </article>
+            ))}
+          </section>
+        )}
       </main>
       <Footer />
     </div>

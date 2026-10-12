@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
-  Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck, LibraryBig,
+  Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck, LibraryBig, BookMarked,
   GitBranch, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
@@ -258,6 +258,7 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'Offerings', path: '/admin/courses', icon: LibraryBig, color: '#6366f1' },
           { title: 'Enrolments', path: '/admin/courses/enrolments', icon: Users, color: '#0ea5e9' },
+          { title: 'Books', path: '/admin/courses/books', icon: BookMarked, color: '#e11d48' },
           { title: 'Settings', path: '/admin/courses/settings', icon: Settings2, color: '#64748b' },
         ],
       },

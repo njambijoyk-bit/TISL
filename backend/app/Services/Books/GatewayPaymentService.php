@@ -284,6 +284,19 @@ class GatewayPaymentService
         }
     }
 
+    /** A payment against the invoice of a book order. A problem there must never undo a payment that has been received. */
+    private function bookPaid(Voucher $invoice, float $amount): void
+    {
+        if (empty($invoice->meta['course_book_order_id'])) {
+            return;
+        }
+        try {
+            app(\App\Services\Courses\BookSales::class)->paid($invoice, $amount);
+        } catch (\Throwable $e) {
+            Log::error('Gateway: the book order could not be marked paid', ['invoice' => $invoice->id, 'error' => $e->getMessage()]);
+        }
+    }
+
     /** A payment against a course enrolment's invoice. A problem there must never undo a payment that has been received. */
     private function coursePaid(Voucher $invoice, float $amount): void
     {
@@ -331,6 +344,7 @@ class GatewayPaymentService
             app(\App\Services\Notify\OrderNotices::class)->invoicePaid($voucher, $receipt);
             $this->cookingPaid($voucher, (float) $attempt->amount);   // a cake or catering job: its deposit or balance is in
             $this->coursePaid($voucher, (float) $attempt->amount);   // a course enrolment: a payment against its invoice is in
+            $this->bookPaid($voucher, (float) $attempt->amount);   // a book from the Courses library: its payment is in
 
             return;
         }

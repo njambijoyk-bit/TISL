@@ -11,6 +11,13 @@ export const coursesPublicAPI = {
   player: async (slug) => (await api.get(`/courses/my/offerings/${slug}`)).data,
   progress: async (lessonId, payload) => (await api.post(`/courses/my/lessons/${lessonId}/progress`, payload)).data,
   ics: async (liveId) => (await api.get(`/courses/my/live/${liveId}/ics`, { responseType: 'blob' })).data,
+  books: async (params) => (await api.get('/learn/books', { params })).data,
+  book: async (slug) => (await api.get(`/learn/books/${slug}`)).data,
+  bookQuote: async (id, quantity) => (await api.post(`/courses/books/${id}/quote`, { quantity })).data,
+  buyBook: async (id, payload) => (await api.post(`/courses/books/${id}/buy`, payload)).data,
+  myBooks: async () => (await api.get('/courses/my/books')).data,
+  payBook: async (id, payload) => (await api.post(`/courses/book-orders/${id}/pay`, payload)).data,
+  bookLink: async (id) => (await api.get(`/courses/book-orders/${id}/link`)).data,
   pay: async (id, payload) => (await api.post(`/courses/enrolments/${id}/pay`, payload)).data,
 };
 

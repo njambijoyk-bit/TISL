@@ -526,6 +526,7 @@ class EnrolmentService
                 report($x);
             }
         }
+        $released += app(BookSales::class)->sweep($now);   // unpaid book orders let go too
         $days = (int) CourseSettings::all()['reminder_days'];
         foreach (Enrolment::whereIn('status', ['pending', 'active'])->get() as $e) {
             $o = Offering::find($e->offering_id);

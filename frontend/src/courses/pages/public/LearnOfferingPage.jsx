@@ -199,6 +199,14 @@ export default function LearnOfferingPage() {
                   {data.outline.loose.length > 0 && <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>{data.outline.loose.map((l) => <Lesson key={l.id} l={l} />)}</ul>}
                 </section>
               )}
+              {data.books?.length > 0 && (
+                <section style={card} aria-label="Books">
+                  <h2 style={{ margin: '0 0 6px', fontSize: '1.1rem' }}>Books for this</h2>
+                  <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
+                    {data.books.map((b) => <li key={b.id}><Link to={`/learn/books/${b.slug}`} style={{ fontWeight: 700 }}>{b.title}</Link> <span style={chip}>{b.relation === 'required' ? 'Required' : 'Recommended'}</span> <span style={{ fontSize: '0.84rem' }}>{money(b.price)} before tax</span></li>)}
+                  </ul>
+                </section>
+              )}
               {t && (
                 <section style={{ ...card, display: 'flex', gap: 14, alignItems: 'center' }}>
                   {t.photo && <img src={t.photo} alt="" style={{ width: 64, height: 64, borderRadius: 999, objectFit: 'cover' }} />}

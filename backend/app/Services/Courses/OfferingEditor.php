@@ -138,7 +138,7 @@ class OfferingEditor
     {
         $base = Str::slug($title) ?: 'offering';
         $slug = $base;
-        for ($i = 2; in_array($slug, ['my'], true) || Offering::where('slug', $slug)->exists(); $i++) {   // 'my' is the student's own page
+        for ($i = 2; in_array($slug, ['my', 'books'], true) || Offering::where('slug', $slug)->exists(); $i++) {   // 'my' is the student's own page
             $slug = "{$base}-{$i}";
         }
 

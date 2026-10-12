@@ -165,6 +165,9 @@ const CoursesSettings   = lazy(() => import('./courses/pages/admin/CoursesSettin
 const LearnPage         = lazy(() => import('./courses/pages/public/LearnPage'));
 const LearnLibraryPage  = lazy(() => import('./courses/pages/public/LearnLibraryPage'));
 const LearnPlayerPage   = lazy(() => import('./courses/pages/public/LearnPlayerPage'));
+const LearnBooksPage    = lazy(() => import('./courses/pages/public/LearnBooksPage'));
+const LearnBookPage     = lazy(() => import('./courses/pages/public/LearnBookPage'));
+const CoursesBooks      = lazy(() => import('./courses/pages/admin/CoursesBooks'));
 const LearnOfferingPage = lazy(() => import('./courses/pages/public/LearnOfferingPage'));
 const CoursesEnrolments = lazy(() => import('./courses/pages/admin/CoursesEnrolments'));
 const ChefsPublicPage    = lazy(() => import('./menus/pages/public/ChefsPage'));
@@ -511,6 +514,8 @@ function App() {
             <Route path="/tickets/:code" element={<ModuleRoute module="events"><TicketPage /></ModuleRoute>} />
             <Route path="/my-events" element={<ProtectedRoute><ModuleRoute module="events"><MyEventTickets /></ModuleRoute></ProtectedRoute>} />
             <Route path="/learn" element={<ModuleRoute module="courses"><LearnPage /></ModuleRoute>} />
+            <Route path="/learn/books" element={<ModuleRoute module="courses"><LearnBooksPage /></ModuleRoute>} />
+            <Route path="/learn/books/:slug" element={<ModuleRoute module="courses"><LearnBookPage /></ModuleRoute>} />
             <Route path="/learn/my" element={<ModuleRoute module="courses"><LearnLibraryPage /></ModuleRoute>} />
             <Route path="/learn/my/:slug" element={<ModuleRoute module="courses"><LearnPlayerPage /></ModuleRoute>} />
             <Route path="/learn/:slug" element={<ModuleRoute module="courses"><LearnOfferingPage /></ModuleRoute>} />
@@ -855,6 +860,7 @@ function App() {
               <Route path="/admin/stock/counts" element={<ProtectedRoute requireAdmin permission="stock.view"><StockCounts /></ProtectedRoute>} />
               <Route path="/admin/courses" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesOfferings /></ProtectedRoute>} />
               <Route path="/admin/courses/enrolments" element={<ProtectedRoute requireAdmin permission="courses.enrol"><CoursesEnrolments /></ProtectedRoute>} />
+              <Route path="/admin/courses/books" element={<ProtectedRoute requireAdmin permission="courses.view"><CoursesBooks /></ProtectedRoute>} />
               <Route path="/admin/courses/settings" element={<ProtectedRoute requireAdmin permission="courses.manage"><CoursesSettings /></ProtectedRoute>} />
               <Route path="/admin/courses/:id" element={<ProtectedRoute requireAdmin permission="courses.view"><CourseBuilder /></ProtectedRoute>} />
               <Route path="/admin/menus" element={<Navigate to="/admin/menus/dishes" replace />} />

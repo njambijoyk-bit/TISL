@@ -257,6 +257,10 @@ Route::prefix('checkout')->group(function () {
 // Menus — the menu a customer reads (open to everyone)
 Route::prefix('learn')->middleware(['module:courses', 'throttle:120,1'])->group(function () {   // the catalogue: no sign-in to look
     $c = \App\Http\Controllers\Api\CoursesPublicController::class;
+    $b = \App\Http\Controllers\Api\CoursesBooksController::class;
+    Route::get('/books', [$b, 'index']);
+    Route::get('/books/{slug}', [$b, 'show'])->where('slug', '[a-z0-9\-]+');
+    Route::get('/books/{id}/sample', [$b, 'sample'])->whereNumber('id');
     Route::get('/', [$c, 'index']);
     Route::get('/{slug}', [$c, 'show'])->where('slug', '[a-z0-9\-]+');
 });
@@ -264,6 +268,12 @@ Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(
     $c = \App\Http\Controllers\Api\CoursesEnrolController::class;
     Route::get('/my/enrolments', [$c, 'mine'])->middleware('throttle:120,1');
     $l = \App\Http\Controllers\Api\CoursesLearnController::class;
+    $bk = \App\Http\Controllers\Api\CoursesBooksController::class;
+    Route::get('/my/books', [$bk, 'mine'])->middleware('throttle:120,1');
+    Route::post('/books/{id}/quote', [$bk, 'quote'])->middleware('throttle:60,1')->whereNumber('id');
+    Route::post('/books/{id}/buy', [$bk, 'buy'])->middleware('throttle:10,1')->whereNumber('id');
+    Route::post('/book-orders/{id}/pay', [$bk, 'pay'])->middleware('throttle:10,1')->whereNumber('id');
+    Route::get('/book-orders/{id}/link', [$bk, 'link'])->middleware('throttle:30,1')->whereNumber('id');
     Route::get('/my/library', [$l, 'library'])->middleware('throttle:120,1');
     Route::get('/my/offerings/{slug}', [$l, 'player'])->middleware('throttle:240,1')->where('slug', '[a-z0-9\-]+');
     Route::post('/my/lessons/{lesson}/progress', [$l, 'progress'])->middleware('throttle:240,1')->whereNumber('lesson');
@@ -272,6 +282,7 @@ Route::prefix('courses')->middleware(['module:courses', 'auth:sanctum'])->group(
     Route::post('/offerings/{id}/enrol', [$c, 'enrol'])->middleware('throttle:10,1')->whereNumber('id');
     Route::post('/enrolments/{id}/pay', [$c, 'pay'])->middleware('throttle:10,1')->whereNumber('id');
 });
+Route::get('/courses/books/orders/{order}/download', [\App\Http\Controllers\Api\CoursesBooksController::class, 'download'])->middleware(['module:courses', 'signed', 'throttle:30,1'])->whereNumber('order')->name('courses.book.download');
 Route::get('/courses/files/{file}/download', [\App\Http\Controllers\Api\CoursesFileController::class, 'download'])->middleware(['module:courses', 'signed', 'throttle:60,1'])->whereNumber('file')->name('courses.download');
 Route::get('/menu', [\App\Http\Controllers\Api\MenusPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
 Route::get('/menu-chefs', [\App\Http\Controllers\Api\MenusChefPublicController::class, 'index'])->middleware(['module:menus', 'throttle:120,1']);
@@ -740,6 +751,28 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/enrolments/{id}/cancel', [$ec, 'cancel'])->whereNumber('id');
         });
         Route::post('/enrolments/{id}/refund', [$ec, 'refund'])->whereNumber('id')->middleware('permission:courses.refund');
+        $bc = \App\Http\Controllers\Admin\CoursesBooksController::class;
+        Route::middleware('permission:courses.manage,courses.enrol')->group(function () use ($bc) {
+            Route::get('/books/meta', [$bc, 'meta']);
+            Route::get('/books', [$bc, 'index']);
+            Route::get('/offerings/{id}/books', [$bc, 'offeringBooks'])->whereNumber('id');
+        });
+        Route::middleware('permission:courses.manage')->group(function () use ($bc) {
+            Route::post('/books', [$bc, 'create']);
+            Route::put('/books/{id}', [$bc, 'update'])->whereNumber('id');
+            Route::delete('/books/{id}', [$bc, 'destroy'])->whereNumber('id');
+            Route::post('/books/{id}/files/{which}', [$bc, 'upload'])->whereNumber('id')->middleware('throttle:30,1');
+            Route::delete('/books/{id}/files/{which}', [$bc, 'removeFile'])->whereNumber('id');
+            Route::put('/offerings/{id}/books', [$bc, 'setOfferingBooks'])->whereNumber('id');
+        });
+        Route::middleware('permission:courses.enrol,courses.manage,courses.refund')->get('/book-orders', [$bc, 'orders']);
+        Route::middleware('permission:courses.enrol')->group(function () use ($bc) {
+            Route::post('/books/{id}/sell', [$bc, 'sell'])->whereNumber('id');
+            Route::post('/book-orders/{id}/payment', [$bc, 'payment'])->whereNumber('id');
+            Route::post('/book-orders/{id}/deliver', [$bc, 'deliver'])->whereNumber('id');
+            Route::post('/book-orders/{id}/cancel', [$bc, 'cancel'])->whereNumber('id');
+        });
+        Route::post('/book-orders/{id}/refund', [$bc, 'refund'])->whereNumber('id')->middleware('permission:courses.refund');
         Route::put('/settings', [$c, 'saveSettings'])->middleware('permission:courses.manage');
         Route::middleware('permission:courses.grant')->group(function () use ($c) {
             Route::get('/offerings/{id}/access', [$c, 'accessList'])->whereNumber('id');
