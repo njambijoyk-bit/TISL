@@ -233,6 +233,8 @@ class CoursesBooksTest extends TestCase
         $this->assertSame('fulfilled', $o->status);
         $this->assertNotNull($o->delivered_at);
         $this->assertNull($this->sales()->downloadProblem($o, $u));
+        $this->assertTrue($this->sales()->row($o)['can_download']);
+        $this->assertFalse($this->sales()->row($this->sales()->order($b, $u, ['fulfil' => 'digital']))['can_download']);   // not paid yet
         $this->assertSame('This is not your order.', $this->sales()->downloadProblem($o, $this->person('Other')));
         $this->fails(fn () => $this->sales()->takePayment($o, [['payment_method_id' => 1, 'amount' => 1]]), 'waiting for payment');
         $this->fails(fn () => $this->sales()->deliver($o), 'printed copy');
@@ -325,6 +327,9 @@ class CoursesBooksTest extends TestCase
         $again = $this->sales()->takePayment($this->sales()->order($b, $u, ['fulfil' => 'digital']), [['payment_method_id' => 1, 'amount' => 1160]]);
         $this->credited[] = ['invoice' => (int) $again->invoice_id];
         $this->fails(fn () => $this->sales()->refund($again), 'credited already');
+        $nothing = $this->sales()->takePayment($this->sales()->order($b, $u, ['fulfil' => 'digital']), [['payment_method_id' => 1, 'amount' => 1160]]);
+        $this->placed = array_values(array_filter($this->placed, fn ($p) => ($p['meta'] ?? null) != Voucher::find($nothing->invoice_id)->meta));   // the books show no lines left on it
+        $this->fails(fn () => $this->sales()->refund($nothing), 'nothing left to give back');
         $this->paidAtOnce = true;
         $cash = $this->sales()->takePayment($this->sales()->order($b, $u, ['fulfil' => 'digital']), [['payment_method_id' => 1, 'amount' => 1160]]);
         $this->sales()->refund($cash, null, 'Changed mind', 12);
@@ -420,8 +425,9 @@ class CoursesBooksTest extends TestCase
         $this->postJson("/api/admin/courses/book-orders/{$id}/payment", ['tenders' => [['payment_method_id' => 1, 'amount' => 1160]]])->assertOk()->assertJsonPath('order.status', 'paid');
         $this->postJson("/api/admin/courses/book-orders/{$id}/deliver")->assertOk()->assertJsonPath('order.status', 'fulfilled');
         $this->postJson("/api/admin/courses/book-orders/{$id}/refund")->assertForbidden();
+        $this->sales()->order($b, $this->person('Zed'), ['fulfil' => 'pickup']);
         $this->assertSame([$id], array_column($this->getJson('/api/admin/courses/book-orders?q=buy')->assertOk()->json('orders'), 'id'));
-        $this->assertSame([], $this->getJson('/api/admin/courses/book-orders?status=pending')->json('orders'));
+        $this->assertSame(['Zed'], array_column($this->getJson('/api/admin/courses/book-orders?status=pending')->json('orders'), 'buyer'));
         Sanctum::actingAs($this->staff('Boss', ['courses.view', 'courses.refund']), ['*']);
         $this->postJson("/api/admin/courses/books/{$b->id}/sell", ['buyer_user_id' => $buyer->id, 'fulfil' => 'pickup'])->assertForbidden();
         $this->postJson("/api/admin/courses/book-orders/{$id}/refund", ['reason' => 'Torn'])->assertOk()->assertJsonPath('order.status', 'refunded');

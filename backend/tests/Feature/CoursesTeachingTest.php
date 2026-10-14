@@ -229,6 +229,51 @@ class CoursesTeachingTest extends TestCase
         $this->postJson("/api/courses/offerings/{$o->id}/waitlist", ['intake_id' => $a->id])->assertStatus(422);
     }
 
+    public function test_an_offer_held_in_one_intake_does_not_take_a_place_in_another(): void
+    {
+        $o = $this->offering();
+        $this->fee($o);
+        $a = $this->intake($o, ['name' => 'A', 'capacity' => 1]);
+        $b = $this->intake($o, ['name' => 'B', 'capacity' => 1]);
+        $first = $this->enrol($o, $this->person('Ann'), ['intake_id' => $a->id]);
+        $w = $this->intakes()->join($o, $this->person('Bob'), $a->id);
+        app(EnrolmentService::class)->cancel($first);
+        $this->assertSame('offered', $w->fresh()->status);
+        $this->assertSame([0, 1], [$this->intakes()->room($o, $a->id), $this->intakes()->room($o, $b->id)]);   // held in A only
+        $this->assertSame($b->id, (int) $this->enrol($o, $this->person('Cy'), ['intake_id' => $b->id])->intake_id);
+    }
+
+    public function test_no_offers_are_made_for_an_offering_off_sale_or_a_closed_intake(): void
+    {
+        $o = $this->offering(['capacity' => 1]);
+        $this->fee($o);
+        $first = $this->enrol($o, $this->person('Ann'));
+        $w = $this->intakes()->join($o, $this->person('Bob'));
+        $o->update(['status' => 'draft']);
+        app(EnrolmentService::class)->cancel($first);
+        $this->assertSame(['waiting', 0], [$w->fresh()->status, $this->intakes()->fill($o)]);
+        $o->update(['status' => 'published']);
+        $this->assertSame(1, $this->intakes()->fill($o));
+        $i = $this->offering();
+        $this->fee($i);
+        $run = $this->intake($i, ['capacity' => 1]);
+        $taken = $this->enrol($i, $this->person('Cy'), ['intake_id' => $run->id]);
+        $x = $this->intakes()->join($i, $this->person('Dee'), $run->id);
+        $this->intakes()->save($i, ['status' => 'closed'], $run);
+        app(EnrolmentService::class)->cancel($taken);
+        $this->assertSame('waiting', $x->fresh()->status);   // the run is closed: nobody is offered a place in it
+    }
+
+    public function test_intake_dates_may_be_left_empty_and_the_last_day_to_enrol_is_still_open(): void
+    {
+        $o = $this->offering();
+        $i = $this->intakes()->save($o, ['name' => 'Rolling', 'starts_on' => '', 'ends_on' => null, 'enrol_until' => '2026-10-12']);
+        $this->assertSame([null, null], [$i->starts_on, $i->ends_on]);
+        $this->assertTrue($this->intakes()->intakes($o)[0]['open']);
+        $this->at('2026-10-13 00:00');
+        $this->assertFalse($this->intakes()->intakes($o)[0]['open']);
+    }
+
     // ── the teacher's side ───────────────────────────────────────────────
 
     public function test_the_dashboard_counts_what_needs_doing_on_my_offerings_only(): void
@@ -277,6 +322,9 @@ class CoursesTeachingTest extends TestCase
         $this->assertSame(['Jan', 0.0, 50, 1, 2, 'active'], [$rows[0]['intake'], $rows[0]['balance'], $rows[0]['progress_pct'], $rows[0]['lessons_done'], $rows[0]['lessons_total'], $rows[0]['status']]);
         $this->assertNotNull($rows[0]['last_active']);
         $this->assertSame([1160.0, 0, null], [$rows[1]['balance'], $rows[1]['progress_pct'], $rows[1]['last_active']]);
+        $this->assertNull($rows[0]['attendance_state']);   // the offering asks for no attendance
+        $o->update(['min_attendance_pct' => 50]);
+        $this->assertSame('none', app(TeachingService::class)->students($o->fresh())[0]['attendance_state']);   // asked for, no classes yet
     }
 
     public function test_menus_chefs_marked_as_instructors_can_be_chosen_as_teachers(): void

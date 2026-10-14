@@ -141,6 +141,7 @@ class MembershipsCheckinTest extends TestCase
         $this->assertSame(['Karen'], array_column($this->ck()->recent(2), 'branch'));
         $this->assertCount(2, $this->ck()->recent(null, $u->id));
         $this->assertSame($other->member_user_id, $this->ck()->recent()[0]['user_id']);   // newest first
+        $this->assertNull($this->ck()->card(\App\Models\User::find($other->member_user_id))['branches']);   // every branch: no list
         $this->assertCount(1, $this->ck()->recent(null, null, 1));
     }
 
@@ -189,5 +190,15 @@ class MembershipsCheckinTest extends TestCase
         $this->assertNull($this->getJson('/api/memberships/my/card')->assertOk()->json('card'));
         $this->m('active', [], $u);
         $this->assertSame(MemberCheckIn::code($u->id), $this->getJson('/api/memberships/my/card')->json('card.code'));
+    }
+    public function test_a_stale_pause_date_does_not_change_the_reason_for_another_state(): void
+    {
+        $m = $this->m('lapsed');
+        $m->update(['paused_until' => '2026-10-20']);   // left over from an earlier pause
+        $r = $this->ck()->check($m->member_user_id, 1);
+        $this->assertFalse($r['ok']);
+        $this->assertStringNotContainsString('paused', $r['reason']);
+        $p = $this->m('paused');
+        $this->assertSame('The membership is paused until 20 Oct.', $this->ck()->check($p->member_user_id, 1)['reason']);
     }
 }

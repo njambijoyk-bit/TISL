@@ -198,4 +198,20 @@ class MembershipsCreditsTest extends TestCase
         $this->assertSame(0, $this->c()->balance($m->member_user_id));
         $this->c()->grantPeriod($m, ['amount' => 1]);   // nothing, quietly
     }
+    public function test_edges_of_the_credit_rules(): void
+    {
+        $this->assertSame(['amount' => 1, 'rollover' => false], Credits::validate(['amount' => 1]));
+        $this->assertSame(['amount' => 1000, 'rollover' => true], Credits::validate(['amount' => 1000, 'rollover' => 1]));
+        $this->fails(fn () => Credits::validate(['amount' => 1001]), '1 to 1000');
+        $m = $this->m();
+        $this->grant($m, 3, '2026-11-12 00:00:00');
+        $this->grant($m, 2);
+        $this->c()->adjust($m, -5, 'Taken back in full');   // exactly all of it
+        $this->assertSame(0, $this->c()->balance($m->member_user_id));
+        $this->assertSame([null, null], array_column(array_filter($this->c()->ledger($m->member_user_id), fn ($r) => $r['kind'] === 'grant'), 'expires_at'));   // used up: no expiry to show
+        $g = $this->grant($m, 4, '2026-11-12 00:00:00');
+        $row = collect($this->c()->ledger($m->member_user_id))->firstWhere('id', $g->id);
+        $this->assertNotNull($row['expires_at']);
+        $this->assertNull(collect($this->c()->ledger($m->member_user_id))->firstWhere('kind', 'adjust')['expires_at']);   // taking away has no expiry
+    }
 }

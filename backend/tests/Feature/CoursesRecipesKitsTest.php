@@ -152,6 +152,10 @@ class CoursesRecipesKitsTest extends TestCase
         $this->assertSame(100000.0, $this->kits()->setItems($o, [['variant_id' => 11, 'quantity' => 100000]])[0]['quantity']);
         $this->fails(fn () => $this->kits()->setItems($o, [['variant_id' => 11, 'quantity' => 1], ['variant_id' => 11, 'quantity' => 2]]), 'in the kit twice');
         $this->fails(fn () => $this->kits()->setItems($o, array_fill(0, 41, ['variant_id' => 11, 'quantity' => 1])), 'up to 40 items');
+        foreach (range(101, 140) as $v) {
+            DB::table('product_variants')->insert(['id' => $v, 'product_id' => 1, 'sku' => 'V'.$v]);
+        }
+        $this->assertCount(40, $this->kits()->setItems($o, array_map(fn ($v) => ['variant_id' => $v, 'quantity' => 1], range(101, 140))));   // exactly 40 is fine
         $this->assertSame([], $this->kits()->setItems($o, []));
         $this->assertNull($this->kits()->forStudent($o, null));   // no kit: nothing shown
     }
