@@ -44,6 +44,20 @@ class PlanService
         return $out;
     }
 
+    /** The end (not included) of a period of this plan that starts on $from. */
+    public static function periodEnd(\Illuminate\Support\Carbon $from, Plan $p): \Illuminate\Support\Carbon
+    {
+        $n = max(1, (int) $p->period_count);
+        $f = $from->copy()->startOfDay();
+
+        return match ($p->period_unit) {
+            'day' => $f->addDays($n),
+            'week' => $f->addWeeks($n),
+            'year' => $f->addYearsNoOverflow($n),
+            default => $f->addMonthsNoOverflow($n),
+        };
+    }
+
     public function periodLabel(Plan $p): string
     {
         $n = (int) $p->period_count;

@@ -766,6 +766,9 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/plans/{id}', [$mp, 'destroy'])->whereNumber('id');
             Route::put('/settings', [$mp, 'saveSettings']);
         });
+        $mr = \App\Http\Controllers\Admin\MembershipReportController::class;
+        Route::get('/reports', [$mr, 'summary'])->middleware('throttle:60,1');
+        Route::get('/reports/members.csv', [$mr, 'csv'])->middleware('throttle:10,1');
         $mc = \App\Http\Controllers\Admin\MembershipController::class;
         Route::get('/members', [$mc, 'index']);
         Route::get('/members/{id}', [$mc, 'show'])->whereNumber('id');

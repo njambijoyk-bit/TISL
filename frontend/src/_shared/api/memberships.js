@@ -28,6 +28,8 @@ export const membershipsAPI = {
   checkinPeople: async (q) => (await api.get('/admin/memberships/checkin/people', { params: { q } })).data,
   checkinScan: async (code, locationId) => (await api.post('/admin/memberships/checkin/scan', { code, location_id: locationId || undefined })).data,
   checkinManual: async (userId, locationId) => (await api.post('/admin/memberships/checkin/manual', { user_id: userId, location_id: locationId || undefined })).data,
+  report: async (params) => (await api.get('/admin/memberships/reports', { params })).data,
+  membersCsv: async (params) => (await api.get('/admin/memberships/reports/members.csv', { params, responseType: 'blob' })).data,
   removePlan: async (id) => (await api.delete(`/admin/memberships/plans/${id}`)).data,
 };
 

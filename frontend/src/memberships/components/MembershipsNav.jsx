@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ChevronRight, IdCard, Settings2, Layers, Users, ScanLine } from 'lucide-react';
+import { ChevronRight, IdCard, Settings2, Layers, Users, ScanLine, BarChart2 } from 'lucide-react';
 
 const PAGES = [
   { path: '/admin/memberships', title: 'Plans', icon: Layers, color: '#8b5cf6' },
   { path: '/admin/memberships/members', title: 'Members', icon: Users, color: '#0ea5e9' },
   { path: '/admin/memberships/checkin', title: 'Check-in', icon: ScanLine, color: '#16a34a' },
+  { path: '/admin/memberships/reports', title: 'Reports', icon: BarChart2, color: '#f59e0b' },
   { path: '/admin/memberships/settings', title: 'Settings', icon: Settings2, color: '#64748b' },
 ];
 

@@ -50,15 +50,7 @@ class MembershipService
     /** The end (not included) of a period that starts on $from. */
     public function endOf(Carbon $from, Plan $p): Carbon
     {
-        $n = max(1, (int) $p->period_count);
-        $f = $from->copy()->startOfDay();
-
-        return match ($p->period_unit) {
-            'day' => $f->addDays($n),
-            'week' => $f->addWeeks($n),
-            'year' => $f->addYearsNoOverflow($n),
-            default => $f->addMonthsNoOverflow($n),
-        };
+        return PlanService::periodEnd($from, $p);
     }
 
     private function days(Plan $p, ?Carbon $from = null): int

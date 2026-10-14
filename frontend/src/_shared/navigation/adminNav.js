@@ -276,6 +276,7 @@ export const ADMIN_NAV = [
         tabs: [
           { title: 'Plans', path: '/admin/memberships', icon: Layers, color: '#8b5cf6' },
           { title: 'Members', path: '/admin/memberships/members', icon: Users, color: '#0ea5e9' },
+          { title: 'Reports', path: '/admin/memberships/reports', icon: BarChart2, color: '#f59e0b' },
           { title: 'Settings', path: '/admin/memberships/settings', icon: Settings2, color: '#64748b' },
         ],
       },
