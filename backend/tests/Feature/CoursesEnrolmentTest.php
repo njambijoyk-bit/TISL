@@ -436,6 +436,26 @@ class CoursesEnrolmentTest extends TestCase
         $this->assertTrue($this->hasAccess($u, $o));
     }
 
+    public function test_money_that_arrives_after_a_cancel_does_not_bring_the_enrolment_back(): void
+    {
+        $o = $this->offeringWithFee();
+        $u = $this->person();
+        $e = $this->svc()->cancel($this->enrol($o, $u));
+        $this->svc()->paid(Voucher::find($e->invoice_id), 1160);   // a late M-Pesa payment on the cancelled invoice
+        $this->assertSame(['cancelled', 1160.0], [$e->fresh()->status, (float) $e->fresh()->paid_total]);   // counted, for the books to settle
+        $this->assertFalse($this->hasAccess($u, $o));
+    }
+
+    public function test_a_refund_of_an_invoice_paid_at_once_says_where_the_money_goes_back_from(): void
+    {
+        $this->paidAtOnce = true;
+        $o = $this->offeringWithFee();
+        $this->svc()->refund($this->enrol($o, $this->person('A')));
+        $this->assertSame(9, $this->credited[0]['refund_ledger_id']);   // the books' default
+        $this->svc()->refund($this->enrol($o, $this->person('B')), null, false, null, 12);
+        $this->assertSame(12, $this->credited[1]['refund_ledger_id']);
+    }
+
     // ── access held back and given back ───────────────────────────────────
 
     public function test_a_late_instalment_holds_access_back_until_it_is_paid(): void
@@ -626,10 +646,14 @@ class CoursesEnrolmentTest extends TestCase
         $this->assertSame(2, app(\App\Services\Memberships\Credits::class)->balance($u->id));
         $this->svc()->cancel($e);
         $this->assertSame(5, app(\App\Services\Memberships\Credits::class)->balance($u->id));
+        $one = $this->enrol($this->offeringWithFee(['credit_cost' => 1]), $u, ['use_credits' => true], null, 'counter');
+        $this->assertSame([1, 'counter'], [(int) $one->credits_spent, $one->channel]);
+        $this->assertSame(4, app(\App\Services\Memberships\Credits::class)->balance($u->id));
+        $this->svc()->cancel($one);
         $this->fails(fn () => $this->enrol($this->offeringWithFee(), $u, ['use_credits' => true]), 'cannot be taken with credits');
         $this->fails(fn () => $this->enrol($this->offeringWithFee(['credit_cost' => 6]), $u, ['use_credits' => true]), 'credits');
         $this->assertSame(5, app(\App\Services\Memberships\Credits::class)->balance($u->id));
-        $this->assertSame(1, Enrolment::count());
+        $this->assertSame(2, Enrolment::count());
     }
 
     // ── what the screens show ─────────────────────────────────────────────
@@ -670,7 +694,10 @@ class CoursesEnrolmentTest extends TestCase
         $this->postJson("/api/admin/courses/offerings/{$o->id}/enrol", ['student_user_id' => $u->id])->assertStatus(422)->assertJsonPath('message', 'Student is enrolled in this already.');
         $this->postJson("/api/admin/courses/enrolments/{$id}/payment", ['tenders' => [['payment_method_id' => 1, 'amount' => 100]]])->assertOk()->assertJsonPath('enrolment.paid_total', 100);
         $this->postJson("/api/admin/courses/enrolments/{$id}/refund", [])->assertForbidden();
-        $this->getJson('/api/admin/courses/enrolments?q=stud')->assertOk()->assertJsonPath('enrolments.0.id', $id);
+        $other = $this->enrol($o, $this->person('Zed'));
+        $this->assertSame([$id], array_column($this->getJson('/api/admin/courses/enrolments?q=stud')->assertOk()->json('enrolments'), 'id'));
+        $this->assertSame([$other->id], array_column($this->getJson('/api/admin/courses/enrolments?q='.$other->number)->json('enrolments'), 'id'));
+        $this->assertSame([$other->id, $id], array_column($this->getJson('/api/admin/courses/enrolments?offering_id='.$o->id)->json('enrolments'), 'id'));
         $this->assertSame([], $this->getJson('/api/admin/courses/enrolments?status=cancelled')->assertOk()->json('enrolments'));
         $this->getJson('/api/admin/courses/enrolments/meta')->assertOk()->assertJsonPath('can_enrol', true)->assertJsonPath('can_refund', false);
         $boss = $this->staff('Boss', ['courses.view', 'courses.refund']);

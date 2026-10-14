@@ -142,7 +142,7 @@ class CoursesLearningTest extends TestCase
         $this->assertSame([true, 1, true, null], [$r['me']['signed_in'], $r['offering']['capacity_left'], $r['me']['can_enrol'], $r['me']['enrolment']]);
         $e = app(\App\Services\Courses\EnrolmentService::class)->enrol($o, ['student_user_id' => $me->id]);
         $r = $this->getJson("/api/learn/{$o->slug}")->json();
-        $this->assertSame([0, false, $e->number, null], [$r['offering']['capacity_left'], $r['me']['can_enrol'], $r['me']['enrolment']['number'], $r['me']['enrolment']['invoice_id']]);
+        $this->assertSame([0, false, $e->number, null, false], [$r['offering']['capacity_left'], $r['me']['can_enrol'], $r['me']['enrolment']['number'], $r['me']['enrolment']['invoice_id'], $r['me']['can_wait']]);   // enrolled: nothing to wait for
         $full = $this->offering(['capacity' => 1]);
         app(\App\Services\Courses\EnrolmentService::class)->enrol($full, ['student_user_id' => $this->person('Z')->id]);
         $r = $this->getJson("/api/learn/{$full->slug}")->json();
@@ -193,6 +193,70 @@ class CoursesLearningTest extends TestCase
         $this->assertSame([], $lib['on_hold']);
         Sanctum::actingAs($u, ['*']);
         $this->assertSame(3, count($this->getJson('/api/courses/my/library')->assertOk()->json('items')));
+    }
+
+    public function test_the_library_puts_what_is_open_first_and_shows_a_certificate(): void
+    {
+        $u = $this->person();
+        $old = $this->offering(['title' => 'Apple pies']);
+        $now = $this->offering(['title' => 'Zebra cakes', 'certificate' => true]);
+        $this->give($u, $old, Carbon::parse('2026-10-13 12:00', 'Africa/Nairobi'));
+        $this->give($u, $now);
+        $e = Enrolment::forceCreate(['number' => 'EN-1', 'offering_id' => $now->id, 'student_user_id' => $u->id, 'status' => 'completed', 'channel' => 'online', 'total' => 0, 'paid_total' => 0]);
+        $cert = app(\App\Services\Courses\CertificateService::class)->issueFor($e);
+        $this->at('2026-10-14 12:00');
+        $lib = $this->learning()->library($u);
+        $this->assertSame(['Zebra cakes', 'Apple pies'], array_column($lib['items'], 'title'));   // open ones first, whatever the alphabet says
+        $this->assertSame([$cert->number, null], [$lib['items'][0]['certificate']['number'], $lib['items'][1]['certificate']]);
+        $this->assertSame($cert->number, $this->learning()->player($u, $now)['certificate']['number']);
+    }
+
+    public function test_the_player_shows_quiz_and_attendance_details_and_a_started_lesson_is_not_done(): void
+    {
+        $u = $this->person();
+        $o = $this->offering(['in_order' => true]);
+        $a = $this->lesson($o, ['title' => 'A']);
+        $this->lesson($o, ['title' => 'B']);
+        $q = $this->lesson($o, ['title' => 'Q', 'kind' => 'quiz', 'is_required' => false]);
+        app(\App\Services\Courses\QuizService::class)->quizFor($q);
+        $this->give($u, $o);
+        $this->learning()->mark($u, $a, 'started');
+        $p = $this->learning()->player($u, $o);
+        $rows = collect($p['loose'])->keyBy('title');
+        $this->assertSame([true, 'order'], [$rows['B']['locked'], $rows['B']['lock_reason']]);   // started is not done
+        $this->assertSame(true, $rows['Q']['locked']);
+        $this->assertNull($p['attendance']);   // no classes
+        $this->learning()->mark($u, $a, 'done');
+        $this->learning()->mark($u, $this->learning()->sequence($o)[1], 'done');
+        $p = $this->learning()->player($u, $o);
+        $this->assertSame([true, 70], [collect($p['loose'])->keyBy('title')['Q']['quiz']['ready'], collect($p['loose'])->keyBy('title')['Q']['quiz']['pass_pct']]);
+        $this->assertNull(collect($p['loose'])->keyBy('title')['A']['quiz']);
+        \App\Models\Courses\ClassSession::forceCreate(['offering_id' => $o->id, 'title' => 'C1', 'starts_at' => now()->addDay(), 'ends_at' => now()->addDay()->addHour(), 'mode' => 'online', 'status' => 'scheduled']);
+        $this->assertSame('none', $this->learning()->player($u, $o)['attendance']['standing']['state']);
+    }
+
+    public function test_staff_who_also_have_access_are_not_previewing(): void
+    {
+        $o = $this->offering();
+        $this->lesson($o);
+        $mgr = $this->staff('Manager', ['courses.manage']);
+        $this->assertTrue($this->learning()->player($mgr, $o)['access']['staff_preview']);
+        $this->give($mgr, $o);
+        $this->assertFalse($this->learning()->player($mgr, $o)['access']['staff_preview']);
+    }
+
+    public function test_the_offering_page_shows_the_credits_it_costs_and_my_balance(): void
+    {
+        $o = $this->offering(['credit_cost' => 3]);
+        $plain = $this->offering();
+        $this->assertSame(['cost' => 3, 'balance' => 0], $this->getJson("/api/learn/{$o->slug}")->json('credits'));
+        $this->assertNull($this->getJson("/api/learn/{$plain->slug}")->json('credits'));
+        $u = $this->person();
+        $plan = $this->plan();
+        $m = \App\Models\Memberships\Membership::forceCreate(['number' => 'MB-1', 'plan_id' => $plan->id, 'member_user_id' => $u->id, 'status' => 'active', 'period_from' => '2026-10-01', 'paid_until' => '2026-11-01']);
+        \App\Models\Memberships\CreditEntry::create(['membership_id' => $m->id, 'user_id' => $u->id, 'kind' => 'grant', 'delta' => 5, 'remaining' => 5, 'created_at' => now()]);
+        Sanctum::actingAs($u, ['*']);
+        $this->assertSame(['cost' => 3, 'balance' => 5], $this->getJson("/api/learn/{$o->slug}")->json('credits'));
     }
 
     public function test_an_enrolment_held_for_a_late_payment_shows_on_hold(): void

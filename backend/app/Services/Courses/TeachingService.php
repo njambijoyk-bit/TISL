@@ -62,7 +62,7 @@ class TeachingService
     private function unmarked(array $offeringIds)
     {
         $past = ClassSession::whereIn('offering_id', $offeringIds)->where('status', 'scheduled')->whereNull('makeup_for_id')->where('ends_at', '<', now())->get(['id', 'offering_id']);
-        $done = RegisterEntry::whereIn('session_id', $past->pluck('id'))->pluck('session_id')->unique()->all();
+        $done = RegisterEntry::whereIn('session_id', $past->pluck('id'))->whereIn('status', ['present', 'late', 'absent', 'excused'])->pluck('session_id')->unique()->all();   // a student's own request to be excused is not the register
 
         return $past->reject(fn ($s) => in_array($s->id, $done, true))->groupBy('offering_id')->map->count();
     }

@@ -38,7 +38,9 @@ class QuizService
             throw new BooksException('That lesson is not a quiz.');
         }
 
-        return Quiz::firstOrCreate(['lesson_id' => $l->id], ['offering_id' => $l->offering_id]);
+        $q = Quiz::firstOrCreate(['lesson_id' => $l->id], ['offering_id' => $l->offering_id]);
+
+        return $q->wasRecentlyCreated ? $q->fresh() : $q;   // read back, so the defaults the table gives (pass mark 70, answers after a pass) are there
     }
 
     /** @param array{pass_pct?: mixed, max_attempts?: mixed, time_limit_minutes?: mixed, shuffle?: mixed, show_answers?: mixed, instructions?: mixed} $d */

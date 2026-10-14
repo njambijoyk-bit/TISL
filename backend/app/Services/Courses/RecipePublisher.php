@@ -112,7 +112,7 @@ class RecipePublisher
                 $o = $this->offerings->save(['kind' => 'recipe', 'title' => mb_substr($copy['title'], 0, 160), 'summary' => 'A recipe from our kitchen.', 'delivery' => 'online'], null, $by?->id);
             }
             $lesson = $this->curriculum->saveLesson($o, ['kind' => 'recipe', 'title' => mb_substr($copy['title'], 0, 160), 'body' => $copy['body'], 'duration_minutes' => $copy['minutes'], 'is_required' => true]);
-            RecipeSource::create(['offering_id' => $o->id, 'lesson_id' => $lesson->id, 'recipe_id' => $r->id, 'body_hash' => sha1($copy['body']), 'published_by' => $by?->id, 'published_at' => now()]);
+            RecipeSource::create(['offering_id' => $o->id, 'lesson_id' => $lesson->id, 'recipe_id' => $r->id, 'body_hash' => sha1((string) $lesson->body), 'published_by' => $by?->id, 'published_at' => now()]);   // the body as the lesson keeps it (trimmed, cut to length)
 
             return ['offering' => $o->fresh(), 'lesson' => $lesson->fresh()];
         });
@@ -128,7 +128,7 @@ class RecipePublisher
         $copy = $this->render($this->publishableRecipe((int) $src->recipe_id));
         $o = Offering::findOrFail($lesson->offering_id);
         $lesson = $this->curriculum->saveLesson($o, ['body' => $copy['body'], 'duration_minutes' => $copy['minutes']], $lesson);
-        $src->update(['body_hash' => sha1($copy['body']), 'published_by' => $by?->id, 'published_at' => now()]);
+        $src->update(['body_hash' => sha1((string) $lesson->body), 'published_by' => $by?->id, 'published_at' => now()]);
 
         return $lesson;
     }

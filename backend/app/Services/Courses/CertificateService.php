@@ -142,7 +142,8 @@ class CertificateService
         }
         $n = 0;
         foreach (Enrolment::where('offering_id', $o->id)->where('status', 'completed')->get() as $e) {
-            if (! $this->current((int) $e->student_user_id, $o->id) && $this->issueFor($e)) {
+            $had = Certificate::where('user_id', $e->student_user_id)->where('offering_id', $o->id)->exists();   // one that was revoked stays revoked: giving it back is a decision, made one by one
+            if (! $had && $this->issueFor($e)) {
                 $n++;
             }
         }
