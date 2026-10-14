@@ -290,6 +290,30 @@ class CoursesAttendanceTest extends TestCase
         $this->assertSame(0, $this->att()->warn());   // only offerings on sale
     }
 
+    public function test_the_edges_of_checking_in_asking_and_counting(): void
+    {
+        $o = $this->offering(['min_attendance_pct' => 50]);
+        $t = fn (string $at) => Carbon::parse($at, 'Africa/Nairobi');
+        $off = $this->cls($o, '2026-10-12 14:00', 2, ['self_checkin' => false, 'checkin_code' => '555555']);   // switched off after a code was made
+        $u = $this->student($o, 'Ann', '2026-09-01 00:00');
+        $this->fails(fn () => $this->att()->checkIn($u, $off, '555555', $t('2026-10-12 14:00')), 'not on for this class');
+        $s = $this->cls($o, '2026-10-12 14:00', 2, ['self_checkin' => true, 'checkin_code' => '666666']);
+        $late = $this->student($o, 'Bob', '2026-10-12 16:30');   // has access, but only from after the class
+        $this->fails(fn () => $this->att()->checkIn($late, $s, '666666', $t('2026-10-12 14:30')), 'not on the roll');
+        $this->fails(fn () => $this->att()->askExcuse($late, $s, 'Ill', $t('2026-10-12 14:30')), 'not on the roll');
+        $gone = $this->student($o, 'Cy', '2026-09-01 00:00');
+        $this->mark($o, $this->cls($o, '2026-10-01 09:00'), [$gone->id => 'present', $u->id => 'present']);
+        \App\Models\Courses\Access::where('user_id', $gone->id)->update(['revoked_at' => now()]);   // on the roll, but no access any more
+        $this->fails(fn () => $this->att()->askExcuse($gone, $s, 'Ill', $t('2026-10-12 14:30')), 'not on the roll');
+        $this->fails(fn () => $this->att()->checkIn($gone, $s, '666666', $t('2026-10-12 14:30')), 'not on the roll');
+        $fresh = $this->offering(['min_attendance_pct' => 80]);
+        $this->assertSame('none', $this->att()->standing($u->id, $fresh)['state']);   // asked for, but no classes at all
+        $future = $this->cls($o, '2026-10-30 09:00');
+        $this->att()->decideExcuse($o, $this->att()->askExcuse($u, $future, 'Away'), true);
+        $st = $this->att()->standing($u->id, $o);
+        $this->assertSame([1, 2, 100.0], [$st['excused'], $st['remaining'], $st['best']]);   // the excused class is neither to come nor counted: never more than 100%
+    }
+
     // ── completing on attendance ─────────────────────────────────────────
 
     public function test_an_offering_with_only_attendance_completes_when_the_last_class_is_marked(): void

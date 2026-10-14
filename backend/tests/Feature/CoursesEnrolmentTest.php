@@ -185,6 +185,21 @@ class CoursesEnrolmentTest extends TestCase
         $this->assertCount(2, $this->svc()->plan($o, $v)['lines']);
     }
 
+    public function test_which_offerings_a_plans_course_benefit_covers(): void
+    {
+        $covers = fn (array $c, Offering $o) => \App\Services\Courses\MembershipBenefit::covers($c, $o);
+        $bread = $this->offering(['category' => 'Baking', 'kind' => 'course']);
+        $recipe = $this->offering(['category' => null, 'kind' => 'recipe']);
+        $this->assertTrue($covers(['mode' => 'category', 'categories' => ['baking']], $bread));   // any case
+        $this->assertFalse($covers(['mode' => 'category', 'categories' => ['Pastry']], $bread));
+        $this->assertFalse($covers(['mode' => 'category', 'categories' => ['']], $recipe));   // no category: never in one
+        $this->assertTrue($covers(['mode' => 'kind', 'kinds' => ['recipe']], $recipe));
+        $this->assertFalse($covers(['mode' => 'kind', 'kinds' => ['recipe']], $bread));
+        $this->assertTrue($covers(['mode' => 'selected', 'offering_ids' => [(string) $bread->id]], $bread));
+        $this->assertFalse($covers(['mode' => 'selected', 'offering_ids' => [$bread->id]], $recipe));
+        $this->assertTrue($covers([], $recipe));   // everything
+    }
+
     public function test_the_schedule_splits_the_total_into_a_deposit_and_instalments(): void
     {
         $now = Carbon::parse('2026-10-12 23:30', 'Africa/Nairobi');

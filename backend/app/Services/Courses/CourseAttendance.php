@@ -290,11 +290,10 @@ class CourseAttendance
                 } elseif ($st === 'excused') {
                     $excused++;
                 }
+            } elseif ($st === 'excused') {   // excused ahead of time: out of the count, not a class still to attend
+                $excused++;
             } else {
                 $remaining++;
-                if ($st === 'excused') {
-                    $excused++;
-                }
             }
         }
         $total = $counted->count();

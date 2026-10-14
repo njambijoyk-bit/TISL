@@ -163,6 +163,7 @@ class CoursesQuizTest extends TestCase
         $this->assertSame([$qs[0]->id, $qs[1]->id, $qs[2]->id, $qs[3]->id], array_column($t['questions'], 'id'));
         $this->assertStringNotContainsString('correct', json_encode($t));
         $this->assertStringNotContainsString('Yeast', json_encode($t));
+        $this->assertSame(['o1', 'o2', 'o3'], array_column($t['questions'][0]['options'], 'id'));   // not shuffled: as written
         $this->fails(fn () => $this->svc()->take($this->person('Other'), $a), 'not your attempt');
         $saved = $this->svc()->save($u, $a, [$qs[0]->id => 'o9', (string) $qs[1]->id => ['a', 'z'], $qs[2]->id => 'maybe', $qs[3]->id => str_repeat('x', 2100), 999 => 'x']);
         $this->assertSame([$qs[1]->id => ['a'], $qs[3]->id => str_repeat('x', 2000)], $saved->answers);   // only real answers to its own questions
