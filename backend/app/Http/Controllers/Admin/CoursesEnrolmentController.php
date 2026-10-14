@@ -50,7 +50,11 @@ class CoursesEnrolmentController extends Controller
         $d = $request->validate(['kind' => 'sometimes|string|max:12', 'name' => 'sometimes|string|max:120', 'ledger_id' => 'sometimes|integer', 'amount' => 'sometimes|numeric', 'is_optional' => 'sometimes|boolean',
             'once_per_student' => 'sometimes|boolean', 'refundable' => 'sometimes|boolean', 'is_active' => 'sometimes|boolean']);
 
-        return $this->guard(fn () => response()->json(['message' => 'Fee saved.', 'fees' => $this->fees->rows($o), 'fee_id' => $this->fees->save($o, $d, $fee ? Fee::findOrFail($fee) : null)->id]));
+        return $this->guard(function () use ($o, $d, $fee) {
+            $saved = $this->fees->save($o, $d, $fee ? Fee::findOrFail($fee) : null);   // saved first, so the list sent back has it
+
+            return response()->json(['message' => 'Fee saved.', 'fees' => $this->fees->rows($o), 'fee_id' => $saved->id]);
+        });
     }
 
     public function feeDelete(int $id, int $fee): JsonResponse

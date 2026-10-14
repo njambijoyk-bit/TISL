@@ -84,7 +84,7 @@ class Curriculum
         }
         if ($fileId) {
             $f = CourseFile::find($fileId);
-            if (! $f || ($f->offering_id && (int) $f->offering_id !== (int) $o->id)) {
+            if (! $f || (int) $f->offering_id !== (int) $o->id) {   // a file with no offering is a book's (sold on its own): never a lesson's
                 throw new BooksException('Choose one of this offering\'s files.');
             }
         }
@@ -104,9 +104,6 @@ class Curriculum
             $l->fill(['kind' => $kind, 'title' => $title, 'section_id' => $sectionId, 'body' => $body, 'video_url' => in_array($kind, ['video', 'recipe', 'text'], true) ? $video : null, 'file_id' => $fileId,
                 'duration_minutes' => $dur, 'drip_days' => $drip, 'is_preview' => array_key_exists('is_preview', $d) ? (bool) $d['is_preview'] : (bool) $l->is_preview,
                 'is_required' => array_key_exists('is_required', $d) ? (bool) $d['is_required'] : ($l->exists ? (bool) $l->is_required : true)])->save();
-            if ($fileId && ! CourseFile::whereKey($fileId)->value('offering_id')) {
-                CourseFile::whereKey($fileId)->update(['offering_id' => $o->id]);   // a file used by a lesson belongs to that offering
-            }
             if ($kind === 'quiz' && QuizService::installed()) {
                 \App\Models\Courses\Quiz::firstOrCreate(['lesson_id' => $l->id], ['offering_id' => $o->id]);
             } elseif (QuizService::installed()) {

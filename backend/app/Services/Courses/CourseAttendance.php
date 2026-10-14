@@ -277,7 +277,7 @@ class CourseAttendance
         $sessions = ClassSession::where('offering_id', $o->id)->where('status', '!=', 'cancelled')->get();
         $counted = $sessions->whereNull('makeup_for_id');
         $marks = RegisterEntry::where('offering_id', $o->id)->where('user_id', $userId)->get()->keyBy('session_id');
-        $taken = RegisterEntry::where('offering_id', $o->id)->pluck('session_id')->unique()->all();   // a class counts as held once the register has been taken for it (a class nobody has marked yet is still open)
+        $taken = RegisterEntry::where('offering_id', $o->id)->whereIn('status', ['present', 'late', 'absent', 'excused'])->pluck('session_id')->unique()->all();   // a class counts as held once the register has been taken for it (a class nobody has marked yet is still open; a student's own request to be excused is not a mark)
         $isHeld = fn ($s) => $s->ends_at->lt($now) && in_array($s->id, $taken, true);
         $madeUp = $sessions->whereNotNull('makeup_for_id')->filter(fn ($m) => in_array($marks[$m->id]->status ?? '', ['present', 'late'], true))->pluck('makeup_for_id')->all();
         $attended = $excused = $held = $remaining = 0;
@@ -379,6 +379,27 @@ class CourseAttendance
         return ['standing' => $this->standing($u->id, $o), 'sessions' => $sessions->map(fn (ClassSession $s) => ['id' => $s->id, 'title' => $s->title, 'starts_at' => $s->starts_at->toIso8601String(), 'ends_at' => $s->ends_at->toIso8601String(), 'mode_label' => ClassSession::MODES[$s->mode] ?? $s->mode,
             'makeup_for' => $s->makeup_for_id ? ($titles[$s->makeup_for_id] ?? null) : null, 'self_checkin' => $s->self_checkin, 'status' => $marks[$s->id]->status ?? null, 'status_label' => isset($marks[$s->id]) ? (RegisterEntry::STATUSES[$marks[$s->id]->status] ?? null) : null,
             'can_excuse' => ! isset($marks[$s->id]) || ! in_array($marks[$s->id]->status, ['present', 'late', 'excused'], true)])->values()->all()];
+    }
+
+    /**
+     * Try again to complete the running enrolments of offerings that ask for attendance: the last class may have ended since anyone touched the register (students who checked themselves in, a teacher who
+     * never marked it). Run by the hourly attendance job. @return int how many enrolments were completed
+     */
+    public function completeFinished(): int
+    {
+        if (! self::installed() || ! \Illuminate\Support\Facades\Schema::hasTable('course_enrolments')) {
+            return 0;
+        }
+        $n = 0;
+        foreach (\App\Models\Courses\Enrolment::where('status', 'active')->whereIn('offering_id', Offering::whereNotNull('min_attendance_pct')->select('id'))->get() as $e) {
+            $o = Offering::find($e->offering_id);
+            $u = User::find($e->student_user_id);
+            if ($o && $u && app(Learning::class)->tryComplete($u, $o)) {
+                $n++;
+            }
+        }
+
+        return $n;
     }
 
     // ── the warnings ──────────────────────────────────────────────────────

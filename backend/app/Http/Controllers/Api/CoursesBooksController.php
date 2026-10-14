@@ -133,8 +133,9 @@ class CoursesBooksController extends Controller
         $o = BookOrder::findOrFail($order);
         $u = User::find((int) $request->query('u'));
         abort_unless($u && $this->sales->downloadProblem($o, $u) === null, 403, 'This download is not available.');
-        $f = $this->sales->recordDownload($o, $u, $request->ip());
-        abort_unless(app(CourseFiles::class)->exists($f), 404, 'The file is missing.');
+        $f = CourseFile::find(Book::whereKey($o->book_id)->value('file_id'));
+        abort_unless($f && app(CourseFiles::class)->exists($f), 404, 'The file is missing.');   // checked before it is counted: a missing file never uses up a download
+        $this->sales->recordDownload($o, $u, $request->ip());
 
         return app(CourseFiles::class)->stream($f);
     }

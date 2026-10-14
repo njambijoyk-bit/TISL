@@ -122,10 +122,10 @@ class OfferingEditor
         if (! \Illuminate\Support\Facades\Schema::hasColumn('course_offerings', 'capacity')) {
             return [];
         }
-        $int = function (string $key, int $lo, int $hi, string $what, bool $nullable = true) use ($d, $o) {
-            $v = array_key_exists($key, $d) ? $d[$key] : $o->{$key};
+        $int = function (string $key, int $lo, int $hi, string $what, ?int $default = null) use ($d, $o) {
+            $v = array_key_exists($key, $d) ? $d[$key] : ($o->{$key} ?? $default);   // left out of a new offering: the usual value
             if ($v === null || $v === '') {
-                if (! $nullable) {
+                if ($default !== null) {
                     throw new BooksException("Give {$what}.");
                 }
 
@@ -150,8 +150,8 @@ class OfferingEditor
             throw new BooksException('Access at the deposit needs a deposit or instalments.');
         }
 
-        return ['deposit_pct' => $dep, 'instalments' => $int('instalments', 1, 24, 'the number of instalments'), 'instalment_days' => $int('instalment_days', 1, 365, 'the days between payments', false) ?? 30,
-            'grant_on' => $grant, 'grace_days' => $int('grace_days', 0, 60, 'the days an instalment may be late', false) ?? 7, 'refund_days' => $int('refund_days', 0, 3650, 'the refund days'), 'capacity' => $int('capacity', 1, 5000, 'the number of places')];
+        return ['deposit_pct' => $dep, 'instalments' => $int('instalments', 1, 24, 'the number of instalments'), 'instalment_days' => $int('instalment_days', 1, 365, 'the days between payments', 30),
+            'grant_on' => $grant, 'grace_days' => $int('grace_days', 0, 60, 'the days an instalment may be late', 7), 'refund_days' => $int('refund_days', 0, 3650, 'the refund days'), 'capacity' => $int('capacity', 1, 5000, 'the number of places')];
     }
 
     private function slug(string $title): string
