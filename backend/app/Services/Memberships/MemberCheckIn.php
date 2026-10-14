@@ -99,12 +99,12 @@ class MemberCheckIn
     }
 
     /** @return array<int, array<string, mixed>> the latest check-ins, of a branch or of a person */
-    public function recent(?int $locationId = null, ?int $userId = null, int $limit = 50): array
+    public function recent(?int $locationId = null, ?int $userId = null, int $limit = 50, ?array $locationIds = null): array
     {
         if (! self::installed()) {
             return [];
         }
-        $rows = Checkin::query()->when($locationId, fn ($q) => $q->where('location_id', $locationId))->when($userId, fn ($q) => $q->where('user_id', $userId))->orderByDesc('id')->limit($limit)->get();
+        $rows = Checkin::query()->when($locationId, fn ($q) => $q->where('location_id', $locationId))->when($locationIds !== null, fn ($q) => $q->whereIn('location_id', $locationIds))->when($userId, fn ($q) => $q->where('user_id', $userId))->orderByDesc('id')->limit($limit)->get();
         $names = User::whereIn('id', $rows->pluck('user_id'))->pluck('name', 'id');
         $branches = Location::whereIn('id', $rows->pluck('location_id')->filter())->pluck('name', 'id');
 

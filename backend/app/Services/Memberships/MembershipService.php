@@ -107,6 +107,9 @@ class MembershipService
     private function invoice(Membership $m, Plan $plan, string $kind, string $label, array $lines, ?Carbon $from, ?Carbon $to, Carbon $due): Period
     {
         $payer = User::findOrFail($m->payer_user_id ?: $m->member_user_id);
+        if (! $m->customer_id && ($c = $payer->customer)) {   // the account was made after joining
+            $m->update(['customer_id' => $c->id]);
+        }
         if (! $m->customer_id) {
             throw new BooksException("{$payer->name} needs a customer account to be invoiced: create it under Customers first.");
         }
@@ -154,7 +157,13 @@ class MembershipService
             $total = round((float) $this->vouchers->preview($this->payload($stub, $per, $lines, $payer, 'Membership quote'), null)['total'], 2);
         }
 
-        return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'amount' => $l['amount']], $lines), 'total' => $total, 'trial_days' => (int) $p->trial_days, 'period_label' => $this->plans->periodLabel($p), 'free' => $lines === []];
+        return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'amount' => $l['amount']], $lines), 'total' => $total, 'trial_days' => $this->trialFor($member->id, $p) ? (int) $p->trial_days : 0, 'period_label' => $this->plans->periodLabel($p), 'free' => $lines === []];
+    }
+
+    /** A plan's free trial is given once to a person. */
+    private function trialFor(int $userId, Plan $p, ?int $except = null): bool
+    {
+        return (int) $p->trial_days > 0 && ! Membership::where('member_user_id', $userId)->where('plan_id', $p->id)->when($except, fn ($q) => $q->where('id', '!=', $except))->whereNotNull('trial_ends_on')->exists();
     }
 
     /** @return array<int, array{description: string, amount: float, ledger_id: int}> */
@@ -164,7 +173,7 @@ class MembershipService
         if ($this->owesJoiningFee($member->id, $p)) {
             $lines[] = ['description' => $p->name.' — joining fee', 'amount' => (float) $p->joining_fee, 'ledger_id' => (int) ($p->joining_ledger_id ?: $p->ledger_id)];
         }
-        if ((float) $p->price > 0 && (int) $p->trial_days === 0) {
+        if ((float) $p->price > 0 && ! $this->trialFor($member->id, $p)) {
             $lines[] = ['description' => $p->name.' — '.$this->plans->periodLabel($p), 'amount' => (float) $p->price, 'ledger_id' => (int) $p->ledger_id];
         }
 
@@ -194,7 +203,7 @@ class MembershipService
         }
         $lines = $this->joinLines($plan, $member);
         $customer = $payer->customer;
-        if ($lines && ! $customer) {
+        if (($lines || (float) $plan->price > 0) && ! $customer) {   // a trial is free, but the periods after it are invoiced
             throw new BooksException("{$payer->name} needs a customer account to be invoiced: create it under Customers first.");
         }
         $now = ($now ?? Carbon::now($this->tz()))->copy();
@@ -210,7 +219,7 @@ class MembershipService
 
                 return $m->fresh();
             }
-            $kind = (float) $plan->price > 0 && (int) $plan->trial_days === 0 ? 'first' : 'joining';
+            $kind = (float) $plan->price > 0 && ! $this->trialFor($member->id, $plan) ? 'first' : 'joining';   // 'first' carries the first period
             $this->invoice($m, $plan, $kind, $kind === 'first' ? 'Joining and first period' : 'Joining fee', $lines, null, null, $this->today($now));
             $m->update(['expires_at' => $hours > 0 ? $now->copy()->addHours($hours) : null]);
 
@@ -225,7 +234,7 @@ class MembershipService
     private function begin(Membership $m, Plan $plan, ?Carbon $now = null): void
     {
         $today = $this->today($now);
-        $trial = (int) $plan->trial_days > 0 && ! $m->trial_ends_on && ! Membership::where('member_user_id', $m->member_user_id)->where('plan_id', $plan->id)->where('id', '!=', $m->id)->whereNotNull('trial_ends_on')->exists();
+        $trial = ! $m->trial_ends_on && $this->trialFor((int) $m->member_user_id, $plan, $m->id);
         if ($trial) {
             $m->update(['status' => 'trial', 'started_on' => $today, 'trial_ends_on' => $today->copy()->addDays((int) $plan->trial_days), 'period_from' => $today, 'paid_until' => $today->copy()->addDays((int) $plan->trial_days), 'expires_at' => null]);
         } else {
@@ -444,10 +453,10 @@ class MembershipService
             throw new BooksException('This membership is over already.');
         }
         $reason = trim((string) $reason) === '' ? null : mb_substr(trim((string) $reason), 0, 300);
+        if ($m->status === 'pending' && $this->hasMoney($m)) {
+            throw new BooksException('Part of the first payment is in: take the rest, or refund it in the books.');
+        }
         if ($m->status === 'pending' || $immediate) {
-            if ($m->status !== 'pending' && $this->hasMoney($m) && ! $immediate) {
-                throw new BooksException('Money has been paid on this: refund it, or end it at the end of the paid time.');
-            }
             DB::transaction(function () use ($m, $reason, $by) {
                 $this->voidUnpaid($m, 'cancelled'.($reason ? ": {$reason}" : ''), $by);
                 $m->update(['status' => 'cancelled', 'cancelled_at' => now(), 'cancel_reason' => $reason, 'expires_at' => null, 'paid_until' => $m->status === 'pending' ? null : $this->today(), 'cancel_at_end' => false]);
@@ -457,6 +466,9 @@ class MembershipService
             $this->notices->ended($m->fresh());
 
             return $m->fresh();
+        }
+        if ($m->cancel_at_end) {
+            throw new BooksException('It is set to end when the paid time runs out already.');
         }
         DB::transaction(function () use ($m, $reason, $by) {
             $this->voidUnpaid($m, 'cancelled at the end of the paid time', $by);
@@ -642,14 +654,13 @@ class MembershipService
 
                     return;
                 }
-                if ($m->status === 'lapsed' || $m->billing !== 'invoice' || ! $m->paid_until) {
+                if ($m->status === 'lapsed' || $m->billing !== 'invoice' || ! $m->paid_until) {   // a lapsed one starts again when its open invoice is paid
                     return;
                 }
                 // invoice the next period a few days ahead
                 $open = Period::where('membership_id', $m->id)->where('status', 'open')->whereIn('kind', ['period'])->first();
-                if (! $open && $m->billing === 'invoice' && ! $m->cancel_at_end && $m->paid_until && $today->copy()->addDays((int) $s['renewal_lead_days'])->gte($m->paid_until) && $m->status !== 'lapsed') {
-                    $next = $m->change_to_plan_id ? Plan::with('benefits')->find($m->change_to_plan_id) : $plan;
-                    $next ??= $plan;
+                if (! $open && ! $m->cancel_at_end && $plan->auto_renew && $today->copy()->addDays((int) $s['renewal_lead_days'])->gte($m->paid_until)) {
+                    $next = ($m->change_to_plan_id ? Plan::with('benefits')->find($m->change_to_plan_id) : null) ?? $plan;   // a downgrade waiting for this renewal
                     if ($next->id !== $plan->id) {
                         $this->entitle($m, false, $plan);
                         $m->update(['plan_id' => $next->id, 'change_to_plan_id' => null]);
@@ -664,15 +675,19 @@ class MembershipService
                         $this->log($m, 'renewed', 'free');
                     } else {
                         $label = $plan->name.' — '.$from->format('j M').' to '.$to->copy()->subDay()->format('j M Y');
-                        $open = $this->invoice($m->fresh(), $plan, 'period', $label, [['description' => $label, 'amount' => (float) $plan->price, 'ledger_id' => (int) $plan->ledger_id]], $from, $to, $from);
-                        $this->notices->renewalInvoiced($m, $open);
-                        $this->log($m, 'renewal_invoiced', $label);
-                        $r['renewed']++;
+                        try {
+                            $open = $this->invoice($m->fresh(), $plan, 'period', $label, [['description' => $label, 'amount' => (float) $plan->price, 'ledger_id' => (int) $plan->ledger_id]], $from, $to, $from);
+                            $this->notices->renewalInvoiced($m, $open);
+                            $this->log($m, 'renewal_invoiced', $label);
+                            $r['renewed']++;
+                        } catch (\Throwable $e) {   // not invoiced (no customer account, the books refused): it still runs out below, it is never free for ever
+                            report($e);
+                        }
                     }
                     $m = $m->fresh();
                 }
                 // the covered time has run out: past due, then lapsed
-                if ($m->paid_until && $today->gte($m->paid_until) && $open) {
+                if ($today->gte($m->paid_until) && ($open || (float) $plan->price > 0)) {   // unpaid (or the renewal could not even be invoiced)
                     $m = $m->fresh();
                     $lapseOn = $m->paid_until->copy()->addDays((int) $plan->grace_days);
                     if ($today->gt($lapseOn) && $m->status !== 'lapsed') {
@@ -681,7 +696,7 @@ class MembershipService
                         $this->log($m, 'lapsed');
                         $this->notices->lapsed($m->fresh());
                         $r['lapsed']++;
-                    } elseif ($today->lte($lapseOn) && $m->status !== 'past_due' && $m->status !== 'lapsed') {
+                    } elseif ($today->lte($lapseOn) && $m->status !== 'past_due') {
                         $m->update(['status' => 'past_due']);
                         $this->log($m, 'past_due');
                         $this->notices->pastDue($m->fresh());

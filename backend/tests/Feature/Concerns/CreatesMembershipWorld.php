@@ -32,6 +32,7 @@ trait CreatesMembershipWorld
     protected array $started = [];
     protected array $sent = [];
     protected bool $licensed = true;
+    protected bool $paidAtOnce = false;   // the invoice was paid at once (a cash sale): a refund then says where the money goes back from
     protected int $serviceLedger = 0;
     protected int $productLedger = 0;
 
@@ -44,9 +45,39 @@ trait CreatesMembershipWorld
         Schema::create('locations', function ($t) { $t->id(); $t->string('name'); $t->boolean('is_default')->default(false); $t->softDeletes(); $t->timestamps(); });
         Schema::create('currencies', function ($t) { $t->id(); $t->string('code', 8); $t->boolean('is_base')->default(false); $t->boolean('is_active')->default(true); $t->timestamps(); });
         Schema::create('vouchers', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_type_id')->nullable(); $t->string('voucher_number')->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); $t->unsignedBigInteger('customer_id')->nullable(); $t->string('status')->default('posted'); $t->decimal('total_amount', 12, 2)->default(0); $t->unsignedBigInteger('source_voucher_id')->nullable(); $t->json('meta')->nullable(); $t->timestamps(); });
+        Schema::create('voucher_types', function ($t) { $t->id(); $t->string('name'); $t->string('base_type')->nullable(); $t->timestamps(); });
         Schema::create('payment_methods', function ($t) { $t->id(); $t->string('name'); $t->string('kind')->nullable(); $t->unsignedBigInteger('ledger_id')->nullable(); $t->boolean('is_online')->default(false); $t->string('gateway')->nullable(); $t->boolean('requires_reference')->default(false); $t->integer('sort_order')->default(0); $t->boolean('is_active')->default(true); $t->timestamps(); });
         Schema::create('ledger_groups', function ($t) { $t->id(); $t->unsignedBigInteger('parent_id')->nullable(); $t->string('name'); $t->string('behaviour')->nullable(); $t->json('settings')->nullable(); $t->timestamps(); });
         Schema::create('ledgers', function ($t) { $t->id(); $t->string('name'); $t->unsignedBigInteger('group_id'); $t->boolean('is_active')->default(true); $t->string('tax_nature')->nullable(); $t->boolean('offer_at_checkout')->default(false); $t->timestamps(); });
+        $this->createMembershipTables();
+
+        DB::table('currencies')->insert(['id' => 1, 'code' => 'KES', 'is_base' => true]);
+        DB::table('voucher_types')->insert([['id' => 1, 'name' => 'Sales Order', 'base_type' => 'sales_order'], ['id' => 2, 'name' => 'Sales', 'base_type' => 'sales'], ['id' => 3, 'name' => 'Receipt', 'base_type' => 'receipt'], ['id' => 4, 'name' => 'Credit Note', 'base_type' => 'credit_note']]);
+        DB::table('locations')->insert([['id' => 1, 'name' => 'Westlands', 'is_default' => true], ['id' => 2, 'name' => 'Karen', 'is_default' => false]]);
+        DB::table('payment_methods')->insert([['id' => 1, 'name' => 'Cash', 'kind' => 'cash', 'is_online' => false, 'gateway' => null, 'is_active' => true], ['id' => 4, 'name' => 'M-Pesa online', 'kind' => 'mpesa', 'is_online' => true, 'gateway' => 'mpesa_stk', 'is_active' => true]]);
+        $svc = DB::table('ledger_groups')->insertGetId(['name' => 'Service Income', 'behaviour' => 'sales', 'settings' => json_encode(['applies_to' => 'service'])]);
+        $prod = DB::table('ledger_groups')->insertGetId(['name' => 'Sales Accounts', 'behaviour' => 'sales']);
+        $this->serviceLedger = DB::table('ledgers')->insertGetId(['name' => 'Membership income', 'group_id' => $svc, 'tax_nature' => 'taxable']);
+        $this->productLedger = DB::table('ledgers')->insertGetId(['name' => 'Goods', 'group_id' => $prod, 'tax_nature' => 'taxable']);
+
+        $this->mock(LicenseManager::class, fn ($m) => $m->shouldReceive('isActive')->andReturnUsing(fn () => $this->licensed));
+        $this->standInBooks();
+        $this->app->instance(Notifier::class, new class($this) extends Notifier {
+            public function __construct(private $test) {}
+
+            public function send(Model $to, string $type, string $title, string $message, array $o = []): array
+            {
+                $this->test->noteSent($to->id, $type, $title, $message);
+
+                return [];
+            }
+        });
+        $this->mock(Staff::class, fn ($m) => $m->shouldReceive('holding')->andReturn(new Collection()));
+    }
+
+    /** Only the Memberships tables (scripts 162 to 167), for another module's tests to add. */
+    protected function createMembershipTables(): void
+    {
         Schema::create('membership_plans', function ($t) {
             $t->id(); $t->string('name', 120); $t->string('slug', 140)->unique(); $t->string('summary', 300)->nullable(); $t->text('description')->nullable(); $t->string('cover')->nullable(); $t->string('period_unit', 6)->default('month'); $t->unsignedSmallInteger('period_count')->default(1);
             $t->decimal('price', 14, 2)->default(0); $t->decimal('joining_fee', 14, 2)->default(0); $t->unsignedBigInteger('ledger_id')->nullable(); $t->unsignedBigInteger('joining_ledger_id')->nullable(); $t->unsignedSmallInteger('trial_days')->default(0); $t->unsignedSmallInteger('grace_days')->default(7);
@@ -72,27 +103,6 @@ trait CreatesMembershipWorld
         });
         Schema::create('membership_checkins', function ($t) { $t->id(); $t->unsignedBigInteger('membership_id')->nullable(); $t->unsignedBigInteger('user_id'); $t->unsignedBigInteger('location_id')->nullable(); $t->string('result', 8); $t->string('reason', 200)->nullable(); $t->string('method', 8)->default('card'); $t->unsignedBigInteger('by_user_id')->nullable(); $t->timestamp('created_at')->nullable(); });
 
-        DB::table('currencies')->insert(['id' => 1, 'code' => 'KES', 'is_base' => true]);
-        DB::table('locations')->insert([['id' => 1, 'name' => 'Westlands', 'is_default' => true], ['id' => 2, 'name' => 'Karen', 'is_default' => false]]);
-        DB::table('payment_methods')->insert([['id' => 1, 'name' => 'Cash', 'kind' => 'cash', 'is_online' => false, 'gateway' => null, 'is_active' => true], ['id' => 4, 'name' => 'M-Pesa online', 'kind' => 'mpesa', 'is_online' => true, 'gateway' => 'mpesa_stk', 'is_active' => true]]);
-        $svc = DB::table('ledger_groups')->insertGetId(['name' => 'Service Income', 'behaviour' => 'sales', 'settings' => json_encode(['applies_to' => 'service'])]);
-        $prod = DB::table('ledger_groups')->insertGetId(['name' => 'Sales Accounts', 'behaviour' => 'sales']);
-        $this->serviceLedger = DB::table('ledgers')->insertGetId(['name' => 'Membership income', 'group_id' => $svc, 'tax_nature' => 'taxable']);
-        $this->productLedger = DB::table('ledgers')->insertGetId(['name' => 'Goods', 'group_id' => $prod, 'tax_nature' => 'taxable']);
-
-        $this->mock(LicenseManager::class, fn ($m) => $m->shouldReceive('isActive')->andReturnUsing(fn () => $this->licensed));
-        $this->standInBooks();
-        $this->app->instance(Notifier::class, new class($this) extends Notifier {
-            public function __construct(private $test) {}
-
-            public function send(Model $to, string $type, string $title, string $message, array $o = []): array
-            {
-                $this->test->noteSent($to->id, $type, $title, $message);
-
-                return [];
-            }
-        });
-        $this->mock(Staff::class, fn ($m) => $m->shouldReceive('holding')->andReturn(new Collection()));
     }
 
     public function noteSent(int $to, string $type, string $title, string $message): void
@@ -139,7 +149,7 @@ trait CreatesMembershipWorld
         });
         $v->method('returnable')->willReturnCallback(fn (Voucher $inv) => ['lines' => array_map(fn ($l, $i) => ['id' => $inv->id * 100 + $i, 'item_type' => 'custom', 'description' => $l['description'], 'available_quantity' => in_array($inv->id, array_column($this->credited, 'invoice'), true) ? 0 : 1],
             $this->linesOf($inv), array_keys($this->linesOf($inv))), 'refund' => ['default_id' => 9]]);
-        $v->method('paidAtOnce')->willReturn(false);
+        $v->method('paidAtOnce')->willReturnCallback(fn () => $this->paidAtOnce);
         $v->method('createReturn')->willReturnCallback(function (Voucher $inv, array $o) {
             $this->credited[] = ['invoice' => $inv->id] + $o;
 

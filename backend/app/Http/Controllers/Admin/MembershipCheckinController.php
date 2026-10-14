@@ -67,8 +67,9 @@ class MembershipCheckinController extends Controller
     public function recent(Request $request): JsonResponse
     {
         $loc = $this->branch($request->integer('location_id') ?: null);
+        $only = $loc === null && $this->branches->enforcing('general') ? $this->branches->limit() : null;   // no branch chosen: only the branches this person is cleared for
 
-        return response()->json(['checkins' => $this->checkins->recent($loc, $request->integer('user_id') ?: null)]);
+        return response()->json(['checkins' => $this->checkins->recent($loc, $request->integer('user_id') ?: null, 50, $only)]);
     }
 
     public function people(Request $request): JsonResponse

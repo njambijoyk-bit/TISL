@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Schema;
  */
 class Credits
 {
+    /** the entries credits are spent from: a grant from a plan, and credits staff added */
+    private const POOLS = ['grant', 'adjust'];
+
     public static function installed(): bool
     {
         return Schema::hasTable('membership_credits');
@@ -67,7 +70,7 @@ class Credits
     {
         $now ??= now();
 
-        return CreditEntry::where('user_id', $userId)->where('kind', 'grant')->where('remaining', '>', 0)->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', $now))
+        return CreditEntry::where('user_id', $userId)->whereIn('kind', self::POOLS)->where('remaining', '>', 0)->where(fn ($w) => $w->whereNull('expires_at')->orWhere('expires_at', '>', $now))
             ->orderByRaw('expires_at IS NULL')->orderBy('expires_at')->orderBy('id');
     }
 
@@ -191,7 +194,7 @@ class Credits
         $now ??= now();
         $ended = Membership::whereIn('status', ['cancelled', 'ended'])->pluck('id');
         $n = 0;
-        foreach (CreditEntry::where('kind', 'grant')->where('remaining', '>', 0)->where(fn ($w) => $w->where(fn ($x) => $x->whereNotNull('expires_at')->where('expires_at', '<=', $now))->orWhereIn('membership_id', $ended))->get() as $g) {
+        foreach (CreditEntry::whereIn('kind', self::POOLS)->where('remaining', '>', 0)->where(fn ($w) => $w->where(fn ($x) => $x->whereNotNull('expires_at')->where('expires_at', '<=', $now))->orWhereIn('membership_id', $ended))->get() as $g) {
             CreditEntry::create(['membership_id' => $g->membership_id, 'user_id' => $g->user_id, 'kind' => 'expire', 'delta' => -(int) $g->remaining, 'note' => 'Credits expired', 'created_at' => $now]);
             $n += (int) $g->remaining;
             $g->update(['remaining' => 0]);
@@ -208,7 +211,7 @@ class Credits
         }
 
         return CreditEntry::where('user_id', $userId)->where(fn ($w) => $w->where('delta', '!=', 0)->orWhere('kind', 'grant'))->orderByDesc('id')->limit($limit)->get()
-            ->map(fn (CreditEntry $e) => ['id' => $e->id, 'kind' => $e->kind, 'delta' => $e->delta, 'note' => $e->note, 'expires_at' => $e->kind === 'grant' && $e->remaining > 0 ? $e->expires_at?->toIso8601String() : null, 'at' => $e->created_at?->toIso8601String()])->values()->all();
+            ->map(fn (CreditEntry $e) => ['id' => $e->id, 'kind' => $e->kind, 'delta' => $e->delta, 'note' => $e->note, 'expires_at' => in_array($e->kind, self::POOLS, true) && $e->remaining > 0 ? $e->expires_at?->toIso8601String() : null, 'at' => $e->created_at?->toIso8601String()])->values()->all();
     }
 
     /** @return array{balance: int, held: int, ledger: array<int, array<string, mixed>>} */

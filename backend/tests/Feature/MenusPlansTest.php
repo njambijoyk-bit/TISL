@@ -82,7 +82,7 @@ class MenusPlansTest extends TestCase
         $this->app->instance(VoucherService::class, $v);
 
         $n = $this->createMock(PlanNotices::class);
-        foreach (['weekReady', 'reminder', 'paid', 'lapsed', 'orderMade', 'cancelled', 'staff'] as $m) {
+        foreach (['weekReady', 'reminder', 'paid', 'lapsed', 'orderMade', 'cancelled', 'staff', 'membershipNeeded'] as $m) {
             $n->method($m)->willReturnCallback(function (...$a) use ($m) { $this->notes[] = [$m, $a[0] instanceof Subscription ? $a[0]->number : (is_string($a[0]) ? $a[0] : null)]; });
         }
         $this->app->instance(PlanNotices::class, $n);
@@ -903,5 +903,110 @@ class MenusPlansTest extends TestCase
         $this->assertSame(1, count($this->vouchers[0]['lines']));
         $this->assertSame(600.0, (float) $this->vouchers[0]['lines'][0]['rate']);
         $this->assertNotNull($greens);
+    }
+    // ── memberships (Memberships step 4) ─────────────────────────────────
+
+    /** The Memberships tables, the two meal plan columns, and a person who may or may not hold a membership. */
+    private function withMemberships(bool $on = true): void
+    {
+        if (! Schema::hasTable('users')) {
+            Schema::create('users', function ($t) { $t->id(); $t->string('name'); $t->string('email')->nullable(); $t->softDeletes(); $t->timestamps(); });
+            Schema::create('customers', function ($t) { $t->id(); $t->unsignedBigInteger('user_id')->nullable(); $t->string('phone')->nullable(); $t->softDeletes(); $t->timestamps(); });
+        }
+        Schema::create('membership_plans', function ($t) { $t->id(); $t->string('name'); $t->string('slug')->nullable(); $t->string('status')->default('published'); $t->timestamps(); });
+        Schema::create('membership_plan_benefits', function ($t) { $t->id(); $t->unsignedBigInteger('plan_id'); $t->string('type'); $t->json('config')->nullable(); $t->integer('sort_order')->default(0); $t->timestamps(); });
+        Schema::create('memberships', function ($t) { $t->id(); $t->string('number')->nullable(); $t->unsignedBigInteger('plan_id'); $t->unsignedBigInteger('member_user_id'); $t->string('status'); $t->timestamps(); });
+        Schema::table('menus_plans', function ($t) { $t->boolean('requires_membership')->default(false); $t->json('membership_plan_ids')->nullable(); });
+        DB::table('membership_plans')->insert([['id' => 1, 'name' => 'Gold'], ['id' => 2, 'name' => 'Silver']]);
+        $this->mock(\App\Services\Licensing\LicenseManager::class, fn ($m) => $m->shouldReceive('isActive')->andReturnUsing(fn ($k) => $k !== 'memberships' || $on));
+    }
+
+    private function member(string $status = 'active', int $plan = 1, ?float $discount = null): \App\Models\User
+    {
+        $u = \App\Models\User::forceCreate(['name' => 'Member '.uniqid(), 'email' => uniqid().'@example.com']);
+        DB::table('customers')->insert(['user_id' => $u->id, 'phone' => '0711000000']);
+        DB::table('memberships')->insert(['number' => 'MB-'.$u->id, 'plan_id' => $plan, 'member_user_id' => $u->id, 'status' => $status]);
+        if ($discount !== null) {
+            DB::table('membership_plan_benefits')->insert(['plan_id' => $plan, 'type' => 'meals', 'config' => json_encode(['discount_pct' => $discount])]);
+        }
+
+        return $u;
+    }
+
+    private function joinAs(Plan $p, ?\App\Models\User $u): Subscription
+    {
+        return $this->subs()->subscribe($p, ['name' => 'Amina Yusuf', 'phone' => '0712345678', 'address' => 'Kilimani', 'weekdays' => [1, 3, 5], 'start_date' => '2026-10-14', 'payment_method_id' => $this->method()], $u)['subscription'];
+    }
+
+    public function test_a_meal_plan_can_ask_for_a_membership_and_name_which_plans_count(): void
+    {
+        $this->withMemberships();
+        $p = $this->plan(['requires_membership' => true, 'membership_plan_ids' => [2, 2]]);
+        $this->assertTrue($p->requires_membership);
+        $this->assertSame([2], $p->membership_plan_ids);
+        $row = collect($this->plans()->rows())->firstWhere('id', $p->id);
+        $this->assertTrue($row['requires_membership']);
+        $this->assertSame([2], $row['membership_plan_ids']);
+        $this->fails(fn () => $this->plans()->save(['membership_plan_ids' => [9]], $p), 'membership plans that exist');
+        $p = $this->plans()->save(['requires_membership' => false, 'membership_plan_ids' => []], $p);
+        $this->assertFalse($p->requires_membership);
+        $this->assertNull($p->membership_plan_ids);
+    }
+
+    public function test_subscribing_to_a_members_plan_needs_a_running_membership_of_a_plan_that_counts(): void
+    {
+        $this->withMemberships();
+        $p = $this->plan(['requires_membership' => true, 'membership_plan_ids' => [1]]);
+        $this->fails(fn () => $this->joinAs($p, null), 'This meal plan is for members on Gold');
+        $this->fails(fn () => $this->joinAs($p, $this->member('lapsed')), 'for members');
+        $this->fails(fn () => $this->joinAs($p, $this->member('paused')), 'for members');
+        $this->fails(fn () => $this->joinAs($p, $this->member('active', 2)), 'for members on Gold');
+        $this->assertSame('pending', $this->joinAs($p, $this->member('past_due'))->status);   // late, but inside the grace days
+        $this->assertSame('pending', $this->joinAs($p, $this->member('trial'))->status);
+        $any = $this->plan(['requires_membership' => true]);
+        $this->fails(fn () => $this->joinAs($any, null), 'This meal plan is for members. Join');
+        $this->assertSame('pending', $this->joinAs($any, $this->member('active', 2))->status);
+    }
+
+    public function test_nothing_is_locked_while_memberships_is_off(): void
+    {
+        $this->withMemberships(false);
+        $p = $this->plan(['requires_membership' => true]);
+        $this->assertSame('pending', $this->joinAs($p, null)->status);
+    }
+
+    public function test_members_get_their_discount_on_every_week_billed(): void
+    {
+        $this->withMemberships();
+        $p = $this->plan();
+        $s = $this->joinAs($p, $this->member('active', 1, 25));
+        $period = SubPeriod::where('subscription_id', $s->id)->firstOrFail();
+        $rates = array_map(fn ($l) => $l['rate'], end($this->vouchers)['lines']);
+        $this->assertSame([300.0, 150.0, 300.0, 150.0], array_slice($rates, 0, 4));   // 450 a day instead of 600, still shared 2:1
+        $this->assertEquals(round(450 * 2 * 1.16, 2), (float) $period->total);   // Wed and Fri of the first week
+        $full = $this->joinAs($p, $this->member('active', 2));   // a plan without the benefit pays in full
+        $this->assertSame([400.0, 200.0], array_slice(array_map(fn ($l) => $l['rate'], end($this->vouchers)['lines']), 0, 2));
+        $this->assertSame('pending', $full->status);
+    }
+
+    public function test_a_subscription_pauses_when_the_membership_it_needs_ends_and_resumes_only_with_one(): void
+    {
+        $this->withMemberships();
+        $p = $this->plan(['requires_membership' => true]);
+        $u = $this->member('active');
+        $s = $this->joinAs($p, $u);
+        $this->pay($s);
+        $this->assertSame('active', $s->fresh()->status);
+        DB::table('memberships')->where('member_user_id', $u->id)->update(['status' => 'lapsed']);
+        $this->subs()->run();
+        $s = $s->fresh();
+        $this->assertSame('paused', $s->status);
+        $this->assertNull($s->paused_until);
+        $this->assertSame(1, $this->noted('membershipNeeded'));
+        $this->fails(fn () => $this->subs()->resume($s), 'for members');
+        DB::table('memberships')->where('member_user_id', $u->id)->update(['status' => 'active']);
+        $this->assertSame('active', $this->subs()->resume($s)->status);
+        $this->subs()->run();
+        $this->assertSame(1, $this->noted('membershipNeeded'));
     }
 }
