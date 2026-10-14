@@ -766,6 +766,9 @@ class MembershipService
             if (Credits::installed()) {
                 $out['credits'] = app(Credits::class)->summary((int) $m->member_user_id);
             }
+            if ($staff && MemberCheckIn::installed()) {
+                $out['checkins'] = app(MemberCheckIn::class)->recent(null, (int) $m->member_user_id, 10);
+            }
             if ($staff) {
                 $out['events'] = $m->events()->limit(60)->get()->map(fn (MembershipEvent $e) => ['type' => $e->type, 'note' => $e->note, 'at' => $e->created_at?->toIso8601String()])->values()->all();
                 $out['notes'] = $m->notes;

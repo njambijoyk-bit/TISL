@@ -139,6 +139,12 @@ function Detail({ id, meta, plans, can, onClose, onChanged }) {
             <ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.82rem' }}>{m.credits.ledger.slice(0, 8).map((e) => <li key={e.id}>{new Date(e.at).toLocaleDateString()} · {e.kind} · {e.delta > 0 ? `+${e.delta}` : e.delta}{e.note ? ` · ${e.note}` : ''}</li>)}</ul>
           </section>
         )}
+        {m.checkins && m.checkins.length > 0 && (
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 700 }}>Check-ins</summary>
+            <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: '0.82rem' }}>{m.checkins.map((c) => <li key={c.id}>{new Date(c.at).toLocaleString()}{c.branch ? ` · ${c.branch}` : ''} · {c.result === 'ok' ? 'in' : `turned away: ${c.reason}`}</li>)}</ul>
+          </details>
+        )}
         {m.events && m.events.length > 0 && (
           <details>
             <summary style={{ cursor: 'pointer', fontWeight: 700 }}>History</summary>

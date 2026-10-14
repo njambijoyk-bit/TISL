@@ -5,7 +5,7 @@ import {
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
   Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck, LibraryBig, BookMarked,
-  GitBranch, Layers, IdCard, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
+  GitBranch, Layers, IdCard, ScanLine, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { accountType, hasPermission, isStaff } from '../lib/roles';
@@ -279,6 +279,7 @@ export const ADMIN_NAV = [
           { title: 'Settings', path: '/admin/memberships/settings', icon: Settings2, color: '#64748b' },
         ],
       },
+      { id: 'membership-checkin', title: 'Member check-in', icon: ScanLine, color: '#16a34a', path: '/admin/memberships/checkin', perm: 'memberships.checkin', keywords: 'check in door desk scan member card gym' },
     ],
   },
 

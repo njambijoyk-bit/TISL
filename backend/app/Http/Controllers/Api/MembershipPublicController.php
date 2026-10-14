@@ -59,6 +59,13 @@ class MembershipPublicController extends Controller
             'settings' => ['allow_member_cancel' => (bool) MembershipSettings::all()['allow_member_cancel'], 'pause_days_per_year' => (int) MembershipSettings::all()['pause_days_per_year']]]);
     }
 
+    public function card(Request $request): JsonResponse
+    {
+        abort_unless(\App\Services\Memberships\MemberCheckIn::installed(), 404);
+
+        return response()->json(['card' => app(\App\Services\Memberships\MemberCheckIn::class)->card($request->user())]);
+    }
+
     private function one(Request $request, Membership $m, string $message, array $extra = []): JsonResponse
     {
         return response()->json(['message' => $message, 'membership' => $this->memberships->row($m->fresh(), false, true) + ['as_payer' => (int) $m->member_user_id !== (int) $request->user()->id]] + $extra);

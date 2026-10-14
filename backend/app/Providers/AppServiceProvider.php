@@ -55,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
             \App\Services\Memberships\Credits::register($r);
         });
         $this->app->afterResolving(\App\Services\Codes\CodeResolvers::class, fn ($r) => \App\Services\Courses\CertificateCodes::register($r));
+        $this->app->afterResolving(\App\Services\Codes\CodeResolvers::class, fn ($r) => \App\Services\Memberships\MemberCheckIn::register($r));   // a member card checks the member in
         $this->app->afterResolving(\App\Services\Codes\CodeResolvers::class, fn ($r) => \App\Services\Events\TicketCodes::register($r));   // an event ticket's QR means something
         $this->app->singleton(PromoCodeService::class);
         $this->app->singleton(DarajaService::class);

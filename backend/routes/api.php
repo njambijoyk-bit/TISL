@@ -270,6 +270,7 @@ Route::prefix('memberships')->middleware(['module:memberships'])->group(function
     Route::get('/plans', [$mb, 'plans'])->middleware('throttle:120,1');
     Route::middleware('auth:sanctum')->group(function () use ($mb) {
         Route::get('/my', [$mb, 'mine'])->middleware('throttle:120,1');
+        Route::get('/my/card', [$mb, 'card'])->middleware('throttle:60,1');
         Route::post('/plans/{plan}/quote', [$mb, 'quote'])->middleware('throttle:60,1')->whereNumber('plan');
         Route::post('/plans/{plan}/join', [$mb, 'join'])->middleware('throttle:10,1')->whereNumber('plan');
         Route::post('/my/{id}/pay', [$mb, 'pay'])->middleware('throttle:10,1')->whereNumber('id');
@@ -739,6 +740,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{id}/invoice', [$c, 'invoice'])->whereNumber('id');
             Route::post('/{id}/cancel', [$c, 'cancel'])->whereNumber('id');
         });
+    });
+
+    // MEMBERSHIPS — check-in at a door or desk (only memberships.checkin; the branch must be one the person is cleared for)
+    Route::middleware(['module:memberships', 'permission:memberships.checkin'])->prefix('admin/memberships/checkin')->group(function () {
+        $ck = \App\Http\Controllers\Admin\MembershipCheckinController::class;
+        Route::get('/meta', [$ck, 'meta']);
+        Route::get('/recent', [$ck, 'recent']);
+        Route::get('/people', [$ck, 'people'])->middleware('throttle:120,1');
+        Route::post('/scan', [$ck, 'scan'])->middleware('throttle:240,1');
+        Route::post('/manual', [$ck, 'manual'])->middleware('throttle:120,1');
     });
 
     // MEMBERSHIPS — plans, their benefits and the settings. Reading needs memberships.view; changing needs memberships.manage

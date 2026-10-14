@@ -29,6 +29,27 @@ function PayBox({ m, methods, busy, go }) {
   );
 }
 
+/** The member card: a QR to show at the door or desk. It belongs to the person, so it keeps working after a renewal or a change of plan. */
+function MemberCard() {
+  const [c, setC] = useState(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => { membershipsPublicAPI.card().then((r) => setC(r.card)).catch(() => setC(null)); }, []);
+  if (!c) return null;
+
+  return (
+    <div style={{ ...card, display: 'grid', gap: 8, justifyItems: 'center', textAlign: 'center' }} data-testid="member-card">
+      <strong style={{ fontSize: '1.1rem' }}>My member card</strong>
+      {open ? <>
+        <img src={`data:image/svg+xml;utf8,${encodeURIComponent(c.svg)}`} alt="Member card QR code" style={{ width: 'min(260px, 70vw)', height: 'auto', background: '#fff', padding: 8, borderRadius: 12 }} />
+        <span style={{ fontWeight: 800 }}>{c.name}</span>
+        <span style={{ fontSize: '0.86rem' }}>{c.plan} · {c.number}{c.last_day ? ` · paid up to ${day(c.last_day)}` : ''}</span>
+        {c.branches && <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Valid at {c.branches.join(', ')}</span>}
+        <button type="button" style={link} onClick={() => setOpen(false)}>Hide</button>
+      </> : <button type="button" style={primaryBtn} onClick={() => setOpen(true)}>Show my card at the door</button>}
+    </div>
+  );
+}
+
 function One({ m, methods, settings, plans, reload }) {
   const [busy, setBusy] = useState(false);
   const [plan, setPlan] = useState('');
@@ -114,6 +135,7 @@ export default function MyMembershipPage() {
         {user && !d && !failed && <p>Loading…</p>}
         {failed && <div style={card} role="status">We could not load your membership. Please try again.</div>}
         {d && !d.ready && <div style={card} role="status">Memberships are not available yet.</div>}
+        {d?.ready && d.memberships.length > 0 && <MemberCard />}
         {d?.ready && d.credits && (d.credits.balance > 0 || d.credits.held > 0 || d.credits.ledger.length > 0) && (
           <div style={{ ...card, display: 'grid', gap: 4 }} data-testid="my-credits">
             <strong>My credits: {d.credits.balance}</strong>

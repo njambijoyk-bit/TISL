@@ -23,6 +23,11 @@ export const membershipsAPI = {
   refund: async (periodId, payload) => (await api.post(`/admin/memberships/periods/${periodId}/refund`, payload)).data,
   adjustCredits: async (id, delta, reason) => (await api.post(`/admin/memberships/members/${id}/credits`, { delta, reason })).data,
   give: async (payload) => (await api.post('/admin/memberships/members/give', payload)).data,
+  checkinMeta: async () => (await api.get('/admin/memberships/checkin/meta')).data,
+  checkinRecent: async (params) => (await api.get('/admin/memberships/checkin/recent', { params })).data,
+  checkinPeople: async (q) => (await api.get('/admin/memberships/checkin/people', { params: { q } })).data,
+  checkinScan: async (code, locationId) => (await api.post('/admin/memberships/checkin/scan', { code, location_id: locationId || undefined })).data,
+  checkinManual: async (userId, locationId) => (await api.post('/admin/memberships/checkin/manual', { user_id: userId, location_id: locationId || undefined })).data,
   removePlan: async (id) => (await api.delete(`/admin/memberships/plans/${id}`)).data,
 };
 
