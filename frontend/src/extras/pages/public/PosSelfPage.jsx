@@ -12,7 +12,7 @@ const POLL_MS = 2500;
 const GIVE_UP = 60;
 const DONE_SECONDS = 25;
 const WARN_SECONDS = 10;
-const huge = (bg = '#0f172a', fg = '#fff') => ({ padding: '20px 28px', borderRadius: 18, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 900, fontSize: '1.4rem', background: bg, color: fg, touchAction: 'manipulation' });
+const huge = (bg = 'var(--color-primary-500)', fg = 'var(--text-inverse, #fff)') => ({ padding: '20px 28px', borderRadius: 18, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 900, fontSize: '1.4rem', background: bg, color: fg, touchAction: 'manipulation' });
 
 /** The self-checkout screen: scan or pick, pay by M-Pesa on the phone, or take the basket to a cashier. Cash sales only. It starts again by itself when nobody touches it. */
 export default function PosSelfPage() {
@@ -134,35 +134,35 @@ export default function PosSelfPage() {
 
   const count = basket.reduce((a, b) => a + b.quantity, 0);
   const totals = quote && basket.length > 0 && (
-    <div style={{ display: 'grid', gap: 4, fontSize: '1.05rem', color: '#475569', borderTop: '2px solid #e2e8f0', paddingTop: 8 }}>
+    <div style={{ display: 'grid', gap: 4, fontSize: '1.05rem', color: 'var(--text-secondary)', borderTop: '2px solid var(--line)', paddingTop: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(quote.subtotal)}</span></div>
       {(quote.tax_breakdown?.length ? quote.tax_breakdown : (quote.tax_total > 0 ? [{ label: 'Tax', amount: quote.tax_total }] : [])).map((t, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{t.label ?? 'Tax'}{t.percent != null ? ` (${t.percent}%)` : ''}</span><span>{money(t.amount)}</span></div>
       ))}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}><span>To pay</span><span>{money(quote.total)}</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', fontWeight: 900, color: 'var(--text-primary)' }}><span>To pay</span><span>{money(quote.total)}</span></div>
     </div>
   );
   const helpBanner = helpState?.open ? (
     <div role="status" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '12px 16px', borderRadius: 14, background: '#ecfdf5', border: '2px solid #34d399', color: '#065f46', fontSize: '1.1rem', fontWeight: 700 }}>
       <span>✔ Help is on the way. A member of staff has been told{helpState.minutes > 0 ? ` (${helpState.minutes} min ago)` : ''}. Please stay at this screen.</span>
       <span style={{ display: 'flex', gap: 10 }}>
-      <button type="button" onClick={() => posSelfAPI.helpCancel(token).then(setHelpState).catch(() => {})} style={{ ...huge('#64748b'), padding: '10px 18px', fontSize: '1rem' }}>I don't need help now</button>
-      <button type="button" disabled={helpState.tries >= helpState.max} onClick={askHelp} style={{ ...huge('#047857'), padding: '10px 18px', fontSize: '1rem' }}>Ask again ({helpState.tries}/{helpState.max})</button>
+      <button type="button" onClick={() => posSelfAPI.helpCancel(token).then(setHelpState).catch(() => {})} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 18px', fontSize: '1rem' }}>I don't need help now</button>
+      <button type="button" disabled={helpState.tries >= helpState.max} onClick={askHelp} style={{ ...huge('var(--color-primary-600)'), padding: '10px 18px', fontSize: '1rem' }}>Ask again ({helpState.tries}/{helpState.max})</button>
       </span>
     </div>
   ) : helped ? (
     <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: '#eff6ff', border: '2px solid #60a5fa', color: '#1e3a8a', fontSize: '1.1rem', fontWeight: 700 }}>A member of staff has attended to you. Thank you for waiting.</div>
   ) : null;
   const shell = (children) => (
-    <main onPointerDown={touch} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc', color: '#0f172a' }} data-testid="self-checkout" data-step={step}>
+    <main onPointerDown={touch} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary, #f9fafb)', color: 'var(--text-primary)' }} data-testid="self-checkout" data-step={step}>
       <Helmet><title>{cfg.business}</title></Helmet>
       {children}
       {warn !== null && (
         <div role="alertdialog" aria-label="Still there?" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.8)', display: 'grid', placeItems: 'center', zIndex: 90 }}>
-          <div style={{ background: '#fff', borderRadius: 24, padding: 40, textAlign: 'center', display: 'grid', gap: 18 }}>
+          <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 24, padding: 40, textAlign: 'center', display: 'grid', gap: 18 }}>
             <h2 style={{ margin: 0, fontSize: '2rem' }}>Are you still there?</h2>
             <p style={{ margin: 0, fontSize: '1.3rem' }}>Starting again in {warn}…</p>
-            <button type="button" style={huge('#059669')} onClick={touch}>Yes, keep my basket</button>
+            <button type="button" style={huge('var(--color-primary-500)')} onClick={touch}>Yes, keep my basket</button>
           </div>
         </div>
       )}
@@ -171,7 +171,7 @@ export default function PosSelfPage() {
 
   if (step === 'welcome') {
     return shell(
-      <button type="button" onClick={() => { last.current = Date.now(); stop.current = false; setStep('shop'); }} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(160deg, #0f172a, #1e293b)', color: '#fff', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
+      <button type="button" onClick={() => { last.current = Date.now(); stop.current = false; setStep('shop'); }} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
         <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
         <span style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', fontWeight: 900 }}>{cfg.business}</span>
         <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Self checkout — touch to start</span>
@@ -188,8 +188,8 @@ export default function PosSelfPage() {
           ? <p style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>Paid. Receipt {result.number}.</p>
           : <><p style={{ margin: 0, fontSize: '1.4rem' }}>Take this code to the counter to pay in cash:</p><div style={{ fontSize: '6rem', fontWeight: 900, lineHeight: 1 }}>{result.number}</div></>}
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
-          {result.pay === 'screen' && <button type="button" style={huge('#334155')} onClick={slip}>Print my receipt</button>}
-          <button type="button" style={huge('#0f172a')} onClick={reset}>Done</button>
+          {result.pay === 'screen' && <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={slip}>Print my receipt</button>}
+          <button type="button" style={huge('var(--color-primary-500)')} onClick={reset}>Done</button>
         </div>
       </div>,
     );
@@ -201,7 +201,7 @@ export default function PosSelfPage() {
         <Loader2 size={80} style={{ justifySelf: 'center' }} />
         <h1 style={{ margin: 0, fontSize: '2rem' }}>Check your phone</h1>
         <p style={{ margin: 0, fontSize: '1.3rem' }}>Enter your M-Pesa PIN to pay. We will carry on as soon as it arrives.</p>
-        <button type="button" style={huge('#64748b')} onClick={() => { stop.current = true; posSelfAPI.cancel(token, result.session).catch(() => {}); setStep('review'); }}>Cancel</button>
+        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => { stop.current = true; posSelfAPI.cancel(token, result.session).catch(() => {}); setStep('review'); }}>Cancel</button>
       </div>,
     );
   }
@@ -212,8 +212,8 @@ export default function PosSelfPage() {
         <h1 style={{ margin: 0, fontSize: '2rem' }}>That did not go through</h1>
         <p style={{ margin: 0, fontSize: '1.3rem' }}>{problem}</p>
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
-          <button type="button" style={huge('#0f172a')} onClick={() => { setProblem(null); setStep('review'); }}>Try again</button>
-          <button type="button" style={huge('#64748b')} onClick={reset}>Start over</button>
+          <button type="button" style={huge('var(--color-primary-500)')} onClick={() => { setProblem(null); setStep('review'); }}>Try again</button>
+          <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={reset}>Start over</button>
         </div>
       </div>,
     );
@@ -229,20 +229,20 @@ export default function PosSelfPage() {
         {totals}
         {step === 'review' && (
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <button type="button" style={huge('#64748b')} onClick={() => setStep('shop')}>Add more</button>
-            <button type="button" style={huge('#059669')} disabled={!quote} onClick={() => setStep('pay')}>Pay</button>
+            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setStep('shop')}>Add more</button>
+            <button type="button" style={huge('var(--color-primary-500)')} disabled={!quote} onClick={() => setStep('pay')}>Pay</button>
           </div>
         )}
         {step === 'pay' && (
           <div style={{ display: 'grid', gap: 14 }}>
             {cfg.payment_methods.length > 0 && (
               <>
-                <input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Your M-Pesa phone number" aria-label="Phone number" style={{ padding: 18, fontSize: '1.5rem', borderRadius: 14, border: '2px solid #cbd5e1' }} />
-                <button type="button" style={huge('#047857')} disabled={busy || !phone.trim() || !quote} onClick={() => place('screen')}>Pay with M-Pesa</button>
+                <input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Your M-Pesa phone number" aria-label="Phone number" style={{ padding: 18, fontSize: '1.5rem', borderRadius: 14, border: '2px solid var(--line)' }} />
+                <button type="button" style={huge('var(--color-primary-600)')} disabled={busy || !phone.trim() || !quote} onClick={() => place('screen')}>Pay with M-Pesa</button>
               </>
             )}
-            <button type="button" style={huge('#334155')} disabled={busy || !quote} onClick={() => place('counter')}>Pay cash at the counter</button>
-            <button type="button" style={huge('#64748b')} onClick={() => setStep('review')}>Back</button>
+            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} disabled={busy || !quote} onClick={() => place('counter')}>Pay cash at the counter</button>
+            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setStep('review')}>Back</button>
           </div>
         )}
       </div>,
@@ -253,11 +253,11 @@ export default function PosSelfPage() {
     <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, padding: 20, alignItems: 'start' }}>
       <section style={{ display: 'grid', gap: 12 }}>
         {helpBanner}
-        <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan an item, or type its name" aria-label="Scan or search" style={{ padding: 18, fontSize: '1.4rem', borderRadius: 14, border: '2px solid #cbd5e1' }} />
+        <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan an item, or type its name" aria-label="Scan or search" style={{ padding: 18, fontSize: '1.4rem', borderRadius: 14, border: '2px solid var(--line)' }} />
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
           {found.map((it) => (
-            <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ padding: 14, borderRadius: 14, border: '2px solid #e2e8f0', background: '#fff', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', display: 'grid', gap: 4 }}>
+            <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ padding: 14, borderRadius: 14, border: '2px solid var(--line)', background: 'var(--surface-card, #fff)', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', display: 'grid', gap: 4 }}>
               <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{it.name}</span>
               <span style={{ fontWeight: 900 }}>{it.price == null ? '' : money(it.price)}</span>
               {it.stock != null && it.stock <= 5 && <span style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 700 }}>Only {it.stock} left</span>}
@@ -265,35 +265,35 @@ export default function PosSelfPage() {
           ))}
         </div>
       </section>
-      <aside style={{ display: 'grid', gap: 10, background: '#fff', borderRadius: 16, padding: 16 }}>
+      <aside style={{ display: 'grid', gap: 10, background: 'var(--surface-card, #fff)', borderRadius: 16, padding: 16 }}>
         <strong style={{ fontSize: '1.3rem' }}>Basket ({count})</strong>
         {basket.map((b) => (
           <div key={b.variant_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
             <span style={{ fontSize: '1.05rem' }}>{b.name}</span>
             <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button type="button" aria-label={`Less ${b.name}`} style={{ ...huge('#e2e8f0', '#0f172a'), padding: '8px 14px' }} onClick={() => bump(b.variant_id, -1)}><Minus size={18} /></button>
+              <button type="button" aria-label={`Less ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 14px' }} onClick={() => bump(b.variant_id, -1)}><Minus size={18} /></button>
               <strong style={{ minWidth: 24, textAlign: 'center' }}>{b.quantity}</strong>
-              <button type="button" aria-label={`More ${b.name}`} style={{ ...huge('#e2e8f0', '#0f172a'), padding: '8px 14px' }} onClick={() => bump(b.variant_id, 1)}><Plus size={18} /></button>
+              <button type="button" aria-label={`More ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 14px' }} onClick={() => bump(b.variant_id, 1)}><Plus size={18} /></button>
             </span>
           </div>
         ))}
-        {basket.length === 0 && <p style={{ margin: 0, color: '#64748b' }}>Scan your first item.</p>}
+        {basket.length === 0 && <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Scan your first item.</p>}
         {totals}
-        <button type="button" style={huge('#059669')} disabled={basket.length === 0} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
-        <button type="button" style={huge('#e2e8f0', '#0f172a')} onClick={askHelp}>Call for help</button>
+        <button type="button" style={huge('var(--color-primary-500)')} disabled={basket.length === 0} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
+        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={askHelp}>Call for help</button>
       </aside>
       {help && (
         <div role="dialog" aria-label="Help" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', display: 'grid', placeItems: 'center', zIndex: 80 }}>
-          <div style={{ background: '#fff', borderRadius: 20, padding: 28, display: 'grid', gap: 14, maxWidth: 420, textAlign: 'center' }}>
+          <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 20, padding: 28, display: 'grid', gap: 14, maxWidth: 420, textAlign: 'center' }}>
             {helpMsg
               ? <h2 style={{ margin: 0, color: '#b91c1c' }}>{helpMsg}</h2>
               : !helpState
                 ? <h2 style={{ margin: 0 }}>Calling a member of staff…</h2>
-                : <h2 style={{ margin: 0, color: '#047857' }}>✔ A member of staff has been told and is coming. Please stay at this screen.</h2>}
+                : <h2 style={{ margin: 0, color: 'var(--color-primary-700)' }}>✔ A member of staff has been told and is coming. Please stay at this screen.</h2>}
             {helpState && <p style={{ margin: 0, fontWeight: 700 }}>Request {helpState.tries} of {helpState.max} allowed this hour.</p>}
-            <p style={{ margin: 0, color: '#64748b' }}>They can clear this screen or help you pay.</p>
-            <button type="button" style={huge('#0f172a')} onClick={() => setHelp(false)}>OK</button>
-            <button type="button" style={huge('#64748b')} onClick={reset}>Start over</button>
+            <p style={{ margin: 0, color: 'var(--text-secondary)' }}>They can clear this screen or help you pay.</p>
+            <button type="button" style={huge('var(--color-primary-500)')} onClick={() => setHelp(false)}>OK</button>
+            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={reset}>Start over</button>
           </div>
         </div>
       )}

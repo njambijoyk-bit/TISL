@@ -177,7 +177,7 @@ function ReturnPanel({ ctx, cur, onDone }) {
 /** The till fills the whole page: no admin menu around it. */
 function Shell({ children }) {
   return (
-    <main style={{ minHeight: '100vh', background: '#f8fafc', padding: 16, boxSizing: 'border-box' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)', padding: 16, boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Link to="/admin" style={{ fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none' }}>← Back to admin</Link>
       </div>
@@ -314,7 +314,7 @@ export default function PosTill() {
   const helpCount = helpList?.length ?? 0;
   if (locked) {
     return (
-      <main onClick={() => setLocked(false)} role="button" tabIndex={0} onKeyDown={() => setLocked(false)} aria-label="Touch to start" style={{ minHeight: '100vh', cursor: 'pointer', background: 'linear-gradient(160deg, #0f172a, #1e293b)', color: '#fff', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
+      <main onClick={() => setLocked(false)} role="button" tabIndex={0} onKeyDown={() => setLocked(false)} aria-label="Touch to start" style={{ minHeight: '100vh', cursor: 'pointer', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
         <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
         <span style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', fontWeight: 900 }}>{ctx.business}</span>
         <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Point of sale — touch to start</span>
