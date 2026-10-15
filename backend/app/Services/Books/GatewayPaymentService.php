@@ -266,6 +266,7 @@ class GatewayPaymentService
         try {
             $this->posSelfLate($order, $sale, $attempt);
             DB::table('vouchers')->where('id', $sale->id)->update(['station_id' => (int) $station]);
+            $sale->refresh();
             $sale->update(['channel' => 'pos', 'meta' => array_merge($sale->meta ?? [], ['pos' => ['station_id' => (int) $station, 'cashier' => 'Self checkout']])]);
         } catch (\Throwable $e) {
             Log::error('Gateway: the self-checkout sale could not be tagged', ['sale' => $sale->id, 'error' => $e->getMessage()]);

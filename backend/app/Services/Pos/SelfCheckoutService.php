@@ -235,12 +235,14 @@ class SelfCheckoutService
 
         return DB::transaction(function () use ($s, $data, $code, $method, $phone, $due, $tenders, $total) {
             $order = $this->vouchers->placeOrder(array_merge($data, ['channel' => 'pos']), null);   // becomes the Cash Sale when the money arrives
+            $order->refresh();
             $order->update(['meta' => array_merge($order->meta ?? [], ['pos_self' => ['station_id' => $s->id, 'session' => $code]])]);
             DB::table('vouchers')->where('id', $order->id)->update(['station_id' => $s->id]);
             DB::table('pos_self_sessions')->insert(['station_id' => $s->id, 'session_code' => $code, 'pay' => 'screen', 'voucher_id' => $order->id, 'created_at' => now(), 'updated_at' => now()]);
             if ($due <= 0.005) {   // gift vouchers cover all of it: paid now, no prompt on a phone
                 $sale = app(\App\Services\Books\CheckoutService::class)->settle($order, $tenders, null);
                 DB::table('vouchers')->where('id', $sale->id)->update(['station_id' => $s->id]);
+                $sale->refresh();
                 $sale->update(['channel' => 'pos', 'meta' => array_merge($sale->meta ?? [], ['pos' => ['station_id' => $s->id, 'cashier' => 'Self checkout']])]);
                 DB::table('pos_self_sessions')->where('session_code', $code)->update(['status' => 'paid', 'updated_at' => now()]);
 

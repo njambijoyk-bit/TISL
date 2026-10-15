@@ -495,7 +495,7 @@ class SaleService
                 $v = $this->post($data, $u);
                 $this->tag($v->id, $station, $shiftId);
                 if ($paid) {   // what was handed over and the change given, for the receipt
-                    $v->update(['meta' => array_merge($v->meta ?? [], ['pos_paid' => ['tendered' => $paid['tendered'], 'change' => $paid['change']]])]);
+                    $this->addMeta($v, ['pos_paid' => ['tendered' => $paid['tendered'], 'change' => $paid['change']]]);
                 }
                 if ($now && $mode === 'invoice') {
                     $rc = $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till - {$v->voucher_number}"], $u);
@@ -506,7 +506,7 @@ class SaleService
                 DB::table('pos_sale_keys')->where('user_id', $u->id)->where('sale_key', $key)->update(['voucher_id' => $v->id, 'updated_at' => now()]);
                 if ($needsApproval) {   // the supervisor's approval is spent with the sale it allowed
                     $sup = $this->pins->spend($in['approval_token'] ?? null, $u, $station, 'discount', ['voucher' => $v->voucher_number]);
-                    $v->update(['meta' => array_merge($v->meta ?? [], ['pos_approval' => ['discount' => $sup]])]);
+                    $this->addMeta($v, ['pos_approval' => ['discount' => $sup]]);
                 }
 
                 return $v;
@@ -550,7 +550,7 @@ class SaleService
             'tenders' => $paid['tenders'], 'amount' => $paid['tendered'], 'is_advance' => true, 'advance_for' => "Deposit for {$order->voucher_number}", 'source_voucher_id' => $order->id, 'channel' => 'pos',
             'narration' => "Deposit for {$order->voucher_number}"], $u);
         $this->tag($receipt->id, $station, $shiftId);
-        $order->update(['meta' => array_merge($order->meta ?? [], ['pos_deposit' => ['receipt_id' => $receipt->id, 'receipt' => $receipt->voucher_number, 'amount' => $paid['tendered']]])]);
+        $this->addMeta($order, ['pos_deposit' => ['receipt_id' => $receipt->id, 'receipt' => $receipt->voucher_number, 'amount' => $paid['tendered']]]);
     }
 
     /** A customer as the till shows them once found by phone: name, points, and (for an invoice) what they may still owe. @return array<string, mixed> */
@@ -714,7 +714,7 @@ class SaleService
             $sup = $this->pins->spend($in['approval_token'] ?? null, $u, $station, 'return', ['against' => $source->voucher_number, 'note' => $note->voucher_number]);   // spent only once the note is made
             $this->tag($note->id, $station, $shiftId);
             $refund = isset($opts['refund_ledger_id']) ? ['pos_refund' => ['ledger_id' => $opts['refund_ledger_id'], 'amount' => (float) $note->total_amount, 'cash' => $this->shifts->isCashLedger((int) $opts['refund_ledger_id'])]] : [];
-            $note->update(['meta' => array_merge($note->meta ?? [], $refund, ['pos_approval' => ['return' => $sup], 'pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]]), 'channel' => 'pos']);
+            $this->addMeta($note, $refund + ['pos_approval' => ['return' => $sup], 'pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]], ['channel' => 'pos']);
             // the sale's points, promo code use and gift voucher go back with it; a gift voucher's part is not handed back as cash
             $undone = app(ReturnRewardsService::class)->reverse($note->fresh(), $source, $u, $opts['refund_ledger_id'] ?? null);
             $cashBack = max(0.0, round((float) $note->total_amount - $undone['gift_base'], 2));
@@ -727,6 +727,16 @@ class SaleService
 
             return $this->summary($note->fresh(), null, false) + ['refund' => $cashBack, 'against' => $source->voucher_number, 'approved_by' => User::whereKey($sup)->value('name')];
         });
+    }
+
+    /**
+     * Add keys to a voucher's meta. The meta is read afresh first: posting stamps it (loyalty points earned, promo use) on another copy of the voucher,
+     * and writing back an older copy would wipe those stamps.
+     */
+    private function addMeta(Voucher $v, array $add, array $also = []): void
+    {
+        $v->refresh();
+        $v->update(['meta' => array_merge($v->meta ?? [], $add)] + $also);
     }
 
     /** Removing an item from a basket, or clearing it, is recorded; someone without pos.void needs a supervisor's approval for it. */

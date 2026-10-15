@@ -101,6 +101,9 @@ class RewardService
     public function onCancel(Voucher $v, string $why = 'cancelled'): ?array
     {
         $v->loadMissing('type');
+        if ($v->customer_id && empty($v->meta['rewarded_at']) && empty($v->meta['order_counted'])) {
+            $this->recoverStamps($v);
+        }
         if (! $v->customer_id || (empty($v->meta['rewarded_at']) && empty($v->meta['order_counted']))) {
             return null;
         }
@@ -131,6 +134,26 @@ class RewardService
             // what was undone, so it can be given back exactly (and only once) if the cancelling document is itself undone
             return ['points' => $taken, 'value' => isset($value) ? (float) $value : 0.0, 'journal_id' => $journal?->id, 'meta' => $before];
         });
+    }
+
+    /**
+     * A sale whose reward stamps were wiped (the till once saved its receipt details over them) still has its points in the customer's history.
+     * If that history shows points earned on it that were never taken back, put the stamps back so they can be reversed, once.
+     */
+    private function recoverStamps(Voucher $v): void
+    {
+        $net = (int) LoyaltyPointTransaction::where('reference_type', Voucher::class)->where('reference_id', $v->id)
+            ->whereIn('type', ['order_earn', 'order_cancel', 'order_restore'])->sum('points');
+        if ($net <= 0) {
+            return;
+        }
+        $rate = (float) ($v->exchange_rate ?: 1);
+        $giftSold = round((float) $v->items()->whereNotNull('gift_meta')->sum('amount') * $rate, 2);
+        $giftPaid = round((float) DB::table('voucher_tenders')->where('voucher_id', $v->id)->whereNotNull('gift_voucher_id')->sum('amount') * $rate, 2);
+        $v->update(['meta' => array_merge($v->meta ?? [], [
+            'rewarded_at' => now()->toIso8601String(), 'points_earned' => $net, 'spend_counted' => max(0.0, (float) $v->base_total - $giftSold - $giftPaid),
+            'order_counted' => $v->type->base_type === VoucherType::CASH_SALE,
+        ])]);
     }
 
     /**
