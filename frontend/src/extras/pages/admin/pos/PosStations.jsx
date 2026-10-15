@@ -70,6 +70,10 @@ function StationRow({ s, branchId, kinds, paper, onSaved }) {
         <div style={{ display: 'grid', gap: 4 }}>
           <label htmlFor={`sa-${s.id}`} style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted }}>Open this address on the screen (shown once — copy it now)</label>
           <input id={`sa-${s.id}`} readOnly value={address} onFocus={(e) => e.target.select()} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', fontFamily: 'monospace', fontSize: '0.78rem' }} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" style={btnGhost} onClick={async () => { try { await navigator.clipboard.writeText(address); toast.success('Address copied.'); } catch { toast.error('Copy it by hand from the box.'); } }}>Copy</button>
+            <a href={address} target="_blank" rel="noreferrer" style={{ ...btnGhost, textDecoration: 'none' }}>Open</a>
+          </div>
         </div>
       )}
       <div style={{ display: 'flex', gap: 8 }}>

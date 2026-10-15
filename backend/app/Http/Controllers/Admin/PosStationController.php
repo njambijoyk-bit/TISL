@@ -22,7 +22,9 @@ class PosStationController extends Controller
         try {
             abort_unless(StationService::installed(), 422, 'Run database script 169_pos.sql first.');
 
-            return $fn();
+            $r = $fn();
+
+            return $r instanceof JsonResponse ? $r : response()->json($r);
         } catch (BooksException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
