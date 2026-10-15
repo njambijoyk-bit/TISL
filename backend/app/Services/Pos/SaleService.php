@@ -712,6 +712,10 @@ class SaleService
         if (! $lines) {
             throw new BooksException('There is nothing on this document to take back.');
         }
+        // the rounding the cashier chose at the sale goes back too, so the customer gets back exactly what they paid
+        foreach ($source->items()->where('notes', VoucherService::ROUNDING_NOTE)->whereNull('parent_item_id')->get() as $r) {
+            $lines[] = ['item_id' => (int) $r->id, 'mode' => 'adjust', 'amount' => round(abs((float) $r->amount), 2)];
+        }
         $opts = ['lines' => $lines, 'reason' => $reason, 'narration' => "Return at {$station->name} against {$source->voucher_number} - {$reason}"];
         if ($found['paid_at_once']) {
             $allowed = array_column($found['refund']['ledgers'] ?? [], 'id');
