@@ -1469,6 +1469,25 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
+        // Point of sale (Extras module), the cashier's till
+        Route::prefix('pos')->middleware('module:extras')->group(function () {
+            $c = \App\Http\Controllers\Api\PosController::class;
+            Route::middleware('permission:pos.view')->group(function () use ($c) {
+                Route::get('/context',   [$c, 'context']);
+                Route::get('/catalogue', [$c, 'catalogue']);
+                Route::get('/scan',      [$c, 'scan']);
+                Route::get('/sales',     [$c, 'mine']);
+            });
+            Route::middleware('permission:pos.sell')->group(function () use ($c) {
+                Route::post('/price',              [$c, 'price']);
+                Route::post('/sales',              [$c, 'sell']);
+                Route::get('/holds',               [$c, 'holds']);
+                Route::post('/holds',              [$c, 'hold']);
+                Route::post('/holds/{id}/recall',  [$c, 'recall'])->whereNumber('id');
+                Route::delete('/holds/{id}',       [$c, 'dropHold'])->whereNumber('id');
+            });
+        });
+
         // Point of sale (Extras module): stations and the receipt paper each branch offers
         Route::prefix('pos')->middleware('module:extras')->group(function () {
             $c = \App\Http\Controllers\Admin\PosStationController::class;

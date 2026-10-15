@@ -224,6 +224,7 @@ const MyBookings         = lazy(() => import('./core/pages/customer/MyBookings')
 const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCalendar'));
 const TeamCalendar       = lazy(() => import('./core/pages/admin/calendar/TeamCalendar'));
 const StaffResources     = lazy(() => import('./core/pages/admin/calendar/StaffResources'));
+const PosTill             = lazy(() => import('./extras/pages/admin/pos/PosTill'));
 const PosStations         = lazy(() => import('./extras/pages/admin/pos/PosStations'));
 const EngagementSettings = lazy(() => import('./extras/pages/admin/EngagementSettings'));
 const ServiceSettings    = lazy(() => import('./ecommerce/pages/admin/ServiceSettings'));
@@ -1251,6 +1252,7 @@ function App() {
               <Route path="/admin/calendar/team" element={<ProtectedRoute requireAdmin permission="calendar.team"><TeamCalendar /></ProtectedRoute>} />
               <Route path="/admin/resources" element={<ProtectedRoute requireAdmin permission="resources.manage"><StaffResources /></ProtectedRoute>} />
               <Route path="/admin/service-settings" element={<ProtectedRoute requireAdmin permission="catalogue.view"><ServiceSettings /></ProtectedRoute>} />
+              <Route path="/admin/pos" element={<ProtectedRoute requireAdmin permission="pos.sell"><ModuleRoute module="extras" redirectTo="/admin"><PosTill /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/pos/stations" element={<ProtectedRoute requireAdmin permission="pos.manage"><ModuleRoute module="extras" redirectTo="/admin"><PosStations /></ModuleRoute></ProtectedRoute>} />
               <Route path="/admin/settings/engagement" element={<ProtectedRoute requireAdmin permission="engagement.settings"><ModuleRoute module="extras" redirectTo="/admin"><EngagementSettings /></ModuleRoute></ProtectedRoute>} />
 
