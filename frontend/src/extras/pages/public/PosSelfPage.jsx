@@ -48,6 +48,7 @@ export default function PosSelfPage() {
   const [helpMsg, setHelpMsg] = useState(null);
   const [helped, setHelped] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [tick, setTick] = useState(0);
   const [custToken, setCustToken] = useState(null);   // set only after they sign in with their own email and password
   const [cust, setCust] = useState(null);             // { name, points }: no list of customers is ever shown
   const [email, setEmail] = useState('');
@@ -109,7 +110,12 @@ export default function PosSelfPage() {
     if (step !== 'shop') return undefined;
     const t = setTimeout(() => { posSelfAPI.catalogue(token, q).then((r) => setFound(r.items)).catch(() => {}); }, 250);
     return () => clearTimeout(t);
-  }, [q, step, token]);
+  }, [q, step, token, tick]);
+  useEffect(() => {   // other customers and the tills sell too: the numbers on the cards are fetched again every half minute
+    if (step !== 'shop') return undefined;
+    const t = setInterval(() => { if (!document.hidden) setTick((n) => n + 1); }, 30000);
+    return () => clearInterval(t);
+  }, [step]);
 
   const items = useMemo(() => basket.map((b) => ({ variant_id: b.variant_id, quantity: b.quantity })), [basket]);
   useEffect(() => {

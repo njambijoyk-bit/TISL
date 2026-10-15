@@ -295,10 +295,16 @@ export default function PosTill() {
     return () => { live = false; clearInterval(t); };
   }, [ctx?.station?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {   // search as they type
-    const t = setTimeout(() => { if (ctx?.ready !== false) posAPI.catalogue(q, ctx?.station?.id).then((r) => setFound(r.items)).catch(() => {}); }, 250);
+  const [tick, setTick] = useState(0);   // bumped to fetch the stock again
+  useEffect(() => {   // search as they type; also again after every sale and every half minute (other tills sell too)
+    const t = setTimeout(() => { if (ctx?.ready !== false) posAPI.catalogue(q, ctx?.station?.id).then((r) => setFound(r.items)).catch(() => {}); }, tick === 0 ? 250 : 0);
     return () => clearTimeout(t);
-  }, [q, ctx]);
+  }, [q, ctx, tick]);
+  useEffect(() => {
+    if (locked) return undefined;
+    const t = setInterval(() => { if (!document.hidden) setTick((n) => n + 1); }, 30000);
+    return () => clearInterval(t);
+  }, [locked]);
 
   const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: customer?.id, promo_code: customer && promo.trim() ? promo.trim() : undefined, customer_name: mode === 'cash' && !customer && walkin.trim() ? walkin.trim() : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin, promo]);
   useEffect(() => {   // the books price the basket: the total shown is the one that will post
@@ -350,7 +356,12 @@ export default function PosTill() {
   const pay = async (tenders) => {
     setBusy(true);
     try {
+      const sold = cart.map((c) => [c.variant_id, c.quantity]);
       const r = await posAPI.sell({ ...body(), key: key.current, tenders: tenders.filter((t) => t.amount > 0) });
+      if (r.mode !== 'order') {   // the cards drop by what was sold at once; the fresh numbers follow
+        setFound((f) => f.map((it) => { const q = sold.find(([id]) => id === it.variant_id)?.[1]; return q && it.stock != null ? { ...it, stock: Math.max(0, it.stock - q) } : it; }).filter((it) => it.stock == null || it.stock > 0));
+        setTick((n) => n + 1);
+      }
       setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setPhone(''); setPhoneMsg(null); setWalkin(''); setPromo(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
     } catch (e) { if (e?.response?.data?.approval === 'discount') { setPaying(false); setApproval(null); } toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
   };
@@ -476,7 +487,7 @@ export default function PosTill() {
       <Shell>
         <div style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
           <div style={{ ...card, padding: 10 }}>{tabs}</div>
-          <ReturnPanel ctx={ctx} cur={cur} onDone={(r) => setReturned(r)} />
+          <ReturnPanel ctx={ctx} cur={cur} onDone={(r) => { setReturned(r); setTick((n) => n + 1); }} />
         </div>
         {extraDialogs}
       </Shell>
