@@ -74,6 +74,21 @@ function SidebarInner({ onOpenSearch, onOpenCalc }) {
   const nav = useMemo(() => visibleNav(user), [user]);
   const active = useMemo(() => findActive(nav, location.pathname, location.search), [nav, location.pathname, location.search]);
 
+  // Ctrl+B (Cmd+B) opens and closes the sidebar: collapsed or open on a computer, the drawer on a phone. Left alone where it means "bold" (a rich text box).
+  const collapsedRef = useRef(collapsedPref);
+  collapsedRef.current = collapsedPref;
+  useEffect(() => {
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'b') return;
+      if (e.target?.isContentEditable) return;
+      e.preventDefault();
+      if (isMobile) setMobileOpen((o) => !o);
+      else { const next = !collapsedRef.current; setCollapsedPref(next); localStorage.setItem('sidebar_collapsed', next); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isMobile]);
+
   // Close the mobile drawer after navigating
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
@@ -227,7 +242,7 @@ function SidebarInner({ onOpenSearch, onOpenCalc }) {
                   {brandMark(company)}
                 </p>
                 <p style={{ margin: 0, fontSize: '0.62rem', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--color-text-disabled, var(--color-text-muted, var(--color-text-secondary)))' }}>
-                  Admin
+                  {roleName(user) || 'Admin'}
                 </p>
               </div>
             )}
@@ -244,7 +259,7 @@ function SidebarInner({ onOpenSearch, onOpenCalc }) {
                   <X size={14} />
                 </button>
               ) : (
-                <button type="button" onClick={() => toggleCollapse(true)} style={iconBtn} title="Collapse sidebar">
+                <button type="button" onClick={() => toggleCollapse(true)} style={iconBtn} title="Collapse sidebar (Ctrl+B)">
                   <ChevronLeft size={14} />
                 </button>
               )}
@@ -355,7 +370,7 @@ function SidebarInner({ onOpenSearch, onOpenCalc }) {
           display: 'flex', flexDirection: 'column', gap: 4,
         }}>
           {collapsed && (
-            <button type="button" onClick={() => toggleCollapse(false)} title="Expand sidebar"
+            <button type="button" onClick={() => toggleCollapse(false)} title="Expand sidebar (Ctrl+B)"
               style={{ ...iconBtn, width: '100%', height: 34, borderRadius: 8, marginBottom: 4 }}>
               <ChevronLeft size={14} style={{ transform: 'rotate(180deg)' }} />
             </button>
