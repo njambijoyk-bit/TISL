@@ -80,8 +80,19 @@ export default function PosSelfPage() {
     return () => { live = false; };
   }, [step, items, token]);   // the books price the basket every time it changes: what is shown is what will be charged
 
-  const add = (it) => setBasket((b) => (b.some((x) => x.variant_id === it.variant_id) ? b.map((x) => (x.variant_id === it.variant_id ? { ...x, quantity: Math.min(20, x.quantity + 1) } : x)) : [...b, { ...it, quantity: 1 }]));
-  const bump = (id, d) => setBasket((b) => b.map((x) => (x.variant_id === id ? { ...x, quantity: x.quantity + d } : x)).filter((x) => x.quantity > 0));
+  const add = (it) => {
+    if (it.stock != null && it.stock <= 0) { setProblem(`Sorry, ${it.name} is out of stock.`); return; }
+    const inBasket = basket.find((x) => x.variant_id === it.variant_id)?.quantity ?? 0;
+    if (it.stock != null && inBasket + 1 > it.stock) { setProblem(`Sorry, only ${it.stock} of ${it.name} ${it.stock === 1 ? 'is' : 'are'} in stock.`); return; }
+    setProblem(null);
+    setBasket((b) => (b.some((x) => x.variant_id === it.variant_id) ? b.map((x) => (x.variant_id === it.variant_id ? { ...x, quantity: Math.min(20, x.quantity + 1) } : x)) : [...b, { ...it, quantity: 1 }]));
+  };
+  const bump = (id, d) => setBasket((b) => b.map((x) => {
+    if (x.variant_id !== id) return x;
+    const q = x.quantity + d;
+    if (d > 0 && x.stock != null && q > x.stock) { setProblem(`Sorry, only ${x.stock} of ${x.name} ${x.stock === 1 ? 'is' : 'are'} in stock.`); return x; }
+    return { ...x, quantity: q };
+  }).filter((x) => x.quantity > 0));
 
   const onEnter = async (e) => {   // a barcode scanner types the code then presses Enter
     if (e.key !== 'Enter' || !q.trim()) return;
@@ -243,9 +254,10 @@ export default function PosSelfPage() {
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
           {found.map((it) => (
-            <button key={it.variant_id} type="button" onClick={() => { setProblem(null); add(it); }} style={{ padding: 14, borderRadius: 14, border: '2px solid #e2e8f0', background: '#fff', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', display: 'grid', gap: 4 }}>
+            <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ padding: 14, borderRadius: 14, border: '2px solid #e2e8f0', background: '#fff', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', display: 'grid', gap: 4 }}>
               <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{it.name}</span>
               <span style={{ fontWeight: 900 }}>{it.price == null ? '' : money(it.price)}</span>
+              {it.stock != null && it.stock <= 5 && <span style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 700 }}>Only {it.stock} left</span>}
             </button>
           ))}
         </div>

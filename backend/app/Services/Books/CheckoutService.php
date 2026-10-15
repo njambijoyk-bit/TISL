@@ -636,7 +636,8 @@ class CheckoutService
         try {
             $sale = $this->vouchers->convert($order, VoucherType::CASH_SALE, ['tenders' => $tenders, 'reference_no' => $order->voucher_number], null);
         } catch (BooksException $e) {
-            if (! str_contains(strtolower($e->getMessage()), 'stock')) {
+            $m = strtolower($e->getMessage());
+            if (! str_contains($m, 'stock') && ! str_contains($m, 'not enough')) {   // money has already arrived: a shortfall on the shelf must not undo the sale
                 throw $e;
             }
             $sale = $this->vouchers->convert($order, VoucherType::CASH_SALE, ['tenders' => $tenders, 'reference_no' => $order->voucher_number, 'moves_stock' => false,

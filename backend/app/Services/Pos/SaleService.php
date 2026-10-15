@@ -70,21 +70,51 @@ class SaleService
     // ── the catalogue ─────────────────────────────────────────────────────
 
     /** @return array<int, array<string, mixed>> */
-    public function catalogue(string $q = '', int $limit = 30): array
+    /** What can be sold now at a branch, per variant: batches that are active, not expired, with a balance there. @param int[] $variantIds @return array<int, float> */
+    public function sellableAt(array $variantIds, int $locationId): array
+    {
+        if (! $variantIds) {
+            return [];
+        }
+        $q = DB::table('stock_batch_balances as b')->join('stock_batches as s', 's.id', '=', 'b.batch_id')->whereIn('s.variant_id', $variantIds)->where('b.location_id', $locationId)->where('b.quantity', '>', 0)
+            ->where('s.status', 'active')->where(fn ($w) => $w->whereNull('s.expiry_date')->orWhere('s.expiry_date', '>=', today()->toDateString()));
+
+        return $q->selectRaw('s.variant_id as id, sum(b.quantity) as qty')->groupBy('s.variant_id')->pluck('qty', 'id')->map(fn ($v) => (float) $v)->all();
+    }
+
+    /** A made-to-order item (a dish) holds no stock of its own: its ingredients leave when it is sold. */
+    private function madeToOrder(int $variantId): bool
+    {
+        try {
+            return app(\App\Services\Stock\RecipeService::class)->isMadeToOrder($variantId);
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
+     * Items that can be sold: for sale, and (when a branch is given) in stock there. Each carries `stock`, the quantity that can be sold now.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function catalogue(string $q = '', int $limit = 30, ?int $locationId = null): array
     {
         $q = trim($q);
         $like = '%'.$q.'%';
         $vars = ProductVariant::with('product:id,name,sku,status,is_for_sale')->where('status', ProductVariant::STATUS_ACTIVE)
             ->whereHas('product', fn ($p) => $p->where('status', 'active')->where('is_for_sale', true))
+            ->when($locationId, fn ($v) => $v->whereRaw('EXISTS (SELECT 1 FROM stock_batch_balances b JOIN stock_batches s ON s.id = b.batch_id WHERE s.variant_id = product_variants.id AND b.location_id = ? AND b.quantity > 0 AND s.status = ? AND (s.expiry_date IS NULL OR s.expiry_date >= ?))',
+                [$locationId, 'active', today()->toDateString()]))
             ->when($q !== '', fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('sku', 'like', $like)->orWhere('barcode', $q)
                 ->orWhereHas('product', fn ($p) => $p->where('name', 'like', $like)->orWhere('sku', 'like', $like))))
             ->orderBy('product_id')->orderByDesc('is_default')->limit($limit)->get();
+        $stock = $locationId ? $this->sellableAt($vars->pluck('id')->all(), $locationId) : [];
 
-        return $vars->map(fn ($v) => $this->row($v))->values()->all();
+        return $vars->map(fn ($v) => $this->row($v) + ['stock' => $locationId ? (float) ($stock[$v->id] ?? 0) : null])->values()->all();
     }
 
-    /** One scan: the variant whose barcode (or SKU) it is, or null. */
-    public function scan(string $code): ?array
+    /** One scan: the variant whose barcode (or SKU) it is, or null. With a branch, `stock` says how many can be sold there (0 = out of stock). */
+    public function scan(string $code, ?int $locationId = null): ?array
     {
         $code = trim($code);
         if ($code === '') {
@@ -100,7 +130,7 @@ class SaleService
             ->whereHas('product', fn ($p) => $p->where('status', 'active')->where('is_for_sale', true));
         $v = $base()->whereIn('barcode', $tries)->first() ?? $base()->whereRaw('LOWER(sku) = ?', [strtolower($code)])->first();
 
-        return $v ? $this->row($v) : null;
+        return $v ? $this->row($v) + ['stock' => $locationId ? (float) ($this->sellableAt([$v->id], $locationId)[$v->id] ?? 0) : null] : null;
     }
 
     private function row(ProductVariant $v): array
@@ -142,6 +172,7 @@ class SaleService
             }
             $rows[] = ['type' => 'product', 'product_id' => (int) $v->product_id, 'variant_id' => (int) $v->id, 'quantity' => $qty, 'location_id' => $locationId, '_pct' => $pct];
         }
+        $this->assertInStock($rows, $vars, $locationId);
 
         return $rows;
     }
@@ -170,6 +201,29 @@ class SaleService
         }
 
         return Customer::active()->find((int) $in['customer_id']) ?? throw new BooksException('That customer is not available.');
+    }
+
+    /** Nothing is priced, taken or paid for that the shelf can not give: say so now, before any money moves. */
+    private function assertInStock(array $rows, $vars, int $locationId): void
+    {
+        $want = [];
+        foreach ($rows as $r) {
+            $want[$r['variant_id']] = ($want[$r['variant_id']] ?? 0) + $r['quantity'];
+        }
+        $have = $this->sellableAt(array_keys($want), $locationId);
+        foreach ($want as $id => $qty) {
+            if ($this->madeToOrder((int) $id)) {
+                continue;
+            }
+            $left = (float) ($have[$id] ?? 0);
+            if ($left + 0.00005 >= $qty) {
+                continue;
+            }
+            $name = $vars[$id]?->product?->name ?? 'That item';
+            $where = Location::whereKey($locationId)->value('name') ?? 'this branch';
+
+            throw new BooksException($left <= 0.00005 ? "{$name} is out of stock at {$where}." : "Only ".rtrim(rtrim(number_format($left, 4, '.', ''), '0'), '.')." of {$name} in stock at {$where} (you asked for ".rtrim(rtrim(number_format($qty, 4, '.', ''), '0'), '.').').');
+        }
     }
 
     private function base(?User $u, Station $station, ?int $customerId, string $mode = 'cash', array $meta = []): array
@@ -408,6 +462,14 @@ class SaleService
 
             return $this->vouchers->create($data, $u);
         }
+    }
+
+    /** Was it refused for want of stock? (The shelf can change between the check and the money arriving: the sale then still goes through, stock marked pending.) */
+    private function isStockShort(BooksException $e): bool
+    {
+        $m = strtolower($e->getMessage());
+
+        return str_contains($m, 'stock') || str_contains($m, 'not enough');
     }
 
     private function replay(object $seen): array

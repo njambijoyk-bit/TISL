@@ -10,8 +10,8 @@ const posAPI = {
 
   // the cashier's till
   context: async (stationId) => (await api.get('/admin/pos/context', { params: stationId ? { station_id: stationId } : {} })).data,
-  catalogue: async (q) => (await api.get('/admin/pos/catalogue', { params: { q } })).data,
-  scan: async (code) => (await api.get('/admin/pos/scan', { params: { code } })).data,
+  catalogue: async (q, stationId) => (await api.get('/admin/pos/catalogue', { params: { q, ...(stationId ? { station_id: stationId } : {}) } })).data,
+  scan: async (code, stationId) => (await api.get('/admin/pos/scan', { params: { code, ...(stationId ? { station_id: stationId } : {}) } })).data,
   price: async (body) => (await api.post('/admin/pos/price', body)).data,
   sell: async (body) => (await api.post('/admin/pos/sales', body)).data,
   customers: async (q) => (await api.get('/admin/pos/customers', { params: { q } })).data,

@@ -45,14 +45,22 @@ class PosController extends Controller
 
     public function catalogue(Request $request): JsonResponse
     {
-        return $this->guard(fn () => ['items' => $this->sales->catalogue((string) $request->get('q', ''))]);
+        return $this->guard(function () use ($request) {
+            $station = $this->stations->resolveFor($request->user(), null, $request->filled('station_id') ? (int) $request->station_id : null);
+
+            return ['items' => $this->sales->catalogue((string) $request->get('q', ''), 30, $station?->location_id)];   // only what is in stock at this branch
+        });
     }
 
     public function scan(Request $request): JsonResponse
     {
         $request->validate(['code' => 'required|string|max:80']);
 
-        return $this->guard(fn () => ['item' => $this->sales->scan((string) $request->code)]);
+        return $this->guard(function () use ($request) {
+            $station = $this->stations->resolveFor($request->user(), null, $request->filled('station_id') ? (int) $request->station_id : null);
+
+            return ['item' => $this->sales->scan((string) $request->code, $station?->location_id)];
+        });
     }
 
     public function price(Request $request): JsonResponse

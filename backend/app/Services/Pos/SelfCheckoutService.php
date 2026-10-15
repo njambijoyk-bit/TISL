@@ -39,16 +39,16 @@ class SelfCheckoutService
     }
 
     /** @return array<int, array<string, mixed>> */
-    public function catalogue(string $q): array
+    public function catalogue(Station $s, string $q): array
     {
-        return array_map(fn ($i) => ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price']], $this->sales->catalogue($q, 24));
+        return array_map(fn ($i) => ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price'], 'stock' => min(20, (int) floor($i['stock']))], $this->sales->catalogue($q, 24, (int) $s->location_id));
     }
 
-    public function scan(string $code): ?array
+    public function scan(Station $s, string $code): ?array
     {
-        $i = $this->sales->scan($code);
+        $i = $this->sales->scan($code, (int) $s->location_id);
 
-        return $i ? ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price']] : null;
+        return $i ? ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price'], 'stock' => min(20, (int) floor($i['stock']))] : null;
     }
 
     /** Only whole, sensible quantities of real items. */

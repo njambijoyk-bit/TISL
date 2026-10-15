@@ -39,15 +39,15 @@ class PosSelfController extends Controller
     {
         $s = $this->stations->forToken($token);
 
-        return $this->guard(fn () => ['items' => $this->self->catalogue(mb_substr((string) $request->get('q', ''), 0, 60))]);
+        return $this->guard(fn () => ['items' => $this->self->catalogue($s, mb_substr((string) $request->get('q', ''), 0, 60))]);
     }
 
     public function scan(Request $request, string $token): JsonResponse
     {
-        $this->stations->forToken($token);
+        $s = $this->stations->forToken($token);
         $request->validate(['code' => 'required|string|max:80']);
 
-        return $this->guard(fn () => ['item' => $this->self->scan((string) $request->code)]);
+        return $this->guard(fn () => ['item' => $this->self->scan($s, (string) $request->code)]);
     }
 
     public function quote(Request $request, string $token): JsonResponse
