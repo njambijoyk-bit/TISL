@@ -103,6 +103,17 @@ class PosSelfController extends Controller
         return $this->guard(fn () => $this->self->callForHelp($s));
     }
 
+    public function helpCancel(string $token): JsonResponse
+    {
+        $s = $this->stations->forToken($token);
+
+        return $this->guard(function () use ($s) {
+            $this->self->cancelHelp($s);
+
+            return $this->self->helpStatus($s);
+        });
+    }
+
     public function helpStatus(string $token): JsonResponse
     {
         $s = $this->stations->forToken($token);

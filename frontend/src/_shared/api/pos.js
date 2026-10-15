@@ -23,6 +23,7 @@ const posAPI = {
   logVoid: async (body) => (await api.post('/admin/pos/voids', body)).data,
   receipt: async (id, paper) => (await api.get(`/admin/pos/sales/${id}/receipt`, { params: paper ? { paper } : {} })).data,
   helpRequests: async () => (await api.get('/admin/pos/help')).data,
+  helpClear: async () => (await api.post('/admin/pos/help/clear')).data,
   helpDone: async (id) => (await api.post(`/admin/pos/help/${id}/done`)).data,
   shifts: async () => (await api.get('/admin/pos/shifts')).data,
   openShift: async (body) => (await api.post('/admin/pos/shifts', body)).data,

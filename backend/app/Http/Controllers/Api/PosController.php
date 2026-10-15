@@ -129,9 +129,16 @@ class PosController extends Controller
 
     public function helpDone(Request $request, int $id): JsonResponse
     {
-        $this->help->done($request->user(), $id);
+        if (! $this->help->done($request->user(), $id)) {
+            return response()->json(['message' => 'That request is already cleared, or it is at a branch you do not work at.'], 404);
+        }
 
         return response()->json(['ok' => true]);
+    }
+
+    public function helpClear(Request $request): JsonResponse
+    {
+        return response()->json(['cleared' => $this->help->clearAll($request->user())]);
     }
 
     // ── shifts ──

@@ -145,7 +145,10 @@ export default function PosSelfPage() {
   const helpBanner = helpState?.open ? (
     <div role="status" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '12px 16px', borderRadius: 14, background: '#ecfdf5', border: '2px solid #34d399', color: '#065f46', fontSize: '1.1rem', fontWeight: 700 }}>
       <span>✔ Help is on the way. A member of staff has been told{helpState.minutes > 0 ? ` (${helpState.minutes} min ago)` : ''}. Please stay at this screen.</span>
+      <span style={{ display: 'flex', gap: 10 }}>
+      <button type="button" onClick={() => posSelfAPI.helpCancel(token).then(setHelpState).catch(() => {})} style={{ ...huge('#64748b'), padding: '10px 18px', fontSize: '1rem' }}>I don't need help now</button>
       <button type="button" disabled={helpState.tries >= helpState.max} onClick={askHelp} style={{ ...huge('#047857'), padding: '10px 18px', fontSize: '1rem' }}>Ask again ({helpState.tries}/{helpState.max})</button>
+      </span>
     </div>
   ) : helped ? (
     <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: '#eff6ff', border: '2px solid #60a5fa', color: '#1e3a8a', fontSize: '1.1rem', fontWeight: 700 }}>A member of staff has attended to you. Thank you for waiting.</div>

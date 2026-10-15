@@ -183,6 +183,11 @@ class SelfCheckoutService
         return $this->help->request($s);
     }
 
+    public function cancelHelp(Station $s): void
+    {
+        $this->help->cancel($s);
+    }
+
     /** @return array{open: bool, minutes: ?int, tries: int, max: int} */
     public function helpStatus(Station $s): array
     {

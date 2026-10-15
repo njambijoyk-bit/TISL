@@ -332,6 +332,7 @@ Route::prefix('pos/self/{token}')->middleware(['module:extras', 'throttle:240,1'
     Route::get('/scan',                      [$c, 'scan']);
     Route::post('/help',                     [$c, 'help'])->middleware('throttle:30,1');
     Route::get('/help',                      [$c, 'helpStatus']);
+    Route::post('/help/cancel',              [$c, 'helpCancel'])->middleware('throttle:30,1');
     Route::post('/quote',                    [$c, 'quote']);
     Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
@@ -1492,6 +1493,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/scan',      [$c, 'scan']);
                 Route::get('/sales',     [$c, 'mine']);
                 Route::get('/help',      [$c, 'helpOpen']);
+                Route::post('/help/clear', [$c, 'helpClear']);
                 Route::post('/help/{id}/done', [$c, 'helpDone'])->whereNumber('id');
                 Route::get('/shifts',    [$c, 'shifts']);
                 Route::post('/shifts',   [$c, 'openShift']);

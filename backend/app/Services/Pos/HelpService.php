@@ -69,13 +69,37 @@ class HelpService
             ->map(fn ($h) => ['id' => (int) $h->id, 'station' => $names[$h->station_id] ?? 'Self checkout', 'at' => $h->created_at, 'minutes' => (int) max(0, now()->diffInMinutes($h->created_at, true)), 'tries' => (int) ($h->tries ?? 1)])->all();
     }
 
-    public function done(User $u, int $id): void
+    /** Mark one request handled. False when it is not there to clear: already done, or at a branch this person does not work at. */
+    public function done(User $u, int $id): bool
     {
         $scope = app(Authorizer::class)->locationIds($u);
         $n = DB::table('pos_help_requests')->where('id', $id)->where('status', 'open')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))
             ->update(['status' => 'done', 'handled_by' => $u->id, 'handled_at' => now(), 'updated_at' => now()]);
         if ($n) {
             AccessLog::record($u->id, null, 'pos_help_done', ['request' => $id]);
+        }
+
+        return $n > 0;
+    }
+
+    /** Clear every open request at the branches this person works at. @return int how many */
+    public function clearAll(User $u): int
+    {
+        $scope = app(Authorizer::class)->locationIds($u);
+        $n = DB::table('pos_help_requests')->where('status', 'open')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))
+            ->update(['status' => 'done', 'handled_by' => $u->id, 'handled_at' => now(), 'updated_at' => now()]);
+        if ($n) {
+            AccessLog::record($u->id, null, 'pos_help_cleared', ['count' => $n]);
+        }
+
+        return $n;
+    }
+
+    /** The customer no longer needs help. */
+    public function cancel(Station $s): void
+    {
+        if (self::installed()) {
+            DB::table('pos_help_requests')->where('station_id', $s->id)->where('status', 'open')->update(['status' => 'done', 'updated_at' => now()]);
         }
     }
 }
