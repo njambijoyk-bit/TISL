@@ -255,7 +255,6 @@ export default function PosSelfPage() {
   if (step === 'welcome') {
     return shell(
       <>
-      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 5 }}>{themeBtn}</div>
       <button type="button" onClick={() => { last.current = Date.now(); stop.current = false; setStep('shop'); }} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
         <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
         <span style={{ fontSize: 'clamp(2rem, 6vw, 3.4rem)', fontWeight: 900 }}>{cfg.business}</span>
