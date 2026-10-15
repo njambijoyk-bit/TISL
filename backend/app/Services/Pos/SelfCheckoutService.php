@@ -92,12 +92,13 @@ class SelfCheckoutService
         [$data, $pre] = $this->sales->priceSelf($s, $items);
         $code = $this->code();
 
-        if ($pay === 'counter') {   // a cashier recalls it and takes the cash
-            $hold = DB::table('pos_holds')->insertGetId(['location_id' => $s->location_id, 'station_id' => $s->id, 'user_id' => 0, 'label' => "Self checkout {$code}",
+        if ($pay === 'counter') {   // a cashier recalls it (by the short code on the screen) and takes the cash
+            $short = substr($code, 0, 4);
+            $hold = DB::table('pos_holds')->insertGetId(['location_id' => $s->location_id, 'station_id' => $s->id, 'user_id' => 0, 'label' => "Code {$short} · {$s->name}",
                 'cart' => json_encode(['items' => array_map(fn ($i, $l) => $i + ['name' => $l['description'], 'discount_pct' => 0], $items, $pre['lines']), 'customer_id' => null, 'mode' => 'cash']), 'created_at' => now(), 'updated_at' => now()]);
             DB::table('pos_self_sessions')->insert(['station_id' => $s->id, 'session_code' => $code, 'pay' => 'counter', 'hold_id' => $hold, 'created_at' => now(), 'updated_at' => now()]);
 
-            return ['session' => $code, 'pay' => 'counter', 'total' => (float) $pre['total']];
+            return ['session' => $code, 'pay' => 'counter', 'number' => $short, 'total' => (float) $pre['total']];
         }
 
         $method = ! empty($in['payment_method_id']) ? PaymentMethod::offeredAtCheckout()->where('gateway', 'mpesa_stk')->whereKey((int) $in['payment_method_id'])->first() : null;

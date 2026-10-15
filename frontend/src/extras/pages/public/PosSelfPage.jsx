@@ -97,7 +97,7 @@ export default function PosSelfPage() {
     setBusy(true); setProblem(null);
     try {
       const r = await posSelfAPI.order(token, { items, pay, payment_method_id: pay === 'screen' ? cfg.payment_methods[0]?.id : undefined, phone: pay === 'screen' ? phone : undefined });
-      if (pay === 'counter') { finish({ session: r.session, pay: 'counter', number: r.session.slice(0, 4) }); return; }
+      if (pay === 'counter') { finish({ session: r.session, pay: 'counter', number: r.number }); return; }
       setResult({ session: r.session }); setStep('waiting'); wait(r.session, r.attempt);
     } catch (e) { setProblem(errMsg(e, 'We could not take your order.')); } finally { setBusy(false); }
   };
