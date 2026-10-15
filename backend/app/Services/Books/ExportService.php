@@ -119,7 +119,7 @@ class ExportService
             return null;
         }
         $pdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
-        $pdf->loadHtml($this->voucherHtml($v));
+        $pdf->loadHtml(\App\Support\PdfEmoji::html($this->voucherHtml($v)));
         $pdf->setPaper('A4');
         $pdf->render();
 
@@ -839,7 +839,7 @@ class ExportService
             throw new BooksException('PDF export needs the dompdf package. Run `composer require dompdf/dompdf` in the backend, then try again.');
         }
         $pdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
-        $pdf->loadHtml($html);
+        $pdf->loadHtml(\App\Support\PdfEmoji::html($html));
         $pdf->setPaper('A4');
         $pdf->render();
 

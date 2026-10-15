@@ -20,7 +20,7 @@ final class TicketPdf
             throw new EventException('PDF tickets are not available on this server.');
         }
         $pdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
-        $pdf->loadHtml($this->html($tickets));
+        $pdf->loadHtml(\App\Support\PdfEmoji::html($this->html($tickets)));
         $pdf->setPaper('A4');
         $pdf->render();
 

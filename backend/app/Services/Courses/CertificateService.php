@@ -289,7 +289,7 @@ class CertificateService
             throw new BooksException('PDF certificates are not available on this server.');
         }
         $pdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
-        $pdf->loadHtml($this->html($c));
+        $pdf->loadHtml(\App\Support\PdfEmoji::html($this->html($c)));
         $pdf->setPaper('A4', 'landscape');
         $pdf->render();
 
