@@ -36,13 +36,13 @@ class PosStationController extends Controller
             return response()->json(['ready' => false, 'branches' => [], 'paper' => StationService::PAPER, 'kinds' => StationService::KINDS]);
         }
 
-        return response()->json(['ready' => true, 'branches' => $this->stations->branches(), 'paper' => StationService::PAPER, 'kinds' => StationService::KINDS]);
+        return response()->json(['ready' => true, 'branches' => $this->stations->branches(), 'paper' => StationService::PAPER, 'kinds' => StationService::KINDS, 'ledgers' => $this->stations->ledgerChoices(), 'ledgers_ready' => \App\Services\Pos\StationLedgers::installed()]);
     }
 
     public function save(Request $request, ?int $id = null): JsonResponse
     {
         $d = $request->validate(['name' => 'required|string|max:80', 'location_id' => 'required|integer', 'kind' => 'nullable|string|max:20', 'code' => 'nullable|string|max:20',
-            'paper' => 'nullable|string|max:10', 'is_default' => 'nullable|boolean', 'is_active' => 'nullable|boolean']);
+            'paper' => 'nullable|string|max:10', 'is_default' => 'nullable|boolean', 'is_active' => 'nullable|boolean', 'cash_ledger_id' => 'nullable|integer', 'bank_ledger_id' => 'nullable|integer']);
 
         return $this->guard(function () use ($d, $id, $request) {
             $s = $this->stations->save($d, $id ? Station::findOrFail($id) : null);

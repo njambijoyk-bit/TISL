@@ -2,11 +2,14 @@
 
 namespace App\Services\Pos;
 
+use App\Models\Books\Ledger;
+use App\Models\Books\LedgerGroup;
 use App\Models\Location;
 use App\Models\Pos\Station;
 use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Books\BooksException;
+use App\Services\Books\LedgerService;
 use App\Services\Licensing\LicenseManager;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -91,17 +94,35 @@ class StationService
             throw new BooksException('People work at this station: take them off it before making it a self checkout.');
         }
 
-        return DB::transaction(function () use ($s, $name, $loc, $kind, $paper, $code, $active, $default) {
+        $ledgers = [];
+        if (StationLedgers::installed()) {
+            foreach (['cash_ledger_id' => 'Cash-in-hand', 'bank_ledger_id' => 'Bank Accounts'] as $col => $group) {
+                $given = array_key_exists($col, $d) ? ($d[$col] ? (int) $d[$col] : null) : ($s?->{$col} ? (int) $s->{$col} : null);
+                if ($given) {
+                    $l = Ledger::find($given);
+                    if (! $l || ! app(LedgerService::class)->isUnderGroup($l, $group)) {
+                        throw new BooksException('Choose a ledger from the '.($group === 'Cash-in-hand' ? 'cash-in-hand' : 'bank accounts').' list.');
+                    }
+                }
+                $ledgers[$col] = $given;
+            }
+        } elseif (! empty($d['cash_ledger_id']) || ! empty($d['bank_ledger_id'])) {
+            throw new BooksException('Run database script 176_pos_station_ledgers.sql first.');
+        }
+
+        return DB::transaction(function () use ($s, $name, $loc, $kind, $paper, $code, $active, $default, $ledgers) {
             $first = ! Station::where('location_id', $loc)->where('kind', 'staff')->where('is_default', true)->when($s, fn ($q) => $q->where('id', '!=', $s->id))->exists();
             $default = $default || ($first && $kind === 'staff' && $active);   // a branch's first staff till is its default
             if ($default) {
                 Station::where('location_id', $loc)->where('is_default', true)->when($s, fn ($q) => $q->where('id', '!=', $s->id))->update(['is_default' => false]);
             }
-            $row = ['name' => $name, 'location_id' => $loc, 'kind' => $kind, 'paper' => $paper, 'code' => $code, 'is_active' => $active, 'is_default' => $default];
+            $row = ['name' => $name, 'location_id' => $loc, 'kind' => $kind, 'paper' => $paper, 'code' => $code, 'is_active' => $active, 'is_default' => $default] + $ledgers;
             $s = $s ? tap($s)->update($row) : Station::create($row);
             if (! $active) {
                 $this->afterSwitchedOff($s);
             }
+
+            StationLedgers::forget();
 
             return $s->fresh();
         });
@@ -146,9 +167,21 @@ class StationService
 
         return Station::query()->when($locationId, fn ($q) => $q->where('location_id', $locationId))->orderBy('location_id')->orderByDesc('is_default')->orderBy('name')->get()->map(fn (Station $s) => [
             'id' => $s->id, 'location_id' => (int) $s->location_id, 'location' => $names[$s->location_id] ?? null, 'name' => $s->name, 'code' => $s->code, 'kind' => $s->kind, 'kind_label' => self::KINDS[$s->kind] ?? $s->kind,
-            'paper' => $s->paper, 'is_default' => $s->is_default, 'is_active' => $s->is_active, 'people' => (int) ($people[$s->id] ?? 0), 'documents' => (int) ($used[$s->id] ?? 0),
+            'paper' => $s->paper, 'cash_ledger_id' => $s->cash_ledger_id ? (int) $s->cash_ledger_id : null, 'bank_ledger_id' => $s->bank_ledger_id ? (int) $s->bank_ledger_id : null, 'is_default' => $s->is_default, 'is_active' => $s->is_active, 'people' => (int) ($people[$s->id] ?? 0), 'documents' => (int) ($used[$s->id] ?? 0),
             'last_seen_at' => $s->last_seen_at?->toIso8601String(),
         ])->values()->all();
+    }
+
+    /** The cash-in-hand and bank ledgers a station can be given. @return array{cash: array<int, array{id: int, name: string}>, bank: array<int, array{id: int, name: string}>} */
+    public function ledgerChoices(): array
+    {
+        $in = function (string $group) {
+            $ids = LedgerGroup::where('name', $group)->get()->flatMap(fn ($g) => $g->selfAndDescendantIds())->unique()->all();
+
+            return Ledger::whereIn('group_id', $ids)->where('is_active', true)->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => (int) $l->id, 'name' => $l->name])->all();
+        };
+
+        return ['cash' => $in('Cash-in-hand'), 'bank' => $in('Bank Accounts')];
     }
 
     // ── self-checkout address ─────────────────────────────────────────────

@@ -596,6 +596,7 @@ class VoucherService
             'allocations'       => [['against_voucher_id' => $invoice->id, 'amount' => $amount]],
             'source_voucher_id' => $invoice->id,
             'channel'           => $opts['channel'] ?? 'admin',
+            'pos_station_id'    => $opts['pos_station_id'] ?? null,
         ], $user);
     }
 
@@ -1842,9 +1843,11 @@ class VoucherService
     private function rawTenders(array $data): array
     {
         $out = [];
+        $stationId = (int) ($data['pos_station_id'] ?? ($data['meta']['pos']['station_id'] ?? 0));   // a point-of-sale station posts to its own cash and bank ledgers
         foreach ($data['tenders'] ?? [] as $t) {
             $method = PaymentMethod::with('ledger')->find($t['payment_method_id'] ?? null)
                 ?? throw new BooksException('One of the payment methods is not valid.');
+            $method = $stationId ? \App\Services\Pos\StationLedgers::method($method, $stationId) : $method;
             $gift = null;
             if ($method->kind === 'gift_voucher') {
                 $code = trim((string) ($t['gift_voucher_code'] ?? ''));

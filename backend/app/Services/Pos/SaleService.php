@@ -517,7 +517,7 @@ class SaleService
                     $this->addMeta($v, ['pos_paid' => ['tendered' => $paid['tendered'], 'change' => $paid['change']]]);
                 }
                 if ($now && $mode === 'invoice') {
-                    $rc = $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till - {$v->voucher_number}"], $u);
+                    $rc = $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'pos_station_id' => $station->id, 'narration' => "Paid at the till - {$v->voucher_number}"], $u);
                     $this->tag($rc->id, $station, $shiftId);
                 }
                 DB::table('pos_sale_keys')->where('user_id', $u->id)->where('sale_key', $key)->update(['voucher_id' => $v->id, 'updated_at' => now()]);

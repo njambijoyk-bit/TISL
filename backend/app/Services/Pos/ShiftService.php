@@ -219,7 +219,7 @@ class ShiftService
     private function postGap(object $sh, array $cashRow, float $gap, User $u): array
     {
         $over = AccountingSetting::current()->cash_over_short_ledger_id;
-        $cash = PaymentMethod::whereKey($cashRow['id'])->value('ledger_id');
+        $cash = StationLedgers::of((int) $sh->station_id)['cash'] ?: PaymentMethod::whereKey($cashRow['id'])->value('ledger_id');   // the station's own cash ledger, else the method's
         $journal = VoucherType::byBase(VoucherType::JOURNAL);
         if (! $over || ! $cash || ! $journal) {
             return ['posted' => false, 'amount' => round($gap, 2), 'why' => ! $over ? 'The Cash Over / Short ledger is not chosen in Books settings.' : (! $cash ? 'The cash payment method has no ledger.' : 'The Journal voucher type is switched off.')];

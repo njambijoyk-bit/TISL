@@ -38,12 +38,12 @@ function Paper({ branch, paper, onSaved }) {
   );
 }
 
-function StationRow({ s, branchId, kinds, paper, onSaved }) {
-  const [f, setF] = useState({ name: s.name ?? '', code: s.code ?? '', kind: s.kind ?? 'staff', paper: s.paper ?? '', is_default: !!s.is_default, is_active: s.is_active ?? true });
+function StationRow({ s, branchId, kinds, paper, ledgers, ledgersReady, onSaved }) {
+  const [f, setF] = useState({ name: s.name ?? '', code: s.code ?? '', kind: s.kind ?? 'staff', paper: s.paper ?? '', is_default: !!s.is_default, is_active: s.is_active ?? true, cash_ledger_id: s.cash_ledger_id ?? '', bank_ledger_id: s.bank_ledger_id ?? '' });
   const [busy, setBusy] = useState(false);
   const save = async () => {
     setBusy(true);
-    try { const r = await posAPI.saveStation({ ...f, location_id: branchId, paper: f.paper || null }, s.id); toast.success(r.message); onSaved(); } catch (e) { toast.error(errMsg(e, 'Could not save the station'), { duration: 8000 }); } finally { setBusy(false); }
+    try { const r = await posAPI.saveStation({ ...f, location_id: branchId, paper: f.paper || null, cash_ledger_id: f.cash_ledger_id || null, bank_ledger_id: f.bank_ledger_id || null }, s.id); toast.success(r.message); onSaved(); } catch (e) { toast.error(errMsg(e, 'Could not save the station'), { duration: 8000 }); } finally { setBusy(false); }
   };
   const [address, setAddress] = useState(null);
   const makeAddress = async () => {
@@ -64,6 +64,20 @@ function StationRow({ s, branchId, kinds, paper, onSaved }) {
         <Field label="Kind" htmlFor={`sk-${s.id ?? 'new'}-${branchId}`}><SelectInput id={`sk-${s.id ?? 'new'}-${branchId}`} value={f.kind} onChange={(e) => setF((x) => ({ ...x, kind: e.target.value, is_default: e.target.value === 'staff' ? x.is_default : false }))}>{Object.entries(kinds).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
         <Field label="Paper (blank = the branch's)" htmlFor={`sp-${s.id ?? 'new'}-${branchId}`}><SelectInput id={`sp-${s.id ?? 'new'}-${branchId}`} value={f.paper} onChange={(e) => setF((x) => ({ ...x, paper: e.target.value }))}><option value="">Branch default</option>{Object.entries(paper).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
       </div>
+      {ledgersReady && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+          <Field label="Cash-in-hand ledger (cash taken here posts to it)" htmlFor={`scl-${s.id ?? 'new'}-${branchId}`}>
+            <SelectInput id={`scl-${s.id ?? 'new'}-${branchId}`} value={f.cash_ledger_id} onChange={(e) => setF((x) => ({ ...x, cash_ledger_id: e.target.value ? Number(e.target.value) : '' }))}>
+              <option value="">The cash payment method's ledger</option>{ledgers.cash.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </SelectInput>
+          </Field>
+          <Field label="Bank ledger (bank transfer, card and M-Pesa post to it)" htmlFor={`sbl-${s.id ?? 'new'}-${branchId}`}>
+            <SelectInput id={`sbl-${s.id ?? 'new'}-${branchId}`} value={f.bank_ledger_id} onChange={(e) => setF((x) => ({ ...x, bank_ledger_id: e.target.value ? Number(e.target.value) : '' }))}>
+              <option value="">Each payment method's own ledger</option>{ledgers.bank.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+            </SelectInput>
+          </Field>
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', fontSize: '0.86rem' }}>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_default} disabled={f.kind !== 'staff'} onChange={(e) => setF((x) => ({ ...x, is_default: e.target.checked }))} /> Branch default</label>
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_active} onChange={(e) => setF((x) => ({ ...x, is_active: e.target.checked }))} /> On</label>
@@ -109,8 +123,8 @@ export default function PosStations() {
             <Paper key={`${b.paper_default}-${b.paper_allowed.join()}-${b.require_shift}-${b.variance_limit}`} branch={b} paper={d.paper} onSaved={load} />
             <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>Stations</div>
             {b.stations.length === 0 && <p style={{ ...sub, margin: 0 }}>None yet. The first staff till you add becomes the branch default.</p>}
-            {b.stations.map((s) => <StationRow key={s.id} s={s} branchId={b.id} kinds={d.kinds} paper={d.paper} onSaved={load} />)}
-            <StationRow key={`new-${b.stations.length}`} s={{}} branchId={b.id} kinds={d.kinds} paper={d.paper} onSaved={load} />
+            {b.stations.map((s) => <StationRow key={s.id} s={s} branchId={b.id} kinds={d.kinds} paper={d.paper} ledgers={d.ledgers} ledgersReady={!!d.ledgers_ready} onSaved={load} />)}
+            <StationRow key={`new-${b.stations.length}`} s={{}} branchId={b.id} kinds={d.kinds} paper={d.paper} ledgers={d.ledgers} ledgersReady={!!d.ledgers_ready} onSaved={load} />
           </section>
         ))}
       </div>
