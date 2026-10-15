@@ -5,13 +5,16 @@ namespace App\Services\Pos;
 use App\Models\Books\PaymentMethod;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
+use App\Models\Books\Ledger;
 use App\Models\Currency;
+use App\Models\Customer;
 use App\Models\Location;
 use App\Models\Pos\Station;
 use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Books\BooksException;
+use App\Services\Books\LedgerService;
 use App\Services\Books\TenderCheck;
 use App\Services\Books\VoucherService;
 use App\Services\Stock\StockJobService;
@@ -25,6 +28,9 @@ use Illuminate\Support\Facades\Schema;
  */
 class SaleService
 {
+    /** What the till can make: a cash sale, an invoice on the customer's account, a sales order (with or without a deposit). */
+    public const MODES = ['cash' => ['base' => VoucherType::CASH_SALE, 'perm' => 'pos.sell'], 'invoice' => ['base' => VoucherType::SALES, 'perm' => 'pos.invoice'], 'order' => ['base' => VoucherType::SALES_ORDER, 'perm' => 'pos.order']];
+
     public function __construct(private VoucherService $vouchers, private TenderCheck $tenders, private StationService $stations)
     {
     }
@@ -50,7 +56,7 @@ class SaleService
         return ['stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
             'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
-            'can' => ['sell' => $access->allows($u, 'pos.sell'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'hold' => $access->allows($u, 'pos.sell')]];
+            'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'hold' => $access->allows($u, 'pos.sell')]];
     }
 
     // ── the catalogue ─────────────────────────────────────────────────────
@@ -132,9 +138,35 @@ class SaleService
         return $rows;
     }
 
-    private function base(User $u, Station $station, ?int $customerId, array $meta = []): array
+    private function mode(User $u, array $in): string
     {
-        $type = VoucherType::byBase(VoucherType::CASH_SALE) ?? throw new BooksException('Cash sales are switched off (the Cash Sale voucher type is off).');
+        $mode = (string) ($in['mode'] ?? 'cash');
+        if (! isset(self::MODES[$mode])) {
+            throw new BooksException('Choose a cash sale, an invoice or a sales order.');
+        }
+        if (! app(Authorizer::class)->allows($u, self::MODES[$mode]['perm'])) {
+            throw new BooksException('You may not make '.['cash' => 'cash sales', 'invoice' => 'invoices', 'order' => 'sales orders'][$mode].'.');
+        }
+
+        return $mode;
+    }
+
+    private function customer(array $in, string $mode): ?Customer
+    {
+        if (empty($in['customer_id'])) {
+            if ($mode !== 'cash') {
+                throw new BooksException('Choose the customer: '.($mode === 'invoice' ? 'an invoice' : 'a sales order').' is made out to someone.');
+            }
+
+            return null;
+        }
+
+        return Customer::active()->find((int) $in['customer_id']) ?? throw new BooksException('That customer is not available.');
+    }
+
+    private function base(User $u, Station $station, ?int $customerId, string $mode = 'cash', array $meta = []): array
+    {
+        $type = VoucherType::byBase(self::MODES[$mode]['base']) ?? throw new BooksException('That kind of document is switched off in Books.');
 
         return ['voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => (int) $station->location_id, 'currency_id' => Currency::getBaseCurrency()?->id, 'customer_id' => $customerId,
             'channel' => 'pos', 'narration' => 'Point of sale — '.$station->name,
@@ -159,8 +191,9 @@ class SaleService
     private function priced(User $u, Station $station, array $in): array
     {
         $rows = $this->lines($u, (array) ($in['items'] ?? []), (int) $station->location_id);
-        $customerId = ! empty($in['customer_id']) ? (int) $in['customer_id'] : null;
-        $data = $this->base($u, $station, $customerId);
+        $mode = $this->mode($u, $in);
+        $customerId = $this->customer($in, $mode)?->id;
+        $data = $this->base($u, $station, $customerId, $mode);
         $clean = fn (array $rs) => array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rs);
         $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
         if (array_filter(array_column($rows, '_pct'))) {   // a percentage comes off each line's price: worked out from the price the books gave it
@@ -180,7 +213,10 @@ class SaleService
     // ── selling ───────────────────────────────────────────────────────────
 
     /**
-     * Take the money and post the Cash Sale. $in: key, items, tenders, station_id?, customer_id?
+     * Post what the basket comes to. $in: key, mode (cash | invoice | order), items, station_id?, customer_id?, tenders?
+     *   cash     paid in full at the till (tenders needed); a Cash Sale
+     *   invoice  put on the customer's account within their credit limit (tenders, if any, are a part payment made now)
+     *   order    a Sales Order for the customer (tenders, if any, are a deposit, kept as the customer's advance and used when the order is invoiced)
      *
      * @return array<string, mixed>
      */
@@ -197,15 +233,40 @@ class SaleService
         if ($seen) {
             return $this->replay($seen);
         }
+        $mode = $this->mode($u, $in);
+        $customer = $this->customer($in, $mode);
         $station = $this->station($u, isset($in['station_id']) ? (int) $in['station_id'] : null);
         [$data, $pre] = $this->priced($u, $station, $in);
-        $paid = $this->tenders->check((array) ($in['tenders'] ?? []), (float) $pre['total']);
+        $total = (float) $pre['total'];
+        $paid = null;
+        $now = null;   // money taken now on an invoice or an order
+        if ($mode === 'cash') {
+            $paid = $this->tenders->check((array) ($in['tenders'] ?? []), $total);
+            $data['tenders'] = $paid['tenders'];
+        } else {
+            $this->creditCheck($mode, $customer, $total);
+            if ($mode === 'invoice') {
+                $data['due_date'] = today()->addDays((int) ($customer->credit_terms_days ?: 30))->toDateString();
+            }
+            $given = array_values(array_filter((array) ($in['tenders'] ?? []), fn ($t) => (float) ($t['amount'] ?? 0) > 0));
+            if ($given) {
+                $now = $this->tenders->check($given, round(array_sum(array_map(fn ($t) => (float) $t['amount'], $given)), 2));   // exact: no change on a part payment
+                if ($now['tendered'] - $total > 0.004 && $mode === 'invoice') {
+                    throw new BooksException('That is more than the invoice. Take the exact amount, or make it a cash sale.');
+                }
+            }
+        }
 
         try {
-            $voucher = DB::transaction(function () use ($u, $key, $station, $data, $paid) {
+            $voucher = DB::transaction(function () use ($u, $key, $station, $data, $mode, $customer, $now) {
                 DB::table('pos_sale_keys')->insert(['user_id' => $u->id, 'sale_key' => $key, 'created_at' => now(), 'updated_at' => now()]);
-                $v = $this->post($data + ['tenders' => $paid['tenders']], $u);
+                $v = $this->post($data, $u);
                 DB::table('vouchers')->where('id', $v->id)->update(['station_id' => $station->id]);
+                if ($now && $mode === 'invoice') {
+                    $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till — {$v->voucher_number}"], $u);
+                } elseif ($now && $mode === 'order') {
+                    $this->deposit($v, $customer, $now, $station, $u);
+                }
                 DB::table('pos_sale_keys')->where('user_id', $u->id)->where('sale_key', $key)->update(['voucher_id' => $v->id, 'updated_at' => now()]);
 
                 return $v;
@@ -218,7 +279,62 @@ class SaleService
             throw $e;
         }
 
-        return $this->summary($voucher->fresh(), $paid, false) + ['lines' => $pre['lines'], 'tax_breakdown' => $pre['tax_breakdown']];
+        return $this->summary($voucher->fresh(), $paid, false) + ['mode' => $mode, 'paid_now' => $now ? $now['tendered'] : null, 'lines' => $pre['lines'], 'tax_breakdown' => $pre['tax_breakdown']];
+    }
+
+    /** An invoice or an order is only made out for a customer who may have it: an invoice needs a credit account with room left. */
+    private function creditCheck(string $mode, Customer $customer, float $total): void
+    {
+        if ($mode !== 'invoice') {
+            return;
+        }
+        $limit = (float) ($customer->credit_limit ?? 0);
+        if (! $customer->has_credit_account || $limit <= 0) {
+            throw new BooksException("{$customer->full_name} has no credit account: make this a cash sale, or ask a manager to open one.");
+        }
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $ledger = Ledger::where('customer_id', $customer->id)->first();
+        $owed = $ledger ? app(LedgerService::class)->balance($ledger->id) : 0.0;   // what they owe, in the base currency
+        $limitBase = $money->convert($limit, $money->currencyFrom($customer->credit_currency_id ?? $customer->currency_id), $money->getBaseCurrency());
+        if ($owed + $total - $limitBase > 0.005) {
+            $room = max(0.0, round($limitBase - $owed, 2));
+            throw new BooksException("This would take {$customer->full_name} over their credit limit (room left: ".number_format($room, 2).'). Take part payment, or ask a manager.');
+        }
+    }
+
+    /** A deposit on an order is a receipt kept as the customer's advance, tied to the order by its number. */
+    private function deposit(Voucher $order, Customer $customer, array $paid, Station $station, User $u): void
+    {
+        $type = VoucherType::byBase(VoucherType::RECEIPT) ?? throw new BooksException('The Receipt voucher type is switched off.');
+        $receipt = $this->vouchers->create(['voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => $order->location_id, 'customer_id' => $customer->id, 'currency_id' => $order->currency_id,
+            'tenders' => $paid['tenders'], 'amount' => $paid['tendered'], 'is_advance' => true, 'advance_for' => "Deposit for {$order->voucher_number}", 'source_voucher_id' => $order->id, 'channel' => 'pos',
+            'narration' => "Deposit for {$order->voucher_number}"], $u);
+        DB::table('vouchers')->where('id', $receipt->id)->update(['station_id' => $station->id]);
+        $order->update(['meta' => array_merge($order->meta ?? [], ['pos_deposit' => ['receipt_id' => $receipt->id, 'receipt' => $receipt->voucher_number, 'amount' => $paid['tendered']]])]);
+    }
+
+    /** Matching customers for an invoice or an order, with what they may owe. @return array<int, array<string, mixed>> */
+    public function customers(string $q): array
+    {
+        $q = trim($q);
+        if (strlen($q) < 2) {
+            return [];
+        }
+        $money = app(\App\Services\CurrencyConversionService::class);
+        $rows = Customer::active()->search($q)->orderBy('first_name')->limit(15)->get();
+        $ledgers = Ledger::whereIn('customer_id', $rows->pluck('id'))->pluck('id', 'customer_id');
+
+        return $rows->map(function (Customer $c) use ($ledgers, $money) {
+            $credit = $c->has_credit_account && (float) $c->credit_limit > 0;
+            $room = null;
+            if ($credit) {
+                $owed = isset($ledgers[$c->id]) ? app(LedgerService::class)->balance($ledgers[$c->id]) : 0.0;
+                $limit = $money->convert((float) $c->credit_limit, $money->currencyFrom($c->credit_currency_id ?? $c->currency_id), $money->getBaseCurrency());
+                $room = max(0.0, round($limit - $owed, 2));
+            }
+
+            return ['id' => $c->id, 'name' => $c->full_name, 'company' => $c->company_name, 'phone' => $c->phone, 'email' => $c->email, 'credit' => $credit, 'credit_room' => $room];
+        })->values()->all();
     }
 
     /** Post it; when the shelf shows too little stock the sale still goes through (the stock is marked pending) rather than losing a customer at the till. */
@@ -254,7 +370,7 @@ class SaleService
         $tenders = DB::table('voucher_tenders as t')->leftJoin('payment_methods as m', 'm.id', '=', 't.payment_method_id')->where('t.voucher_id', $v->id)->orderBy('t.id')
             ->get(['m.name', 't.amount', 't.reference'])->map(fn ($t) => ['method' => $t->name, 'amount' => (float) $t->amount, 'reference' => $t->reference])->all();
 
-        return ['replayed' => $replayed, 'id' => $v->id, 'number' => $v->voucher_number, 'date' => $v->date?->toDateString(), 'total' => (float) $v->total_amount, 'tax_total' => (float) $v->tax_total,
+        return ['replayed' => $replayed, 'type' => $v->type?->name, 'id' => $v->id, 'number' => $v->voucher_number, 'date' => $v->date?->toDateString(), 'total' => (float) $v->total_amount, 'tax_total' => (float) $v->tax_total,
             'tendered' => $paid['tendered'] ?? array_sum(array_column($tenders, 'amount')), 'change' => $paid['change'] ?? 0.0, 'tenders' => $tenders,
             'station_id' => $v->station_id ?? DB::table('vouchers')->where('id', $v->id)->value('station_id'), 'cashier' => $v->creator?->name ?? null];
     }
@@ -285,7 +401,7 @@ class SaleService
             throw new BooksException('There is nothing in the basket to hold.');
         }
         $cart = ['items' => array_map(fn ($i) => ['variant_id' => (int) $i['variant_id'], 'quantity' => (float) $i['quantity'], 'name' => mb_substr((string) ($i['name'] ?? ''), 0, 120), 'discount_pct' => (float) ($i['discount_pct'] ?? 0)], $items),
-            'customer_id' => ! empty($in['customer_id']) ? (int) $in['customer_id'] : null];
+            'customer_id' => ! empty($in['customer_id']) ? (int) $in['customer_id'] : null, 'customer_name' => mb_substr((string) ($in['customer_name'] ?? ''), 0, 120) ?: null, 'mode' => isset(self::MODES[$in['mode'] ?? '']) ? $in['mode'] : 'cash'];
         $id = DB::table('pos_holds')->insertGetId(['location_id' => $station->location_id, 'station_id' => $station->id, 'user_id' => $u->id, 'label' => mb_substr(trim((string) ($in['label'] ?? '')), 0, 80) ?: null,
             'cart' => json_encode($cart), 'created_at' => now(), 'updated_at' => now()]);
 

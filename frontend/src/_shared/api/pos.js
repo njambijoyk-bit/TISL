@@ -13,6 +13,7 @@ const posAPI = {
   scan: async (code) => (await api.get('/admin/pos/scan', { params: { code } })).data,
   price: async (body) => (await api.post('/admin/pos/price', body)).data,
   sell: async (body) => (await api.post('/admin/pos/sales', body)).data,
+  customers: async (q) => (await api.get('/admin/pos/customers', { params: { q } })).data,
   mySales: async () => (await api.get('/admin/pos/sales')).data,
   holds: async () => (await api.get('/admin/pos/holds')).data,
   hold: async (body) => (await api.post('/admin/pos/holds', body)).data,

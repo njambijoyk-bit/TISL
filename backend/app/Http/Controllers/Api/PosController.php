@@ -50,7 +50,7 @@ class PosController extends Controller
 
     public function price(Request $request): JsonResponse
     {
-        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
+        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'mode' => 'nullable|in:cash,invoice,order']);
 
         return $this->guard(fn () => $this->sales->price($request->user(), $d));
     }
@@ -58,9 +58,14 @@ class PosController extends Controller
     public function sell(Request $request): JsonResponse
     {
         $d = $request->validate(['key' => 'required|string|max:64', 'items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric',
-            'tenders' => 'required|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
+            'mode' => 'nullable|in:cash,invoice,order', 'tenders' => 'nullable|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
 
         return $this->guard(fn () => $this->sales->sell($request->user(), $d), 201);
+    }
+
+    public function customers(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => ['customers' => $this->sales->customers((string) $request->get('q', ''))]);
     }
 
     public function mine(Request $request): JsonResponse
@@ -76,7 +81,7 @@ class PosController extends Controller
     public function hold(Request $request): JsonResponse
     {
         $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.name' => 'nullable|string|max:120', 'items.*.discount_pct' => 'nullable|numeric',
-            'label' => 'nullable|string|max:80', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
+            'label' => 'nullable|string|max:80', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'customer_name' => 'nullable|string|max:120', 'mode' => 'nullable|in:cash,invoice,order']);
 
         return $this->guard(fn () => $this->sales->hold($request->user(), $d), 201);
     }

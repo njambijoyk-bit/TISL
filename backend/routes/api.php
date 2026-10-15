@@ -1477,10 +1477,11 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/catalogue', [$c, 'catalogue']);
                 Route::get('/scan',      [$c, 'scan']);
                 Route::get('/sales',     [$c, 'mine']);
+                Route::get('/customers', [$c, 'customers']);
+                Route::post('/price',    [$c, 'price']);   // what each kind of document may be made is checked per kind (sell, invoice, order)
+                Route::post('/sales',    [$c, 'sell']);
             });
             Route::middleware('permission:pos.sell')->group(function () use ($c) {
-                Route::post('/price',              [$c, 'price']);
-                Route::post('/sales',              [$c, 'sell']);
                 Route::get('/holds',               [$c, 'holds']);
                 Route::post('/holds',              [$c, 'hold']);
                 Route::post('/holds/{id}/recall',  [$c, 'recall'])->whereNumber('id');
