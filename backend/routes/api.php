@@ -1492,6 +1492,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/catalogue', [$c, 'catalogue']);
                 Route::get('/scan',      [$c, 'scan']);
                 Route::get('/sales',     [$c, 'mine']);
+                Route::get('/holds/count', [$c, 'holdCounts']);
                 Route::get('/help',      [$c, 'helpOpen']);
                 Route::post('/help/clear', [$c, 'helpClear']);
                 Route::post('/help/{id}/done', [$c, 'helpDone'])->whereNumber('id');

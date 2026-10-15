@@ -93,6 +93,11 @@ class PosController extends Controller
         return $this->guard(fn () => ['holds' => $this->sales->holds($request->user())]);
     }
 
+    public function holdCounts(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => $this->sales->holdCounts($request->user()));
+    }
+
     public function hold(Request $request): JsonResponse
     {
         $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.name' => 'nullable|string|max:120', 'items.*.discount_pct' => 'nullable|numeric',

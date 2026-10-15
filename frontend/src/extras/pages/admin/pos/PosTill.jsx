@@ -217,6 +217,8 @@ export default function PosTill() {
   const [locked, setLocked] = useState(true);   // the touch-to-start screen
   const [helpList, setHelpList] = useState(null);   // open requests from self-checkout screens
   const [helpDlg, setHelpDlg] = useState(false);
+  const [heldCount, setHeldCount] = useState({ total: 0, customers: 0 });   // held sales waiting at this branch, and those from customers
+  const lastCustomers = useRef(0);
   const [shiftUi, setShiftUi] = useState(null);   // 'open' | 'list' | { id }
   const [customer, setCustomer] = useState(null);
   const [cq, setCq] = useState('');
@@ -229,7 +231,15 @@ export default function PosTill() {
   useEffect(() => {   // customers who pressed Call for help at a self-checkout screen
     if (!ctx?.station) return undefined;
     let live = true;
-    const load = () => posAPI.helpRequests().then((r) => live && setHelpList(r.requests)).catch(() => {});
+    const load = () => {
+      posAPI.helpRequests().then((r) => live && setHelpList(r.requests)).catch(() => {});
+      posAPI.holdCounts().then((c) => {
+        if (!live) return;
+        if (c.customers > lastCustomers.current) toast(`${c.customers - lastCustomers.current} new basket${c.customers - lastCustomers.current === 1 ? '' : 's'} from a customer, waiting under Recall.`, { icon: '🛒', duration: 6000 });
+        lastCustomers.current = c.customers;
+        setHeldCount(c);
+      }).catch(() => {});
+    };
     load();
     const t = setInterval(load, 15000);
     return () => { live = false; clearInterval(t); };
@@ -303,7 +313,7 @@ export default function PosTill() {
   const hold = async () => {
     try { const label = window.prompt('Name this held sale (optional)') ?? ''; await posAPI.hold({ ...body(), label, customer_name: customer?.name, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, name: c.name, discount_pct: c.discount_pct || 0 })) }); setCart([]); toast.success('Sale held.'); } catch (e) { toast.error(errMsg(e, 'Could not hold')); }
   };
-  const openHolds = async () => { try { setHolds((await posAPI.holds()).holds); } catch (e) { toast.error(errMsg(e, 'Could not load held sales')); } };
+  const openHolds = async () => { try { setHolds((await posAPI.holds()).holds); posAPI.holdCounts().then((c) => { lastCustomers.current = c.customers; setHeldCount(c); }).catch(() => {}); } catch (e) { toast.error(errMsg(e, 'Could not load held sales')); } };
   const recall = async (id) => {
     try {
       const h = await posAPI.recall(id);
@@ -311,6 +321,7 @@ export default function PosTill() {
       if (h.customer_id) setCustomer({ id: h.customer_id, name: h.customer_name ?? `Customer ${h.customer_id}` });
       setCart((c) => [...c, ...h.items.map((i) => ({ variant_id: i.variant_id, name: i.name, quantity: i.quantity, discount_pct: i.discount_pct || 0, price: null }))]);
       setHolds(null);
+      posAPI.holdCounts().then((c) => { lastCustomers.current = c.customers; setHeldCount(c); }).catch(() => {});
     } catch (e) { toast.error(errMsg(e, 'Could not recall')); openHolds(); }
   };
 
@@ -332,6 +343,7 @@ export default function PosTill() {
         <span style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', fontWeight: 900 }}>{ctx.business}</span>
         <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Point of sale - touch to start</span>
         <span style={{ opacity: 0.7 }}>{ctx.station.name} · {ctx.station.location}</span>
+        {heldCount.total > 0 && <span style={{ background: heldCount.customers > 0 ? '#dc2626' : 'rgba(255,255,255,0.22)', borderRadius: 999, padding: '8px 18px', justifySelf: 'center', fontWeight: 800 }}>{heldCount.total} held sale{heldCount.total === 1 ? '' : 's'} waiting{heldCount.customers > 0 ? `, ${heldCount.customers} from customers` : ''}</span>}
         {helpCount > 0 && <span style={{ background: '#dc2626', borderRadius: 999, padding: '8px 18px', justifySelf: 'center', fontWeight: 800 }}>{helpCount} customer{helpCount === 1 ? '' : 's'} asking for help</span>}
       </main>
     );
@@ -501,7 +513,7 @@ export default function PosTill() {
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" style={btnGhost} disabled={!cart.length} onClick={hold}><Pause size={14} /> Hold</button>
-            <button type="button" style={btnGhost} onClick={openHolds}><Play size={14} /> Recall</button>
+            <button type="button" style={heldCount.customers > 0 ? { ...btnPrimary, background: '#dc2626' } : btnGhost} onClick={openHolds}><Play size={14} /> Recall{heldCount.total > 0 ? ` (${heldCount.total})` : ''}{heldCount.customers > 0 ? ` · ${heldCount.customers} from customers` : ''}</button>
             <button type="button" style={{ ...btnPrimary, flex: 1 }} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift || unpriced.length > 0} onClick={() => setPaying(true)}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]} {money(total, cur)}</button>
           </div>
         </section>
@@ -521,8 +533,12 @@ export default function PosTill() {
             <strong>Held sales</strong>
             {holds.length === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nothing is on hold.</p>}
             {holds.map((h) => (
-              <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span>{h.label || `Sale #${h.id}`} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {h.lines} lines · {h.by}</span></span>
+              <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, ...(h.from_customer ? { background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)' } : {}) }}>
+                <span>
+                  {h.from_customer && <span style={{ background: '#dc2626', color: '#fff', borderRadius: 6, padding: '1px 6px', fontSize: '0.68rem', fontWeight: 800, marginRight: 6 }}>CUSTOMER</span>}
+                  {h.label || `Sale #${h.id}`}
+                  <span style={{ display: 'block', color: colors.textMuted, fontSize: '0.75rem' }}>{h.lines} line{h.lines === 1 ? '' : 's'} · {h.quantity} item{h.quantity === 1 ? '' : 's'} · {h.minutes < 1 ? 'just now' : `${h.minutes} min ago`}{h.from_customer ? (h.station ? ` · ${h.station}` : '') : (h.by ? ` · ${h.by}` : '')}</span>
+                </span>
                 <button type="button" style={btnPrimary} onClick={() => recall(h.id)}>Recall</button>
               </div>
             ))}

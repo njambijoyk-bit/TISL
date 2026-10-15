@@ -30,6 +30,7 @@ const posAPI = {
   closeShift: async (id, body) => (await api.post(`/admin/pos/shifts/${id}/close`, body)).data,
   shiftReport: async (id) => (await api.get(`/admin/pos/shifts/${id}/report`)).data,
   mySales: async () => (await api.get('/admin/pos/sales')).data,
+  holdCounts: async () => (await api.get('/admin/pos/holds/count')).data,
   holds: async () => (await api.get('/admin/pos/holds')).data,
   hold: async (body) => (await api.post('/admin/pos/holds', body)).data,
   recall: async (id) => (await api.post(`/admin/pos/holds/${id}/recall`)).data,

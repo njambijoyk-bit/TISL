@@ -635,13 +635,27 @@ class SaleService
         }
         $scope = $this->holdScope($u);
         $names = DB::table('users')->pluck('name', 'id');
+        $stations = \App\Models\Pos\Station::pluck('name', 'id');
 
-        return DB::table('pos_holds')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))->orderByDesc('id')->limit(50)->get()->map(function ($h) use ($names) {
+        return DB::table('pos_holds')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))->orderByRaw('user_id = 0 desc')->orderByDesc('id')->limit(50)->get()->map(function ($h) use ($names, $stations) {
             $cart = json_decode((string) $h->cart, true) ?: [];
 
-            return ['id' => (int) $h->id, 'label' => $h->label, 'by' => $names[$h->user_id] ?? null, 'at' => $h->created_at, 'lines' => count($cart['items'] ?? []),
+            return ['id' => (int) $h->id, 'label' => $h->label, 'by' => $names[$h->user_id] ?? null, 'from_customer' => (int) $h->user_id === 0, 'station' => $stations[$h->station_id] ?? null,
+                'at' => $h->created_at, 'minutes' => (int) max(0, now()->diffInMinutes($h->created_at, true)), 'lines' => count($cart['items'] ?? []),
                 'quantity' => array_sum(array_column($cart['items'] ?? [], 'quantity'))];
         })->all();
+    }
+
+    /** How many held sales wait at this person's branches, and how many of them came from customers at a self-checkout screen. @return array{total: int, customers: int} */
+    public function holdCounts(User $u): array
+    {
+        if (! self::installed()) {
+            return ['total' => 0, 'customers' => 0];
+        }
+        $scope = $this->holdScope($u);
+        $q = fn () => DB::table('pos_holds')->when($scope !== null, fn ($w) => $w->whereIn('location_id', $scope ?: [0]));
+
+        return ['total' => (int) $q()->count(), 'customers' => (int) $q()->where('user_id', 0)->count()];
     }
 
     /** Take a held sale back: it leaves the shelf and comes to the till. */
