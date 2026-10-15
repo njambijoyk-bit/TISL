@@ -447,12 +447,12 @@ function PWARedirect() {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
-/** The chat helper is left off the till and the self-checkout screen: nothing may sit on top of a sale. */
-function MimiGate() {
+/** Floating helpers (chat, AI panel, memo) are left off the till and the self-checkout screen: nothing may sit on top of a sale. */
+function HideOnPos({ children }) {
   const { pathname } = useLocation();
   if (pathname.startsWith('/pos/self') || pathname.startsWith('/admin/pos')) return null;
 
-  return <Mimi />;
+  return children;
 }
 
 function App() {
@@ -507,9 +507,9 @@ function App() {
         <InstallPrompt />
         <AlgorithmBanner /> 
         <BookmarkNote />
-        <MimiGate />
-        <AiPanelRoot />
-        <MemoDock />
+        <HideOnPos><Mimi /></HideOnPos>
+        <HideOnPos><AiPanelRoot /></HideOnPos>
+        <HideOnPos><MemoDock /></HideOnPos>
         <CookieConsentBanner /> 
         <PasskeyOffer />
         <PasskeyReminder />
