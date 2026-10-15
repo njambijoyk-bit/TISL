@@ -238,6 +238,7 @@ export default function PosTill() {
   const [shiftUi, setShiftUi] = useState(null);   // 'open' | 'list' | { id }
   const [customer, setCustomer] = useState(null);
   const [cq, setCq] = useState('');
+  const [walkin, setWalkin] = useState('');   // an optional name for a cash sale to a walk-in customer
   const [cfound, setCfound] = useState([]);
   const key = useRef(newKey());
   const search = useRef(null);
@@ -266,7 +267,7 @@ export default function PosTill() {
     return () => clearTimeout(t);
   }, [q, ctx]);
 
-  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: mode === 'cash' ? undefined : customer?.id, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval]);
+  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: mode === 'cash' ? undefined : customer?.id, customer_name: mode === 'cash' && walkin.trim() ? walkin.trim() : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin]);
   useEffect(() => {   // the books price the basket: the total shown is the one that will post
     if (!cart.length || !ctx?.station) { setPriced(null); return undefined; }
     let live = true;
@@ -316,7 +317,7 @@ export default function PosTill() {
     setBusy(true);
     try {
       const r = await posAPI.sell({ ...body(), key: key.current, tenders: tenders.filter((t) => t.amount > 0) });
-      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setCq(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
+      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setCq(''); setWalkin(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
     } catch (e) { if (e?.response?.data?.approval === 'discount') { setPaying(false); setApproval(null); } toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
   };
 
@@ -327,7 +328,7 @@ export default function PosTill() {
   const openMine = async () => { try { setMine((await posAPI.mySales()).sales); } catch (e) { toast.error(errMsg(e, 'Could not load your sales')); } };
 
   const hold = async () => {
-    try { const label = window.prompt('Name this held sale (optional)') ?? ''; await posAPI.hold({ ...body(), label, customer_name: customer?.name, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, name: c.name, discount_pct: c.discount_pct || 0 })) }); setCart([]); toast.success('Sale held.'); } catch (e) { toast.error(errMsg(e, 'Could not hold')); }
+    try { const label = window.prompt('Name this held sale (optional)') ?? ''; await posAPI.hold({ ...body(), label, customer_name: customer?.name ?? (walkin.trim() || undefined), items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, name: c.name, discount_pct: c.discount_pct || 0 })) }); setCart([]); toast.success('Sale held.'); } catch (e) { toast.error(errMsg(e, 'Could not hold')); }
   };
   const openHolds = async () => { try { setHolds((await posAPI.holds()).holds); posAPI.holdCounts().then((c) => { lastCustomers.current = c.customers; setHeldCount(c); }).catch(() => {}); } catch (e) { toast.error(errMsg(e, 'Could not load held sales')); } };
   const recall = async (id) => {
@@ -335,6 +336,7 @@ export default function PosTill() {
       const h = await posAPI.recall(id);
       if (h.mode && ctx.can[h.mode === 'cash' ? 'sell' : h.mode]) setMode(h.mode);
       if (h.customer_id) setCustomer({ id: h.customer_id, name: h.customer_name ?? `Customer ${h.customer_id}` });
+      else if (h.customer_name) setWalkin(h.customer_name);
       setCart((c) => [...c, ...h.items.map((i) => ({ variant_id: i.variant_id, name: i.name, quantity: i.quantity, discount_pct: i.discount_pct || 0, price: null }))]);
       setHolds(null);
       posAPI.holdCounts().then((c) => { lastCustomers.current = c.customers; setHeldCount(c); }).catch(() => {});
@@ -490,6 +492,7 @@ export default function PosTill() {
           )}
           {needShift && <p role="alert" style={{ margin: 0, padding: '8px 10px', borderRadius: 8, background: 'color-mix(in srgb, #d97706 12%, transparent)', fontSize: '0.82rem' }}>Open your shift to start selling.</p>}
           {tabs}
+          {mode === 'cash' && <input style={{ ...field, height: 34, fontSize: '0.84rem' }} maxLength={80} value={walkin} onChange={(e) => setWalkin(e.target.value)} placeholder="Customer name (optional, otherwise Walk-in customer)" aria-label="Customer name" />}
           {mode !== 'cash' && mode !== 'return' && (
             customer ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--line)' }}>

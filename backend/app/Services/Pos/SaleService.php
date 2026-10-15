@@ -236,13 +236,25 @@ class SaleService
         }
     }
 
-    private function base(?User $u, Station $station, ?int $customerId, string $mode = 'cash', array $meta = []): array
+    /** A sale to nobody in particular is booked to the walk-in customer ledger (Books settings), with a name on the document when the customer gives one. */
+    private function walkin(): ?int
+    {
+        try {
+            return app(\App\Services\Books\LedgerService::class)->walkinLedger()->id;
+        } catch (BooksException) {
+            return null;   // not set up: the sale still goes through, without a party
+        }
+    }
+
+    private function base(?User $u, Station $station, ?int $customerId, string $mode = 'cash', array $meta = [], ?string $name = null): array
     {
         $type = VoucherType::byBase(self::MODES[$mode]['base']) ?? throw new BooksException('That kind of document is switched off in Books.');
+        $name = $name !== null ? mb_substr(trim($name), 0, 80) : '';
+        $party = (! $customerId && $mode === 'cash') ? ['party_ledger_id' => $this->walkin(), 'party_name' => $name !== '' ? $name : null] : [];
 
         return ['voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => (int) $station->location_id, 'currency_id' => Currency::getBaseCurrency()?->id, 'customer_id' => $customerId,
-            'channel' => 'pos', 'narration' => 'Point of sale - '.$station->name,
-            'meta' => ['pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u?->name ?? 'Self checkout']] + ($customerId ? [] : ['guest' => true, 'contact' => ['name' => 'Walk-in']]) + $meta];
+            'channel' => 'pos', 'narration' => 'Point of sale - '.$station->name.($name !== '' && ! $customerId ? ' - '.$name : ''),
+            'meta' => ['pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u?->name ?? 'Self checkout']] + ($customerId ? [] : ['guest' => true, 'contact' => ['name' => $name !== '' ? $name : 'Walk-in']]) + $meta] + $party;
     }
 
     private function station(User $u, ?int $stationId): Station
@@ -282,7 +294,7 @@ class SaleService
         $rows = $this->lines($u, (array) ($in['items'] ?? []), (int) $station->location_id);
         $mode = $this->mode($u, $in);
         $customerId = $this->customer($in, $mode)?->id;
-        $data = $this->base($u, $station, $customerId, $mode);
+        $data = $this->base($u, $station, $customerId, $mode, [], isset($in['customer_name']) ? (string) $in['customer_name'] : null);
         $clean = fn (array $rs) => array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rs);
         $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
         $this->assertPriced($pre);

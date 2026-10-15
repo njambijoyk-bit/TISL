@@ -78,7 +78,7 @@ class ReceiptService
             'company' => ['name' => $co->name ?: config('app.name'), 'address' => trim(implode(', ', array_filter([$co->address, $co->city]))), 'phone' => $phones[0]['value'] ?? ($co->phone ?? null), 'tax_pin' => $co->tax_pin],
             'branch' => DB::table('locations')->where('id', $v->location_id)->value('name'), 'station' => $station?->name, 'cashier' => $v->creator?->name ?? ($station?->kind === 'self_checkout' ? 'Self checkout' : null),
             'document' => $v->type?->name, 'number' => $v->voucher_number, 'at' => ($v->posted_at ?? $v->created_at)?->timezone((string) config('app.timezone', 'Africa/Nairobi'))->format('d/m/Y H:i'),
-            'customer' => ! empty($v->meta['guest']) ? null : ($v->party_name ?: $v->partyLedger?->name),
+            'customer' => $v->party_name ?: (! empty($v->meta['guest']) ? null : $v->partyLedger?->name),
             'lines' => $lines, 'subtotal' => (float) $v->subtotal, 'taxes' => array_map(fn ($l, $a) => ['label' => $l, 'amount' => $a], array_keys($taxes), array_values($taxes)), 'tax_total' => (float) $v->tax_total, 'total' => (float) $v->total_amount,
             'tenders' => $tenders, 'tendered' => $paid['tendered'] ?? null, 'change' => $paid['change'] ?? null,
             'qr' => CodeFactory::make('qr', (string) $v->voucher_number)->svg(),   // scanned at the return screen to find this receipt

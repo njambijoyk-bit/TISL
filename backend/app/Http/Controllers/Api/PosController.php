@@ -65,7 +65,7 @@ class PosController extends Controller
 
     public function price(Request $request): JsonResponse
     {
-        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60']);
+        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'customer_name' => 'nullable|string|max:80']);
 
         return $this->guard(fn () => $this->sales->price($request->user(), $d));
     }
@@ -73,7 +73,7 @@ class PosController extends Controller
     public function sell(Request $request): JsonResponse
     {
         $d = $request->validate(['key' => 'required|string|max:64', 'items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric',
-            'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'tenders' => 'nullable|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
+            'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'customer_name' => 'nullable|string|max:80', 'tenders' => 'nullable|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
 
         return $this->guard(fn () => $this->sales->sell($request->user(), $d), 201);
     }
