@@ -46,7 +46,6 @@ export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, on
   const [counts, setCounts] = useState({});
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const [reopening, setReopening] = useState(false);
   const [why, setWhy] = useState('');
   useEffect(() => { posAPI.shiftReport(shiftId).then(setRep).catch((e) => { toast.error(errMsg(e, 'Could not load the shift')); onClose(); }); }, [shiftId, onClose]);
   if (!rep) return null;
@@ -66,7 +65,7 @@ export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, on
     setBusy(true);
     try {
       const x = await posAPI.reopenShift(shiftId, { reason: why, approval_token: token, station_id: stationId });
-      setRep(x); setReopening(false); setWhy(''); setCounts({}); setNote(''); onClosed?.(); toast.success('Shift reopened.');
+      setRep(x); setWhy(''); setCounts({}); setNote(''); onClosed?.(); toast.success('Shift reopened.');
     } catch (e) { toast.error(errMsg(e, 'Could not reopen the shift'), { duration: 9000 }); } finally { setBusy(false); }
   };
   const line = (l, v, b) => <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: b ? 800 : 400 }}><span>{l}</span><span>{v}</span></div>;
@@ -98,12 +97,11 @@ export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, on
         {!open && rep.methods.some((m) => m.kind !== 'cash' && m.counted != null) && line('All counted methods together', overShort(rep.variance), true)}
         {open && <input style={field} value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder="Note (needed if the count is not exact)" aria-label="Note" />}
         {!open && rep.shift.note && <div style={{ color: colors.textMuted }}>Note: {rep.shift.note}</div>}
-        {!open && reopening && <input style={field} value={why} maxLength={255} onChange={(e) => setWhy(e.target.value)} placeholder="Why is it being reopened? (required)" aria-label="Reason for reopening" />}
+        {!open && <input style={field} value={why} maxLength={255} onChange={(e) => setWhy(e.target.value)} placeholder="Why is it being reopened? (required to reopen)" aria-label="Reason for reopening" />}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 6, flexWrap: 'wrap' }}>
           <button type="button" style={btnGhost} onClick={() => printReport(rep, paper)}>Print</button>
           <button type="button" style={btnGhost} onClick={onClose}>{open ? 'Back' : 'Done'}</button>
-          {!open && !reopening && <button type="button" style={btnGhost} onClick={() => setReopening(true)}>Reopen shift</button>}
-          {!open && reopening && <button type="button" style={btnPrimary} disabled={busy || why.trim().length < 3} onClick={() => ask('reopen_shift', 'Reopening a shift needs a supervisor. Enter their PIN.', (a) => doReopen(a.token))}>Reopen with supervisor PIN</button>}
+          {!open && <button type="button" style={{ ...btnGhost, opacity: busy || why.trim().length < 3 ? 0.45 : 1, cursor: busy || why.trim().length < 3 ? 'not-allowed' : 'pointer' }} disabled={busy || why.trim().length < 3} onClick={() => ask('reopen_shift', 'Reopening a shift needs a supervisor. Enter their PIN.', (a) => doReopen(a.token))}>Reopen shift (supervisor PIN)</button>}
           {open && <button type="button" style={btnPrimary} disabled={busy} onClick={close}>{needsPin ? 'Close with supervisor PIN' : 'Close shift'}</button>}
         </div>
       </div>
