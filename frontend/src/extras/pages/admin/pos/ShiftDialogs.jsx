@@ -81,7 +81,7 @@ export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, on
         {line(`Cash sales (${rep.cash_sales.count})`, money(rep.cash_sales.total))}
         {line(`Invoices (${rep.invoices.count})`, money(rep.invoices.total))}
         {line(`Sales orders (${rep.orders.count})`, money(rep.orders.total))}
-        {line(`Returns (${rep.returns.count})`, money(rep.returns.total))}
+        {line(`Credit notes (${rep.returns.count})`, money(rep.returns.total))}
         {line('Refunded', money(rep.refunded))}
         {line('Discounts', money(rep.discounts))}
         {line('Voids', rep.voids)}

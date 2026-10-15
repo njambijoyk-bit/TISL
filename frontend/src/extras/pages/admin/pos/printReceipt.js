@@ -99,7 +99,7 @@ export function reportHtml(rep, paper) {
     <div class="c">Opened ${esc(sh.opened_at)}${sh.closed_at ? `<br>Closed ${esc(sh.closed_at)}${sh.closed_by && sh.closed_by !== sh.user ? ` by ${esc(sh.closed_by)}` : ''}` : ''}</div><hr>
     ${row('Opening float', num(sh.opening_float))}
     ${row(`Cash sales (${rep.cash_sales.count})`, num(rep.cash_sales.total))}${row(`Invoices (${rep.invoices.count})`, num(rep.invoices.total))}${row(`Sales orders (${rep.orders.count})`, num(rep.orders.total))}
-    ${row(`Payments taken (${rep.receipts.count})`, '')}${row(`Returns (${rep.returns.count})`, num(rep.returns.total))}${row('Refunded', num(rep.refunded))}${row('Discounts', num(rep.discounts))}${row('Voids', String(rep.voids))}<hr>
+    ${row(`Payments taken (${rep.receipts.count})`, '')}${row(`Credit notes (${rep.returns.count})`, num(rep.returns.total))}${row('Refunded', num(rep.refunded))}${row('Discounts', num(rep.discounts))}${row('Voids', String(rep.voids))}<hr>
     ${methods}<hr>
     ${row('Expected cash', num(rep.expected_cash), 'b')}${rep.variance != null && rep.methods.some((m) => m.kind !== 'cash' && m.counted != null) ? row(`All counted ${rep.variance === 0 ? 'balanced' : rep.variance > 0 ? 'over' : 'short'}`, num(Math.abs(rep.variance)), 'b') : ''}
     ${sh.note ? `<hr><div>${esc(sh.note)}</div>` : ''}
