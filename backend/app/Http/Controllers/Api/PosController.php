@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\Books\BooksException;
+use App\Services\Pos\ApprovalRequired;
+use App\Services\Pos\PinService;
 use App\Services\Pos\SaleService;
 use App\Services\Pos\StationService;
 use Illuminate\Http\JsonResponse;
@@ -12,7 +14,7 @@ use Illuminate\Http\Request;
 /** The cashier's point of sale (/api/pos): the catalogue, pricing, selling for cash, and hold and recall. Changes to Books are made by the books' own posting code, not here. */
 class PosController extends Controller
 {
-    public function __construct(private SaleService $sales)
+    public function __construct(private SaleService $sales, private PinService $pins, private StationService $stations)
     {
     }
 
@@ -22,6 +24,8 @@ class PosController extends Controller
             abort_unless(SaleService::installed(), 422, 'Run database scripts 169_pos.sql and 170_pos_sales.sql first.');
 
             return response()->json($fn(), $ok);
+        } catch (ApprovalRequired $e) {
+            return response()->json(['message' => $e->getMessage(), 'approval' => $e->purpose], 422);   // the till asks a supervisor for their PIN, then tries again
         } catch (BooksException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }
@@ -50,7 +54,7 @@ class PosController extends Controller
 
     public function price(Request $request): JsonResponse
     {
-        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'mode' => 'nullable|in:cash,invoice,order']);
+        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60']);
 
         return $this->guard(fn () => $this->sales->price($request->user(), $d));
     }
@@ -58,7 +62,7 @@ class PosController extends Controller
     public function sell(Request $request): JsonResponse
     {
         $d = $request->validate(['key' => 'required|string|max:64', 'items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric',
-            'mode' => 'nullable|in:cash,invoice,order', 'tenders' => 'nullable|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
+            'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'tenders' => 'nullable|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
 
         return $this->guard(fn () => $this->sales->sell($request->user(), $d), 201);
     }
@@ -97,6 +101,65 @@ class PosController extends Controller
             $this->sales->dropHold($request->user(), $id);
 
             return ['message' => 'Held sale removed.'];
+        });
+    }
+
+    // ── supervisor approval, returns, voids ──
+
+    public function supervisors(Request $request): JsonResponse
+    {
+        return $this->guard(function () use ($request) {
+            $station = $this->stations->resolveFor($request->user(), null, $request->filled('station_id') ? (int) $request->station_id : null) ?? throw new BooksException('You have no station to sell from.');
+
+            return ['supervisors' => $this->pins->supervisors($request->user(), $station)];
+        });
+    }
+
+    public function approve(Request $request): JsonResponse
+    {
+        $d = $request->validate(['supervisor_id' => 'required|integer', 'pin' => 'required|string|max:12', 'purpose' => 'required|in:discount,return,void', 'station_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($request, $d) {
+            $station = $this->stations->resolveFor($request->user(), null, $d['station_id'] ?? null) ?? throw new BooksException('You have no station to sell from.');
+
+            return $this->pins->approve($request->user(), $station, (int) $d['supervisor_id'], $d['pin'], $d['purpose']);
+        });
+    }
+
+    public function setPin(Request $request): JsonResponse
+    {
+        $d = $request->validate(['pin' => 'required|string|max:12']);
+
+        return $this->guard(function () use ($request, $d) {
+            $this->pins->setPin($request->user(), $d['pin']);
+
+            return ['message' => 'Your PIN is saved.'];
+        });
+    }
+
+    public function findReturn(Request $request): JsonResponse
+    {
+        $request->validate(['number' => 'required|string|max:60']);
+
+        return $this->guard(fn () => $this->sales->findForReturn($request->user(), (string) $request->number));
+    }
+
+    public function makeReturn(Request $request): JsonResponse
+    {
+        $d = $request->validate(['voucher_id' => 'required|integer', 'lines' => 'required|array', 'lines.*.item_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric', 'reason' => 'required|string|max:200',
+            'refund_ledger_id' => 'nullable|integer', 'approval_token' => 'nullable|string|max:60', 'station_id' => 'nullable|integer']);
+
+        return $this->guard(fn () => $this->sales->makeReturn($request->user(), $d), 201);
+    }
+
+    public function logVoid(Request $request): JsonResponse
+    {
+        $d = $request->validate(['what' => 'nullable|in:line,basket', 'item' => 'nullable|string|max:120', 'quantity' => 'nullable|numeric', 'amount' => 'nullable|numeric', 'approval_token' => 'nullable|string|max:60', 'station_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($request, $d) {
+            $this->sales->logVoid($request->user(), $d);
+
+            return ['ok' => true];
         });
     }
 }

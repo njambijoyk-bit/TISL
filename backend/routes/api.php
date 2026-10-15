@@ -1480,6 +1480,12 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/customers', [$c, 'customers']);
                 Route::post('/price',    [$c, 'price']);   // what each kind of document may be made is checked per kind (sell, invoice, order)
                 Route::post('/sales',    [$c, 'sell']);
+                Route::get('/supervisors', [$c, 'supervisors']);
+                Route::post('/approve',  [$c, 'approve']);
+                Route::post('/voids',    [$c, 'logVoid']);
+                Route::get('/returns/find', [$c, 'findReturn'])->middleware('permission:pos.return');
+                Route::post('/returns',  [$c, 'makeReturn'])->middleware('permission:pos.return');
+                Route::put('/pin',       [$c, 'setPin'])->middleware('permission:pos.supervise');
             });
             Route::middleware('permission:pos.sell')->group(function () use ($c) {
                 Route::get('/holds',               [$c, 'holds']);

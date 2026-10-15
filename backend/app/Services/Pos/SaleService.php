@@ -5,6 +5,7 @@ namespace App\Services\Pos;
 use App\Models\Books\PaymentMethod;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
+use App\Models\Access\AccessLog;
 use App\Models\Books\Ledger;
 use App\Models\Currency;
 use App\Models\Customer;
@@ -31,7 +32,7 @@ class SaleService
     /** What the till can make: a cash sale, an invoice on the customer's account, a sales order (with or without a deposit). */
     public const MODES = ['cash' => ['base' => VoucherType::CASH_SALE, 'perm' => 'pos.sell'], 'invoice' => ['base' => VoucherType::SALES, 'perm' => 'pos.invoice'], 'order' => ['base' => VoucherType::SALES_ORDER, 'perm' => 'pos.order']];
 
-    public function __construct(private VoucherService $vouchers, private TenderCheck $tenders, private StationService $stations)
+    public function __construct(private VoucherService $vouchers, private TenderCheck $tenders, private StationService $stations, private PinService $pins)
     {
     }
 
@@ -56,7 +57,7 @@ class SaleService
         return ['stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
             'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
-            'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'hold' => $access->allows($u, 'pos.sell')]];
+            'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];
     }
 
     // ── the catalogue ─────────────────────────────────────────────────────
@@ -206,8 +207,23 @@ class SaleService
             $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
         }
         $data['lines'] = $clean($rows);
+        $needs = max(array_column($rows, '_pct') ?: [0]) > $this->discountLimit($u) + 0.00001;
+        if ($needs && ! $this->pins->peek($in['approval_token'] ?? null, $u, $station, 'discount')) {
+            throw new ApprovalRequired('discount', 'A discount of more than '.rtrim(rtrim(number_format($this->discountLimit($u), 2, '.', ''), '0'), '.').'% needs a supervisor: ask for their PIN.');
+        }
 
-        return [$data, $pre];
+        return [$data, $pre, $needs];
+    }
+
+    /** The biggest discount (percent) this person may give alone: the limit on their role; a supervisor has none. */
+    public function discountLimit(User $u): float
+    {
+        $access = app(Authorizer::class);
+        if ($access->allows($u, 'pos.supervise')) {
+            return 100.0;
+        }
+
+        return (float) ($access->restriction($u, 'max_discount_percent') ?? 0);
     }
 
     // ── selling ───────────────────────────────────────────────────────────
@@ -236,7 +252,7 @@ class SaleService
         $mode = $this->mode($u, $in);
         $customer = $this->customer($in, $mode);
         $station = $this->station($u, isset($in['station_id']) ? (int) $in['station_id'] : null);
-        [$data, $pre] = $this->priced($u, $station, $in);
+        [$data, $pre, $needsApproval] = $this->priced($u, $station, $in);
         $total = (float) $pre['total'];
         $paid = null;
         $now = null;   // money taken now on an invoice or an order
@@ -258,7 +274,7 @@ class SaleService
         }
 
         try {
-            $voucher = DB::transaction(function () use ($u, $key, $station, $data, $mode, $customer, $now) {
+            $voucher = DB::transaction(function () use ($u, $key, $station, $data, $mode, $customer, $now, $needsApproval, $in) {
                 DB::table('pos_sale_keys')->insert(['user_id' => $u->id, 'sale_key' => $key, 'created_at' => now(), 'updated_at' => now()]);
                 $v = $this->post($data, $u);
                 DB::table('vouchers')->where('id', $v->id)->update(['station_id' => $station->id]);
@@ -268,6 +284,10 @@ class SaleService
                     $this->deposit($v, $customer, $now, $station, $u);
                 }
                 DB::table('pos_sale_keys')->where('user_id', $u->id)->where('sale_key', $key)->update(['voucher_id' => $v->id, 'updated_at' => now()]);
+                if ($needsApproval) {   // the supervisor's approval is spent with the sale it allowed
+                    $sup = $this->pins->spend($in['approval_token'] ?? null, $u, $station, 'discount', ['voucher' => $v->voucher_number]);
+                    $v->update(['meta' => array_merge($v->meta ?? [], ['pos_approval' => ['discount' => $sup]])]);
+                }
 
                 return $v;
             });
@@ -380,6 +400,91 @@ class SaleService
     {
         return Voucher::where('created_by', $u->id)->where('channel', 'pos')->whereDate('date', today())->orderByDesc('id')->limit($limit)->get()
             ->map(fn (Voucher $v) => ['id' => $v->id, 'number' => $v->voucher_number, 'total' => (float) $v->total_amount, 'status' => $v->status, 'at' => $v->posted_at?->toIso8601String()])->all();
+    }
+
+    // ── returns (credit notes) ────────────────────────────────────────────
+
+    /** Find a sale or invoice to take items back from, by its number (typed, or read from the receipt). @return array<string, mixed> */
+    public function findForReturn(User $u, string $number): array
+    {
+        $number = trim($number);
+        if ($number === '') {
+            throw new BooksException('Enter the receipt or invoice number.');
+        }
+        $scope = app(Authorizer::class)->locationIds($u);
+        $v = Voucher::with('type')->whereRaw('LOWER(voucher_number) = ?', [strtolower($number)])->where('status', Voucher::POSTED)
+            ->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))->first();
+        if (! $v || ! in_array($v->type->base_type, [VoucherType::CASH_SALE, VoucherType::SALES], true)) {
+            throw new BooksException('No cash sale or invoice with that number at your branch.');
+        }
+        $r = $this->vouchers->returnable($v);
+        $r['lines'] = array_values(array_filter($r['lines'], fn ($l) => $l['available_quantity'] > 0 && ! $l['is_header'] && ! $l['negative']));
+        $r['source']['type'] = $v->type->name;
+        $r['source']['location_id'] = (int) $v->location_id;
+
+        return $r;
+    }
+
+    /**
+     * Take items back: a credit note against the sale, always completed with a supervisor's approval (purpose return). A cash sale gives the money back from the till's ledger
+     * (the one the sale was paid into, unless the cashier picks another from the list); an invoice just reduces what the customer owes.
+     * $in: voucher_id, lines [{item_id, quantity}], reason, refund_ledger_id?, approval_token, station_id?
+     *
+     * @return array<string, mixed>
+     */
+    public function makeReturn(User $u, array $in): array
+    {
+        if (! app(Authorizer::class)->allows($u, 'pos.return')) {
+            throw new BooksException('You may not take returns.');
+        }
+        $station = $this->station($u, isset($in['station_id']) ? (int) $in['station_id'] : null);
+        $reason = trim((string) ($in['reason'] ?? ''));
+        if ($reason === '') {
+            throw new BooksException('Say why it is coming back.');
+        }
+        $source = Voucher::with('type')->findOrFail((int) ($in['voucher_id'] ?? 0));
+        $found = $this->findForReturn($u, $source->voucher_number);
+        $lines = [];
+        foreach ((array) ($in['lines'] ?? []) as $l) {
+            if ((float) ($l['quantity'] ?? 0) > 0) {
+                $lines[] = ['item_id' => (int) $l['item_id'], 'mode' => 'return', 'quantity' => (float) $l['quantity']];
+            }
+        }
+        if (! $lines) {
+            throw new BooksException('Choose what is coming back.');
+        }
+        $opts = ['lines' => $lines, 'reason' => $reason, 'narration' => "Return at {$station->name} against {$source->voucher_number} — {$reason}"];
+        if ($found['paid_at_once']) {
+            $allowed = array_column($found['refund']['ledgers'] ?? [], 'id');
+            $ledger = ! empty($in['refund_ledger_id']) ? (int) $in['refund_ledger_id'] : ($found['refund']['default_id'] ?? ($allowed[0] ?? null));
+            if (! $ledger || ! in_array($ledger, $allowed, true)) {
+                throw new BooksException('Choose where the money goes back from.');
+            }
+            $opts['refund_ledger_id'] = $ledger;
+        }
+
+        return DB::transaction(function () use ($u, $station, $source, $opts, $in) {
+            $this->pins->peek($in['approval_token'] ?? null, $u, $station, 'return') ?? throw new ApprovalRequired('return', 'A return needs a supervisor: ask for their PIN.');
+            $note = $this->vouchers->createReturn($source, $opts, $u);
+            $sup = $this->pins->spend($in['approval_token'] ?? null, $u, $station, 'return', ['against' => $source->voucher_number, 'note' => $note->voucher_number]);   // spent only once the note is made
+            DB::table('vouchers')->where('id', $note->id)->update(['station_id' => $station->id]);
+            $note->update(['meta' => array_merge($note->meta ?? [], ['pos_approval' => ['return' => $sup], 'pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]]), 'channel' => 'pos']);
+
+            return $this->summary($note->fresh(), null, false) + ['refund' => (float) $note->total_amount, 'against' => $source->voucher_number, 'approved_by' => User::whereKey($sup)->value('name')];
+        });
+    }
+
+    /** Removing an item from a basket, or clearing it, is recorded; someone without pos.void needs a supervisor's approval for it. */
+    public function logVoid(User $u, array $in): void
+    {
+        $station = $this->station($u, isset($in['station_id']) ? (int) $in['station_id'] : null);
+        $about = ['what' => (string) ($in['what'] ?? 'line'), 'item' => mb_substr((string) ($in['item'] ?? ''), 0, 120), 'quantity' => (float) ($in['quantity'] ?? 0), 'amount' => (float) ($in['amount'] ?? 0)];
+        if (app(Authorizer::class)->allows($u, 'pos.void')) {
+            AccessLog::record($u->id, $u->id, 'pos_void', ['station' => $station->id] + $about);
+
+            return;
+        }
+        $this->pins->spend($in['approval_token'] ?? null, $u, $station, 'void', $about);
     }
 
     // ── hold and recall ───────────────────────────────────────────────────

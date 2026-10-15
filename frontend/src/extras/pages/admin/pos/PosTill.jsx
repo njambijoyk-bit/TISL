@@ -55,6 +55,123 @@ function PayDialog({ total, methods, cur, busy, mode, customer, onCancel, onPay 
   );
 }
 
+
+/** A supervisor approves: name and their own PIN. The approval is for one thing, lasts five minutes and is used once. */
+function ApproveDialog({ purpose, stationId, why, onDone, onCancel }) {
+  const [list, setList] = useState(null);
+  const [who, setWho] = useState('');
+  const [pin, setPin] = useState('');
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { posAPI.supervisors(stationId).then((r) => { setList(r.supervisors); setWho(r.supervisors[0]?.id ?? ''); }).catch((e) => { toast.error(errMsg(e, 'Could not load supervisors')); onCancel(); }); }, [stationId, onCancel]);
+  const go = async () => {
+    setBusy(true);
+    try { const r = await posAPI.approve({ supervisor_id: Number(who), pin, purpose, station_id: stationId }); onDone(r); } catch (e) { toast.error(errMsg(e, 'Not approved')); setPin(''); } finally { setBusy(false); }
+  };
+
+  return (
+    <div role="dialog" aria-label="Supervisor approval" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', padding: 16 }}>
+      <div style={{ ...card, padding: 20, width: 'min(380px, 100%)', display: 'grid', gap: 10 }}>
+        <strong>Supervisor approval</strong>
+        <div style={{ fontSize: '0.82rem', color: colors.textMuted }}>{why}</div>
+        {list && list.length === 0 && <p style={{ margin: 0, color: colors.danger, fontSize: '0.85rem' }}>No supervisor with a PIN is set up for this branch. A supervisor sets theirs from the till (My PIN).</p>}
+        {list && list.length > 0 && (
+          <>
+            <select style={field} value={who} onChange={(e) => setWho(e.target.value)} aria-label="Supervisor">{list.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
+            <input style={field} type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => e.key === 'Enter' && pin.length === 6 && go()} placeholder="Their 6-digit PIN" aria-label="PIN" />
+          </>
+        )}
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button type="button" style={btnGhost} onClick={onCancel}>Cancel</button>
+          <button type="button" style={btnPrimary} disabled={busy || pin.length !== 6 || !who} onClick={go}>{busy ? 'Checking…' : 'Approve'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** A supervisor sets their own PIN. */
+function PinDialog({ onClose }) {
+  const [a, setA] = useState('');
+  const [b, setB] = useState('');
+  const save = async () => {
+    try { const r = await posAPI.setPin(a); toast.success(r.message); onClose(true); } catch (e) { toast.error(errMsg(e, 'Could not save the PIN')); }
+  };
+
+  return (
+    <div role="dialog" aria-label="My PIN" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', padding: 16 }}>
+      <div style={{ ...card, padding: 20, width: 'min(340px, 100%)', display: 'grid', gap: 10 }}>
+        <strong>My supervisor PIN</strong>
+        <input style={field} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={a} onChange={(e) => setA(e.target.value.replace(/\D/g, ''))} placeholder="New 6-digit PIN" aria-label="New PIN" />
+        <input style={field} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={b} onChange={(e) => setB(e.target.value.replace(/\D/g, ''))} placeholder="Type it again" aria-label="Repeat PIN" />
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+          <button type="button" style={btnGhost} onClick={() => onClose(false)}>Cancel</button>
+          <button type="button" style={btnPrimary} disabled={a.length !== 6 || a !== b} onClick={save}>Save PIN</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Take items back against a sale or invoice. A supervisor's PIN completes it, however small. */
+function ReturnPanel({ ctx, cur, onDone }) {
+  const [number, setNumber] = useState('');
+  const [doc, setDoc] = useState(null);
+  const [qty, setQty] = useState({});
+  const [reason, setReason] = useState('');
+  const [ledger, setLedger] = useState('');
+  const [ask, setAsk] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const find = async () => {
+    try {
+      const r = await posAPI.findReturn(number); setDoc(r); setQty({}); setLedger(r.refund?.default_id ?? r.refund?.ledgers?.[0]?.id ?? '');
+      if (r.lines.length === 0) toast('Nothing on that document can be taken back (it may be fully returned already).');
+    } catch (e) { setDoc(null); toast.error(errMsg(e, 'Not found')); }
+  };
+  const lines = doc ? doc.lines.filter((l) => Number(qty[l.id]) > 0).map((l) => ({ item_id: l.id, quantity: Number(qty[l.id]) })) : [];
+  const worth = doc ? doc.lines.reduce((a, l) => a + (l.available_quantity > 0 ? (Number(qty[l.id]) || 0) * (l.available_amount / l.available_quantity) : 0), 0) : 0;
+  const submit = async (approval) => {
+    setBusy(true);
+    try {
+      const r = await posAPI.makeReturn({ station_id: ctx.station.id, voucher_id: doc.source.id, lines, reason, refund_ledger_id: ledger || undefined, approval_token: approval.token });
+      onDone(r);
+    } catch (e) { toast.error(errMsg(e, 'The return did not post'), { duration: 9000 }); } finally { setBusy(false); setAsk(false); }
+  };
+
+  return (
+    <section style={{ ...card, padding: 16, display: 'grid', gap: 10, maxWidth: 720 }}>
+      <strong>Return items</strong>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input style={field} value={number} onChange={(e) => setNumber(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && find()} placeholder="Receipt or invoice number (type it or scan the receipt)" aria-label="Receipt number" />
+        <button type="button" style={btnPrimary} onClick={find} disabled={!number.trim()}>Find</button>
+      </div>
+      {doc && (
+        <>
+          <div style={{ fontSize: '0.85rem', color: colors.textMuted }}>{doc.source.type} {doc.source.voucher_number} · {doc.source.date}{doc.source.party ? ` · ${doc.source.party}` : ''} · {money(doc.source.total, cur)}</div>
+          {doc.lines.map((l) => (
+            <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
+              <div><div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{l.description}</div><div style={{ fontSize: '0.75rem', color: colors.textMuted }}>sold {l.quantity} · can take back {l.available_quantity}</div></div>
+              <input style={{ ...field, width: 90, textAlign: 'center' }} inputMode="decimal" placeholder="0" value={qty[l.id] ?? ''} onChange={(e) => setQty((q) => ({ ...q, [l.id]: Math.min(Number(e.target.value) || 0, l.available_quantity) || '' }))} aria-label={`Quantity of ${l.description} to take back`} />
+            </div>
+          ))}
+          <input style={field} value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} placeholder="Why is it coming back?" aria-label="Reason" />
+          {doc.paid_at_once && doc.refund?.ledgers?.length > 0 && (
+            <label style={{ fontSize: '0.8rem', color: colors.textMuted, display: 'grid', gap: 4 }}>Money goes back from
+              <select style={field} value={ledger} onChange={(e) => setLedger(Number(e.target.value))}>{doc.refund.ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+            </label>
+          )}
+          {!doc.paid_at_once && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>This invoice is on account: the credit note lowers what the customer owes. No cash is paid out.</p>}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontWeight: 800 }}>About {money(worth, cur)} (the books work out the exact tax)</span>
+            <button type="button" style={btnPrimary} disabled={busy || lines.length === 0 || !reason.trim()} onClick={() => setAsk(true)}>Take back — needs supervisor</button>
+          </div>
+        </>
+      )}
+      {ask && <ApproveDialog purpose="return" stationId={ctx.station.id} why="Every return needs a supervisor's PIN." onCancel={() => setAsk(false)} onDone={submit} />}
+    </section>
+  );
+}
+
 /** Point of sale: search or scan, a basket, hold and recall, pay and post a cash sale. */
 export default function PosTill() {
   const [ctx, setCtx] = useState(null);
@@ -68,6 +185,10 @@ export default function PosTill() {
   const [done, setDone] = useState(null);
   const [holds, setHolds] = useState(null);
   const [mode, setMode] = useState('cash');
+  const [approval, setApproval] = useState(null);   // a supervisor's approval for a discount: { token, supervisor }
+  const [ask, setAsk] = useState(null);             // { purpose, why, then }
+  const [pinOpen, setPinOpen] = useState(false);
+  const [returned, setReturned] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [cq, setCq] = useState('');
   const [cfound, setCfound] = useState([]);
@@ -83,11 +204,11 @@ export default function PosTill() {
     return () => clearTimeout(t);
   }, [q, ctx]);
 
-  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, customer_id: mode === 'cash' ? undefined : customer?.id, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer]);
+  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: mode === 'cash' ? undefined : customer?.id, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval]);
   useEffect(() => {   // the books price the basket: the total shown is the one that will post
     if (!cart.length || !ctx?.station) { setPriced(null); return undefined; }
     let live = true;
-    const t = setTimeout(() => { posAPI.price(body()).then((r) => live && setPriced(r)).catch((e) => live && toast.error(errMsg(e, 'Could not price the basket'))); }, 200);
+    const t = setTimeout(() => { posAPI.price(body()).then((r) => live && setPriced(r)).catch((e) => { if (!live) return; if (e?.response?.data?.approval === 'discount') { setApproval(null); setAsk({ purpose: 'discount', why: e.response.data.message, then: (a) => setApproval(a) }); } else toast.error(errMsg(e, 'Could not price the basket')); }); }, 200);
     return () => { live = false; clearTimeout(t); };
   }, [cart, ctx, body]);
 
@@ -99,6 +220,10 @@ export default function PosTill() {
 
   const add = (it) => setCart((c) => (c.some((x) => x.variant_id === it.variant_id) ? c.map((x) => (x.variant_id === it.variant_id ? { ...x, quantity: x.quantity + 1 } : x)) : [...c, { variant_id: it.variant_id, name: it.name, quantity: 1, discount_pct: 0, price: it.price }]));
   const change = (id, patch) => setCart((c) => c.map((x) => (x.variant_id === id ? { ...x, ...patch } : x)).filter((x) => x.quantity > 0));
+  const remove = (c, i) => {   // taking an item out is recorded; without the right to void it needs a supervisor
+    const note = (token) => posAPI.logVoid({ station_id: ctx.station.id, what: 'line', item: c.name, quantity: c.quantity, amount: priced?.lines?.[i]?.amount ?? 0, approval_token: token }).then(() => change(c.variant_id, { quantity: 0 })).catch((e) => toast.error(errMsg(e, 'Could not remove')));
+    if (ctx.can.void) note(undefined); else setAsk({ purpose: 'void', why: `Removing ${c.name} from the sale needs a supervisor.`, then: (a) => note(a.token) });
+  };
 
   const onEnter = async (e) => {
     if (e.key !== 'Enter' || !q.trim()) return;
@@ -112,8 +237,8 @@ export default function PosTill() {
     setBusy(true);
     try {
       const r = await posAPI.sell({ ...body(), key: key.current, tenders: tenders.filter((t) => t.amount > 0) });
-      setDone(r); setCart([]); setPaying(false); setCustomer(null); setCq(''); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
-    } catch (e) { toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
+      setDone(r); setCart([]); setPaying(false); setCustomer(null); setCq(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
+    } catch (e) { if (e?.response?.data?.approval === 'discount') { setPaying(false); setApproval(null); } toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
   };
 
   const hold = async () => {
@@ -138,8 +263,46 @@ export default function PosTill() {
   const total = priced?.total ?? 0;
   const lineOf = (i) => priced?.lines?.[i];
 
+  const tabs = (
+    <div style={{ display: "flex", gap: 6 }} role="tablist" aria-label="Kind of document">
+      {[['cash', 'Cash sale', ctx.can.sell], ['invoice', 'Invoice', ctx.can.invoice], ['order', 'Sales order', ctx.can.order], ['return', 'Return', ctx.can.return]].filter((m) => m[2]).map(([k, l]) => (
+        <button key={k} type="button" role="tab" aria-selected={mode === k} onClick={() => setMode(k)} style={{ ...(mode === k ? btnPrimary : btnGhost), flex: 1 }}>{l}</button>
+      ))}
+    </div>
+  );
+
+  const extraDialogs = (
+    <>
+      {ask && <ApproveDialog purpose={ask.purpose} stationId={ctx.station.id} why={ask.why} onCancel={() => setAsk(null)} onDone={(a) => { const f = ask.then; setAsk(null); f(a); }} />}
+      {pinOpen && <PinDialog onClose={(ok) => { setPinOpen(false); if (ok) loadCtx(ctx.station.id); }} />}
+      {returned && (
+        <div role="dialog" aria-label="Return done" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
+          <div style={{ ...card, padding: 22, width: 'min(380px, 100%)', display: 'grid', gap: 8, textAlign: 'center' }}>
+            <strong style={{ fontSize: '1.1rem' }}>{returned.type ?? 'Credit note'} {returned.number}</strong>
+            <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{money(returned.total, cur)}</div>
+            <div style={{ fontSize: '0.85rem', color: colors.textMuted }}>Against {returned.against} · approved by {returned.approved_by}</div>
+            <button type="button" style={btnPrimary} onClick={() => { setReturned(null); setMode('cash'); }}>Done</button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+
+  if (mode === 'return') {
+    return (
+      <AdminLayout>
+        <div style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
+          <div style={{ ...card, padding: 10 }}>{tabs}</div>
+          <ReturnPanel ctx={ctx} cur={cur} onDone={(r) => setReturned(r)} />
+        </div>
+        {extraDialogs}
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
+      {ctx.can.supervise && <div style={{ textAlign: 'right', marginBottom: 6 }}><button type="button" style={btnGhost} onClick={() => setPinOpen(true)}>{ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'}</button></div>}
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
         <section style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -168,12 +331,8 @@ export default function PosTill() {
               </select>
             </label>
           </div>
-          <div style={{ display: 'flex', gap: 6 }} role="tablist" aria-label="Kind of document">
-            {[['cash', 'Cash sale', ctx.can.sell], ['invoice', 'Invoice', ctx.can.invoice], ['order', 'Sales order', ctx.can.order]].filter((m) => m[2]).map(([k, l]) => (
-              <button key={k} type="button" role="tab" aria-selected={mode === k} onClick={() => setMode(k)} style={{ ...(mode === k ? btnPrimary : btnGhost), flex: 1 }}>{l}</button>
-            ))}
-          </div>
-          {mode !== 'cash' && (
+          {tabs}
+          {mode !== 'cash' && mode !== 'return' && (
             customer ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--line)' }}>
                 <span><strong>{customer.name}</strong>{mode === 'invoice' && customer.credit_room != null ? <span style={{ fontSize: '0.75rem', color: colors.textMuted }}> · credit room {money(customer.credit_room, cur)}</span> : null}{mode === 'invoice' && customer.credit === false ? <span style={{ fontSize: '0.75rem', color: colors.danger }}> · no credit account</span> : null}</span>
@@ -204,7 +363,7 @@ export default function PosTill() {
                 <button type="button" style={btnGhost} aria-label="More" onClick={() => change(c.variant_id, { quantity: c.quantity + 1 })}><Plus size={14} /></button>
                 {ctx.can.discount && <input style={{ ...field, width: 72 }} inputMode="decimal" placeholder="% off" value={c.discount_pct || ''} onChange={(e) => change(c.variant_id, { discount_pct: Number(e.target.value) || 0 })} aria-label="Discount percent" />}
               </div>
-              <button type="button" style={{ ...btnGhost, justifySelf: 'end', color: colors.danger }} aria-label={`Remove ${c.name}`} onClick={() => change(c.variant_id, { quantity: 0 })}><Trash2 size={14} /></button>
+              <button type="button" style={{ ...btnGhost, justifySelf: 'end', color: colors.danger }} aria-label={`Remove ${c.name}`} onClick={() => remove(c, i)}><Trash2 size={14} /></button>
             </div>
           ))}
           <div style={{ display: 'grid', gap: 4, fontSize: '0.88rem' }}>
@@ -250,6 +409,7 @@ export default function PosTill() {
           </div>
         </div>
       )}
+      {extraDialogs}
     </AdminLayout>
   );
 }
