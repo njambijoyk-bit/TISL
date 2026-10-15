@@ -21,6 +21,23 @@ export default function AdminShell() {
   const nav = useMemo(() => visibleNav(user), [user]);
   const active = useMemo(() => findActive(nav, pathname, search), [nav, pathname, search]);
 
+  // The till has no menu around it. Ctrl+B (Cmd+B) brings the sidebar in and takes it away again.
+  const onPos = pathname === '/admin/pos';
+  const [posMenu, setPosMenu] = useState(false);
+  useEffect(() => { if (!onPos) setPosMenu(false); }, [onPos]);
+  useEffect(() => {
+    if (!onPos) return undefined;
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'b') return;
+      e.preventDefault();
+      e.stopImmediatePropagation();   // the sidebar's own Ctrl+B (collapse) must not also run
+      setPosMenu((v) => !v);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [onPos]);
+  const showSidebar = !onPos || posMenu;
+
   const openSearch = useCallback(() => setSearchOpen(true), []);
   const closeSearch = useCallback(() => setSearchOpen(false), []);
 
@@ -54,7 +71,7 @@ export default function AdminShell() {
   return (
     <AdminShellContext.Provider value={ctx}>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)' }}>
-        <Sidebar shell onOpenSearch={openSearch} onOpenCalc={toggleCalc} />
+        {showSidebar && <Sidebar shell onOpenSearch={openSearch} onOpenCalc={toggleCalc} />}
         <main className="admin-shell-main" style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>
           {pathname !== '/admin/pos' && <SectionTabs item={active.item} activeTab={active.tab} />}   {/* the till is a screen of its own: no tab strip above it */}
           <Outlet />
@@ -62,7 +79,7 @@ export default function AdminShell() {
       </div>
       {searchOpen && <CommandPalette onClose={closeSearch} nav={nav} />}
       <Calculator />
-      <style>{'@media (max-width:767px){.admin-shell-main{padding-top:56px}}'}</style>
+      <style>{showSidebar ? '@media (max-width:767px){.admin-shell-main{padding-top:56px}}' : ''}</style>
     </AdminShellContext.Provider>
   );
 }

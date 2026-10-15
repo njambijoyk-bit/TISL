@@ -43,14 +43,14 @@ class SelfCheckoutService
     {
         $items = array_values(array_filter($this->sales->catalogue($q, 80, (int) $s->location_id), fn ($i) => (float) $i['price'] > 0));   // an item with no price is never offered to a customer
 
-        return array_map(fn ($i) => ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price'], 'stock' => min(20, (int) floor($i['stock']))], array_slice($items, 0, 24));
+        return array_map(fn ($i) => ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price'], 'image' => $i['image'] ?? null, 'stock' => min(20, (int) floor($i['stock']))], array_slice($items, 0, 24));
     }
 
     public function scan(Station $s, string $code): ?array
     {
         $i = $this->sales->scan($code, (int) $s->location_id);
 
-        return $i && (float) $i['price'] > 0 ? ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price'], 'stock' => min(20, (int) floor($i['stock']))] : null;
+        return $i && (float) $i['price'] > 0 ? ['variant_id' => $i['variant_id'], 'name' => $i['name'], 'price' => $i['price'], 'image' => $i['image'] ?? null, 'stock' => min(20, (int) floor($i['stock']))] : null;
     }
 
     /** Only whole, sensible quantities of real items. */

@@ -101,7 +101,7 @@ class SaleService
     {
         $q = trim($q);
         $like = '%'.$q.'%';
-        $vars = ProductVariant::with('product:id,name,sku,status,is_for_sale')->where('status', ProductVariant::STATUS_ACTIVE)
+        $vars = ProductVariant::with('product:id,name,sku,status,is_for_sale,main_image,images')->where('status', ProductVariant::STATUS_ACTIVE)
             ->whereHas('product', fn ($p) => $p->where('status', 'active')->where('is_for_sale', true))
             ->when($locationId, fn ($v) => $v->whereRaw('EXISTS (SELECT 1 FROM stock_batch_balances b JOIN stock_batches s ON s.id = b.batch_id WHERE s.variant_id = product_variants.id AND b.location_id = ? AND b.quantity > 0 AND s.status = ? AND (s.expiry_date IS NULL OR s.expiry_date >= ?))',
                 [$locationId, 'active', today()->toDateString()]))
@@ -126,7 +126,7 @@ class SaleService
         } elseif (ctype_digit($code) && strlen($code) === 13 && $code[0] === '0') {
             $tries[] = substr($code, 1);
         }
-        $base = fn () => ProductVariant::with('product:id,name,sku,status,is_for_sale')->where('status', ProductVariant::STATUS_ACTIVE)
+        $base = fn () => ProductVariant::with('product:id,name,sku,status,is_for_sale,main_image,images')->where('status', ProductVariant::STATUS_ACTIVE)
             ->whereHas('product', fn ($p) => $p->where('status', 'active')->where('is_for_sale', true));
         $v = $base()->whereIn('barcode', $tries)->first() ?? $base()->whereRaw('LOWER(sku) = ?', [strtolower($code)])->first();
 
@@ -139,7 +139,7 @@ class SaleService
         $vn = trim((string) $v->name);
 
         return ['variant_id' => $v->id, 'product_id' => $v->product_id, 'name' => $vn !== '' && strcasecmp($vn, $name) !== 0 && strcasecmp($vn, 'Standard') !== 0 ? "{$name} - {$vn}" : $name,
-            'sku' => $v->sku, 'barcode' => $v->barcode, 'price' => app(StockJobService::class)->systemPrice((int) $v->id)];
+            'sku' => $v->sku, 'barcode' => $v->barcode, 'image' => $v->product?->main_image_url, 'price' => app(StockJobService::class)->systemPrice((int) $v->id)];
     }
 
     // ── pricing ───────────────────────────────────────────────────────────

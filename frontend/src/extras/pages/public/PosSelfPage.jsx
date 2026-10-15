@@ -10,6 +10,8 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { printReceipt } from '../admin/pos/printReceipt';
 import { btnPrimary, btnGhost } from '../../../_shared/theme/tokens';
 import useViewport from '../admin/pos/useViewport';
+import ItemTile, { ViewToggle } from '../admin/pos/ItemTile';
+import useItemView from '../admin/pos/useItemView';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const POLL_MS = 2500;
@@ -45,6 +47,7 @@ export default function PosSelfPage() {
   const [helped, setHelped] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const { narrow, tiny } = useViewport();
+  const [view, setView] = useItemView('pos.self.view');
   const [added, setAdded] = useState(null);
   const { setTheme } = useThemeStore();
   const { mode, setMode } = useTheme();   // the colours come from the appearance provider: it sets the theme variables and data-theme
@@ -191,9 +194,15 @@ export default function PosSelfPage() {
   ) : helped ? (
     <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: '#eff6ff', border: '2px solid #60a5fa', color: '#1e3a8a', fontSize: '1.1rem', fontWeight: 700 }}>A member of staff has attended to you. Thank you for waiting.</div>
   ) : null;
-  const themeBtn = (
-    <button type="button" onClick={toggleTheme} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'}
-      style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '6px 12px', minHeight: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>{dark ? <Sun size={16} /> : <Moon size={16} />}{tiny ? null : (dark ? 'Light' : 'Dark')}</button>
+  const themeBtn = (   // a sliding switch: sun on the left, moon on the right
+    <button type="button" role="switch" aria-checked={dark} onClick={toggleTheme} aria-label="Dark theme" title={dark ? 'Dark theme on' : 'Light theme on'}
+      style={{ position: 'relative', width: 64, height: 32, borderRadius: 999, border: '1.5px solid var(--line)', padding: 0, cursor: 'pointer', flexShrink: 0, background: dark ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', transition: 'background 200ms ease' }}>
+      <Sun size={14} aria-hidden="true" style={{ position: 'absolute', left: 9, top: 8, color: dark ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)', opacity: dark ? 0.7 : 0 }} />
+      <Moon size={14} aria-hidden="true" style={{ position: 'absolute', right: 9, top: 8, color: 'var(--text-secondary)', opacity: dark ? 0 : 0.8 }} />
+      <span aria-hidden="true" style={{ position: 'absolute', top: 3, left: dark ? 35 : 3, width: 24, height: 24, borderRadius: '50%', background: 'var(--surface-card, #fff)', boxShadow: '0 1px 4px rgba(0,0,0,0.35)', display: 'grid', placeItems: 'center', transition: 'left 200ms ease' }}>
+        {dark ? <Moon size={14} color="var(--color-primary-600)" /> : <Sun size={14} color="var(--color-primary-600)" />}
+      </span>
+    </button>
   );
   const shell = (children) => (
     <main onPointerDown={touch} style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary, #f9fafb)', color: 'var(--text-primary)' }} data-testid="self-checkout" data-step={step}>
@@ -357,15 +366,12 @@ export default function PosSelfPage() {
       <section style={{ display: 'grid', gap: 12 }}>
         {helpBanner}
         <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan an item, or type its name" aria-label="Scan or search" style={{ padding: tiny ? 14 : 18, fontSize: tiny ? '1.1rem' : '1.4rem', width: '100%', boxSizing: 'border-box', borderRadius: 14, border: '2px solid var(--line)' }} />
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}><ViewToggle view={view} onChange={setView} big /></div>
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.1rem', fontWeight: 700 }}>{problem}</p>}
         {added && !problem && <p role="status" style={{ margin: 0, color: 'var(--color-primary-700)', fontSize: '1.1rem', fontWeight: 700 }}>✔ {added} added to your basket</p>}
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${tiny ? 140 : 180}px, 1fr))`, gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: view === 'list' ? '1fr' : `repeat(auto-fill, minmax(${tiny ? 140 : 190}px, 1fr))`, gap: 10 }}>
           {found.map((it) => (
-            <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ padding: 14, borderRadius: 14, border: '2px solid var(--line)', background: 'var(--surface-card, #fff)', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', display: 'grid', gap: 4 }}>
-              <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{it.name}</span>
-              <span style={{ fontWeight: 900 }}>{it.price == null ? '' : money(it.price)}</span>
-              {it.stock != null && it.stock <= 5 && <span style={{ fontSize: '0.85rem', color: '#b45309', fontWeight: 700 }}>Only {it.stock} left</span>}
-            </button>
+            <ItemTile key={it.variant_id} item={it} view={view} big onAdd={add} price={it.price == null ? '' : money(it.price)} stockText={it.stock != null && it.stock <= 5 ? `Only ${it.stock} left` : null} stockLow />
           ))}
         </div>
       </section>

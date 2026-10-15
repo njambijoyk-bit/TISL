@@ -5,6 +5,8 @@ import { Link } from 'react-router-dom';
 import posAPI from '../../../../_shared/api/pos';
 import { PAPER, printReceipt } from './printReceipt';
 import useViewport from './useViewport';
+import ItemTile, { ViewToggle } from './ItemTile';
+import useItemView from './useItemView';
 import { OpenShiftDialog, ShiftDialog, ShiftList } from './ShiftDialogs';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
@@ -181,6 +183,7 @@ function Shell({ children }) {
     <main style={{ minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)', padding: 'clamp(8px, 2vw, 16px)', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Link to="/admin" style={{ fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none' }}>← Back to admin</Link>
+        <span style={{ fontSize: '0.74rem', color: colors.textMuted }}>Ctrl + B shows the menu</span>
       </div>
       {children}
     </main>
@@ -208,6 +211,7 @@ export default function PosTill() {
   const [auto, setAuto] = useState(() => { try { return localStorage.getItem('pos.autoprint') === '1'; } catch { return false; } });
   const [mine, setMine] = useState(null);
   const { narrow, tiny } = useViewport();
+  const [view, setView] = useItemView('pos.view');
   const [locked, setLocked] = useState(true);   // the touch-to-start screen
   const [helpList, setHelpList] = useState(null);   // open requests from self-checkout screens
   const [helpDlg, setHelpDlg] = useState(false);
@@ -423,14 +427,11 @@ export default function PosTill() {
             <Search size={16} />
             <input ref={search} style={field} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan a barcode or search by name or code" aria-label="Search items" />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${tiny ? 130 : 150}px, 1fr))`, gap: 8, maxHeight: narrow ? '48vh' : '68vh', overflowY: 'auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}><ViewToggle view={view} onChange={setView} /></div>
+          <div style={{ display: 'grid', gridTemplateColumns: view === 'list' ? '1fr' : `repeat(auto-fill, minmax(${tiny ? 130 : 160}px, 1fr))`, gap: 8, maxHeight: narrow ? '48vh' : '68vh', overflowY: 'auto', alignContent: 'start' }}>
             {found.map((it) => (
-              <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ ...card, padding: 10, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 4, ...(it.price > 0 ? {} : { border: '2px solid #dc2626' }) }}>
-                <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{it.name}</span>
-                <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{it.sku}</span>
-                {it.price > 0 ? <span style={{ fontWeight: 800 }}>{money(it.price, cur)}</span> : <span style={{ fontWeight: 900, color: '#fff', background: '#dc2626', borderRadius: 6, padding: '4px 6px', textAlign: 'center', letterSpacing: '0.03em' }}>NO PRICE - CANNOT SELL</span>}
-                {it.stock != null && <span style={{ fontSize: '0.72rem', color: it.stock <= 3 ? colors.danger : colors.textMuted }}>{it.stock} in stock</span>}
-              </button>
+              <ItemTile key={it.variant_id} item={it} view={view} onAdd={add} price={money(it.price, cur)} noPrice={!(it.price > 0)}
+                stockText={it.stock != null ? `${it.stock} in stock` : null} stockLow={it.stock != null && it.stock <= 3} />
             ))}
             {found.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.85rem' }}>Nothing found.</p>}
           </div>
