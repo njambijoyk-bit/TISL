@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { attachSession, dropLegacySession, MAIN_CSRF_KEY } from './sessionKit';
+import { attachSession, dropLegacySession, getSignedInId, resyncIdentity, MAIN_CSRF_KEY } from './sessionKit';
 
 dropLegacySession();
 
@@ -17,9 +17,16 @@ const api = axios.create({
 // (With cookie sessions switched off on the server the page keeps the code itself under 'token' and sends it as a header: attachSession covers that too.)
 attachSession(api, { csrfKey: MAIN_CSRF_KEY, meUrl: '/auth/me', bearerKey: 'token' });
 
+// The doors a person goes through to sign in, or to be told who they are: the page may be wrong about who is signed in when it uses them, so they are not checked.
+const NO_IDENTITY_CHECK = /(^|\/)auth\/(me|login|register|forgot-password|reset-password|force-change-password|seal|secure-account|email-link|passkeys\/(options|login))(\/|\?|$)/;
+
 // Request interceptor - display currency and branch
 api.interceptors.request.use(
   (config) => {
+
+    // Who this page believes is signed in: if another account has signed in from another window since, the server stops the request (409) instead of doing it as that other account.
+    const who = getSignedInId();
+    if (who && !config.headers['X-Expected-User'] && !NO_IDENTITY_CHECK.test(config.url || '')) config.headers['X-Expected-User'] = who;
 
     // Display currency chosen in the price toggle (persisted by currencyStore).
     // Backend SetDisplayCurrency middleware reads it; unknown codes fall back to base.
@@ -54,6 +61,12 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+
+    // Another account signed in from another window: nothing was done. Catch up with who the server says is signed in and reload.
+    if (error.response?.status === 409 && error.response?.data?.code === 'identity_changed') {
+      resyncIdentity();
+      return Promise.reject(error);
+    }
 
     if (error.response?.status === 401) {
       // Only redirect to login if we're NOT already on the login page.

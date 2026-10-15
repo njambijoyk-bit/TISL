@@ -436,6 +436,98 @@ class SecurityCookieSessionTest extends TestCase
         $this->assertSame($token, $redirect->headers->getCookies()[0]->getValue());
     }
 
+    // ------------------------------------------------------------ one sign-in for each website
+
+    private const SHOP = 'http://localhost:5199';
+
+    /** Sign in from a website the way its page does (the browser says where it is from). */
+    private function signInFrom(string $origin, string $email): array
+    {
+        $this->defaultHeaders = [];
+        $r = $this->withHeaders(['Origin' => $origin])->postJson('/api/auth/login', ['email' => $email, 'password' => 'Right-password-1']);
+        $r->assertOk();
+
+        return [$this->cookieOf($r), $r->json('csrf'), $r];
+    }
+
+    public function test_by_default_every_website_shares_one_sign_in(): void
+    {
+        $this->person();
+        $this->assertSame('tisl_session', $this->signInFrom(self::WEBSITE, 'amina@example.com')[0]->getName());
+        $this->assertSame('tisl_session', $this->signInFrom(self::SHOP, 'amina@example.com')[0]->getName());
+    }
+
+    public function test_with_a_cookie_for_each_website_two_accounts_can_be_signed_in_side_by_side(): void
+    {
+        config(['security.cookie.per_site' => true]);
+        $amina = $this->person();
+        $baraka = $this->person(['name' => 'Baraka', 'email' => 'baraka@example.com']);
+        [$a, $aCsrf] = $this->signInFrom(self::WEBSITE, 'amina@example.com');
+        [$b, $bCsrf] = $this->signInFrom(self::SHOP, 'baraka@example.com');
+        $this->assertNotSame($a->getName(), $b->getName());
+        $this->assertMatchesRegularExpression('/^tisl_session_[0-9a-f]{8}$/', $a->getName());
+        $this->assertSame($a->getName(), SessionCookie::name('user', false, SessionCookie::siteOf(self::WEBSITE)));
+        // one browser holding both cookies: each website is the account it signed in as
+        $both = fn (string $origin, string $csrf) => $this->asBrowser($a, $csrf, $origin)->withUnencryptedCookie($b->getName(), $b->getValue());
+        $this->assertSame($amina->id, $both(self::WEBSITE, $aCsrf)->getJson('/api/auth/me')->assertOk()->json('user.id'));
+        $this->assertSame($baraka->id, $both(self::SHOP, $bCsrf)->getJson('/api/auth/me')->assertOk()->json('user.id'));
+        $this->asBrowser($a, $aCsrf, 'http://localhost:5198')->withUnencryptedCookie($b->getName(), $b->getValue())->getJson('/api/auth/me')->assertUnauthorized();   // a website that never signed in
+        // signing out of one leaves the other
+        $r = $both(self::SHOP, $bCsrf)->postJson('/api/auth/logout');
+        $r->assertOk();
+        $this->assertSame($b->getName(), $this->cookieOf($r)->getName());
+        $this->assertSame('', $this->cookieOf($r)->getValue());
+        $this->assertSame(1, $amina->tokens()->count());
+        $this->assertSame(0, $baraka->tokens()->count());
+    }
+
+    public function test_a_site_is_the_same_whatever_way_its_address_is_written(): void
+    {
+        config(['security.cookie.per_site' => true]);
+        $this->assertSame(SessionCookie::siteOf('https://shop.example.com'), SessionCookie::siteOf('HTTPS://Shop.Example.com:443/any/path?x=1'));
+        $this->assertSame(SessionCookie::siteOf('http://localhost'), SessionCookie::siteOf('http://localhost:80'));
+        $this->assertNotSame(SessionCookie::siteOf('http://localhost:5173'), SessionCookie::siteOf('http://localhost:5174'));
+        $this->assertNotSame(SessionCookie::siteOf('http://localhost'), SessionCookie::siteOf('https://localhost'));
+        foreach ([null, '', 'null', 'not an address', '/relative'] as $nothing) {
+            $this->assertSame('', SessionCookie::siteOf($nothing));
+        }
+        config(['security.cookie.per_site' => false]);
+        $this->assertSame('', SessionCookie::siteOf('https://shop.example.com'));
+    }
+
+    public function test_the_google_redirect_carries_the_cookie_of_the_website_it_sends_the_person_to(): void
+    {
+        config(['security.cookie.per_site' => true]);
+        $u = $this->person();
+        $token = app(Sessions::class)->issue($u, Request::create('/x'));
+        $redirect = SessionCookie::attach(redirect()->away(self::WEBSITE.'/auth/callback?ok=1'), Request::create('/x'), $token, $u);   // the request itself says nothing about where it is from
+        $this->assertSame(SessionCookie::name('user', false, SessionCookie::siteOf(self::WEBSITE)), $redirect->headers->getCookies()[0]->getName());
+    }
+
+    // ------------------------------------------------------------ the website says who it thinks is signed in
+
+    public function test_a_request_from_a_window_that_thinks_it_is_someone_else_is_stopped_before_it_does_anything(): void
+    {
+        $amina = $this->person();
+        $baraka = $this->person(['name' => 'Baraka', 'email' => 'baraka@example.com']);
+        [, $cookie, $csrf] = $this->browserSignIn('/api/auth/login', 'baraka@example.com');   // the browser now belongs to Baraka
+        $page = fn () => $this->asBrowser($cookie, $csrf);
+        $r = $page()->withHeader('X-Expected-User', (string) $amina->id)->postJson('/api/auth/logout');
+        $r->assertStatus(409)->assertJsonPath('code', 'identity_changed');
+        $this->assertSame(1, $baraka->tokens()->count(), 'nothing was done as Baraka');
+        $page()->withHeader('X-Expected-User', (string) $amina->id)->getJson('/api/auth/me')->assertOk()->assertJsonPath('user.id', $baraka->id);   // asking who is signed in is how the page catches up
+        $page()->withHeader('X-Expected-User', (string) $baraka->id)->getJson('/api/auth/sessions')->assertOk();
+        $page()->getJson('/api/auth/sessions')->assertOk();   // a client that does not say is left alone
+        $page()->withHeader('X-Expected-User', ' '.$baraka->id.' ')->getJson('/api/auth/sessions')->assertOk();
+        $page()->withHeader('X-Expected-User', (string) $amina->id)->postJson('/api/auth/login', ['email' => 'baraka@example.com', 'password' => 'Right-password-1'])->assertOk();   // signing in is never stopped
+        $this->app['auth']->forgetGuards();
+        $this->flushSession();
+        $this->unencryptedCookies = [];   // a browser that holds no sign-in at all
+        $this->defaultCookies = [];
+        $this->defaultHeaders = [];
+        $this->withHeader('X-Expected-User', (string) $amina->id)->getJson('/api/auth/sessions')->assertUnauthorized();   // nobody signed in: the sign-in check has the say
+    }
+
     // ------------------------------------------------------------ what the csrf code is made of
 
     public function test_the_csrf_code_depends_on_the_session_and_the_servers_key(): void

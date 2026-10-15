@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import authAPI from '../api/auth';
-import { setCsrf, setSessionMode } from '../api/sessionKit';
+import { setCsrf, setSessionMode, setSignedInId } from '../api/sessionKit';
 
 const useAuthStore = create(
   persist(
@@ -21,6 +21,7 @@ const useAuthStore = create(
         else localStorage.removeItem('token');
         setSessionMode(token);
         setCsrf(csrf);
+        setSignedInId(user?.id);
         set({ user, customer, access, security: security ?? null, isAuthenticated: true });
         if (security === undefined) setTimeout(() => useAuthStore.getState().fetchCustomer(), 0);   // a sign-in path that does not say (Google, a password reset): ask
 
@@ -36,6 +37,7 @@ const useAuthStore = create(
       logout: () => {
         localStorage.removeItem('token');
         setCsrf(null);
+        setSignedInId(null);
         localStorage.removeItem('auth-storage');
         set({ user: null, customer: null, access: null, security: null, isAuthenticated: false });
 
@@ -49,18 +51,25 @@ const useAuthStore = create(
         try {
           const data = await authAPI.me();
           if (data.csrf) setCsrf(data.csrf);
+          setSignedInId(data.user?.id);
           set({ user: data.user, customer: data.customer, access: data.access ?? null, security: data.security ?? null });
         } catch (err) {
           if (err.response?.status === 401) {
             // The session is over — force logout
             localStorage.removeItem('token');
             setCsrf(null);
+            setSignedInId(null);
             set({ user: null, customer: null, access: null, security: null, isAuthenticated: false });
           }
         }
       },
     }),
-    { name: 'auth-storage', partialize: (s) => ({ user: s.user, customer: s.customer, isAuthenticated: s.isAuthenticated, access: s.access, security: s.security }) }
+    {
+      name: 'auth-storage',
+      partialize: (s) => ({ user: s.user, customer: s.customer, isAuthenticated: s.isAuthenticated, access: s.access, security: s.security }),
+      // who this page believes is signed in is whoever was stored when it loaded (see sessionKit: the server stops a request if the cookie now belongs to someone else)
+      onRehydrateStorage: () => (state) => setSignedInId(state?.user?.id ?? null),
+    }
   )
 );
 

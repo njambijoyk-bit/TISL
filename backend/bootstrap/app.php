@@ -33,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // ?location=<id> / X-Location header -> branch in context (multi-location)
         $middleware->api(prepend: [
             \App\Http\Middleware\CookieSession::class,   // the sign-in cookie becomes the Authorization header the rest of the app reads, once the CSRF code and origin check out
+            \App\Http\Middleware\ExpectedUser::class,   // the website says who it thinks is signed in: if another account signed in from another window, the request is stopped (409) before it does anything
         ], append: [
             \App\Http\Middleware\SetDisplayCurrency::class,
             \App\Http\Middleware\SetLocationContext::class,

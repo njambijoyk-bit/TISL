@@ -80,6 +80,9 @@ return [
         'secure' => env('SECURITY_COOKIE_SECURE') === null ? null : filter_var(env('SECURITY_COOKIE_SECURE'), FILTER_VALIDATE_BOOLEAN),   // null: https whenever the request or APP_URL is
         'same_site' => env('SECURITY_COOKIE_SAMESITE', 'lax'),
         'names' => ['user' => 'tisl_session', 'applicant' => 'tisl_applicant'],
+        // A browser keeps cookies per host, not per port: several websites on one host (the development servers on localhost:5173 to :5177) share one sign-in, and the last account signed in replaces the others.
+        // SECURITY_COOKIE_PER_SITE=true gives each website (by its Origin) its own cookie. Leave it off in production, where there is one website per domain.
+        'per_site' => (bool) env('SECURITY_COOKIE_PER_SITE', false),
     ],
 
     // Passkeys (WebAuthn). The RP ID is the domain a passkey is made for and can never change without orphaning every passkey: it is the website's registrable domain, so the shop and the API

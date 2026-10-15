@@ -43,32 +43,60 @@ final class SessionCookie
         return $forced === null ? ($request->isSecure() || str_starts_with((string) config('app.url'), 'https://')) : (bool) $forced;
     }
 
-    public static function name(string $kind, bool $secure): string
+    public static function name(string $kind, bool $secure, string $site = ''): string
     {
-        return ($secure ? '__Host-' : '').(string) config("security.cookie.names.{$kind}", $kind === self::APPLICANT ? 'tisl_applicant' : 'tisl_session');
+        return ($secure ? '__Host-' : '').(string) config("security.cookie.names.{$kind}", $kind === self::APPLICANT ? 'tisl_applicant' : 'tisl_session').($site !== '' ? '_'.$site : '');
+    }
+
+    /**
+     * A short code for the website a request comes from (its `Origin`), or '' when each website is not to have its own sign-in (the default) or the request does not say where it is from.
+     * A browser keeps cookies per host, not per port, so several websites on one host (the development servers on localhost:5173, :5174 ...) would otherwise share one sign-in and the last person
+     * to sign in would replace the others. With SECURITY_COOKIE_PER_SITE the cookie's name carries this code, so each website keeps its own. With one website per domain it changes nothing.
+     */
+    public static function site(Request $request): string
+    {
+        return self::siteOf($request->headers->get('Origin'));
+    }
+
+    /** The same code for a web address (an Origin, or where a redirect goes). */
+    public static function siteOf(?string $address): string
+    {
+        if (! config('security.cookie.per_site', false)) {
+            return '';
+        }
+        $p = parse_url(trim((string) $address));
+        if (! is_array($p) || empty($p['scheme']) || empty($p['host'])) {
+            return '';
+        }
+        $scheme = strtolower((string) $p['scheme']);
+        $port = isset($p['port']) && ! (($scheme === 'http' && (int) $p['port'] === 80) || ($scheme === 'https' && (int) $p['port'] === 443)) ? ':'.(int) $p['port'] : '';
+
+        return substr(sha1($scheme.'://'.strtolower((string) $p['host']).$port), 0, 8);
     }
 
     /** The session code the browser sent, if any. */
     public static function read(Request $request): ?string
     {
-        $value = $request->cookies->get(self::name(self::kindFor($request), self::secure($request)));
+        $value = $request->cookies->get(self::name(self::kindFor($request), self::secure($request), self::site($request)));
 
         return is_string($value) && $value !== '' ? $value : null;
     }
 
-    public static function make(string $plainToken, Model $tokenable, Request $request): Cookie
+    /** @param ?string $address where the person is being sent when the request itself does not say which website it is for (a redirect after Google sign-in) */
+    public static function make(string $plainToken, Model $tokenable, Request $request, ?string $address = null): Cookie
     {
         $kind = self::kindOf($tokenable);
         $secure = self::secure($request);
+        $site = $address !== null ? self::siteOf($address) : self::site($request);
 
-        return Cookie::create(self::name($kind, $secure), $plainToken, now()->addDays(SessionPolicy::maxDays($tokenable))->getTimestamp(), '/', null, $secure, true, false, (string) config('security.cookie.same_site', 'lax'));
+        return Cookie::create(self::name($kind, $secure, $site), $plainToken, now()->addDays(SessionPolicy::maxDays($tokenable))->getTimestamp(), '/', null, $secure, true, false, (string) config('security.cookie.same_site', 'lax'));
     }
 
     public static function forget(Request $request, ?string $kind = null): Cookie
     {
         $secure = self::secure($request);
 
-        return Cookie::create(self::name($kind ?? self::kindFor($request), $secure), '', 1, '/', null, $secure, true, false, (string) config('security.cookie.same_site', 'lax'));
+        return Cookie::create(self::name($kind ?? self::kindFor($request), $secure, self::site($request)), '', 1, '/', null, $secure, true, false, (string) config('security.cookie.same_site', 'lax'));
     }
 
     /** The CSRF code for a session: it can only be worked out by someone who holds the session code (or the server). */
@@ -117,7 +145,7 @@ final class SessionCookie
     /** A sign-in answer that sends the person on to a page (Google sign-in): the cookie rides on the redirect. */
     public static function attach(\Symfony\Component\HttpFoundation\Response $response, Request $request, string $plainToken, Model $tokenable): \Symfony\Component\HttpFoundation\Response
     {
-        $response->headers->setCookie(self::make($plainToken, $tokenable, $request));
+        $response->headers->setCookie(self::make($plainToken, $tokenable, $request, $response instanceof \Illuminate\Http\RedirectResponse ? $response->getTargetUrl() : null));
         self::noteDevice($response, $request, $tokenable);
 
         return $response;

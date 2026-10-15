@@ -67,3 +67,36 @@ export function dropLegacySession() {
 }
 export const getCsrf = () => localStorage.getItem(MAIN_CSRF_KEY);
 export const setCsrf = (code) => (code ? localStorage.setItem(MAIN_CSRF_KEY, code) : localStorage.removeItem(MAIN_CSRF_KEY));
+
+// --- who this page believes is signed in ---------------------------------------------------------------------------------------------------------------------------------------------
+// The sign-in cookie is shared by every window of the browser, so another account can sign in from another window while this page still shows the first one. The page tells the server who it
+// believes is signed in (X-Expected-User, see the API client); if that is no longer who the cookie belongs to, the server stops the request and the page catches up (see resyncIdentity).
+let signedInId = null;
+export const setSignedInId = (id) => { signedInId = id === null || id === undefined ? null : String(id); };
+export const getSignedInId = () => signedInId;
+
+const NOTICE_KEY = 'identity-notice';
+const RESYNC_KEY = 'identity-resync';
+
+/** Called once when the server says another account is signed in: take the new account's details and reload so the menus and screens match. Never twice within 15 seconds, so it can not loop. */
+export async function resyncIdentity() {
+  try {
+    const last = Number(sessionStorage.getItem(RESYNC_KEY) || 0);
+    if (Date.now() - last < 15000) return;
+    sessionStorage.setItem(RESYNC_KEY, String(Date.now()));
+    sessionStorage.setItem(NOTICE_KEY, '1');
+    const m = await import('../store/authStore');
+    await m.default.getState().fetchCustomer();   // who the server says it is (a 401 here signs this page out as usual)
+  } catch { /* the reload below still brings the page in line with what is stored */ }
+  window.location.reload();
+}
+
+/** True once after a page was refreshed by resyncIdentity, so it can say why. */
+export function takeIdentityNotice() {
+  try {
+    const had = sessionStorage.getItem(NOTICE_KEY) === '1';
+    sessionStorage.removeItem(NOTICE_KEY);
+    return had;
+  } catch { return false; }
+}
+
