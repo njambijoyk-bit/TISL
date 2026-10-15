@@ -320,6 +320,8 @@ Route::prefix('kiosk/{token}')->middleware(['module:menus', 'throttle:240,1'])->
     $c = \App\Http\Controllers\Api\MenusKioskController::class;
     Route::get('/',                          [$c, 'show']);
     Route::post('/quote',                    [$c, 'quote']);
+    Route::post('/customer/login',           [$c, 'customerLogin'])->middleware('throttle:8,1');
+    Route::post('/customer/logout',          [$c, 'customerLogout']);
     Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
     Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
@@ -1493,6 +1495,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/scan',      [$c, 'scan']);
                 Route::get('/sales',     [$c, 'mine']);
                 Route::get('/holds/count', [$c, 'holdCounts']);
+                Route::get('/customer-by-phone', [$c, 'customerByPhone'])->middleware('throttle:30,1');
+                Route::get('/gift',      [$c, 'gift'])->middleware('throttle:30,1');
                 Route::get('/help',      [$c, 'helpOpen']);
                 Route::post('/help/clear', [$c, 'helpClear']);
                 Route::post('/help/{id}/done', [$c, 'helpDone'])->whereNumber('id');

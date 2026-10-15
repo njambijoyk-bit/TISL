@@ -48,6 +48,14 @@ export default function PosSelfPage() {
   const [helpMsg, setHelpMsg] = useState(null);
   const [helped, setHelped] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const [custToken, setCustToken] = useState(null);   // set only after they sign in with their own email and password
+  const [cust, setCust] = useState(null);             // { name, points }: no list of customers is ever shown
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [promo, setPromo] = useState('');
+  const [promoIn, setPromoIn] = useState('');
+  const [gifts, setGifts] = useState([]);
+  const [giftIn, setGiftIn] = useState('');
   const { narrow, tiny } = useViewport();
   const [view, setView] = useItemView('pos.self.view');
   const [added, setAdded] = useState(null);
@@ -68,7 +76,9 @@ export default function PosSelfPage() {
 
   useEffect(() => { posSelfAPI.config(token).then(setCfg).catch(() => setLost(true)); return () => { stop.current = true; }; }, [token]);
 
-  const reset = useCallback(() => { stop.current = true; setBasket([]); setStep('welcome'); setPhone(''); setQuote(null); setProblem(null); setResult(null); setQ(''); setWarn(null); setHelp(false); last.current = Date.now(); }, []);
+  const tokenRef = useRef(null);
+  tokenRef.current = custToken;
+  const reset = useCallback(() => { stop.current = true; if (tokenRef.current) posSelfAPI.customerLogout(token, tokenRef.current).catch(() => {}); setCustToken(null); setCust(null); setEmail(''); setPassword(''); setPromo(''); setPromoIn(''); setGifts([]); setGiftIn(''); setBasket([]); setStep('welcome'); setPhone(''); setQuote(null); setProblem(null); setResult(null); setQ(''); setWarn(null); setHelp(false); last.current = Date.now(); }, [token]);
   const askHelp = async () => {
     setHelp(true); setHelpMsg(null);
     try { setHelpState(await posSelfAPI.help(token)); } catch (e) { setHelpMsg(errMsg(e, 'We could not call for help. Please wave to a member of staff.')); }
@@ -104,9 +114,9 @@ export default function PosSelfPage() {
     if (step !== 'review' && step !== 'pay' && step !== 'shop') return undefined;
     if (items.length === 0) { setQuote(null); return undefined; }
     let live = true;
-    posSelfAPI.quote(token, items).then((r) => { if (live) { setQuote(r); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'We could not price your basket.')); } });
+    posSelfAPI.quote(token, items, { customer_token: custToken || undefined, promo_code: promo || undefined, gift_codes: gifts.length ? gifts : undefined }).then((r) => { if (live) { setQuote(r); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'We could not price your basket.')); } });
     return () => { live = false; };
-  }, [step, items, token]);   // the books price the basket every time it changes: what is shown is what will be charged
+  }, [step, items, token, custToken, promo, gifts]);   // the books price the basket every time it changes: what is shown is what will be charged
 
   const add = (it) => {
     if (it.stock != null && it.stock <= 0) { setProblem(`Sorry, ${it.name} is out of stock.`); return; }
@@ -169,7 +179,8 @@ export default function PosSelfPage() {
   const place = async (pay) => {
     setBusy(true); setProblem(null);
     try {
-      const r = await posSelfAPI.order(token, { items, pay, payment_method_id: pay === 'screen' ? cfg.payment_methods[0]?.id : undefined, phone: pay === 'screen' ? phone : undefined });
+      const r = await posSelfAPI.order(token, { items, pay, payment_method_id: pay === 'screen' && !(quote && quote.to_pay <= 0) ? cfg.payment_methods[0]?.id : undefined, phone: pay === 'screen' ? phone : undefined, customer_token: custToken || undefined, promo_code: promo || undefined, gift_codes: gifts.length ? gifts : undefined });
+      if (r.paid) { finish({ session: r.session, pay: 'screen', number: r.number }); return; }
       if (pay === 'counter') { finish({ session: r.session, pay: 'counter', number: r.number }); return; }
       setResult({ session: r.session }); setStep('waiting'); wait(r.session, r.attempt);
     } catch (e) { setProblem(errMsg(e, 'We could not take your order.')); } finally { setBusy(false); }
@@ -184,10 +195,13 @@ export default function PosSelfPage() {
   const totals = quote && basket.length > 0 && (
     <div style={{ display: 'grid', gap: 4, fontSize: '0.92rem', color: 'var(--text-secondary)', borderTop: '2px solid var(--line)', paddingTop: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(quote.subtotal)}</span></div>
+      {quote.discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary-700)' }}><span>Discount</span><span>-{money(quote.discount)}</span></div>}
       {(quote.tax_breakdown?.length ? quote.tax_breakdown : (quote.tax_total > 0 ? [{ label: 'Tax', amount: quote.tax_total }] : [])).map((t, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{t.label ?? 'Tax'}{t.percent != null ? ` (${t.percent}%)` : ''}</span><span>{money(t.amount)}</span></div>
       ))}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}><span>To pay</span><span>{money(quote.total)}</span></div>
+      {quote.gift_applied > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total</span><span>{money(quote.total)}</span></div>}
+      {(quote.gifts ?? []).filter((g) => g.applied > 0).map((g) => <div key={g.code} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary-700)' }}><span>Gift voucher {g.code}</span><span>-{money(g.applied)}</span></div>)}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}><span>To pay</span><span>{money(quote.to_pay ?? quote.total)}</span></div>
     </div>
   );
   const helpBanner = helpState?.open ? (
@@ -217,6 +231,7 @@ export default function PosSelfPage() {
       {['shop', 'review', 'pay'].includes(step) && (
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: tiny ? '4px 10px' : '6px 16px', background: 'var(--surface-card, #fff)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 20 }}>
           <strong style={{ fontSize: tiny ? '0.95rem' : '1.05rem' }}>{cfg.business}</strong>
+          {cust && <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Hi {cust.name} · {cust.points} points <button type="button" onClick={() => { posSelfAPI.customerLogout(token, custToken).catch(() => {}); setCustToken(null); setCust(null); setPromo(''); setGifts([]); }} style={{ background: 'none', border: 'none', color: 'var(--color-primary-600)', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: '0.8rem' }}>Not you? Sign out</button></span>}
           <ol aria-label="Steps" style={{ display: 'flex', gap: tiny ? 4 : 8, listStyle: 'none', margin: 0, padding: 0, fontWeight: 700, order: tiny ? 3 : 0, width: tiny ? '100%' : 'auto', justifyContent: 'center', fontSize: '0.82rem' }}>
             {[['shop', '1  Scan'], ['review', '2  Check'], ['pay', '3  Pay']].map(([k, l]) => (
               <li key={k} aria-current={step === k ? 'step' : undefined} style={{ padding: tiny ? '3px 8px' : '3px 12px', flex: tiny ? 1 : 'none', textAlign: 'center', borderRadius: 999, background: step === k ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', color: step === k ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)' }}>{l}</li>
@@ -255,7 +270,7 @@ export default function PosSelfPage() {
   if (step === 'welcome') {
     return shell(
       <>
-      <button type="button" onClick={() => { last.current = Date.now(); stop.current = false; setStep('shop'); }} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
+      <button type="button" onClick={() => { last.current = Date.now(); stop.current = false; setStep('account'); }} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
         <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
         <span style={{ fontSize: 'clamp(2rem, 6vw, 3.4rem)', fontWeight: 900 }}>{cfg.business}</span>
         <span style={{ fontSize: 'clamp(1.1rem, 3vw, 1.7rem)', opacity: 0.9 }}>Self checkout - touch to start</span>
@@ -320,6 +335,38 @@ export default function PosSelfPage() {
     );
   }
 
+  if (step === 'account') {
+    return shell(
+      <div style={{ flex: 1, display: 'grid', placeContent: 'center', gap: 16, textAlign: 'center', padding: 24, maxWidth: 560, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        <h1 style={{ margin: 0, fontSize: 'clamp(1.4rem, 4vw, 2rem)' }}>Do you have an account with us?</h1>
+        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Sign in to earn loyalty points on this purchase and to use a promo code or gift voucher.</p>
+        <button type="button" style={huge('var(--color-primary-500)')} onClick={() => { setProblem(null); setStep('login'); }}>Yes, sign in</button>
+        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setStep('shop')}>No, carry on as a guest</button>
+      </div>,
+    );
+  }
+
+  if (step === 'login') {
+    const signIn = async () => {
+      setBusy(true); setProblem(null);
+      try {
+        const r = await posSelfAPI.customerLogin(token, email, password);
+        setCustToken(r.token); setCust({ name: r.name, points: r.points }); setPassword(''); setStep('shop');
+      } catch (e) { setProblem(errMsg(e, 'We could not sign you in.')); setPassword(''); } finally { setBusy(false); }
+    };
+
+    return shell(
+      <form onSubmit={(e) => { e.preventDefault(); if (email.trim() && password) signIn(); }} style={{ flex: 1, display: 'grid', placeContent: 'center', gap: 12, padding: 24, maxWidth: 460, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+        <h1 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', textAlign: 'center' }}>Sign in</h1>
+        <input type="email" autoComplete="off" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email" aria-label="Email" style={{ padding: 16, fontSize: '1.05rem', borderRadius: 12, border: '2px solid var(--line)' }} />
+        <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" aria-label="Password" style={{ padding: 16, fontSize: '1.05rem', borderRadius: 12, border: '2px solid var(--line)' }} />
+        {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', textAlign: 'center' }}>{problem}</p>}
+        <button type="submit" style={huge('var(--color-primary-500)')} disabled={busy || !email.trim() || !password}>{busy ? 'Checking...' : 'Sign in'}</button>
+        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => { setPassword(''); setProblem(null); setStep('account'); }}>Back</button>
+      </form>,
+    );
+  }
+
   if (step === 'review' || step === 'pay') {
     return shell(
       <div style={{ flex: 1, display: 'grid', gap: 16, padding: tiny ? 14 : 24, alignContent: 'start', maxWidth: 760, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
@@ -340,7 +387,23 @@ export default function PosSelfPage() {
             </div>
           );
         })}
+        {step === 'review' && cust && (
+          <div style={{ display: 'grid', gap: 10, padding: 12, borderRadius: 12, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
+            <div style={{ display: 'grid', gap: 6 }}>
+              <strong style={{ fontSize: '0.9rem' }}>Promo code</strong>
+              {promo
+                ? <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span>{promo}{quote?.discount > 0 ? ' applied' : ''}</span><button type="button" style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), minHeight: 36, padding: '6px 12px' }} onClick={() => { setPromo(''); setPromoIn(''); }}>Remove</button></div>
+                : <div style={{ display: 'flex', gap: 8 }}><input value={promoIn} onChange={(e) => setPromoIn(e.target.value.toUpperCase())} placeholder="Enter your code" aria-label="Promo code" style={{ flex: 1, padding: 12, fontSize: '1rem', borderRadius: 10, border: '2px solid var(--line)' }} /><button type="button" style={{ ...huge('var(--color-primary-500)'), minHeight: 44 }} disabled={!promoIn.trim()} onClick={() => setPromo(promoIn.trim())}>Apply</button></div>}
+            </div>
+            <div style={{ display: 'grid', gap: 6 }}>
+              <strong style={{ fontSize: '0.9rem' }}>Gift voucher</strong>
+              {gifts.map((g) => <div key={g} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span>{g}</span><button type="button" style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), minHeight: 36, padding: '6px 12px' }} onClick={() => setGifts(gifts.filter((x) => x !== g))}>Remove</button></div>)}
+              {gifts.length < 3 && <div style={{ display: 'flex', gap: 8 }}><input value={giftIn} onChange={(e) => setGiftIn(e.target.value.toUpperCase())} placeholder="Enter the voucher code" aria-label="Gift voucher code" style={{ flex: 1, padding: 12, fontSize: '1rem', borderRadius: 10, border: '2px solid var(--line)' }} /><button type="button" style={{ ...huge('var(--color-primary-500)'), minHeight: 44 }} disabled={!giftIn.trim()} onClick={() => { setGifts([...gifts, giftIn.trim()]); setGiftIn(''); }}>Add</button></div>}
+            </div>
+          </div>
+        )}
         {totals}
+        {cust && <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-primary-700)', fontWeight: 700 }}>You will earn loyalty points on this purchase.</p>}
         {step === 'review' && (
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setStep('shop')}>Add more</button>
@@ -349,13 +412,17 @@ export default function PosSelfPage() {
         )}
         {step === 'pay' && (
           <div style={{ display: 'grid', gap: 14 }}>
-            {cfg.payment_methods.length > 0 && (
+            {quote && quote.to_pay <= 0 && (
+              <button type="button" style={huge('var(--color-primary-600)')} disabled={busy} onClick={() => place('screen')}>Complete: paid by gift voucher</button>
+            )}
+            {quote && quote.to_pay > 0 && cfg.payment_methods.length > 0 && (
               <>
                 <input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Your M-Pesa phone number" aria-label="Phone number" style={{ padding: 18, fontSize: '1.2rem', borderRadius: 14, border: '2px solid var(--line)' }} />
                 <button type="button" style={huge('var(--color-primary-600)')} disabled={busy || !phone.trim() || !quote} onClick={() => place('screen')}>Pay with M-Pesa</button>
               </>
             )}
-            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} disabled={busy || !quote} onClick={() => place('counter')}>Pay cash at the counter</button>
+            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} disabled={busy || !quote || gifts.length > 0 || (quote && quote.to_pay <= 0)} onClick={() => place('counter')}>Pay cash at the counter</button>
+            {gifts.length > 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Gift vouchers are used at the till: remove the voucher to pay cash at the counter, or give the cashier the voucher code.</p>}
             <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setStep('review')}>Back</button>
           </div>
         )}
@@ -395,7 +462,7 @@ export default function PosSelfPage() {
       </aside>
       {narrow && basket.length > 0 && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface-card, #fff)', borderTop: '2px solid var(--line)', boxShadow: '0 -6px 20px rgba(0,0,0,0.12)' }}>
-          <span style={{ fontWeight: 900, fontSize: '0.98rem' }}>{count} item{count === 1 ? '' : 's'}{quote ? ` · ${money(quote.total)}` : ''}</span>
+          <span style={{ fontWeight: 900, fontSize: '0.98rem' }}>{count} item{count === 1 ? '' : 's'}{quote ? ` · ${money(quote.to_pay ?? quote.total)}` : ''}</span>
           <button type="button" style={{ ...huge('var(--color-primary-500)'), padding: '12px 20px' }} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
         </div>
       )}

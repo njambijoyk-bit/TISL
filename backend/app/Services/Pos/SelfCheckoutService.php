@@ -6,6 +6,11 @@ use App\Models\Books\PaymentMethod;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\CompanyProfile;
+use App\Models\Customer;
+use App\Models\User;
+use App\Services\Security\SignInGuard;
+use App\Services\Security\SecurityLog;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Pos\Station;
 use App\Services\Books\BooksException;
 use App\Services\Books\GatewayPaymentService;
@@ -71,13 +76,106 @@ class SelfCheckoutService
         return $out;
     }
 
-    /** @return array<string, mixed> */
-    public function quote(Station $s, array $items): array
-    {
-        [, $pre] = $this->sales->priceSelf($s, $this->clean($items));
+    // ── a customer's own account at the screen ────────────────────────────
 
-        return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'amount' => $l['amount'], 'tax_amount' => $l['tax_amount'] ?? 0, 'tax_rate_percent' => $l['tax_rate_percent'] ?? null], $pre['lines']),
-            'subtotal' => $pre['subtotal'], 'tax_total' => $pre['tax_total'], 'tax_breakdown' => $pre['tax_breakdown'] ?? [], 'total' => $pre['total']];
+    /**
+     * "Do you have an account with us?" Yes: they sign in with their email and password, which is checked here and nowhere else. Nothing is listed or hinted: a wrong answer says only that the two do not match.
+     * What comes back is a short-lived key for this screen (not a staff or customer session) and the first name to greet them with.
+     *
+     * @return array{token: string, name: string, points: int}
+     */
+    public function customerLogin(Station $s, string $email, string $password, string $ip): array
+    {
+        $email = strtolower(trim($email));
+        if ($wait = SignInGuard::wait($email, $ip)) {
+            throw new BooksException("Too many tries. Please wait {$wait} seconds, or carry on as a guest.");
+        }
+        $user = User::where('email', $email)->first();
+        if (! SignInGuard::check($password, $user?->password)) {
+            SignInGuard::failed($email, $ip, request());
+            SecurityLog::record('sign_in_failed', $user, request(), ['reason' => 'self_checkout'], SecurityLog::NOTICE, $email);
+            throw new BooksException('That email and password do not match.');
+        }
+        SignInGuard::succeeded($email, $ip);
+        $customer = $user->isCustomer() ? $user->customer : null;
+        if (! $customer || $customer->status !== 'active' || ! $user->canLogin() || $user->force_password_change) {
+            throw new BooksException('We could not sign you in here. Please carry on as a guest, or ask a member of staff.');
+        }
+        $token = Str::random(40);
+        Cache::put($this->tokenKey($token), ['customer' => $customer->id, 'station' => $s->id], now()->addMinutes(20));
+        SecurityLog::record('pos_self_sign_in', $user, request(), ['station' => $s->id], SecurityLog::NOTICE, $email);
+
+        return ['token' => $token, 'name' => (string) ($customer->first_name ?: 'there'), 'points' => (int) $customer->loyalty_points];
+    }
+
+    public function customerLogout(?string $token): void
+    {
+        if ($token) {
+            Cache::forget($this->tokenKey($token));
+        }
+    }
+
+    private function tokenKey(string $token): string
+    {
+        return 'pos:self:customer:'.hash('sha256', $token);
+    }
+
+    /** The customer who signed in at this screen, or null for a guest. A token that is not good any more is an error: say so, so they sign in again. */
+    private function customerFor(Station $s, ?string $token): ?Customer
+    {
+        if (! $token) {
+            return null;
+        }
+        $k = $this->tokenKey($token);
+        $a = Cache::get($k);
+        $customer = $a && (int) $a['station'] === (int) $s->id ? Customer::active()->find($a['customer']) : null;
+        if (! $customer) {
+            throw new BooksException('Your sign-in has timed out. Please sign in again, or carry on as a guest.');
+        }
+        Cache::put($k, $a, now()->addMinutes(20));   // stays open while they are using the screen
+
+        return $customer;
+    }
+
+    /**
+     * What the codes they typed take off, one after another until the total is covered. Only for a signed-in customer.
+     *
+     * @return array<int, array{code: string, balance: float, applied: float}>
+     */
+    private function gifts(array $codes, float $total, ?Customer $customer): array
+    {
+        $codes = array_values(array_unique(array_filter(array_map(fn ($c) => trim((string) $c), $codes))));
+        if (! $codes) {
+            return [];
+        }
+        if (! $customer) {
+            throw new BooksException('Sign in to use a gift voucher.');
+        }
+        $out = [];
+        $left = $total;
+        foreach (array_slice($codes, 0, 3) as $code) {
+            $g = $this->sales->giftInfo($code, $customer);
+            $applied = round(min($g['balance'], max($left, 0)), 2);
+            $out[] = ['code' => $g['code'], 'balance' => $g['balance'], 'applied' => $applied];
+            $left = round($left - $applied, 2);
+        }
+
+        return $out;
+    }
+
+    /** @return array<string, mixed> */
+    public function quote(Station $s, array $items, ?string $token = null, ?string $promo = null, array $giftCodes = []): array
+    {
+        $customer = $this->customerFor($s, $token);
+        [, $pre] = $this->sales->priceSelf($s, $this->clean($items), $customer, $promo);
+        $total = (float) $pre['total'];
+        $gifts = $this->gifts($giftCodes, $total, $customer);
+        $applied = round(array_sum(array_column($gifts, 'applied')), 2);
+
+        return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'amount' => $l['amount'], 'discount' => $l['discount_amount'] ?? 0, 'tax_amount' => $l['tax_amount'] ?? 0, 'tax_rate_percent' => $l['tax_rate_percent'] ?? null], $pre['lines']),
+            'subtotal' => $pre['subtotal'], 'discount' => round(array_sum(array_map(fn ($l) => (float) ($l['discount_amount'] ?? 0), $pre['lines'])), 2), 'tax_total' => $pre['tax_total'], 'tax_breakdown' => $pre['tax_breakdown'] ?? [],
+            'total' => $total, 'gifts' => $gifts, 'gift_applied' => $applied, 'to_pay' => round(max(0, $total - $applied), 2),
+            'customer' => $customer ? ['name' => (string) $customer->first_name, 'points' => (int) $customer->loyalty_points] : null];
     }
 
     /** The customer is done. @return array{session: string, pay: string, total: float, attempt?: array} */
@@ -91,36 +189,67 @@ class SelfCheckoutService
             throw new BooksException('Choose how you would like to pay.');
         }
         $items = $this->clean((array) ($in['items'] ?? []));
-        [$data, $pre] = $this->sales->priceSelf($s, $items);
+        $customer = $this->customerFor($s, $in['customer_token'] ?? null);
+        $promo = trim((string) ($in['promo_code'] ?? ''));
+        [$data, $pre] = $this->sales->priceSelf($s, $items, $customer, $promo);
+        $total = (float) $pre['total'];
+        $gifts = $this->gifts((array) ($in['gift_codes'] ?? []), $total, $customer);
+        $giftApplied = round(array_sum(array_column($gifts, 'applied')), 2);
         $code = $this->code();
 
         if ($pay === 'counter') {   // a cashier recalls it (by the short code on the screen) and takes the cash
+            if ($gifts) {
+                throw new BooksException('Gift vouchers are used at the till: give the code to the cashier, or pay with M-Pesa here.');
+            }
             $short = substr($code, 0, 4);
             $hold = DB::table('pos_holds')->insertGetId(['location_id' => $s->location_id, 'station_id' => $s->id, 'user_id' => 0, 'label' => "Code {$short} · {$s->name}",
-                'cart' => json_encode(['items' => array_map(fn ($i, $l) => $i + ['name' => $l['description'], 'discount_pct' => 0], $items, $pre['lines']), 'customer_id' => null, 'mode' => 'cash']), 'created_at' => now(), 'updated_at' => now()]);
+                'cart' => json_encode(['items' => array_map(fn ($i, $l) => $i + ['name' => $l['description'], 'discount_pct' => 0], $items, $pre['lines']), 'customer_id' => $customer?->id, 'customer_name' => $customer?->full_name,
+                    'promo_code' => $promo !== '' ? $promo : null, 'mode' => 'cash']), 'created_at' => now(), 'updated_at' => now()]);
             DB::table('pos_self_sessions')->insert(['station_id' => $s->id, 'session_code' => $code, 'pay' => 'counter', 'hold_id' => $hold, 'created_at' => now(), 'updated_at' => now()]);
 
-            return ['session' => $code, 'pay' => 'counter', 'number' => $short, 'total' => (float) $pre['total']];
+            return ['session' => $code, 'pay' => 'counter', 'number' => $short, 'total' => $total];
         }
 
-        $method = ! empty($in['payment_method_id']) ? PaymentMethod::offeredAtCheckout()->where('gateway', 'mpesa_stk')->whereKey((int) $in['payment_method_id'])->first() : null;
-        if (! $method) {
-            throw new BooksException('Choose M-Pesa.');
+        $due = round($total - $giftApplied, 2);
+        $method = null;
+        $phone = '';
+        if ($due > 0.005) {
+            $method = ! empty($in['payment_method_id']) ? PaymentMethod::offeredAtCheckout()->where('gateway', 'mpesa_stk')->whereKey((int) $in['payment_method_id'])->first() : null;
+            if (! $method) {
+                throw new BooksException('Choose M-Pesa.');
+            }
+            $phone = trim((string) ($in['phone'] ?? ''));
+            if ($phone === '') {
+                throw new BooksException('Enter your phone number for the M-Pesa prompt.');
+            }
         }
-        $phone = trim((string) ($in['phone'] ?? ''));
-        if ($phone === '') {
-            throw new BooksException('Enter your phone number for the M-Pesa prompt.');
+        $tenders = [];
+        if ($gifts) {
+            $giftMethod = PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->first() ?? throw new BooksException('Gift vouchers are not set up yet.');
+            foreach ($gifts as $g) {
+                if ($g['applied'] > 0) {
+                    $tenders[] = ['payment_method_id' => $giftMethod->id, 'amount' => $g['applied'], 'gift_voucher_code' => $g['code']];
+                }
+            }
         }
 
-        return DB::transaction(function () use ($s, $data, $pre, $code, $method, $phone) {
+        return DB::transaction(function () use ($s, $data, $code, $method, $phone, $due, $tenders, $total) {
             $order = $this->vouchers->placeOrder(array_merge($data, ['channel' => 'pos']), null);   // becomes the Cash Sale when the money arrives
             $order->update(['meta' => array_merge($order->meta ?? [], ['pos_self' => ['station_id' => $s->id, 'session' => $code]])]);
             DB::table('vouchers')->where('id', $order->id)->update(['station_id' => $s->id]);
             DB::table('pos_self_sessions')->insert(['station_id' => $s->id, 'session_code' => $code, 'pay' => 'screen', 'voucher_id' => $order->id, 'created_at' => now(), 'updated_at' => now()]);
-            $r = $this->gateway->start($order, $method, ['phone' => $phone, 'name' => 'Self checkout '.$code], [], (float) $order->total_amount, null);
+            if ($due <= 0.005) {   // gift vouchers cover all of it: paid now, no prompt on a phone
+                $sale = app(\App\Services\Books\CheckoutService::class)->settle($order, $tenders, null);
+                DB::table('vouchers')->where('id', $sale->id)->update(['station_id' => $s->id]);
+                $sale->update(['channel' => 'pos', 'meta' => array_merge($sale->meta ?? [], ['pos' => ['station_id' => $s->id, 'cashier' => 'Self checkout']])]);
+                DB::table('pos_self_sessions')->where('session_code', $code)->update(['status' => 'paid', 'updated_at' => now()]);
+
+                return ['session' => $code, 'pay' => 'screen', 'paid' => true, 'number' => $sale->voucher_number, 'total' => $total];
+            }
+            $r = $this->gateway->start($order, $method, ['phone' => $phone, 'name' => 'Self checkout '.$code], $tenders, $due, null);
             $a = $r['attempt'];
 
-            return ['session' => $code, 'pay' => 'screen', 'total' => (float) $order->total_amount,
+            return ['session' => $code, 'pay' => 'screen', 'total' => $total, 'due' => $due,
                 'attempt' => ['id' => $a->id, 'status' => $a->status, 'amount' => (float) $a->amount, 'token' => GatewayPaymentService::returnToken((int) $a->id)]];
         });
     }

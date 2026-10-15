@@ -23,7 +23,7 @@ class TenderCheck
             $amount = round((float) $t['amount'], 2);
             $handed += $amount;
             $cash += $m->kind === 'cash' ? $amount : 0;
-            $rows[] = ['payment_method_id' => $m->id, 'amount' => $amount, 'reference' => ($t['reference'] ?? null) ?: null, 'name' => $m->name, 'cash' => $m->kind === 'cash'];
+            $rows[] = ['payment_method_id' => $m->id, 'amount' => $amount, 'reference' => ($t['reference'] ?? null) ?: null, 'name' => $m->name, 'cash' => $m->kind === 'cash', 'gift' => $m->kind === 'gift_voucher' ? trim((string) ($t['gift_voucher_code'] ?? '')) : null];
         }
         $handed = round($handed, 2);
         if ($handed + 0.004 < $total) {
@@ -42,7 +42,7 @@ class TenderCheck
         }
         $kept = array_values(array_filter($rows, fn ($r) => $r['amount'] > 0));
 
-        return ['tenders' => array_map(fn ($r) => ['payment_method_id' => $r['payment_method_id'], 'amount' => $r['amount'], 'reference' => $r['reference']], $kept),
-            'tendered' => $handed, 'change' => round($handed - $total, 2), 'record' => array_map(fn ($r) => ['method' => $r['name'], 'amount' => $r['amount'], 'reference' => $r['reference']], $kept)];
+        return ['tenders' => array_map(fn ($r) => ['payment_method_id' => $r['payment_method_id'], 'amount' => $r['amount'], 'reference' => $r['reference']] + ($r['gift'] ? ['gift_voucher_code' => $r['gift']] : []), $kept),
+            'tendered' => $handed, 'change' => round($handed - $total, 2), 'record' => array_map(fn ($r) => ['method' => $r['name'], 'amount' => $r['amount'], 'reference' => $r['reference'] ?: ($r['gift'] ?: null)], $kept)];
     }
 }

@@ -65,7 +65,7 @@ class PosController extends Controller
 
     public function price(Request $request): JsonResponse
     {
-        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'customer_name' => 'nullable|string|max:80']);
+        $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'customer_name' => 'nullable|string|max:80', 'promo_code' => 'nullable|string|max:40']);
 
         return $this->guard(fn () => $this->sales->price($request->user(), $d));
     }
@@ -73,7 +73,7 @@ class PosController extends Controller
     public function sell(Request $request): JsonResponse
     {
         $d = $request->validate(['key' => 'required|string|max:64', 'items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.discount_pct' => 'nullable|numeric',
-            'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'customer_name' => 'nullable|string|max:80', 'tenders' => 'nullable|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
+            'mode' => 'nullable|in:cash,invoice,order', 'approval_token' => 'nullable|string|max:60', 'customer_name' => 'nullable|string|max:80', 'promo_code' => 'nullable|string|max:40', 'tenders' => 'nullable|array', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric', 'tenders.*.reference' => 'nullable|string|max:100', 'tenders.*.gift_voucher_code' => 'nullable|string|max:40', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer']);
 
         return $this->guard(fn () => $this->sales->sell($request->user(), $d), 201);
     }
@@ -81,6 +81,22 @@ class PosController extends Controller
     public function customers(Request $request): JsonResponse
     {
         return $this->guard(fn () => ['customers' => $this->sales->customers((string) $request->get('q', ''))]);
+    }
+
+    /** The one customer behind a phone number (loyalty points, their gift vouchers and promo codes), or null. */
+    public function customerByPhone(Request $request): JsonResponse
+    {
+        $request->validate(['phone' => 'required|string|max:30']);
+
+        return $this->guard(fn () => ['customer' => $this->sales->customerByPhone((string) $request->phone)]);
+    }
+
+    /** A gift voucher the cashier is shown: what it can pay (for the customer if one is attached). */
+    public function gift(Request $request): JsonResponse
+    {
+        $request->validate(['code' => 'required|string|max:40', 'customer_id' => 'nullable|integer']);
+
+        return $this->guard(fn () => $this->sales->giftInfo((string) $request->code, $request->filled('customer_id') ? \App\Models\Customer::active()->find((int) $request->customer_id) : null));
     }
 
     public function mine(Request $request): JsonResponse
@@ -101,7 +117,7 @@ class PosController extends Controller
     public function hold(Request $request): JsonResponse
     {
         $d = $request->validate(['items' => 'required|array', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|numeric', 'items.*.name' => 'nullable|string|max:120', 'items.*.discount_pct' => 'nullable|numeric',
-            'label' => 'nullable|string|max:80', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'customer_name' => 'nullable|string|max:120', 'mode' => 'nullable|in:cash,invoice,order']);
+            'label' => 'nullable|string|max:80', 'station_id' => 'nullable|integer', 'customer_id' => 'nullable|integer', 'customer_name' => 'nullable|string|max:120', 'promo_code' => 'nullable|string|max:40', 'mode' => 'nullable|in:cash,invoice,order']);
 
         return $this->guard(fn () => $this->sales->hold($request->user(), $d), 201);
     }

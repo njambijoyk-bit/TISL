@@ -6,6 +6,7 @@ use App\Models\Books\PaymentMethod;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\Access\AccessLog;
+use App\Models\Books\GiftVoucher;
 use App\Models\Books\Ledger;
 use App\Models\Currency;
 use App\Models\Customer;
@@ -15,6 +16,7 @@ use App\Models\ProductVariant;
 use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Books\BooksException;
+use App\Services\Books\DiscountService;
 use App\Services\Books\LedgerService;
 use App\Services\Books\TenderCheck;
 use App\Services\Books\VoucherService;
@@ -61,7 +63,7 @@ class SaleService
             $station = Station::find($sh->station_id) ?? $station;
         }
 
-        return ['me' => ['id' => $u->id, 'name' => $u->name], 'business' => \App\Models\CompanyProfile::current()->name ?: config('app.name'), 'shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
+        return ['gift_method_id' => PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->value('id'), 'me' => ['id' => $u->id, 'name' => $u->name], 'business' => \App\Models\CompanyProfile::current()->name ?: config('app.name'), 'shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
             'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
             'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'reprint' => $access->allows($u, 'pos.reprint'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];
@@ -226,6 +228,97 @@ class SaleService
         }
     }
 
+    /**
+     * A customer's discounts and a promo code taken off the lines before tax, the way the shop's checkout does it. When the customer was only named (a phone number at the till) just the code they typed counts;
+     * when they proved who they are (signed in at self checkout) their own discounts, tier and referral apply as well.
+     *
+     * @return array{0: array, 1: array} the rows with their share of the discounts, and what to note on the document
+     */
+    private function discounted(array $rows, array $pre, Customer $customer, string $promo, bool $trusted): array
+    {
+        $currency = Currency::getBaseCurrency();
+        $gross = [];
+        foreach ($pre['lines'] as $i => $l) {
+            $gross[$i] = empty($l['is_header']) ? (float) $l['amount'] : 0.0;
+        }
+        $engine = app(DiscountService::class);
+        $chosen = $trusted ? null : ($promo !== '' ? ['promo:'.strtoupper($promo)] : []);
+        $found = $engine->evaluate($customer, array_sum($gross), $currency, $chosen, $promo !== '' ? $promo : null, 0.0);
+        foreach ($found as $r) {
+            if ($r['error']) {
+                throw new BooksException($r['error']);
+            }
+        }
+        if ($promo !== '' && ! collect($found)->contains(fn ($r) => $r['kind'] === 'promo' && $r['chosen'])) {
+            throw new BooksException('That promo code can not be used on this sale.');
+        }
+        $sp = $engine->spread($gross, $found, $gross);
+        $promoId = null;
+        $referralId = null;
+        foreach ($found as $r) {
+            if ($r['chosen']) {
+                $promoId = $r['kind'] === 'promo' ? $r['promo_id'] : $promoId;
+                $referralId = $r['kind'] === 'referral' ? $r['referral_id'] : $referralId;
+            }
+        }
+        foreach ($rows as $i => $row) {
+            if ($parts = $sp['perLine'][$i] ?? []) {
+                usort($parts, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+                $rows[$i]['share_discount'] = round(array_sum(array_column($parts, 'amount')), 2);
+                $rows[$i]['discount_source'] = $parts[0]['source'];
+                $rows[$i]['discount_ref'] = $parts[0]['ref'];
+            }
+        }
+
+        return [$rows, array_filter(['discounts' => $sp['discounts'] ?: null, 'promo_code_id' => $promoId, 'referral_code_id' => $referralId], fn ($v) => $v !== null)];
+    }
+
+    /** A gift voucher a person offers: it must exist, be spendable, and (if it names a customer) be theirs. Returns what it can pay, in the base currency. @return array{code: string, balance: float, expires_at: ?string} */
+    public function giftInfo(string $code, ?Customer $customer): array
+    {
+        $gv = GiftVoucher::with('currency')->where('code', trim($code))->first() ?? throw new BooksException('That gift voucher code was not found.');
+        if ($gv->customer_id && (! $customer || (int) $gv->customer_id !== (int) $customer->id)) {
+            throw new BooksException($customer ? 'That gift voucher belongs to another customer.' : 'That gift voucher belongs to a customer: add their phone number first.');
+        }
+        if (! $gv->isSpendable()) {
+            throw new BooksException('That gift voucher can not be used ('.($gv->status !== 'active' ? $gv->status : ((float) $gv->balance <= 0 ? 'no balance left' : 'expired')).').');
+        }
+        $money = app(\App\Services\CurrencyConversionService::class);
+
+        return ['code' => $gv->code, 'balance' => round((float) $money->convert((float) $gv->balance, $gv->currency, $money->getBaseCurrency()), 2), 'expires_at' => $gv->expires_at?->toDateString()];
+    }
+
+    private function assertGiftOwners(array $tenders, ?Customer $customer): void
+    {
+        $gift = PaymentMethod::where('kind', 'gift_voucher')->pluck('id')->all();
+        foreach ($tenders as $t) {
+            if (in_array((int) $t['payment_method_id'], $gift, true)) {
+                $this->giftInfo((string) ($t['gift_voucher_code'] ?? ''), $customer);
+            }
+        }
+    }
+
+    /** The one customer whose phone number this is (for loyalty points and their own gift vouchers and promo codes), or null. Never a list. @return ?array{id: int, name: string, points: int} */
+    public function customerByPhone(string $phone): ?array
+    {
+        $digits = preg_replace('/\D/', '', $phone) ?? '';
+        if (strlen($digits) < 7) {
+            throw new BooksException('Enter the whole phone number.');
+        }
+        $tail = substr($digits, -9);
+        $norm = fn (string $col) => "REPLACE(REPLACE(REPLACE(REPLACE({$col}, ' ', ''), '-', ''), '+', ''), '(', '')";
+        $rows = Customer::active()->where(fn ($w) => $w->whereRaw($norm('phone').' LIKE ?', ['%'.$tail])->orWhereRaw($norm('alternate_phone').' LIKE ?', ['%'.$tail]))->limit(3)->get();
+        if ($rows->isEmpty()) {
+            return null;
+        }
+        if ($rows->count() > 1) {
+            throw new BooksException('More than one account has that number. Sell as a walk-in, or ask for their email.');
+        }
+        $c = $rows->first();
+
+        return ['id' => $c->id, 'name' => $c->full_name, 'points' => (int) $c->loyalty_points];
+    }
+
     /** An item the books price at nothing is never sold at the till: a mistake in the catalogue must not give goods away. */
     private function assertPriced(array $pre): void
     {
@@ -277,14 +370,22 @@ class SaleService
 
     /** @return array{0: array, 1: array} the data to post, and its preview */
     /** A self-checkout basket priced as a cash sale: no discounts, no customer, no cashier. @return array{0: array, 1: array} the data (of a cash sale) and its preview */
-    public function priceSelf(Station $station, array $items): array
+    public function priceSelf(Station $station, array $items, ?Customer $customer = null, ?string $promo = null): array
     {
         $rows = $this->lines(null, $items, (int) $station->location_id);
-        $data = $this->base(null, $station, null, 'cash', ['pos_self' => true]);
-        $data['lines'] = array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rows);
-
+        $data = $this->base(null, $station, $customer?->id, 'cash', ['pos_self' => true]);
+        $clean = fn (array $rs) => array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rs);
+        $data['lines'] = $clean($rows);
         $pre = $this->vouchers->preview($data, null);
         $this->assertPriced($pre);
+        $promo = trim((string) $promo);
+        if ($customer) {   // signed in at the screen: their own discounts and the code they typed
+            [$rows, $meta] = $this->discounted($rows, $pre, $customer, $promo, true);
+            $data['meta'] = array_merge($data['meta'], $meta);
+            $data['lines'] = $clean($rows);
+            $pre = $this->vouchers->preview($data, null);
+            $this->assertPriced($pre);
+        }
 
         return [$data, $pre];
     }
@@ -293,7 +394,8 @@ class SaleService
     {
         $rows = $this->lines($u, (array) ($in['items'] ?? []), (int) $station->location_id);
         $mode = $this->mode($u, $in);
-        $customerId = $this->customer($in, $mode)?->id;
+        $customer = $this->customer($in, $mode);
+        $customerId = $customer?->id;
         $data = $this->base($u, $station, $customerId, $mode, [], isset($in['customer_name']) ? (string) $in['customer_name'] : null);
         $clean = fn (array $rs) => array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rs);
         $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
@@ -306,6 +408,16 @@ class SaleService
                 }
             }
             $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
+        }
+        $promo = trim((string) ($in['promo_code'] ?? ''));
+        if ($promo !== '' && ! $customer) {
+            throw new BooksException('A promo code belongs to a customer: add their phone number first.');
+        }
+        if ($customer && ($promo !== '' || ! empty($in['_trusted']))) {
+            [$rows, $meta] = $this->discounted($rows, $pre, $customer, $promo, ! empty($in['_trusted']));
+            $data['meta'] = array_merge($data['meta'], $meta);
+            $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
+            $this->assertPriced($pre);
         }
         $data['lines'] = $clean($rows);
         $needs = max(array_column($rows, '_pct') ?: [0]) > $this->discountLimit($u) + 0.00001;
@@ -360,6 +472,7 @@ class SaleService
         $now = null;   // money taken now on an invoice or an order
         if ($mode === 'cash') {
             $paid = $this->tenders->check((array) ($in['tenders'] ?? []), $total);
+            $this->assertGiftOwners($paid['tenders'], $customer);
             $data['tenders'] = $paid['tenders'];
         } else {
             $this->creditCheck($mode, $customer, $total);
@@ -632,7 +745,7 @@ class SaleService
             throw new BooksException('There is nothing in the basket to hold.');
         }
         $cart = ['items' => array_map(fn ($i) => ['variant_id' => (int) $i['variant_id'], 'quantity' => (float) $i['quantity'], 'name' => mb_substr((string) ($i['name'] ?? ''), 0, 120), 'discount_pct' => (float) ($i['discount_pct'] ?? 0)], $items),
-            'customer_id' => ! empty($in['customer_id']) ? (int) $in['customer_id'] : null, 'customer_name' => mb_substr((string) ($in['customer_name'] ?? ''), 0, 120) ?: null, 'mode' => isset(self::MODES[$in['mode'] ?? '']) ? $in['mode'] : 'cash'];
+            'customer_id' => ! empty($in['customer_id']) ? (int) $in['customer_id'] : null, 'customer_name' => mb_substr((string) ($in['customer_name'] ?? ''), 0, 120) ?: null, 'promo_code' => trim((string) ($in['promo_code'] ?? '')) ?: null, 'mode' => isset(self::MODES[$in['mode'] ?? '']) ? $in['mode'] : 'cash'];
         $id = DB::table('pos_holds')->insertGetId(['location_id' => $station->location_id, 'station_id' => $station->id, 'user_id' => $u->id, 'label' => mb_substr(trim((string) ($in['label'] ?? '')), 0, 80) ?: null,
             'cart' => json_encode($cart), 'created_at' => now(), 'updated_at' => now()]);
 

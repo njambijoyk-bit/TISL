@@ -27,7 +27,8 @@ class PosSelfController extends Controller
 
     private function items(): array
     {
-        return ['items' => 'required|array|min:1|max:60', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:20'];
+        return ['items' => 'required|array|min:1|max:60', 'items.*.variant_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:20',
+            'customer_token' => 'nullable|string|max:60', 'promo_code' => 'nullable|string|max:40', 'gift_codes' => 'nullable|array|max:3', 'gift_codes.*' => 'nullable|string|max:40'];
     }
 
     public function show(string $token): JsonResponse
@@ -55,7 +56,7 @@ class PosSelfController extends Controller
         $s = $this->stations->forToken($token);
         $d = $request->validate($this->items());
 
-        return $this->guard(fn () => $this->self->quote($s, $d['items']));
+        return $this->guard(fn () => $this->self->quote($s, $d['items'], $d['customer_token'] ?? null, $d['promo_code'] ?? null, (array) ($d['gift_codes'] ?? [])));
     }
 
     public function order(Request $request, string $token): JsonResponse
@@ -101,6 +102,22 @@ class PosSelfController extends Controller
         $s = $this->stations->forToken($token);
 
         return $this->guard(fn () => $this->self->callForHelp($s));
+    }
+
+    public function customerLogin(Request $request, string $token): JsonResponse
+    {
+        $s = $this->stations->forToken($token);
+        $d = $request->validate(['email' => 'required|email|max:120', 'password' => 'required|string|max:200']);
+
+        return $this->guard(fn () => $this->self->customerLogin($s, $d['email'], $d['password'], (string) $request->ip()));
+    }
+
+    public function customerLogout(Request $request, string $token): JsonResponse
+    {
+        $this->stations->forToken($token);
+        $this->self->customerLogout($request->input('customer_token'));
+
+        return response()->json(['ok' => true]);
     }
 
     public function helpCancel(string $token): JsonResponse
