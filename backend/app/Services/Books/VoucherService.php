@@ -183,6 +183,9 @@ class VoucherService
             $this->versionHook($voucher, null, $user);
             app(WithholdingRegisterService::class)->void($voucher);   // refuses when part of its credit was already cleared
             $this->reverseEffects($voucher);
+            if (! empty($voucher->meta['pos_reversal'])) {
+                app(\App\Services\Pos\ReturnRewardsService::class)->restore($voucher, $user);   // a POS return is cancelled: the sale's points, promo use and gift voucher come back, once
+            }
             $voucher->update([
                 'status' => Voucher::CANCELLED, 'cancelled_at' => now(), 'cancelled_by' => $user?->id,
                 'cancel_reason' => $reason, 'fulfilment_status' => $voucher->fulfilment_status ? 'closed' : null,

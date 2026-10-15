@@ -88,14 +88,14 @@ class PromoUsageService
     }
 
     /** Take back the use(s) logged for this voucher. */
-    public function reverse(Voucher $v): void
+    public function reverse(Voucher $v): array
     {
         if (! $this->ready()) {
-            return;
+            return [];
         }
         $rows = ReferralCodeUsage::where('voucher_id', $v->id)->where('status', 'completed')->get();
         if ($rows->isEmpty()) {
-            return;
+            return [];
         }
         DB::transaction(function () use ($rows) {
             foreach ($rows as $row) {
@@ -106,6 +106,28 @@ class PromoUsageService
                 $row->update(['status' => 'cancelled']);
             }
         });
+
+        return $rows->pluck('id')->all();   // so the use can be put back exactly if the voucher's return is cancelled
+    }
+
+    /** Put back the uses a return took away (the return was cancelled). Only rows still marked cancelled are touched, so it happens once. */
+    public function reinstate(array $usageIds): int
+    {
+        if (! $usageIds || ! $this->ready()) {
+            return 0;
+        }
+        $n = 0;
+        DB::transaction(function () use ($usageIds, &$n) {
+            foreach (ReferralCodeUsage::whereIn('id', $usageIds)->where('status', 'cancelled')->lockForUpdate()->get() as $row) {
+                if ($code = ReferralCode::find($row->referral_code_id)) {
+                    $code->recordSuccess((float) $row->discount_amount, (float) $row->order_value, 1.0);
+                }
+                $row->update(['status' => 'completed']);
+                $n++;
+            }
+        });
+
+        return $n;
     }
 
     /** True once script 35 has added the voucher link (until then nothing is logged, nothing breaks). */

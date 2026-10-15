@@ -98,23 +98,28 @@ class RewardService
     }
 
     /** The voucher was cancelled (or is being edited): take back the points, the spend and the order it counted. */
-    public function onCancel(Voucher $v): void
+    public function onCancel(Voucher $v, string $why = 'cancelled'): ?array
     {
         $v->loadMissing('type');
         if (! $v->customer_id || (empty($v->meta['rewarded_at']) && empty($v->meta['order_counted']))) {
-            return;
+            return null;
         }
-        DB::transaction(function () use ($v) {
+
+        return DB::transaction(function () use ($v, $why) {
             $customer = Customer::lockForUpdate()->find($v->customer_id);
             if (! $customer) {
-                return;
+                return null;
             }
+            $before = array_intersect_key((array) $v->meta, array_flip(['rewarded_at', 'points_earned', 'spend_counted', 'order_counted']));
             $points = (int) ($v->meta['points_earned'] ?? 0);
+            $taken = 0;
+            $journal = null;
             if ($points > 0) {
                 $take = min($points, (int) $customer->loyalty_points);
                 if ($take > 0) {
-                    $value = $this->writePoints($customer, -$take, 'order_cancel', "Points reversed — {$v->voucher_number} cancelled", $v);
-                    $this->accrue($v, -$take, $value);
+                    $value = $this->writePoints($customer, -$take, 'order_cancel', "Points reversed — {$v->voucher_number} {$why}", $v);
+                    $journal = $this->accrue($v, -$take, $value);
+                    $taken = $take;
                 }
             }
             $customer->update([
@@ -122,7 +127,45 @@ class RewardService
                 'total_spent' => max(0, (float) $customer->total_spent - (float) ($v->meta['spend_counted'] ?? 0)),
             ]);
             $v->update(['meta' => array_merge($v->meta ?? [], ['rewarded_at' => null, 'points_earned' => 0, 'spend_counted' => 0, 'order_counted' => false])]);
+
+            // what was undone, so it can be given back exactly (and only once) if the cancelling document is itself undone
+            return ['points' => $taken, 'value' => isset($value) ? (float) $value : 0.0, 'journal_id' => $journal?->id, 'meta' => $before];
         });
+    }
+
+    /**
+     * The undoing of onCancel, for a sale whose return was itself cancelled: the points go back as they were, the customer's order count and
+     * spend are counted again, and a journal reverses the one that released the points. $snap is what onCancel returned.
+     *
+     * @return array{points: int, journal_id: ?int}
+     */
+    public function onReinstate(Voucher $v, array $snap): array
+    {
+        $done = ['points' => 0, 'journal_id' => null];
+        if (! $v->customer_id || empty($snap['meta'])) {
+            return $done;
+        }
+        DB::transaction(function () use ($v, $snap, &$done) {
+            $customer = Customer::lockForUpdate()->find($v->customer_id);
+            if (! $customer) {
+                return;
+            }
+            $points = (int) ($snap['points'] ?? 0);
+            if ($points > 0) {
+                $months = LoyaltySetting::get('points_expiry_months', null);
+                $value = $this->writePoints($customer, $points, 'order_restore', "Points given back — return of {$v->voucher_number} cancelled", $v, $months ? 'expiring' : 'permanent', $months ? now()->addMonths((int) $months) : null);
+                $done = ['points' => $points, 'journal_id' => $this->accrue($v, $points, (float) ($snap['value'] ?? 0) > 0 ? (float) $snap['value'] : $value)?->id];
+            }
+            $meta = (array) $snap['meta'];
+            $customer->refresh();
+            $customer->update([
+                'total_orders' => (int) $customer->total_orders + (! empty($meta['order_counted']) ? 1 : 0),
+                'total_spent' => (float) $customer->total_spent + (float) ($meta['spend_counted'] ?? 0),
+            ]);
+            $v->update(['meta' => array_merge($v->fresh()->meta ?? [], $meta)]);
+        });
+
+        return $done;
     }
 
     // ── points ───────────────────────────────────────────────────────────
@@ -168,9 +211,9 @@ class RewardService
     }
 
     /** Points are a liability at their value: Dr Rewards expense, Cr Loyalty Points Liability (reversed when negative). */
-    private function accrue(Voucher $sale, int $points, ?float $value = null): void
+    private function accrue(Voucher $sale, int $points, ?float $value = null): ?Voucher
     {
-        $this->postPoints(abs($points), $points >= 0 ? 'accrue' : 'release',
+        return $this->postPoints(abs($points), $points >= 0 ? 'accrue' : 'release',
             ($points >= 0 ? 'Loyalty points earned on ' : 'Loyalty points reversed on ') . $sale->voucher_number, ['sale_voucher_id' => $sale->id], null, $value);
     }
 

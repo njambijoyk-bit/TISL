@@ -235,7 +235,7 @@ class PosController extends Controller
 
     public function makeReturn(Request $request): JsonResponse
     {
-        $d = $request->validate(['voucher_id' => 'required|integer', 'lines' => 'required|array', 'lines.*.item_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric', 'reason' => 'required|string|max:200',
+        $d = $request->validate(['voucher_id' => 'required|integer', 'reason' => 'required|string|max:200',
             'refund_ledger_id' => 'nullable|integer', 'approval_token' => 'nullable|string|max:60', 'station_id' => 'nullable|integer']);
 
         return $this->guard(fn () => $this->sales->makeReturn($request->user(), $d), 201);

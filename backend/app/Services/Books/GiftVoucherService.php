@@ -241,8 +241,9 @@ class GiftVoucherService
     }
 
     /** Give back whatever a cancelled / altered sale had taken. */
-    public function restoreFor(Voucher $sale, ?User $user = null): void
+    public function restoreFor(Voucher $sale, ?User $user = null, string $why = ''): array
     {
+        $given = [];
         $txs = GiftVoucherTransaction::where('voucher_id', $sale->id)->where('type', 'redeem')->get();
         foreach ($txs as $t) {
             $gv = GiftVoucher::whereKey($t->gift_voucher_id)->lockForUpdate()->first();
@@ -250,11 +251,21 @@ class GiftVoucherService
                 continue;
             }
             $back = abs((float) $t->amount);
+            $base = abs((float) ($t->base_amount ?? $back * $this->money->rateOn($gv->currency_id)));
             $new = round((float) $gv->balance + $back, 2);
             $gv->update(['balance' => $new, 'status' => $gv->status === GiftVoucher::USED ? GiftVoucher::ACTIVE : $gv->status]);
-            $this->log($gv, 'restore', $back, $sale->id, "Restored from {$sale->voucher_number}", $user, abs((float) ($t->base_amount ?? $back * $this->money->rateOn($gv->currency_id))));
+            $this->log($gv, 'restore', $back, $sale->id, "Restored from {$sale->voucher_number}" . ($why !== '' ? " ({$why})" : ''), $user, $base);
             $t->update(['type' => 'redeem_reversed']);
+            $given[] = ['gift_voucher_id' => $gv->id, 'amount' => $back, 'base' => round($base, 2)];
         }
+
+        return $given;   // what went back, so it can be taken again (once) if the return is cancelled
+    }
+
+    /** Base value of the gift vouchers' liability ledger, for the journal that moves a refund's gift part out of the cash ledger. */
+    public function liabilityLedger(): int
+    {
+        return $this->liabilityLedgerId();
     }
 
     /** Expire unspent, past-date vouchers into breakage income. Returns how many. */

@@ -648,9 +648,18 @@ class SaleService
             throw new BooksException('No cash sale or invoice with that number at your branch.');
         }
         $r = $this->vouchers->returnable($v);
-        $r['lines'] = array_values(array_filter($r['lines'], fn ($l) => $l['available_quantity'] > 0 && ! $l['is_header'] && ! $l['negative']));
+        // A POS return takes the whole sale or invoice back, so its points, promo code and gift voucher can be undone cleanly with it.
+        $r['blocked'] = null;
+        if (array_filter($r['lines'], fn ($l) => $l['reversed_amount'] > 0.004)) {
+            $r['blocked'] = 'Some or all of this has been returned already, so it cannot be returned again from the till. Ask the back office to credit what is left.';
+        } elseif (! array_filter($r['lines'], fn ($l) => $l['available_amount'] > 0.004 || $l['available_quantity'] > 0)) {
+            $r['blocked'] = 'There is nothing on this document to take back.';
+        }
+        $r['whole'] = true;
         $r['source']['type'] = $v->type->name;
         $r['source']['location_id'] = (int) $v->location_id;
+        $r['source']['customer'] = $v->customer_id ? trim(($v->customer?->first_name ?? '') . ' ' . ($v->customer?->last_name ?? '')) ?: null : null;
+        $r['source']['gift_paid'] = round((float) DB::table('voucher_tenders')->where('voucher_id', $v->id)->whereNotNull('gift_voucher_id')->sum('amount') * (float) ($v->exchange_rate ?: 1), 2);
 
         return $r;
     }
@@ -675,14 +684,19 @@ class SaleService
         $shiftId = $this->shifts->forSale($u, $station);
         $source = Voucher::with('type')->findOrFail((int) ($in['voucher_id'] ?? 0));
         $found = $this->findForReturn($u, $source->voucher_number);
-        $lines = [];
-        foreach ((array) ($in['lines'] ?? []) as $l) {
-            if ((float) ($l['quantity'] ?? 0) > 0) {
-                $lines[] = ['item_id' => (int) $l['item_id'], 'mode' => 'return', 'quantity' => (float) $l['quantity']];
+        if ($found['blocked']) {
+            throw new BooksException($found['blocked']);
+        }
+        $lines = [];   // always every line, in full
+        foreach ($found['lines'] as $l) {
+            if ($l['is_charge']) {
+                $lines[] = ['item_id' => $l['id'], 'mode' => 'adjust', 'amount' => $l['available_amount']];
+            } elseif ($l['available_quantity'] > 0) {
+                $lines[] = ['item_id' => $l['id'], 'mode' => 'return', 'quantity' => $l['available_quantity']];
             }
         }
         if (! $lines) {
-            throw new BooksException('Choose what is coming back.');
+            throw new BooksException('There is nothing on this document to take back.');
         }
         $opts = ['lines' => $lines, 'reason' => $reason, 'narration' => "Return at {$station->name} against {$source->voucher_number} - {$reason}"];
         if ($found['paid_at_once']) {
@@ -701,8 +715,17 @@ class SaleService
             $this->tag($note->id, $station, $shiftId);
             $refund = isset($opts['refund_ledger_id']) ? ['pos_refund' => ['ledger_id' => $opts['refund_ledger_id'], 'amount' => (float) $note->total_amount, 'cash' => $this->shifts->isCashLedger((int) $opts['refund_ledger_id'])]] : [];
             $note->update(['meta' => array_merge($note->meta ?? [], $refund, ['pos_approval' => ['return' => $sup], 'pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]]), 'channel' => 'pos']);
+            // the sale's points, promo code use and gift voucher go back with it; a gift voucher's part is not handed back as cash
+            $undone = app(ReturnRewardsService::class)->reverse($note->fresh(), $source, $u, $opts['refund_ledger_id'] ?? null);
+            $cashBack = max(0.0, round((float) $note->total_amount - $undone['gift_base'], 2));
+            if ($refund && $undone['gift_base'] > 0) {
+                $note->refresh();
+                $meta = $note->meta;
+                $meta['pos_refund']['amount'] = $cashBack;
+                $note->update(['meta' => $meta]);
+            }
 
-            return $this->summary($note->fresh(), null, false) + ['refund' => (float) $note->total_amount, 'against' => $source->voucher_number, 'approved_by' => User::whereKey($sup)->value('name')];
+            return $this->summary($note->fresh(), null, false) + ['refund' => $cashBack, 'against' => $source->voucher_number, 'approved_by' => User::whereKey($sup)->value('name')];
         });
     }
 

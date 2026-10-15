@@ -165,11 +165,10 @@ function PinDialog({ onClose }) {
   );
 }
 
-/** Take items back against a sale or invoice. A supervisor's PIN completes it, however small. */
+/** Take a whole sale or invoice back. A supervisor's PIN completes it; the sale's points, promo code and gift voucher are undone with it. */
 function ReturnPanel({ ctx, cur, onDone }) {
   const [number, setNumber] = useState('');
   const [doc, setDoc] = useState(null);
-  const [qty, setQty] = useState({});
   const [reason, setReason] = useState('');
   const [ledger, setLedger] = useState('');
   const [ask, setAsk] = useState(false);
@@ -177,49 +176,55 @@ function ReturnPanel({ ctx, cur, onDone }) {
 
   const find = async () => {
     try {
-      const r = await posAPI.findReturn(number); setDoc(r); setQty({}); setLedger(r.refund?.default_id ?? r.refund?.ledgers?.[0]?.id ?? '');
-      if (r.lines.length === 0) toast('Nothing on that document can be taken back (it may be fully returned already).');
+      const r = await posAPI.findReturn(number); setDoc(r); setLedger(r.refund?.default_id ?? r.refund?.ledgers?.[0]?.id ?? '');
     } catch (e) { setDoc(null); toast.error(errMsg(e, 'Not found')); }
   };
-  const lines = doc ? doc.lines.filter((l) => Number(qty[l.id]) > 0).map((l) => ({ item_id: l.id, quantity: Number(qty[l.id]) })) : [];
-  const worth = doc ? doc.lines.reduce((a, l) => a + (l.available_quantity > 0 ? (Number(qty[l.id]) || 0) * (l.available_amount / l.available_quantity) : 0), 0) : 0;
-  const canTakeBack = !busy && lines.length > 0 && reason.trim().length >= 3;   // nothing to approve until there is something to take back and a reason for it
+  const canTakeBack = !busy && !!doc && !doc.blocked && reason.trim().length >= 3;   // nothing to approve until there is a reason for it
   const submit = async (approval) => {
     setBusy(true);
     try {
-      const r = await posAPI.makeReturn({ station_id: ctx.station.id, voucher_id: doc.source.id, lines, reason, refund_ledger_id: ledger || undefined, approval_token: approval.token });
+      const r = await posAPI.makeReturn({ station_id: ctx.station.id, voucher_id: doc.source.id, reason, refund_ledger_id: ledger || undefined, approval_token: approval.token });
       onDone(r);
     } catch (e) { toast.error(errMsg(e, 'The return did not post'), { duration: 9000 }); } finally { setBusy(false); setAsk(false); }
   };
+  const giftPaid = doc?.source?.gift_paid || 0;
 
   return (
     <section style={{ ...card, padding: 16, display: 'grid', gap: 10, maxWidth: 720 }}>
-      <strong>Return items</strong>
+      <strong>Return a sale</strong>
       <div style={{ display: 'flex', gap: 8 }}>
         <input style={field} value={number} onChange={(e) => setNumber(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && find()} placeholder="Receipt or invoice number (type it or scan the receipt)" aria-label="Receipt number" />
         <button type="button" style={btnPrimary} onClick={find} disabled={!number.trim()}>Find</button>
       </div>
       {doc && (
         <>
-          <div style={{ fontSize: '0.85rem', color: colors.textMuted }}>{doc.source.type} {doc.source.voucher_number} · {doc.source.date}{doc.source.party ? ` · ${doc.source.party}` : ''} · {money(doc.source.total, cur)}</div>
-          {doc.lines.map((l) => (
-            <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
-              <div><div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{l.description}</div><div style={{ fontSize: '0.75rem', color: colors.textMuted }}>sold {l.quantity} · can take back {l.available_quantity}</div></div>
-              <input style={{ ...field, width: 90, textAlign: 'center' }} inputMode="decimal" placeholder="0" value={qty[l.id] ?? ''} onChange={(e) => setQty((q) => ({ ...q, [l.id]: Math.min(Number(e.target.value) || 0, l.available_quantity) || '' }))} aria-label={`Quantity of ${l.description} to take back`} />
-            </div>
-          ))}
-          <input style={{ ...field, ...(reason.trim().length < 3 ? { borderColor: colors.warning } : {}) }} value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} placeholder="Why is it coming back? (required)" aria-label="Reason" />
-          {doc.paid_at_once && doc.refund?.ledgers?.length > 0 && (
-            <label style={{ fontSize: '0.8rem', color: colors.textMuted, display: 'grid', gap: 4 }}>Money goes back from
-              <select style={field} value={ledger} onChange={(e) => setLedger(Number(e.target.value))}>{doc.refund.ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
-            </label>
+          <div style={{ fontSize: '0.85rem', color: colors.textMuted }}>{doc.source.type} {doc.source.voucher_number} · {doc.source.date}{doc.source.party ? ` · ${doc.source.party}` : ''}{doc.source.customer ? ` · ${doc.source.customer}` : ''} · {money(doc.source.total, cur)}</div>
+          {doc.blocked ? (
+            <p role="alert" style={{ margin: 0, padding: 10, borderRadius: 8, background: 'rgba(239,68,68,0.08)', fontSize: '0.85rem' }}>{doc.blocked}</p>
+          ) : (
+            <>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Everything on this document comes back together.{doc.source.customer ? ' Their loyalty points, promo code and gift voucher on this sale are taken back too.' : ''}</p>
+              {doc.lines.map((l) => (
+                <div key={l.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center', paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{l.description}</div>
+                  <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{l.is_charge ? money(l.available_amount, cur) : `${l.available_quantity} x`}</div>
+                </div>
+              ))}
+              <input style={{ ...field, ...(reason.trim().length < 3 ? { borderColor: colors.warning } : {}) }} value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} placeholder="Why is it coming back? (required)" aria-label="Reason" />
+              {doc.paid_at_once && doc.refund?.ledgers?.length > 0 && (
+                <label style={{ fontSize: '0.8rem', color: colors.textMuted, display: 'grid', gap: 4 }}>Money goes back from
+                  <select style={field} value={ledger} onChange={(e) => setLedger(Number(e.target.value))}>{doc.refund.ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+                </label>
+              )}
+              {giftPaid > 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>{money(giftPaid, cur)} was paid with a gift voucher: it goes back on the voucher and is not paid out in cash.</p>}
+              {!doc.paid_at_once && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>This invoice is on account: the credit note lowers what the customer owes. No cash is paid out.</p>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontWeight: 800 }}>Total {money(doc.source.total, cur)}</span>
+                <button type="button" style={{ ...btnPrimary, opacity: canTakeBack ? 1 : 0.45, cursor: canTakeBack ? 'pointer' : 'not-allowed', boxShadow: canTakeBack ? btnPrimary.boxShadow : 'none' }} disabled={!canTakeBack} onClick={() => setAsk(true)}>{ctx.can.supervise && ctx.can.has_pin ? 'Take back: enter my PIN' : 'Take back: needs supervisor'}</button>
+              </div>
+              {!canTakeBack && <p role="status" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Write why it is coming back to continue.</p>}
+            </>
           )}
-          {!doc.paid_at_once && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>This invoice is on account: the credit note lowers what the customer owes. No cash is paid out.</p>}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 800 }}>About {money(worth, cur)} (the books work out the exact tax)</span>
-            <button type="button" style={{ ...btnPrimary, opacity: canTakeBack ? 1 : 0.45, cursor: canTakeBack ? 'pointer' : 'not-allowed', boxShadow: canTakeBack ? btnPrimary.boxShadow : 'none' }} disabled={!canTakeBack} onClick={() => setAsk(true)}>{ctx.can.supervise && ctx.can.has_pin ? 'Take back: enter my PIN' : 'Take back: needs supervisor'}</button>
-          </div>
-          {!canTakeBack && <p role="status" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>{lines.length === 0 ? 'Enter how many of each item are coming back.' : 'Write why it is coming back to continue.'}</p>}
         </>
       )}
       {ask && <ApproveDialog purpose="return" stationId={ctx.station.id} me={ctx.me} selfOk={!!(ctx.can.supervise && ctx.can.has_pin)} why="Every return needs a PIN." onCancel={() => setAsk(false)} onDone={submit} />}
