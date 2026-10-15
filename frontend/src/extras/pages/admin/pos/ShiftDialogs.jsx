@@ -8,7 +8,9 @@ import { printReport } from './printReceipt';
 const money = (n) => Number(n ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const field = { padding: '9px 11px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: '0.9rem', fontFamily: 'inherit', boxSizing: 'border-box', width: '100%' };
 /** Counted minus expected: more than expected is over, less is short. */
-const overShort = (d) => (Math.abs(d) < 0.005 ? 'balanced' : `${d > 0 ? 'over' : 'short'} ${money(Math.abs(d))}`);
+const overShort = (d) => (Math.abs(d) < 0.005
+  ? <span style={{ color: '#059669', fontWeight: 800 }}>balanced</span>
+  : <span style={{ color: d > 0 ? '#2563eb' : '#dc2626', fontWeight: 800 }}>{d > 0 ? 'OVER' : 'SHORT'} {money(Math.abs(d))}</span>);
 
 const overlay = { position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 };
 
@@ -89,11 +91,11 @@ export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, on
             <span>{m.name}<span style={{ color: colors.textMuted, fontSize: '0.75rem' }}> · expected {money(m.expected)}</span></span>
             {open
               ? <input style={{ ...field, width: 120, textAlign: 'right' }} inputMode="decimal" placeholder={m.kind === 'cash' ? 'Count' : 'Optional'} value={counts[m.id] ?? ''} onChange={(e) => setCounts((c) => ({ ...c, [m.id]: e.target.value }))} aria-label={`Counted ${m.name}`} />
-              : <span>{m.counted != null ? `${money(m.counted)} · ${overShort(m.difference)}` : '-'}</span>}
+              : <span>{m.counted != null ? <>{money(m.counted)} · {overShort(m.difference)}</> : '-'}</span>}
           </div>
         ))}
         {line('Expected cash in the drawer', money(rep.expected_cash), true)}
-        {!open && cashRow && line('Cash drawer', overShort(cashRow.difference), true)}
+        {!open && cashRow && line(`Cash counted ${money(cashRow.counted)} - expected ${money(cashRow.expected)}`, overShort(cashRow.difference), true)}
         {!open && rep.methods.some((m) => m.kind !== 'cash' && m.counted != null) && line('All counted methods together', overShort(rep.variance), true)}
         {open && <input style={field} value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder="Note (needed if the count is not exact)" aria-label="Note" />}
         {!open && rep.shift.note && <div style={{ color: colors.textMuted }}>Note: {rep.shift.note}</div>}
