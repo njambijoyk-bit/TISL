@@ -4,6 +4,7 @@ import { Minus, Plus, Trash2, Pause, Play, X, Search, ScanLine, Lock, LifeBuoy }
 import { Link } from 'react-router-dom';
 import posAPI from '../../../../_shared/api/pos';
 import { PAPER, printReceipt } from './printReceipt';
+import useViewport from './useViewport';
 import { OpenShiftDialog, ShiftDialog, ShiftList } from './ShiftDialogs';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
@@ -29,7 +30,7 @@ function PayDialog({ total, methods, cur, busy, mode, customer, onCancel, onPay 
         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{money(total, cur)}</div>
         {later && <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? 'The rest goes on their account. Take a part payment now if they are paying some.' : 'Take a deposit now if they are leaving one. Leave it blank for none.'}</div>}
         {rows.map((r, i) => (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr auto', gap: 8, alignItems: 'start' }}>
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'start' }}>
             <select style={field} value={r.payment_method_id} onChange={(e) => set(i, { payment_method_id: Number(e.target.value) })} aria-label="Way of paying">
               {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
             </select>
@@ -177,7 +178,7 @@ function ReturnPanel({ ctx, cur, onDone }) {
 /** The till fills the whole page: no admin menu around it. */
 function Shell({ children }) {
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)', padding: 16, boxSizing: 'border-box' }}>
+    <main style={{ minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)', padding: 'clamp(8px, 2vw, 16px)', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Link to="/admin" style={{ fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none' }}>← Back to admin</Link>
       </div>
@@ -206,6 +207,7 @@ export default function PosTill() {
   const [paper, setPaper] = useState('');
   const [auto, setAuto] = useState(() => { try { return localStorage.getItem('pos.autoprint') === '1'; } catch { return false; } });
   const [mine, setMine] = useState(null);
+  const { narrow, tiny } = useViewport();
   const [locked, setLocked] = useState(true);   // the touch-to-start screen
   const [helpList, setHelpList] = useState(null);   // open requests from self-checkout screens
   const [helpDlg, setHelpDlg] = useState(false);
@@ -404,7 +406,7 @@ export default function PosTill() {
 
   return (
     <Shell>
-      <div style={{ textAlign: 'right', marginBottom: 6, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+      <div style={{ marginBottom: 6, display: 'flex', gap: 8, justifyContent: narrow ? 'flex-start' : 'flex-end', flexWrap: 'wrap' }}>
         {ctx.shift_ready && (ctx.shift
           ? <button type="button" style={btnGhost} onClick={() => setShiftUi({ id: ctx.shift.id })}>Shift open since {String(ctx.shift.opened_at).slice(11, 16)} — report / close</button>
           : <button type="button" style={btnPrimary} onClick={() => setShiftUi('open')}>Open shift</button>)}
@@ -414,13 +416,13 @@ export default function PosTill() {
         <button type="button" style={btnGhost} disabled={cart.length > 0} title={cart.length ? 'Finish or hold the sale first' : 'Lock the screen'} onClick={() => setLocked(true)}><Lock size={14} /> Lock</button>
         {ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setPinOpen(true)}>{ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'}</button>}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: 16, alignItems: 'start', paddingBottom: narrow && cart.length ? 84 : 0 }}>
         <section style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Search size={16} />
             <input ref={search} style={field} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan a barcode or search by name or code" aria-label="Search items" />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8, maxHeight: '68vh', overflowY: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${tiny ? 130 : 150}px, 1fr))`, gap: 8, maxHeight: narrow ? '48vh' : '68vh', overflowY: 'auto' }}>
             {found.map((it) => (
               <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ ...card, padding: 10, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 4, ...(it.price > 0 ? {} : { border: '2px solid #dc2626' }) }}>
                 <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{it.name}</span>
@@ -497,6 +499,12 @@ export default function PosTill() {
         </section>
       </div>
 
+      {narrow && cart.length > 0 && !paying && (
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 40, display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface-card, #fff)', borderTop: '1.5px solid var(--line)', boxShadow: '0 -6px 20px rgba(0,0,0,0.12)' }}>
+          <span style={{ fontWeight: 800 }}>{cart.reduce((a, c) => a + c.quantity, 0)} items · {money(total, cur)}</span>
+          <button type="button" style={btnPrimary} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift || unpriced.length > 0} onClick={() => setPaying(true)}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]}</button>
+        </div>
+      )}
       {paying && <PayDialog total={total} methods={ctx.methods} cur={cur} busy={busy} mode={mode} customer={customer} onCancel={() => setPaying(false)} onPay={pay} />}
 
       {holds && (

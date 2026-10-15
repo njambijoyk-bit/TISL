@@ -8,13 +8,14 @@ import posSelfAPI from '../../../_shared/api/posSelf';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { printReceipt } from '../admin/pos/printReceipt';
+import useViewport from '../admin/pos/useViewport';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const POLL_MS = 2500;
 const GIVE_UP = 60;
 const DONE_SECONDS = 25;
 const WARN_SECONDS = 10;
-const huge = (bg = 'var(--color-primary-500)', fg = 'var(--text-inverse, #fff)') => ({ padding: '20px 28px', borderRadius: 18, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 900, fontSize: '1.4rem', background: bg, color: fg, touchAction: 'manipulation' });
+const huge = (bg = 'var(--color-primary-500)', fg = 'var(--text-inverse, #fff)') => ({ padding: 'clamp(12px, 2.6vw, 20px) clamp(16px, 3.6vw, 28px)', minHeight: 48, borderRadius: 18, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 900, fontSize: 'clamp(1.05rem, 2.6vw, 1.4rem)', background: bg, color: fg, touchAction: 'manipulation' });
 
 /** The self-checkout screen: scan or pick, pay by M-Pesa on the phone, or take the basket to a cashier. Cash sales only. It starts again by itself when nobody touches it. */
 export default function PosSelfPage() {
@@ -36,6 +37,7 @@ export default function PosSelfPage() {
   const [helpMsg, setHelpMsg] = useState(null);
   const [helped, setHelped] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
+  const { narrow, tiny } = useViewport();
   const [added, setAdded] = useState(null);
   const { setTheme } = useThemeStore();
   const { mode, setMode } = useTheme();   // the colours come from the appearance provider: it sets the theme variables and data-theme
@@ -173,22 +175,22 @@ export default function PosSelfPage() {
   ) : null;
   const themeBtn = (
     <button type="button" onClick={toggleTheme} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'}
-      style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 14px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '1rem' }}>{dark ? <Sun size={20} /> : <Moon size={20} />}{dark ? 'Light' : 'Dark'}</button>
+      style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 14px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '1rem' }}>{dark ? <Sun size={20} /> : <Moon size={20} />}{tiny ? null : (dark ? 'Light' : 'Dark')}</button>
   );
   const shell = (children) => (
     <main onPointerDown={touch} style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary, #f9fafb)', color: 'var(--text-primary)' }} data-testid="self-checkout" data-step={step}>
       <Helmet><title>{cfg.business}</title></Helmet>
       {['shop', 'review', 'pay'].includes(step) && (
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '12px 20px', background: 'var(--surface-card, #fff)', borderBottom: '2px solid var(--line)' }}>
-          <strong style={{ fontSize: '1.3rem' }}>{cfg.business}</strong>
-          <ol aria-label="Steps" style={{ display: 'flex', gap: 8, listStyle: 'none', margin: 0, padding: 0, fontWeight: 800 }}>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: tiny ? '8px 12px' : '12px 20px', background: 'var(--surface-card, #fff)', borderBottom: '2px solid var(--line)', position: 'sticky', top: 0, zIndex: 20 }}>
+          <strong style={{ fontSize: tiny ? '1.05rem' : '1.3rem' }}>{cfg.business}</strong>
+          <ol aria-label="Steps" style={{ display: 'flex', gap: tiny ? 4 : 8, listStyle: 'none', margin: 0, padding: 0, fontWeight: 800, order: tiny ? 3 : 0, width: tiny ? '100%' : 'auto', justifyContent: 'center', fontSize: tiny ? '0.85rem' : '1rem' }}>
             {[['shop', '1  Scan'], ['review', '2  Check'], ['pay', '3  Pay']].map(([k, l]) => (
-              <li key={k} aria-current={step === k ? 'step' : undefined} style={{ padding: '6px 14px', borderRadius: 999, background: step === k ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', color: step === k ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)' }}>{l}</li>
+              <li key={k} aria-current={step === k ? 'step' : undefined} style={{ padding: tiny ? '6px 10px' : '6px 14px', flex: tiny ? 1 : 'none', textAlign: 'center', borderRadius: 999, background: step === k ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', color: step === k ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)' }}>{l}</li>
             ))}
           </ol>
           <span style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={askHelp} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><LifeBuoy size={18} /> Help</button>
-            <button type="button" onClick={startOver} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><RotateCcw size={18} /> Start over</button>
+            <button type="button" onClick={askHelp} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><LifeBuoy size={18} />{tiny ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Help</span> : ' Help'}</button>
+            <button type="button" onClick={startOver} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><RotateCcw size={18} />{tiny ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Start over</span> : ' Start over'}</button>
             {themeBtn}
           </span>
         </header>
@@ -271,15 +273,15 @@ export default function PosSelfPage() {
 
   if (step === 'review' || step === 'pay') {
     return shell(
-      <div style={{ flex: 1, display: 'grid', gap: 16, padding: 24, alignContent: 'start', maxWidth: 760, width: '100%', margin: '0 auto' }}>
+      <div style={{ flex: 1, display: 'grid', gap: 16, padding: tiny ? 14 : 24, alignContent: 'start', maxWidth: 760, width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
         <h1 style={{ margin: 0 }}>Your basket</h1>
         {helpBanner}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.1rem' }}>{problem}</p>}
         {(quote?.lines ?? []).map((l, i) => {
           const b = basket[i];
           return (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, fontSize: '1.2rem', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
-              <span style={{ flex: 1 }}>{l.description}</span>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: tiny ? '1.05rem' : '1.2rem', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+              <span style={{ flex: '1 1 180px', minWidth: 0, overflowWrap: 'anywhere' }}>{l.description}</span>
               {step === 'review' && b && (
                 <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <button type="button" aria-label={`Less ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 12px' }} onClick={() => bump(b.variant_id, -1)}><Minus size={18} /></button>
@@ -317,13 +319,13 @@ export default function PosSelfPage() {
   }
 
   return shell(
-    <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, padding: 20, alignItems: 'start' }}>
+    <div style={{ flex: 1, display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, padding: tiny ? 12 : 20, alignItems: 'start', width: '100%', maxWidth: 1700, margin: '0 auto', boxSizing: 'border-box', paddingBottom: narrow && basket.length ? 96 : undefined }}>
       <section style={{ display: 'grid', gap: 12 }}>
         {helpBanner}
-        <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan an item, or type its name" aria-label="Scan or search" style={{ padding: 18, fontSize: '1.4rem', borderRadius: 14, border: '2px solid var(--line)' }} />
+        <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan an item, or type its name" aria-label="Scan or search" style={{ padding: tiny ? 14 : 18, fontSize: tiny ? '1.1rem' : '1.4rem', width: '100%', boxSizing: 'border-box', borderRadius: 14, border: '2px solid var(--line)' }} />
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.1rem', fontWeight: 700 }}>{problem}</p>}
         {added && !problem && <p role="status" style={{ margin: 0, color: 'var(--color-primary-700)', fontSize: '1.1rem', fontWeight: 700 }}>✔ {added} added to your basket</p>}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(auto-fill, minmax(${tiny ? 140 : 180}px, 1fr))`, gap: 10 }}>
           {found.map((it) => (
             <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ padding: 14, borderRadius: 14, border: '2px solid var(--line)', background: 'var(--surface-card, #fff)', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', display: 'grid', gap: 4 }}>
               <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>{it.name}</span>
@@ -333,10 +335,10 @@ export default function PosSelfPage() {
           ))}
         </div>
       </section>
-      <aside style={{ display: 'grid', gap: 10, background: 'var(--surface-card, #fff)', borderRadius: 16, padding: 16 }}>
+      <aside style={{ display: 'grid', gap: 10, background: 'var(--surface-card, #fff)', borderRadius: 16, padding: 16, ...(narrow ? {} : { position: 'sticky', top: 84, maxHeight: 'calc(100vh - 104px)', overflowY: 'auto' }) }}>
         <strong style={{ fontSize: '1.3rem' }}>Basket ({count})</strong>
         {basket.map((b) => (
-          <div key={b.variant_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, alignItems: 'center' }}>
+          <div key={b.variant_id} style={{ display: 'grid', gridTemplateColumns: tiny ? '1fr' : '1fr auto', gap: 8, alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid var(--line)' }}>
             <span style={{ fontSize: '1.05rem' }}>{b.name}</span>
             <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <button type="button" aria-label={`Less ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 14px' }} onClick={() => bump(b.variant_id, -1)}><Minus size={18} /></button>
@@ -350,6 +352,12 @@ export default function PosSelfPage() {
         {totals}
         <button type="button" style={huge('var(--color-primary-500)')} disabled={basket.length === 0} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
       </aside>
+      {narrow && basket.length > 0 && (
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface-card, #fff)', borderTop: '2px solid var(--line)', boxShadow: '0 -6px 20px rgba(0,0,0,0.12)' }}>
+          <span style={{ fontWeight: 900, fontSize: '1.15rem' }}>{count} item{count === 1 ? '' : 's'}{quote ? ` · ${money(quote.total)}` : ''}</span>
+          <button type="button" style={{ ...huge('var(--color-primary-500)'), padding: '12px 20px' }} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
+        </div>
+      )}
       {help && (
         <div role="dialog" aria-label="Help" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', display: 'grid', placeItems: 'center', zIndex: 80 }}>
           <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 20, padding: 28, display: 'grid', gap: 14, maxWidth: 420, textAlign: 'center' }}>
