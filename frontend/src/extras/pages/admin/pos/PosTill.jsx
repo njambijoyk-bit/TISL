@@ -42,7 +42,7 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, ca
   return (
     <div role="dialog" aria-label="Payment" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
       <div style={{ ...card, padding: 20, width: 'min(480px, 100%)', display: 'grid', gap: 12, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
-        <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? `Invoice for ${customer?.name}` : mode === 'order' ? `Sales order for ${customer?.name}` : 'Amount due'}</div>
+        <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? `Invoice for ${customer?.name}` : 'Amount due'}</div>
         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{money(total, cur)}</div>
         {canRound && (rounding !== 'none' || Math.abs(total * 2 - Math.round(total * 2)) > 0.004) && (
           <div style={{ display: 'grid', gap: 4 }}>
@@ -54,7 +54,7 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, ca
             </div>
           </div>
         )}
-        {later && <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? 'The rest goes on their account. Take a part payment now if they are paying some.' : 'Take a deposit now if they are leaving one. Leave it blank for none.'}</div>}
+        {later && <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>The rest goes on their account. Take a part payment now if they are paying some.</div>}
         {rows.map((r, i) => (r.gift ? (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'center', padding: 8, borderRadius: 8, background: colors.tint(0.07) }}>
             <span style={{ fontSize: '0.85rem' }}><strong>Gift voucher {r.code}</strong>{r.balance != null && <span style={{ color: colors.textMuted }}> · balance {money(r.balance, cur)}</span>}</span>
@@ -92,7 +92,7 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, ca
           {[50, 100, 500, 1000].map((n) => <button key={n} type="button" style={btnGhost} onClick={() => first >= 0 && set(first, { amount: String((Number(rows[first].amount) || 0) + n) })}>+{n}</button>)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-          <span>{later ? (mode === 'invoice' ? 'Left on account' : 'Balance of the order') : (change >= 0 ? 'Change due' : 'Still to pay')}</span>
+          <span>{later ? 'Left on account' : (change >= 0 ? 'Change due' : 'Still to pay')}</span>
           <span style={{ color: later || change >= 0 ? colors.primary : colors.danger }}>{money(later ? Math.max(0, total - handed) : Math.abs(change), cur)}</span>
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
@@ -624,7 +624,7 @@ export default function PosTill() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" style={btnGhost} disabled={!cart.length} onClick={hold}><Pause size={14} /> Hold</button>
             <button type="button" style={heldCount.customers > 0 ? { ...btnPrimary, background: '#dc2626' } : btnGhost} onClick={openHolds}><Play size={14} /> Recall{heldCount.total > 0 ? ` (${heldCount.total})` : ''}{heldCount.customers > 0 ? ` · ${heldCount.customers} from customers` : ''}</button>
-            <button type="button" style={{ ...btnPrimary, flex: 1 }} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift || unpriced.length > 0} onClick={() => setPaying(true)}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]} {money(total, cur)}</button>
+            <button type="button" style={{ ...btnPrimary, flex: 1 }} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift || unpriced.length > 0} onClick={() => (mode === 'order' ? pay([]) : setPaying(true))}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]} {money(total, cur)}</button>
           </div>
         </section>
       </div>
@@ -632,7 +632,7 @@ export default function PosTill() {
       {narrow && cart.length > 0 && !paying && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 40, display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface-card, #fff)', borderTop: '1.5px solid var(--line)', boxShadow: '0 -6px 20px rgba(0,0,0,0.12)' }}>
           <span style={{ fontWeight: 800 }}>{cart.reduce((a, c) => a + c.quantity, 0)} items · {money(total, cur)}</span>
-          <button type="button" style={btnPrimary} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift || unpriced.length > 0} onClick={() => setPaying(true)}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]}</button>
+          <button type="button" style={btnPrimary} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift || unpriced.length > 0} onClick={() => (mode === 'order' ? pay([]) : setPaying(true))}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]}</button>
         </div>
       )}
       {paying && <PayDialog total={total} methods={ctx.methods} cur={cur} busy={busy} mode={mode} customer={customer} giftMethodId={ctx.gift_method_id} canRound={!!ctx.rounding} rounding={rounding} onRound={setRounding} onCancel={() => { setPaying(false); setRounding('none'); }} onPay={pay} />}

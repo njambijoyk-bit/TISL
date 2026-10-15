@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\Schema;
  */
 class SaleService
 {
-    /** What the till can make: a cash sale, an invoice on the customer's account, a sales order (with or without a deposit). */
+    /** What the till can make: a cash sale, an invoice on the customer's account, a sales order (no money: it is paid when it is invoiced). */
     public const MODES = ['cash' => ['base' => VoucherType::CASH_SALE, 'perm' => 'pos.sell'], 'invoice' => ['base' => VoucherType::SALES, 'perm' => 'pos.invoice'], 'order' => ['base' => VoucherType::SALES_ORDER, 'perm' => 'pos.order']];
 
     public function __construct(private VoucherService $vouchers, private TenderCheck $tenders, private StationService $stations, private PinService $pins, private ShiftService $shifts)
@@ -462,7 +462,7 @@ class SaleService
      * Post what the basket comes to. $in: key, mode (cash | invoice | order), items, station_id?, customer_id?, tenders?
      *   cash     paid in full at the till (tenders needed); a Cash Sale
      *   invoice  put on the customer's account within their credit limit (tenders, if any, are a part payment made now)
-     *   order    a Sales Order for the customer (tenders, if any, are a deposit, kept as the customer's advance and used when the order is invoiced)
+     *   order    a Sales Order for the customer (no money is taken at the till: it is paid when it is invoiced)
      *
      * @return array<string, mixed>
      */
@@ -486,7 +486,7 @@ class SaleService
         [$data, $pre, $needsApproval] = $this->priced($u, $station, $in);
         $total = (float) $pre['total'];
         $paid = null;
-        $now = null;   // money taken now on an invoice or an order
+        $now = null;   // money taken now on an invoice (a part payment)
         if ($mode === 'cash') {
             $paid = $this->tenders->check((array) ($in['tenders'] ?? []), $total);
             $this->assertGiftOwners($paid['tenders'], $customer);
@@ -497,6 +497,9 @@ class SaleService
                 $data['due_date'] = today()->addDays((int) ($customer->credit_terms_days ?: 30))->toDateString();
             }
             $given = array_values(array_filter((array) ($in['tenders'] ?? []), fn ($t) => (float) ($t['amount'] ?? 0) > 0));
+            if ($given && $mode === 'order') {
+                throw new BooksException('A sales order takes no money at the till. The customer pays when it is invoiced.');
+            }
             if ($given) {
                 $now = $this->tenders->check($given, round(array_sum(array_map(fn ($t) => (float) $t['amount'], $given)), 2));   // exact: no change on a part payment
                 if ($now['tendered'] - $total > 0.004 && $mode === 'invoice') {
@@ -516,8 +519,6 @@ class SaleService
                 if ($now && $mode === 'invoice') {
                     $rc = $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till - {$v->voucher_number}"], $u);
                     $this->tag($rc->id, $station, $shiftId);
-                } elseif ($now && $mode === 'order') {
-                    $this->deposit($v, $customer, $now, $station, $u, $shiftId);
                 }
                 DB::table('pos_sale_keys')->where('user_id', $u->id)->where('sale_key', $key)->update(['voucher_id' => $v->id, 'updated_at' => now()]);
                 if ($needsApproval) {   // the supervisor's approval is spent with the sale it allowed
@@ -556,17 +557,6 @@ class SaleService
             $room = max(0.0, round($limitBase - $owed, 2));
             throw new BooksException("This would take {$customer->full_name} over their credit limit (room left: ".number_format($room, 2).'). Take part payment, or ask a manager.');
         }
-    }
-
-    /** A deposit on an order is a receipt kept as the customer's advance, tied to the order by its number. */
-    private function deposit(Voucher $order, Customer $customer, array $paid, Station $station, User $u, ?int $shiftId): void
-    {
-        $type = VoucherType::byBase(VoucherType::RECEIPT) ?? throw new BooksException('The Receipt voucher type is switched off.');
-        $receipt = $this->vouchers->create(['voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => $order->location_id, 'customer_id' => $customer->id, 'currency_id' => $order->currency_id,
-            'tenders' => $paid['tenders'], 'amount' => $paid['tendered'], 'is_advance' => true, 'advance_for' => "Deposit for {$order->voucher_number}", 'source_voucher_id' => $order->id, 'channel' => 'pos',
-            'narration' => "Deposit for {$order->voucher_number}"], $u);
-        $this->tag($receipt->id, $station, $shiftId);
-        $this->addMeta($order, ['pos_deposit' => ['receipt_id' => $receipt->id, 'receipt' => $receipt->voucher_number, 'amount' => $paid['tendered']]]);
     }
 
     /** A customer as the till shows them once found by phone: name, points, and (for an invoice) what they may still owe. @return array<string, mixed> */
