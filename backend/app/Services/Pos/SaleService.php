@@ -61,7 +61,7 @@ class SaleService
             $station = Station::find($sh->station_id) ?? $station;
         }
 
-        return ['business' => \App\Models\CompanyProfile::current()->name ?: config('app.name'), 'shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
+        return ['me' => ['id' => $u->id, 'name' => $u->name], 'business' => \App\Models\CompanyProfile::current()->name ?: config('app.name'), 'shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
             'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
             'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'reprint' => $access->allows($u, 'pos.reprint'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];

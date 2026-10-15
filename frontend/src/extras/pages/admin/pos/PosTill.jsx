@@ -64,32 +64,46 @@ function PayDialog({ total, methods, cur, busy, mode, customer, onCancel, onPay 
 
 
 /** A supervisor approves: name and their own PIN. The approval is for one thing, lasts five minutes and is used once. */
-function ApproveDialog({ purpose, stationId, why, onDone, onCancel }) {
+function ApproveDialog({ purpose, stationId, why, me, selfOk, onDone, onCancel }) {
+  const [mode, setMode] = useState(selfOk ? 'self' : 'other');   // a supervisor at the till approves with their own PIN; anyone can ask another supervisor
   const [list, setList] = useState(null);
   const [who, setWho] = useState('');
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
-  useEffect(() => { posAPI.supervisors(stationId).then((r) => { setList(r.supervisors); setWho(r.supervisors[0]?.id ?? ''); }).catch((e) => { toast.error(errMsg(e, 'Could not load supervisors')); onCancel(); }); }, [stationId, onCancel]);
+  useEffect(() => {
+    if (mode !== 'other') return;
+    posAPI.supervisors(stationId).then((r) => { setList(r.supervisors); setWho(r.supervisors[0]?.id ?? ''); }).catch((e) => { toast.error(errMsg(e, 'Could not load supervisors')); onCancel(); });
+  }, [mode, stationId, onCancel]);
   const go = async () => {
     setBusy(true);
-    try { const r = await posAPI.approve({ supervisor_id: Number(who), pin, purpose, station_id: stationId }); onDone(r); } catch (e) { toast.error(errMsg(e, 'Not approved')); setPin(''); } finally { setBusy(false); }
+    try { const r = await posAPI.approve({ supervisor_id: mode === 'self' ? me.id : Number(who), pin, purpose, station_id: stationId }); onDone(r); } catch (e) { toast.error(errMsg(e, 'Not approved')); setPin(''); } finally { setBusy(false); }
   };
+  const pinBox = (placeholder) => <input style={field} type="password" inputMode="numeric" autoComplete="off" autoFocus maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => e.key === 'Enter' && pin.length === 6 && go()} placeholder={placeholder} aria-label="PIN" />;
+  const ready = mode === 'self' ? pin.length === 6 : pin.length === 6 && !!who;
 
   return (
-    <div role="dialog" aria-label="Supervisor approval" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', padding: 16 }}>
+    <div role="dialog" aria-label="Approval" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', padding: 16 }}>
       <div style={{ ...card, padding: 20, width: 'min(380px, 100%)', display: 'grid', gap: 10 }}>
-        <strong>Supervisor approval</strong>
+        <strong>{mode === 'self' ? 'Enter your PIN' : 'Supervisor approval'}</strong>
         <div style={{ fontSize: '0.82rem', color: colors.textMuted }}>{why}</div>
-        {list && list.length === 0 && <p style={{ margin: 0, color: colors.danger, fontSize: '0.85rem' }}>No supervisor with a PIN is set up for this branch. A supervisor sets theirs from the till (My PIN).</p>}
-        {list && list.length > 0 && (
+        {mode === 'self' && (
+          <>
+            <div style={{ fontSize: '0.85rem' }}>Approving as <strong>{me?.name}</strong></div>
+            {pinBox('Your 6-digit PIN')}
+            <button type="button" style={{ ...btnGhost, justifySelf: 'start', padding: '4px 10px', fontSize: '0.76rem' }} onClick={() => { setMode('other'); setPin(''); }}>Ask another supervisor instead</button>
+          </>
+        )}
+        {mode === 'other' && list && list.length === 0 && <p style={{ margin: 0, color: colors.danger, fontSize: '0.85rem' }}>No other supervisor with a PIN is set up for this branch. A supervisor sets theirs from the till (My PIN).</p>}
+        {mode === 'other' && list && list.length > 0 && (
           <>
             <select style={field} value={who} onChange={(e) => setWho(e.target.value)} aria-label="Supervisor">{list.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>
-            <input style={field} type="password" inputMode="numeric" autoComplete="off" maxLength={6} value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => e.key === 'Enter' && pin.length === 6 && go()} placeholder="Their 6-digit PIN" aria-label="PIN" />
+            {pinBox('Their 6-digit PIN')}
+            {selfOk && <button type="button" style={{ ...btnGhost, justifySelf: 'start', padding: '4px 10px', fontSize: '0.76rem' }} onClick={() => { setMode('self'); setPin(''); }}>Use my own PIN instead</button>}
           </>
         )}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button type="button" style={btnGhost} onClick={onCancel}>Cancel</button>
-          <button type="button" style={btnPrimary} disabled={busy || pin.length !== 6 || !who} onClick={go}>{busy ? 'Checking…' : 'Approve'}</button>
+          <button type="button" style={{ ...btnPrimary, opacity: busy || !ready ? 0.5 : 1, cursor: busy || !ready ? 'not-allowed' : 'pointer' }} disabled={busy || !ready} onClick={go}>{busy ? 'Checking...' : 'Approve'}</button>
         </div>
       </div>
     </div>
@@ -137,6 +151,7 @@ function ReturnPanel({ ctx, cur, onDone }) {
   };
   const lines = doc ? doc.lines.filter((l) => Number(qty[l.id]) > 0).map((l) => ({ item_id: l.id, quantity: Number(qty[l.id]) })) : [];
   const worth = doc ? doc.lines.reduce((a, l) => a + (l.available_quantity > 0 ? (Number(qty[l.id]) || 0) * (l.available_amount / l.available_quantity) : 0), 0) : 0;
+  const canTakeBack = !busy && lines.length > 0 && reason.trim().length >= 3;   // nothing to approve until there is something to take back and a reason for it
   const submit = async (approval) => {
     setBusy(true);
     try {
@@ -161,7 +176,7 @@ function ReturnPanel({ ctx, cur, onDone }) {
               <input style={{ ...field, width: 90, textAlign: 'center' }} inputMode="decimal" placeholder="0" value={qty[l.id] ?? ''} onChange={(e) => setQty((q) => ({ ...q, [l.id]: Math.min(Number(e.target.value) || 0, l.available_quantity) || '' }))} aria-label={`Quantity of ${l.description} to take back`} />
             </div>
           ))}
-          <input style={field} value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} placeholder="Why is it coming back?" aria-label="Reason" />
+          <input style={{ ...field, ...(reason.trim().length < 3 ? { borderColor: colors.warning } : {}) }} value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} placeholder="Why is it coming back? (required)" aria-label="Reason" />
           {doc.paid_at_once && doc.refund?.ledgers?.length > 0 && (
             <label style={{ fontSize: '0.8rem', color: colors.textMuted, display: 'grid', gap: 4 }}>Money goes back from
               <select style={field} value={ledger} onChange={(e) => setLedger(Number(e.target.value))}>{doc.refund.ledgers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
@@ -170,11 +185,12 @@ function ReturnPanel({ ctx, cur, onDone }) {
           {!doc.paid_at_once && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>This invoice is on account: the credit note lowers what the customer owes. No cash is paid out.</p>}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span style={{ fontWeight: 800 }}>About {money(worth, cur)} (the books work out the exact tax)</span>
-            <button type="button" style={btnPrimary} disabled={busy || lines.length === 0 || !reason.trim()} onClick={() => setAsk(true)}>Take back - needs supervisor</button>
+            <button type="button" style={{ ...btnPrimary, opacity: canTakeBack ? 1 : 0.45, cursor: canTakeBack ? 'pointer' : 'not-allowed', boxShadow: canTakeBack ? btnPrimary.boxShadow : 'none' }} disabled={!canTakeBack} onClick={() => setAsk(true)}>{ctx.can.supervise && ctx.can.has_pin ? 'Take back: enter my PIN' : 'Take back: needs supervisor'}</button>
           </div>
+          {!canTakeBack && <p role="status" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>{lines.length === 0 ? 'Enter how many of each item are coming back.' : 'Write why it is coming back to continue.'}</p>}
         </>
       )}
-      {ask && <ApproveDialog purpose="return" stationId={ctx.station.id} why="Every return needs a supervisor's PIN." onCancel={() => setAsk(false)} onDone={submit} />}
+      {ask && <ApproveDialog purpose="return" stationId={ctx.station.id} me={ctx.me} selfOk={!!(ctx.can.supervise && ctx.can.has_pin)} why="Every return needs a PIN." onCancel={() => setAsk(false)} onDone={submit} />}
     </section>
   );
 }
@@ -359,7 +375,7 @@ export default function PosTill() {
 
   const extraDialogs = (
     <>
-      {ask && <ApproveDialog purpose={ask.purpose} stationId={ctx.station.id} why={ask.why} onCancel={() => setAsk(null)} onDone={(a) => { const f = ask.then; setAsk(null); f(a); }} />}
+      {ask && <ApproveDialog purpose={ask.purpose} stationId={ctx.station.id} me={ctx.me} selfOk={!!(ctx.can.supervise && ctx.can.has_pin)} why={ask.why} onCancel={() => setAsk(null)} onDone={(a) => { const f = ask.then; setAsk(null); f(a); }} />}
       {shiftUi === 'open' && <OpenShiftDialog stationId={ctx.station.id} stationName={ctx.station.name} onCancel={() => setShiftUi(null)} onDone={() => { setShiftUi(null); loadCtx(ctx.station.id); }} />}
       {shiftUi === 'list' && <ShiftList onClose={() => setShiftUi(null)} onPick={(id) => setShiftUi({ id })} />}
       {shiftUi?.id && <ShiftDialog shiftId={shiftUi.id} paper={ctx.station.paper} onClose={() => setShiftUi(null)} onClosed={() => loadCtx(ctx.station.id)} />}

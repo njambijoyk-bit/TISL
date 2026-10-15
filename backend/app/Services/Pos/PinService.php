@@ -74,14 +74,12 @@ class PinService
         if (! in_array($purpose, self::PURPOSES, true)) {
             throw new BooksException('Unknown kind of approval.');
         }
-        if ($supervisorId === $cashier->id) {
-            throw new BooksException('You can not approve your own work: ask another supervisor.');
-        }
+        // A supervisor who is working the till may approve with their own PIN (they hold pos.supervise and have set a PIN: verify() checks both). It is logged as a self approval.
         $sup = $this->verify($supervisorId, $pin, $station, $purpose, $cashier->id);
         DB::table('pos_pins')->where('user_id', $supervisorId)->update(['failed_count' => 0, 'locked_until' => null]);
         $token = Str::random(40);
         Cache::put($this->cacheKey($token), ['supervisor' => $supervisorId, 'cashier' => $cashier->id, 'station' => $station->id, 'purpose' => $purpose], now()->addMinutes(self::TTL_MINUTES));
-        AccessLog::record($cashier->id, $supervisorId, 'pos_approval_given', ['station' => $station->id, 'purpose' => $purpose] + $about);
+        AccessLog::record($cashier->id, $supervisorId, 'pos_approval_given', ['station' => $station->id, 'purpose' => $purpose] + ($supervisorId === $cashier->id ? ['self' => true] : []) + $about);
 
         return ['token' => $token, 'supervisor' => ['id' => $sup->id, 'name' => $sup->name], 'expires_in' => self::TTL_MINUTES * 60];
     }
