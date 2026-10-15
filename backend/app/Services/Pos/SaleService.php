@@ -32,7 +32,7 @@ class SaleService
     /** What the till can make: a cash sale, an invoice on the customer's account, a sales order (with or without a deposit). */
     public const MODES = ['cash' => ['base' => VoucherType::CASH_SALE, 'perm' => 'pos.sell'], 'invoice' => ['base' => VoucherType::SALES, 'perm' => 'pos.invoice'], 'order' => ['base' => VoucherType::SALES_ORDER, 'perm' => 'pos.order']];
 
-    public function __construct(private VoucherService $vouchers, private TenderCheck $tenders, private StationService $stations, private PinService $pins)
+    public function __construct(private VoucherService $vouchers, private TenderCheck $tenders, private StationService $stations, private PinService $pins, private ShiftService $shifts)
     {
     }
 
@@ -54,7 +54,13 @@ class SaleService
         $cur = Currency::getBaseCurrency();
         $access = app(Authorizer::class);
 
-        return ['stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
+        $sh = $this->shifts->current($u);
+        $shift = $sh ? ['id' => (int) $sh->id, 'opened_at' => $sh->opened_at, 'opening_float' => (float) $sh->opening_float, 'station_id' => (int) $sh->station_id] : null;
+        if ($sh) {
+            $station = Station::find($sh->station_id) ?? $station;
+        }
+
+        return ['shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
             'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
             'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'reprint' => $access->allows($u, 'pos.reprint'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];
@@ -176,6 +182,10 @@ class SaleService
 
     private function station(User $u, ?int $stationId): Station
     {
+        if ($sh = $this->shifts->current($u)) {   // a shift belongs to one station: that is where the cashier sells until it is closed
+            return Station::find($sh->station_id) ?? throw new BooksException('The station of your shift is gone: close the shift.');
+        }
+
         return $this->stations->resolveFor($u, null, $stationId) ?? throw new BooksException('You have no station to sell from. Ask a manager to add one at your branch.');
     }
 
@@ -252,6 +262,7 @@ class SaleService
         $mode = $this->mode($u, $in);
         $customer = $this->customer($in, $mode);
         $station = $this->station($u, isset($in['station_id']) ? (int) $in['station_id'] : null);
+        $shiftId = $this->shifts->forSale($u, $station);
         [$data, $pre, $needsApproval] = $this->priced($u, $station, $in);
         $total = (float) $pre['total'];
         $paid = null;
@@ -274,17 +285,18 @@ class SaleService
         }
 
         try {
-            $voucher = DB::transaction(function () use ($u, $key, $station, $data, $mode, $customer, $now, $needsApproval, $in, $paid) {
+            $voucher = DB::transaction(function () use ($u, $key, $station, $shiftId, $data, $mode, $customer, $now, $needsApproval, $in, $paid) {
                 DB::table('pos_sale_keys')->insert(['user_id' => $u->id, 'sale_key' => $key, 'created_at' => now(), 'updated_at' => now()]);
                 $v = $this->post($data, $u);
-                DB::table('vouchers')->where('id', $v->id)->update(['station_id' => $station->id]);
+                $this->tag($v->id, $station, $shiftId);
                 if ($paid) {   // what was handed over and the change given, for the receipt
                     $v->update(['meta' => array_merge($v->meta ?? [], ['pos_paid' => ['tendered' => $paid['tendered'], 'change' => $paid['change']]])]);
                 }
                 if ($now && $mode === 'invoice') {
-                    $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till — {$v->voucher_number}"], $u);
+                    $rc = $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till — {$v->voucher_number}"], $u);
+                    $this->tag($rc->id, $station, $shiftId);
                 } elseif ($now && $mode === 'order') {
-                    $this->deposit($v, $customer, $now, $station, $u);
+                    $this->deposit($v, $customer, $now, $station, $u, $shiftId);
                 }
                 DB::table('pos_sale_keys')->where('user_id', $u->id)->where('sale_key', $key)->update(['voucher_id' => $v->id, 'updated_at' => now()]);
                 if ($needsApproval) {   // the supervisor's approval is spent with the sale it allowed
@@ -326,13 +338,13 @@ class SaleService
     }
 
     /** A deposit on an order is a receipt kept as the customer's advance, tied to the order by its number. */
-    private function deposit(Voucher $order, Customer $customer, array $paid, Station $station, User $u): void
+    private function deposit(Voucher $order, Customer $customer, array $paid, Station $station, User $u, ?int $shiftId): void
     {
         $type = VoucherType::byBase(VoucherType::RECEIPT) ?? throw new BooksException('The Receipt voucher type is switched off.');
         $receipt = $this->vouchers->create(['voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => $order->location_id, 'customer_id' => $customer->id, 'currency_id' => $order->currency_id,
             'tenders' => $paid['tenders'], 'amount' => $paid['tendered'], 'is_advance' => true, 'advance_for' => "Deposit for {$order->voucher_number}", 'source_voucher_id' => $order->id, 'channel' => 'pos',
             'narration' => "Deposit for {$order->voucher_number}"], $u);
-        DB::table('vouchers')->where('id', $receipt->id)->update(['station_id' => $station->id]);
+        $this->tag($receipt->id, $station, $shiftId);
         $order->update(['meta' => array_merge($order->meta ?? [], ['pos_deposit' => ['receipt_id' => $receipt->id, 'receipt' => $receipt->voucher_number, 'amount' => $paid['tendered']]])]);
     }
 
@@ -358,6 +370,16 @@ class SaleService
 
             return ['id' => $c->id, 'name' => $c->full_name, 'company' => $c->company_name, 'phone' => $c->phone, 'email' => $c->email, 'credit' => $credit, 'credit_room' => $room];
         })->values()->all();
+    }
+
+    /** Mark a document with the station it was made at and the shift it belongs to. */
+    private function tag(int $voucherId, Station $station, ?int $shiftId): void
+    {
+        $cols = ['station_id' => $station->id];
+        if (ShiftService::installed()) {
+            $cols['shift_id'] = $shiftId;
+        }
+        DB::table('vouchers')->where('id', $voucherId)->update($cols);
     }
 
     /** Post it; when the shelf shows too little stock the sale still goes through (the stock is marked pending) rather than losing a customer at the till. */
@@ -445,6 +467,7 @@ class SaleService
         if ($reason === '') {
             throw new BooksException('Say why it is coming back.');
         }
+        $shiftId = $this->shifts->forSale($u, $station);
         $source = Voucher::with('type')->findOrFail((int) ($in['voucher_id'] ?? 0));
         $found = $this->findForReturn($u, $source->voucher_number);
         $lines = [];
@@ -466,12 +489,13 @@ class SaleService
             $opts['refund_ledger_id'] = $ledger;
         }
 
-        return DB::transaction(function () use ($u, $station, $source, $opts, $in) {
+        return DB::transaction(function () use ($u, $station, $shiftId, $source, $opts, $in) {
             $this->pins->peek($in['approval_token'] ?? null, $u, $station, 'return') ?? throw new ApprovalRequired('return', 'A return needs a supervisor: ask for their PIN.');
             $note = $this->vouchers->createReturn($source, $opts, $u);
             $sup = $this->pins->spend($in['approval_token'] ?? null, $u, $station, 'return', ['against' => $source->voucher_number, 'note' => $note->voucher_number]);   // spent only once the note is made
-            DB::table('vouchers')->where('id', $note->id)->update(['station_id' => $station->id]);
-            $note->update(['meta' => array_merge($note->meta ?? [], ['pos_approval' => ['return' => $sup], 'pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]]), 'channel' => 'pos']);
+            $this->tag($note->id, $station, $shiftId);
+            $refund = isset($opts['refund_ledger_id']) ? ['pos_refund' => ['ledger_id' => $opts['refund_ledger_id'], 'amount' => (float) $note->total_amount, 'cash' => $this->shifts->isCashLedger((int) $opts['refund_ledger_id'])]] : [];
+            $note->update(['meta' => array_merge($note->meta ?? [], $refund, ['pos_approval' => ['return' => $sup], 'pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]]), 'channel' => 'pos']);
 
             return $this->summary($note->fresh(), null, false) + ['refund' => (float) $note->total_amount, 'against' => $source->voucher_number, 'approved_by' => User::whereKey($sup)->value('name')];
         });

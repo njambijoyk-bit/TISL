@@ -59,3 +59,37 @@ export function printReceipt(r) {
   const go = () => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(() => frame.remove(), 60000); };
   if (doc.readyState === 'complete') setTimeout(go, 100); else frame.onload = () => setTimeout(go, 100);
 }
+
+/** The X / Z report of a shift, on the paper chosen. */
+export function reportHtml(rep, paper) {
+  const p = PAPER[paper] ?? PAPER.pos80;
+  const row = (l, v, cls = '') => `<div class="row ${cls}"><span>${l}</span><span>${v}</span></div>`;
+  const sh = rep.shift;
+  const methods = rep.methods.map((m) => `<div class="line"><div>${esc(m.name)}</div>${row('Expected', num(m.expected))}${m.counted != null ? row('Counted', num(m.counted)) + row('Difference', num(m.difference), 'b') : ''}</div>`).join('');
+
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${rep.kind} report</title><style>
+    @page { size: ${p.page}; margin: ${paper === 'a4' ? '14mm' : '2mm'}; }
+    body { margin: 0; font-family: ${paper === 'a4' ? 'Arial, sans-serif' : '"Courier New", monospace'}; font-size: ${p.font}px; color: #000; } .wrap { width: ${p.width}; margin: 0 auto; }
+    .c { text-align: center; } .b { font-weight: 700; } .row { display: flex; justify-content: space-between; gap: 8px; } hr { border: 0; border-top: 1px dashed #000; margin: 5px 0; } .line { margin-bottom: 4px; }
+  </style></head><body><div class="wrap">
+    <div class="c b">${rep.kind === 'Z' ? 'Z REPORT — SHIFT CLOSED' : 'X REPORT — SHIFT SO FAR'}</div>
+    <div class="c">${esc(sh.station)} · ${esc(sh.user)}</div>
+    <div class="c">Opened ${esc(sh.opened_at)}${sh.closed_at ? `<br>Closed ${esc(sh.closed_at)}${sh.closed_by && sh.closed_by !== sh.user ? ` by ${esc(sh.closed_by)}` : ''}` : ''}</div><hr>
+    ${row('Opening float', num(sh.opening_float))}
+    ${row(`Cash sales (${rep.cash_sales.count})`, num(rep.cash_sales.total))}${row(`Invoices (${rep.invoices.count})`, num(rep.invoices.total))}${row(`Sales orders (${rep.orders.count})`, num(rep.orders.total))}
+    ${row(`Payments taken (${rep.receipts.count})`, '')}${row(`Returns (${rep.returns.count})`, num(rep.returns.total))}${row('Refunded', num(rep.refunded))}${row('Discounts', num(rep.discounts))}${row('Voids', String(rep.voids))}<hr>
+    ${methods}<hr>
+    ${row('Expected cash', num(rep.expected_cash), 'b')}${rep.variance != null ? row(rep.variance === 0 ? 'Balanced' : rep.variance > 0 ? 'Over' : 'Short', num(Math.abs(rep.variance)), 'b') : ''}
+    ${sh.note ? `<hr><div>${esc(sh.note)}</div>` : ''}
+  </div></body></html>`;
+}
+
+export function printReport(rep, paper) {
+  const frame = document.createElement('iframe');
+  frame.setAttribute('aria-hidden', 'true');
+  Object.assign(frame.style, { position: 'fixed', right: '0', bottom: '0', width: '0', height: '0', border: '0' });
+  document.body.appendChild(frame);
+  const doc = frame.contentDocument;
+  doc.open(); doc.write(reportHtml(rep, paper)); doc.close();
+  setTimeout(() => { frame.contentWindow.focus(); frame.contentWindow.print(); setTimeout(() => frame.remove(), 60000); }, 150);
+}

@@ -131,7 +131,7 @@ final class ModuleTables
             // Engagement Engine: reviews, comments, reactions, reports and their settings
             'engagement_settings', 'engagement_report_reasons', 'engagement_rules', 'engagement_posts', 'engagement_reactions', 'engagement_reports', 'engagement_log',
             // Point of sale: stations, who works at them, the receipt paper of each branch
-            'pos_stations', 'pos_station_users', 'pos_branch_settings', 'pos_holds', 'pos_sale_keys', 'pos_pins',
+            'pos_stations', 'pos_station_users', 'pos_branch_settings', 'pos_holds', 'pos_sale_keys', 'pos_pins', 'pos_shifts',
         ],
 
         'careers'        => ['job_postings', 'applicants', 'applications', 'application_documents', 'application_status_history'],

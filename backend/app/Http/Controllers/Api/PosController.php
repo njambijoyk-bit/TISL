@@ -7,6 +7,7 @@ use App\Services\Books\BooksException;
 use App\Services\Pos\ApprovalRequired;
 use App\Services\Pos\PinService;
 use App\Services\Pos\ReceiptService;
+use App\Services\Pos\ShiftService;
 use App\Services\Pos\SaleService;
 use App\Services\Pos\StationService;
 use Illuminate\Http\JsonResponse;
@@ -15,7 +16,7 @@ use Illuminate\Http\Request;
 /** The cashier's point of sale (/api/pos): the catalogue, pricing, selling for cash, and hold and recall. Changes to Books are made by the books' own posting code, not here. */
 class PosController extends Controller
 {
-    public function __construct(private SaleService $sales, private PinService $pins, private StationService $stations, private ReceiptService $receipts)
+    public function __construct(private SaleService $sales, private PinService $pins, private StationService $stations, private ReceiptService $receipts, private ShiftService $shifts)
     {
     }
 
@@ -108,6 +109,37 @@ class PosController extends Controller
     public function receipt(Request $request, int $id): JsonResponse
     {
         return $this->guard(fn () => $this->receipts->build($request->user(), $id, $request->filled('paper') ? (string) $request->paper : null));
+    }
+
+    // ── shifts ──
+
+    public function shifts(Request $request): JsonResponse
+    {
+        return $this->guard(fn () => ['shifts' => $this->shifts->list($request->user())]);
+    }
+
+    public function openShift(Request $request): JsonResponse
+    {
+        $d = $request->validate(['opening_float' => 'required|numeric|min:0', 'station_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($request, $d) {
+            $station = $this->stations->resolveFor($request->user(), null, $d['station_id'] ?? null) ?? throw new BooksException('You have no station to sell from.');
+            $sh = $this->shifts->open($request->user(), $station, (float) $d['opening_float']);
+
+            return ['message' => 'Shift open.', 'shift' => ['id' => (int) $sh->id]];
+        }, 201);
+    }
+
+    public function closeShift(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['counted' => 'required|array', 'counted.*.payment_method_id' => 'required|integer', 'counted.*.amount' => 'required|numeric|min:0', 'note' => 'nullable|string|max:255']);
+
+        return $this->guard(fn () => $this->shifts->close($request->user(), $id, $d['counted'], $d['note'] ?? null));
+    }
+
+    public function shiftReport(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(fn () => $this->shifts->report($request->user(), $id));
     }
 
     // ── supervisor approval, returns, voids ──

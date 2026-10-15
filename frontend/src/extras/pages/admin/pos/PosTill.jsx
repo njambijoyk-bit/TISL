@@ -4,6 +4,7 @@ import { Minus, Plus, Trash2, Pause, Play, X, Search } from 'lucide-react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import posAPI from '../../../../_shared/api/pos';
 import { PAPER, printReceipt } from './printReceipt';
+import { OpenShiftDialog, ShiftDialog, ShiftList } from './ShiftDialogs';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
@@ -193,6 +194,7 @@ export default function PosTill() {
   const [paper, setPaper] = useState('');
   const [auto, setAuto] = useState(() => { try { return localStorage.getItem('pos.autoprint') === '1'; } catch { return false; } });
   const [mine, setMine] = useState(null);
+  const [shiftUi, setShiftUi] = useState(null);   // 'open' | 'list' | { id }
   const [customer, setCustomer] = useState(null);
   const [cq, setCq] = useState('');
   const [cfound, setCfound] = useState([]);
@@ -270,6 +272,7 @@ export default function PosTill() {
   if (!ctx.station) return <AdminLayout><p role="alert" style={{ ...card, padding: 16 }}>You have no station to sell from. Ask a manager to add a station at your branch (POS stations) and give you one.</p></AdminLayout>;
 
   const cur = ctx.currency;
+  const needShift = ctx.shift_ready && ctx.shift_required && !ctx.shift;
   const total = priced?.total ?? 0;
   const lineOf = (i) => priced?.lines?.[i];
 
@@ -284,6 +287,9 @@ export default function PosTill() {
   const extraDialogs = (
     <>
       {ask && <ApproveDialog purpose={ask.purpose} stationId={ctx.station.id} why={ask.why} onCancel={() => setAsk(null)} onDone={(a) => { const f = ask.then; setAsk(null); f(a); }} />}
+      {shiftUi === 'open' && <OpenShiftDialog stationId={ctx.station.id} stationName={ctx.station.name} onCancel={() => setShiftUi(null)} onDone={() => { setShiftUi(null); loadCtx(ctx.station.id); }} />}
+      {shiftUi === 'list' && <ShiftList onClose={() => setShiftUi(null)} onPick={(id) => setShiftUi({ id })} />}
+      {shiftUi?.id && <ShiftDialog shiftId={shiftUi.id} paper={ctx.station.paper} onClose={() => setShiftUi(null)} onClosed={() => loadCtx(ctx.station.id)} />}
       {mine && (
         <div role="dialog" aria-label="My sales today" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
           <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8, maxHeight: '80vh', overflowY: 'auto' }}>
@@ -328,6 +334,10 @@ export default function PosTill() {
   return (
     <AdminLayout>
       <div style={{ textAlign: 'right', marginBottom: 6, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        {ctx.shift_ready && (ctx.shift
+          ? <button type="button" style={btnGhost} onClick={() => setShiftUi({ id: ctx.shift.id })}>Shift open since {String(ctx.shift.opened_at).slice(11, 16)} — report / close</button>
+          : <button type="button" style={btnPrimary} onClick={() => setShiftUi('open')}>Open shift</button>)}
+        {ctx.shift_ready && ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setShiftUi('list')}>All shifts</button>}
         <button type="button" style={btnGhost} onClick={openMine}>My sales today</button>
         {ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setPinOpen(true)}>{ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'}</button>}
       </div>
@@ -359,6 +369,7 @@ export default function PosTill() {
               </select>
             </label>
           </div>
+          {needShift && <p role="alert" style={{ margin: 0, padding: '8px 10px', borderRadius: 8, background: 'color-mix(in srgb, #d97706 12%, transparent)', fontSize: '0.82rem' }}>Open your shift to start selling.</p>}
           {tabs}
           {mode !== 'cash' && mode !== 'return' && (
             customer ? (
@@ -402,7 +413,7 @@ export default function PosTill() {
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" style={btnGhost} disabled={!cart.length} onClick={hold}><Pause size={14} /> Hold</button>
             <button type="button" style={btnGhost} onClick={openHolds}><Play size={14} /> Recall</button>
-            <button type="button" style={{ ...btnPrimary, flex: 1 }} disabled={!cart.length || !priced || (mode !== 'cash' && !customer)} onClick={() => setPaying(true)}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]} {money(total, cur)}</button>
+            <button type="button" style={{ ...btnPrimary, flex: 1 }} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift} onClick={() => setPaying(true)}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]} {money(total, cur)}</button>
           </div>
         </section>
       </div>
