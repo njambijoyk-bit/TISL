@@ -66,7 +66,10 @@ export default function Login() {
     // changed since boot); don't block the redirect on it.
     useModuleStore.getState().refresh();
     toast.success('Welcome back!');
-    navigate(redirect);
+    // a till operator (sells, but has no Books) lands on the till, not the admin home
+    const perms = response.access?.permissions ?? [];
+    const tillOnly = perms.includes('pos.sell') && !perms.includes('books.view');
+    navigate(!searchParams.get('redirect') && tillOnly ? '/admin/pos' : redirect);
     return true;
   };
 

@@ -21,7 +21,7 @@ use Illuminate\Support\Str;
  */
 class SelfCheckoutService
 {
-    public function __construct(private SaleService $sales, private StationService $stations, private VoucherService $vouchers, private GatewayPaymentService $gateway, private PinService $pins, private ReceiptService $receipts)
+    public function __construct(private SaleService $sales, private StationService $stations, private VoucherService $vouchers, private GatewayPaymentService $gateway, private PinService $pins, private ReceiptService $receipts, private HelpService $help)
     {
     }
 
@@ -75,7 +75,7 @@ class SelfCheckoutService
         [, $pre] = $this->sales->priceSelf($s, $this->clean($items));
 
         return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'amount' => $l['amount']], $pre['lines']),
-            'subtotal' => $pre['subtotal'], 'tax_total' => $pre['tax_total'], 'total' => $pre['total']];
+            'subtotal' => $pre['subtotal'], 'tax_total' => $pre['tax_total'], 'tax_breakdown' => $pre['tax_breakdown'] ?? [], 'total' => $pre['total']];
     }
 
     /** The customer is done. @return array{session: string, pay: string, total: float, attempt?: array} */
@@ -174,6 +174,11 @@ class SelfCheckoutService
             }
             DB::table('pos_self_sessions')->where('id', $row->id)->update(['status' => 'cancelled', 'updated_at' => now()]);
         });
+    }
+
+    public function callForHelp(Station $s): void
+    {
+        $this->help->request($s);
     }
 
     /** A supervisor clears a stuck basket with their email and PIN. */

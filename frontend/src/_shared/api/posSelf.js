@@ -9,6 +9,7 @@ const posSelfAPI = {
   order: async (token, payload) => (await api.post(`/pos/self/${token}/orders`, payload)).data,
   status: async (token, session) => (await api.get(`/pos/self/${token}/orders/${session}`)).data,
   cancel: async (token, session) => (await api.post(`/pos/self/${token}/orders/${session}/cancel`)).data,
+  help: async (token) => (await api.post(`/pos/self/${token}/help`)).data,
   assist: async (token, session, body) => (await api.post(`/pos/self/${token}/orders/${session}/assist`, body)).data,
   receipt: async (token, session) => (await api.get(`/pos/self/${token}/orders/${session}/receipt`)).data,
 };

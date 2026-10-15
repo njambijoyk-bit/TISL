@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Minus, Plus, Trash2, Pause, Play, X, Search } from 'lucide-react';
-import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
+import { Minus, Plus, Trash2, Pause, Play, X, Search, ScanLine, Lock, LifeBuoy } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import posAPI from '../../../../_shared/api/pos';
 import { PAPER, printReceipt } from './printReceipt';
 import { OpenShiftDialog, ShiftDialog, ShiftList } from './ShiftDialogs';
@@ -174,6 +174,18 @@ function ReturnPanel({ ctx, cur, onDone }) {
   );
 }
 
+/** The till fills the whole page: no admin menu around it. */
+function Shell({ children }) {
+  return (
+    <main style={{ minHeight: '100vh', background: '#f8fafc', padding: 16, boxSizing: 'border-box' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <Link to="/admin" style={{ fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none' }}>← Back to admin</Link>
+      </div>
+      {children}
+    </main>
+  );
+}
+
 /** Point of sale: search or scan, a basket, hold and recall, pay and post a cash sale. */
 export default function PosTill() {
   const [ctx, setCtx] = useState(null);
@@ -194,6 +206,9 @@ export default function PosTill() {
   const [paper, setPaper] = useState('');
   const [auto, setAuto] = useState(() => { try { return localStorage.getItem('pos.autoprint') === '1'; } catch { return false; } });
   const [mine, setMine] = useState(null);
+  const [locked, setLocked] = useState(true);   // the touch-to-start screen
+  const [helpList, setHelpList] = useState(null);   // open requests from self-checkout screens
+  const [helpDlg, setHelpDlg] = useState(false);
   const [shiftUi, setShiftUi] = useState(null);   // 'open' | 'list' | { id }
   const [customer, setCustomer] = useState(null);
   const [cq, setCq] = useState('');
@@ -203,7 +218,15 @@ export default function PosTill() {
 
   const loadCtx = useCallback((stationId) => posAPI.context(stationId).then(setCtx).catch((e) => setError(errMsg(e, 'Could not open the point of sale'))), []);
   useEffect(() => { loadCtx(); }, [loadCtx]);
-  useEffect(() => { search.current?.focus(); }, [ctx, done]);
+  useEffect(() => { search.current?.focus(); }, [ctx, done, locked]);
+  useEffect(() => {   // customers who pressed Call for help at a self-checkout screen
+    if (!ctx?.station) return undefined;
+    let live = true;
+    const load = () => posAPI.helpRequests().then((r) => live && setHelpList(r.requests)).catch(() => {});
+    load();
+    const t = setInterval(load, 15000);
+    return () => { live = false; clearInterval(t); };
+  }, [ctx?.station?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {   // search as they type
     const t = setTimeout(() => { if (ctx?.ready !== false) posAPI.catalogue(q).then((r) => setFound(r.items)).catch(() => {}); }, 250);
@@ -267,14 +290,27 @@ export default function PosTill() {
     } catch (e) { toast.error(errMsg(e, 'Could not recall')); openHolds(); }
   };
 
-  if (!ctx) return <AdminLayout><div style={{ padding: 32, color: colors.textFaint }}>{error ?? 'Loading…'}</div></AdminLayout>;
-  if (ctx.ready === false) return <AdminLayout><p role="alert" style={{ ...card, padding: 16 }}>{ctx.message ?? 'The point of sale is not set up yet.'}</p></AdminLayout>;
-  if (!ctx.station) return <AdminLayout><p role="alert" style={{ ...card, padding: 16 }}>You have no station to sell from. Ask a manager to add a station at your branch (POS stations) and give you one.</p></AdminLayout>;
+  if (!ctx) return <Shell><div style={{ padding: 32, color: colors.textFaint }}>{error ?? 'Loading…'}</div></Shell>;
+  if (ctx.ready === false) return <Shell><p role="alert" style={{ ...card, padding: 16 }}>{ctx.message ?? 'The point of sale is not set up yet.'}</p></Shell>;
+  if (!ctx.station) return <Shell><p role="alert" style={{ ...card, padding: 16 }}>You have no station to sell from. Ask a manager to add a station at your branch (POS stations) and give you one.</p></Shell>;
 
   const cur = ctx.currency;
   const needShift = ctx.shift_ready && ctx.shift_required && !ctx.shift;
   const total = priced?.total ?? 0;
   const lineOf = (i) => priced?.lines?.[i];
+
+  const helpCount = helpList?.length ?? 0;
+  if (locked) {
+    return (
+      <main onClick={() => setLocked(false)} role="button" tabIndex={0} onKeyDown={() => setLocked(false)} aria-label="Touch to start" style={{ minHeight: '100vh', cursor: 'pointer', background: 'linear-gradient(160deg, #0f172a, #1e293b)', color: '#fff', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
+        <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
+        <span style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', fontWeight: 900 }}>{ctx.business}</span>
+        <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Point of sale — touch to start</span>
+        <span style={{ opacity: 0.7 }}>{ctx.station.name} · {ctx.station.location}</span>
+        {helpCount > 0 && <span style={{ background: '#dc2626', borderRadius: 999, padding: '8px 18px', justifySelf: 'center', fontWeight: 800 }}>{helpCount} customer{helpCount === 1 ? '' : 's'} asking for help</span>}
+      </main>
+    );
+  }
 
   const tabs = (
     <div style={{ display: "flex", gap: 6 }} role="tablist" aria-label="Kind of document">
@@ -290,6 +326,22 @@ export default function PosTill() {
       {shiftUi === 'open' && <OpenShiftDialog stationId={ctx.station.id} stationName={ctx.station.name} onCancel={() => setShiftUi(null)} onDone={() => { setShiftUi(null); loadCtx(ctx.station.id); }} />}
       {shiftUi === 'list' && <ShiftList onClose={() => setShiftUi(null)} onPick={(id) => setShiftUi({ id })} />}
       {shiftUi?.id && <ShiftDialog shiftId={shiftUi.id} paper={ctx.station.paper} onClose={() => setShiftUi(null)} onClosed={() => loadCtx(ctx.station.id)} />}
+      {helpDlg && (
+        <div role="dialog" aria-label="Help requests" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
+          <div style={{ ...card, padding: 18, width: 'min(420px, 100%)', display: 'grid', gap: 8 }}>
+            <strong>Customers asking for help</strong>
+            {helpCount === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nobody is waiting.</p>}
+            {(helpList ?? []).map((h) => (
+              <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span>{h.station} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {h.minutes < 1 ? 'just now' : `${h.minutes} min ago`}</span></span>
+                <button type="button" style={btnPrimary} onClick={async () => { await posAPI.helpDone(h.id).catch(() => {}); setHelpList((l) => (l ?? []).filter((x) => x.id !== h.id)); }}>Done</button>
+              </div>
+            ))}
+            <p style={{ margin: 0, fontSize: '0.75rem', color: colors.textMuted }}>Go to the screen. A supervisor can clear a stuck basket there with their email and PIN.</p>
+            <button type="button" style={btnGhost} onClick={() => setHelpDlg(false)}>Close</button>
+          </div>
+        </div>
+      )}
       {mine && (
         <div role="dialog" aria-label="My sales today" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
           <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8, maxHeight: '80vh', overflowY: 'auto' }}>
@@ -321,24 +373,26 @@ export default function PosTill() {
 
   if (mode === 'return') {
     return (
-      <AdminLayout>
+      <Shell>
         <div style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
           <div style={{ ...card, padding: 10 }}>{tabs}</div>
           <ReturnPanel ctx={ctx} cur={cur} onDone={(r) => setReturned(r)} />
         </div>
         {extraDialogs}
-      </AdminLayout>
+      </Shell>
     );
   }
 
   return (
-    <AdminLayout>
+    <Shell>
       <div style={{ textAlign: 'right', marginBottom: 6, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         {ctx.shift_ready && (ctx.shift
           ? <button type="button" style={btnGhost} onClick={() => setShiftUi({ id: ctx.shift.id })}>Shift open since {String(ctx.shift.opened_at).slice(11, 16)} — report / close</button>
           : <button type="button" style={btnPrimary} onClick={() => setShiftUi('open')}>Open shift</button>)}
         {ctx.shift_ready && ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setShiftUi('list')}>All shifts</button>}
+        <button type="button" style={helpCount > 0 ? { ...btnPrimary, background: '#dc2626' } : btnGhost} onClick={() => setHelpDlg(true)}><LifeBuoy size={14} /> Help requests{helpCount > 0 ? ` (${helpCount})` : ''}</button>
         <button type="button" style={btnGhost} onClick={openMine}>My sales today</button>
+        <button type="button" style={btnGhost} disabled={cart.length > 0} title={cart.length ? 'Finish or hold the sale first' : 'Lock the screen'} onClick={() => setLocked(true)}><Lock size={14} /> Lock</button>
         {ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setPinOpen(true)}>{ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'}</button>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
@@ -456,6 +510,6 @@ export default function PosTill() {
         </div>
       )}
       {extraDialogs}
-    </AdminLayout>
+    </Shell>
   );
 }

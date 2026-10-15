@@ -30,6 +30,7 @@ export default function PosSelfPage() {
   const [result, setResult] = useState(null);   // { session, pay, number }
   const [warn, setWarn] = useState(null);
   const [help, setHelp] = useState(false);
+  const [helpSent, setHelpSent] = useState(false);
   const last = useRef(Date.now());
   const stop = useRef(false);
   const input = useRef(null);
@@ -180,6 +181,14 @@ export default function PosSelfPage() {
         <h1 style={{ margin: 0 }}>Your basket</h1>
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.1rem' }}>{problem}</p>}
         {(quote?.lines ?? []).map((l, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem' }}><span>{l.description} × {l.quantity}</span><span>{money(l.amount)}</span></div>)}
+        {quote && (
+          <div style={{ display: 'grid', gap: 4, fontSize: '1.1rem', color: '#475569', borderTop: '2px solid #e2e8f0', paddingTop: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(quote.subtotal)}</span></div>
+            {(quote.tax_breakdown?.length ? quote.tax_breakdown : (quote.tax_total > 0 ? [{ label: 'Tax', amount: quote.tax_total }] : [])).map((t, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{t.label ?? t.name ?? 'Tax'}{t.rate != null ? ` (${t.rate}%)` : ''}</span><span>{money(t.amount ?? t.tax_amount)}</span></div>
+            ))}
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.8rem', fontWeight: 900 }}><span>Total</span><span>{money(quote?.total)}</span></div>
         {step === 'review' && (
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
@@ -232,12 +241,12 @@ export default function PosSelfPage() {
         {basket.length === 0 && <p style={{ margin: 0, color: '#64748b' }}>Scan your first item.</p>}
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 900 }}><span>About</span><span>{money(total)}</span></div>
         <button type="button" style={huge('#059669')} disabled={basket.length === 0} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
-        <button type="button" style={huge('#e2e8f0', '#0f172a')} onClick={() => setHelp(true)}>Call for help</button>
+        <button type="button" style={huge('#e2e8f0', '#0f172a')} onClick={() => { setHelp(true); setHelpSent(false); posSelfAPI.help(token).then(() => setHelpSent(true)).catch((e) => setProblem(errMsg(e, 'We could not call for help. Please wave to a member of staff.'))); }}>Call for help</button>
       </aside>
       {help && (
         <div role="dialog" aria-label="Help" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', display: 'grid', placeItems: 'center', zIndex: 80 }}>
           <div style={{ background: '#fff', borderRadius: 20, padding: 28, display: 'grid', gap: 14, maxWidth: 420, textAlign: 'center' }}>
-            <h2 style={{ margin: 0 }}>A member of staff will come to you.</h2>
+            <h2 style={{ margin: 0 }}>{helpSent ? 'A member of staff has been told and will come to you.' : 'Calling a member of staff…'}</h2>
             <p style={{ margin: 0, color: '#64748b' }}>They can clear this screen or help you pay.</p>
             <button type="button" style={huge('#0f172a')} onClick={() => setHelp(false)}>OK</button>
             <button type="button" style={huge('#64748b')} onClick={reset}>Start over</button>

@@ -49,7 +49,8 @@ class SaleService
         $choices = $this->stations->choicesFor($u);
         $station = $this->stations->resolveFor($u, null, $stationId);
         $branch = $station ? $this->stations->branch((int) $station->location_id) : null;
-        $methods = PaymentMethod::where('is_active', true)->where('is_online', false)->where('kind', '!=', 'gift_voucher')->orderBy('sort_order')->orderBy('id')->get(['id', 'name', 'kind', 'requires_reference'])   // paid at the till: cash, or a card / mobile payment the cashier sees confirmed
+        $methods = PaymentMethod::where('is_active', true)->where(fn ($q) => $q->whereNull('kind')->orWhere('kind', '!=', 'gift_voucher'))   // paid at the till: cash, or a card / mobile payment the cashier sees confirmed
+            ->where(fn ($q) => $q->whereNull('gateway')->orWhere('is_online', false))->orderBy('sort_order')->orderBy('id')->get(['id', 'name', 'kind', 'requires_reference'])
             ->map(fn ($m) => ['id' => $m->id, 'name' => $m->name, 'kind' => $m->kind, 'requires_reference' => (bool) $m->requires_reference])->values();
         $cur = Currency::getBaseCurrency();
         $access = app(Authorizer::class);
@@ -60,7 +61,7 @@ class SaleService
             $station = Station::find($sh->station_id) ?? $station;
         }
 
-        return ['shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
+        return ['business' => \App\Models\CompanyProfile::current()->name ?: config('app.name'), 'shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
             'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
             'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'reprint' => $access->allows($u, 'pos.reprint'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];

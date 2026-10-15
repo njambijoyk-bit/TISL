@@ -447,6 +447,14 @@ function PWARedirect() {
 }
 
 // ── App ───────────────────────────────────────────────────────────────────────
+/** The chat helper is left off the till and the self-checkout screen: nothing may sit on top of a sale. */
+function MimiGate() {
+  const { pathname } = useLocation();
+  if (pathname.startsWith('/pos/self') || pathname.startsWith('/admin/pos')) return null;
+
+  return <Mimi />;
+}
+
 function App() {
   const { initTheme } = useThemeStore();
   const fetchModules = useModuleStore((s) => s.fetch);
@@ -499,7 +507,7 @@ function App() {
         <InstallPrompt />
         <AlgorithmBanner /> 
         <BookmarkNote />
-        <Mimi />
+        <MimiGate />
         <AiPanelRoot />
         <MemoDock />
         <CookieConsentBanner /> 

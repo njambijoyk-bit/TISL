@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\Books\BooksException;
 use App\Services\Pos\ApprovalRequired;
+use App\Services\Pos\HelpService;
 use App\Services\Pos\PinService;
 use App\Services\Pos\ReceiptService;
 use App\Services\Pos\ShiftService;
@@ -16,7 +17,7 @@ use Illuminate\Http\Request;
 /** The cashier's point of sale (/api/pos): the catalogue, pricing, selling for cash, and hold and recall. Changes to Books are made by the books' own posting code, not here. */
 class PosController extends Controller
 {
-    public function __construct(private SaleService $sales, private PinService $pins, private StationService $stations, private ReceiptService $receipts, private ShiftService $shifts)
+    public function __construct(private SaleService $sales, private PinService $pins, private StationService $stations, private ReceiptService $receipts, private ShiftService $shifts, private HelpService $help)
     {
     }
 
@@ -109,6 +110,20 @@ class PosController extends Controller
     public function receipt(Request $request, int $id): JsonResponse
     {
         return $this->guard(fn () => $this->receipts->build($request->user(), $id, $request->filled('paper') ? (string) $request->paper : null));
+    }
+
+    // ── self-checkout help requests ──
+
+    public function helpOpen(Request $request): JsonResponse
+    {
+        return response()->json(['requests' => $this->help->open($request->user())]);
+    }
+
+    public function helpDone(Request $request, int $id): JsonResponse
+    {
+        $this->help->done($request->user(), $id);
+
+        return response()->json(['ok' => true]);
     }
 
     // ── shifts ──

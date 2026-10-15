@@ -330,6 +330,7 @@ Route::prefix('pos/self/{token}')->middleware(['module:extras', 'throttle:240,1'
     Route::get('/',                          [$c, 'show']);
     Route::get('/catalogue',                 [$c, 'catalogue']);
     Route::get('/scan',                      [$c, 'scan']);
+    Route::post('/help',                     [$c, 'help'])->middleware('throttle:6,1');
     Route::post('/quote',                    [$c, 'quote']);
     Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
@@ -1489,6 +1490,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/catalogue', [$c, 'catalogue']);
                 Route::get('/scan',      [$c, 'scan']);
                 Route::get('/sales',     [$c, 'mine']);
+                Route::get('/help',      [$c, 'helpOpen']);
+                Route::post('/help/{id}/done', [$c, 'helpDone'])->whereNumber('id');
                 Route::get('/shifts',    [$c, 'shifts']);
                 Route::post('/shifts',   [$c, 'openShift']);
                 Route::post('/shifts/{id}/close', [$c, 'closeShift'])->whereNumber('id');
