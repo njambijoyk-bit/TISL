@@ -41,7 +41,7 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, ca
 
   return (
     <div role="dialog" aria-label="Payment" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
-      <div style={{ ...card, padding: 20, width: 'min(480px, 100%)', display: 'grid', gap: 12 }}>
+      <div style={{ ...card, padding: 20, width: 'min(480px, 100%)', display: 'grid', gap: 12, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
         <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? `Invoice for ${customer?.name}` : mode === 'order' ? `Sales order for ${customer?.name}` : 'Amount due'}</div>
         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{money(total, cur)}</div>
         {canRound && (rounding !== 'none' || Math.abs(total * 2 - Math.round(total * 2)) > 0.004) && (
@@ -125,7 +125,7 @@ function ApproveDialog({ purpose, stationId, why, me, selfOk, onDone, onCancel }
 
   return (
     <div role="dialog" aria-label="Approval" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', padding: 16 }}>
-      <div style={{ ...card, padding: 20, width: 'min(380px, 100%)', display: 'grid', gap: 10 }}>
+      <div style={{ ...card, padding: 20, width: 'min(380px, 100%)', display: 'grid', gap: 10, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
         <strong>{mode === 'self' ? 'Enter your PIN' : 'Supervisor approval'}</strong>
         <div style={{ fontSize: '0.82rem', color: colors.textMuted }}>{why}</div>
         {mode === 'self' && (
@@ -162,7 +162,7 @@ function PinDialog({ onClose }) {
 
   return (
     <div role="dialog" aria-label="My PIN" style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', padding: 16 }}>
-      <div style={{ ...card, padding: 20, width: 'min(340px, 100%)', display: 'grid', gap: 10 }}>
+      <div style={{ ...card, padding: 20, width: 'min(340px, 100%)', display: 'grid', gap: 10, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
         <strong>My supervisor PIN</strong>
         <input style={field} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={a} onChange={(e) => setA(e.target.value.replace(/\D/g, ''))} placeholder="New 6-digit PIN" aria-label="New PIN" />
         <input style={field} type="password" inputMode="numeric" autoComplete="new-password" maxLength={6} value={b} onChange={(e) => setB(e.target.value.replace(/\D/g, ''))} placeholder="Type it again" aria-label="Repeat PIN" />
@@ -448,7 +448,7 @@ export default function PosTill() {
       {shiftUi?.id && <ShiftDialog shiftId={shiftUi.id} paper={ctx.station.paper} onClose={() => setShiftUi(null)} onClosed={() => loadCtx(ctx.station.id)} />}
       {helpDlg && (
         <div role="dialog" aria-label="Help requests" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <div style={{ ...card, padding: 18, width: 'min(420px, 100%)', display: 'grid', gap: 8 }}>
+          <div style={{ ...card, padding: 18, width: 'min(420px, 100%)', display: 'grid', gap: 8, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
             <strong>Customers asking for help</strong>
             {helpCount === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nobody is waiting.</p>}
             {(helpList ?? []).map((h) => (
@@ -472,7 +472,7 @@ export default function PosTill() {
       )}
       {mine && (
         <div role="dialog" aria-label="My sales today" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8, maxHeight: '80vh', overflowY: 'auto' }}>
+          <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
             <strong>My sales today</strong>
             {mine.length === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nothing yet today.</p>}
             {mine.map((m) => (
@@ -488,7 +488,7 @@ export default function PosTill() {
       {pinOpen && <PinDialog onClose={(ok) => { setPinOpen(false); if (ok) loadCtx(ctx.station.id); }} />}
       {returned && (
         <div role="dialog" aria-label="Return done" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <div style={{ ...card, padding: 22, width: 'min(380px, 100%)', display: 'grid', gap: 8, textAlign: 'center' }}>
+          <div style={{ ...card, padding: 22, width: 'min(380px, 100%)', display: 'grid', gap: 8, textAlign: 'center', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
             <strong style={{ fontSize: '1.1rem' }}>{returned.type ?? 'Credit note'} {returned.number}</strong>
             <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{money(returned.total, cur)}</div>
             <div style={{ fontSize: '0.85rem', color: colors.textMuted }}>Against {returned.against} · approved by {returned.approved_by}</div>
@@ -639,7 +639,7 @@ export default function PosTill() {
 
       {holds && (
         <div role="dialog" aria-label="Held sales" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8 }}>
+          <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
             <strong>Held sales</strong>
             {holds.length === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nothing is on hold.</p>}
             {holds.map((h) => (
@@ -659,7 +659,7 @@ export default function PosTill() {
 
       {done && (
         <div role="dialog" aria-label="Sale done" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <div style={{ ...card, padding: 22, width: 'min(380px, 100%)', display: 'grid', gap: 8, textAlign: 'center' }}>
+          <div style={{ ...card, padding: 22, width: 'min(380px, 100%)', display: 'grid', gap: 8, textAlign: 'center', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
             <strong style={{ fontSize: '1.1rem' }}>{done.type ?? 'Sale'} {done.number}</strong>
             <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{money(done.total, cur)}</div>
             {done.paid_now != null && <div style={{ fontSize: '0.9rem' }}>Paid now: <strong>{money(done.paid_now, cur)}</strong> · to pay later: <strong>{money(done.total - done.paid_now, cur)}</strong></div>}

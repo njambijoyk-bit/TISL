@@ -19,7 +19,7 @@ export function OpenShiftDialog({ stationId, stationName, onDone, onCancel }) {
 
   return (
     <div role="dialog" aria-label="Open shift" style={overlay}>
-      <div style={{ ...card, padding: 20, width: 'min(360px, 100%)', display: 'grid', gap: 10 }}>
+      <div style={{ ...card, padding: 20, width: 'min(360px, 100%)', display: 'grid', gap: 10, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
         <strong>Open shift at {stationName}</strong>
         <label style={{ fontSize: '0.8rem', color: colors.textMuted, display: 'grid', gap: 4 }}>Cash in the drawer to start (the float)
           <input style={field} inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00" autoFocus />
@@ -54,7 +54,7 @@ export function ShiftDialog({ shiftId, paper, onClose, onClosed }) {
 
   return (
     <div role="dialog" aria-label="Shift report" style={overlay}>
-      <div style={{ ...card, padding: 20, width: 'min(460px, 100%)', display: 'grid', gap: 6, maxHeight: '90vh', overflowY: 'auto', fontSize: '0.88rem' }}>
+      <div style={{ ...card, padding: 20, width: 'min(460px, 100%)', display: 'grid', gap: 6, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', fontSize: '0.88rem' }}>
         <strong>{open ? 'Shift so far (X report)' : 'Shift closed (Z report)'}</strong>
         <div style={{ color: colors.textMuted, fontSize: '0.78rem' }}>{rep.shift.station} · {rep.shift.user} · since {rep.shift.opened_at}</div>
         {line('Opening float', money(rep.shift.opening_float))}
@@ -96,7 +96,7 @@ export function ShiftList({ onPick, onClose }) {
 
   return (
     <div role="dialog" aria-label="Shifts" style={overlay}>
-      <div style={{ ...card, padding: 18, width: 'min(480px, 100%)', display: 'grid', gap: 8, maxHeight: '80vh', overflowY: 'auto' }}>
+      <div style={{ ...card, padding: 18, width: 'min(480px, 100%)', display: 'grid', gap: 8, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
         <strong>Shifts</strong>
         {rows.length === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>No shifts yet.</p>}
         {rows.map((s) => (
