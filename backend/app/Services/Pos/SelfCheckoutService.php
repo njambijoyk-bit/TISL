@@ -74,7 +74,7 @@ class SelfCheckoutService
     {
         [, $pre] = $this->sales->priceSelf($s, $this->clean($items));
 
-        return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'amount' => $l['amount']], $pre['lines']),
+        return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'amount' => $l['amount'], 'tax_amount' => $l['tax_amount'] ?? 0, 'tax_rate_percent' => $l['tax_rate_percent'] ?? null], $pre['lines']),
             'subtotal' => $pre['subtotal'], 'tax_total' => $pre['tax_total'], 'tax_breakdown' => $pre['tax_breakdown'] ?? [], 'total' => $pre['total']];
     }
 
@@ -177,9 +177,16 @@ class SelfCheckoutService
         });
     }
 
-    public function callForHelp(Station $s): void
+    /** @return array{open: bool, minutes: ?int, tries: int, max: int} */
+    public function callForHelp(Station $s): array
     {
-        $this->help->request($s);
+        return $this->help->request($s);
+    }
+
+    /** @return array{open: bool, minutes: ?int, tries: int, max: int} */
+    public function helpStatus(Station $s): array
+    {
+        return $this->help->status($s);
     }
 
     /** A supervisor clears a stuck basket with their email and PIN. */

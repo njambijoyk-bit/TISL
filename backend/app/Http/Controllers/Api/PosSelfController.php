@@ -100,11 +100,14 @@ class PosSelfController extends Controller
     {
         $s = $this->stations->forToken($token);
 
-        return $this->guard(function () use ($s) {
-            $this->self->callForHelp($s);
+        return $this->guard(fn () => $this->self->callForHelp($s));
+    }
 
-            return ['message' => 'A member of staff has been told.'];
-        });
+    public function helpStatus(string $token): JsonResponse
+    {
+        $s = $this->stations->forToken($token);
+
+        return $this->guard(fn () => $this->self->helpStatus($s));
     }
 
     public function receipt(string $token, string $session): JsonResponse

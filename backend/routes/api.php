@@ -330,7 +330,8 @@ Route::prefix('pos/self/{token}')->middleware(['module:extras', 'throttle:240,1'
     Route::get('/',                          [$c, 'show']);
     Route::get('/catalogue',                 [$c, 'catalogue']);
     Route::get('/scan',                      [$c, 'scan']);
-    Route::post('/help',                     [$c, 'help'])->middleware('throttle:6,1');
+    Route::post('/help',                     [$c, 'help'])->middleware('throttle:30,1');
+    Route::get('/help',                      [$c, 'helpStatus']);
     Route::post('/quote',                    [$c, 'quote']);
     Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');

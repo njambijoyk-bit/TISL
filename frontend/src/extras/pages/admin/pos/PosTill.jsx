@@ -333,7 +333,7 @@ export default function PosTill() {
             {helpCount === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nobody is waiting.</p>}
             {(helpList ?? []).map((h) => (
               <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span>{h.station} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {h.minutes < 1 ? 'just now' : `${h.minutes} min ago`}</span></span>
+                <span>{h.station} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {h.minutes < 1 ? 'just now' : `${h.minutes} min ago`}{h.tries > 1 ? ` · asked ${h.tries} times` : ''}</span></span>
                 <button type="button" style={btnPrimary} onClick={async () => { await posAPI.helpDone(h.id).catch(() => {}); setHelpList((l) => (l ?? []).filter((x) => x.id !== h.id)); }}>Done</button>
               </div>
             ))}

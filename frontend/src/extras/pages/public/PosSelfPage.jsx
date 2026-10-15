@@ -30,7 +30,9 @@ export default function PosSelfPage() {
   const [result, setResult] = useState(null);   // { session, pay, number }
   const [warn, setWarn] = useState(null);
   const [help, setHelp] = useState(false);
-  const [helpSent, setHelpSent] = useState(false);
+  const [helpState, setHelpState] = useState(null);   // { open, minutes, tries, max } from the server
+  const [helpMsg, setHelpMsg] = useState(null);
+  const [helped, setHelped] = useState(false);
   const last = useRef(Date.now());
   const stop = useRef(false);
   const input = useRef(null);
@@ -38,6 +40,17 @@ export default function PosSelfPage() {
   useEffect(() => { posSelfAPI.config(token).then(setCfg).catch(() => setLost(true)); return () => { stop.current = true; }; }, [token]);
 
   const reset = useCallback(() => { stop.current = true; setBasket([]); setStep('welcome'); setPhone(''); setQuote(null); setProblem(null); setResult(null); setQ(''); setWarn(null); setHelp(false); last.current = Date.now(); }, []);
+  const askHelp = async () => {
+    setHelp(true); setHelpMsg(null);
+    try { setHelpState(await posSelfAPI.help(token)); } catch (e) { setHelpMsg(errMsg(e, 'We could not call for help. Please wave to a member of staff.')); }
+  };
+  useEffect(() => {   // while someone has been called, keep checking whether they have been
+    if (!cfg || !helpState?.open) return undefined;
+    const t = setInterval(() => {
+      posSelfAPI.helpStatus(token).then((r) => { setHelpState(r); if (!r.open) { setHelped(true); setTimeout(() => setHelped(false), 12000); } }).catch(() => {});
+    }, 8000);
+    return () => clearInterval(t);
+  }, [cfg, helpState?.open, token]);
   const touch = () => { last.current = Date.now(); setWarn(null); };
 
   useEffect(() => {
@@ -60,11 +73,12 @@ export default function PosSelfPage() {
 
   const items = useMemo(() => basket.map((b) => ({ variant_id: b.variant_id, quantity: b.quantity })), [basket]);
   useEffect(() => {
-    if (step !== 'review' && step !== 'pay') return undefined;
+    if (step !== 'review' && step !== 'pay' && step !== 'shop') return undefined;
+    if (items.length === 0) { setQuote(null); return undefined; }
     let live = true;
     posSelfAPI.quote(token, items).then((r) => { if (live) { setQuote(r); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'We could not price your basket.')); } });
     return () => { live = false; };
-  }, [step, items, token]);
+  }, [step, items, token]);   // the books price the basket every time it changes: what is shown is what will be charged
 
   const add = (it) => setBasket((b) => (b.some((x) => x.variant_id === it.variant_id) ? b.map((x) => (x.variant_id === it.variant_id ? { ...x, quantity: Math.min(20, x.quantity + 1) } : x)) : [...b, { ...it, quantity: 1 }]));
   const bump = (id, d) => setBasket((b) => b.map((x) => (x.variant_id === id ? { ...x, quantity: x.quantity + d } : x)).filter((x) => x.quantity > 0));
@@ -108,7 +122,23 @@ export default function PosSelfPage() {
   if (!cfg) return <main style={{ minHeight: '100vh', display: 'grid', placeItems: 'center' }}><Loader2 size={48} /></main>;
 
   const count = basket.reduce((a, b) => a + b.quantity, 0);
-  const total = basket.reduce((a, b) => a + (b.price || 0) * b.quantity, 0);
+  const totals = quote && basket.length > 0 && (
+    <div style={{ display: 'grid', gap: 4, fontSize: '1.05rem', color: '#475569', borderTop: '2px solid #e2e8f0', paddingTop: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(quote.subtotal)}</span></div>
+      {(quote.tax_breakdown?.length ? quote.tax_breakdown : (quote.tax_total > 0 ? [{ label: 'Tax', amount: quote.tax_total }] : [])).map((t, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{t.label ?? 'Tax'}{t.percent != null ? ` (${t.percent}%)` : ''}</span><span>{money(t.amount)}</span></div>
+      ))}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.5rem', fontWeight: 900, color: '#0f172a' }}><span>To pay</span><span>{money(quote.total)}</span></div>
+    </div>
+  );
+  const helpBanner = helpState?.open ? (
+    <div role="status" style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', padding: '12px 16px', borderRadius: 14, background: '#ecfdf5', border: '2px solid #34d399', color: '#065f46', fontSize: '1.1rem', fontWeight: 700 }}>
+      <span>✔ Help is on the way. A member of staff has been told{helpState.minutes > 0 ? ` (${helpState.minutes} min ago)` : ''}. Please stay at this screen.</span>
+      <button type="button" disabled={helpState.tries >= helpState.max} onClick={askHelp} style={{ ...huge('#047857'), padding: '10px 18px', fontSize: '1rem' }}>Ask again ({helpState.tries}/{helpState.max})</button>
+    </div>
+  ) : helped ? (
+    <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: '#eff6ff', border: '2px solid #60a5fa', color: '#1e3a8a', fontSize: '1.1rem', fontWeight: 700 }}>A member of staff has attended to you. Thank you for waiting.</div>
+  ) : null;
   const shell = (children) => (
     <main onPointerDown={touch} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: '#f8fafc', color: '#0f172a' }} data-testid="self-checkout" data-step={step}>
       <Helmet><title>{cfg.business}</title></Helmet>
@@ -179,17 +209,10 @@ export default function PosSelfPage() {
     return shell(
       <div style={{ flex: 1, display: 'grid', gap: 16, padding: 24, alignContent: 'start', maxWidth: 760, width: '100%', margin: '0 auto' }}>
         <h1 style={{ margin: 0 }}>Your basket</h1>
+        {helpBanner}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.1rem' }}>{problem}</p>}
         {(quote?.lines ?? []).map((l, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem' }}><span>{l.description} × {l.quantity}</span><span>{money(l.amount)}</span></div>)}
-        {quote && (
-          <div style={{ display: 'grid', gap: 4, fontSize: '1.1rem', color: '#475569', borderTop: '2px solid #e2e8f0', paddingTop: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(quote.subtotal)}</span></div>
-            {(quote.tax_breakdown?.length ? quote.tax_breakdown : (quote.tax_total > 0 ? [{ label: 'Tax', amount: quote.tax_total }] : [])).map((t, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{t.label ?? t.name ?? 'Tax'}{t.rate != null ? ` (${t.rate}%)` : ''}</span><span>{money(t.amount ?? t.tax_amount)}</span></div>
-            ))}
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.8rem', fontWeight: 900 }}><span>Total</span><span>{money(quote?.total)}</span></div>
+        {totals}
         {step === 'review' && (
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
             <button type="button" style={huge('#64748b')} onClick={() => setStep('shop')}>Add more</button>
@@ -215,6 +238,7 @@ export default function PosSelfPage() {
   return shell(
     <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 16, padding: 20, alignItems: 'start' }}>
       <section style={{ display: 'grid', gap: 12 }}>
+        {helpBanner}
         <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan an item, or type its name" aria-label="Scan or search" style={{ padding: 18, fontSize: '1.4rem', borderRadius: 14, border: '2px solid #cbd5e1' }} />
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
@@ -239,14 +263,19 @@ export default function PosSelfPage() {
           </div>
         ))}
         {basket.length === 0 && <p style={{ margin: 0, color: '#64748b' }}>Scan your first item.</p>}
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.4rem', fontWeight: 900 }}><span>About</span><span>{money(total)}</span></div>
+        {totals}
         <button type="button" style={huge('#059669')} disabled={basket.length === 0} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
-        <button type="button" style={huge('#e2e8f0', '#0f172a')} onClick={() => { setHelp(true); setHelpSent(false); posSelfAPI.help(token).then(() => setHelpSent(true)).catch((e) => setProblem(errMsg(e, 'We could not call for help. Please wave to a member of staff.'))); }}>Call for help</button>
+        <button type="button" style={huge('#e2e8f0', '#0f172a')} onClick={askHelp}>Call for help</button>
       </aside>
       {help && (
         <div role="dialog" aria-label="Help" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', display: 'grid', placeItems: 'center', zIndex: 80 }}>
           <div style={{ background: '#fff', borderRadius: 20, padding: 28, display: 'grid', gap: 14, maxWidth: 420, textAlign: 'center' }}>
-            <h2 style={{ margin: 0 }}>{helpSent ? 'A member of staff has been told and will come to you.' : 'Calling a member of staff…'}</h2>
+            {helpMsg
+              ? <h2 style={{ margin: 0, color: '#b91c1c' }}>{helpMsg}</h2>
+              : !helpState
+                ? <h2 style={{ margin: 0 }}>Calling a member of staff…</h2>
+                : <h2 style={{ margin: 0, color: '#047857' }}>✔ A member of staff has been told and is coming. Please stay at this screen.</h2>}
+            {helpState && <p style={{ margin: 0, fontWeight: 700 }}>Request {helpState.tries} of {helpState.max} allowed this hour.</p>}
             <p style={{ margin: 0, color: '#64748b' }}>They can clear this screen or help you pay.</p>
             <button type="button" style={huge('#0f172a')} onClick={() => setHelp(false)}>OK</button>
             <button type="button" style={huge('#64748b')} onClick={reset}>Start over</button>
