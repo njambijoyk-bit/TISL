@@ -8,7 +8,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus, canRunFoodTill } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
@@ -51,7 +51,7 @@ function QrModal({ table, onClose, onRenew }) {
   const print = () => { const w = window.open('', '_blank', 'width=420,height=560'); if (!w) return; w.document.write(`<!doctype html><title>${table.name}</title><body style="font-family:sans-serif;text-align:center"><h1>${table.name}</h1><div style="width:300px;margin:auto">${svg}</div><p>Scan to see the menu and order from your table.</p>`); w.document.close(); w.focus(); w.print(); };
 
   return (
-    <Modal title={`QR code · ${table.name}`} onClose={onClose} width={400} footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}><button type="button" style={{ ...btn('transparent', '#b91c1c'), border: '1.5px solid #fca5a5' }} onClick={onRenew}>New code</button><button type="button" style={btn('#0f172a')} onClick={print} disabled={!svg}>Print</button></div>}>
+    <Modal title={`QR code · ${table.name}`} onClose={onClose} width={400} footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'space-between' }}>{onRenew && <button type="button" style={{ ...btn('transparent', '#b91c1c'), border: '1.5px solid #fca5a5' }} onClick={onRenew}>New code</button>}<button type="button" style={btn('#0f172a')} onClick={print} disabled={!svg}>Print</button></div>}>
       <div data-testid="qr" style={{ display: 'grid', placeItems: 'center', minHeight: 240 }} dangerouslySetInnerHTML={{ __html: svg ?? 'Making the code…' }} />
       <p style={{ margin: '8px 0 0', fontSize: '0.78rem', color: colors.textMuted }}>Guests scan this to see the menu and order. “New code” makes the printed one stop working (use it if a photo of it was shared).</p>
     </Modal>
@@ -61,7 +61,8 @@ function QrModal({ table, onClose, onRenew }) {
 /** Menus → Floor: the plan of the tables with what each is doing, one tap to seat, ask for the bill, clean, join tables or open its tab in the till; and, when editing, the places of the tables. */
 export default function MenusFloor() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canManageMenus(user);
+  const canAct = canManageMenus(user);   // changing the plan: areas, tables, their places, their QR codes
+  const canServe = canRunFoodTill(user);   // seating, taking orders, the bill, cleaning, joining tables
   const [data, setData] = useState(null);
   const [locationId, setLocationId] = useState('');
   const [areaId, setAreaId] = useState(null);
@@ -97,7 +98,7 @@ export default function MenusFloor() {
   };
   const addArea = async () => { try { await menusAPI.saveArea({ name: areaName, location_id: Number(locationId) }); setAreaName(''); await load(); } catch (e) { toast.error(errMsg(e, 'Could not add the area'), { duration: 8000 }); } };
 
-  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the floor" /></div></AdminLayout>;
+  if (!canViewMenus(user) && !canServe) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the floor" /></div></AdminLayout>;
   const width = Math.max(14, ...tables.map((t) => t.x + t.w + 1)) * CELL;
   const height = Math.max(8, ...tables.map((t) => t.y + t.h + 1)) * CELL;
 
@@ -155,7 +156,7 @@ export default function MenusFloor() {
                         <button type="button" style={btn('#0ea5e9')} onClick={() => setForm(sel)}>Edit table</button>
                         <button type="button" style={{ ...btn('transparent', '#b91c1c'), border: '1.5px solid #fca5a5' }} onClick={async () => { try { await menusAPI.removeTable(sel.id); setPick(null); await load(); } catch (e) { toast.error(errMsg(e, 'Could not remove the table'), { duration: 8000 }); } }}>Remove</button>
                       </div>
-                    ) : canAct && (
+                    ) : canServe && (
                       <div style={{ display: 'grid', gap: 8 }}>
                         {['free', 'reserved'].includes(sel.state) && <button type="button" style={btn('#0ea5e9')} onClick={() => { const g = window.prompt('How many guests?', String(Math.min(sel.seats, 2))); if (g) act(sel.id, 'seat', { guests: Number(g) }, 'Seated.'); }}>Seat guests</button>}
                         {!sel.tab && ['free', 'reserved', 'seated'].includes(sel.state) && <Link to={`/admin/menus/till?table=${sel.id}`} style={{ ...btn('#059669'), textDecoration: 'none', textAlign: 'center' }}>Take their order</Link>}
@@ -186,7 +187,7 @@ export default function MenusFloor() {
         )}
       </div>
       {form && data && <TableForm table={form.id ? form : null} areas={data.all_areas.filter((a) => a.is_active)} resources={data.resources} onClose={() => setForm(null)} onDone={() => { setForm(null); load(); }} />}
-      {qr && <QrModal table={qr} onClose={() => setQr(null)} onRenew={async () => { try { const r = await menusAPI.tableAct(qr.id, 'renew-qr'); setQr(r.table); await load(); toast.success('A new code was made. Print it again.'); } catch (e) { toast.error(errMsg(e, 'Could not renew the code')); } }} />}
+      {qr && <QrModal table={qr} onClose={() => setQr(null)} onRenew={canAct ? async () => { try { const r = await menusAPI.tableAct(qr.id, 'renew-qr'); setQr(r.table); await load(); toast.success('A new code was made. Print it again.'); } catch (e) { toast.error(errMsg(e, 'Could not renew the code')); } } : undefined} />}
     </AdminLayout>
   );
 }

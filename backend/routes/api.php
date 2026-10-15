@@ -918,6 +918,33 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // RECIPES & PRODUCTION (Menus) — see: finance, managers; act: finance, admins
+    // The food till and the floor: for anyone who may run them (menus.till), as well as those who see or manage Menus. No recipes, costs or setup here.
+    Route::middleware(['module:menus', 'permission:menus.till,menus.view,menus.manage'])->prefix('admin/menus')->group(function () {
+        $tc = \App\Http\Controllers\Admin\MenusCounterController::class;
+        $fc = \App\Http\Controllers\Admin\MenusFloorController::class;
+        Route::get('/till', [$tc, 'till']);
+        Route::get('/orders/{id}/receipt', [$tc, 'receipt'])->whereNumber('id');
+        Route::get('/floor', [$fc, 'show']);
+        Route::get('/floor/tables/{id}/qr', [$fc, 'qr'])->whereNumber('id');
+    });
+    Route::middleware(['module:menus', 'permission:menus.till,menus.manage'])->prefix('admin/menus')->group(function () {
+        $tc = \App\Http\Controllers\Admin\MenusCounterController::class;
+        $fc = \App\Http\Controllers\Admin\MenusFloorController::class;
+        $oc = \App\Http\Controllers\Admin\MenusOrderAdminController::class;
+        Route::post('/floor/tables/{id}/{action}', [$fc, 'act'])->whereNumber('id')->where('action', 'seat|clear|bill|merge|unmerge|renew-qr');   // renewing a table's QR code is checked in the controller: it stays with menus.manage
+        Route::post('/till/kiosk/{id}/settle', [$tc, 'settleKiosk'])->whereNumber('id');
+        Route::post('/till/quote', [$tc, 'quote']);
+        Route::post('/till/sell', [$tc, 'sell']);
+        Route::post('/till/tabs', [$tc, 'openTab']);
+        Route::post('/till/tabs/{id}/move', [$tc, 'moveTab'])->whereNumber('id');
+        Route::post('/till/tabs/{id}/split', [$tc, 'splitTab'])->whereNumber('id');
+        Route::post('/till/tabs/{id}/quote', [$tc, 'quoteTab'])->whereNumber('id');
+        Route::post('/till/tabs/{id}/add', [$tc, 'addToTab'])->whereNumber('id');
+        Route::delete('/till/tabs/{id}/lines/{line}', [$tc, 'voidLine'])->whereNumber(['id', 'line']);
+        Route::post('/till/tabs/{id}/settle', [$tc, 'settleTab'])->whereNumber('id');
+        Route::post('/till/tabs/{id}/cancel', [$tc, 'cancelTab'])->whereNumber('id');
+        Route::post('/orders/{id}/status', [$oc, 'status'])->whereNumber('id');
+    });
     Route::middleware(['module:menus', 'permission:menus.view'])->prefix('admin/menus')->group(function () {
         $r = \App\Http\Controllers\Admin\RecipeController::class;
         Route::get('/recipes', [$r, 'index']);
@@ -934,8 +961,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [$oc, 'index']);
         Route::get('/channels', [$oc, 'channelList']);
         $tc = \App\Http\Controllers\Admin\MenusCounterController::class;
-        Route::get('/till', [$tc, 'till']);
-        Route::get('/orders/{id}/receipt', [$tc, 'receipt'])->whereNumber('id');
         $fc = \App\Http\Controllers\Admin\MenusFloorController::class;
         $op = \App\Http\Controllers\Admin\MenusOperationsController::class;
         Route::get('/operations/prep', [$op, 'prep']);
@@ -969,8 +994,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/chefs/candidates', [$ch, 'candidates']);
         $kk = \App\Http\Controllers\Admin\MenusKioskAdminController::class;
         Route::get('/kiosks', [$kk, 'index']);
-        Route::get('/floor', [$fc, 'show']);
-        Route::get('/floor/tables/{id}/qr', [$fc, 'qr'])->whereNumber('id');
         $kc = \App\Http\Controllers\Admin\MenusKitchenController::class;
         Route::get('/kitchen/stations', [$kc, 'stations']);
         Route::get('/kitchen/screen/{id}', [$kc, 'screen'])->whereNumber('id');
@@ -983,7 +1006,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/floor/tables/{id}', [$fc, 'saveTable'])->whereNumber('id');
             Route::delete('/floor/tables/{id}', [$fc, 'deleteTable'])->whereNumber('id');
             Route::put('/floor/layout', [$fc, 'layout']);
-            Route::post('/floor/tables/{id}/{action}', [$fc, 'act'])->whereNumber('id')->where('action', 'seat|clear|bill|merge|unmerge|renew-qr');
             Route::post('/operations/reorder', [$op, 'makeOrders']);
             Route::post('/operations/waste', [$op, 'wasteStore']);
             Route::post('/operations/waste/{id}/void', [$op, 'wasteVoid'])->whereNumber('id');
@@ -1040,22 +1062,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/kiosks/{id}', [$kk, 'save'])->whereNumber('id');
             Route::post('/kiosks/{id}/renew', [$kk, 'renew'])->whereNumber('id');
             Route::delete('/kiosks/{id}', [$kk, 'destroy'])->whereNumber('id');
-            Route::post('/till/kiosk/{id}/settle', [$tc, 'settleKiosk'])->whereNumber('id');
-            Route::post('/till/quote', [$tc, 'quote']);
-            Route::post('/till/sell', [$tc, 'sell']);
-            Route::post('/till/tabs', [$tc, 'openTab']);
-            Route::post('/till/tabs/{id}/move', [$tc, 'moveTab'])->whereNumber('id');
-            Route::post('/till/tabs/{id}/split', [$tc, 'splitTab'])->whereNumber('id');
-            Route::post('/till/tabs/{id}/quote', [$tc, 'quoteTab'])->whereNumber('id');
-            Route::post('/till/tabs/{id}/add', [$tc, 'addToTab'])->whereNumber('id');
-            Route::delete('/till/tabs/{id}/lines/{line}', [$tc, 'voidLine'])->whereNumber(['id', 'line']);
-            Route::post('/till/tabs/{id}/settle', [$tc, 'settleTab'])->whereNumber('id');
-            Route::post('/till/tabs/{id}/cancel', [$tc, 'cancelTab'])->whereNumber('id');
             Route::post('/kitchen/stations', [$kc, 'saveStation']);
             Route::put('/kitchen/stations/{id}', [$kc, 'saveStation'])->whereNumber('id');
             Route::delete('/kitchen/stations/{id}', [$kc, 'destroyStation'])->whereNumber('id');
             Route::post('/kitchen/tickets/{id}/{action}', [$kc, 'ticket'])->whereNumber('id')->where('action', 'start|ready|recall');
-            Route::post('/orders/{id}/status', [$oc, 'status'])->whereNumber('id');
             Route::post('/orders/{id}/pay', [$oc, 'pay'])->whereNumber('id');
             Route::put('/channels/{id}', [$oc, 'saveChannel'])->whereNumber('id');
             Route::post('/menus', [$mc, 'save']);

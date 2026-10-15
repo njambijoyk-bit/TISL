@@ -65,6 +65,8 @@ export const canReadFinance = (user) => hasPermission(user, 'books.view');
 /** The Menus screens (kitchen, till, floor, recipes): seeing them, and changing them. The server asks for the same two permissions. */
 export const canViewMenus = (user) => hasPermission(user, 'menus.view');
 export const canManageMenus = (user) => hasPermission(user, 'menus.manage');
+/** Running the food till and the floor (seat, take orders, bill, hand over): menus.till, or the managers of Menus. */
+export const canRunFoodTill = (user) => hasPermission(user, 'menus.till') || hasPermission(user, 'menus.manage');
 export const canWriteFinance = (user) => hasPermission(user, 'books.post');
 export const canUsePayroll = (user) => hasPermission(user, 'payroll.run');
 export const canDeleteCatalogue = (user) => hasPermission(user, 'catalogue.delete');

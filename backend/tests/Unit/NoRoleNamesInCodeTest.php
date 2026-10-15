@@ -130,6 +130,7 @@ class NoRoleNamesInCodeTest extends TestCase
         'pos.manage' => ['super_admin', 'admin', 'manager'],
         'menus.view' => ['super_admin', 'admin', 'manager', 'finance'],
         'menus.manage' => ['super_admin', 'admin', 'finance'],
+        'menus.till' => ['super_admin', 'admin', 'manager'],
         'courses.view' => ['super_admin', 'admin'],
         'courses.manage' => ['super_admin', 'admin'],
         'courses.teach' => ['super_admin', 'admin'],

@@ -898,8 +898,8 @@ function App() {
               <Route path="/admin/menus/dishes" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusDishes /></ProtectedRoute>} />
               <Route path="/admin/menus/operations" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusOperations /></ProtectedRoute>} />
               <Route path="/admin/menus/chefs" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusChefs /></ProtectedRoute>} />
-              <Route path="/admin/menus/floor" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusFloor /></ProtectedRoute>} />
-              <Route path="/admin/menus/till" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusTill /></ProtectedRoute>} />
+              <Route path="/admin/menus/floor" element={<ProtectedRoute requireAdmin permission="menus.view,menus.till"><MenusFloor /></ProtectedRoute>} />
+              <Route path="/admin/menus/till" element={<ProtectedRoute requireAdmin permission="menus.view,menus.till"><MenusTill /></ProtectedRoute>} />
               <Route path="/admin/menus/kitchen" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusKitchen /></ProtectedRoute>} />
               <Route path="/admin/menus/door/:locationId" element={<ProtectedRoute requireAdmin permission="menus.manage"><MenusDoorScreen /></ProtectedRoute>} />
               <Route path="/clock/:code" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusClockDoor /></ProtectedRoute>} />

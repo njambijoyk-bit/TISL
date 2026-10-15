@@ -96,6 +96,9 @@ class MenusFloorController extends Controller
 
     public function act(Request $request, int $id, string $action): JsonResponse
     {
+        if ($action === 'renew-qr' && ! app(\App\Services\Access\Authorizer::class)->allows($request->user(), 'menus.manage')) {
+            return response()->json(['message' => 'Making a new QR code for a table needs the permission to manage Menus.'], 403);   // the till and floor are open to menus.till, this is not
+        }
         $t = Table::findOrFail($id);
         $d = $request->validate(['guests' => 'nullable|integer|min:1|max:200', 'ids' => 'nullable|array|max:20', 'ids.*' => 'integer']);
 

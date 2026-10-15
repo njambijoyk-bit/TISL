@@ -94,7 +94,7 @@ Offline selling (the idempotency key and a per-sale client id are the groundwork
 5. **Printing**: two copies, the five paper sizes, reprint.
 6. **Shifts and cash-up**, X and Z reports.
 7. **Self checkout**: station token, `/pos/self/*`, payments, supervisor assist.
-8. **Menus till permission**: `menus.till` (run the food till and floor without `menus.manage`, no recipe costs) so a cashier or waiter can use the food till too. Stays in Menus.
+8. **Menus till permission** (done): `menus.till` (run the food till and floor without `menus.manage`, no recipe costs) so a cashier or waiter can use the food till too. Stays in Menus. Seeded to Manager and Cashier; give it to a waiter role in the role builder.
 9. **Tests and mutation checks** for the whole module, once everything above is built.
 10. Later: eTIMS (in Books, own plan), offline.
 

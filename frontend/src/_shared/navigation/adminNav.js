@@ -213,8 +213,8 @@ export const ADMIN_NAV = [
     label: 'Menus',
     module: MODULES.MENUS,
     items: [
-      { id: 'till', title: 'Till', icon: Coins, color: '#10b981', path: '/admin/menus/till', perm: 'menus.view', keywords: 'till cashier pay tab receipt counter' },
-      { id: 'floor', title: 'Floor', icon: Armchair, color: '#8b5cf6', path: '/admin/menus/floor', perm: 'menus.view', keywords: 'tables floor plan seat bill qr' },
+      { id: 'till', title: 'Till', icon: Coins, color: '#10b981', path: '/admin/menus/till', perm: ['menus.view', 'menus.till'], keywords: 'till cashier pay tab receipt counter' },
+      { id: 'floor', title: 'Floor', icon: Armchair, color: '#8b5cf6', path: '/admin/menus/floor', perm: ['menus.view', 'menus.till'], keywords: 'tables floor plan seat bill qr' },
       { id: 'orders', title: 'Orders', icon: BellRing, color: '#ef4444', path: '/admin/menus/orders', perm: 'menus.view', keywords: 'orders pickup delivery board' },
       { id: 'plans', title: 'Meal plans', icon: Soup, color: '#16a34a', path: '/admin/menus/plans', perm: 'menus.view', keywords: 'meal plan subscription weekly delivery' },
       { id: 'custom', title: 'Cakes & catering', icon: CakeSlice, color: '#e11d48', path: '/admin/menus/custom', perm: 'menus.view', keywords: 'cake catering private chef quote deposit' },
