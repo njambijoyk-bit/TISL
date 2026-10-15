@@ -7,7 +7,7 @@ use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\User;
 use App\Services\Books\BooksException;
-use App\Services\Books\CurrencyConversionService;
+use App\Services\CurrencyConversionService;
 use App\Services\Books\GiftVoucherService;
 use App\Services\Books\PromoUsageService;
 use App\Services\Books\RewardService;
