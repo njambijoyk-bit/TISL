@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { CheckCircle2, Loader2, ScanLine, Sun, Moon, LifeBuoy, RotateCcw } from 'lucide-react';
+import { CheckCircle2, Loader2, ScanLine, Sun, Moon, LifeBuoy, RotateCcw, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import useThemeStore from '../../../_shared/store/themeStore';
 import { useTheme } from '../../../_shared/theme';
 import posSelfAPI from '../../../_shared/api/posSelf';
@@ -52,6 +52,8 @@ export default function PosSelfPage() {
   const [cust, setCust] = useState(null);             // { name, points }: no list of customers is ever shown
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [focus, setFocus] = useState('');
   const [promo, setPromo] = useState('');
   const [promoIn, setPromoIn] = useState('');
   const [gifts, setGifts] = useState([]);
@@ -335,18 +337,7 @@ export default function PosSelfPage() {
     );
   }
 
-  if (step === 'account') {
-    return shell(
-      <div style={{ flex: 1, display: 'grid', placeContent: 'center', gap: 16, textAlign: 'center', padding: 24, maxWidth: 560, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        <h1 style={{ margin: 0, fontSize: 'clamp(1.4rem, 4vw, 2rem)' }}>Do you have an account with us?</h1>
-        <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Sign in to earn loyalty points on this purchase and to use a promo code or gift voucher.</p>
-        <button type="button" style={huge('var(--color-primary-500)')} onClick={() => { setProblem(null); setStep('login'); }}>Yes, sign in</button>
-        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setStep('shop')}>No, carry on as a guest</button>
-      </div>,
-    );
-  }
-
-  if (step === 'login') {
+  if (step === 'account' || step === 'login') {
     const signIn = async () => {
       setBusy(true); setProblem(null);
       try {
@@ -354,16 +345,54 @@ export default function PosSelfPage() {
         setCustToken(r.token); setCust({ name: r.name, points: r.points }); setPassword(''); setStep('shop');
       } catch (e) { setProblem(errMsg(e, 'We could not sign you in.')); setPassword(''); } finally { setBusy(false); }
     };
+    const ready = email.trim() && password && !busy;
+    const inputStyle = (name, extra = {}) => ({ width: '100%', padding: '13px 14px 13px 42px', borderRadius: 10, border: `1.5px solid ${focus === name ? 'var(--color-primary-500)' : 'var(--line)'}`, fontSize: '0.95rem', outline: 'none', transition: 'border-color 150ms', boxSizing: 'border-box', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontFamily: 'inherit', ...extra });
+    const label = { display: 'block', fontSize: '0.72rem', fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' };
 
     return shell(
-      <form onSubmit={(e) => { e.preventDefault(); if (email.trim() && password) signIn(); }} style={{ flex: 1, display: 'grid', placeContent: 'center', gap: 12, padding: 24, maxWidth: 460, margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        <h1 style={{ margin: 0, fontSize: 'clamp(1.3rem, 4vw, 1.8rem)', textAlign: 'center' }}>Sign in</h1>
-        <input type="email" autoComplete="off" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Your email" aria-label="Email" style={{ padding: 16, fontSize: '1.05rem', borderRadius: 12, border: '2px solid var(--line)' }} />
-        <input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" aria-label="Password" style={{ padding: 16, fontSize: '1.05rem', borderRadius: 12, border: '2px solid var(--line)' }} />
-        {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', textAlign: 'center' }}>{problem}</p>}
-        <button type="submit" style={huge('var(--color-primary-500)')} disabled={busy || !email.trim() || !password}>{busy ? 'Checking...' : 'Sign in'}</button>
-        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => { setPassword(''); setProblem(null); setStep('account'); }}>Back</button>
-      </form>,
+      <div style={{ flex: 1, display: 'grid', placeItems: 'center', padding: tiny ? 12 : 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : '1fr 1.4fr', width: '100%', maxWidth: 820, borderRadius: 24, overflow: 'hidden', boxShadow: '0 32px 80px rgba(0,0,0,0.14)', background: 'var(--surface-card, #fff)' }}>
+          <div style={{ position: 'relative', overflow: 'hidden', background: 'linear-gradient(145deg, var(--color-primary-400) 0%, var(--color-primary-500) 40%, var(--color-primary-600) 100%)', color: 'var(--text-inverse, #fff)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: narrow ? 14 : 24, padding: narrow ? '22px 20px' : '40px 28px', textAlign: 'center' }}>
+            <div style={{ position: 'absolute', top: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ position: 'absolute', bottom: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ width: narrow ? 52 : 72, height: narrow ? 52 : 72, borderRadius: 20, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'grid', placeItems: 'center', margin: '0 auto 12px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
+                <span style={{ fontSize: narrow ? '1.2rem' : '1.6rem', fontWeight: 900 }}>{String(cfg.business).slice(0, 1).toUpperCase()}</span>
+              </div>
+              <h2 style={{ margin: 0, fontSize: narrow ? '1.1rem' : '1.4rem', fontWeight: 800 }}>{cfg.business}</h2>
+              <p style={{ margin: '6px 0 0', fontSize: '0.8rem', opacity: 0.8 }}>Self checkout</p>
+            </div>
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: narrow ? 'row' : 'column', gap: 8, width: '100%' }}>
+              <div style={{ flex: 1, background: 'white', color: 'var(--color-primary-600)', borderRadius: 12, padding: '11px 16px', fontSize: '0.82rem', fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>Sign in</div>
+              <button type="button" onClick={() => { setPassword(''); setProblem(null); setStep('shop'); }} style={{ flex: 1, color: 'inherit', background: 'transparent', borderRadius: 12, padding: '11px 16px', fontSize: '0.82rem', fontWeight: 700, border: '1.5px solid rgba(255,255,255,0.45)', letterSpacing: '0.04em', textTransform: 'uppercase', cursor: 'pointer', fontFamily: 'inherit' }}>Continue as guest</button>
+            </div>
+          </div>
+
+          <form onSubmit={(e) => { e.preventDefault(); if (ready) signIn(); }} style={{ padding: tiny ? '24px 20px' : '44px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <h1 style={{ margin: '0 0 4px', fontSize: '1.45rem', fontWeight: 900, letterSpacing: '-0.02em' }}>Do you have an account with us?</h1>
+              <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>Sign in to earn loyalty points and use a promo code or gift voucher. No account? Continue as a guest.</p>
+            </div>
+            <div>
+              <label style={label} htmlFor="self-email">Email</label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focus === 'email' ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }} />
+                <input id="self-email" type="email" autoComplete="off" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} onFocus={() => setFocus('email')} onBlur={() => setFocus('')} placeholder="you@example.com" style={inputStyle('email')} />
+              </div>
+            </div>
+            <div>
+              <label style={label} htmlFor="self-password">Password</label>
+              <div style={{ position: 'relative' }}>
+                <Lock size={15} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: focus === 'password' ? 'var(--color-primary-500)' : 'var(--text-tertiary)' }} />
+                <input id="self-password" type={showPw ? 'text' : 'password'} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} onFocus={() => setFocus('password')} onBlur={() => setFocus('')} placeholder="Enter your password" style={inputStyle('password', { paddingRight: 44 })} />
+                <button type="button" aria-label={showPw ? 'Hide password' : 'Show password'} onClick={() => setShowPw((v) => !v)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 2 }}>{showPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+              </div>
+            </div>
+            {problem && <p role="alert" style={{ margin: 0, color: '#ef4444', fontSize: '0.82rem' }}>{problem}</p>}
+            <button type="submit" disabled={!ready} style={{ height: 46, borderRadius: 12, border: 'none', cursor: ready ? 'pointer' : 'not-allowed', background: ready ? 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' : 'var(--bg-tertiary, #e5e7eb)', color: ready ? 'var(--text-inverse, #fff)' : 'var(--text-tertiary)', fontSize: '0.88rem', fontWeight: 700, letterSpacing: '0.04em', boxShadow: ready ? '0 4px 14px color-mix(in srgb, var(--color-primary-500) 35%, transparent)' : 'none', fontFamily: 'inherit' }}>{busy ? 'Checking...' : 'Sign in'}</button>
+          </form>
+        </div>
+      </div>,
     );
   }
 

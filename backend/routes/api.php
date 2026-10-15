@@ -320,8 +320,6 @@ Route::prefix('kiosk/{token}')->middleware(['module:menus', 'throttle:240,1'])->
     $c = \App\Http\Controllers\Api\MenusKioskController::class;
     Route::get('/',                          [$c, 'show']);
     Route::post('/quote',                    [$c, 'quote']);
-    Route::post('/customer/login',           [$c, 'customerLogin'])->middleware('throttle:8,1');
-    Route::post('/customer/logout',          [$c, 'customerLogout']);
     Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
     Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
@@ -336,6 +334,8 @@ Route::prefix('pos/self/{token}')->middleware(['module:extras', 'throttle:240,1'
     Route::get('/help',                      [$c, 'helpStatus']);
     Route::post('/help/cancel',              [$c, 'helpCancel'])->middleware('throttle:30,1');
     Route::post('/quote',                    [$c, 'quote']);
+    Route::post('/customer/login',           [$c, 'customerLogin'])->middleware('throttle:8,1');
+    Route::post('/customer/logout',          [$c, 'customerLogout']);
     Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
     Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
