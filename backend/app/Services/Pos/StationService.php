@@ -19,6 +19,9 @@ use Illuminate\Support\Str;
  */
 class StationService
 {
+    /** A cash over or short bigger than this (base currency) needs a supervisor's PIN to close the shift, until the branch sets its own. */
+    public const VARIANCE_LIMIT = 100.0;
+
     public const PAPER = ['a4' => 'A4', 'pos110' => 'POS 110 mm', 'pos85' => 'POS 85 mm', 'pos80' => 'POS 80 mm', 'pos58' => 'POS 58 mm'];
     public const KINDS = ['staff' => 'Staff till', 'self_checkout' => 'Self checkout'];
 
@@ -186,7 +189,7 @@ class StationService
         $allowed = array_values(array_filter(array_keys(self::PAPER), fn ($k) => in_array($k, $allowed, true)));
         $default = $r->paper_default ?? 'pos80';
 
-        return ['location_id' => $locationId, 'paper_default' => in_array($default, $allowed, true) ? $default : ($allowed[0] ?? 'pos80'), 'paper_allowed' => $allowed ?: array_keys(self::PAPER), 'require_shift' => $r ? (bool) $r->require_shift : true];
+        return ['location_id' => $locationId, 'paper_default' => in_array($default, $allowed, true) ? $default : ($allowed[0] ?? 'pos80'), 'paper_allowed' => $allowed ?: array_keys(self::PAPER), 'require_shift' => $r ? (bool) $r->require_shift : true, 'variance_limit' => $r && isset($r->variance_limit) ? (float) $r->variance_limit : self::VARIANCE_LIMIT];
     }
 
     /** @param array{paper_default?: mixed, paper_allowed?: mixed, require_shift?: mixed} $d */
@@ -215,6 +218,12 @@ class StationService
         $require = array_key_exists('require_shift', $d) ? (bool) $d['require_shift'] : $cur['require_shift'];
         $order = array_values(array_filter(array_keys(self::PAPER), fn ($k) => in_array($k, $allowed, true)));
         $row = ['paper_default' => $default, 'paper_allowed' => json_encode($order), 'require_shift' => $require ? 1 : 0, 'updated_at' => now()];
+        if (array_key_exists('variance_limit', $d) && $d['variance_limit'] !== null && $d['variance_limit'] !== '') {
+            if (! Schema::hasColumn('pos_branch_settings', 'variance_limit')) {
+                throw new BooksException('Run database script 175_pos_variance.sql first.');
+            }
+            $row['variance_limit'] = max(0, round((float) $d['variance_limit'], 2));
+        }
         DB::table('pos_branch_settings')->updateOrInsert(['location_id' => $locationId], $row + ['created_at' => now()]);
 
         return $this->branch($locationId);

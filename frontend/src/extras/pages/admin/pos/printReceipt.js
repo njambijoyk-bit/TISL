@@ -102,6 +102,7 @@ export function reportHtml(rep, paper) {
     ${row(`Payments taken (${rep.receipts.count})`, '')}${row(`Credit notes (${rep.returns.count})`, num(rep.returns.total))}${row('Refunded', num(rep.refunded))}${row('Discounts', num(rep.discounts))}${row('Voids', String(rep.voids))}<hr>
     ${methods}<hr>
     ${row('Expected cash', num(rep.expected_cash), 'b')}${rep.variance != null && rep.methods.some((m) => m.kind !== 'cash' && m.counted != null) ? row(`All counted ${rep.variance === 0 ? 'balanced' : rep.variance > 0 ? 'over' : 'short'}`, num(Math.abs(rep.variance)), 'b') : ''}
+    ${rep.books ? `<div>${rep.books.posted ? `Posted to Books as ${esc(rep.books.journal)}` : `Not posted to Books: ${esc(rep.books.why)}`}</div>` : ''}
     ${sh.note ? `<hr><div>${esc(sh.note)}</div>` : ''}
   </div></body></html>`;
 }

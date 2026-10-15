@@ -77,7 +77,7 @@ class PosStationController extends Controller
 
     public function saveBranch(Request $request, int $locationId): JsonResponse
     {
-        $d = $request->validate(['paper_default' => 'nullable|string|max:10', 'paper_allowed' => 'nullable|array', 'paper_allowed.*' => 'string|max:10', 'require_shift' => 'nullable|boolean']);
+        $d = $request->validate(['paper_default' => 'nullable|string|max:10', 'paper_allowed' => 'nullable|array', 'paper_allowed.*' => 'string|max:10', 'require_shift' => 'nullable|boolean', 'variance_limit' => 'nullable|numeric|min:0']);
 
         return $this->guard(fn () => response()->json(['message' => 'Branch receipt settings saved.', 'branch' => $this->stations->saveBranch($locationId, $d)]));
     }

@@ -60,7 +60,11 @@ export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, on
     try {
       const z = await posAPI.closeShift(shiftId, { counted: Object.entries(counts).filter(([, v]) => v !== '').map(([id, v]) => ({ payment_method_id: Number(id), amount: Number(v) || 0 })), note, approval_token: token, station_id: stationId });
       setRep(z); onClosed?.(); toast.success('Shift closed.');
-    } catch (e) { toast.error(errMsg(e, 'Could not close the shift'), { duration: 9000 }); } finally { setBusy(false); }
+    } catch (e) {
+      const d = e?.response?.data;
+      if (d?.approval === 'close_shift' && !token) { setBusy(false); ask('close_shift', d.message, (a) => doClose(a.token)); return; }   // the cash is off by more than the branch allows
+      toast.error(errMsg(e, 'Could not close the shift'), { duration: 9000 });
+    } finally { setBusy(false); }
   };
   const close = () => (needsPin ? ask('close_shift', 'Closing this shift needs a supervisor. Enter their PIN.', (a) => doClose(a.token)) : doClose());
   const doReopen = async (token) => {
@@ -96,6 +100,9 @@ export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, on
         ))}
         {line('Expected cash in the drawer', money(rep.expected_cash), true)}
         {!open && cashRow && line(`Cash counted ${money(cashRow.counted)} - expected ${money(cashRow.expected)}`, overShort(cashRow.difference), true)}
+        {!open && rep.books && (rep.books.posted
+          ? <div style={{ color: colors.textMuted, fontSize: '0.8rem' }}>Posted to Books as {rep.books.journal}.</div>
+          : <div role="alert" style={{ fontSize: '0.8rem', color: '#b45309', fontWeight: 700 }}>Not posted to Books: {rep.books.why}</div>)}
         {!open && rep.methods.some((m) => m.kind !== 'cash' && m.counted != null) && line('All counted methods together', overShort(rep.variance), true)}
         {open && <input style={field} value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder="Note (needed if the count is not exact)" aria-label="Note" />}
         {!open && rep.shift.note && <div style={{ color: colors.textMuted }}>Note: {rep.shift.note}</div>}

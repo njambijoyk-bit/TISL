@@ -10,7 +10,7 @@ import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/to
 const sub = { fontSize: '0.72rem', color: colors.textMuted };
 
 function Paper({ branch, paper, onSaved }) {
-  const [f, setF] = useState({ paper_default: branch.paper_default, paper_allowed: branch.paper_allowed, require_shift: branch.require_shift });
+  const [f, setF] = useState({ paper_default: branch.paper_default, paper_allowed: branch.paper_allowed, require_shift: branch.require_shift, variance_limit: branch.variance_limit ?? 100 });
   const [busy, setBusy] = useState(false);
   const toggle = (k) => setF((x) => ({ ...x, paper_allowed: x.paper_allowed.includes(k) ? x.paper_allowed.filter((p) => p !== k) : [...x.paper_allowed, k] }));
   const save = async () => {
@@ -30,6 +30,9 @@ function Paper({ branch, paper, onSaved }) {
         </SelectInput>
       </Field>
       <CheckboxRow checked={f.require_shift} onChange={(v) => setF((x) => ({ ...x, require_shift: v?.target ? v.target.checked : v }))} label="A cashier must open a shift before selling" />
+      <Field label="A cash over or short bigger than this needs a supervisor's PIN to close the shift (0 = any difference)" htmlFor={`vl-${branch.id}`}>
+        <input id={`vl-${branch.id}`} inputMode="decimal" value={f.variance_limit} onChange={(e) => setF((x) => ({ ...x, variance_limit: e.target.value.replace(/[^\d.]/g, '') }))} style={{ width: 140, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--line)', fontFamily: 'inherit' }} />
+      </Field>
       <div><button type="button" style={btnPrimary} disabled={busy || f.paper_allowed.length === 0} onClick={save}>Save paper settings</button></div>
     </div>
   );
@@ -103,7 +106,7 @@ export default function PosStations() {
         {d.branches.map((b) => (
           <section key={b.id} style={{ ...card, padding: 18, display: 'grid', gap: 10 }}>
             <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>{b.name}</h2>
-            <Paper key={`${b.paper_default}-${b.paper_allowed.join()}-${b.require_shift}`} branch={b} paper={d.paper} onSaved={load} />
+            <Paper key={`${b.paper_default}-${b.paper_allowed.join()}-${b.require_shift}-${b.variance_limit}`} branch={b} paper={d.paper} onSaved={load} />
             <div style={{ fontSize: '0.78rem', fontWeight: 800 }}>Stations</div>
             {b.stations.length === 0 && <p style={{ ...sub, margin: 0 }}>None yet. The first staff till you add becomes the branch default.</p>}
             {b.stations.map((s) => <StationRow key={s.id} s={s} branchId={b.id} kinds={d.kinds} paper={d.paper} onSaved={load} />)}

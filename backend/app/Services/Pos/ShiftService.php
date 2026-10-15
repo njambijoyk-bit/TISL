@@ -3,13 +3,18 @@
 namespace App\Services\Pos;
 
 use App\Models\Access\AccessLog;
+use App\Models\Books\AccountingSetting;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
+use App\Models\Books\PaymentMethod;
+use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\Pos\Station;
+use App\Models\Currency;
 use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Books\BooksException;
+use App\Services\Books\VoucherService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -147,7 +152,7 @@ class ShiftService
             }
         }
 
-        return ['cash_sales' => $of(VoucherType::CASH_SALE), 'invoices' => $of(VoucherType::SALES), 'orders' => $of(VoucherType::SALES_ORDER), 'receipts' => $of(VoucherType::RECEIPT), 'returns' => $of(VoucherType::CREDIT_NOTE),
+        return ['variance_limit' => $this->stations->branch((int) $sh->location_id)['variance_limit'], 'cash_sales' => $of(VoucherType::CASH_SALE), 'invoices' => $of(VoucherType::SALES), 'orders' => $of(VoucherType::SALES_ORDER), 'receipts' => $of(VoucherType::RECEIPT), 'returns' => $of(VoucherType::CREDIT_NOTE),
             'refunded' => round($refunds, 2), 'cash_refunded' => round($cashRefunds, 2), 'discounts' => round($discounts, 2), 'voids' => $voids, 'methods' => $methods,
             'expected_cash' => round((float) (collect($methods)->firstWhere('kind', 'cash')['expected'] ?? 0), 2)];
     }
@@ -163,9 +168,6 @@ class ShiftService
             if (! $this->mayHandle($u, $sh)) {
                 throw new BooksException('That is someone else\'s shift.');
             }
-            // the cashier closes their own shift; anyone else (or a cashier without the shift permission) needs a supervisor's PIN
-            $needsPin = (int) $sh->user_id !== (int) $u->id || ! app(Authorizer::class)->allows($u, 'pos.shift');
-            $sup = $needsPin ? $this->approvedBy($approval, $u, $at, 'close_shift', $sh, 'Closing this shift needs a supervisor: ask for their PIN.') : null;
             $r = $this->compute($sh);
             $by = collect($counted)->mapWithKeys(fn ($c) => [(int) ($c['payment_method_id'] ?? 0) => round((float) ($c['amount'] ?? 0), 2)]);
             $cash = collect($r['methods'])->firstWhere('kind', 'cash');
@@ -187,15 +189,51 @@ class ShiftService
             }
             $r['methods'] = $rows;
             $r['variance'] = $variance;
+            // A supervisor's PIN is needed to close someone else's shift, or one's own without the shift permission, and whenever the cash is off by more than the branch allows.
+            $cashRow = collect($rows)->firstWhere('kind', 'cash');
+            $gap = $cashRow && $cashRow['counted'] !== null ? (float) $cashRow['difference'] : 0.0;
+            $limit = $this->stations->branch((int) $sh->location_id)['variance_limit'];
+            $large = abs($gap) > $limit + 0.004;
+            $needsPin = (int) $sh->user_id !== (int) $u->id || ! app(Authorizer::class)->allows($u, 'pos.shift') || $large;
+            $sup = $needsPin ? $this->approvedBy($approval, $u, $at, 'close_shift', $sh, $large
+                ? 'The cash is '.($gap > 0 ? 'over' : 'short').' by '.number_format(abs($gap), 2).', more than '.number_format($limit, 2).'. A supervisor must approve closing this shift: ask for their PIN.'
+                : 'Closing this shift needs a supervisor: ask for their PIN.') : null;
             if ($needsPin) {
                 $this->pins->spend($approval, $u, $at, 'close_shift', ['shift' => $shiftId]);   // spent only now the count is accepted
             }
+            $r['books'] = abs($gap) > 0.004 ? $this->postGap($sh, $cashRow, $gap, $u) : null;   // the cash over or short goes to the books
             DB::table('pos_shifts')->where('id', $shiftId)->update(['status' => 'closed', 'closed_at' => now(), 'closed_by' => $u->id, 'counted' => json_encode($by->all()), 'report' => json_encode($r),
                 'variance' => $variance, 'note' => $note ?: null, 'updated_at' => now()]);
-            AccessLog::record($u->id, (int) $sh->user_id, 'pos_shift_closed', ['shift' => $shiftId, 'variance' => $variance] + ($sup ? ['approved_by' => $sup] : []));
+            AccessLog::record($u->id, (int) $sh->user_id, 'pos_shift_closed', ['shift' => $shiftId, 'variance' => $variance, 'cash_gap' => $gap] + ($sup ? ['approved_by' => $sup] : []));
 
             return $this->report($u, $shiftId);
         });
+    }
+
+    /**
+     * Put a cash over or short in the books as a journal: short is Dr Cash Over / Short, Cr the till's cash ledger; over is the other way round. The till's cash ledger is the one the
+     * cash payment method posts to. Closing is never blocked when Books is not set up for it: the report then says the difference was not posted.
+     *
+     * @return array<string, mixed>
+     */
+    private function postGap(object $sh, array $cashRow, float $gap, User $u): array
+    {
+        $over = AccountingSetting::current()->cash_over_short_ledger_id;
+        $cash = PaymentMethod::whereKey($cashRow['id'])->value('ledger_id');
+        $journal = VoucherType::byBase(VoucherType::JOURNAL);
+        if (! $over || ! $cash || ! $journal) {
+            return ['posted' => false, 'amount' => round($gap, 2), 'why' => ! $over ? 'The Cash Over / Short ledger is not chosen in Books settings.' : (! $cash ? 'The cash payment method has no ledger.' : 'The Journal voucher type is switched off.')];
+        }
+        $amount = round(abs($gap), 2);
+        $station = Station::whereKey($sh->station_id)->value('name');
+        [$dr, $cr] = $gap < 0 ? [(int) $over, (int) $cash] : [(int) $cash, (int) $over];
+        $v = app(VoucherService::class)->create([
+            'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'location_id' => (int) $sh->location_id, 'currency_id' => Currency::getBaseCurrency()?->id,
+            'narration' => 'Cash '.($gap < 0 ? 'short' : 'over')." at {$station}, shift #{$sh->id}", 'meta' => ['pos_shift' => (int) $sh->id, 'cash_over_short' => round($gap, 2)],
+            'entries' => [['ledger_id' => $dr, 'side' => 'D', 'amount' => $amount], ['ledger_id' => $cr, 'side' => 'C', 'amount' => $amount]],
+        ], $u);
+
+        return ['posted' => true, 'amount' => round($gap, 2), 'journal_id' => (int) $v->id, 'journal' => $v->voucher_number];
     }
 
     /** The supervisor whose PIN approval is good for this purpose here, who must also hold supervise at the shift's branch. Nothing is spent. */
@@ -241,6 +279,10 @@ class ShiftService
                 throw new BooksException('The station has been opened by someone else since: that shift must be closed first.');
             }
             $this->pins->spend($approval, $u, $at, 'reopen_shift', ['shift' => $shiftId]);
+            $was = json_decode((string) $sh->report, true) ?: [];
+            if (! empty($was['books']['journal_id']) && ($j = Voucher::find($was['books']['journal_id'])) && $j->status === Voucher::POSTED) {
+                app(VoucherService::class)->cancel($j, "Shift #{$shiftId} reopened: closing it again posts the cash over or short afresh", $u);   // the books follow the shift
+            }
             AccessLog::record($u->id, (int) $sh->user_id, 'pos_shift_reopened', ['shift' => $shiftId, 'reason' => $reason, 'approved_by' => $sup, 'closed_at' => $sh->closed_at, 'variance' => $sh->variance,
                 'counted' => json_decode((string) $sh->counted, true), 'report' => json_decode((string) $sh->report, true)]);
             DB::table('pos_shifts')->where('id', $shiftId)->update(['status' => 'open', 'closed_at' => null, 'closed_by' => null, 'counted' => null, 'report' => null, 'variance' => null, 'note' => null, 'updated_at' => now()]);
