@@ -21,11 +21,23 @@ const field = { padding: '9px 11px', borderRadius: 8, border: '1.5px solid var(-
 function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, onCancel, onPay }) {
   const cash = methods.find((m) => m.kind === 'cash') ?? methods[0];
   const later = mode !== 'cash';   // an invoice or an order: paying something now is optional
-  const [rows, setRows] = useState([{ payment_method_id: cash?.id ?? '', amount: later ? '' : String(total), reference: '' }]);
+  const [rows, setRows] = useState([{ payment_method_id: cash?.id ?? '', amount: '', reference: '' }]);   // typed by the cashier: nothing is filled in for them
+  const [giftCode, setGiftCode] = useState('');
   const handed = rows.reduce((a, r) => a + (Number(r.amount) || 0), 0);
   const change = Math.round((handed - total) * 100) / 100;
   const set = (i, patch) => setRows((rs) => rs.map((r, k) => (k === i ? { ...r, ...patch } : r)));
   const left = Math.max(0, Math.round((total - handed) * 100) / 100);
+  const first = rows.findIndex((r) => !r.gift);   // the cash line the quick buttons work on
+  const giftTotal = rows.reduce((a, r) => a + (r.gift ? Number(r.amount) || 0 : 0), 0);
+  const applyGift = async () => {   // look the voucher up, then take what it can pay of what is still owed
+    try {
+      const g = await posAPI.gift(giftCode, customer?.id);
+      if (rows.some((r) => r.gift && r.code === g.code)) { toast.error('That voucher is already on this sale.'); return; }
+      const owed = Math.max(0, Math.round((total - handed) * 100) / 100);
+      setRows((rs) => [...rs, { gift: true, code: g.code, amount: String(Math.min(g.balance, owed)), balance: g.balance, payment_method_id: giftMethodId }]);
+      setGiftCode('');
+    } catch (e) { toast.error(errMsg(e, 'That voucher can not be used')); }
+  };
 
   return (
     <div role="dialog" aria-label="Payment" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
@@ -34,33 +46,40 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, on
         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{money(total, cur)}</div>
         {later && <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? 'The rest goes on their account. Take a part payment now if they are paying some.' : 'Take a deposit now if they are leaving one. Leave it blank for none.'}</div>}
         {rows.map((r, i) => (r.gift ? (
-          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'start', padding: 8, borderRadius: 8, background: colors.tint(0.07) }}>
-            <input style={field} value={r.code} placeholder="Gift voucher code" aria-label="Gift voucher code" onChange={(e) => set(i, { code: e.target.value.toUpperCase(), balance: null })} />
-            <input style={field} inputMode="decimal" value={r.amount} onChange={(e) => set(i, { amount: e.target.value })} aria-label="Amount from the voucher" />
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'center', padding: 8, borderRadius: 8, background: colors.tint(0.07) }}>
+            <span style={{ fontSize: '0.85rem' }}><strong>Gift voucher {r.code}</strong>{r.balance != null && <span style={{ color: colors.textMuted }}> · balance {money(r.balance, cur)}</span>}</span>
+            <input style={field} inputMode="decimal" value={r.amount} onChange={(e) => set(i, { amount: e.target.value })} aria-label="Amount taken from the voucher" />
             <button type="button" style={btnGhost} aria-label="Remove gift voucher" onClick={() => setRows(rows.filter((_, k) => k !== i))}><X size={14} /></button>
-            <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.78rem', color: colors.textMuted }}>
-              <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.76rem' }} disabled={!r.code.trim()} onClick={async () => {
-                try { const g = await posAPI.gift(r.code, customer?.id); const others = rows.reduce((a, x, k) => a + (k === i ? 0 : Number(x.amount) || 0), 0); set(i, { balance: g.balance, amount: String(Math.max(0, Math.min(g.balance, Math.round((total - others) * 100) / 100))) }); } catch (e) { toast.error(errMsg(e, 'That voucher can not be used')); }
-              }}>Check voucher</button>
-              {r.balance != null && <span>Balance {money(r.balance, cur)}</span>}
-            </div>
           </div>
         ) : (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'start' }}>
-            <select style={field} value={r.payment_method_id} onChange={(e) => set(i, { payment_method_id: Number(e.target.value) })} aria-label="Way of paying">
-              {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-            </select>
-            <input style={field} inputMode="decimal" value={r.amount} onChange={(e) => set(i, { amount: e.target.value })} aria-label="Amount" />
+            <label style={{ display: 'grid', gap: 3, fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>Paid by
+              <select style={field} value={r.payment_method_id} onChange={(e) => set(i, { payment_method_id: Number(e.target.value) })} aria-label="Way of paying">
+                {methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </label>
+            <label style={{ display: 'grid', gap: 3, fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>{methods.find((m) => m.id === r.payment_method_id)?.kind === 'cash' ? 'Cash tendered' : 'Amount paid'}
+              <input style={field} inputMode="decimal" autoFocus={i === 0} value={r.amount} placeholder="Type the amount" onChange={(e) => set(i, { amount: e.target.value })} aria-label={methods.find((m) => m.id === r.payment_method_id)?.kind === 'cash' ? 'Cash tendered' : 'Amount paid'} />
+            </label>
             {rows.length > 1 ? <button type="button" style={btnGhost} aria-label="Remove" onClick={() => setRows(rows.filter((_, k) => k !== i))}><X size={14} /></button> : <span />}
             {methods.find((m) => m.id === r.payment_method_id)?.kind !== 'cash' && (
               <input style={{ ...field, gridColumn: '1 / -1' }} placeholder="Reference (transaction code)" value={r.reference} onChange={(e) => set(i, { reference: e.target.value })} aria-label="Reference" />
             )}
           </div>
         )))}
+        {giftMethodId && !later && customer && (
+          <div style={{ display: 'grid', gap: 6, padding: 10, borderRadius: 8, border: '1px dashed var(--line)' }}>
+            <label style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>Gift voucher for {customer.name}</label>
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input style={field} value={giftCode} placeholder="Type the voucher code" aria-label="Gift voucher code" onChange={(e) => setGiftCode(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === 'Enter' && giftCode.trim() && applyGift()} />
+              <button type="button" style={btnGhost} disabled={!giftCode.trim()} onClick={applyGift}>Apply</button>
+            </div>
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" style={{ ...btnGhost, display: later ? 'none' : undefined }} onClick={() => left > 0 && setRows([...rows, { payment_method_id: methods.find((m) => m.id !== rows[0].payment_method_id)?.id ?? cash?.id, amount: String(left), reference: '' }])}>Split payment</button>
-          {giftMethodId && !later && customer && <button type="button" style={btnGhost} onClick={() => setRows([...rows, { gift: true, code: '', amount: '', balance: null, payment_method_id: giftMethodId }])}>Gift voucher</button>}
-          {[50, 100, 500, 1000].map((n) => <button key={n} type="button" style={btnGhost} onClick={() => set(0, { amount: String((Number(rows[0].amount) || 0) + n) })}>+{n}</button>)}
+          <button type="button" style={{ ...btnGhost, display: later ? 'none' : undefined }} onClick={() => left > 0 && setRows([...rows, { payment_method_id: methods.find((m) => m.id !== rows.find((x) => !x.gift)?.payment_method_id)?.id ?? cash?.id, amount: String(left), reference: '' }])}>Split payment</button>
+          <button type="button" style={{ ...btnGhost, display: later ? 'none' : undefined }} onClick={() => first >= 0 && set(first, { amount: String(Math.max(0, Math.round((total - giftTotal) * 100) / 100)) })}>Exact amount</button>
+          {[50, 100, 500, 1000].map((n) => <button key={n} type="button" style={btnGhost} onClick={() => first >= 0 && set(first, { amount: String((Number(rows[first].amount) || 0) + n) })}>+{n}</button>)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
           <span>{later ? (mode === 'invoice' ? 'Left on account' : 'Balance of the order') : (change >= 0 ? 'Change due' : 'Still to pay')}</span>
@@ -250,10 +269,10 @@ export default function PosTill() {
   const lastCustomers = useRef(0);
   const [shiftUi, setShiftUi] = useState(null);   // 'open' | 'list' | { id }
   const [customer, setCustomer] = useState(null);
-  const [cq, setCq] = useState('');
+  const [phone, setPhone] = useState('');   // the only way to find a customer: their phone number, which shows one name or none
+  const [phoneMsg, setPhoneMsg] = useState(null);
   const [walkin, setWalkin] = useState('');
   const [promo, setPromo] = useState('');   // an optional name for a cash sale to a walk-in customer
-  const [cfound, setCfound] = useState([]);
   const key = useRef(newKey());
   const search = useRef(null);
 
@@ -281,7 +300,7 @@ export default function PosTill() {
     return () => clearTimeout(t);
   }, [q, ctx]);
 
-  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: customer?.id, promo_code: mode === 'cash' && customer && promo.trim() ? promo.trim() : undefined, customer_name: mode === 'cash' && !customer && walkin.trim() ? walkin.trim() : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin, promo]);
+  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: customer?.id, promo_code: customer && promo.trim() ? promo.trim() : undefined, customer_name: mode === 'cash' && !customer && walkin.trim() ? walkin.trim() : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin, promo]);
   useEffect(() => {   // the books price the basket: the total shown is the one that will post
     if (!cart.length || !ctx?.station) { setPriced(null); return undefined; }
     let live = true;
@@ -289,11 +308,6 @@ export default function PosTill() {
     return () => { live = false; clearTimeout(t); };
   }, [cart, ctx, body]);
 
-  useEffect(() => {
-    if (mode === 'return' || customer || cq.trim().length < 2) { setCfound([]); return undefined; }
-    const t = setTimeout(() => { posAPI.customers(cq).then((r) => setCfound(r.customers)).catch(() => {}); }, 250);
-    return () => clearTimeout(t);
-  }, [cq, mode, customer]);
 
   const add = (it) => {
     if (!(it.price > 0)) { toast.error(`${it.name} has NO PRICE and can not be sold. Ask a manager to set its price.`, { duration: 9000 }); return; }
@@ -313,6 +327,12 @@ export default function PosTill() {
     if (ctx.can.void) note(undefined); else setAsk({ purpose: 'void', why: `Removing ${c.name} from the sale needs a supervisor.`, then: (a) => note(a.token) });
   };
 
+  const findByPhone = async () => {
+    try {
+      const r = await posAPI.customerByPhone(phone);
+      if (r.customer) { setCustomer(r.customer); setWalkin(''); setPhoneMsg(null); } else setPhoneMsg('No account with that number.');
+    } catch (e) { setPhoneMsg(errMsg(e, 'Could not look that up.')); }
+  };
   const scanCode = async (code) => {   // a handheld scanner or the camera: the code goes straight into the sale
     try {
       const r = await posAPI.scan(code, ctx.station.id);
@@ -331,7 +351,7 @@ export default function PosTill() {
     setBusy(true);
     try {
       const r = await posAPI.sell({ ...body(), key: key.current, tenders: tenders.filter((t) => t.amount > 0) });
-      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setCq(''); setWalkin(''); setPromo(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
+      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setPhone(''); setPhoneMsg(null); setWalkin(''); setPromo(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
     } catch (e) { if (e?.response?.data?.approval === 'discount') { setPaying(false); setApproval(null); } toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
   };
 
@@ -363,6 +383,8 @@ export default function PosTill() {
   if (!ctx.station) return <Shell><p role="alert" style={{ ...card, padding: 16 }}>You have no station to sell from. Ask a manager to add a station at your branch (POS stations) and give you one.</p></Shell>;
 
   const cur = ctx.currency;
+  const totalDiscount = (priced?.lines ?? []).reduce((a, l) => a + (Number(l.discount_amount) || 0), 0);
+  const anyDiscount = totalDiscount > 0.004;
   const unpriced = (priced?.lines ?? []).filter((l) => !(l.rate > 0));   // a line the books priced at nothing can not be sold
   const needShift = ctx.shift_ready && ctx.shift_required && !ctx.shift;
   const total = priced?.total ?? 0;
@@ -507,53 +529,52 @@ export default function PosTill() {
           )}
           {needShift && <p role="alert" style={{ margin: 0, padding: '8px 10px', borderRadius: 8, background: 'color-mix(in srgb, #d97706 12%, transparent)', fontSize: '0.82rem' }}>Open your shift to start selling.</p>}
           {tabs}
-          {mode === 'cash' && (customer ? (
+          {mode !== 'return' && (customer ? (
             <div style={{ display: 'grid', gap: 6, padding: '8px 10px', borderRadius: 8, background: colors.tint(0.08), border: `1px solid ${colors.tint(0.25)}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span><strong>{customer.name}</strong> <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>{customer.points != null ? `· ${customer.points} points · ` : '· '}earns points on this sale</span></span>
-                <button type="button" style={{ ...btnGhost, padding: '2px 8px' }} aria-label="Remove customer" onClick={() => { setCustomer(null); setPromo(''); }}><X size={13} /></button>
+                <span>
+                  <strong>{customer.name}</strong>
+                  <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>
+                    {customer.points != null ? ` · ${customer.points} points` : ''}
+                    {mode === 'cash' ? ' · earns points on this sale' : ''}
+                    {mode === 'invoice' && customer.credit_room != null ? ` · credit room ${money(customer.credit_room, cur)}` : ''}
+                  </span>
+                  {mode === 'invoice' && customer.credit === false && <span style={{ fontSize: '0.75rem', color: colors.danger }}> · no credit account</span>}
+                </span>
+                <button type="button" style={{ ...btnGhost, padding: '2px 8px' }} aria-label="Remove customer" onClick={() => { setCustomer(null); setPromo(''); setPhone(''); }}><X size={13} /></button>
               </div>
               <input style={{ ...field, height: 32, fontSize: '0.82rem' }} maxLength={40} value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} placeholder="Promo code (optional)" aria-label="Promo code" />
             </div>
           ) : (
             <div style={{ display: 'grid', gap: 6 }}>
-              <input style={{ ...field, height: 34, fontSize: '0.84rem' }} value={cq} onChange={(e) => setCq(e.target.value)} placeholder="Select a customer: name, phone or email (optional)" aria-label="Find customer" />
-              {cfound.map((c) => (
-                <button key={c.id} type="button" style={{ ...btnGhost, textAlign: 'left' }} onClick={() => { setCustomer(c); setCfound([]); setCq(''); setWalkin(''); }}>
-                  {c.name}{c.company ? ` · ${c.company}` : ''}{c.phone ? ` · ${c.phone}` : ''}{c.points != null ? ` · ${c.points} points` : ''}
-                </button>
-              ))}
-              {cfound.length === 0 && cq.trim().length >= 2 && <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>No customer found. Carry on as a walk-in.</span>}
-              <div style={{ fontSize: '0.74rem', color: colors.textMuted }}>No customer selected: walk-in sale. No loyalty points, promo codes or gift vouchers.</div>
-              <input style={{ ...field, height: 32, fontSize: '0.82rem' }} maxLength={80} value={walkin} onChange={(e) => setWalkin(e.target.value)} placeholder="A name for the receipt (otherwise Walk-in customer)" aria-label="Customer name" />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input style={{ ...field, height: 34, fontSize: '0.84rem' }} inputMode="tel" maxLength={30} value={phone} onChange={(e) => { setPhone(e.target.value); setPhoneMsg(null); }} onKeyDown={(e) => e.key === 'Enter' && findByPhone()} placeholder={mode === 'cash' ? "Customer's phone number (optional)" : "Customer's phone number"} aria-label="Customer phone number" />
+                <button type="button" style={btnGhost} disabled={phone.replace(/\D/g, '').length < 7} onClick={findByPhone}>Find</button>
+              </div>
+              {phoneMsg && <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>{phoneMsg}</span>}
+              {mode === 'cash' && (
+                <>
+                  <div style={{ fontSize: '0.74rem', color: colors.textMuted }}>No customer: walk-in sale. No loyalty points, discounts, promo codes or gift vouchers.</div>
+                  <input style={{ ...field, height: 32, fontSize: '0.82rem' }} maxLength={80} value={walkin} onChange={(e) => setWalkin(e.target.value)} placeholder="A name for the receipt (otherwise Walk-in customer)" aria-label="Customer name" />
+                </>
+              )}
             </div>
           ))}
-          {mode !== 'cash' && mode !== 'return' && (
-            customer ? (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, padding: '6px 10px', borderRadius: 8, border: '1.5px solid var(--line)' }}>
-                <span><strong>{customer.name}</strong>{mode === 'invoice' && customer.credit_room != null ? <span style={{ fontSize: '0.75rem', color: colors.textMuted }}> · credit room {money(customer.credit_room, cur)}</span> : null}{mode === 'invoice' && customer.credit === false ? <span style={{ fontSize: '0.75rem', color: colors.danger }}> · no credit account</span> : null}</span>
-                <button type="button" style={btnGhost} aria-label="Change customer" onClick={() => { setCustomer(null); setCq(''); }}><X size={14} /></button>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gap: 4 }}>
-                <input style={field} value={cq} onChange={(e) => setCq(e.target.value)} placeholder="Find the customer by name, phone or email" aria-label="Find customer" />
-                {cfound.map((c) => (
-                  <button key={c.id} type="button" style={{ ...btnGhost, textAlign: 'left' }} onClick={() => { setCustomer(c); setCfound([]); }}>
-                    {c.name}{c.company ? ` · ${c.company}` : ''}{c.phone ? ` · ${c.phone}` : ''}{c.credit ? ` · credit room ${money(c.credit_room, cur)}` : ''}
-                  </button>
-                ))}
-              </div>
-            )
-          )}
           {cart.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.85rem', margin: 0 }}>The basket is empty. Scan or tap an item.</p>}
+          {anyDiscount && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 86px 96px', gap: 6, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: colors.textMuted }}>
+              <span>Item</span><span style={{ textAlign: 'right' }}>Discount</span><span style={{ textAlign: 'right' }}>Amount</span>
+            </div>
+          )}
           {cart.map((c, i) => (
-            <div key={c.variant_id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 6, paddingBottom: 8, borderBottom: '1px solid var(--line)' }}>
+            <div key={c.variant_id} style={{ display: 'grid', gridTemplateColumns: anyDiscount ? '1fr 86px 96px' : '1fr auto', gap: 6, paddingBottom: 8, borderBottom: '1px solid var(--line)', alignItems: 'start' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{c.name}</div>
                 <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{lineOf(i) ? `${money(lineOf(i).rate, cur)} each` : ''}</div>
               </div>
+              {anyDiscount && <div style={{ textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-primary-600)' }}>{lineOf(i)?.discount_amount > 0 ? `-${money(lineOf(i).discount_amount, cur)}` : ''}</div>}
               <div style={{ textAlign: 'right', fontWeight: 800 }}>{lineOf(i) ? money(lineOf(i).amount, cur) : ''}</div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', gridColumn: anyDiscount ? '1 / 3' : undefined }}>
                 <Stepper label={c.name} value={c.quantity} onMinus={() => change(c.variant_id, { quantity: c.quantity - 1 })} onPlus={() => change(c.variant_id, { quantity: c.quantity + 1 })} onType={(v) => change(c.variant_id, { quantity: Number(v) || 0 })} />
                 {ctx.can.discount && <input style={{ ...field, width: 64, height: 30, padding: '2px 8px', fontSize: '0.8rem' }} inputMode="decimal" placeholder="% off" value={c.discount_pct || ''} onChange={(e) => change(c.variant_id, { discount_pct: Number(e.target.value) || 0 })} aria-label="Discount percent" />}
               </div>
@@ -562,6 +583,7 @@ export default function PosTill() {
           ))}
           <div style={{ display: 'grid', gap: 4, fontSize: '0.88rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(priced?.subtotal, cur)}</span></div>
+            {anyDiscount && <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary-600)', fontWeight: 700 }}><span>Discounts</span><span>-{money(totalDiscount, cur)}</span></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Tax</span><span>{money(priced?.tax_total, cur)}</span></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: 800 }}><span>Total</span><span>{money(total, cur)}</span></div>
           </div>

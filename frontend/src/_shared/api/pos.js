@@ -14,7 +14,6 @@ const posAPI = {
   scan: async (code, stationId) => (await api.get('/admin/pos/scan', { params: { code, ...(stationId ? { station_id: stationId } : {}) } })).data,
   price: async (body) => (await api.post('/admin/pos/price', body)).data,
   sell: async (body) => (await api.post('/admin/pos/sales', body)).data,
-  customers: async (q) => (await api.get('/admin/pos/customers', { params: { q } })).data,
   supervisors: async (stationId) => (await api.get('/admin/pos/supervisors', { params: stationId ? { station_id: stationId } : {} })).data,
   approve: async (body) => (await api.post('/admin/pos/approve', body)).data,
   setPin: async (pin) => (await api.put('/admin/pos/pin', { pin })).data,

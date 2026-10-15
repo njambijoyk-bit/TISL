@@ -317,9 +317,7 @@ class SaleService
         if ($rows->count() > 1) {
             throw new BooksException('More than one account has that number. Sell as a walk-in, or ask for their email.');
         }
-        $c = $rows->first();
-
-        return ['id' => $c->id, 'name' => $c->full_name, 'points' => (int) $c->loyalty_points];
+        return $this->customerRow($rows->first());
     }
 
     /** An item the books price at nothing is never sold at the till: a mistake in the catalogue must not give goods away. */
@@ -416,8 +414,8 @@ class SaleService
         if ($promo !== '' && ! $customer) {
             throw new BooksException('A promo code belongs to a customer: add their phone number first.');
         }
-        if ($customer && ($promo !== '' || ! empty($in['_trusted']))) {
-            [$rows, $meta] = $this->discounted($rows, $pre, $customer, $promo, ! empty($in['_trusted']));
+        if ($customer) {   // a selected customer gets their own discounts as well as the code typed
+            [$rows, $meta] = $this->discounted($rows, $pre, $customer, $promo, true);
             $data['meta'] = array_merge($data['meta'], $meta);
             $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
             $this->assertPriced($pre);
@@ -555,28 +553,20 @@ class SaleService
         $order->update(['meta' => array_merge($order->meta ?? [], ['pos_deposit' => ['receipt_id' => $receipt->id, 'receipt' => $receipt->voucher_number, 'amount' => $paid['tendered']]])]);
     }
 
-    /** Matching customers for an invoice or an order, with what they may owe. @return array<int, array<string, mixed>> */
-    public function customers(string $q): array
+    /** A customer as the till shows them once found by phone: name, points, and (for an invoice) what they may still owe. @return array<string, mixed> */
+    private function customerRow(Customer $c): array
     {
-        $q = trim($q);
-        if (strlen($q) < 2) {
-            return [];
-        }
         $money = app(\App\Services\CurrencyConversionService::class);
-        $rows = Customer::active()->search($q)->orderBy('first_name')->limit(15)->get();
-        $ledgers = Ledger::whereIn('customer_id', $rows->pluck('id'))->pluck('id', 'customer_id');
+        $credit = $c->has_credit_account && (float) $c->credit_limit > 0;
+        $room = null;
+        if ($credit) {
+            $ledger = Ledger::where('customer_id', $c->id)->first();
+            $owed = $ledger ? app(LedgerService::class)->balance($ledger->id) : 0.0;
+            $limit = $money->convert((float) $c->credit_limit, $money->currencyFrom($c->credit_currency_id ?? $c->currency_id), $money->getBaseCurrency());
+            $room = max(0.0, round($limit - $owed, 2));
+        }
 
-        return $rows->map(function (Customer $c) use ($ledgers, $money) {
-            $credit = $c->has_credit_account && (float) $c->credit_limit > 0;
-            $room = null;
-            if ($credit) {
-                $owed = isset($ledgers[$c->id]) ? app(LedgerService::class)->balance($ledgers[$c->id]) : 0.0;
-                $limit = $money->convert((float) $c->credit_limit, $money->currencyFrom($c->credit_currency_id ?? $c->currency_id), $money->getBaseCurrency());
-                $room = max(0.0, round($limit - $owed, 2));
-            }
-
-            return ['id' => $c->id, 'name' => $c->full_name, 'company' => $c->company_name, 'phone' => $c->phone, 'email' => $c->email, 'points' => (int) $c->loyalty_points, 'credit' => $credit, 'credit_room' => $room];
-        })->values()->all();
+        return ['id' => $c->id, 'name' => $c->full_name, 'points' => (int) $c->loyalty_points, 'credit' => $credit, 'credit_room' => $room];
     }
 
     /** Mark a document with the station it was made at and the shift it belongs to. */
