@@ -65,7 +65,7 @@ class SaleService
 
         return ['gift_method_id' => PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->value('id'), 'me' => ['id' => $u->id, 'name' => $u->name], 'business' => \App\Models\CompanyProfile::current()->name ?: config('app.name'), 'shift' => $shift, 'shift_ready' => ShiftService::installed(), 'shift_required' => $station ? $this->shifts->required($station) : false, 'stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
-            'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
+            'branch' => $branch, 'rounding' => $this->roundingReady(), 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
             'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'reprint' => $access->allows($u, 'pos.reprint'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];
     }
 
@@ -398,6 +398,14 @@ class SaleService
         $customer = $this->customer($in, $mode);
         $customerId = $customer?->id;
         $data = $this->base($u, $station, $customerId, $mode, [], isset($in['customer_name']) ? (string) $in['customer_name'] : null);
+        $note = mb_substr(trim((string) ($in['narration'] ?? '')), 0, 200);
+        if ($note !== '') {   // the cashier's own words, which the customer sees on their documents
+            $data['narration'] = $note;
+        }
+        // The cashier may round what is paid to the nearest whole number or 0.50 (the books' rounding ledger takes the difference); it is never forced.
+        if (in_array($mode, ['cash', 'invoice'], true) && in_array($in['rounding'] ?? 'none', ['whole', 'half'], true) && $this->roundingReady()) {
+            $data['rounding'] = $in['rounding'];
+        }
         $clean = fn (array $rs) => array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rs);
         $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
         $this->assertPriced($pre);
@@ -427,6 +435,12 @@ class SaleService
         }
 
         return [$data, $pre, $needs];
+    }
+
+    /** Is the books' rounding ledger set, so a total can be rounded? */
+    private function roundingReady(): bool
+    {
+        return (bool) \App\Models\Books\AccountingSetting::current()->rounding_ledger_id;
     }
 
     /** The biggest discount (percent) this person may give alone: the limit on their role; a supervisor has none. */

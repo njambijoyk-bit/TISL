@@ -18,7 +18,7 @@ const newKey = () => (globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math
 const field = { padding: '9px 11px', borderRadius: 8, border: '1.5px solid var(--line)', fontSize: '0.9rem', fontFamily: 'inherit', boxSizing: 'border-box', width: '100%' };
 
 /** Pay: one or several tenders, change due. Cash may be more than owed; other ways must match. */
-function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, onCancel, onPay }) {
+function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, canRound, rounding, onRound, onCancel, onPay }) {
   const cash = methods.find((m) => m.kind === 'cash') ?? methods[0];
   const later = mode !== 'cash';   // an invoice or an order: paying something now is optional
   const [rows, setRows] = useState([{ payment_method_id: cash?.id ?? '', amount: '', reference: '' }]);   // typed by the cashier: nothing is filled in for them
@@ -44,6 +44,16 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, on
       <div style={{ ...card, padding: 20, width: 'min(480px, 100%)', display: 'grid', gap: 12 }}>
         <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? `Invoice for ${customer?.name}` : mode === 'order' ? `Sales order for ${customer?.name}` : 'Amount due'}</div>
         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{money(total, cur)}</div>
+        {canRound && mode !== 'order' && (rounding !== 'none' || Math.abs(total * 2 - Math.round(total * 2)) > 0.004) && (
+          <div style={{ display: 'grid', gap: 4 }}>
+            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>Round the amount (optional)</span>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[['none', 'Exact'], ['whole', 'Nearest whole'], ['half', 'Nearest 0.50']].map(([k, label]) => (
+                <button key={k} type="button" aria-pressed={rounding === k} style={{ ...btnGhost, ...(rounding === k ? { borderColor: colors.primary, color: colors.primary, fontWeight: 800 } : {}) }} onClick={() => onRound(k)}>{label}</button>
+              ))}
+            </div>
+          </div>
+        )}
         {later && <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? 'The rest goes on their account. Take a part payment now if they are paying some.' : 'Take a deposit now if they are leaving one. Leave it blank for none.'}</div>}
         {rows.map((r, i) => (r.gift ? (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr) auto', gap: 8, alignItems: 'center', padding: 8, borderRadius: 8, background: colors.tint(0.07) }}>
@@ -276,6 +286,8 @@ export default function PosTill() {
   const [customer, setCustomer] = useState(null);
   const [phone, setPhone] = useState('');   // the only way to find a customer: their phone number, which shows one name or none
   const [phoneMsg, setPhoneMsg] = useState(null);
+  const [note, setNote] = useState('');   // the cashier's words on the sale: the customer sees them
+  const [rounding, setRounding] = useState('none');   // none | whole | half: optional, chosen at the payment
   const [walkin, setWalkin] = useState('');
   const [promo, setPromo] = useState('');   // an optional name for a cash sale to a walk-in customer
   const key = useRef(newKey());
@@ -311,7 +323,7 @@ export default function PosTill() {
     return () => clearInterval(t);
   }, [locked]);
 
-  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: customer?.id, promo_code: customer && promo.trim() ? promo.trim() : undefined, customer_name: mode === 'cash' && !customer && walkin.trim() ? walkin.trim() : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin, promo]);
+  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: customer?.id, promo_code: customer && promo.trim() ? promo.trim() : undefined, customer_name: mode === 'cash' && !customer && walkin.trim() ? walkin.trim() : undefined, narration: note.trim() || undefined, rounding: rounding !== 'none' && mode !== 'order' ? rounding : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin, promo, note, rounding]);
   useEffect(() => {   // the books price the basket: the total shown is the one that will post
     if (!cart.length || !ctx?.station) { setPriced(null); return undefined; }
     let live = true;
@@ -367,7 +379,7 @@ export default function PosTill() {
         setFound((f) => f.map((it) => { const q = sold.find(([id]) => id === it.variant_id)?.[1]; return q && it.stock != null ? { ...it, stock: Math.max(0, it.stock - q) } : it; }).filter((it) => it.stock == null || it.stock > 0));
         setTick((n) => n + 1);
       }
-      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setPhone(''); setPhoneMsg(null); setWalkin(''); setPromo(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
+      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setPhone(''); setPhoneMsg(null); setWalkin(''); setPromo(''); setNote(''); setRounding('none'); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
     } catch (e) { if (e?.response?.data?.approval === 'discount') { setPaying(false); setApproval(null); } toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
   };
 
@@ -564,7 +576,7 @@ export default function PosTill() {
           ) : (
             <div style={{ display: 'grid', gap: 6 }}>
               <div style={{ display: 'flex', gap: 6 }}>
-                <input style={{ ...field, height: 34, fontSize: '0.84rem' }} inputMode="tel" maxLength={30} value={phone} onChange={(e) => { setPhone(e.target.value); setPhoneMsg(null); }} onKeyDown={(e) => e.key === 'Enter' && findByPhone()} placeholder={mode === 'cash' ? "Customer's phone number (optional)" : "Customer's phone number"} aria-label="Customer phone number" />
+                <input style={{ ...field, height: 34, fontSize: '0.84rem' }} inputMode="tel" maxLength={30} value={phone} onChange={(e) => { setPhone(e.target.value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '')); setPhoneMsg(null); }} onKeyDown={(e) => e.key === 'Enter' && findByPhone()} placeholder={mode === 'cash' ? "Customer's phone number (optional)" : "Customer's phone number"} aria-label="Customer phone number" />
                 <button type="button" style={btnGhost} disabled={phone.replace(/\D/g, '').length < 7} onClick={findByPhone}>Find</button>
               </div>
               {phoneMsg && <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>{phoneMsg}</span>}
@@ -576,6 +588,11 @@ export default function PosTill() {
               )}
             </div>
           ))}
+          {mode !== 'return' && cart.length > 0 && (
+            <label style={{ display: 'grid', gap: 3, fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>Note (the customer can see this on their receipt and documents)
+              <input style={{ ...field, height: 32, fontSize: '0.82rem', fontWeight: 400 }} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional: for example a delivery or warranty note" aria-label="Note for the customer" />
+            </label>
+          )}
           {cart.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.85rem', margin: 0 }}>The basket is empty. Scan or tap an item.</p>}
           {anyDiscount && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 86px 96px', gap: 6, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: colors.textMuted }}>
@@ -617,7 +634,7 @@ export default function PosTill() {
           <button type="button" style={btnPrimary} disabled={!cart.length || !priced || (mode !== 'cash' && !customer) || needShift || unpriced.length > 0} onClick={() => setPaying(true)}>{{ cash: 'Checkout', invoice: 'Invoice', order: 'Place order' }[mode]}</button>
         </div>
       )}
-      {paying && <PayDialog total={total} methods={ctx.methods} cur={cur} busy={busy} mode={mode} customer={customer} giftMethodId={ctx.gift_method_id} onCancel={() => setPaying(false)} onPay={pay} />}
+      {paying && <PayDialog total={total} methods={ctx.methods} cur={cur} busy={busy} mode={mode} customer={customer} giftMethodId={ctx.gift_method_id} canRound={!!ctx.rounding} rounding={rounding} onRound={setRounding} onCancel={() => { setPaying(false); setRounding('none'); }} onPay={pay} />}
 
       {holds && (
         <div role="dialog" aria-label="Held sales" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>

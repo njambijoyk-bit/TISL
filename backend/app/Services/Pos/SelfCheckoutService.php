@@ -138,43 +138,31 @@ class SelfCheckoutService
     }
 
     /**
-     * What the codes they typed take off, one after another until the total is covered. Only for a signed-in customer.
+     * What a gift voucher is worth, so the customer knows before going to the cashier. It is only looked at here, never taken: gift vouchers are used at the cashier.
+     * Every reason it cannot be used gets the same answer, so a screen cannot be used to find out which codes exist.
      *
-     * @return array<int, array{code: string, balance: float, applied: float}>
+     * @return array{code: string, balance: float, expires_at: ?string}
      */
-    private function gifts(array $codes, float $total, ?Customer $customer): array
+    public function giftCheck(Station $s, string $code, ?string $token = null): array
     {
-        $codes = array_values(array_unique(array_filter(array_map(fn ($c) => trim((string) $c), $codes))));
-        if (! $codes) {
-            return [];
+        $customer = $this->customerFor($s, $token);
+        try {
+            return $this->sales->giftInfo(trim($code), $customer);
+        } catch (BooksException) {
+            throw new BooksException('That code was not recognised, or the gift voucher can no longer be used. Check it and try again, or ask the cashier.');
         }
-        if (! $customer) {
-            throw new BooksException('Sign in to use a gift voucher.');
-        }
-        $out = [];
-        $left = $total;
-        foreach (array_slice($codes, 0, 3) as $code) {
-            $g = $this->sales->giftInfo($code, $customer);
-            $applied = round(min($g['balance'], max($left, 0)), 2);
-            $out[] = ['code' => $g['code'], 'balance' => $g['balance'], 'applied' => $applied];
-            $left = round($left - $applied, 2);
-        }
-
-        return $out;
     }
 
     /** @return array<string, mixed> */
-    public function quote(Station $s, array $items, ?string $token = null, ?string $promo = null, array $giftCodes = []): array
+    public function quote(Station $s, array $items, ?string $token = null, ?string $promo = null): array
     {
         $customer = $this->customerFor($s, $token);
         [, $pre] = $this->sales->priceSelf($s, $this->clean($items), $customer, $promo);
         $total = (float) $pre['total'];
-        $gifts = $this->gifts($giftCodes, $total, $customer);
-        $applied = round(array_sum(array_column($gifts, 'applied')), 2);
 
         return ['lines' => array_map(fn ($l) => ['description' => $l['description'], 'quantity' => $l['quantity'], 'rate' => $l['rate'], 'amount' => $l['amount'], 'discount' => $l['discount_amount'] ?? 0, 'tax_amount' => $l['tax_amount'] ?? 0, 'tax_rate_percent' => $l['tax_rate_percent'] ?? null], $pre['lines']),
             'subtotal' => $pre['subtotal'], 'discount' => round(array_sum(array_map(fn ($l) => (float) ($l['discount_amount'] ?? 0), $pre['lines'])), 2), 'tax_total' => $pre['tax_total'], 'tax_breakdown' => $pre['tax_breakdown'] ?? [],
-            'total' => $total, 'gifts' => $gifts, 'gift_applied' => $applied, 'to_pay' => round(max(0, $total - $applied), 2),
+            'total' => $total,
             'customer' => $customer ? ['name' => (string) $customer->first_name, 'points' => (int) $customer->loyalty_points] : null];
     }
 
@@ -193,14 +181,9 @@ class SelfCheckoutService
         $promo = trim((string) ($in['promo_code'] ?? ''));
         [$data, $pre] = $this->sales->priceSelf($s, $items, $customer, $promo);
         $total = (float) $pre['total'];
-        $gifts = $this->gifts((array) ($in['gift_codes'] ?? []), $total, $customer);
-        $giftApplied = round(array_sum(array_column($gifts, 'applied')), 2);
         $code = $this->code();
 
         if ($pay === 'counter') {   // a cashier recalls it (by the short code on the screen) and takes the cash
-            if ($gifts) {
-                throw new BooksException('Gift vouchers are used at the till: give the code to the cashier, or pay with M-Pesa here.');
-            }
             $short = substr($code, 0, 4);
             $hold = DB::table('pos_holds')->insertGetId(['location_id' => $s->location_id, 'station_id' => $s->id, 'user_id' => 0, 'label' => "Code {$short} · {$s->name}",
                 'cart' => json_encode(['items' => array_map(fn ($i, $l) => $i + ['name' => $l['description'], 'discount_pct' => 0], $items, $pre['lines']), 'customer_id' => $customer?->id, 'customer_name' => $customer?->full_name,
@@ -210,48 +193,25 @@ class SelfCheckoutService
             return ['session' => $code, 'pay' => 'counter', 'number' => $short, 'total' => $total];
         }
 
-        $due = round($total - $giftApplied, 2);
-        $method = null;
-        $phone = '';
-        if ($due > 0.005) {
-            $method = ! empty($in['payment_method_id']) ? PaymentMethod::offeredAtCheckout()->where('gateway', 'mpesa_stk')->whereKey((int) $in['payment_method_id'])->first() : null;
-            if (! $method) {
-                throw new BooksException('Choose M-Pesa.');
-            }
-            $phone = trim((string) ($in['phone'] ?? ''));
-            if ($phone === '') {
-                throw new BooksException('Enter your phone number for the M-Pesa prompt.');
-            }
+        $method = ! empty($in['payment_method_id']) ? PaymentMethod::offeredAtCheckout()->where('gateway', 'mpesa_stk')->whereKey((int) $in['payment_method_id'])->first() : null;
+        if (! $method) {
+            throw new BooksException('Choose M-Pesa.');
         }
-        $tenders = [];
-        if ($gifts) {
-            $giftMethod = PaymentMethod::where('kind', 'gift_voucher')->where('is_active', true)->first() ?? throw new BooksException('Gift vouchers are not set up yet.');
-            foreach ($gifts as $g) {
-                if ($g['applied'] > 0) {
-                    $tenders[] = ['payment_method_id' => $giftMethod->id, 'amount' => $g['applied'], 'gift_voucher_code' => $g['code']];
-                }
-            }
+        $phone = trim((string) ($in['phone'] ?? ''));
+        if ($phone === '') {
+            throw new BooksException('Enter your phone number for the M-Pesa prompt.');
         }
 
-        return DB::transaction(function () use ($s, $data, $code, $method, $phone, $due, $tenders, $total) {
+        return DB::transaction(function () use ($s, $data, $code, $method, $phone, $total) {
             $order = $this->vouchers->placeOrder(array_merge($data, ['channel' => 'pos']), null);   // becomes the Cash Sale when the money arrives
             $order->refresh();
             $order->update(['meta' => array_merge($order->meta ?? [], ['pos_self' => ['station_id' => $s->id, 'session' => $code]])]);
             DB::table('vouchers')->where('id', $order->id)->update(['station_id' => $s->id]);
             DB::table('pos_self_sessions')->insert(['station_id' => $s->id, 'session_code' => $code, 'pay' => 'screen', 'voucher_id' => $order->id, 'created_at' => now(), 'updated_at' => now()]);
-            if ($due <= 0.005) {   // gift vouchers cover all of it: paid now, no prompt on a phone
-                $sale = app(\App\Services\Books\CheckoutService::class)->settle($order, $tenders, null);
-                DB::table('vouchers')->where('id', $sale->id)->update(['station_id' => $s->id]);
-                $sale->refresh();
-                $sale->update(['channel' => 'pos', 'meta' => array_merge($sale->meta ?? [], ['pos' => ['station_id' => $s->id, 'cashier' => 'Self checkout']])]);
-                DB::table('pos_self_sessions')->where('session_code', $code)->update(['status' => 'paid', 'updated_at' => now()]);
-
-                return ['session' => $code, 'pay' => 'screen', 'paid' => true, 'number' => $sale->voucher_number, 'total' => $total];
-            }
-            $r = $this->gateway->start($order, $method, ['phone' => $phone, 'name' => 'Self checkout '.$code], $tenders, $due, null);
+            $r = $this->gateway->start($order, $method, ['phone' => $phone, 'name' => 'Self checkout '.$code], [], $total, null);
             $a = $r['attempt'];
 
-            return ['session' => $code, 'pay' => 'screen', 'total' => $total, 'due' => $due,
+            return ['session' => $code, 'pay' => 'screen', 'total' => $total, 'due' => $total,
                 'attempt' => ['id' => $a->id, 'status' => $a->status, 'amount' => (float) $a->amount, 'token' => GatewayPaymentService::returnToken((int) $a->id)]];
         });
     }

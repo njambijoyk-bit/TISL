@@ -5,6 +5,7 @@ const posSelfAPI = {
   config: async (token) => (await api.get(`/pos/self/${token}`)).data,
   catalogue: async (token, q) => (await api.get(`/pos/self/${token}/catalogue`, { params: { q } })).data,
   scan: async (token, code) => (await api.get(`/pos/self/${token}/scan`, { params: { code } })).data,
+  giftCheck: async (token, code, customerToken) => (await api.post(`/pos/self/${token}/gift/check`, { code, customer_token: customerToken })).data,
   quote: async (token, items, extra = {}) => (await api.post(`/pos/self/${token}/quote`, { items, ...extra })).data,
   customerLogin: async (token, email, password) => (await api.post(`/pos/self/${token}/customer/login`, { email, password })).data,
   customerLogout: async (token, customerToken) => (await api.post(`/pos/self/${token}/customer/logout`, { customer_token: customerToken })).data,

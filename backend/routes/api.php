@@ -334,6 +334,7 @@ Route::prefix('pos/self/{token}')->middleware(['module:extras', 'throttle:240,1'
     Route::get('/help',                      [$c, 'helpStatus']);
     Route::post('/help/cancel',              [$c, 'helpCancel'])->middleware('throttle:30,1');
     Route::post('/quote',                    [$c, 'quote']);
+    Route::post('/gift/check',               [$c, 'giftCheck'])->middleware('throttle:8,1');
     Route::post('/customer/login',           [$c, 'customerLogin'])->middleware('throttle:8,1');
     Route::post('/customer/logout',          [$c, 'customerLogout']);
     Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');

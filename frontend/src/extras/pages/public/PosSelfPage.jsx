@@ -57,8 +57,8 @@ export default function PosSelfPage() {
   const [focus, setFocus] = useState('');
   const [promo, setPromo] = useState('');
   const [promoIn, setPromoIn] = useState('');
-  const [gifts, setGifts] = useState([]);
   const [giftIn, setGiftIn] = useState('');
+  const [giftSeen, setGiftSeen] = useState(null);   // { code, balance, expires_at } or { error }: a voucher looked at, never applied here
   const { narrow, tiny } = useViewport();
   const [view, setView] = useItemView('pos.self.view');
   const [added, setAdded] = useState(null);
@@ -81,7 +81,7 @@ export default function PosSelfPage() {
 
   const tokenRef = useRef(null);
   tokenRef.current = custToken;
-  const reset = useCallback(() => { stop.current = true; if (tokenRef.current) posSelfAPI.customerLogout(token, tokenRef.current).catch(() => {}); setCustToken(null); setCust(null); setEmail(''); setPassword(''); setPromo(''); setPromoIn(''); setGifts([]); setGiftIn(''); setBasket([]); setStep('welcome'); setPhone(''); setQuote(null); setProblem(null); setResult(null); setQ(''); setWarn(null); setHelp(false); last.current = Date.now(); }, [token]);
+  const reset = useCallback(() => { stop.current = true; if (tokenRef.current) posSelfAPI.customerLogout(token, tokenRef.current).catch(() => {}); setCustToken(null); setCust(null); setEmail(''); setPassword(''); setPromo(''); setPromoIn(''); setGiftIn(''); setGiftSeen(null); setBasket([]); setStep('welcome'); setPhone(''); setQuote(null); setProblem(null); setResult(null); setQ(''); setWarn(null); setHelp(false); last.current = Date.now(); }, [token]);
   const askHelp = async () => {
     setHelp(true); setHelpMsg(null);
     try { setHelpState(await posSelfAPI.help(token)); } catch (e) { setHelpMsg(errMsg(e, 'We could not call for help. Please wave to a member of staff.')); }
@@ -122,9 +122,9 @@ export default function PosSelfPage() {
     if (step !== 'review' && step !== 'pay' && step !== 'shop') return undefined;
     if (items.length === 0) { setQuote(null); return undefined; }
     let live = true;
-    posSelfAPI.quote(token, items, { customer_token: custToken || undefined, promo_code: promo || undefined, gift_codes: gifts.length ? gifts : undefined }).then((r) => { if (live) { setQuote(r); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'We could not price your basket.')); } });
+    posSelfAPI.quote(token, items, { customer_token: custToken || undefined, promo_code: promo || undefined }).then((r) => { if (live) { setQuote(r); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'We could not price your basket.')); } });
     return () => { live = false; };
-  }, [step, items, token, custToken, promo, gifts]);   // the books price the basket every time it changes: what is shown is what will be charged
+  }, [step, items, token, custToken, promo]);   // the books price the basket every time it changes: what is shown is what will be charged
 
   const add = (it) => {
     if (it.stock != null && it.stock <= 0) { setProblem(`Sorry, ${it.name} is out of stock.`); return; }
@@ -187,7 +187,7 @@ export default function PosSelfPage() {
   const place = async (pay) => {
     setBusy(true); setProblem(null);
     try {
-      const r = await posSelfAPI.order(token, { items, pay, payment_method_id: pay === 'screen' && !(quote && quote.to_pay <= 0) ? cfg.payment_methods[0]?.id : undefined, phone: pay === 'screen' ? phone : undefined, customer_token: custToken || undefined, promo_code: promo || undefined, gift_codes: gifts.length ? gifts : undefined });
+      const r = await posSelfAPI.order(token, { items, pay, payment_method_id: pay === 'screen' ? cfg.payment_methods[0]?.id : undefined, phone: pay === 'screen' ? phone : undefined, customer_token: custToken || undefined, promo_code: promo || undefined });
       if (r.paid) { finish({ session: r.session, pay: 'screen', number: r.number }); return; }
       if (pay === 'counter') { finish({ session: r.session, pay: 'counter', number: r.number }); return; }
       setResult({ session: r.session }); setStep('waiting'); wait(r.session, r.attempt);
@@ -207,9 +207,7 @@ export default function PosSelfPage() {
       {(quote.tax_breakdown?.length ? quote.tax_breakdown : (quote.tax_total > 0 ? [{ label: 'Tax', amount: quote.tax_total }] : [])).map((t, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span>{t.label ?? 'Tax'}{t.percent != null ? ` (${t.percent}%)` : ''}</span><span>{money(t.amount)}</span></div>
       ))}
-      {quote.gift_applied > 0 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Total</span><span>{money(quote.total)}</span></div>}
-      {(quote.gifts ?? []).filter((g) => g.applied > 0).map((g) => <div key={g.code} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary-700)' }}><span>Gift voucher {g.code}</span><span>-{money(g.applied)}</span></div>)}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}><span>To pay</span><span>{money(quote.to_pay ?? quote.total)}</span></div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem', fontWeight: 900, color: 'var(--text-primary)' }}><span>To pay</span><span>{money(quote.total)}</span></div>
     </div>
   );
   const helpBanner = helpState?.open ? (
@@ -239,7 +237,7 @@ export default function PosSelfPage() {
       {['shop', 'review', 'pay'].includes(step) && (
         <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: tiny ? '4px 10px' : '6px 16px', background: 'var(--surface-card, #fff)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 20 }}>
           <strong style={{ fontSize: tiny ? '0.95rem' : '1.05rem' }}>{cfg.business}</strong>
-          {cust && <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Hi {cust.name} · {cust.points} points <button type="button" onClick={() => { posSelfAPI.customerLogout(token, custToken).catch(() => {}); setCustToken(null); setCust(null); setPromo(''); setGifts([]); }} style={{ background: 'none', border: 'none', color: 'var(--color-primary-600)', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: '0.8rem' }}>Not you? Sign out</button></span>}
+          {cust && <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Hi {cust.name} · {cust.points} points <button type="button" onClick={() => { posSelfAPI.customerLogout(token, custToken).catch(() => {}); setCustToken(null); setCust(null); setPromo(''); }} style={{ background: 'none', border: 'none', color: 'var(--color-primary-600)', cursor: 'pointer', fontWeight: 700, fontFamily: 'inherit', fontSize: '0.8rem' }}>Not you? Sign out</button></span>}
           <ol aria-label="Steps" style={{ display: 'flex', gap: tiny ? 4 : 8, listStyle: 'none', margin: 0, padding: 0, fontWeight: 700, order: tiny ? 3 : 0, width: tiny ? '100%' : 'auto', justifyContent: 'center', fontSize: '0.82rem' }}>
             {[['shop', '1  Scan'], ['review', '2  Check'], ['pay', '3  Pay']].map(([k, l]) => (
               <li key={k} aria-current={step === k ? 'step' : undefined} style={{ padding: tiny ? '3px 8px' : '3px 12px', flex: tiny ? 1 : 'none', textAlign: 'center', borderRadius: 999, background: step === k ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', color: step === k ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)' }}>{l}</li>
@@ -377,7 +375,7 @@ export default function PosSelfPage() {
           <form onSubmit={(e) => { e.preventDefault(); if (ready) signIn(); }} style={{ padding: tiny ? '24px 20px' : '44px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div>
               <h1 style={{ margin: '0 0 4px', fontSize: '1.45rem', fontWeight: 900, letterSpacing: '-0.02em' }}>Do you have an account with us?</h1>
-              <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>Sign in to earn loyalty points and use a promo code or gift voucher. No account? Continue as a guest.</p>
+              <p style={{ margin: 0, fontSize: '0.83rem', color: 'var(--text-secondary)' }}>Sign in to earn loyalty points and use a promo code. No account? Continue as a guest.</p>
             </div>
             <div>
               <label style={label} htmlFor="self-email">Email</label>
@@ -422,6 +420,22 @@ export default function PosSelfPage() {
             </div>
           );
         })}
+        {step === 'review' && (
+          <div style={{ display: 'grid', gap: 8, padding: 12, borderRadius: 12, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
+            <strong style={{ fontSize: '0.9rem' }}>Have a gift voucher?</strong>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={giftIn} onChange={(e) => { setGiftIn(e.target.value.toUpperCase()); setGiftSeen(null); }} placeholder="Enter the voucher code to check it" aria-label="Gift voucher code" style={{ flex: 1, padding: 12, fontSize: '1rem', borderRadius: 10, border: '2px solid var(--line)' }} />
+              <button type="button" style={{ ...huge('var(--color-primary-500)'), minHeight: 44 }} disabled={!giftIn.trim()} onClick={async () => { try { setGiftSeen(await posSelfAPI.giftCheck(token, giftIn.trim(), custToken || undefined)); } catch (e) { setGiftSeen({ error: errMsg(e, 'We could not check that code.') }); } }}>Check</button>
+            </div>
+            {giftSeen?.error && <p role="alert" style={{ margin: 0, fontSize: '0.85rem', color: 'var(--color-danger-600, #b91c1c)' }}>{giftSeen.error}</p>}
+            {giftSeen?.code && (
+              <div role="status" style={{ display: 'grid', gap: 4, padding: 10, borderRadius: 10, background: 'rgba(16,185,129,0.1)' }}>
+                <span><strong>{giftSeen.code}</strong> is worth <strong>{money(giftSeen.balance)}</strong>{giftSeen.expires_at ? `, valid until ${giftSeen.expires_at}` : ''}.</span>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>It has not been used. Gift vouchers cannot be used on this screen: to use it, take your items to the cashier.</span>
+              </div>
+            )}
+          </div>
+        )}
         {step === 'review' && cust && (
           <div style={{ display: 'grid', gap: 10, padding: 12, borderRadius: 12, background: 'var(--surface-card, #fff)', border: '1px solid var(--line)' }}>
             <div style={{ display: 'grid', gap: 6 }}>
@@ -429,11 +443,6 @@ export default function PosSelfPage() {
               {promo
                 ? <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span>{promo}{quote?.discount > 0 ? ' applied' : ''}</span><button type="button" style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), minHeight: 36, padding: '6px 12px' }} onClick={() => { setPromo(''); setPromoIn(''); }}>Remove</button></div>
                 : <div style={{ display: 'flex', gap: 8 }}><input value={promoIn} onChange={(e) => setPromoIn(e.target.value.toUpperCase())} placeholder="Enter your code" aria-label="Promo code" style={{ flex: 1, padding: 12, fontSize: '1rem', borderRadius: 10, border: '2px solid var(--line)' }} /><button type="button" style={{ ...huge('var(--color-primary-500)'), minHeight: 44 }} disabled={!promoIn.trim()} onClick={() => setPromo(promoIn.trim())}>Apply</button></div>}
-            </div>
-            <div style={{ display: 'grid', gap: 6 }}>
-              <strong style={{ fontSize: '0.9rem' }}>Gift voucher</strong>
-              {gifts.map((g) => <div key={g} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><span>{g}</span><button type="button" style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), minHeight: 36, padding: '6px 12px' }} onClick={() => setGifts(gifts.filter((x) => x !== g))}>Remove</button></div>)}
-              {gifts.length < 3 && <div style={{ display: 'flex', gap: 8 }}><input value={giftIn} onChange={(e) => setGiftIn(e.target.value.toUpperCase())} placeholder="Enter the voucher code" aria-label="Gift voucher code" style={{ flex: 1, padding: 12, fontSize: '1rem', borderRadius: 10, border: '2px solid var(--line)' }} /><button type="button" style={{ ...huge('var(--color-primary-500)'), minHeight: 44 }} disabled={!giftIn.trim()} onClick={() => { setGifts([...gifts, giftIn.trim()]); setGiftIn(''); }}>Add</button></div>}
             </div>
           </div>
         )}
@@ -447,17 +456,13 @@ export default function PosSelfPage() {
         )}
         {step === 'pay' && (
           <div style={{ display: 'grid', gap: 14 }}>
-            {quote && quote.to_pay <= 0 && (
-              <button type="button" style={huge('var(--color-primary-600)')} disabled={busy} onClick={() => place('screen')}>Complete: paid by gift voucher</button>
-            )}
-            {quote && quote.to_pay > 0 && cfg.payment_methods.length > 0 && (
+            {quote && cfg.payment_methods.length > 0 && (
               <>
                 <input inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Your M-Pesa phone number" aria-label="Phone number" style={{ padding: 18, fontSize: '1.2rem', borderRadius: 14, border: '2px solid var(--line)' }} />
                 <button type="button" style={huge('var(--color-primary-600)')} disabled={busy || !phone.trim() || !quote} onClick={() => place('screen')}>Pay with M-Pesa</button>
               </>
             )}
-            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} disabled={busy || !quote || gifts.length > 0 || (quote && quote.to_pay <= 0)} onClick={() => place('counter')}>Pay cash at the counter</button>
-            {gifts.length > 0 && <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Gift vouchers are used at the till: remove the voucher to pay cash at the counter, or give the cashier the voucher code.</p>}
+            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} disabled={busy || !quote} onClick={() => place('counter')}>Pay cash at the counter</button>
             <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setStep('review')}>Back</button>
           </div>
         )}
@@ -497,7 +502,7 @@ export default function PosSelfPage() {
       </aside>
       {narrow && basket.length > 0 && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 30, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'var(--surface-card, #fff)', borderTop: '2px solid var(--line)', boxShadow: '0 -6px 20px rgba(0,0,0,0.12)' }}>
-          <span style={{ fontWeight: 900, fontSize: '0.98rem' }}>{count} item{count === 1 ? '' : 's'}{quote ? ` · ${money(quote.to_pay ?? quote.total)}` : ''}</span>
+          <span style={{ fontWeight: 900, fontSize: '0.98rem' }}>{count} item{count === 1 ? '' : 's'}{quote ? ` · ${money(quote.total)}` : ''}</span>
           <button type="button" style={{ ...huge('var(--color-primary-500)'), padding: '12px 20px' }} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
         </div>
       )}

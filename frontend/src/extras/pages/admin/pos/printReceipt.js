@@ -41,7 +41,7 @@ function copyHtml(r, title) {
     <div class="c b">${esc(r.document)}</div>
     ${row(`Bill No.: <b>${esc(r.number)}</b>`, `Time: ${esc(r.time)}`)}
     ${row(`Date: <b>${esc(r.date)}</b>`, r.cashier ? `Served by: ${esc(r.cashier)}` : '')}
-    <div class="c b tag">${title}${r.copy ? ` - COPY (print ${r.prints})` : ''}</div>
+    <div class="c b tag">${title}${r.copy ? ` - COPY ${r.prints - 1}` : ''}</div>
     ${r.customer || r.customer_pin ? `<div class="gap"></div>${r.customer ? `<div class="b">${esc(r.customer)}</div>` : ''}${r.customer_pin ? `<div>Customer PIN: ${esc(r.customer_pin)}</div>` : ''}` : ''}
     <div class="gap"></div>
     ${lines}<hr>
