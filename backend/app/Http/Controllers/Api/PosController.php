@@ -183,9 +183,24 @@ class PosController extends Controller
 
     public function closeShift(Request $request, int $id): JsonResponse
     {
-        $d = $request->validate(['counted' => 'required|array', 'counted.*.payment_method_id' => 'required|integer', 'counted.*.amount' => 'required|numeric|min:0', 'note' => 'nullable|string|max:255']);
+        $d = $request->validate(['counted' => 'required|array', 'counted.*.payment_method_id' => 'required|integer', 'counted.*.amount' => 'required|numeric|min:0', 'note' => 'nullable|string|max:255', 'approval_token' => 'nullable|string|max:60', 'station_id' => 'nullable|integer']);
 
-        return $this->guard(fn () => $this->shifts->close($request->user(), $id, $d['counted'], $d['note'] ?? null));
+        return $this->guard(function () use ($request, $id, $d) {
+            $at = $this->stations->resolveFor($request->user(), null, $d['station_id'] ?? null);
+
+            return $this->shifts->close($request->user(), $id, $d['counted'], $d['note'] ?? null, $d['approval_token'] ?? null, $at);
+        });
+    }
+
+    public function reopenShift(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['reason' => 'required|string|min:3|max:255', 'approval_token' => 'nullable|string|max:60', 'station_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($request, $id, $d) {
+            $at = $this->stations->resolveFor($request->user(), null, $d['station_id'] ?? null) ?? throw new BooksException('You have no station to sell from.');
+
+            return $this->shifts->reopen($request->user(), $id, $d['reason'], $d['approval_token'] ?? null, $at);
+        });
     }
 
     public function shiftReport(Request $request, int $id): JsonResponse
@@ -206,7 +221,7 @@ class PosController extends Controller
 
     public function approve(Request $request): JsonResponse
     {
-        $d = $request->validate(['supervisor_id' => 'required|integer', 'pin' => 'required|string|max:12', 'purpose' => 'required|in:discount,return,void', 'station_id' => 'nullable|integer']);
+        $d = $request->validate(['supervisor_id' => 'required|integer', 'pin' => 'required|string|max:12', 'purpose' => 'required|in:discount,return,void,close_shift,reopen_shift', 'station_id' => 'nullable|integer']);
 
         return $this->guard(function () use ($request, $d) {
             $station = $this->stations->resolveFor($request->user(), null, $d['station_id'] ?? null) ?? throw new BooksException('You have no station to sell from.');

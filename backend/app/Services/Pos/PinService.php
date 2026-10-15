@@ -15,12 +15,12 @@ use Illuminate\Support\Str;
 
 /**
  * Supervisor approval at the till. A supervisor (anyone holding pos.supervise at the branch) has a 6-digit PIN of their own. A cashier names the supervisor and the supervisor types the PIN; the till
- * gets back a one-use approval for one purpose (discount, return or void) that lasts five minutes and is tied to that cashier and station. Five wrong tries lock the PIN for fifteen minutes.
+ * gets back a one-use approval for one purpose (discount, return, void, closing a shift or reopening one) that lasts five minutes and is tied to that cashier and station. Five wrong tries lock the PIN for fifteen minutes.
  * Nobody approves their own return, discount or void. Every PIN set, wrong try and approval is written to the access log.
  */
 class PinService
 {
-    public const PURPOSES = ['discount', 'return', 'void'];
+    public const PURPOSES = ['discount', 'return', 'void', 'close_shift', 'reopen_shift'];
     private const MAX_TRIES = 5;
     private const LOCK_MINUTES = 15;
     private const TTL_MINUTES = 5;

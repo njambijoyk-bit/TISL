@@ -1504,6 +1504,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/shifts',    [$c, 'shifts']);
                 Route::post('/shifts',   [$c, 'openShift']);
                 Route::post('/shifts/{id}/close', [$c, 'closeShift'])->whereNumber('id');
+                Route::post('/shifts/{id}/reopen', [$c, 'reopenShift'])->whereNumber('id');
                 Route::get('/shifts/{id}/report', [$c, 'shiftReport'])->whereNumber('id');
                 Route::get('/sales/{id}/receipt', [$c, 'receipt'])->whereNumber('id');
                 Route::post('/price',    [$c, 'price']);   // what each kind of document may be made is checked per kind (sell, invoice, order)

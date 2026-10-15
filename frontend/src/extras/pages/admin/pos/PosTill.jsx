@@ -464,7 +464,7 @@ export default function PosTill() {
       {ask && <ApproveDialog purpose={ask.purpose} stationId={ctx.station.id} me={ctx.me} selfOk={!!(ctx.can.supervise && ctx.can.has_pin)} why={ask.why} onCancel={() => setAsk(null)} onDone={(a) => { const f = ask.then; setAsk(null); f(a); }} />}
       {shiftUi === 'open' && <OpenShiftDialog stationId={ctx.station.id} stationName={ctx.station.name} onCancel={() => setShiftUi(null)} onDone={() => { setShiftUi(null); loadCtx(ctx.station.id); }} />}
       {shiftUi === 'list' && <ShiftList onClose={() => setShiftUi(null)} onPick={(id) => setShiftUi({ id })} />}
-      {shiftUi?.id && <ShiftDialog shiftId={shiftUi.id} paper={ctx.station.paper} onClose={() => setShiftUi(null)} onClosed={() => loadCtx(ctx.station.id)} />}
+      {shiftUi?.id && <ShiftDialog shiftId={shiftUi.id} paper={ctx.station.paper} stationId={ctx.station.id} meId={ctx.me.id} canShift={!!ctx.can.shift} ask={(purpose, why, then) => setAsk({ purpose, why, then })} onClose={() => setShiftUi(null)} onClosed={() => loadCtx(ctx.station.id)} />}
       {helpDlg && (
         <div role="dialog" aria-label="Help requests" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
           <div style={{ ...card, padding: 18, width: 'min(420px, 100%)', display: 'grid', gap: 8, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>

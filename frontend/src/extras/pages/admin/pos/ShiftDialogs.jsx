@@ -37,22 +37,37 @@ export function OpenShiftDialog({ stationId, stationName, onDone, onCancel }) {
 }
 
 /** The shift so far (X report). Count the drawer to close it; the closed shift shows its Z report. */
-export function ShiftDialog({ shiftId, paper, onClose, onClosed }) {
+/**
+ * The X report of an open shift (with the count to close it) or the Z report of a closed one. Closing someone else's shift, or one's own without the shift permission, and reopening a
+ * closed shift need a supervisor's PIN: ask(purpose, why, then) puts the PIN box up and calls then(approval).
+ */
+export function ShiftDialog({ shiftId, paper, stationId, meId, canShift, ask, onClose, onClosed }) {
   const [rep, setRep] = useState(null);
   const [counts, setCounts] = useState({});
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const [why, setWhy] = useState('');
   useEffect(() => { posAPI.shiftReport(shiftId).then(setRep).catch((e) => { toast.error(errMsg(e, 'Could not load the shift')); onClose(); }); }, [shiftId, onClose]);
   if (!rep) return null;
 
   const open = rep.kind === 'X';
   const cashRow = rep.methods.find((m) => m.kind === 'cash' && m.counted != null);
-  const close = async () => {
+  const needsPin = rep.shift.user_id !== meId || !canShift;   // the cashier closes their own shift; otherwise a supervisor's PIN
+  const doClose = async (token) => {
     setBusy(true);
     try {
-      const z = await posAPI.closeShift(shiftId, { counted: Object.entries(counts).filter(([, v]) => v !== '').map(([id, v]) => ({ payment_method_id: Number(id), amount: Number(v) || 0 })), note });
+      const z = await posAPI.closeShift(shiftId, { counted: Object.entries(counts).filter(([, v]) => v !== '').map(([id, v]) => ({ payment_method_id: Number(id), amount: Number(v) || 0 })), note, approval_token: token, station_id: stationId });
       setRep(z); onClosed?.(); toast.success('Shift closed.');
     } catch (e) { toast.error(errMsg(e, 'Could not close the shift'), { duration: 9000 }); } finally { setBusy(false); }
+  };
+  const close = () => (needsPin ? ask('close_shift', 'Closing this shift needs a supervisor. Enter their PIN.', (a) => doClose(a.token)) : doClose());
+  const doReopen = async (token) => {
+    setBusy(true);
+    try {
+      const x = await posAPI.reopenShift(shiftId, { reason: why, approval_token: token, station_id: stationId });
+      setRep(x); setReopening(false); setWhy(''); setCounts({}); setNote(''); onClosed?.(); toast.success('Shift reopened.');
+    } catch (e) { toast.error(errMsg(e, 'Could not reopen the shift'), { duration: 9000 }); } finally { setBusy(false); }
   };
   const line = (l, v, b) => <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: b ? 800 : 400 }}><span>{l}</span><span>{v}</span></div>;
 
@@ -83,10 +98,13 @@ export function ShiftDialog({ shiftId, paper, onClose, onClosed }) {
         {!open && rep.methods.some((m) => m.kind !== 'cash' && m.counted != null) && line('All counted methods together', overShort(rep.variance), true)}
         {open && <input style={field} value={note} maxLength={255} onChange={(e) => setNote(e.target.value)} placeholder="Note (needed if the count is not exact)" aria-label="Note" />}
         {!open && rep.shift.note && <div style={{ color: colors.textMuted }}>Note: {rep.shift.note}</div>}
+        {!open && reopening && <input style={field} value={why} maxLength={255} onChange={(e) => setWhy(e.target.value)} placeholder="Why is it being reopened? (required)" aria-label="Reason for reopening" />}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 6, flexWrap: 'wrap' }}>
           <button type="button" style={btnGhost} onClick={() => printReport(rep, paper)}>Print</button>
           <button type="button" style={btnGhost} onClick={onClose}>{open ? 'Back' : 'Done'}</button>
-          {open && <button type="button" style={btnPrimary} disabled={busy} onClick={close}>Close shift</button>}
+          {!open && !reopening && <button type="button" style={btnGhost} onClick={() => setReopening(true)}>Reopen shift</button>}
+          {!open && reopening && <button type="button" style={btnPrimary} disabled={busy || why.trim().length < 3} onClick={() => ask('reopen_shift', 'Reopening a shift needs a supervisor. Enter their PIN.', (a) => doReopen(a.token))}>Reopen with supervisor PIN</button>}
+          {open && <button type="button" style={btnPrimary} disabled={busy} onClick={close}>{needsPin ? 'Close with supervisor PIN' : 'Close shift'}</button>}
         </div>
       </div>
     </div>

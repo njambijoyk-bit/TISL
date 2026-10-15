@@ -27,6 +27,7 @@ const posAPI = {
   shifts: async () => (await api.get('/admin/pos/shifts')).data,
   openShift: async (body) => (await api.post('/admin/pos/shifts', body)).data,
   closeShift: async (id, body) => (await api.post(`/admin/pos/shifts/${id}/close`, body)).data,
+  reopenShift: async (id, body) => (await api.post(`/admin/pos/shifts/${id}/reopen`, body)).data,
   shiftReport: async (id) => (await api.get(`/admin/pos/shifts/${id}/report`)).data,
   mySales: async () => (await api.get('/admin/pos/sales')).data,
   customerByPhone: async (phone) => (await api.get('/admin/pos/customer-by-phone', { params: { phone } })).data,

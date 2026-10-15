@@ -15,12 +15,12 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * A cashier's shift at a station: opened with a float, every document made while it is open carries it, closed with a count of the drawer. The X report is the shift so far; the Z report is the same
- * thing kept at the close. Expected cash = the float + cash taken − cash given back on returns. One open shift per person and per station. A supervisor can close anyone's shift at their branches.
+ * thing kept at the close. Expected cash = the float + cash taken − cash given back on returns. One open shift per person and per station. Closing someone else's shift, or one's own without the shift permission, needs a supervisor's PIN; so does reopening a closed shift.
  * Until script 172 is run no shift is asked for.
  */
 class ShiftService
 {
-    public function __construct(private StationService $stations)
+    public function __construct(private StationService $stations, private PinService $pins)
     {
     }
 
@@ -104,7 +104,7 @@ class ShiftService
 
     private function row(object $sh): array
     {
-        return ['id' => (int) $sh->id, 'user' => User::whereKey($sh->user_id)->value('name'), 'station' => Station::whereKey($sh->station_id)->value('name'), 'location_id' => (int) $sh->location_id,
+        return ['id' => (int) $sh->id, 'user_id' => (int) $sh->user_id, 'user' => User::whereKey($sh->user_id)->value('name'), 'station' => Station::whereKey($sh->station_id)->value('name'), 'location_id' => (int) $sh->location_id,
             'status' => $sh->status, 'opened_at' => $sh->opened_at, 'closed_at' => $sh->closed_at, 'opening_float' => (float) $sh->opening_float, 'variance' => $sh->variance !== null ? (float) $sh->variance : null,
             'closed_by' => $sh->closed_by ? User::whereKey($sh->closed_by)->value('name') : null, 'note' => $sh->note];
     }
@@ -153,16 +153,19 @@ class ShiftService
     }
 
     /** Close the shift with a count of what is in the drawer. $counted: [{payment_method_id, amount}]. The cash count is required; a difference needs a note. @return array<string, mixed> */
-    public function close(User $u, int $shiftId, array $counted, ?string $note): array
+    public function close(User $u, int $shiftId, array $counted, ?string $note, ?string $approval = null, ?Station $at = null): array
     {
-        return DB::transaction(function () use ($u, $shiftId, $counted, $note) {
+        return DB::transaction(function () use ($u, $shiftId, $counted, $note, $approval, $at) {
             $sh = DB::table('pos_shifts')->where('id', $shiftId)->lockForUpdate()->first() ?? throw new BooksException('That shift does not exist.');
             if ($sh->status !== 'open') {
                 throw new BooksException('That shift is already closed.');
             }
-            if (! $this->mayHandle($u, $sh) || ((int) $sh->user_id === (int) $u->id && ! app(Authorizer::class)->allows($u, 'pos.shift'))) {
-                throw new BooksException('Only the cashier or a supervisor can close this shift.');
+            if (! $this->mayHandle($u, $sh)) {
+                throw new BooksException('That is someone else\'s shift.');
             }
+            // the cashier closes their own shift; anyone else (or a cashier without the shift permission) needs a supervisor's PIN
+            $needsPin = (int) $sh->user_id !== (int) $u->id || ! app(Authorizer::class)->allows($u, 'pos.shift');
+            $sup = $needsPin ? $this->approvedBy($approval, $u, $at, 'close_shift', $sh, 'Closing this shift needs a supervisor: ask for their PIN.') : null;
             $r = $this->compute($sh);
             $by = collect($counted)->mapWithKeys(fn ($c) => [(int) ($c['payment_method_id'] ?? 0) => round((float) ($c['amount'] ?? 0), 2)]);
             $cash = collect($r['methods'])->firstWhere('kind', 'cash');
@@ -184,12 +187,66 @@ class ShiftService
             }
             $r['methods'] = $rows;
             $r['variance'] = $variance;
+            if ($needsPin) {
+                $this->pins->spend($approval, $u, $at, 'close_shift', ['shift' => $shiftId]);   // spent only now the count is accepted
+            }
             DB::table('pos_shifts')->where('id', $shiftId)->update(['status' => 'closed', 'closed_at' => now(), 'closed_by' => $u->id, 'counted' => json_encode($by->all()), 'report' => json_encode($r),
                 'variance' => $variance, 'note' => $note ?: null, 'updated_at' => now()]);
-            AccessLog::record($u->id, (int) $sh->user_id, 'pos_shift_closed', ['shift' => $shiftId, 'variance' => $variance]);
+            AccessLog::record($u->id, (int) $sh->user_id, 'pos_shift_closed', ['shift' => $shiftId, 'variance' => $variance] + ($sup ? ['approved_by' => $sup] : []));
 
             return $this->report($u, $shiftId);
         });
+    }
+
+    /** The supervisor whose PIN approval is good for this purpose here, who must also hold supervise at the shift's branch. Nothing is spent. */
+    private function approvedBy(?string $token, User $u, ?Station $at, string $purpose, object $sh, string $message): int
+    {
+        $sup = $at ? $this->pins->peek($token, $u, $at, $purpose) : null;
+        if (! $sup) {
+            throw new ApprovalRequired($purpose, $message);
+        }
+        $who = User::find($sup);
+        if (! $who || ! app(Authorizer::class)->allows($who, 'pos.supervise', ['location_id' => $sh->location_id])) {
+            throw new BooksException('That supervisor can not approve for this shift\'s branch.');
+        }
+
+        return $sup;
+    }
+
+    /**
+     * Open a closed shift again, with a supervisor's PIN and a reason. Only while the cashier has no other shift open and nobody has opened the station since.
+     * The Z report it had is kept in the access log; closing it again makes a new one.
+     *
+     * @return array<string, mixed> the X report of the reopened shift
+     */
+    public function reopen(User $u, int $shiftId, string $reason, ?string $approval, Station $at): array
+    {
+        $reason = trim($reason);
+        if (mb_strlen($reason) < 3) {
+            throw new BooksException('Say why the shift is being reopened.');
+        }
+        DB::transaction(function () use ($u, $shiftId, $reason, $approval, $at) {
+            $sh = DB::table('pos_shifts')->where('id', $shiftId)->lockForUpdate()->first() ?? throw new BooksException('That shift does not exist.');
+            if ($sh->status !== 'closed') {
+                throw new BooksException('That shift is not closed.');
+            }
+            if (! $this->mayHandle($u, $sh)) {
+                throw new BooksException('That is someone else\'s shift.');
+            }
+            $sup = $this->approvedBy($approval, $u, $at, 'reopen_shift', $sh, 'Reopening a shift needs a supervisor: ask for their PIN.');
+            if (DB::table('pos_shifts')->where('user_id', $sh->user_id)->where('status', 'open')->lockForUpdate()->exists()) {
+                throw new BooksException(User::whereKey($sh->user_id)->value('name').' has another shift open. Close it first.');
+            }
+            if (DB::table('pos_shifts')->where('station_id', $sh->station_id)->where('status', 'open')->lockForUpdate()->exists()) {
+                throw new BooksException('The station has been opened by someone else since: that shift must be closed first.');
+            }
+            $this->pins->spend($approval, $u, $at, 'reopen_shift', ['shift' => $shiftId]);
+            AccessLog::record($u->id, (int) $sh->user_id, 'pos_shift_reopened', ['shift' => $shiftId, 'reason' => $reason, 'approved_by' => $sup, 'closed_at' => $sh->closed_at, 'variance' => $sh->variance,
+                'counted' => json_decode((string) $sh->counted, true), 'report' => json_decode((string) $sh->report, true)]);
+            DB::table('pos_shifts')->where('id', $shiftId)->update(['status' => 'open', 'closed_at' => null, 'closed_by' => null, 'counted' => null, 'report' => null, 'variance' => null, 'note' => null, 'updated_at' => now()]);
+        });
+
+        return $this->report($u, $shiftId);
     }
 
     /** Open shifts (and the last few closed ones) that this person may see: their own; a supervisor sees every shift at their branches. @return array<int, array<string, mixed>> */
