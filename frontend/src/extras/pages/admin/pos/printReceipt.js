@@ -16,11 +16,12 @@ function copyHtml(r, title) {
   const c = r.company;
   const narrow = r.paper === 'pos58';
   const row = (l, v, cls = '') => `<div class="row ${cls}"><span>${l}</span><span>${v}</span></div>`;
-  const showDisc = r.lines.some((l) => l.discount > 0);
+  // a discount is its own row under the line it belongs to: the line shows what it came to before the discount, the row takes it off
+  const gross = (l) => l.amount + (l.discount > 0 ? l.discount : 0);
   const lines = narrow
-    ? r.lines.map((l, i) => `<div class="line"><div>${i + 1}. ${esc(l.description)}</div>${row(`${qty(l.quantity)} × ${num(l.rate)}${l.discount > 0 ? ` (−${num(l.discount)})` : ''}`, num(l.amount))}</div>`).join('')
-    : `<table class="items"><thead><tr><th class="l">SI</th><th class="l">Description</th><th>Qty</th><th>Rate</th>${showDisc ? '<th>Disc</th>' : ''}<th>Amount</th></tr></thead><tbody>${
-      r.lines.map((l, i) => `<tr><td class="l">${i + 1}</td><td class="l">${esc(l.description)}</td><td>${qty(l.quantity)}</td><td>${num(l.rate)}</td>${showDisc ? `<td>${l.discount > 0 ? num(l.discount) : ''}</td>` : ''}<td>${num(l.amount)}</td></tr>`).join('')
+    ? r.lines.map((l, i) => `<div class="line"><div>${i + 1}. ${esc(l.description)}</div>${row(`${qty(l.quantity)} × ${num(l.rate)}`, num(gross(l)))}${l.discount > 0 ? row('Discount', `-${num(l.discount)}`) : ''}</div>`).join('')
+    : `<table class="items"><thead><tr><th class="l">SI</th><th class="l">Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody>${
+      r.lines.map((l, i) => `<tr><td class="l">${i + 1}</td><td class="l">${esc(l.description)}</td><td>${qty(l.quantity)}</td><td>${num(l.rate)}</td><td>${num(gross(l))}</td></tr>${l.discount > 0 ? `<tr class="disc"><td></td><td class="l">Discount</td><td></td><td></td><td>-${num(l.discount)}</td></tr>` : ''}`).join('')
     }</tbody></table>`;
   const groups = (r.tax_groups ?? []).map((g) => `<tr><td class="l">${esc(g.label)}</td><td>${num(g.base)}</td><td>${num(g.amount)}</td></tr>`).join('');
   const tenders = r.tenders.map((t) => row(`${esc(t.method)}${t.reference ? ` ${esc(t.reference)}` : ''}`, num(t.amount))).join('');
