@@ -25,7 +25,7 @@ function copyHtml(r, title) {
     <hr><div class="c b">${esc(r.document)} ${esc(r.number)}</div>
     <div class="c">${esc(r.at)}${r.cashier ? ` · ${esc(r.cashier)}` : ''}</div>
     ${r.customer ? `<div class="c">${esc(r.customer)}</div>` : ''}
-    <div class="c b tag">${title}${r.copy ? ` — COPY (print ${r.prints})` : ''}</div>
+    <div class="c b tag">${title}${r.copy ? ` - COPY (print ${r.prints})` : ''}</div>
     <hr>${lines}<hr>
     ${row('Subtotal', num(r.subtotal))}${taxes}${row('TOTAL', num(r.total), 'b big')}
     <hr>${tenders}
@@ -72,7 +72,7 @@ export function reportHtml(rep, paper) {
     body { margin: 0; font-family: ${paper === 'a4' ? 'Arial, sans-serif' : '"Courier New", monospace'}; font-size: ${p.font}px; color: #000; } .wrap { width: ${p.width}; margin: 0 auto; }
     .c { text-align: center; } .b { font-weight: 700; } .row { display: flex; justify-content: space-between; gap: 8px; } hr { border: 0; border-top: 1px dashed #000; margin: 5px 0; } .line { margin-bottom: 4px; }
   </style></head><body><div class="wrap">
-    <div class="c b">${rep.kind === 'Z' ? 'Z REPORT — SHIFT CLOSED' : 'X REPORT — SHIFT SO FAR'}</div>
+    <div class="c b">${rep.kind === 'Z' ? 'Z REPORT - SHIFT CLOSED' : 'X REPORT - SHIFT SO FAR'}</div>
     <div class="c">${esc(sh.station)} · ${esc(sh.user)}</div>
     <div class="c">Opened ${esc(sh.opened_at)}${sh.closed_at ? `<br>Closed ${esc(sh.closed_at)}${sh.closed_by && sh.closed_by !== sh.user ? ` by ${esc(sh.closed_by)}` : ''}` : ''}</div><hr>
     ${row('Opening float', num(sh.opening_float))}

@@ -71,7 +71,7 @@ export function ShiftDialog({ shiftId, paper, onClose, onClosed }) {
             <span>{m.name}<span style={{ color: colors.textMuted, fontSize: '0.75rem' }}> · expected {money(m.expected)}</span></span>
             {open
               ? <input style={{ ...field, width: 120, textAlign: 'right' }} inputMode="decimal" placeholder={m.kind === 'cash' ? 'Count' : 'Optional'} value={counts[m.id] ?? ''} onChange={(e) => setCounts((c) => ({ ...c, [m.id]: e.target.value }))} aria-label={`Counted ${m.name}`} />
-              : <span>{m.counted != null ? `${money(m.counted)} (${m.difference > 0 ? '+' : ''}${money(m.difference)})` : '—'}</span>}
+              : <span>{m.counted != null ? `${money(m.counted)} (${m.difference > 0 ? '+' : ''}${money(m.difference)})` : '-'}</span>}
           </div>
         ))}
         {line('Expected cash in the drawer', money(rep.expected_cash), true)}

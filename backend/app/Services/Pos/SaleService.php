@@ -138,7 +138,7 @@ class SaleService
         $name = (string) $v->product?->name;
         $vn = trim((string) $v->name);
 
-        return ['variant_id' => $v->id, 'product_id' => $v->product_id, 'name' => $vn !== '' && strcasecmp($vn, $name) !== 0 && strcasecmp($vn, 'Standard') !== 0 ? "{$name} — {$vn}" : $name,
+        return ['variant_id' => $v->id, 'product_id' => $v->product_id, 'name' => $vn !== '' && strcasecmp($vn, $name) !== 0 && strcasecmp($vn, 'Standard') !== 0 ? "{$name} - {$vn}" : $name,
             'sku' => $v->sku, 'barcode' => $v->barcode, 'price' => app(StockJobService::class)->systemPrice((int) $v->id)];
     }
 
@@ -241,7 +241,7 @@ class SaleService
         $type = VoucherType::byBase(self::MODES[$mode]['base']) ?? throw new BooksException('That kind of document is switched off in Books.');
 
         return ['voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => (int) $station->location_id, 'currency_id' => Currency::getBaseCurrency()?->id, 'customer_id' => $customerId,
-            'channel' => 'pos', 'narration' => 'Point of sale — '.$station->name,
+            'channel' => 'pos', 'narration' => 'Point of sale - '.$station->name,
             'meta' => ['pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u?->name ?? 'Self checkout']] + ($customerId ? [] : ['guest' => true, 'contact' => ['name' => 'Walk-in']]) + $meta];
     }
 
@@ -372,7 +372,7 @@ class SaleService
                     $v->update(['meta' => array_merge($v->meta ?? [], ['pos_paid' => ['tendered' => $paid['tendered'], 'change' => $paid['change']]])]);
                 }
                 if ($now && $mode === 'invoice') {
-                    $rc = $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till — {$v->voucher_number}"], $u);
+                    $rc = $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till - {$v->voucher_number}"], $u);
                     $this->tag($rc->id, $station, $shiftId);
                 } elseif ($now && $mode === 'order') {
                     $this->deposit($v, $customer, $now, $station, $u, $shiftId);
@@ -566,7 +566,7 @@ class SaleService
         if (! $lines) {
             throw new BooksException('Choose what is coming back.');
         }
-        $opts = ['lines' => $lines, 'reason' => $reason, 'narration' => "Return at {$station->name} against {$source->voucher_number} — {$reason}"];
+        $opts = ['lines' => $lines, 'reason' => $reason, 'narration' => "Return at {$station->name} against {$source->voucher_number} - {$reason}"];
         if ($found['paid_at_once']) {
             $allowed = array_column($found['refund']['ledgers'] ?? [], 'id');
             $ledger = ! empty($in['refund_ledger_id']) ? (int) $in['refund_ledger_id'] : ($found['refund']['default_id'] ?? ($allowed[0] ?? null));

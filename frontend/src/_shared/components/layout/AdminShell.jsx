@@ -56,7 +56,7 @@ export default function AdminShell() {
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)' }}>
         <Sidebar shell onOpenSearch={openSearch} onOpenCalc={toggleCalc} />
         <main className="admin-shell-main" style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>
-          <SectionTabs item={active.item} activeTab={active.tab} />
+          {pathname !== '/admin/pos' && <SectionTabs item={active.item} activeTab={active.tab} />}   {/* the till is a screen of its own: no tab strip above it */}
           <Outlet />
         </main>
       </div>

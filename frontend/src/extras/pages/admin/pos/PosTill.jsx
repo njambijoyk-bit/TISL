@@ -166,7 +166,7 @@ function ReturnPanel({ ctx, cur, onDone }) {
           {!doc.paid_at_once && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>This invoice is on account: the credit note lowers what the customer owes. No cash is paid out.</p>}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <span style={{ fontWeight: 800 }}>About {money(worth, cur)} (the books work out the exact tax)</span>
-            <button type="button" style={btnPrimary} disabled={busy || lines.length === 0 || !reason.trim()} onClick={() => setAsk(true)}>Take back — needs supervisor</button>
+            <button type="button" style={btnPrimary} disabled={busy || lines.length === 0 || !reason.trim()} onClick={() => setAsk(true)}>Take back - needs supervisor</button>
           </div>
         </>
       )}
@@ -271,7 +271,7 @@ export default function PosTill() {
     if (e.key !== 'Enter' || !q.trim()) return;
     try {
       const r = await posAPI.scan(q.trim(), ctx.station.id);
-      if (r.item) { add(r.item); setQ(''); } else if (found.length === 1) { add(found[0]); setQ(''); } else toast('No item with that code — pick from the list.');
+      if (r.item) { add(r.item); setQ(''); } else if (found.length === 1) { add(found[0]); setQ(''); } else toast('No item with that code - pick from the list.');
     } catch (err) { toast.error(errMsg(err, 'Scan failed')); }
   };
 
@@ -319,7 +319,7 @@ export default function PosTill() {
       <main onClick={() => setLocked(false)} role="button" tabIndex={0} onKeyDown={() => setLocked(false)} aria-label="Touch to start" style={{ minHeight: '100vh', cursor: 'pointer', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
         <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
         <span style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', fontWeight: 900 }}>{ctx.business}</span>
-        <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Point of sale — touch to start</span>
+        <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Point of sale - touch to start</span>
         <span style={{ opacity: 0.7 }}>{ctx.station.name} · {ctx.station.location}</span>
         {helpCount > 0 && <span style={{ background: '#dc2626', borderRadius: 999, padding: '8px 18px', justifySelf: 'center', fontWeight: 800 }}>{helpCount} customer{helpCount === 1 ? '' : 's'} asking for help</span>}
       </main>
@@ -409,7 +409,7 @@ export default function PosTill() {
     <Shell>
       <div style={{ marginBottom: 6, display: 'flex', gap: 8, justifyContent: narrow ? 'flex-start' : 'flex-end', flexWrap: 'wrap' }}>
         {ctx.shift_ready && (ctx.shift
-          ? <button type="button" style={btnGhost} onClick={() => setShiftUi({ id: ctx.shift.id })}>Shift open since {String(ctx.shift.opened_at).slice(11, 16)} — report / close</button>
+          ? <button type="button" style={btnGhost} onClick={() => setShiftUi({ id: ctx.shift.id })}>Shift open since {String(ctx.shift.opened_at).slice(11, 16)} - report / close</button>
           : <button type="button" style={btnPrimary} onClick={() => setShiftUi('open')}>Open shift</button>)}
         {ctx.shift_ready && ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setShiftUi('list')}>All shifts</button>}
         <button type="button" style={helpCount > 0 ? { ...btnPrimary, background: '#dc2626' } : btnGhost} onClick={() => setHelpDlg(true)}><LifeBuoy size={14} /> Help requests{helpCount > 0 ? ` (${helpCount})` : ''}</button>
@@ -428,7 +428,7 @@ export default function PosTill() {
               <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ ...card, padding: 10, textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 4, ...(it.price > 0 ? {} : { border: '2px solid #dc2626' }) }}>
                 <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{it.name}</span>
                 <span style={{ fontSize: '0.78rem', color: colors.textMuted }}>{it.sku}</span>
-                {it.price > 0 ? <span style={{ fontWeight: 800 }}>{money(it.price, cur)}</span> : <span style={{ fontWeight: 900, color: '#fff', background: '#dc2626', borderRadius: 6, padding: '4px 6px', textAlign: 'center', letterSpacing: '0.03em' }}>NO PRICE — CANNOT SELL</span>}
+                {it.price > 0 ? <span style={{ fontWeight: 800 }}>{money(it.price, cur)}</span> : <span style={{ fontWeight: 900, color: '#fff', background: '#dc2626', borderRadius: 6, padding: '4px 6px', textAlign: 'center', letterSpacing: '0.03em' }}>NO PRICE - CANNOT SELL</span>}
                 {it.stock != null && <span style={{ fontSize: '0.72rem', color: it.stock <= 3 ? colors.danger : colors.textMuted }}>{it.stock} in stock</span>}
               </button>
             ))}
@@ -448,7 +448,7 @@ export default function PosTill() {
           </div>
           {unpriced.length > 0 && (
             <div role="alert" style={{ padding: '14px 16px', borderRadius: 10, background: '#dc2626', color: '#fff', fontWeight: 900, fontSize: '1.05rem', textAlign: 'center', letterSpacing: '0.02em' }}>
-              NO PRICE — CANNOT CHECK OUT<div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{unpriced.map((l) => l.description).join(', ')}: remove {unpriced.length === 1 ? 'it' : 'them'} from the sale and ask a manager to set a price.</div>
+              NO PRICE - CANNOT CHECK OUT<div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{unpriced.map((l) => l.description).join(', ')}: remove {unpriced.length === 1 ? 'it' : 'them'} from the sale and ask a manager to set a price.</div>
             </div>
           )}
           {needShift && <p role="alert" style={{ margin: 0, padding: '8px 10px', borderRadius: 8, background: 'color-mix(in srgb, #d97706 12%, transparent)', fontSize: '0.82rem' }}>Open your shift to start selling.</p>}

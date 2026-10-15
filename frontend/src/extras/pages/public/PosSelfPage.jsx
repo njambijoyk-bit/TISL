@@ -8,6 +8,7 @@ import posSelfAPI from '../../../_shared/api/posSelf';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { printReceipt } from '../admin/pos/printReceipt';
+import { btnPrimary, btnGhost } from '../../../_shared/theme/tokens';
 import useViewport from '../admin/pos/useViewport';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -15,7 +16,13 @@ const POLL_MS = 2500;
 const GIVE_UP = 60;
 const DONE_SECONDS = 25;
 const WARN_SECONDS = 10;
-const huge = (bg = 'var(--color-primary-500)', fg = 'var(--text-inverse, #fff)') => ({ padding: 'clamp(12px, 2.6vw, 20px) clamp(16px, 3.6vw, 28px)', minHeight: 48, borderRadius: 18, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 900, fontSize: 'clamp(1.05rem, 2.6vw, 1.4rem)', background: bg, color: fg, touchAction: 'manipulation' });
+/** Buttons use the cashier till's design (the shared tokens), sized for a finger: primary by default, the quiet one when given a neutral background. */
+const huge = (bg, fg) => {
+  const quiet = bg && !String(bg).includes('--color-primary');
+  const own = fg && !['var(--text-inverse, #fff)', 'var(--text-primary)', '#fff'].includes(fg) ? { color: fg } : {};
+
+  return { ...(quiet ? btnGhost : btnPrimary), minHeight: 48, padding: '12px 22px', fontSize: '1rem', touchAction: 'manipulation', ...own };
+};
 
 /** The self-checkout screen: scan or pick, pay by M-Pesa on the phone, or take the basket to a cashier. Cash sales only. It starts again by itself when nobody touches it. */
 export default function PosSelfPage() {
@@ -186,22 +193,22 @@ export default function PosSelfPage() {
   ) : null;
   const themeBtn = (
     <button type="button" onClick={toggleTheme} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'}
-      style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 14px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '1rem' }}>{dark ? <Sun size={20} /> : <Moon size={20} />}{tiny ? null : (dark ? 'Light' : 'Dark')}</button>
+      style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '6px 12px', minHeight: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.85rem' }}>{dark ? <Sun size={16} /> : <Moon size={16} />}{tiny ? null : (dark ? 'Light' : 'Dark')}</button>
   );
   const shell = (children) => (
     <main onPointerDown={touch} style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary, #f9fafb)', color: 'var(--text-primary)' }} data-testid="self-checkout" data-step={step}>
       <Helmet><title>{cfg.business}</title></Helmet>
       {['shop', 'review', 'pay'].includes(step) && (
-        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: tiny ? '8px 12px' : '12px 20px', background: 'var(--surface-card, #fff)', borderBottom: '2px solid var(--line)', position: 'sticky', top: 0, zIndex: 20 }}>
-          <strong style={{ fontSize: tiny ? '1.05rem' : '1.3rem' }}>{cfg.business}</strong>
-          <ol aria-label="Steps" style={{ display: 'flex', gap: tiny ? 4 : 8, listStyle: 'none', margin: 0, padding: 0, fontWeight: 800, order: tiny ? 3 : 0, width: tiny ? '100%' : 'auto', justifyContent: 'center', fontSize: tiny ? '0.85rem' : '1rem' }}>
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: tiny ? '4px 10px' : '6px 16px', background: 'var(--surface-card, #fff)', borderBottom: '1px solid var(--line)', position: 'sticky', top: 0, zIndex: 20 }}>
+          <strong style={{ fontSize: tiny ? '0.95rem' : '1.05rem' }}>{cfg.business}</strong>
+          <ol aria-label="Steps" style={{ display: 'flex', gap: tiny ? 4 : 8, listStyle: 'none', margin: 0, padding: 0, fontWeight: 700, order: tiny ? 3 : 0, width: tiny ? '100%' : 'auto', justifyContent: 'center', fontSize: '0.82rem' }}>
             {[['shop', '1  Scan'], ['review', '2  Check'], ['pay', '3  Pay']].map(([k, l]) => (
-              <li key={k} aria-current={step === k ? 'step' : undefined} style={{ padding: tiny ? '6px 10px' : '6px 14px', flex: tiny ? 1 : 'none', textAlign: 'center', borderRadius: 999, background: step === k ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', color: step === k ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)' }}>{l}</li>
+              <li key={k} aria-current={step === k ? 'step' : undefined} style={{ padding: tiny ? '3px 8px' : '3px 12px', flex: tiny ? 1 : 'none', textAlign: 'center', borderRadius: 999, background: step === k ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', color: step === k ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)' }}>{l}</li>
             ))}
           </ol>
           <span style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={askHelp} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><LifeBuoy size={18} />{tiny ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Help</span> : ' Help'}</button>
-            <button type="button" onClick={startOver} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><RotateCcw size={18} />{tiny ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Start over</span> : ' Start over'}</button>
+            <button type="button" onClick={askHelp} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '6px 12px', minHeight: 36, fontSize: '0.85rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><LifeBuoy size={16} />{tiny ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Help</span> : ' Help'}</button>
+            <button type="button" onClick={startOver} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '6px 12px', minHeight: 36, fontSize: '0.85rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><RotateCcw size={16} />{tiny ? <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}>Start over</span> : ' Start over'}</button>
             {themeBtn}
           </span>
         </header>
@@ -236,7 +243,7 @@ export default function PosSelfPage() {
       <button type="button" onClick={() => { last.current = Date.now(); stop.current = false; setStep('shop'); }} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
         <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
         <span style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', fontWeight: 900 }}>{cfg.business}</span>
-        <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Self checkout — touch to start</span>
+        <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Self checkout - touch to start</span>
       </button>
       </>,
     );
@@ -362,7 +369,7 @@ export default function PosSelfPage() {
           ))}
         </div>
       </section>
-      <aside style={{ display: 'grid', gap: 10, background: 'var(--surface-card, #fff)', borderRadius: 16, padding: 16, ...(narrow ? {} : { position: 'sticky', top: 84, maxHeight: 'calc(100vh - 104px)', overflowY: 'auto' }) }}>
+      <aside style={{ display: 'grid', gap: 10, background: 'var(--surface-card, #fff)', borderRadius: 16, padding: 16, ...(narrow ? {} : { position: 'sticky', top: 56, maxHeight: 'calc(100vh - 72px)', overflowY: 'auto' }) }}>
         <strong style={{ fontSize: '1.3rem' }}>Basket ({count})</strong>
         {basket.map((b) => (
           <div key={b.variant_id} style={{ display: 'grid', gridTemplateColumns: tiny ? '1fr' : '1fr auto', gap: 8, alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid var(--line)' }}>
