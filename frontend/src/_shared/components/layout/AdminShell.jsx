@@ -22,7 +22,7 @@ export default function AdminShell() {
   const active = useMemo(() => findActive(nav, pathname, search), [nav, pathname, search]);
 
   // The till has no menu around it. Ctrl+B (Cmd+B) brings the sidebar in and takes it away again.
-  const onPos = pathname === '/admin/pos';
+  const onPos = /^\/admin\/pos\/?$/.test(pathname);
   const [posMenu, setPosMenu] = useState(false);
   useEffect(() => { if (!onPos) setPosMenu(false); }, [onPos]);
   useEffect(() => {
@@ -73,7 +73,7 @@ export default function AdminShell() {
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)' }}>
         {showSidebar && <Sidebar shell onOpenSearch={openSearch} onOpenCalc={toggleCalc} />}
         <main className="admin-shell-main" style={{ flex: 1, minWidth: 0, overflowX: 'hidden' }}>
-          {pathname !== '/admin/pos' && <SectionTabs item={active.item} activeTab={active.tab} />}   {/* the till is a screen of its own: no tab strip above it */}
+          {!onPos && <SectionTabs item={active.item} activeTab={active.tab} />}   {/* the till is a screen of its own: no tab strip above it */}
           <Outlet />
         </main>
       </div>

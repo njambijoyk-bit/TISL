@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Minus, Plus, Trash2, Pause, Play, X, Search, ScanLine, Lock, LifeBuoy } from 'lucide-react';
+import { Pause, Play, X, Search, ScanLine, Lock, LifeBuoy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import posAPI from '../../../../_shared/api/pos';
 import { PAPER, printReceipt } from './printReceipt';
 import useViewport from './useViewport';
 import ItemTile, { ViewToggle } from './ItemTile';
 import useItemView from './useItemView';
+import { Stepper, RemoveButton } from './BasketControls';
+import CodeScanner from '../../../../core/components/admin/codes/CodeScanner';
 import { OpenShiftDialog, ShiftDialog, ShiftList } from './ShiftDialogs';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
@@ -224,7 +226,6 @@ export default function PosTill() {
 
   const loadCtx = useCallback((stationId) => posAPI.context(stationId).then(setCtx).catch((e) => setError(errMsg(e, 'Could not open the point of sale'))), []);
   useEffect(() => { loadCtx(); }, [loadCtx]);
-  useEffect(() => { search.current?.focus(); }, [ctx, done, locked]);
   useEffect(() => {   // customers who pressed Call for help at a self-checkout screen
     if (!ctx?.station) return undefined;
     let live = true;
@@ -271,6 +272,12 @@ export default function PosTill() {
     if (ctx.can.void) note(undefined); else setAsk({ purpose: 'void', why: `Removing ${c.name} from the sale needs a supervisor.`, then: (a) => note(a.token) });
   };
 
+  const scanCode = async (code) => {   // a handheld scanner or the camera: the code goes straight into the sale
+    try {
+      const r = await posAPI.scan(code, ctx.station.id);
+      if (r.item) add(r.item); else toast.error(`No item with the barcode ${code}.`);
+    } catch (err) { toast.error(errMsg(err, 'Scan failed')); }
+  };
   const onEnter = async (e) => {
     if (e.key !== 'Enter' || !q.trim()) return;
     try {
@@ -423,6 +430,7 @@ export default function PosTill() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: 16, alignItems: 'start', paddingBottom: narrow && cart.length ? 84 : 0 }}>
         <section style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
+          <CodeScanner onScan={scanCode} placeholder="Scan an item's barcode: scanner or camera" autoFocus />
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Search size={16} />
             <input ref={search} style={field} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan a barcode or search by name or code" aria-label="Search items" />
@@ -479,13 +487,11 @@ export default function PosTill() {
                 <div style={{ fontSize: '0.75rem', color: colors.textMuted }}>{lineOf(i) ? `${money(lineOf(i).rate, cur)} each` : ''}</div>
               </div>
               <div style={{ textAlign: 'right', fontWeight: 800 }}>{lineOf(i) ? money(lineOf(i).amount, cur) : ''}</div>
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button type="button" style={btnGhost} aria-label="Less" onClick={() => change(c.variant_id, { quantity: c.quantity - 1 })}><Minus size={14} /></button>
-                <input style={{ ...field, width: 64, textAlign: 'center' }} inputMode="decimal" value={c.quantity} onChange={(e) => change(c.variant_id, { quantity: Number(e.target.value) || 0 })} aria-label="Quantity" />
-                <button type="button" style={btnGhost} aria-label="More" onClick={() => change(c.variant_id, { quantity: c.quantity + 1 })}><Plus size={14} /></button>
-                {ctx.can.discount && <input style={{ ...field, width: 72 }} inputMode="decimal" placeholder="% off" value={c.discount_pct || ''} onChange={(e) => change(c.variant_id, { discount_pct: Number(e.target.value) || 0 })} aria-label="Discount percent" />}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Stepper label={c.name} value={c.quantity} onMinus={() => change(c.variant_id, { quantity: c.quantity - 1 })} onPlus={() => change(c.variant_id, { quantity: c.quantity + 1 })} onType={(v) => change(c.variant_id, { quantity: Number(v) || 0 })} />
+                {ctx.can.discount && <input style={{ ...field, width: 64, height: 30, padding: '2px 8px', fontSize: '0.8rem' }} inputMode="decimal" placeholder="% off" value={c.discount_pct || ''} onChange={(e) => change(c.variant_id, { discount_pct: Number(e.target.value) || 0 })} aria-label="Discount percent" />}
               </div>
-              <button type="button" style={{ ...btnGhost, justifySelf: 'end', color: colors.danger }} aria-label={`Remove ${c.name}`} onClick={() => remove(c, i)}><Trash2 size={14} /></button>
+              <span style={{ justifySelf: 'end' }}><RemoveButton label={c.name} onClick={() => remove(c, i)} /></span>
             </div>
           ))}
           <div style={{ display: 'grid', gap: 4, fontSize: '0.88rem' }}>
