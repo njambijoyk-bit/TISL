@@ -20,6 +20,7 @@ const posAPI = {
   findReturn: async (number) => (await api.get('/admin/pos/returns/find', { params: { number } })).data,
   makeReturn: async (body) => (await api.post('/admin/pos/returns', body)).data,
   logVoid: async (body) => (await api.post('/admin/pos/voids', body)).data,
+  receipt: async (id, paper) => (await api.get(`/admin/pos/sales/${id}/receipt`, { params: paper ? { paper } : {} })).data,
   mySales: async () => (await api.get('/admin/pos/sales')).data,
   holds: async () => (await api.get('/admin/pos/holds')).data,
   hold: async (body) => (await api.post('/admin/pos/holds', body)).data,

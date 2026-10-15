@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Minus, Plus, Trash2, Pause, Play, X, Search } from 'lucide-react';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import posAPI from '../../../../_shared/api/pos';
+import { PAPER, printReceipt } from './printReceipt';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
@@ -189,6 +190,9 @@ export default function PosTill() {
   const [ask, setAsk] = useState(null);             // { purpose, why, then }
   const [pinOpen, setPinOpen] = useState(false);
   const [returned, setReturned] = useState(null);
+  const [paper, setPaper] = useState('');
+  const [auto, setAuto] = useState(() => { try { return localStorage.getItem('pos.autoprint') === '1'; } catch { return false; } });
+  const [mine, setMine] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [cq, setCq] = useState('');
   const [cfound, setCfound] = useState([]);
@@ -237,9 +241,15 @@ export default function PosTill() {
     setBusy(true);
     try {
       const r = await posAPI.sell({ ...body(), key: key.current, tenders: tenders.filter((t) => t.amount > 0) });
-      setDone(r); setCart([]); setPaying(false); setCustomer(null); setCq(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
+      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setCq(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
     } catch (e) { if (e?.response?.data?.approval === 'discount') { setPaying(false); setApproval(null); } toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
   };
+
+  const print = async (id) => {
+    try { printReceipt(await posAPI.receipt(id, paper || ctx.station.paper)); } catch (e) { toast.error(errMsg(e, 'Could not print'), { duration: 8000 }); }
+  };
+  const setAutoPrint = (v) => { setAuto(v); try { localStorage.setItem('pos.autoprint', v ? '1' : '0'); } catch { /* the choice is just not remembered */ } };
+  const openMine = async () => { try { setMine((await posAPI.mySales()).sales); } catch (e) { toast.error(errMsg(e, 'Could not load your sales')); } };
 
   const hold = async () => {
     try { const label = window.prompt('Name this held sale (optional)') ?? ''; await posAPI.hold({ ...body(), label, customer_name: customer?.name, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, name: c.name, discount_pct: c.discount_pct || 0 })) }); setCart([]); toast.success('Sale held.'); } catch (e) { toast.error(errMsg(e, 'Could not hold')); }
@@ -274,6 +284,21 @@ export default function PosTill() {
   const extraDialogs = (
     <>
       {ask && <ApproveDialog purpose={ask.purpose} stationId={ctx.station.id} why={ask.why} onCancel={() => setAsk(null)} onDone={(a) => { const f = ask.then; setAsk(null); f(a); }} />}
+      {mine && (
+        <div role="dialog" aria-label="My sales today" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
+          <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8, maxHeight: '80vh', overflowY: 'auto' }}>
+            <strong>My sales today</strong>
+            {mine.length === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nothing yet today.</p>}
+            {mine.map((m) => (
+              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span>{m.number} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {money(m.total, cur)}{m.status !== 'posted' ? ` · ${m.status}` : ''}</span></span>
+                {ctx.can.reprint ? <button type="button" style={btnGhost} onClick={() => print(m.id)}>Reprint (copy)</button> : null}
+              </div>
+            ))}
+            <button type="button" style={btnPrimary} onClick={() => setMine(null)}>Close</button>
+          </div>
+        </div>
+      )}
       {pinOpen && <PinDialog onClose={(ok) => { setPinOpen(false); if (ok) loadCtx(ctx.station.id); }} />}
       {returned && (
         <div role="dialog" aria-label="Return done" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
@@ -302,7 +327,10 @@ export default function PosTill() {
 
   return (
     <AdminLayout>
-      {ctx.can.supervise && <div style={{ textAlign: 'right', marginBottom: 6 }}><button type="button" style={btnGhost} onClick={() => setPinOpen(true)}>{ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'}</button></div>}
+      <div style={{ textAlign: 'right', marginBottom: 6, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button type="button" style={btnGhost} onClick={openMine}>My sales today</button>
+        {ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setPinOpen(true)}>{ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'}</button>}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
         <section style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -405,6 +433,13 @@ export default function PosTill() {
             {done.paid_now != null && <div style={{ fontSize: '0.9rem' }}>Paid now: <strong>{money(done.paid_now, cur)}</strong> · to pay later: <strong>{money(done.total - done.paid_now, cur)}</strong></div>}
             {done.change > 0 && <div style={{ fontSize: '1.1rem' }}>Change due: <strong>{money(done.change, cur)}</strong></div>}
             <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{done.tenders.map((t) => `${t.method} ${money(t.amount, cur)}`).join(' · ')}</div>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select style={{ ...field, width: 'auto' }} value={paper || ctx.station.paper} onChange={(e) => setPaper(e.target.value)} aria-label="Receipt paper">
+                {(ctx.branch?.paper_allowed ?? Object.keys(PAPER)).map((k) => <option key={k} value={k}>{PAPER[k]?.label ?? k}</option>)}
+              </select>
+              <button type="button" style={btnGhost} onClick={() => print(done.id)}>Print 2 copies</button>
+            </div>
+            <label style={{ fontSize: '0.78rem', color: colors.textMuted }}><input type="checkbox" checked={auto} onChange={(e) => setAutoPrint(e.target.checked)} /> Print automatically after each sale</label>
             <button type="button" style={btnPrimary} onClick={() => { setDone(null); setMode('cash'); }}>New sale</button>
           </div>
         </div>

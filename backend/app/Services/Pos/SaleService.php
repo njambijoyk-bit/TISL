@@ -57,7 +57,7 @@ class SaleService
         return ['stations' => $choices, 'station' => $station ? ['id' => $station->id, 'name' => $station->name, 'code' => $station->code, 'location_id' => (int) $station->location_id,
             'location' => Location::whereKey($station->location_id)->value('name'), 'paper' => $this->stations->paperFor($station)] : null,
             'branch' => $branch, 'methods' => $methods, 'currency' => $cur ? ['code' => $cur->code, 'symbol' => $cur->symbol ?? $cur->code] : null,
-            'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];
+            'can' => ['sell' => $access->allows($u, 'pos.sell'), 'invoice' => $access->allows($u, 'pos.invoice'), 'order' => $access->allows($u, 'pos.order'), 'discount' => $access->allows($u, 'pos.discount'), 'void' => $access->allows($u, 'pos.void'), 'return' => $access->allows($u, 'pos.return'), 'supervise' => $access->allows($u, 'pos.supervise'), 'reprint' => $access->allows($u, 'pos.reprint'), 'has_pin' => $this->pins->hasPin($u->id), 'hold' => $access->allows($u, 'pos.sell')]];
     }
 
     // ── the catalogue ─────────────────────────────────────────────────────
@@ -274,10 +274,13 @@ class SaleService
         }
 
         try {
-            $voucher = DB::transaction(function () use ($u, $key, $station, $data, $mode, $customer, $now, $needsApproval, $in) {
+            $voucher = DB::transaction(function () use ($u, $key, $station, $data, $mode, $customer, $now, $needsApproval, $in, $paid) {
                 DB::table('pos_sale_keys')->insert(['user_id' => $u->id, 'sale_key' => $key, 'created_at' => now(), 'updated_at' => now()]);
                 $v = $this->post($data, $u);
                 DB::table('vouchers')->where('id', $v->id)->update(['station_id' => $station->id]);
+                if ($paid) {   // what was handed over and the change given, for the receipt
+                    $v->update(['meta' => array_merge($v->meta ?? [], ['pos_paid' => ['tendered' => $paid['tendered'], 'change' => $paid['change']]])]);
+                }
                 if ($now && $mode === 'invoice') {
                     $this->vouchers->receive($v, ['tenders' => $now['tenders'], 'amount' => $now['tendered'], 'channel' => 'pos', 'narration' => "Paid at the till — {$v->voucher_number}"], $u);
                 } elseif ($now && $mode === 'order') {

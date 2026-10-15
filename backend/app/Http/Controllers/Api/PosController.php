@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Books\BooksException;
 use App\Services\Pos\ApprovalRequired;
 use App\Services\Pos\PinService;
+use App\Services\Pos\ReceiptService;
 use App\Services\Pos\SaleService;
 use App\Services\Pos\StationService;
 use Illuminate\Http\JsonResponse;
@@ -14,7 +15,7 @@ use Illuminate\Http\Request;
 /** The cashier's point of sale (/api/pos): the catalogue, pricing, selling for cash, and hold and recall. Changes to Books are made by the books' own posting code, not here. */
 class PosController extends Controller
 {
-    public function __construct(private SaleService $sales, private PinService $pins, private StationService $stations)
+    public function __construct(private SaleService $sales, private PinService $pins, private StationService $stations, private ReceiptService $receipts)
     {
     }
 
@@ -102,6 +103,11 @@ class PosController extends Controller
 
             return ['message' => 'Held sale removed.'];
         });
+    }
+
+    public function receipt(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(fn () => $this->receipts->build($request->user(), $id, $request->filled('paper') ? (string) $request->paper : null));
     }
 
     // ── supervisor approval, returns, voids ──
