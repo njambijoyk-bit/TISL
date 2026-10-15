@@ -17,6 +17,9 @@ trait RunsSqlScripts
             $sql = preg_replace('/--[^\n]*/', '', $sql);
             preg_match_all('/(CREATE TABLE IF NOT EXISTS\s+\w+\s*\((?:.|\n)*?\)\s*ENGINE=[^;]*;)|(ALTER TABLE\s+\w+\s+ADD COLUMN[^;]*;)/i', $sql, $m, PREG_SET_ORDER);
             foreach ($m as $hit) {
+                if ($hit[1] === '' && preg_match('/ALTER TABLE\s+(\w+)\s+ADD COLUMN\s+(\w+)/i', $hit[2], $c) && \Illuminate\Support\Facades\Schema::hasColumn($c[1], $c[2])) {
+                    continue;   // a script that creates a table and then adds a column it already has (the owner's MySQL checks first)
+                }
                 DB::statement($hit[1] !== '' ? $this->sqliteTable($hit[1]) : $this->sqliteColumn($hit[2]));
             }
         }

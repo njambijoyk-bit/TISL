@@ -100,6 +100,8 @@ class StepUpRoutesTest extends TestCase
             'POST api/admin/logs/export' => 'export_bulk',
             'GET|HEAD api/admin/books/vouchers/export' => 'export_bulk',
             'POST api/admin/books/vouchers/{id}/cancel' => 'voucher_cancel',
+            'PUT api/admin/access/users/{id}/access' => 'access_change',
+            'POST api/admin/pos/stations/{id}/token' => 'access_change',
         ];
         $found = [];
         foreach (Route::getRoutes()->getRoutes() as $route) {
