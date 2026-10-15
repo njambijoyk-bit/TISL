@@ -246,7 +246,7 @@ class ExportService
         if ($d['lines']) {
             $h .= '<table><thead><tr><th>#</th><th>Description</th><th>Variant</th><th class="r">Qty</th><th>Unit</th><th class="r">Rate</th><th class="r">Amount</th><th class="r">Tax %</th><th class="r">Tax</th></tr></thead><tbody>';
             foreach ($d['lines'] as $l) {
-                $indent = $l['component'] ? '<span class="ind">└</span> ' : '';
+                $indent = $l['component'] ? '<span class="ind">&ndash;</span> ' : '';
                 $cls = $l['is_header'] ? ' class="hdr"' : ($l['component'] ? ' class="comp"' : '');
                 $h .= "<tr$cls><td>" . ($l['component'] ? '' : $e($l['line'])) . "</td><td>$indent{$e($l['description'])}</td><td>{$e($l['variant'])}</td>"
                     . "<td class='r'>{$e($l['quantity'] + 0)}</td><td>{$e($l['unit'])}</td><td class='r'>{$n($l['rate'])}</td><td class='r'>{$n($l['amount'])}</td>"
@@ -705,7 +705,7 @@ class ExportService
                 $comp = $i->parent_item_id !== null;
                 $desc = $i->description . ($i->variant_label ? ' (' . $i->variant_label . ')' : '');
                 $no += $comp ? 0 : 1;
-                $rows .= '<tr><td class="sl">' . ($comp ? '' : $no) . '</td><td class="ds' . ($comp ? ' cm' : '') . '">' . ($comp ? '&#8627; ' : '') . $e($desc) . '</td>'
+                $rows .= '<tr><td class="sl">' . ($comp ? '' : $no) . '</td><td class="ds' . ($comp ? ' cm' : '') . '">' . ($comp ? '&ndash; ' : '') . $e($desc) . '</td>'
                     . ($i->is_header ? '<td></td><td></td><td></td><td></td><td></td>'
                         : '<td class="r">' . $e(($i->quantity + 0) . ' ' . $i->unit_code) . '</td><td class="r">' . $n($i->rate) . '</td><td class="c">' . $e($i->unit_code) . '</td><td class="r">' . ((float) $i->discount_amount > 0 ? $n($i->discount_amount) : '') . '</td><td class="r"><b>' . $n($i->amount) . '</b></td>') . '</tr>';
             }

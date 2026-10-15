@@ -1,0 +1,2 @@
+Emoji pictures for PDF documents (see app/Support/PdfEmoji.php).
+Twemoji graphics, copyright Twitter, Inc and other contributors, licensed CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Source: https://github.com/jdecked/twemoji

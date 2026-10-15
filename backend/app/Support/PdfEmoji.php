@@ -2,18 +2,13 @@
 
 namespace App\Support;
 
-use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
-
 /**
  * Emoji for PDFs. The PDF writer has no emoji font, so a "💙" in a tagline or note comes out as "?". Each emoji in the text of the page is swapped for a small
- * picture of it (the open Twemoji set), fetched once and kept on disk so the next PDF needs no network. An emoji whose picture cannot be had is left out
- * rather than printed as a question mark. Symbols the text font draws itself (©, ™, ✓, ➜) are left alone.
+ * picture of it, taken from the Twemoji set kept in resources/emoji (graphics by Twitter and contributors, CC-BY 4.0), so nothing is fetched from the internet.
+ * An emoji with no picture is left out rather than printed as a question mark. Symbols the text font draws itself (©, ™, ✓) are left alone.
  */
 class PdfEmoji
 {
-    private const BASE = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/';
-
     /** A flag, a keycap, or a pictograph with its modifiers and joined partners. */
     private const PATTERN = '/[\x{1F1E6}-\x{1F1FF}]{2}|[#*0-9]\x{FE0F}?\x{20E3}|\p{Extended_Pictographic}(?:\x{FE0F}|[\x{1F3FB}-\x{1F3FF}])*(?:\x{200D}\p{Extended_Pictographic}(?:\x{FE0F}|[\x{1F3FB}-\x{1F3FF}])*)*/u';
 
@@ -45,36 +40,17 @@ class PdfEmoji
         return $pic ? '<img src="'.$pic.'" style="height:1.1em;width:1.1em;vertical-align:-0.18em" alt="">' : '';
     }
 
-    /** The picture of an emoji as a data address, from disk or fetched once. @param array<int, int> $cps */
+    /** The picture of an emoji as a data address, or null when the set has none. @param array<int, int> $cps */
     private static function picture(array $cps): ?string
     {
         if (! in_array(0x200D, $cps, true)) {
             $cps = array_values(array_filter($cps, fn ($c) => $c !== 0xFE0F));   // the set names a joined emoji with its selectors, the rest without
         }
-        $name = implode('-', array_map(fn ($c) => dechex($c), $cps)).'.png';
-        $dir = storage_path('app/emoji');
-        $file = $dir.'/'.$name;
-        if (is_file($file)) {
-            return 'data:image/png;base64,'.base64_encode((string) file_get_contents($file));
-        }
-        if (Cache::has('emoji-miss-'.$name)) {
+        $file = resource_path('emoji/'.implode('-', array_map(fn ($c) => dechex($c), $cps)).'.svg');
+        if (! is_file($file)) {
             return null;
         }
-        try {
-            $r = Http::timeout(4)->get(self::BASE.$name);
-            if ($r->successful() && str_starts_with($r->body(), "\x89PNG")) {
-                if (! is_dir($dir)) {
-                    @mkdir($dir, 0775, true);
-                }
-                @file_put_contents($file, $r->body());
 
-                return 'data:image/png;base64,'.base64_encode($r->body());
-            }
-        } catch (\Throwable) {
-            // offline or blocked: fall through
-        }
-        Cache::put('emoji-miss-'.$name, 1, 3600);
-
-        return null;
+        return 'data:image/svg+xml;base64,'.base64_encode((string) file_get_contents($file));
     }
 }
