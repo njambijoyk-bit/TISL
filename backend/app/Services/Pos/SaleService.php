@@ -226,6 +226,16 @@ class SaleService
         }
     }
 
+    /** An item the books price at nothing is never sold at the till: a mistake in the catalogue must not give goods away. */
+    private function assertPriced(array $pre): void
+    {
+        foreach ($pre['lines'] as $l) {
+            if (empty($l['is_header']) && (float) $l['rate'] <= 0.00001) {
+                throw new BooksException("{$l['description']} has no price. It can not be sold until a manager sets one.");
+            }
+        }
+    }
+
     private function base(?User $u, Station $station, ?int $customerId, string $mode = 'cash', array $meta = []): array
     {
         $type = VoucherType::byBase(self::MODES[$mode]['base']) ?? throw new BooksException('That kind of document is switched off in Books.');
@@ -261,7 +271,10 @@ class SaleService
         $data = $this->base(null, $station, null, 'cash', ['pos_self' => true]);
         $data['lines'] = array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rows);
 
-        return [$data, $this->vouchers->preview($data, null)];
+        $pre = $this->vouchers->preview($data, null);
+        $this->assertPriced($pre);
+
+        return [$data, $pre];
     }
 
     private function priced(User $u, Station $station, array $in): array
@@ -272,6 +285,7 @@ class SaleService
         $data = $this->base($u, $station, $customerId, $mode);
         $clean = fn (array $rs) => array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rs);
         $pre = $this->vouchers->preview($data + ['lines' => $clean($rows)], $u);
+        $this->assertPriced($pre);
         if (array_filter(array_column($rows, '_pct'))) {   // a percentage comes off each line's price: worked out from the price the books gave it
             foreach ($rows as $k => $r) {
                 if ($r['_pct'] > 0) {
