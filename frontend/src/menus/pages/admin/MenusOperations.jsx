@@ -7,7 +7,7 @@ import { Field, NumberInput, SelectInput, TextInput } from '../../../core/compon
 import VariantPicker from '../../../core/components/admin/pickers/VariantPicker';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
@@ -182,13 +182,13 @@ function Buy({ branch, canAct }) {
 /** Menus → Operations: tomorrow's prep list, the waste log and what to buy. */
 export default function MenusOperations() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canWriteFinance(user);
+  const canAct = canManageMenus(user);
   const [which, setWhich] = useState('prep');
   const [branches, setBranches] = useState([]);
   const [branch, setBranch] = useState('');
   useEffect(() => { menusAPI.prep({ date: tomorrow() }).then((r) => { setBranches(r.branches ?? []); setBranch((b) => b || String(r.location_id ?? '')); }).catch(() => {}); }, []);
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="kitchen operations" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="kitchen operations" /></div></AdminLayout>;
 
   return (
     <AdminLayout>

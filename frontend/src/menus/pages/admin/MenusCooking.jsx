@@ -7,7 +7,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
@@ -79,7 +79,7 @@ function QuoteModal({ req, chefs, onClose, onDone }) {
 /** Menus → Cakes & catering: what customers asked for, the quotes, the deposits and the jobs. */
 export default function MenusCooking() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canWriteFinance(user);
+  const canAct = canManageMenus(user);
   const [data, setData] = useState(null);
   const [status, setStatus] = useState('');
   const [chefFilter, setChefFilter] = useState('');
@@ -110,7 +110,7 @@ export default function MenusCooking() {
     } catch (e) { toast.error(errMsg(e, 'Could not record the payment'), { duration: 8000 }); } finally { setBusy(null); }
   };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="cakes and catering" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="cakes and catering" /></div></AdminLayout>;
 
   const rows = data?.requests ?? [];
 

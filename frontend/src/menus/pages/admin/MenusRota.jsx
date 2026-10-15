@@ -7,7 +7,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance } from '../../../_shared/lib/roles';
+import { canViewMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
@@ -493,7 +493,7 @@ export default function MenusRota() {
     try { await menusAPI.cancelDayOff(d.id); await load(); } catch (e) { toast.error(errMsg(e, 'Could not cancel'), { duration: 8000 }); }
   };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the chef rota" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the chef rota" /></div></AdminLayout>;
 
   const days = data?.days ?? [];
   const today = iso(new Date());

@@ -5,7 +5,7 @@ import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
@@ -73,7 +73,7 @@ function Expo({ data }) {
 /** Menus → Kitchen: one screen per station (what to make, oldest first, with choices, notes and allergens in bold, a timer that turns red), the pass (expo) and a paper ticket as the fallback. It refreshes by itself. */
 export default function MenusKitchen() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canWriteFinance(user);
+  const canAct = canManageMenus(user);
   const [stations, setStations] = useState(null);
   const [ready, setReady] = useState(true);
   const [pick, setPick] = useState(null);   // a station id, or 'expo'
@@ -109,7 +109,7 @@ export default function MenusKitchen() {
   };
   const elapsed = (t) => t.waited;
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the kitchen screens" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the kitchen screens" /></div></AdminLayout>;
   const station = stations?.find((s) => s.id === pick);
 
   return (

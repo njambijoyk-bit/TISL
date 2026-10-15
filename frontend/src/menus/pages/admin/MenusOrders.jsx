@@ -7,7 +7,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
@@ -26,7 +26,7 @@ const payTone = { open: ['warn', 'Tab open'], paid: ['ok', 'Paid'], later: ['war
 /** Menus → Orders: the board for online orders. New ones come in on the left; the kitchen moves each along; an order paid at the door is settled with its payment. */
 export default function MenusOrders() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canWriteFinance(user);
+  const canAct = canManageMenus(user);
   const [data, setData] = useState(null);
   const [all, setAll] = useState(false);
   const [busy, setBusy] = useState(null);
@@ -54,7 +54,7 @@ export default function MenusOrders() {
     } catch (e) { toast.error(errMsg(e, 'Could not take the payment'), { duration: 8000 }); } finally { setBusy(null); }
   };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the food orders" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the food orders" /></div></AdminLayout>;
 
   const orders = data?.orders ?? [];
   const finished = orders.filter((o) => ['completed', 'cancelled'].includes(o.status));

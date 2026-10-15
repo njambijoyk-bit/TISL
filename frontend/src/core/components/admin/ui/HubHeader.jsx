@@ -30,7 +30,7 @@ export function NoAccess({ what = 'this page' }) {
   return (
     <div style={{ padding: '48px 24px', textAlign: 'center' }}>
       <p style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.text, margin: '0 0 6px' }}>You don't have access to {what}</p>
-      <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>It's available to finance, manager, admin and super admin users.</p>
+      <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>Ask the person who manages access to give you this.</p>
     </div>
   );
 }

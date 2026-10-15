@@ -7,7 +7,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { CheckboxRow, Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
@@ -108,7 +108,7 @@ function MenuModal({ menu, dishes, days, onClose, onDone }) {
 
 export default function MenuCards() {
   const user = useAuthStore((s) => s.user);
-  const canWrite = canWriteFinance(user);
+  const canWrite = canManageMenus(user);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
@@ -124,7 +124,7 @@ export default function MenuCards() {
     try { const res = await menusAPI.removeMenu(m.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not delete')); }
   };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="menus" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="menus" /></div></AdminLayout>;
 
   return (
     <AdminLayout>

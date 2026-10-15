@@ -7,7 +7,7 @@ import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader
 import Modal from '../../../core/components/admin/ui/Modal';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import DishPicker from '../../components/DishPicker';
@@ -107,7 +107,7 @@ function ReceiptModal({ order, onClose }) {
 /** Menus → Till: the cashier's screen. Ring up dishes (with choices), then take the money, or open a tab that is ordered in rounds and paid at the end. Paid orders wait on the right until the kitchen has made them. */
 export default function MenusTill() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canWriteFinance(user);
+  const canAct = canManageMenus(user);
   const [data, setData] = useState(null);
   const basket = useBasket(null);
   const [menuId, setMenuId] = useState(null);
@@ -155,7 +155,7 @@ export default function MenusTill() {
   const handOver = (o) => run(() => menusAPI.setOrderStatus(o.id, 'completed'), `#${o.short_no} handed over.`);
   const cancelTab = () => { const reason = window.prompt(`Cancel the tab ${tab.label}? Say why:`, ''); if (reason === null) return null; return run(async () => { await menusAPI.cancelTab(tab.id, reason || undefined); reset(); }, 'Tab cancelled.'); };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the till" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the till" /></div></AdminLayout>;
   const food = basket.subtotal;
 
   return (

@@ -6,7 +6,7 @@ import { Field, FormStack, NumberInput, SelectInput, TextArea, TextInput } from 
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
@@ -19,7 +19,7 @@ import ClockPlacesCard from '../../components/ClockPlacesCard';
 /** Menus → Settings: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
   const user = useAuthStore((s) => s.user);
-  const canEdit = canWriteFinance(user);
+  const canEdit = canManageMenus(user);
   const [s, setS] = useState(null);
   const [ready, setReady] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -41,7 +41,7 @@ export default function MenusSettings() {
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the Menus settings" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the Menus settings" /></div></AdminLayout>;
 
   return (
     <AdminLayout>

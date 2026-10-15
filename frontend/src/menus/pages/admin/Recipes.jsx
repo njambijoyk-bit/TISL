@@ -10,7 +10,7 @@ import MenusNav from '../../components/MenusNav';
 import VariantPicker from '../../../core/components/admin/pickers/VariantPicker';
 import { recipesAPI } from '../../../_shared/api/stockOps';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 
@@ -159,7 +159,7 @@ function RunModal({ recipe, branches, onClose, onDone }) {
 
 export default function Recipes() {
   const user = useAuthStore((s) => s.user);
-  const canWrite = canWriteFinance(user);
+  const canWrite = canManageMenus(user);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
@@ -182,7 +182,7 @@ export default function Recipes() {
     try { const res = await recipesAPI.cancelRun(p.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not cancel')); }
   };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="recipes and production" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="recipes and production" /></div></AdminLayout>;
 
   return (
     <AdminLayout>

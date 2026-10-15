@@ -7,7 +7,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
@@ -106,7 +106,7 @@ function CertForm({ chef, cert, kinds, onClose, onDone }) {
 /** Menus → Chefs: the kitchen's people. Who is on duty now, their stations, the certificates they hold (with a warning before one runs out) and what guests see of them. */
 export default function MenusChefs() {
   const user = useAuthStore((s) => s.user);
-  const canEdit = canWriteFinance(user);
+  const canEdit = canManageMenus(user);
   const [data, setData] = useState(null);
   const [form, setForm] = useState(null);
   const [certForm, setCertForm] = useState(null);
@@ -116,7 +116,7 @@ export default function MenusChefs() {
   const remove = async (c) => { if (!window.confirm(`Remove ${c.display_name} from the chefs? Their certificates are deleted too.`)) return; try { await menusAPI.removeChef(c.id); await load(); } catch (e) { toast.error(errMsg(e, 'Could not remove the chef'), { duration: 8000 }); } };
   const removeCert = async (c, x) => { try { await menusAPI.removeCert(c.id, x.id); await load(); } catch (e) { toast.error(errMsg(e, 'Could not remove the certificate'), { duration: 8000 }); } };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the chefs" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the chefs" /></div></AdminLayout>;
   const attention = data?.chefs.reduce((n, c) => n + c.attention, 0) ?? 0;
 
   return (

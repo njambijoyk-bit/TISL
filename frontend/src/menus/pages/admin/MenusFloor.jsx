@@ -8,7 +8,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
@@ -61,7 +61,7 @@ function QrModal({ table, onClose, onRenew }) {
 /** Menus → Floor: the plan of the tables with what each is doing, one tap to seat, ask for the bill, clean, join tables or open its tab in the till; and, when editing, the places of the tables. */
 export default function MenusFloor() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canWriteFinance(user);
+  const canAct = canManageMenus(user);
   const [data, setData] = useState(null);
   const [locationId, setLocationId] = useState('');
   const [areaId, setAreaId] = useState(null);
@@ -97,7 +97,7 @@ export default function MenusFloor() {
   };
   const addArea = async () => { try { await menusAPI.saveArea({ name: areaName, location_id: Number(locationId) }); setAreaName(''); await load(); } catch (e) { toast.error(errMsg(e, 'Could not add the area'), { duration: 8000 }); } };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the floor" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the floor" /></div></AdminLayout>;
   const width = Math.max(14, ...tables.map((t) => t.x + t.w + 1)) * CELL;
   const height = Math.max(8, ...tables.map((t) => t.y + t.h + 1)) * CELL;
 

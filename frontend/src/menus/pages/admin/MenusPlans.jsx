@@ -7,7 +7,7 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canReadFinance, canWriteFinance } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
@@ -151,7 +151,7 @@ function DayTab() {
 /** Menus → Meal plans: the plans and their rotating menus, who has subscribed, and what to cook and where to deliver on a day. */
 export default function MenusPlans() {
   const user = useAuthStore((s) => s.user);
-  const canAct = canWriteFinance(user);
+  const canAct = canManageMenus(user);
   const [tab, setTab] = useState('plans');
   const [data, setData] = useState(null);
   const [subs, setSubs] = useState(null);
@@ -173,7 +173,7 @@ export default function MenusPlans() {
     return run(() => menusAPI.planAct(s.id, action, payload), loadSubs);
   };
 
-  if (!canReadFinance(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="meal plans" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="meal plans" /></div></AdminLayout>;
 
   return (
     <AdminLayout>

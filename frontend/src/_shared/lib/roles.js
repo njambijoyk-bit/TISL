@@ -62,6 +62,9 @@ export const clearanceOf = () => accessOf()?.clearance ?? 0;
 
 // Named shortcuts for the checks many screens share. Each is one permission from the catalogue.
 export const canReadFinance = (user) => hasPermission(user, 'books.view');
+/** The Menus screens (kitchen, till, floor, recipes): seeing them, and changing them. The server asks for the same two permissions. */
+export const canViewMenus = (user) => hasPermission(user, 'menus.view');
+export const canManageMenus = (user) => hasPermission(user, 'menus.manage');
 export const canWriteFinance = (user) => hasPermission(user, 'books.post');
 export const canUsePayroll = (user) => hasPermission(user, 'payroll.run');
 export const canDeleteCatalogue = (user) => hasPermission(user, 'catalogue.delete');
