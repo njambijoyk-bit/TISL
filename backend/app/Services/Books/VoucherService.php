@@ -818,11 +818,11 @@ class VoucherService
             $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['gift_codes' => array_values(array_unique(array_map('strval', $data['gift_codes'])))]);
         }
 
-        // Rounding (Sales and Cash Sales only, and only when the admin chose it): the total the customer pays is rounded to
+        // Rounding (Sales, Cash Sales and Sales Orders only, and only when the admin chose it): the total the customer pays is rounded to
         // the nearest whole number or the nearest 0.50; the difference is its own line on the Rounding ledger and never
         // changes the tax. Nothing is rounded unless asked for.
         $roundMode = in_array($data['rounding'] ?? 'none', ['whole', 'half'], true) ? $data['rounding'] : 'none';
-        $plan['rounding_mode'] = $type->has_items && in_array($type->base_type, [VoucherType::SALES, VoucherType::CASH_SALE], true) ? $roundMode : 'none';
+        $plan['rounding_mode'] = $type->has_items && in_array($type->base_type, [VoucherType::SALES, VoucherType::CASH_SALE, VoucherType::SALES_ORDER], true) ? $roundMode : 'none';
         if ($plan['rounding_mode'] !== 'none') {
             $plan['meta_extra'] = array_merge($plan['meta_extra'] ?? [], ['rounding' => $plan['rounding_mode']]);   // remembered so an edit starts from the same choice
             $pre = $data['lines_resolved'] ?? $this->resolveLines($data['lines'] ?? [], $ctx);

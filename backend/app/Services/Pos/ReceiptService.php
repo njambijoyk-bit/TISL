@@ -94,7 +94,7 @@ class ReceiptService
             'customer' => $this->customerName($v),
             'customer_pin' => trim((string) ($v->party_tax_id ?: $v->customer?->tax_id)) ?: null,
             'narration' => $this->narration($v),
-            'lines' => $lines, 'subtotal' => (float) $v->subtotal, 'round_off' => round($round, 2), 'taxes' => $taxes, 'tax_groups' => array_values($groups), 'tax_total' => (float) $v->tax_total, 'total' => (float) $v->total_amount,
+            'lines' => $lines, 'subtotal' => round((float) $v->subtotal - $round, 2), 'round_off' => round($round, 2), 'taxes' => $taxes, 'tax_groups' => array_values($groups), 'tax_total' => (float) $v->tax_total, 'total' => (float) $v->total_amount,
             'tenders' => $tenders, 'tendered' => $paid['tendered'] ?? null, 'change' => $paid['change'] ?? null,
             'qr' => CodeFactory::make('qr', (string) $v->voucher_number)->svg(),   // scanned at the return screen to find this receipt
         ];

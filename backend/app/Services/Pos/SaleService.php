@@ -324,7 +324,7 @@ class SaleService
     private function assertPriced(array $pre): void
     {
         foreach ($pre['lines'] as $l) {
-            if (empty($l['is_header']) && (float) $l['rate'] <= 0.00001) {
+            if (empty($l['is_header']) && ($l['item_type'] ?? '') !== 'charge' && (float) $l['rate'] <= 0.00001) {   // a charge (the rounding line) has no price of its own
                 throw new BooksException("{$l['description']} has no price. It can not be sold until a manager sets one.");
             }
         }
@@ -366,7 +366,9 @@ class SaleService
         $station = $this->station($u, isset($in['station_id']) ? (int) $in['station_id'] : null);
         [$data, $pre] = $this->priced($u, $station, $in);
 
-        return ['station_id' => $station->id, 'lines' => $pre['lines'], 'subtotal' => $pre['subtotal'], 'tax_total' => $pre['tax_total'], 'tax_breakdown' => $pre['tax_breakdown'], 'total' => $pre['total'], 'warnings' => $pre['warnings'] ?? []];
+        $round = round((float) array_sum(array_map(fn ($l) => ($l['item_type'] ?? '') === 'charge' && ($l['description'] ?? '') === 'Rounding' ? (float) $l['amount'] : 0.0, $pre['lines'])), 2);   // what rounding added or took off, shown on its own line
+
+        return ['station_id' => $station->id, 'lines' => $pre['lines'], 'rounding' => $round, 'subtotal' => round((float) $pre['subtotal'] - $round, 2), 'tax_total' => $pre['tax_total'], 'tax_breakdown' => $pre['tax_breakdown'], 'total' => $pre['total'], 'warnings' => $pre['warnings'] ?? []];
     }
 
     /** @return array{0: array, 1: array} the data to post, and its preview */
@@ -403,7 +405,7 @@ class SaleService
             $data['narration'] = $note;
         }
         // The cashier may round what is paid to the nearest whole number or 0.50 (the books' rounding ledger takes the difference); it is never forced.
-        if (in_array($mode, ['cash', 'invoice'], true) && in_array($in['rounding'] ?? 'none', ['whole', 'half'], true) && $this->roundingReady()) {
+        if (in_array($in['rounding'] ?? 'none', ['whole', 'half'], true) && $this->roundingReady()) {
             $data['rounding'] = $in['rounding'];
         }
         $clean = fn (array $rs) => array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rs);

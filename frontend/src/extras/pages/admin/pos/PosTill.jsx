@@ -44,7 +44,7 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, ca
       <div style={{ ...card, padding: 20, width: 'min(480px, 100%)', display: 'grid', gap: 12 }}>
         <div style={{ fontSize: '0.8rem', color: colors.textMuted }}>{mode === 'invoice' ? `Invoice for ${customer?.name}` : mode === 'order' ? `Sales order for ${customer?.name}` : 'Amount due'}</div>
         <div style={{ fontSize: '2rem', fontWeight: 800 }}>{money(total, cur)}</div>
-        {canRound && mode !== 'order' && (rounding !== 'none' || Math.abs(total * 2 - Math.round(total * 2)) > 0.004) && (
+        {canRound && (rounding !== 'none' || Math.abs(total * 2 - Math.round(total * 2)) > 0.004) && (
           <div style={{ display: 'grid', gap: 4 }}>
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>Round the amount (optional)</span>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -323,7 +323,7 @@ export default function PosTill() {
     return () => clearInterval(t);
   }, [locked]);
 
-  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: customer?.id, promo_code: customer && promo.trim() ? promo.trim() : undefined, customer_name: mode === 'cash' && !customer && walkin.trim() ? walkin.trim() : undefined, narration: note.trim() || undefined, rounding: rounding !== 'none' && mode !== 'order' ? rounding : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin, promo, note, rounding]);
+  const body = useCallback(() => ({ station_id: ctx?.station?.id, mode, approval_token: approval?.token, customer_id: customer?.id, promo_code: customer && promo.trim() ? promo.trim() : undefined, customer_name: mode === 'cash' && !customer && walkin.trim() ? walkin.trim() : undefined, narration: note.trim() || undefined, rounding: rounding !== 'none' ? rounding : undefined, items: cart.map((c) => ({ variant_id: c.variant_id, quantity: c.quantity, discount_pct: c.discount_pct || 0 })) }), [ctx, cart, mode, customer, approval, walkin, promo, note, rounding]);
   useEffect(() => {   // the books price the basket: the total shown is the one that will post
     if (!cart.length || !ctx?.station) { setPriced(null); return undefined; }
     let live = true;
@@ -413,7 +413,7 @@ export default function PosTill() {
   const cur = ctx.currency;
   const totalDiscount = (priced?.lines ?? []).reduce((a, l) => a + (Number(l.discount_amount) || 0), 0);
   const anyDiscount = totalDiscount > 0.004;
-  const unpriced = (priced?.lines ?? []).filter((l) => !(l.rate > 0));   // a line the books priced at nothing can not be sold
+  const unpriced = (priced?.lines ?? []).filter((l) => l.item_type !== 'charge' && !(l.rate > 0));   // a line the books priced at nothing can not be sold
   const needShift = ctx.shift_ready && ctx.shift_required && !ctx.shift;
   const total = priced?.total ?? 0;
   const lineOf = (i) => priced?.lines?.[i];
@@ -588,11 +588,6 @@ export default function PosTill() {
               )}
             </div>
           ))}
-          {mode !== 'return' && cart.length > 0 && (
-            <label style={{ display: 'grid', gap: 3, fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>Note (the customer can see this on their receipt and documents)
-              <input style={{ ...field, height: 32, fontSize: '0.82rem', fontWeight: 400 }} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional: for example a delivery or warranty note" aria-label="Note for the customer" />
-            </label>
-          )}
           {cart.length === 0 && <p style={{ color: colors.textMuted, fontSize: '0.85rem', margin: 0 }}>The basket is empty. Scan or tap an item.</p>}
           {anyDiscount && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 86px 96px', gap: 6, fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: colors.textMuted }}>
@@ -618,8 +613,14 @@ export default function PosTill() {
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Subtotal</span><span>{money(priced?.subtotal, cur)}</span></div>
             {anyDiscount && <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--color-primary-600)', fontWeight: 700 }}><span>Discounts</span><span>-{money(totalDiscount, cur)}</span></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Tax</span><span>{money(priced?.tax_total, cur)}</span></div>
+            {Math.abs(priced?.rounding ?? 0) >= 0.005 && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Rounding</span><span>{priced.rounding > 0 ? '+' : '-'}{money(Math.abs(priced.rounding), cur)}</span></div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.3rem', fontWeight: 800 }}><span>Total</span><span>{money(total, cur)}</span></div>
           </div>
+          {cart.length > 0 && (
+            <label style={{ display: 'grid', gap: 3, fontSize: '0.72rem', fontWeight: 700, color: colors.textMuted }}>Note (the customer can see this on their receipt and documents)
+              <input style={{ ...field, height: 32, fontSize: '0.82rem', fontWeight: 400 }} maxLength={200} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Optional: for example a delivery or warranty note" aria-label="Note for the customer" />
+            </label>
+          )}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" style={btnGhost} disabled={!cart.length} onClick={hold}><Pause size={14} /> Hold</button>
             <button type="button" style={heldCount.customers > 0 ? { ...btnPrimary, background: '#dc2626' } : btnGhost} onClick={openHolds}><Play size={14} /> Recall{heldCount.total > 0 ? ` (${heldCount.total})` : ''}{heldCount.customers > 0 ? ` · ${heldCount.customers} from customers` : ''}</button>

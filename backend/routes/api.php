@@ -320,7 +320,7 @@ Route::prefix('kiosk/{token}')->middleware(['module:menus', 'throttle:240,1'])->
     $c = \App\Http\Controllers\Api\MenusKioskController::class;
     Route::get('/',                          [$c, 'show']);
     Route::post('/quote',                    [$c, 'quote']);
-    Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
+    Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1,kiosk-order');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
     Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
     Route::get('/orders/{session}/receipt',  [$c, 'receipt'])->where('session', '[A-Z0-9]{10}');
@@ -330,17 +330,17 @@ Route::prefix('pos/self/{token}')->middleware(['module:extras', 'throttle:240,1'
     Route::get('/',                          [$c, 'show']);
     Route::get('/catalogue',                 [$c, 'catalogue']);
     Route::get('/scan',                      [$c, 'scan']);
-    Route::post('/help',                     [$c, 'help'])->middleware('throttle:30,1');
+    Route::post('/help',                     [$c, 'help'])->middleware('throttle:30,1,posself-help');
     Route::get('/help',                      [$c, 'helpStatus']);
-    Route::post('/help/cancel',              [$c, 'helpCancel'])->middleware('throttle:30,1');
+    Route::post('/help/cancel',              [$c, 'helpCancel'])->middleware('throttle:30,1,posself-helpcancel');
     Route::post('/quote',                    [$c, 'quote']);
-    Route::post('/gift/check',               [$c, 'giftCheck'])->middleware('throttle:8,1');
-    Route::post('/customer/login',           [$c, 'customerLogin'])->middleware('throttle:8,1');
+    Route::post('/gift/check',               [$c, 'giftCheck'])->middleware('throttle:8,1,posself-gift');
+    Route::post('/customer/login',           [$c, 'customerLogin'])->middleware('throttle:8,1,posself-login');
     Route::post('/customer/logout',          [$c, 'customerLogout']);
-    Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
+    Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1,posself-order');
     Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
     Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
-    Route::post('/orders/{session}/assist',  [$c, 'assist'])->middleware('throttle:10,1')->where('session', '[A-Z0-9]{10}');
+    Route::post('/orders/{session}/assist',  [$c, 'assist'])->middleware('throttle:10,1,posself-assist')->where('session', '[A-Z0-9]{10}');
     Route::get('/orders/{session}/receipt',  [$c, 'receipt'])->where('session', '[A-Z0-9]{10}');
 });
 Route::prefix('menu/table')->middleware('module:menus')->group(function () {   // the page behind a table's QR code: no sign-in, the code in the link is the key
