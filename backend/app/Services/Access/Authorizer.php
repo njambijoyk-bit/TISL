@@ -626,7 +626,9 @@ class Authorizer
     {
         $own = Schema::hasColumn('users', 'clearance_level') ? "COALESCE({$users}.clearance_level, 0)" : '0';
         if (self::ready()) {
-            $role = "COALESCE((SELECT r.min_clearance FROM roles r WHERE r.`key` = {$users}.role AND r.kind = 'staff'), 0)";
+            // `roles` is made by a numbered script and `users` by a migration: on MySQL 8 they can end up with different collations, and comparing the two then fails (error 1267). Say which one to compare with.
+            $same = in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true) && ($c = DB::connection()->getConfig('collation')) ? ' COLLATE ' . preg_replace('/[^A-Za-z0-9_]/', '', (string) $c) : '';
+            $role = "COALESCE((SELECT r.min_clearance FROM roles r WHERE r.`key`{$same} = {$users}.role{$same} AND r.kind = 'staff'), 0)";
 
             return ["(CASE WHEN {$own} > {$role} THEN {$own} ELSE {$role} END)", []];
         }
