@@ -19,7 +19,7 @@ function Pic({ src, name, size = null, radius = 8 }) {
   const [bad, setBad] = useState(false);
   const box = size ? { width: size, height: size } : { position: 'absolute', inset: 0, width: '100%', height: '100%' };
   if (!src || bad) {
-    return <span aria-hidden="true" style={{ ...box, borderRadius: radius, background: colors.tint(0.12), color: colors.primary, display: 'grid', placeItems: 'center', fontWeight: 900, fontSize: size ? '1rem' : '2.2rem' }}>{String(name).slice(0, 1).toUpperCase()}</span>;
+    return <span aria-hidden="true" style={{ ...box, borderRadius: radius, background: colors.tint(0.12), color: colors.primary, display: 'grid', placeItems: 'center', boxSizing: 'border-box', paddingBottom: size ? 0 : '30%', fontWeight: 900, fontSize: size ? '1rem' : '2.2rem' }}>{String(name).slice(0, 1).toUpperCase()}</span>;
   }
 
   return <img src={src} alt="" loading="lazy" onError={() => setBad(true)} style={{ ...box, objectFit: 'cover', objectPosition: 'center', borderRadius: radius, display: 'block' }} />;
@@ -49,17 +49,20 @@ export default function ItemTile({ item, view, onAdd, price, noPrice = false, st
     );
   }
 
-  // every picture tile is the same square, with or without a picture, so the rows line up; the name and price sit on a dark strip along the bottom
+  // Every picture tile is the same square, with or without a picture, so the rows line up. The square is made with padding (a button's own aspect ratio is not
+  // reliable inside a grid, and tiles then overlap); the name and price sit on a dark strip along the bottom.
   return (
-    <button type="button" onClick={() => onAdd(item)} style={{ position: 'relative', display: 'block', width: '100%', aspectRatio: '1 / 1', alignSelf: 'start', borderRadius: 12, overflow: 'hidden', border: noPrice ? '2px solid #dc2626' : '1px solid var(--line)', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: 'var(--bg-tertiary, #f3f4f6)' }}>
-      <Pic src={item.image} name={item.name} radius={0} />
-      <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '22px 10px 8px', display: 'grid', gap: 3, color: '#fff', background: 'linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0))' }}>
-        <span style={{ fontWeight: 800, fontSize: '0.82rem', lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>{item.name}</span>
-        <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-          {noPrice ? badge : <strong style={{ fontSize: '0.88rem' }}>{price}</strong>}
-          {stockText && <span style={{ fontSize: '0.7rem', fontWeight: 700, background: stockLow ? '#f59e0b' : 'rgba(255,255,255,0.24)', color: stockLow ? '#111' : '#fff', borderRadius: 999, padding: '2px 8px' }}>{stockText}</span>}
+    <div style={{ position: 'relative', width: '100%', paddingTop: '100%', alignSelf: 'start' }}>
+      <button type="button" onClick={() => onAdd(item)} style={{ position: 'absolute', inset: 0, display: 'block', width: '100%', height: '100%', borderRadius: 12, overflow: 'hidden', border: noPrice ? '2px solid #dc2626' : '1px solid var(--line)', padding: 0, cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: 'var(--bg-tertiary, #f3f4f6)' }}>
+        <Pic src={item.image} name={item.name} radius={0} />
+        <span style={{ position: 'absolute', left: 0, right: 0, bottom: 0, padding: '22px 10px 8px', display: 'grid', gap: 3, color: '#fff', background: 'linear-gradient(to top, rgba(0,0,0,0.82), rgba(0,0,0,0))' }}>
+          <span style={{ fontWeight: 800, fontSize: '0.82rem', lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflowWrap: 'anywhere', textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}>{item.name}</span>
+          <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+            {noPrice ? badge : <strong style={{ fontSize: '0.88rem' }}>{price}</strong>}
+            {stockText && <span style={{ fontSize: '0.7rem', fontWeight: 700, background: stockLow ? '#f59e0b' : 'rgba(255,255,255,0.24)', color: stockLow ? '#111' : '#fff', borderRadius: 999, padding: '2px 8px' }}>{stockText}</span>}
+          </span>
         </span>
-      </span>
-    </button>
+      </button>
+    </div>
   );
 }
