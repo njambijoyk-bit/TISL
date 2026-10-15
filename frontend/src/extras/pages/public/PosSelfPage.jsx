@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { CheckCircle2, Loader2, Minus, Plus, ScanLine, Sun, Moon, X, LifeBuoy, RotateCcw } from 'lucide-react';
 import useThemeStore from '../../../_shared/store/themeStore';
+import { useTheme } from '../../../_shared/theme';
 import posSelfAPI from '../../../_shared/api/posSelf';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -37,7 +38,16 @@ export default function PosSelfPage() {
   const [confirmClear, setConfirmClear] = useState(false);
   const [added, setAdded] = useState(null);
   const { setTheme } = useThemeStore();
-  const dark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+  const { mode, setMode } = useTheme();   // the colours come from the appearance provider: it sets the theme variables and data-theme
+  const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
+  useEffect(() => {
+    const read = () => setDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    read();
+    const o = new MutationObserver(read);
+    o.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+    return () => o.disconnect();
+  }, [mode]);
+  const toggleTheme = () => { const next = dark ? 'light' : 'dark'; setMode(next); setTheme(next); };
   const last = useRef(Date.now());
   const stop = useRef(false);
   const input = useRef(null);
@@ -162,7 +172,7 @@ export default function PosSelfPage() {
     <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: '#eff6ff', border: '2px solid #60a5fa', color: '#1e3a8a', fontSize: '1.1rem', fontWeight: 700 }}>A member of staff has attended to you. Thank you for waiting.</div>
   ) : null;
   const themeBtn = (
-    <button type="button" onClick={() => setTheme(dark ? 'light' : 'dark')} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'}
+    <button type="button" onClick={toggleTheme} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'}
       style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 14px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '1rem' }}>{dark ? <Sun size={20} /> : <Moon size={20} />}{dark ? 'Light' : 'Dark'}</button>
   );
   const shell = (children) => (
