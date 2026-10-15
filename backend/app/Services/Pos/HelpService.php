@@ -56,6 +56,14 @@ class HelpService
         return $this->status($s);
     }
 
+    /** Staff are told something that needs a person, not a customer's button: shown in the same list with the message. */
+    public function alert(Station $s, string $note): void
+    {
+        if (self::installed() && Schema::hasColumn('pos_help_requests', 'note')) {
+            DB::table('pos_help_requests')->insert(['station_id' => $s->id, 'location_id' => $s->location_id, 'status' => 'open', 'tries' => 0, 'note' => mb_substr($note, 0, 255), 'created_at' => now(), 'updated_at' => now()]);
+        }
+    }
+
     /** Open requests at the branches this person may use. @return array<int, array<string, mixed>> */
     public function open(User $u): array
     {
@@ -66,7 +74,7 @@ class HelpService
         $names = Station::pluck('name', 'id');
 
         return DB::table('pos_help_requests')->where('status', 'open')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))->orderBy('id')->limit(30)->get()
-            ->map(fn ($h) => ['id' => (int) $h->id, 'station' => $names[$h->station_id] ?? 'Self checkout', 'at' => $h->created_at, 'minutes' => (int) max(0, now()->diffInMinutes($h->created_at, true)), 'tries' => (int) ($h->tries ?? 1)])->all();
+            ->map(fn ($h) => ['id' => (int) $h->id, 'station' => $names[$h->station_id] ?? 'Self checkout', 'at' => $h->created_at, 'minutes' => (int) max(0, now()->diffInMinutes($h->created_at, true)), 'tries' => (int) ($h->tries ?? 1), 'note' => $h->note ?? null])->all();
     }
 
     /** Mark one request handled. False when it is not there to clear: already done, or at a branch this person does not work at. */

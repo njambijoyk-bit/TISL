@@ -135,7 +135,18 @@ export default function PosSelfPage() {
         if (s.status === 'failed') { await posSelfAPI.cancel(token, session).catch(() => {}); setProblem(s.failure_reason || 'The payment did not go through.'); setStep('failed'); return; }
       } catch { /* keep asking */ }
     }
-    if (!stop.current) { await posSelfAPI.cancel(token, session).catch(() => {}); setProblem('We did not get your payment. Nothing was charged: please try again or pay at the counter.'); setStep('failed'); }
+    if (!stop.current) setStep('unsure');   // never cancel while the customer may still be typing their PIN
+  };
+
+  const checkPaid = async (session) => {   // has the payment landed? (the server asks M-Pesa as well)
+    const st = await posSelfAPI.status(token, session);
+    if (st.status === 'paid') { finish({ session, pay: 'screen', number: st.number }); return true; }
+    return false;
+  };
+  const cancelWaiting = async () => {
+    stop.current = true;
+    try { await posSelfAPI.cancel(token, result.session); } catch (e) { if (await checkPaid(result.session).catch(() => false)) return; setProblem(errMsg(e, 'We could not cancel.')); }
+    setStep('review'); setProblem('Cancelled. If you already entered your M-Pesa PIN, please tell a member of staff: your payment will be recorded and they will help you.');
   };
 
   const place = async (pay) => {
@@ -253,7 +264,23 @@ export default function PosSelfPage() {
         <Loader2 size={80} style={{ justifySelf: 'center' }} />
         <h1 style={{ margin: 0, fontSize: '2rem' }}>Check your phone</h1>
         <p style={{ margin: 0, fontSize: '1.3rem' }}>Enter your M-Pesa PIN to pay. We will carry on as soon as it arrives.</p>
-        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => { stop.current = true; posSelfAPI.cancel(token, result.session).catch(() => {}); setStep('review'); }}>Cancel</button>
+        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={cancelWaiting}>Cancel</button>
+      </div>,
+    );
+  }
+
+  if (step === 'unsure') {
+    return shell(
+      <div style={{ flex: 1, display: 'grid', placeContent: 'center', gap: 18, textAlign: 'center', padding: 30, maxWidth: 640, margin: '0 auto' }} role="status">
+        <Loader2 size={64} style={{ justifySelf: 'center' }} />
+        <h1 style={{ margin: 0, fontSize: 'clamp(1.5rem, 4vw, 2rem)' }}>We have not seen your payment yet</h1>
+        <p style={{ margin: 0, fontSize: '1.2rem' }}>If you have already entered your M-Pesa PIN, <strong>please wait and do not pay again</strong>. Sometimes it takes a minute to arrive.</p>
+        {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}
+        <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button type="button" style={huge('var(--color-primary-500)')} disabled={busy} onClick={async () => { setBusy(true); setProblem(null); try { if (!(await checkPaid(result.session))) setProblem('Still nothing yet. Please wait a little and check again, or call for help.'); } catch (e) { setProblem(errMsg(e, 'Could not check.')); } finally { setBusy(false); } }}>Check again</button>
+          <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={askHelp}>Call for help</button>
+          <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={cancelWaiting}>I did not pay: cancel</button>
+        </div>
       </div>,
     );
   }

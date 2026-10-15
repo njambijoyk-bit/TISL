@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS pos_help_requests (
     location_id  BIGINT UNSIGNED NOT NULL,
     status       VARCHAR(8) NOT NULL DEFAULT 'open',       -- open | done
     tries        INT UNSIGNED NOT NULL DEFAULT 1,           -- how many times the customer pressed the button for this request
+    note         VARCHAR(255) NULL,                         -- a message for staff (for example: a payment arrived after the screen was cleared)
     handled_by   BIGINT UNSIGNED NULL,
     handled_at   DATETIME NULL,
     created_at   TIMESTAMP NULL,
@@ -35,6 +36,18 @@ END$$
 DELIMITER ;
 CALL add_pos_help_tries();
 DROP PROCEDURE IF EXISTS add_pos_help_tries;
+
+DROP PROCEDURE IF EXISTS add_pos_help_note;
+DELIMITER $$
+CREATE PROCEDURE add_pos_help_note()
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'pos_help_requests' AND column_name = 'note') THEN
+        ALTER TABLE pos_help_requests ADD COLUMN note VARCHAR(255) NULL AFTER tries;
+    END IF;
+END$$
+DELIMITER ;
+CALL add_pos_help_note();
+DROP PROCEDURE IF EXISTS add_pos_help_note;
 
 -- PART C - CHECK AFTER
 SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'pos_help_requests';

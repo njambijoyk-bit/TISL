@@ -257,17 +257,44 @@ class GatewayPaymentService
     }
 
     /** A self-checkout basket is paid: the Cash Sale carries the station it was made at. */
-    private function posSelfPaid(Voucher $order, Voucher $sale): void
+    private function posSelfPaid(Voucher $order, Voucher $sale, PaymentAttempt $attempt): void
     {
         $station = $order->meta['pos_self']['station_id'] ?? null;
         if (! $station) {
             return;
         }
         try {
+            $this->posSelfLate($order, $sale, $attempt);
             DB::table('vouchers')->where('id', $sale->id)->update(['station_id' => (int) $station]);
             $sale->update(['channel' => 'pos', 'meta' => array_merge($sale->meta ?? [], ['pos' => ['station_id' => (int) $station, 'cashier' => 'Self checkout']])]);
         } catch (\Throwable $e) {
             Log::error('Gateway: the self-checkout sale could not be tagged', ['sale' => $sale->id, 'error' => $e->getMessage()]);
+        }
+    }
+
+    /** Paid after the customer's screen had been cleared (or the order cancelled): staff are told, so the goods are handed over or the money is given back. */
+    private function posSelfLate(Voucher $order, ?Voucher $sale, PaymentAttempt $attempt): void
+    {
+        $self = $order->meta['pos_self'] ?? null;
+        if (! $self || ! \Illuminate\Support\Facades\Schema::hasTable('pos_self_sessions')) {
+            return;
+        }
+        try {
+            $row = DB::table('pos_self_sessions')->where('session_code', $self['session'] ?? '')->first();
+            if (! $row) {
+                return;
+            }
+            if ($sale) {
+                DB::table('pos_self_sessions')->where('id', $row->id)->update(['status' => 'paid', 'updated_at' => now()]);
+            }
+            if ($row->status === 'cancelled' || ! $sale) {
+                $station = \App\Models\Pos\Station::find($row->station_id);
+                if ($station) {
+                    app(\App\Services\Pos\HelpService::class)->alert($station, 'PAID AFTER THE SCREEN WAS CLEARED: '.number_format((float) $attempt->amount, 2).' by M-Pesa'.($attempt->receipt_number ? " (ref {$attempt->receipt_number})" : '').($sale ? ", sale {$sale->voucher_number}: hand over the goods" : ': the order had been cancelled, refund or book it').'.');
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Gateway: could not tell staff about a late self-checkout payment', ['attempt' => $attempt->id, 'error' => $e->getMessage()]);
         }
     }
 
@@ -355,6 +382,13 @@ class GatewayPaymentService
     private function settle(PaymentAttempt $attempt): void
     {
         $voucher = Voucher::with('type')->findOrFail($attempt->voucher_id);
+        if ($voucher->status !== Voucher::POSTED) {   // the order was cancelled while the customer was typing the PIN: the money is in. Never undo that (the callback would roll back and the payment be lost): leave a loud note for staff
+            $attempt->update(['notes' => trim(($attempt->notes ? $attempt->notes . ' · ' : '') . "MONEY RECEIVED but {$voucher->voucher_number} had been cancelled: refund it or book it by hand ({$attempt->receipt_number}).")]);
+            Log::error('Gateway: a payment arrived for a cancelled order', ['attempt' => $attempt->id, 'order' => $voucher->id]);
+            $this->posSelfLate($voucher, null, $attempt);
+
+            return;
+        }
         // a ready-now order and a preorder checked out together share ONE payment: the order paid here takes its own part, the other order the rest
         $paired = ! empty($voucher->meta['paired_order_id']) ? Voucher::with('type')->find($voucher->meta['paired_order_id']) : null;
         if ($paired && ($paired->status !== Voucher::POSTED || $paired->type?->base_type !== 'sales_order' || $paired->children()->where('status', Voucher::POSTED)->exists())) {
@@ -381,7 +415,7 @@ class GatewayPaymentService
         $attempt->update(['settled_voucher_id' => $sale->id]);
         $this->issueTickets($voucher, $sale, $attempt);   // an order for event tickets: the tickets become valid now
         $this->menuOrderPaid($voucher, $sale, $attempt);   // a food order: the kitchen is told now
-        $this->posSelfPaid($voucher, $sale);   // a self-checkout basket: the sale carries its station
+        $this->posSelfPaid($voucher, $sale, $attempt);   // a self-checkout basket: the sale carries its station
         $this->planPaid($voucher, $sale, $attempt);   // a week of a meal plan: its days are confirmed
         if ($paired) {
             // The money has arrived and the first order is settled: a problem with the second must not undo that (the whole callback would roll back and the payment be lost). Staff finish it by hand.

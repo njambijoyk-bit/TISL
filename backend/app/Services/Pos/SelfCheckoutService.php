@@ -161,22 +161,77 @@ class SelfCheckoutService
         return ['session' => $row->session_code, 'pay' => $row->pay, 'status' => $sale ? 'paid' : $row->status, 'number' => $sale?->voucher_number, 'total' => $sale ? (float) $sale->total_amount : null];
     }
 
-    /** The customer backs out or the payment fails. Only while it is not paid. */
+    /**
+     * The customer backs out, the screen gives up, or a supervisor clears it. The screen is released at once, but an M-Pesa order is only cancelled in the books when no payment can still arrive for it:
+     * the customer may be typing their PIN right now. If Daraja says it is paid, the basket is paid (the screen is told). If the prompt is still open, the order stays live until it resolves or the sweep
+     * (pos:sweep-self) closes it; a payment that lands after the screen was cleared is booked as a sale and staff are told.
+     */
     public function cancel(Station $s, string $code, ?string $why = null): void
     {
         $row = $this->find($s, $code);
         if ($this->saleOf($row) || $row->status === 'paid') {
             throw new BooksException('This basket is already paid.');
         }
-        DB::transaction(function () use ($row, $why) {
+        $order = $row->voucher_id ? Voucher::find($row->voucher_id) : null;
+        $live = $order && $order->status === Voucher::POSTED;
+        $attempt = null;
+        if ($live) {
+            $attempt = \App\Models\Books\PaymentAttempt::where('voucher_id', $order->id)->orderByDesc('id')->first();
+            if ($attempt && $attempt->status === \App\Models\Books\PaymentAttempt::PENDING) {
+                try {
+                    $attempt = $this->gateway->refresh($attempt);   // ask Daraja now: perhaps they have just paid
+                } catch (\Throwable $e) {
+                    report($e);
+                }
+                if ($this->saleOf($row) || $attempt->status === \App\Models\Books\PaymentAttempt::CONFIRMED) {
+                    throw new BooksException('This basket has just been paid.');
+                }
+            }
+        }
+        DB::transaction(function () use ($row, $why, $order, $live, $attempt) {
             if ($row->hold_id) {
                 DB::table('pos_holds')->where('id', $row->hold_id)->delete();
             }
-            if ($row->voucher_id && ($order = Voucher::find($row->voucher_id)) && $order->status === Voucher::POSTED) {
+            $stillOpen = isset($attempt) && $attempt && $attempt->status === \App\Models\Books\PaymentAttempt::PENDING;
+            if ($live && ! $stillOpen) {
                 $this->vouchers->cancel($order, $why ?? 'Cancelled at the self checkout', null);
             }
             DB::table('pos_self_sessions')->where('id', $row->id)->update(['status' => 'cancelled', 'updated_at' => now()]);
         });
+    }
+
+    /** Close the orders of screens that were cleared while a payment prompt was open, once the prompt has had time to resolve. @return int how many */
+    public function sweep(int $minutes = 15): int
+    {
+        if (! self::installed()) {
+            return 0;
+        }
+        $n = 0;
+        foreach (DB::table('pos_self_sessions')->where('pay', 'screen')->whereIn('status', ['pending', 'cancelled'])->where('created_at', '<', now()->subMinutes($minutes))->whereNotNull('voucher_id')->get() as $row) {
+            try {
+                if ($this->saleOf($row)) {
+                    DB::table('pos_self_sessions')->where('id', $row->id)->update(['status' => 'paid', 'updated_at' => now()]);
+                    continue;
+                }
+                $order = Voucher::find($row->voucher_id);
+                if ($order && $order->status === Voucher::POSTED) {
+                    $attempt = \App\Models\Books\PaymentAttempt::where('voucher_id', $order->id)->orderByDesc('id')->first();
+                    if ($attempt && $attempt->status === \App\Models\Books\PaymentAttempt::PENDING) {
+                        $attempt = $this->gateway->refresh($attempt);
+                        if ($attempt->status === \App\Models\Books\PaymentAttempt::CONFIRMED) {
+                            continue;   // it settled: the sale is made
+                        }
+                    }
+                    $this->vouchers->cancel($order, 'Not paid at the self checkout', null);
+                    $n++;
+                }
+                DB::table('pos_self_sessions')->where('id', $row->id)->update(['status' => 'cancelled', 'updated_at' => now()]);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
+
+        return $n;
     }
 
     /** @return array{open: bool, minutes: ?int, tries: int, max: int} */

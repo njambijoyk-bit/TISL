@@ -347,7 +347,8 @@ export default function PosTill() {
             {helpCount === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nobody is waiting.</p>}
             {(helpList ?? []).map((h) => (
               <div key={h.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span>{h.station} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {h.minutes < 1 ? 'just now' : `${h.minutes} min ago`}{h.tries > 1 ? ` · asked ${h.tries} times` : ''}</span></span>
+                <span>{h.station} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {h.minutes < 1 ? 'just now' : `${h.minutes} min ago`}{h.tries > 1 ? ` · asked ${h.tries} times` : ''}</span>
+                  {h.note && <div style={{ marginTop: 4, padding: '6px 8px', borderRadius: 6, background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: '0.8rem' }}>{h.note}</div>}</span>
                 <button type="button" style={btnPrimary} onClick={async () => {
                   try { await posAPI.helpDone(h.id); toast.success('Cleared.'); } catch (e) { toast.error(errMsg(e, 'Could not clear that request'), { duration: 8000 }); }
                   posAPI.helpRequests().then((r) => setHelpList(r.requests)).catch(() => {});
