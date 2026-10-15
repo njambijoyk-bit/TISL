@@ -224,6 +224,7 @@ const MyBookings         = lazy(() => import('./core/pages/customer/MyBookings')
 const MyCalendar         = lazy(() => import('./core/pages/admin/calendar/MyCalendar'));
 const TeamCalendar       = lazy(() => import('./core/pages/admin/calendar/TeamCalendar'));
 const StaffResources     = lazy(() => import('./core/pages/admin/calendar/StaffResources'));
+const PosSelfPage         = lazy(() => import('./extras/pages/public/PosSelfPage'));
 const PosTill             = lazy(() => import('./extras/pages/admin/pos/PosTill'));
 const PosStations         = lazy(() => import('./extras/pages/admin/pos/PosStations'));
 const EngagementSettings = lazy(() => import('./extras/pages/admin/EngagementSettings'));
@@ -536,6 +537,7 @@ function App() {
             <Route path="/learn/:slug" element={<ModuleRoute module="courses"><LearnOfferingPage /></ModuleRoute>} />
             <Route path="/menu" element={<ModuleRoute module="menus"><PublicMenuPage /></ModuleRoute>} />
  <Route path="/chefs" element={<ModuleRoute module="menus"><ChefsPublicPage /></ModuleRoute>} />
+ <Route path="/pos/self/:token" element={<ModuleRoute module="extras"><PosSelfPage /></ModuleRoute>} />
  <Route path="/kiosk/:token" element={<ModuleRoute module="menus"><KioskPage /></ModuleRoute>} />
  <Route path="/menu/table/:qr" element={<ModuleRoute module="menus"><MenuTablePage /></ModuleRoute>} />
             <Route path="/menu/order/:token" element={<ModuleRoute module="menus"><MenuOrderTrack /></ModuleRoute>} />

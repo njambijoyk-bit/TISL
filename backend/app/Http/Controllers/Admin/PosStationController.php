@@ -61,6 +61,18 @@ class PosStationController extends Controller
         });
     }
 
+    /** A new secret address for a self-checkout screen. Shown once; the old address stops working. */
+    public function token(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($request, $id) {
+            $s = Station::findOrFail($id);
+            $t = $this->stations->issueToken($s);
+            AccessLog::record($request->user()->id, null, 'pos_station_address_made', ['station' => $s->id, 'name' => $s->name]);
+
+            return ['message' => 'Open this address on the screen. It is shown once.', 'url' => $t['url']];
+        });
+    }
+
     public function saveBranch(Request $request, int $locationId): JsonResponse
     {
         $d = $request->validate(['paper_default' => 'nullable|string|max:10', 'paper_allowed' => 'nullable|array', 'paper_allowed.*' => 'string|max:10', 'require_shift' => 'nullable|boolean']);

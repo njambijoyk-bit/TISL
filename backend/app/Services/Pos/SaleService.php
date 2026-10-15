@@ -114,12 +114,12 @@ class SaleService
     // ── pricing ───────────────────────────────────────────────────────────
 
     /** The lines the books price, from the basket. Each item: variant_id, quantity, discount_pct?. */
-    private function lines(User $u, array $items, int $locationId): array
+    private function lines(?User $u, array $items, int $locationId): array
     {
         if (! $items) {
             throw new BooksException('The basket is empty.');
         }
-        $canDiscount = app(Authorizer::class)->allows($u, 'pos.discount');
+        $canDiscount = $u && app(Authorizer::class)->allows($u, 'pos.discount');
         $ids = array_map(fn ($i) => (int) ($i['variant_id'] ?? 0), $items);
         $vars = ProductVariant::with('product:id,name,is_for_sale,status')->whereIn('id', $ids)->get()->keyBy('id');
         $rows = [];
@@ -171,13 +171,13 @@ class SaleService
         return Customer::active()->find((int) $in['customer_id']) ?? throw new BooksException('That customer is not available.');
     }
 
-    private function base(User $u, Station $station, ?int $customerId, string $mode = 'cash', array $meta = []): array
+    private function base(?User $u, Station $station, ?int $customerId, string $mode = 'cash', array $meta = []): array
     {
         $type = VoucherType::byBase(self::MODES[$mode]['base']) ?? throw new BooksException('That kind of document is switched off in Books.');
 
         return ['voucher_type_id' => $type->id, 'date' => today()->toDateString(), 'location_id' => (int) $station->location_id, 'currency_id' => Currency::getBaseCurrency()?->id, 'customer_id' => $customerId,
             'channel' => 'pos', 'narration' => 'Point of sale — '.$station->name,
-            'meta' => ['pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]] + ($customerId ? [] : ['guest' => true, 'contact' => ['name' => 'Walk-in']]) + $meta];
+            'meta' => ['pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u?->name ?? 'Self checkout']] + ($customerId ? [] : ['guest' => true, 'contact' => ['name' => 'Walk-in']]) + $meta];
     }
 
     private function station(User $u, ?int $stationId): Station
@@ -199,6 +199,16 @@ class SaleService
     }
 
     /** @return array{0: array, 1: array} the data to post, and its preview */
+    /** A self-checkout basket priced as a cash sale: no discounts, no customer, no cashier. @return array{0: array, 1: array} the data (of a cash sale) and its preview */
+    public function priceSelf(Station $station, array $items): array
+    {
+        $rows = $this->lines(null, $items, (int) $station->location_id);
+        $data = $this->base(null, $station, null, 'cash', ['pos_self' => true]);
+        $data['lines'] = array_map(fn ($r) => array_diff_key($r, ['_pct' => 1]), $rows);
+
+        return [$data, $this->vouchers->preview($data, null)];
+    }
+
     private function priced(User $u, Station $station, array $in): array
     {
         $rows = $this->lines($u, (array) ($in['items'] ?? []), (int) $station->location_id);

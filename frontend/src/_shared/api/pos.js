@@ -4,6 +4,7 @@ import api from './axios';
 const posAPI = {
   stations: async () => (await api.get('/admin/pos/stations')).data,
   saveStation: async (body, id = null) => (await (id ? api.put(`/admin/pos/stations/${id}`, body) : api.post('/admin/pos/stations', body))).data,
+  stationAddress: async (id) => (await api.post(`/admin/pos/stations/${id}/token`)).data,
   deleteStation: async (id) => (await api.delete(`/admin/pos/stations/${id}`)).data,
   saveBranch: async (locationId, body) => (await api.put(`/admin/pos/branches/${locationId}`, body)).data,
 

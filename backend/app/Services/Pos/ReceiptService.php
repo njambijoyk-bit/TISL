@@ -44,6 +44,15 @@ class ReceiptService
             AccessLog::record($u->id, null, 'pos_reprint', ['voucher' => $v->voucher_number, 'times' => $prints + 1]);
         }
 
+        return $this->data($v, $paper, $copy, $prints + 1);
+    }
+
+    /** The receipt itself, for a document already checked. $prints is which print this is. @return array<string, mixed> */
+    public function data(Voucher $v, ?string $paper, bool $copy, int $prints): array
+    {
+        $v->loadMissing(['type', 'items.taxes', 'creator']);
+        $stationId = $v->station_id ?? DB::table('vouchers')->where('id', $v->id)->value('station_id');
+        $station = $stationId ? Station::find($stationId) : null;
         $b = $this->stations->branch((int) $v->location_id);
         $paper = $paper && in_array($paper, $b['paper_allowed'], true) ? $paper : ($station ? $this->stations->paperFor($station) : $b['paper_default']);
         $co = CompanyProfile::current();
@@ -65,9 +74,9 @@ class ReceiptService
         $paid = $v->meta['pos_paid'] ?? null;
 
         return [
-            'paper' => $paper, 'papers' => $b['paper_allowed'], 'copy' => $copy, 'prints' => $prints + 1,
+            'paper' => $paper, 'papers' => $b['paper_allowed'], 'copy' => $copy, 'prints' => $prints,
             'company' => ['name' => $co->name ?: config('app.name'), 'address' => trim(implode(', ', array_filter([$co->address, $co->city]))), 'phone' => $phones[0]['value'] ?? ($co->phone ?? null), 'tax_pin' => $co->tax_pin],
-            'branch' => DB::table('locations')->where('id', $v->location_id)->value('name'), 'station' => $station?->name, 'cashier' => $v->creator?->name,
+            'branch' => DB::table('locations')->where('id', $v->location_id)->value('name'), 'station' => $station?->name, 'cashier' => $v->creator?->name ?? ($station?->kind === 'self_checkout' ? 'Self checkout' : null),
             'document' => $v->type?->name, 'number' => $v->voucher_number, 'at' => ($v->posted_at ?? $v->created_at)?->timezone((string) config('app.timezone', 'Africa/Nairobi'))->format('d/m/Y H:i'),
             'customer' => ! empty($v->meta['guest']) ? null : ($v->party_name ?: $v->partyLedger?->name),
             'lines' => $lines, 'subtotal' => (float) $v->subtotal, 'taxes' => array_map(fn ($l, $a) => ['label' => $l, 'amount' => $a], array_keys($taxes), array_values($taxes)), 'tax_total' => (float) $v->tax_total, 'total' => (float) $v->total_amount,

@@ -77,6 +77,18 @@ class PinService
         if ($supervisorId === $cashier->id) {
             throw new BooksException('You can not approve your own work: ask another supervisor.');
         }
+        $sup = $this->verify($supervisorId, $pin, $station, $purpose, $cashier->id);
+        DB::table('pos_pins')->where('user_id', $supervisorId)->update(['failed_count' => 0, 'locked_until' => null]);
+        $token = Str::random(40);
+        Cache::put($this->cacheKey($token), ['supervisor' => $supervisorId, 'cashier' => $cashier->id, 'station' => $station->id, 'purpose' => $purpose], now()->addMinutes(self::TTL_MINUTES));
+        AccessLog::record($cashier->id, $supervisorId, 'pos_approval_given', ['station' => $station->id, 'purpose' => $purpose] + $about);
+
+        return ['token' => $token, 'supervisor' => ['id' => $sup->id, 'name' => $sup->name], 'expires_in' => self::TTL_MINUTES * 60];
+    }
+
+    /** Check a supervisor's PIN at a station (lockout and log included). Returns the supervisor. */
+    private function verify(int $supervisorId, string $pin, Station $station, string $purpose, int $byUserId): User
+    {
         $sup = User::where('status', 'active')->find($supervisorId);
         $row = $sup ? DB::table('pos_pins')->where('user_id', $supervisorId)->first() : null;
         if (! $sup || ! $row || ! app(Authorizer::class)->allows($sup, 'pos.supervise', ['location_id' => $station->location_id])) {
@@ -89,16 +101,23 @@ class PinService
             $fails = (int) $row->failed_count + 1;
             $lock = $fails >= self::MAX_TRIES;
             DB::table('pos_pins')->where('user_id', $supervisorId)->update(['failed_count' => $lock ? 0 : $fails, 'locked_until' => $lock ? now()->addMinutes(self::LOCK_MINUTES) : null, 'updated_at' => now()]);
-            AccessLog::record($cashier->id, $supervisorId, 'pos_pin_wrong', ['station' => $station->id, 'purpose' => $purpose, 'locked' => $lock]);
+            AccessLog::record($byUserId ?: null, $supervisorId, 'pos_pin_wrong', ['station' => $station->id, 'purpose' => $purpose, 'locked' => $lock]);
 
             throw new BooksException($lock ? 'Wrong PIN. It is now locked for '.self::LOCK_MINUTES.' minutes.' : 'Wrong PIN.');
         }
-        DB::table('pos_pins')->where('user_id', $supervisorId)->update(['failed_count' => 0, 'locked_until' => null]);
-        $token = Str::random(40);
-        Cache::put($this->cacheKey($token), ['supervisor' => $supervisorId, 'cashier' => $cashier->id, 'station' => $station->id, 'purpose' => $purpose], now()->addMinutes(self::TTL_MINUTES));
-        AccessLog::record($cashier->id, $supervisorId, 'pos_approval_given', ['station' => $station->id, 'purpose' => $purpose] + $about);
 
-        return ['token' => $token, 'supervisor' => ['id' => $sup->id, 'name' => $sup->name], 'expires_in' => self::TTL_MINUTES * 60];
+        return $sup;
+    }
+
+    /** A supervisor steps in at a self-checkout screen: they give their email and PIN (the screen lists no names). Returns the supervisor. */
+    public function assist(Station $station, string $email, string $pin, string $purpose, array $about = []): User
+    {
+        $id = User::where('email', trim($email))->value('id');
+        $sup = $this->verify((int) $id, $pin, $station, $purpose, 0);
+        DB::table('pos_pins')->where('user_id', $sup->id)->update(['failed_count' => 0, 'locked_until' => null]);
+        AccessLog::record($sup->id, $sup->id, 'pos_assist', ['station' => $station->id, 'purpose' => $purpose] + $about);
+
+        return $sup;
     }
 
     /** Is this approval good for this cashier, station and purpose? Returns the supervisor's id, or null. Nothing is spent. */

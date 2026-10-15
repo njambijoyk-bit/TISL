@@ -256,6 +256,21 @@ class GatewayPaymentService
         }
     }
 
+    /** A self-checkout basket is paid: the Cash Sale carries the station it was made at. */
+    private function posSelfPaid(Voucher $order, Voucher $sale): void
+    {
+        $station = $order->meta['pos_self']['station_id'] ?? null;
+        if (! $station) {
+            return;
+        }
+        try {
+            DB::table('vouchers')->where('id', $sale->id)->update(['station_id' => (int) $station]);
+            $sale->update(['channel' => 'pos', 'meta' => array_merge($sale->meta ?? [], ['pos' => ['station_id' => (int) $station, 'cashier' => 'Self checkout']])]);
+        } catch (\Throwable $e) {
+            Log::error('Gateway: the self-checkout sale could not be tagged', ['sale' => $sale->id, 'error' => $e->getMessage()]);
+        }
+    }
+
     /** A food order is paid: it moves on to the kitchen. A problem there must never undo a payment that has been received. */
     private function menuOrderPaid(Voucher $order, Voucher $sale, PaymentAttempt $attempt): void
     {
@@ -366,6 +381,7 @@ class GatewayPaymentService
         $attempt->update(['settled_voucher_id' => $sale->id]);
         $this->issueTickets($voucher, $sale, $attempt);   // an order for event tickets: the tickets become valid now
         $this->menuOrderPaid($voucher, $sale, $attempt);   // a food order: the kitchen is told now
+        $this->posSelfPaid($voucher, $sale);   // a self-checkout basket: the sale carries its station
         $this->planPaid($voucher, $sale, $attempt);   // a week of a meal plan: its days are confirmed
         if ($paired) {
             // The money has arrived and the first order is settled: a problem with the second must not undo that (the whole callback would roll back and the payment be lost). Staff finish it by hand.

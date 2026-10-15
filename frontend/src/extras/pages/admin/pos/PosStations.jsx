@@ -42,6 +42,12 @@ function StationRow({ s, branchId, kinds, paper, onSaved }) {
     setBusy(true);
     try { const r = await posAPI.saveStation({ ...f, location_id: branchId, paper: f.paper || null }, s.id); toast.success(r.message); onSaved(); } catch (e) { toast.error(errMsg(e, 'Could not save the station'), { duration: 8000 }); } finally { setBusy(false); }
   };
+  const [address, setAddress] = useState(null);
+  const makeAddress = async () => {
+    if (s.kind !== 'self_checkout') return;
+    if (!window.confirm('Make a new address? The old one stops working at once, and this one is shown only once.')) return;
+    try { const r = await posAPI.stationAddress(s.id); setAddress(r.url); } catch (e) { toast.error(errMsg(e, 'Could not make the address'), { duration: 8000 }); }
+  };
   const remove = async () => {
     if (!window.confirm(`Remove ${s.name}?`)) return;
     try { const r = await posAPI.deleteStation(s.id); toast.success(r.message); onSaved(); } catch (e) { toast.error(errMsg(e, 'Could not remove'), { duration: 8000 }); }
@@ -60,8 +66,15 @@ function StationRow({ s, branchId, kinds, paper, onSaved }) {
         <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={f.is_active} onChange={(e) => setF((x) => ({ ...x, is_active: e.target.checked }))} /> On</label>
         {s.id && <span style={sub}>{s.people} {s.people === 1 ? 'person' : 'people'} · {s.documents} documents</span>}
       </div>
+      {address && (
+        <div style={{ display: 'grid', gap: 4 }}>
+          <label htmlFor={`sa-${s.id}`} style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted }}>Open this address on the screen (shown once — copy it now)</label>
+          <input id={`sa-${s.id}`} readOnly value={address} onFocus={(e) => e.target.select()} style={{ padding: 9, borderRadius: 8, border: '1.5px solid var(--line)', fontFamily: 'monospace', fontSize: '0.78rem' }} />
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" style={btnPrimary} disabled={busy || !f.name.trim()} onClick={save}>{s.id ? 'Save' : 'Add station'}</button>
+        {s.id && s.kind === 'self_checkout' && <button type="button" style={btnGhost} onClick={makeAddress}>New screen address</button>}
         {s.id && <button type="button" style={{ ...btnGhost, color: colors.danger }} onClick={remove}>Remove</button>}
       </div>
     </div>

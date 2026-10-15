@@ -148,6 +148,34 @@ class StationService
         ])->values()->all();
     }
 
+    // ── self-checkout address ─────────────────────────────────────────────
+
+    /** Make (or replace) a self-checkout station's secret. The address is shown once: only its hash is kept, and the old address stops working at once. @return array{token: string, url: string} */
+    public function issueToken(Station $s): array
+    {
+        if ($s->kind !== 'self_checkout') {
+            throw new BooksException('Only a self-checkout station has an address.');
+        }
+        $token = Str::random(32);
+        $s->update(['token_hash' => hash('sha256', $token)]);
+
+        return ['token' => $token, 'url' => rtrim((string) config('app.frontend_url'), '/').'/pos/self/'.$token];
+    }
+
+    /** The self-checkout station behind an address, or a 404. */
+    public function forToken(string $token): Station
+    {
+        if (! self::installed()) {
+            abort(404);
+        }
+        $s = Station::where('token_hash', hash('sha256', $token))->where('kind', 'self_checkout')->where('is_active', true)->firstOrFail();
+        if (! $s->last_seen_at || $s->last_seen_at->lt(now()->subMinute())) {
+            $s->forceFill(['last_seen_at' => now()])->saveQuietly();
+        }
+
+        return $s;
+    }
+
     // ── the branch's receipt paper ────────────────────────────────────────
 
     /** @return array{location_id: int, paper_default: string, paper_allowed: string[], require_shift: bool} */

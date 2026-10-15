@@ -325,6 +325,18 @@ Route::prefix('kiosk/{token}')->middleware(['module:menus', 'throttle:240,1'])->
     Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
     Route::get('/orders/{session}/receipt',  [$c, 'receipt'])->where('session', '[A-Z0-9]{10}');
 });
+Route::prefix('pos/self/{token}')->middleware(['module:extras', 'throttle:240,1'])->where(['token' => '[A-Za-z0-9]{32}'])->group(function () {   // a self-checkout screen: cash sales only, no sign-in, the secret in the address is the key
+    $c = \App\Http\Controllers\Api\PosSelfController::class;
+    Route::get('/',                          [$c, 'show']);
+    Route::get('/catalogue',                 [$c, 'catalogue']);
+    Route::get('/scan',                      [$c, 'scan']);
+    Route::post('/quote',                    [$c, 'quote']);
+    Route::post('/orders',                   [$c, 'order'])->middleware('throttle:30,1');
+    Route::get('/orders/{session}',          [$c, 'status'])->where('session', '[A-Z0-9]{10}');
+    Route::post('/orders/{session}/cancel',  [$c, 'cancel'])->where('session', '[A-Z0-9]{10}');
+    Route::post('/orders/{session}/assist',  [$c, 'assist'])->middleware('throttle:10,1')->where('session', '[A-Z0-9]{10}');
+    Route::get('/orders/{session}/receipt',  [$c, 'receipt'])->where('session', '[A-Z0-9]{10}');
+});
 Route::prefix('menu/table')->middleware('module:menus')->group(function () {   // the page behind a table's QR code: no sign-in, the code in the link is the key
     $c = \App\Http\Controllers\Api\MenusTableController::class;
     Route::get('/{qr}',          [$c, 'show'])->middleware('throttle:60,1')->where('qr', '[A-Za-z0-9]{24}');
@@ -1509,6 +1521,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::put('/stations/{id}',           [$c, 'save'])->whereNumber('id');
                 Route::delete('/stations/{id}',        [$c, 'destroy'])->whereNumber('id');
                 Route::put('/branches/{locationId}',   [$c, 'saveBranch'])->whereNumber('locationId');
+                Route::post('/stations/{id}/token',    [$c, 'token'])->whereNumber('id')->middleware('assurance:access_change');
             });
         });
 
