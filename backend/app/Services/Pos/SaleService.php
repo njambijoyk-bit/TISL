@@ -293,6 +293,9 @@ class SaleService
         $gift = PaymentMethod::where('kind', 'gift_voucher')->pluck('id')->all();
         foreach ($tenders as $t) {
             if (in_array((int) $t['payment_method_id'], $gift, true)) {
+                if (! $customer) {
+                    throw new BooksException('Select the customer to use a gift voucher. A walk-in sale takes none.');
+                }
                 $this->giftInfo((string) ($t['gift_voucher_code'] ?? ''), $customer);
             }
         }
@@ -572,7 +575,7 @@ class SaleService
                 $room = max(0.0, round($limit - $owed, 2));
             }
 
-            return ['id' => $c->id, 'name' => $c->full_name, 'company' => $c->company_name, 'phone' => $c->phone, 'email' => $c->email, 'credit' => $credit, 'credit_room' => $room];
+            return ['id' => $c->id, 'name' => $c->full_name, 'company' => $c->company_name, 'phone' => $c->phone, 'email' => $c->email, 'points' => (int) $c->loyalty_points, 'credit' => $credit, 'credit_room' => $room];
         })->values()->all();
     }
 

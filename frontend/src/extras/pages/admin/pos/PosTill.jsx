@@ -59,7 +59,7 @@ function PayDialog({ total, methods, cur, busy, mode, customer, giftMethodId, on
         )))}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button type="button" style={{ ...btnGhost, display: later ? 'none' : undefined }} onClick={() => left > 0 && setRows([...rows, { payment_method_id: methods.find((m) => m.id !== rows[0].payment_method_id)?.id ?? cash?.id, amount: String(left), reference: '' }])}>Split payment</button>
-          {giftMethodId && !later && <button type="button" style={btnGhost} onClick={() => setRows([...rows, { gift: true, code: '', amount: '', balance: null, payment_method_id: giftMethodId }])}>Gift voucher</button>}
+          {giftMethodId && !later && customer && <button type="button" style={btnGhost} onClick={() => setRows([...rows, { gift: true, code: '', amount: '', balance: null, payment_method_id: giftMethodId }])}>Gift voucher</button>}
           {[50, 100, 500, 1000].map((n) => <button key={n} type="button" style={btnGhost} onClick={() => set(0, { amount: String((Number(rows[0].amount) || 0) + n) })}>+{n}</button>)}
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
@@ -252,7 +252,6 @@ export default function PosTill() {
   const [customer, setCustomer] = useState(null);
   const [cq, setCq] = useState('');
   const [walkin, setWalkin] = useState('');
-  const [phone, setPhone] = useState('');   // the phone number a customer gives: finds their account for loyalty points, promo codes and gift vouchers
   const [promo, setPromo] = useState('');   // an optional name for a cash sale to a walk-in customer
   const [cfound, setCfound] = useState([]);
   const key = useRef(newKey());
@@ -291,7 +290,7 @@ export default function PosTill() {
   }, [cart, ctx, body]);
 
   useEffect(() => {
-    if (mode === 'cash' || customer || cq.trim().length < 2) { setCfound([]); return undefined; }
+    if (mode === 'return' || customer || cq.trim().length < 2) { setCfound([]); return undefined; }
     const t = setTimeout(() => { posAPI.customers(cq).then((r) => setCfound(r.customers)).catch(() => {}); }, 250);
     return () => clearTimeout(t);
   }, [cq, mode, customer]);
@@ -314,12 +313,6 @@ export default function PosTill() {
     if (ctx.can.void) note(undefined); else setAsk({ purpose: 'void', why: `Removing ${c.name} from the sale needs a supervisor.`, then: (a) => note(a.token) });
   };
 
-  const findByPhone = async () => {
-    try {
-      const r = await posAPI.customerByPhone(phone);
-      if (r.customer) { setCustomer(r.customer); setWalkin(''); toast.success(`${r.customer.name} found.`); } else toast('No account with that number. Carry on as a walk-in, or type a name for the receipt.');
-    } catch (e) { toast.error(errMsg(e, 'Could not look that up')); }
-  };
   const scanCode = async (code) => {   // a handheld scanner or the camera: the code goes straight into the sale
     try {
       const r = await posAPI.scan(code, ctx.station.id);
@@ -338,7 +331,7 @@ export default function PosTill() {
     setBusy(true);
     try {
       const r = await posAPI.sell({ ...body(), key: key.current, tenders: tenders.filter((t) => t.amount > 0) });
-      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setCq(''); setWalkin(''); setPhone(''); setPromo(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
+      setDone(r); if (auto) print(r.id); setCart([]); setPaying(false); setCustomer(null); setCq(''); setWalkin(''); setPromo(''); setApproval(null); key.current = newKey(); toast.success(`${r.type ?? 'Sale'} ${r.number} posted.`);
     } catch (e) { if (e?.response?.data?.approval === 'discount') { setPaying(false); setApproval(null); } toast.error(errMsg(e, 'The sale did not post'), { duration: 9000 }); } finally { setBusy(false); }
   };
 
@@ -518,17 +511,21 @@ export default function PosTill() {
             <div style={{ display: 'grid', gap: 6, padding: '8px 10px', borderRadius: 8, background: colors.tint(0.08), border: `1px solid ${colors.tint(0.25)}` }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <span><strong>{customer.name}</strong> <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>{customer.points != null ? `· ${customer.points} points · ` : '· '}earns points on this sale</span></span>
-                <button type="button" style={{ ...btnGhost, padding: '2px 8px' }} aria-label="Remove customer" onClick={() => { setCustomer(null); setPromo(''); setPhone(''); }}><X size={13} /></button>
+                <button type="button" style={{ ...btnGhost, padding: '2px 8px' }} aria-label="Remove customer" onClick={() => { setCustomer(null); setPromo(''); }}><X size={13} /></button>
               </div>
               <input style={{ ...field, height: 32, fontSize: '0.82rem' }} maxLength={40} value={promo} onChange={(e) => setPromo(e.target.value.toUpperCase())} placeholder="Promo code (optional)" aria-label="Promo code" />
             </div>
           ) : (
             <div style={{ display: 'grid', gap: 6 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input style={{ ...field, height: 34, fontSize: '0.84rem' }} inputMode="tel" maxLength={30} value={phone} onChange={(e) => setPhone(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && findByPhone()} placeholder="Customer's phone number (for points, promo and gift vouchers)" aria-label="Customer phone number" />
-                <button type="button" style={btnGhost} disabled={phone.replace(/\D/g, '').length < 7} onClick={findByPhone}>Find</button>
-              </div>
-              <input style={{ ...field, height: 32, fontSize: '0.82rem' }} maxLength={80} value={walkin} onChange={(e) => setWalkin(e.target.value)} placeholder="Or just a name for the receipt (otherwise Walk-in customer)" aria-label="Customer name" />
+              <input style={{ ...field, height: 34, fontSize: '0.84rem' }} value={cq} onChange={(e) => setCq(e.target.value)} placeholder="Select a customer: name, phone or email (optional)" aria-label="Find customer" />
+              {cfound.map((c) => (
+                <button key={c.id} type="button" style={{ ...btnGhost, textAlign: 'left' }} onClick={() => { setCustomer(c); setCfound([]); setCq(''); setWalkin(''); }}>
+                  {c.name}{c.company ? ` · ${c.company}` : ''}{c.phone ? ` · ${c.phone}` : ''}{c.points != null ? ` · ${c.points} points` : ''}
+                </button>
+              ))}
+              {cfound.length === 0 && cq.trim().length >= 2 && <span style={{ fontSize: '0.75rem', color: colors.textMuted }}>No customer found. Carry on as a walk-in.</span>}
+              <div style={{ fontSize: '0.74rem', color: colors.textMuted }}>No customer selected: walk-in sale. No loyalty points, promo codes or gift vouchers.</div>
+              <input style={{ ...field, height: 32, fontSize: '0.82rem' }} maxLength={80} value={walkin} onChange={(e) => setWalkin(e.target.value)} placeholder="A name for the receipt (otherwise Walk-in customer)" aria-label="Customer name" />
             </div>
           ))}
           {mode !== 'cash' && mode !== 'return' && (
