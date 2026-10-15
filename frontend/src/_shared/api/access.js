@@ -10,6 +10,7 @@ const accessAPI = {
   setClearance: async (id, level) => (await api.put(`/admin/access/users/${id}/clearance`, { level })).data,
   setDefaultLocation: async (id, locationId) => (await api.put(`/admin/access/users/${id}/default-location`, { location_id: locationId })).data,
   setPrimaryRole: async (id, roleId) => (await api.put(`/admin/access/users/${id}/primary-role`, { role_id: roleId })).data,
+  saveAccess: async (id, body) => (await api.put(`/admin/access/users/${id}/access`, body)).data,
   addRole: async (id, body) => (await api.post(`/admin/access/users/${id}/roles`, body)).data,
   removeRole: async (id, roleId) => (await api.delete(`/admin/access/users/${id}/roles/${roleId}`)).data,
   addGrant: async (id, body) => (await api.post(`/admin/access/users/${id}/grants`, body)).data,

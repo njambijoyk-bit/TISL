@@ -1454,6 +1454,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::put('/users/{id}/clearance',        [$c, 'setClearance'])->whereNumber('id');
                 Route::put('/users/{id}/default-location', [$c, 'setDefaultLocation'])->whereNumber('id');
                 Route::put('/users/{id}/primary-role',     [$c, 'setPrimaryRole'])->whereNumber('id');
+                Route::put('/users/{id}/access',           [$c, 'saveAccess'])->whereNumber('id');
                 Route::post('/users/{id}/roles',           [$c, 'addRole'])->whereNumber('id');
                 Route::delete('/users/{id}/roles/{roleId}', [$c, 'removeRole'])->whereNumber(['id', 'roleId']);
                 Route::post('/users/{id}/grants',          [$c, 'addGrant'])->whereNumber('id');
@@ -1465,6 +1466,18 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::delete('/roles/{id}',      [$c, 'deleteRole'])->whereNumber('id');
                 Route::put('/levels/{level}',     [$c, 'renameLevel'])->whereNumber('level');
                 Route::put('/scope-modes',        [$c, 'setScopeMode']);
+            });
+        });
+
+        // Point of sale (Extras module): stations and the receipt paper each branch offers
+        Route::prefix('pos')->middleware('module:extras')->group(function () {
+            $c = \App\Http\Controllers\Admin\PosStationController::class;
+            Route::middleware('permission:pos.manage')->group(function () use ($c) {
+                Route::get('/stations',                [$c, 'index']);
+                Route::post('/stations',               [$c, 'save']);
+                Route::put('/stations/{id}',           [$c, 'save'])->whereNumber('id');
+                Route::delete('/stations/{id}',        [$c, 'destroy'])->whereNumber('id');
+                Route::put('/branches/{locationId}',   [$c, 'saveBranch'])->whereNumber('locationId');
             });
         });
 

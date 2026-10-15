@@ -406,6 +406,7 @@ export const ADMIN_NAV = [
           { group: 'Access', title: 'Approvals', path: '/admin/security/approvals', description: 'Serious actions that wait for a second person to approve them' },
           { group: 'Access', title: 'Roles & access', path: '/admin/access', perm: 'access.view', description: 'Clearance levels, roles, permissions and branch access' },
           { group: 'Platform', title: 'Algorithm', path: '/admin/algorithm', module: MODULES.EXTRAS, perm: 'algorithm.manage', description: 'Ranking, pins and catalogue boosts' },
+          { group: 'Platform', title: 'POS stations', path: '/admin/pos/stations', module: MODULES.EXTRAS, perm: 'pos.manage', description: 'Tills, self checkouts and receipt paper per branch' },
           { group: 'Platform', title: 'Engagement', path: '/admin/settings/engagement', module: MODULES.EXTRAS, perm: 'engagement.settings', description: 'Who can review, comment, like, mark helpful and report' },
           { group: 'Platform', title: 'Vault', path: '/admin/vault', description: 'Stored documents and secrets' },
           { group: 'Platform', title: 'Activity logs', path: '/admin/logs', perm: 'system.logs', description: 'Who changed what, and exports' },

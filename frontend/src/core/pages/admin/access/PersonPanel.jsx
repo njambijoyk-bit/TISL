@@ -8,14 +8,15 @@ import { input, btn, label, chip, when, sub } from './ui';
 const block = { padding: '14px 0', borderTop: '1px solid color-mix(in srgb, var(--color-primary-500) 10%, transparent)' };
 const title = { margin: '0 0 8px', fontSize: '0.85rem', fontWeight: 800 };
 
-/** One person: clearance, main role, extra roles with dates, default branch, branch access with dates, and what that adds up to. */
+/** One person: main role and extra roles (staged, saved together with their stations), read-only clearance, default branch, branch access with dates, and what that adds up to. */
 export default function PersonPanel({ id, data, onClose, onChanged }) {
   const [d, setD] = useState(null);
   const [busy, setBusy] = useState(false);
-  const [level, setLevel] = useState(0);
   const [mainRole, setMainRole] = useState('');
+  const [extraIds, setExtraIds] = useState([]);
+  const [stationIds, setStationIds] = useState([]);
+  const [stationDefault, setStationDefault] = useState(null);
   const [branch, setBranch] = useState('');
-  const [extra, setExtra] = useState({ role_id: '', starts_at: '', expires_at: '' });
   const [grant, setGrant] = useState({ resource_id: '', access: 'full', starts_at: '', expires_at: '', reason: '' });
 
   const mine = data.mine.clearance;
@@ -25,8 +26,10 @@ export default function PersonPanel({ id, data, onClose, onChanged }) {
 
   const apply = useCallback((res) => {
     setD(res);
-    setLevel(res.user.clearance_level);
     setMainRole(String(staffRoles.find((r) => r.key === res.user.role)?.id ?? ''));
+    setExtraIds(res.roles.filter((r) => !r.primary).map((r) => r.role_id));
+    setStationIds(res.stations?.ids ?? []);
+    setStationDefault(res.stations?.default ?? null);
     setBranch(res.user.default_location_id ? String(res.user.default_location_id) : '');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.roles]);
@@ -43,13 +46,30 @@ export default function PersonPanel({ id, data, onClose, onChanged }) {
 
   if (!d) return null;
   const u = d.user;
-  const levelOptions = data.levels.filter((l) => mine >= 6 || l.level < mine);
   const manageable = d.manageable !== false;
   const off = !manageable || busy;
   const eff = d.effective;
 
+  const savedMain = String(staffRoles.find((r) => r.key === u.role)?.id ?? '');
+  const stagedMain = staffRoles.find((r) => String(r.id) === mainRole);
+  const savedExtra = d.roles.filter((r) => !r.primary).map((r) => r.role_id);
+  const sameSet = (a, b) => a.length === b.length && a.every((x) => b.includes(x));
+  const st = d.stations;
+  const sells = [stagedMain, ...extraIds.map((rid) => staffRoles.find((r) => r.id === rid))].some((r) => r?.permissions?.some((k) => k.startsWith('pos.')));
+  const showStations = !!st && (sells || st.ids.length > 0);
+  const stationsDirty = !!st && (!sameSet(stationIds, st.ids) || (stationIds.length > 0 && (stationDefault ?? null) !== (st.default ?? null)));
+  const dirty = mainRole !== savedMain || !sameSet(extraIds, savedExtra) || stationsDirty;
+
+  const reset = () => apply(d);
+  const save = () => run(() => accessAPI.saveAccess(u.id, {
+    role_id: mainRole ? Number(mainRole) : undefined,
+    extra_role_ids: extraIds,
+    stations: stationsDirty ? { ids: stationIds, default: stationDefault } : undefined,
+  }), 'Changes saved');
+  const close = () => { if (!dirty || window.confirm('You have unsaved changes. Leave without saving?')) onClose(); };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.35)' }} onClick={onClose}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.35)' }} onClick={close}>
       <aside
         onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`Access for ${u.name}`}
         style={{ width: 'min(520px, 100%)', height: '100%', overflowY: 'auto', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', padding: 20, boxShadow: '-8px 0 30px rgba(0,0,0,0.2)' }}
@@ -59,57 +79,87 @@ export default function PersonPanel({ id, data, onClose, onChanged }) {
             <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{u.name}</h2>
             <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{u.email}</div>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={20} /></button>
+          <button type="button" onClick={close} aria-label="Close" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={20} /></button>
         </div>
         {!manageable && <p style={{ ...sub, padding: '8px 10px', borderRadius: 8, background: 'color-mix(in srgb, #d97706 10%, transparent)' }}>You can look at this person but not change them: only people with a lower clearance than yours can be changed.</p>}
 
         <div style={block}>
-          <h3 style={title}>Main role and clearance</h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
+            <h3 style={{ ...title, margin: 0 }}>Roles and clearance</h3>
+            {dirty && <span style={chip('#d97706')} role="status">Unsaved changes</span>}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={label}>Main role</label>
-              <select style={input} value={mainRole} disabled={off} onChange={(e) => setMainRole(e.target.value)}>
+              <select style={input} value={mainRole} disabled={off} onChange={(e) => { setMainRole(e.target.value); setExtraIds(extraIds.filter((x) => String(x) !== e.target.value)); }}>
                 {staffRoles.map((r) => <option key={r.id} value={r.id} disabled={!giveable(r) && r.key !== u.role}>{r.name} (level {r.min_clearance})</option>)}
               </select>
-              <button type="button" style={{ ...btn(false), marginTop: 8 }} disabled={off || String(staffRoles.find((r) => r.key === u.role)?.id) === mainRole}
-                onClick={() => run(() => accessAPI.setPrimaryRole(u.id, Number(mainRole)), 'Main role saved')}><Save size={14} /> Change role</button>
             </div>
             <div>
               <label style={label}>Clearance</label>
-              <select style={input} value={level} disabled={off} onChange={(e) => setLevel(Number(e.target.value))}>
-                {levelOptions.map((l) => <option key={l.level} value={l.level}>{l.level} · {l.name}</option>)}
-              </select>
-              <button type="button" style={{ ...btn(false), marginTop: 8 }} disabled={off || level === u.clearance_level}
-                onClick={() => run(() => accessAPI.setClearance(u.id, level), 'Clearance saved')}><Save size={14} /> Change clearance</button>
+              <div style={{ ...input, opacity: 0.8, cursor: 'not-allowed' }} aria-label="Clearance (view only)" title="Worked out from the main role. It cannot be typed here.">
+                {u.clearance_level} · {data.levels.find((l) => l.level === u.clearance_level)?.name ?? ''}
+              </div>
             </div>
           </div>
-          <p style={{ ...sub, margin: '8px 0 0' }}>Changing the main role sets the clearance to that role&apos;s level. Raise it afterwards if this person should hold more roles.</p>
-        </div>
+          <p style={{ ...sub, margin: '8px 0 12px' }}>Clearance follows the main role and is shown here for reading only.{mainRole !== savedMain && stagedMain ? ` After saving it becomes level ${stagedMain.min_clearance}.` : ''}</p>
 
-        <div style={block}>
-          <h3 style={title}>Extra roles</h3>
-          {d.roles.filter((r) => !r.primary).length === 0 && <p style={sub}>None. The main role is all they hold.</p>}
-          {d.roles.filter((r) => !r.primary).map((r) => (
-            <div key={r.role_id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0' }}>
-              <strong style={{ fontSize: '0.85rem' }}>{r.name}</strong>
-              <span style={chip(r.in_force ? '#16a34a' : '#9ca3af')}>{r.in_force ? 'In force' : 'Not in force'}</span>
-              <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', flex: 1 }}>
-                {r.starts_at ? `from ${when(r.starts_at)} ` : ''}{r.expires_at ? `until ${when(r.expires_at)}` : 'for good'}
-              </span>
-              <button type="button" aria-label={`Take away ${r.name}`} disabled={off} onClick={() => run(() => accessAPI.removeRole(u.id, r.role_id), 'Role taken away')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={15} /></button>
-            </div>
-          ))}
-          <select style={{ ...input, marginTop: 8 }} value={extra.role_id} disabled={off} onChange={(e) => setExtra({ ...extra, role_id: e.target.value })} aria-label="Role to give">
+          <label style={label}>Extra roles</label>
+          {extraIds.length === 0 && <p style={sub}>None. The main role is all they hold.</p>}
+          {extraIds.map((rid) => {
+            const r = staffRoles.find((x) => x.id === rid) ?? { id: rid, name: `Role ${rid}` };
+            const held = d.roles.find((x) => x.role_id === rid);
+            return (
+              <div key={rid} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '6px 0' }}>
+                <strong style={{ fontSize: '0.85rem' }}>{r.name}</strong>
+                {held && <span style={chip(held.in_force ? '#16a34a' : '#9ca3af')}>{held.in_force ? 'In force' : 'Not in force'}</span>}
+                {!held && <span style={chip('#d97706')}>New</span>}
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', flex: 1 }}>
+                  {held ? `${held.starts_at ? `from ${when(held.starts_at)} ` : ''}${held.expires_at ? `until ${when(held.expires_at)}` : 'for good'}` : ''}
+                </span>
+                <button type="button" aria-label={`Take away ${r.name}`} disabled={off} onClick={() => setExtraIds(extraIds.filter((x) => x !== rid))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444' }}><Trash2 size={15} /></button>
+              </div>
+            );
+          })}
+          <select style={{ ...input, marginTop: 8 }} value="" disabled={off} onChange={(e) => e.target.value && setExtraIds([...extraIds, Number(e.target.value)])} aria-label="Role to give">
             <option value="">Give another role…</option>
-            {staffRoles.filter((r) => giveable(r) && r.key !== u.role && !d.roles.some((x) => x.role_id === r.id)).map((r) => <option key={r.id} value={r.id}>{r.name} (level {r.min_clearance})</option>)}
+            {staffRoles.filter((r) => giveable(r) && String(r.id) !== mainRole && !extraIds.includes(r.id)).map((r) => <option key={r.id} value={r.id}>{r.name} (level {r.min_clearance})</option>)}
           </select>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 8, marginTop: 8 }}>
-            <div><label style={label}>From (optional)</label><input type="datetime-local" style={input} value={extra.starts_at} disabled={off} onChange={(e) => setExtra({ ...extra, starts_at: e.target.value })} /></div>
-            <div><label style={label}>Until (blank = for good)</label><input type="datetime-local" style={input} value={extra.expires_at} disabled={off} onChange={(e) => setExtra({ ...extra, expires_at: e.target.value })} /></div>
+          <p style={{ ...sub, margin: '8px 0 0' }}>An extra role only counts while the person&apos;s clearance is at least the role&apos;s level.</p>
+
+          {showStations && (
+            <div style={{ marginTop: 14 }}>
+              <label style={label}>Stations (point of sale)</label>
+              {st.choices.length === 0
+                ? <p style={sub}>No station exists yet at the branches this person may use. Add stations under Point of sale → Stations.</p>
+                : (
+                  <>
+                    {st.choices.map((c) => (
+                      <label key={c.id} style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '4px 0', fontSize: '0.82rem' }}>
+                        <input type="checkbox" disabled={off} checked={stationIds.includes(c.id)}
+                          onChange={(e) => {
+                            const next = e.target.checked ? [...stationIds, c.id] : stationIds.filter((x) => x !== c.id);
+                            setStationIds(next);
+                            if (!next.includes(stationDefault)) setStationDefault(next.length === 1 ? next[0] : null);
+                          }} />
+                        <span style={{ flex: 1 }}>{c.name} <span style={{ color: 'var(--text-secondary)' }}>· {c.location}{c.is_branch_default ? ' · branch default' : ''}</span></span>
+                      </label>
+                    ))}
+                    <label style={{ ...label, marginTop: 8 }}>Their usual station</label>
+                    <select style={input} value={stationDefault ?? ''} disabled={off || stationIds.length === 0} onChange={(e) => setStationDefault(e.target.value ? Number(e.target.value) : null)}>
+                      <option value="">The branch default</option>
+                      {st.choices.filter((c) => stationIds.includes(c.id)).map((c) => <option key={c.id} value={c.id}>{c.name} · {c.location}</option>)}
+                    </select>
+                  </>
+                )}
+              <p style={{ ...sub, margin: '8px 0 0' }}>They can sell from any station of their branches. With none chosen, the branch default is used.</p>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+            <button type="button" style={btn(true)} disabled={off || !dirty} onClick={save}><Save size={14} /> Save changes</button>
+            {dirty && <button type="button" style={btn(false)} disabled={busy} onClick={reset}>Discard</button>}
           </div>
-          <button type="button" style={{ ...btn(true), marginTop: 8 }} disabled={off || !extra.role_id}
-            onClick={() => run(() => accessAPI.addRole(u.id, { role_id: Number(extra.role_id), starts_at: extra.starts_at || null, expires_at: extra.expires_at || null }).then((r) => { setExtra({ role_id: '', starts_at: '', expires_at: '' }); return r; }), 'Role given')}><Plus size={14} /> Give role</button>
-          <p style={{ ...sub, margin: '8px 0 0' }}>An extra role only counts while the person&apos;s clearance is at least the role&apos;s level. Leave &ldquo;until&rdquo; blank to give it for good.</p>
         </div>
 
         <div style={block}>

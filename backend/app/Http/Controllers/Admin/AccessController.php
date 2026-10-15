@@ -13,6 +13,8 @@ use App\Models\User;
 use App\Services\Access\AccessSettings;
 use App\Services\Access\Authorizer;
 use App\Services\Access\Catalog;
+use App\Services\Books\BooksException;
+use App\Services\Pos\StationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -217,6 +219,88 @@ class AccessController extends Controller
         $this->done($request, $target, 'primary_role_changed', ['role' => $role->key]);
 
         return response()->json(['message' => 'Main role saved. Their clearance now matches it.'] + $this->userDetail($target->fresh()));
+    }
+
+    /**
+     * PUT /users/{id}/access {role_id?, extra_role_ids?, stations?: {ids, default}}: the main role, the full list of extra roles and the point-of-sale stations, saved together or not at all
+     * (the People panel stages these and saves once). Every rule of the single-step endpoints applies. Clearance is not set here: it follows the main role.
+     */
+    public function saveAccess(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['role_id' => 'nullable|integer|exists:roles,id', 'extra_role_ids' => 'nullable|array', 'extra_role_ids.*' => 'integer|exists:roles,id',
+            'stations' => 'nullable|array', 'stations.ids' => 'nullable|array', 'stations.ids.*' => 'integer', 'stations.default' => 'nullable|integer']);
+        $actor = $request->user();
+        $target = User::findOrFail($id);
+        if ($bad = $this->cannotManage($actor, $target)) {
+            return $bad;
+        }
+        $changes = [];
+        try {
+            DB::transaction(function () use ($d, $actor, $target, &$changes) {
+                if (! empty($d['role_id']) && Role::findOrFail($d['role_id'])->key !== $target->role) {
+                    $role = Role::findOrFail($d['role_id']);
+                    $this->must($this->cannotAssign($actor, $role));
+                    $this->must($this->lastOwnerStop($target, $role->holdsEverything() ? 6 : 0));
+                    $target->role = $role->key;
+                    $target->save();   // the access observer sets the role row and the clearance
+                    $this->access->forget((int) $target->id);
+                    $changes['role'] = $role->key;
+                }
+                if (array_key_exists('extra_role_ids', $d) && $d['extra_role_ids'] !== null) {
+                    $want = collect($d['extra_role_ids'])->map(fn ($i) => (int) $i)->unique()->values();
+                    $held = UserRole::where('user_id', $target->id)->where('is_primary', 0)->get();
+                    foreach ($held as $ur) {
+                        $role = Role::find($ur->role_id);
+                        if ($role && $role->key !== $target->role && ! $want->contains((int) $ur->role_id)) {
+                            $this->must($this->cannotAssign($actor, $role));
+                            $ur->delete();
+                            $changes['removed'][] = $role->key;
+                        }
+                    }
+                    $heldIds = $held->pluck('role_id')->map(fn ($i) => (int) $i)->all();
+                    foreach ($want as $rid) {
+                        $role = Role::findOrFail($rid);
+                        if ($role->key === $target->role || in_array($rid, $heldIds, true)) {
+                            continue;
+                        }
+                        $this->must($this->cannotAssign($actor, $role));
+                        if ($role->kind !== 'staff') {
+                            throw new BooksException('Customers, vendors and applicants are not given extra roles.');
+                        }
+                        if ($this->access->clearance($target) < (int) $role->min_clearance) {
+                            throw new BooksException("{$role->name} needs clearance {$role->min_clearance} or more. Give them a main role with that level first.");
+                        }
+                        UserRole::updateOrCreate(['user_id' => $target->id, 'role_id' => $role->id], ['is_primary' => false, 'assigned_by' => $actor->id]);
+                        $changes['added'][] = $role->key;
+                    }
+                    $this->access->forget((int) $target->id);
+                }
+                if (array_key_exists('stations', $d) && $d['stations'] !== null) {
+                    if (! StationService::ready()) {
+                        throw new BooksException('The point of sale is not switched on.');
+                    }
+                    $st = app(StationService::class)->setUserStations($target->fresh(), $d['stations']['ids'] ?? [], $d['stations']['default'] ?? null);
+                    $changes['stations'] = $st['ids'];
+                }
+            });
+        } catch (BooksException $e) {
+            return $this->refuse($e->getMessage());
+        } catch (\RuntimeException $e) {
+            return $this->refuse($e->getMessage(), 403);
+        }
+        if ($changes) {
+            $this->done($request, $target, 'access_saved', $changes);
+        }
+
+        return response()->json(['message' => $changes ? 'Changes saved.' : 'Nothing to change.'] + $this->userDetail($target->fresh()));
+    }
+
+    /** Turn a refusal made by a check into an exception so a transaction rolls back. */
+    private function must(?JsonResponse $r): void
+    {
+        if ($r) {
+            throw new \RuntimeException((string) ($r->getData()->message ?? 'Not allowed.'));
+        }
     }
 
     /** POST /users/{id}/roles {role_id, starts_at?, expires_at?} */
@@ -452,6 +536,19 @@ class AccessController extends Controller
             'people' => UserRole::where('role_id', $r->id)->count()];
     }
 
+    /** The point-of-sale stations of a person, when the module is on and one of their roles sells: what they may be given, what they have and their default. Null otherwise. */
+    private function stationsFor(User $u): ?array
+    {
+        if (! StationService::ready()) {
+            return null;
+        }
+        $svc = app(StationService::class);
+        $mine = $svc->forUser((int) $u->id);
+        $sells = collect($this->access->summary($u)['permissions'] ?? [])->contains(fn ($p) => str_starts_with((string) (is_array($p) ? ($p['key'] ?? '') : $p), 'pos.'));
+
+        return ['applies' => $sells || $mine['ids'] !== [], 'choices' => $svc->choicesFor($u), 'ids' => $mine['ids'], 'default' => $mine['default']];
+    }
+
     private function userDetail(User $u): array
     {
         $this->access->forget((int) $u->id);
@@ -465,7 +562,8 @@ class AccessController extends Controller
 
         return ['user' => ['id' => $u->id, 'name' => $u->name, 'email' => $u->email, 'role' => $u->role, 'clearance_level' => (int) $u->clearance_level, 'default_location_id' => $u->default_location_id],
             'roles' => $roles, 'grants' => $grants, 'effective' => $this->access->summary($u),
-            'manageable' => ($actor = request()->user()) ? $this->access->canManage($actor, $u) : false];
+            'manageable' => ($actor = request()->user()) ? $this->access->canManage($actor, $u) : false,
+            'stations' => $this->stationsFor($u)];
     }
 
     private function cannotManage(User $actor, User $target): ?JsonResponse
