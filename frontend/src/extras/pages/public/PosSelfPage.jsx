@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { CheckCircle2, Loader2, ScanLine, Sun, Moon, LifeBuoy, RotateCcw, Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import useThemeStore from '../../../_shared/store/themeStore';
-import { useTheme } from '../../../_shared/theme';
+import { CheckCircle2, Loader2, ScanLine, LifeBuoy, RotateCcw, Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import ThemeSwitch from '../../../_shared/components/common/ThemeSwitch';
 import posSelfAPI from '../../../_shared/api/posSelf';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -62,17 +61,6 @@ export default function PosSelfPage() {
   const { narrow, tiny } = useViewport();
   const [view, setView] = useItemView('pos.self.view');
   const [added, setAdded] = useState(null);
-  const { setTheme } = useThemeStore();
-  const { mode, setMode } = useTheme();   // the colours come from the appearance provider: it sets the theme variables and data-theme
-  const [dark, setDark] = useState(() => document.documentElement.getAttribute('data-theme') === 'dark');
-  useEffect(() => {
-    const read = () => setDark(document.documentElement.getAttribute('data-theme') === 'dark');
-    read();
-    const o = new MutationObserver(read);
-    o.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
-    return () => o.disconnect();
-  }, [mode]);
-  const toggleTheme = () => { const next = dark ? 'light' : 'dark'; setMode(next); setTheme(next); };
   const last = useRef(Date.now());
   const stop = useRef(false);
   const input = useRef(null);
@@ -221,16 +209,7 @@ export default function PosSelfPage() {
   ) : helped ? (
     <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: '#eff6ff', border: '2px solid #60a5fa', color: '#1e3a8a', fontSize: '0.95rem', fontWeight: 700 }}>A member of staff has attended to you. Thank you for waiting.</div>
   ) : null;
-  const themeBtn = (   // a sliding switch: sun on the left, moon on the right
-    <button type="button" role="switch" aria-checked={dark} onClick={toggleTheme} aria-label="Dark theme" title={dark ? 'Dark theme on' : 'Light theme on'}
-      style={{ position: 'relative', width: 64, height: 32, borderRadius: 999, border: '1.5px solid var(--line)', padding: 0, cursor: 'pointer', flexShrink: 0, background: dark ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', transition: 'background 200ms ease' }}>
-      <Sun size={14} aria-hidden="true" style={{ position: 'absolute', left: 9, top: 8, color: dark ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)', opacity: dark ? 0.7 : 0 }} />
-      <Moon size={14} aria-hidden="true" style={{ position: 'absolute', right: 9, top: 8, color: 'var(--text-secondary)', opacity: dark ? 0 : 0.8 }} />
-      <span aria-hidden="true" style={{ position: 'absolute', top: 3, left: dark ? 35 : 3, width: 24, height: 24, borderRadius: '50%', background: 'var(--surface-card, #fff)', boxShadow: '0 1px 4px rgba(0,0,0,0.35)', display: 'grid', placeItems: 'center', transition: 'left 200ms ease' }}>
-        {dark ? <Moon size={14} color="var(--color-primary-600)" /> : <Sun size={14} color="var(--color-primary-600)" />}
-      </span>
-    </button>
-  );
+  const themeBtn = <ThemeSwitch />;
   const shell = (children) => (
     <main onPointerDown={touch} style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary, #f9fafb)', color: 'var(--text-primary)' }} data-testid="self-checkout" data-step={step}>
       <Helmet><title>{cfg.business}</title></Helmet>

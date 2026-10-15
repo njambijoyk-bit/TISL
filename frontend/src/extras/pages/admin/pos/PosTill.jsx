@@ -6,6 +6,7 @@ import posAPI from '../../../../_shared/api/pos';
 import { PAPER, printReceipt } from './printReceipt';
 import useViewport from './useViewport';
 import ItemTile, { ViewToggle } from './ItemTile';
+import ThemeSwitch from '../../../../_shared/components/common/ThemeSwitch';
 import useItemView from './useItemView';
 import { Stepper, RemoveButton } from './BasketControls';
 import CodeScanner from '../../../../core/components/admin/codes/CodeScanner';
@@ -524,6 +525,7 @@ export default function PosTill() {
   const toolbar = (
     <div style={{ marginBottom: 10, display: 'flex', gap: 8, justifyContent: narrow ? 'flex-start' : 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
       {ctx.shift_ready && !ctx.shift && <button type="button" style={btnPrimary} onClick={() => setShiftUi('open')}>Open shift</button>}
+      <ThemeSwitch />
       <IconBtn icon={<LifeBuoy size={17} />} label="Help requests" badge={helpCount} danger onClick={() => setHelpDlg(true)} />
       <IconBtn icon={<Lock size={17} />} label={cart.length ? 'Finish or hold the sale first' : 'Lock the screen'} disabled={cart.length > 0} onClick={() => setLocked(true)} />
       {ctx.can.supervise && <IconBtn icon={<KeyRound size={17} />} label={ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'} onClick={() => setPinOpen(true)} />}
