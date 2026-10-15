@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { CheckCircle2, Loader2, Minus, Plus, ScanLine } from 'lucide-react';
+import { CheckCircle2, Loader2, Minus, Plus, ScanLine, Sun, Moon, X, LifeBuoy, RotateCcw } from 'lucide-react';
+import useThemeStore from '../../../_shared/store/themeStore';
 import posSelfAPI from '../../../_shared/api/posSelf';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -33,6 +34,10 @@ export default function PosSelfPage() {
   const [helpState, setHelpState] = useState(null);   // { open, minutes, tries, max } from the server
   const [helpMsg, setHelpMsg] = useState(null);
   const [helped, setHelped] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const [added, setAdded] = useState(null);
+  const { setTheme } = useThemeStore();
+  const dark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
   const last = useRef(Date.now());
   const stop = useRef(false);
   const input = useRef(null);
@@ -85,8 +90,11 @@ export default function PosSelfPage() {
     const inBasket = basket.find((x) => x.variant_id === it.variant_id)?.quantity ?? 0;
     if (it.stock != null && inBasket + 1 > it.stock) { setProblem(`Sorry, only ${it.stock} of ${it.name} ${it.stock === 1 ? 'is' : 'are'} in stock.`); return; }
     setProblem(null);
+    setAdded(it.name); setTimeout(() => setAdded((a) => (a === it.name ? null : a)), 2500);
     setBasket((b) => (b.some((x) => x.variant_id === it.variant_id) ? b.map((x) => (x.variant_id === it.variant_id ? { ...x, quantity: Math.min(20, x.quantity + 1) } : x)) : [...b, { ...it, quantity: 1 }]));
   };
+  const removeItem = (id) => { setBasket((b) => b.filter((x) => x.variant_id !== id)); if (basket.length <= 1 && step !== 'shop') setStep('shop'); };
+  const startOver = () => { if (basket.length === 0) { reset(); return; } setConfirmClear(true); };
   const bump = (id, d) => setBasket((b) => b.map((x) => {
     if (x.variant_id !== id) return x;
     const q = x.quantity + d;
@@ -153,10 +161,39 @@ export default function PosSelfPage() {
   ) : helped ? (
     <div role="status" style={{ padding: '12px 16px', borderRadius: 14, background: '#eff6ff', border: '2px solid #60a5fa', color: '#1e3a8a', fontSize: '1.1rem', fontWeight: 700 }}>A member of staff has attended to you. Thank you for waiting.</div>
   ) : null;
+  const themeBtn = (
+    <button type="button" onClick={() => setTheme(dark ? 'light' : 'dark')} aria-label={dark ? 'Switch to light theme' : 'Switch to dark theme'} title={dark ? 'Light theme' : 'Dark theme'}
+      style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 14px', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '1rem' }}>{dark ? <Sun size={20} /> : <Moon size={20} />}{dark ? 'Light' : 'Dark'}</button>
+  );
   const shell = (children) => (
-    <main onPointerDown={touch} style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary, #f9fafb)', color: 'var(--text-primary)' }} data-testid="self-checkout" data-step={step}>
+    <main onPointerDown={touch} style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary, #f9fafb)', color: 'var(--text-primary)' }} data-testid="self-checkout" data-step={step}>
       <Helmet><title>{cfg.business}</title></Helmet>
+      {['shop', 'review', 'pay'].includes(step) && (
+        <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', padding: '12px 20px', background: 'var(--surface-card, #fff)', borderBottom: '2px solid var(--line)' }}>
+          <strong style={{ fontSize: '1.3rem' }}>{cfg.business}</strong>
+          <ol aria-label="Steps" style={{ display: 'flex', gap: 8, listStyle: 'none', margin: 0, padding: 0, fontWeight: 800 }}>
+            {[['shop', '1  Scan'], ['review', '2  Check'], ['pay', '3  Pay']].map(([k, l]) => (
+              <li key={k} aria-current={step === k ? 'step' : undefined} style={{ padding: '6px 14px', borderRadius: 999, background: step === k ? 'var(--color-primary-500)' : 'var(--bg-tertiary, #f3f4f6)', color: step === k ? 'var(--text-inverse, #fff)' : 'var(--text-secondary)' }}>{l}</li>
+            ))}
+          </ol>
+          <span style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={askHelp} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><LifeBuoy size={18} /> Help</button>
+            <button type="button" onClick={startOver} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '10px 16px', fontSize: '1rem', display: 'inline-flex', gap: 6, alignItems: 'center' }}><RotateCcw size={18} /> Start over</button>
+            {themeBtn}
+          </span>
+        </header>
+      )}
       {children}
+      {confirmClear && (
+        <div role="alertdialog" aria-label="Start over?" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.75)', display: 'grid', placeItems: 'center', zIndex: 95 }}>
+          <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 24, padding: 32, textAlign: 'center', display: 'grid', gap: 16, maxWidth: 440 }}>
+            <h2 style={{ margin: 0, fontSize: '1.8rem' }}>Clear your basket and start again?</h2>
+            <p style={{ margin: 0, fontSize: '1.15rem', color: 'var(--text-secondary)' }}>All {count} item{count === 1 ? '' : 's'} will be removed. Nothing has been charged.</p>
+            <button type="button" style={huge('var(--color-primary-500)')} onClick={() => { setConfirmClear(false); reset(); }}>Yes, clear it</button>
+            <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={() => setConfirmClear(false)}>No, keep my basket</button>
+          </div>
+        </div>
+      )}
       {warn !== null && (
         <div role="alertdialog" aria-label="Still there?" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.8)', display: 'grid', placeItems: 'center', zIndex: 90 }}>
           <div style={{ background: 'var(--surface-card, #fff)', borderRadius: 24, padding: 40, textAlign: 'center', display: 'grid', gap: 18 }}>
@@ -171,11 +208,14 @@ export default function PosSelfPage() {
 
   if (step === 'welcome') {
     return shell(
+      <>
+      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 5 }}>{themeBtn}</div>
       <button type="button" onClick={() => { last.current = Date.now(); stop.current = false; setStep('shop'); }} style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'linear-gradient(160deg, var(--color-primary-500), var(--color-primary-600))', color: 'var(--text-inverse, #fff)', display: 'grid', placeContent: 'center', gap: 22, textAlign: 'center', padding: 40 }}>
         <ScanLine size={96} aria-hidden="true" style={{ justifySelf: 'center' }} />
         <span style={{ fontSize: 'clamp(2.4rem, 7vw, 4.5rem)', fontWeight: 900 }}>{cfg.business}</span>
         <span style={{ fontSize: 'clamp(1.5rem, 4vw, 2.4rem)', opacity: 0.9 }}>Self checkout — touch to start</span>
-      </button>,
+      </button>
+      </>,
     );
   }
 
@@ -225,7 +265,24 @@ export default function PosSelfPage() {
         <h1 style={{ margin: 0 }}>Your basket</h1>
         {helpBanner}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.1rem' }}>{problem}</p>}
-        {(quote?.lines ?? []).map((l, i) => <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.2rem' }}><span>{l.description} × {l.quantity}</span><span>{money(l.amount)}</span></div>)}
+        {(quote?.lines ?? []).map((l, i) => {
+          const b = basket[i];
+          return (
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, fontSize: '1.2rem', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
+              <span style={{ flex: 1 }}>{l.description}</span>
+              {step === 'review' && b && (
+                <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <button type="button" aria-label={`Less ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 12px' }} onClick={() => bump(b.variant_id, -1)}><Minus size={18} /></button>
+                  <strong style={{ minWidth: 24, textAlign: 'center' }}>{l.quantity}</strong>
+                  <button type="button" aria-label={`More ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 12px' }} onClick={() => bump(b.variant_id, 1)}><Plus size={18} /></button>
+                </span>
+              )}
+              {step !== 'review' && <span>× {l.quantity}</span>}
+              <strong style={{ minWidth: 90, textAlign: 'right' }}>{money(l.amount)}</strong>
+              {step === 'review' && b && <button type="button" aria-label={`Remove ${b.name}`} title="Remove this item" style={{ ...huge('var(--bg-tertiary, #f3f4f6)', '#b91c1c'), padding: '8px 12px' }} onClick={() => removeItem(b.variant_id)}><X size={20} /></button>}
+            </div>
+          );
+        })}
         {totals}
         {step === 'review' && (
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
@@ -254,7 +311,8 @@ export default function PosSelfPage() {
       <section style={{ display: 'grid', gap: 12 }}>
         {helpBanner}
         <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={onEnter} placeholder="Scan an item, or type its name" aria-label="Scan or search" style={{ padding: 18, fontSize: '1.4rem', borderRadius: 14, border: '2px solid var(--line)' }} />
-        {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}
+        {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.1rem', fontWeight: 700 }}>{problem}</p>}
+        {added && !problem && <p role="status" style={{ margin: 0, color: 'var(--color-primary-700)', fontSize: '1.1rem', fontWeight: 700 }}>✔ {added} added to your basket</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
           {found.map((it) => (
             <button key={it.variant_id} type="button" onClick={() => add(it)} style={{ padding: 14, borderRadius: 14, border: '2px solid var(--line)', background: 'var(--surface-card, #fff)', textAlign: 'left', fontFamily: 'inherit', cursor: 'pointer', display: 'grid', gap: 4 }}>
@@ -274,13 +332,13 @@ export default function PosSelfPage() {
               <button type="button" aria-label={`Less ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 14px' }} onClick={() => bump(b.variant_id, -1)}><Minus size={18} /></button>
               <strong style={{ minWidth: 24, textAlign: 'center' }}>{b.quantity}</strong>
               <button type="button" aria-label={`More ${b.name}`} style={{ ...huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)'), padding: '8px 14px' }} onClick={() => bump(b.variant_id, 1)}><Plus size={18} /></button>
+              <button type="button" aria-label={`Remove ${b.name}`} title="Remove this item" style={{ ...huge('var(--bg-tertiary, #f3f4f6)', '#b91c1c'), padding: '8px 12px' }} onClick={() => removeItem(b.variant_id)}><X size={20} /></button>
             </span>
           </div>
         ))}
-        {basket.length === 0 && <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Scan your first item.</p>}
+        {basket.length === 0 && <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '1.1rem' }}>Your basket is empty. Scan an item's barcode, or tap an item on the left to add it. Use the ✕ beside an item to take it out.</p>}
         {totals}
         <button type="button" style={huge('var(--color-primary-500)')} disabled={basket.length === 0} onClick={() => { setProblem(null); setStep('review'); }}>Review and pay</button>
-        <button type="button" style={huge('var(--bg-tertiary, #f3f4f6)', 'var(--text-primary)')} onClick={askHelp}>Call for help</button>
       </aside>
       {help && (
         <div role="dialog" aria-label="Help" style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.7)', display: 'grid', placeItems: 'center', zIndex: 80 }}>

@@ -73,8 +73,11 @@ class HelpService
     public function done(User $u, int $id): bool
     {
         $scope = app(Authorizer::class)->locationIds($u);
-        $n = DB::table('pos_help_requests')->where('id', $id)->where('status', 'open')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))
-            ->update(['status' => 'done', 'handled_by' => $u->id, 'handled_at' => now(), 'updated_at' => now()]);
+        $row = DB::table('pos_help_requests')->where('id', $id)->where('status', 'open')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))->first();
+        $n = $row ? DB::table('pos_help_requests')->where('id', $id)->update(['status' => 'done', 'handled_by' => $u->id, 'handled_at' => now(), 'updated_at' => now()]) : 0;
+        if ($row) {
+            Cache::forget('pos:help:'.$row->station_id);   // the customer starts again with all their tries
+        }
         if ($n) {
             AccessLog::record($u->id, null, 'pos_help_done', ['request' => $id]);
         }
@@ -86,8 +89,11 @@ class HelpService
     public function clearAll(User $u): int
     {
         $scope = app(Authorizer::class)->locationIds($u);
-        $n = DB::table('pos_help_requests')->where('status', 'open')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]))
-            ->update(['status' => 'done', 'handled_by' => $u->id, 'handled_at' => now(), 'updated_at' => now()]);
+        $open = DB::table('pos_help_requests')->where('status', 'open')->when($scope !== null, fn ($q) => $q->whereIn('location_id', $scope ?: [0]));
+        foreach ((clone $open)->pluck('station_id')->unique() as $sid) {
+            Cache::forget('pos:help:'.$sid);
+        }
+        $n = $open->update(['status' => 'done', 'handled_by' => $u->id, 'handled_at' => now(), 'updated_at' => now()]);
         if ($n) {
             AccessLog::record($u->id, null, 'pos_help_cleared', ['count' => $n]);
         }
@@ -100,6 +106,7 @@ class HelpService
     {
         if (self::installed()) {
             DB::table('pos_help_requests')->where('station_id', $s->id)->where('status', 'open')->update(['status' => 'done', 'updated_at' => now()]);
+            Cache::forget($this->key($s));   // withdrawing a request gives the tries back
         }
     }
 }
