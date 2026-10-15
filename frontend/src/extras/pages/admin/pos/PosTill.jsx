@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Pause, Play, X, Search, ScanLine, Lock, LifeBuoy } from 'lucide-react';
+import { Pause, Play, X, Search, ScanLine, Lock, LifeBuoy, KeyRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import posAPI from '../../../../_shared/api/pos';
 import { PAPER, printReceipt } from './printReceipt';
@@ -242,15 +242,33 @@ function ReturnPanel({ ctx, cur, onDone }) {
   );
 }
 
-/** The till fills the whole page: no admin menu around it. */
-function Shell({ children }) {
+/** A small icon button: its name shows when the pointer rests on it or it has the keyboard; a badge (a count) is always visible. */
+function IconBtn({ icon, label, badge, danger, disabled, onClick }) {
+  const [hover, setHover] = useState(false);
+  const lit = badge > 0 && danger;
+
   return (
-    <main style={{ minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)', padding: 'clamp(8px, 2vw, 16px)', boxSizing: 'border-box' }}>
+    <span style={{ position: 'relative', display: 'inline-flex' }} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <button type="button" aria-label={label} title={label} disabled={disabled} onClick={onClick} onFocus={() => setHover(true)} onBlur={() => setHover(false)}
+        style={{ ...(lit ? { ...btnPrimary, background: '#dc2626' } : btnGhost), width: 38, height: 38, padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', opacity: disabled ? 0.5 : 1 }}>
+        {icon}
+      </button>
+      {badge > 0 && <span aria-hidden="true" style={{ position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, padding: '0 5px', boxSizing: 'border-box', borderRadius: 9, background: '#dc2626', color: '#fff', fontSize: '0.68rem', fontWeight: 800, display: 'grid', placeItems: 'center', border: '2px solid var(--bg-secondary, #f9fafb)' }}>{badge}</span>}
+      {hover && <span role="tooltip" style={{ position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 50, whiteSpace: 'nowrap', padding: '4px 8px', borderRadius: 6, background: '#111827', color: '#fff', fontSize: '0.74rem', fontWeight: 600, pointerEvents: 'none' }}>{label}</span>}
+    </span>
+  );
+}
+
+/** The till fills the whole page: no admin menu around it. The footer holds what is rarely needed. */
+function Shell({ children, footer }) {
+  return (
+    <main style={{ minHeight: '100vh', background: 'var(--bg-secondary, #f9fafb)', padding: 'clamp(8px, 2vw, 16px)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
         <Link to="/admin" style={{ fontSize: '0.78rem', color: colors.textMuted, textDecoration: 'none' }}>← Back to admin</Link>
         <span style={{ fontSize: '0.74rem', color: colors.textMuted }}>Ctrl + B shows the menu</span>
       </div>
-      {children}
+      <div style={{ flex: 1 }}>{children}</div>
+      {footer && <footer style={{ marginTop: 18, paddingTop: 10, borderTop: '1px solid var(--line)', display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>{footer}</footer>}
     </main>
   );
 }
@@ -472,16 +490,20 @@ export default function PosTill() {
       )}
       {mine && (
         <div role="dialog" aria-label="My sales today" style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.4)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <div style={{ ...card, padding: 18, width: 'min(460px, 100%)', display: 'grid', gap: 8, maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
-            <strong>My sales today</strong>
-            {mine.length === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nothing yet today.</p>}
-            {mine.map((m) => (
-              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span>{m.number} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {money(m.total, cur)}{m.status !== 'posted' ? ` · ${m.status}` : ''}</span></span>
-                {ctx.can.reprint ? <button type="button" style={btnGhost} onClick={() => print(m.id)}>Reprint (copy)</button> : null}
-              </div>
-            ))}
-            <button type="button" style={btnPrimary} onClick={() => setMine(null)}>Close</button>
+          <div style={{ ...card, padding: 0, width: 'min(460px, 100%)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto' }}>
+            <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 18px', background: 'var(--surface-card, #fff)', borderBottom: '1px solid var(--line)' }}>
+              <strong>My sales today</strong>
+              <button type="button" style={{ ...btnGhost, padding: '4px 8px' }} aria-label="Close" onClick={() => setMine(null)}><X size={16} /></button>
+            </div>
+            <div style={{ display: 'grid', gap: 8, padding: 18 }}>
+              {mine.length === 0 && <p style={{ color: colors.textMuted, margin: 0 }}>Nothing yet today.</p>}
+              {mine.map((m) => (
+                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                  <span>{m.number} <span style={{ color: colors.textMuted, fontSize: '0.75rem' }}>· {money(m.total, cur)}{m.status !== 'posted' ? ` · ${m.status}` : ''}</span></span>
+                  {ctx.can.reprint ? <button type="button" style={btnGhost} onClick={() => print(m.id)}>Reprint (copy)</button> : null}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -499,9 +521,26 @@ export default function PosTill() {
     </>
   );
 
+  const toolbar = (
+    <div style={{ marginBottom: 10, display: 'flex', gap: 8, justifyContent: narrow ? 'flex-start' : 'flex-end', alignItems: 'center', flexWrap: 'wrap' }}>
+      {ctx.shift_ready && !ctx.shift && <button type="button" style={btnPrimary} onClick={() => setShiftUi('open')}>Open shift</button>}
+      <IconBtn icon={<LifeBuoy size={17} />} label="Help requests" badge={helpCount} danger onClick={() => setHelpDlg(true)} />
+      <IconBtn icon={<Lock size={17} />} label={cart.length ? 'Finish or hold the sale first' : 'Lock the screen'} disabled={cart.length > 0} onClick={() => setLocked(true)} />
+      {ctx.can.supervise && <IconBtn icon={<KeyRound size={17} />} label={ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'} onClick={() => setPinOpen(true)} />}
+    </div>
+  );
+  const footer = (
+    <>
+      {ctx.shift_ready && ctx.shift && <button type="button" style={btnGhost} onClick={() => setShiftUi({ id: ctx.shift.id })}>Shift open since {String(ctx.shift.opened_at).slice(11, 16)} - report / close</button>}
+      {ctx.shift_ready && ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setShiftUi('list')}>All shifts</button>}
+      <button type="button" style={btnGhost} onClick={openMine}>My sales today</button>
+    </>
+  );
+
   if (mode === 'return') {
     return (
-      <Shell>
+      <Shell footer={footer}>
+        {toolbar}
         <div style={{ display: 'grid', gap: 12, maxWidth: 720 }}>
           <div style={{ ...card, padding: 10 }}>{tabs}</div>
           <ReturnPanel ctx={ctx} cur={cur} onDone={(r) => { setReturned(r); setTick((n) => n + 1); }} />
@@ -512,17 +551,8 @@ export default function PosTill() {
   }
 
   return (
-    <Shell>
-      <div style={{ marginBottom: 6, display: 'flex', gap: 8, justifyContent: narrow ? 'flex-start' : 'flex-end', flexWrap: 'wrap' }}>
-        {ctx.shift_ready && (ctx.shift
-          ? <button type="button" style={btnGhost} onClick={() => setShiftUi({ id: ctx.shift.id })}>Shift open since {String(ctx.shift.opened_at).slice(11, 16)} - report / close</button>
-          : <button type="button" style={btnPrimary} onClick={() => setShiftUi('open')}>Open shift</button>)}
-        {ctx.shift_ready && ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setShiftUi('list')}>All shifts</button>}
-        <button type="button" style={helpCount > 0 ? { ...btnPrimary, background: '#dc2626' } : btnGhost} onClick={() => setHelpDlg(true)}><LifeBuoy size={14} /> Help requests{helpCount > 0 ? ` (${helpCount})` : ''}</button>
-        <button type="button" style={btnGhost} onClick={openMine}>My sales today</button>
-        <button type="button" style={btnGhost} disabled={cart.length > 0} title={cart.length ? 'Finish or hold the sale first' : 'Lock the screen'} onClick={() => setLocked(true)}><Lock size={14} /> Lock</button>
-        {ctx.can.supervise && <button type="button" style={btnGhost} onClick={() => setPinOpen(true)}>{ctx.can.has_pin ? 'Change my PIN' : 'Set my PIN'}</button>}
-      </div>
+    <Shell footer={footer}>
+      {toolbar}
       <div style={{ display: 'grid', gridTemplateColumns: narrow ? 'minmax(0, 1fr)' : 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: 16, alignItems: 'start', paddingBottom: narrow && cart.length ? 84 : 0 }}>
         <section style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
           <CodeScanner onScan={scanCode} placeholder="Scan an item's barcode: scanner or camera" autoFocus />
