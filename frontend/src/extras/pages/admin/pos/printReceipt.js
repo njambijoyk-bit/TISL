@@ -87,7 +87,7 @@ export function reportHtml(rep, paper) {
   const p = PAPER[paper] ?? PAPER.pos80;
   const row = (l, v, cls = '') => `<div class="row ${cls}"><span>${l}</span><span>${v}</span></div>`;
   const sh = rep.shift;
-  const methods = rep.methods.map((m) => `<div class="line"><div>${esc(m.name)}</div>${row('Expected', num(m.expected))}${m.counted != null ? row('Counted', num(m.counted)) + row('Difference', num(m.difference), 'b') : ''}</div>`).join('');
+  const methods = rep.methods.map((m) => `<div class="line"><div>${esc(m.name)}</div>${row('Expected', num(m.expected))}${m.counted != null ? row('Counted', num(m.counted)) + row(m.difference === 0 ? 'Balanced' : m.difference > 0 ? 'Over' : 'Short', num(Math.abs(m.difference)), 'b') : ''}</div>`).join('');
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>${rep.kind} report</title><style>
     @page { size: ${p.page}; margin: ${paper === 'a4' ? '14mm' : '2mm'}; }
@@ -101,7 +101,7 @@ export function reportHtml(rep, paper) {
     ${row(`Cash sales (${rep.cash_sales.count})`, num(rep.cash_sales.total))}${row(`Invoices (${rep.invoices.count})`, num(rep.invoices.total))}${row(`Sales orders (${rep.orders.count})`, num(rep.orders.total))}
     ${row(`Payments taken (${rep.receipts.count})`, '')}${row(`Returns (${rep.returns.count})`, num(rep.returns.total))}${row('Refunded', num(rep.refunded))}${row('Discounts', num(rep.discounts))}${row('Voids', String(rep.voids))}<hr>
     ${methods}<hr>
-    ${row('Expected cash', num(rep.expected_cash), 'b')}${rep.variance != null ? row(rep.variance === 0 ? 'Balanced' : rep.variance > 0 ? 'Over' : 'Short', num(Math.abs(rep.variance)), 'b') : ''}
+    ${row('Expected cash', num(rep.expected_cash), 'b')}${rep.variance != null && rep.methods.some((m) => m.kind !== 'cash' && m.counted != null) ? row(`All counted ${rep.variance === 0 ? 'balanced' : rep.variance > 0 ? 'over' : 'short'}`, num(Math.abs(rep.variance)), 'b') : ''}
     ${sh.note ? `<hr><div>${esc(sh.note)}</div>` : ''}
   </div></body></html>`;
 }
