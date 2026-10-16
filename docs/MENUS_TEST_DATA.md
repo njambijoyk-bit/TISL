@@ -95,7 +95,13 @@ What the bold cells are there to show:
 
 ## 2. Opening stock (Menus, Stock, Opening stock)
 
-The Opening stock form has a line per variant with: **Ingredient variant**, **Quantity**, **In** (packs, the bigger unit or the base unit), **Price of one pack**, **Batch no (optional)** and **Expiry date** (only asked for variants that expire). Type quantities in **packs**: that is the point, counting packs is quick. Opening stock is booked against the opening balance account, so choose one under Books, Settings, Default ledgers first. Expiry dates are counted from today.
+Opening stock is one sheet with a row for every variant that is in use (Jogoo is not listed). Choose the **Branch** and the **Stock as at** date at the top, then type into the rows. Each row has: **Quantity**, **In** (packs, the bigger unit or the base unit), **Price of one** (of the unit chosen), **Batch no (optional)** and **Expiry date** (only for variants that expire; the others say "does not expire"). **On the shelf now** shows what is already there, because opening stock is added to it.
+
+- **Finding rows:** the search box matches an ingredient or a variant ("wh" shows both Wheat flour variants and Whole milk), the Ingredient list narrows to one ingredient, and All / Touched / Not touched shows the rows you have typed in or not.
+- **Touched rows:** a row is touched as soon as anything is typed in it. The line at the top counts them ("12 rows changed · 18,540 before tax") and the button says **Save all (12)**. What you type is kept in this browser per branch, so a reload or a closed tab loses nothing; **Discard changes** throws it away.
+- **Saving:** Save all checks every touched row first (a quantity, a price, an expiry date where one is needed) and marks the rows that need fixing without saving anything. When all are right it makes one opening receipt for the branch and the date, with **one Journal**: Dr Food Ingredients Inventory, Cr the opening balance account (choose that under Books, Settings, Default ledgers first). If the books refuse, nothing is saved and the row at fault is marked.
+- **Keyboard:** Enter moves down to the same box in the next row.
+- Expiry dates are counted from today.
 
 | Variant | Quantity | In | Price of one pack | Batch no | Expiry date | That is |
 |---|---|---|---|---|---|---|
@@ -122,7 +128,7 @@ The Opening stock form has a line per variant with: **Ingredient variant**, **Qu
 | Tin 100 g | 2 | packs | 120 | | | 200 g |
 | Pack 250 g | 3 | packs | 150 | | | 750 g |
 
-Try this too: type the same Exe stock as **20 kg** (In: kg, price 130 a kg) instead of 10 packs and see that the shelf shows the same 10 packs. Jogoo 2 kg is not in the variant list on this form, because it is not "in use" (it shows faded on the shelf table).
+Try this too: type the same Exe stock as **20 kg** (In: kg, price 130 a kg) instead of 10 packs and see that the shelf shows the same 10 packs. Type half of the table, reload the page, and see the rows still there and counted. Jogoo 2 kg is not on the sheet, because it is not "in use" (it shows faded on the Stock page's shelf table).
 
 ## 3. Dishes (Menus, Dishes)
 

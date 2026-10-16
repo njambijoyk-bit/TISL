@@ -8,7 +8,8 @@ export default function MenusNav() {
   const { pathname } = useLocation();
   const user = useAuthStore((s) => s.user);
   const PAGES = openTabs(MENUS_TABS, user);
-  const here = PAGES.find((p) => p.path === pathname);
+  const on = (path) => pathname === path || pathname.startsWith(`${path}/`);   // Stock, Opening stock
+  const here = PAGES.find((p) => on(p.path));
   const crumb = { color: 'var(--color-text-muted, #9ca3af)', textDecoration: 'none', fontWeight: 600 };
 
   return (
@@ -22,7 +23,7 @@ export default function MenusNav() {
       <div role="tablist" aria-label="Menus pages" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {PAGES.map(({ path, title, icon, color, key }) => {
           const Icon = icon;
-          const active = path === pathname;
+          const active = on(path);
 
           return (
             <Link key={path} to={path} role="tab" title={key ? `Press G, then ${key}` : title === 'Configuration' ? 'Press F12' : undefined} aria-keyshortcuts={key ? `g ${key.toLowerCase()}` : undefined} aria-selected={active} aria-current={active ? 'page' : undefined} style={{
