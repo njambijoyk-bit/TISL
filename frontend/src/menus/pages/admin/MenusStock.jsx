@@ -13,6 +13,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
 import { BatchModal, CountModal, TransferModal } from '../../components/StockActions';
+import IngredientVariantPicker from '../../components/IngredientVariantPicker';
 
 /**
  * Menus → Stock: what is on the kitchen's shelf at a branch, per ingredient and per variant, in packs, the alternate unit and the base unit, and how it got there.
@@ -36,12 +37,10 @@ function Line({ line, variants, opening, taxes, onChange, onRemove }) {
     <div style={{ ...card, padding: 10, display: 'grid', gap: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr auto', gap: 8, alignItems: 'end' }}>
         <Field label="Ingredient variant">
-          <SelectInput aria-label="Ingredient variant" value={line.item_id} onChange={(e) => {
-            const nv = variants.find((x) => String(x.id) === e.target.value);
-            onChange({ item_id: e.target.value, unit: nv?.pack_size_base ? 'pack' : nv?.alt_unit ? 'alt' : 'base' });
-          }}>
-            <option value="">Choose…</option>{variants.map((x) => <option key={x.id} value={x.id}>{x.ingredient} — {x.name}</option>)}
-          </SelectInput>
+          <IngredientVariantPicker variants={variants} value={line.item_id} onChange={(id) => {
+            const nv = variants.find((x) => String(x.id) === id);
+            onChange({ item_id: id, unit: nv?.pack_size_base ? 'pack' : nv?.alt_unit ? 'alt' : 'base' });
+          }} />
         </Field>
         <Field label="Quantity"><NumberInput aria-label="Quantity" min="0" step="any" value={line.quantity} onChange={(e) => onChange({ quantity: e.target.value })} /></Field>
         <Field label="In">

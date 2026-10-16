@@ -6,6 +6,7 @@ import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, Te
 import menusAPI from '../../_shared/api/menus';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 import { btnGhost, colors } from '../../_shared/theme/tokens';
+import IngredientVariantPicker from './IngredientVariantPicker';
 
 /**
  * Menus → Stock actions on the kitchen's own shelf: count it (in packs, the bigger unit or the base unit), send some to another branch, and make a batch of a dish that is made ahead.
@@ -29,9 +30,7 @@ function QtyRow({ row, variants, onChange, onRemove, hint }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr auto', gap: 8, alignItems: 'end' }}>
       <Field label="Ingredient variant">
-        <SelectInput aria-label="Ingredient variant" value={row.item_id} onChange={(e) => onChange({ item_id: e.target.value, unit: defaultUnit(variants.find((x) => String(x.id) === e.target.value)) })}>
-          <option value="">Choose…</option>{variants.map((x) => <option key={x.id} value={x.id}>{x.ingredient} — {x.name}</option>)}
-        </SelectInput>
+        <IngredientVariantPicker variants={variants} value={row.item_id} onChange={(id) => onChange({ item_id: id, unit: defaultUnit(variants.find((x) => String(x.id) === id)) })} />
       </Field>
       <Field label="Quantity" hint={hint?.(v)}><NumberInput aria-label="Quantity" min="0" step="any" value={row.quantity} onChange={(e) => onChange({ quantity: e.target.value })} /></Field>
       <Field label="In"><SelectInput aria-label="Unit" value={row.unit} onChange={(e) => onChange({ unit: e.target.value })}>{unitsFor(v).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput></Field>
