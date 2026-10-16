@@ -58,7 +58,7 @@ class MenusOperationsController extends Controller
 
     public function makeOrders(Request $request): JsonResponse
     {
-        $d = $request->validate(['picks' => 'required|array|min:1|max:200', 'picks.*.variant_id' => 'required|integer', 'picks.*.quantity' => 'required|numeric|min:0.0001']);
+        $d = $request->validate(['picks' => 'required|array|min:1|max:200', 'picks.*.item_id' => 'required|integer', 'picks.*.quantity' => 'required|numeric|min:0.0001', 'picks.*.unit' => 'nullable|in:pack,alt,base', 'picks.*.rate' => 'nullable|numeric|min:0']);
 
         return $this->guard(fn () => response()->json($this->reorder->makeOrders($this->location($request), $d['picks'], $request->user()), 201));
     }
@@ -78,10 +78,10 @@ class MenusOperationsController extends Controller
 
     public function wasteStore(Request $request): JsonResponse
     {
-        $d = $request->validate(['variant_id' => 'required|integer', 'quantity' => 'required|numeric|min:0.0001', 'kind' => 'required|string|max:12', 'note' => 'nullable|string|max:200', 'date' => 'nullable|date']);
+        $d = $request->validate(['item_id' => 'nullable|integer', 'dish_id' => 'nullable|integer', 'unit' => 'nullable|in:pack,alt,base', 'quantity' => 'required|numeric|min:0.0001', 'kind' => 'required|string|max:12', 'note' => 'nullable|string|max:200', 'date' => 'nullable|date']);
 
         return $this->guard(function () use ($d, $request) {
-            abort_unless(WasteService::installed(), 422, 'Run database script 142_menus_operations.sql first.');
+            abort_unless(WasteService::installed(), 422, 'Run database script 185_menus_operations_own.sql first.');
             $w = $this->waste->record($d + ['location_id' => $this->location($request)], $request->user());
 
             return response()->json(['message' => 'Recorded.', 'cost' => (float) $w->cost, 'id' => $w->id], 201);

@@ -3,10 +3,9 @@
 namespace App\Services\Menus;
 
 use App\Models\Menus\Dish;
-use App\Models\Menus\IngredientFamily;
-use App\Models\Recipe;
+use App\Models\Menus\DishRecipe;
+use App\Models\Menus\Ingredient;
 use App\Services\Books\BooksException;
-use App\Services\Stock\BatchService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -18,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  */
 class PrepService
 {
-    public function __construct(private RecipeLines $lines, private IngredientResolver $resolver, private BatchService $batches)
+    public function __construct(private IngredientUse $use, private DishStock $dishStock)
     {
     }
 
@@ -33,23 +32,25 @@ class PrepService
         $booked = $this->booked($date, $locationId);
         $dishes = [];
         $need = [];
-        foreach (Dish::with('recipe.items')->where('is_active', true)->whereIn('id', array_unique(array_merge(array_keys($sold), array_keys($booked))))->orderBy('name')->get() as $d) {
+        $ids = array_unique(array_merge(array_keys($sold), array_keys($booked)));
+        $recipes = DishRecipes::installed() ? DishRecipe::with('lines.ingredient.baseUnit', 'lines.ingredient.altUnit')->where('is_active', true)->whereIn('dish_id', $ids)->get()->keyBy('dish_id') : collect();
+        foreach (Dish::where('is_active', true)->whereIn('id', $ids)->orderBy('name')->get() as $d) {
             $avg = (float) ($sold[$d->id] ?? 0);
             $book = (float) ($booked[$d->id] ?? 0);
             $expect = (int) ceil(max($avg * (1 + $buffer / 100), $book));
             if ($expect <= 0) {
                 continue;
             }
-            $r = $d->recipe && $d->recipe->is_active ? $d->recipe : null;
-            $ahead = $r && ! $r->deduct_on_sale;
-            $shelf = $ahead ? round($this->batches->sellable((int) $d->variant_id, $locationId), 4) : null;
+            $r = $recipes[$d->id] ?? null;
+            $ahead = $r && ! $r->made_to_order;
+            $shelf = $ahead ? round($this->dishStock->portionsAhead($d, $locationId), 4) : null;
             $make = $ahead ? max(0.0, $expect - $shelf) : 0.0;
             $dishes[] = ['dish_id' => $d->id, 'name' => $d->name, 'average' => round($avg, 1), 'booked' => $book, 'expect' => $expect, 'mode' => ! $r ? 'no_recipe' : ($ahead ? 'ahead' : 'to_order'),
                 'on_shelf' => $shelf, 'to_make' => $make, 'batches' => $ahead && $make > 0 ? (int) ceil($make / max(0.0001, (float) $r->yield_qty)) : null];
             if ($r) {
                 $portions = $ahead ? $make : (float) $expect;   // made ahead: only what is still to be made uses ingredients; to order: all of it
                 if ($portions > 0) {
-                    $this->addDemand($need, $r, $portions / max(0.0001, (float) $r->yield_qty));
+                    $this->addDemand($need, $r, $portions);
                 }
             }
         }
@@ -57,52 +58,37 @@ class PrepService
         return ['date' => $date->toDateString(), 'weekday' => $date->format('l'), 'weeks' => $weeks, 'buffer' => $buffer, 'dishes' => $dishes, 'ingredients' => $this->shortfalls($need, $locationId), 'ready' => true];
     }
 
-    /** Ingredient demand for a day, by key, for the reorder suggestions. @return array<string, array{family_id: ?int, variant_id: ?int, qty: float}> */
+    /** Ingredient demand for a day, for the reorder suggestions. @return array<int, array{ingredient_id: int, qty: float}> keyed by ingredient id (base unit) */
     public function demandFor(Carbon $date, int $locationId, int $weeks = 4, int $buffer = 10): array
     {
-        $f = $this->forecast($date, $locationId, $weeks, $buffer);
         $out = [];
-        foreach ($f['ingredients'] as $i) {
-            $out[$i['key']] = ['family_id' => $i['family_id'], 'variant_id' => $i['variant_id'], 'qty' => $i['need']];
+        foreach ($this->forecast($date, $locationId, $weeks, $buffer)['ingredients'] as $i) {
+            $out[$i['ingredient_id']] = ['ingredient_id' => $i['ingredient_id'], 'qty' => $i['need']];
         }
 
         return $out;
     }
 
-    /** @param array<string, array{family_id: ?int, variant_id: ?int, qty: float}> $need */
-    private function addDemand(array &$need, Recipe $r, float $factor): void
+    /** @param array<int, float> $need */
+    private function addDemand(array &$need, DishRecipe $r, float $portions): void
     {
         try {
-            foreach ($this->lines->demand($r, $factor) as $d) {
-                $key = $d['family_id'] ? 'f'.$d['family_id'] : 'v'.$d['variant_id'];
-                $need[$key] = ['family_id' => $d['family_id'], 'variant_id' => $d['variant_id'], 'qty' => round(($need[$key]['qty'] ?? 0) + $d['qty'], 4)];
+            foreach ($this->use->needs($r, $portions) as $id => $n) {
+                $need[$id] = round(($need[$id] ?? 0) + $n['qty'], 4);
             }
         } catch (BooksException) {
             // an ingredient of this recipe was removed: the recipe has to be fixed before it can be planned
         }
     }
 
-    /** @param array<string, array{family_id: ?int, variant_id: ?int, qty: float}> $need @return array<int, array<string, mixed>> */
+    /** @param array<int, float> $need @return array<int, array<string, mixed>> */
     private function shortfalls(array $need, int $loc): array
     {
-        $families = IngredientFamily::with('unit')->whereIn('id', array_filter(array_column($need, 'family_id')))->get()->keyBy('id');
-        $variants = DB::table('product_variants as v')->join('products as p', 'p.id', '=', 'v.product_id')->whereIn('v.id', array_filter(array_column($need, 'variant_id')))->get(['v.id', 'p.name', 'v.name as variant'])->keyBy('id');
         $out = [];
-        foreach ($need as $key => $n) {
-            if ($n['family_id']) {
-                $f = $families[$n['family_id']] ?? null;
-                if (! $f) {
-                    continue;
-                }
-                $have = round($this->resolver->available($f, $loc), 4);
-                $name = $f->name;
-                $unit = $f->unit?->code ?? '';
-            } else {
-                $have = round($this->batches->sellable((int) $n['variant_id'], $loc), 4);
-                $name = trim(($variants[$n['variant_id']]->name ?? 'item').' '.($variants[$n['variant_id']]->variant ?? ''));
-                $unit = '';
-            }
-            $out[] = ['key' => $key, 'family_id' => $n['family_id'], 'variant_id' => $n['variant_id'], 'name' => $name, 'unit' => $unit, 'need' => round($n['qty'], 4), 'on_hand' => $have, 'short' => round(max(0.0, $n['qty'] - $have), 4)];
+        foreach (Ingredient::with('baseUnit')->whereIn('id', array_keys($need))->get() as $ing) {
+            $qty = $need[$ing->id];
+            $have = round((float) $this->use->usable($ing, $loc)->sum('qty_left'), 4);
+            $out[] = ['key' => (string) $ing->id, 'ingredient_id' => $ing->id, 'name' => $ing->name, 'unit' => $ing->baseUnit?->code ?? '', 'need' => round($qty, 4), 'on_hand' => $have, 'short' => round(max(0.0, $qty - $have), 4)];
         }
         usort($out, fn ($a, $b) => [$b['short'] > 0, $a['name']] <=> [$a['short'] > 0, $b['name']]);
 

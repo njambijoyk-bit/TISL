@@ -103,6 +103,28 @@ class IngredientStock
         return $out;
     }
 
+    /**
+     * Lots that have expired or will within `$days` days, soonest first. Held and recalled lots are listed too, with their status.
+     *
+     * @return array<int, array{batch_id: int, item_id: int, name: string, unit: string, quantity: float, value: float, expiry_date: string, days_left: int, expired: bool, batch_no: ?string, status: string}>
+     */
+    public function expiring(int $locationId, int $days = 7, ?\Illuminate\Support\Carbon $on = null): array
+    {
+        $on = ($on ?? today())->copy()->startOfDay();
+        $rows = StockBatch::where('location_id', $locationId)->where('qty_left', '>', 0)->whereNotNull('expiry_date')->where('expiry_date', '<=', $on->copy()->addDays(max(0, $days))->toDateString())
+            ->orderBy('expiry_date')->orderBy('id')->get();
+        $items = IngredientItem::with('ingredient.baseUnit')->whereIn('id', $rows->pluck('item_id'))->get()->keyBy('id');
+
+        return $rows->map(function (StockBatch $b) use ($items, $on) {
+            $i = $items[$b->item_id] ?? null;
+            $left = (int) $on->diffInDays($b->expiry_date->copy()->startOfDay(), false);
+
+            return ['batch_id' => $b->id, 'item_id' => $b->item_id, 'name' => $i ? trim($i->ingredient->name.' '.$i->name) : "Item {$b->item_id}", 'unit' => $i?->ingredient->baseUnit?->code ?? '',
+                'quantity' => round((float) $b->qty_left, 4), 'value' => round((float) $b->qty_left * (float) $b->unit_cost, 2), 'expiry_date' => $b->expiry_date->toDateString(), 'days_left' => $left,
+                'expired' => $left < 0, 'batch_no' => $b->batch_no, 'status' => $b->status];
+        })->all();
+    }
+
     private function fmt(mixed $n): string
     {
         return rtrim(rtrim(number_format((float) $n, 4, '.', ''), '0'), '.');

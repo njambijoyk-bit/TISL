@@ -80,6 +80,9 @@ class Ingredients
             IngredientItem::where('ingredient_id', $ingredient->id)->whereNotIn('id', $keep ?: [0])->delete();
             foreach ($variants as $i => $v) {
                 $row = ['ingredient_id' => $ingredient->id, 'name' => $v['name'], 'code' => $v['code'], 'pack_size' => $v['pack_size'], 'track_expiry' => $v['track_expiry'], 'preference' => $i + 1, 'is_allowed' => $v['is_allowed'], 'is_active' => $v['is_active']];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('menus_ingredient_items', 'reorder_level')) {   // script 185
+                    $row['reorder_level'] = $v['reorder_level'];
+                }
                 if ($v['id']) {
                     IngredientItem::whereKey($v['id'])->update($row + ['updated_at' => now()]);
                 } else {
@@ -103,7 +106,7 @@ class Ingredients
         });
     }
 
-    /** @return array<int, array{id: ?int, name: string, code: ?string, pack_size: ?float, track_expiry: bool, is_allowed: bool, is_active: bool}> */
+    /** @return array<int, array{id: ?int, name: string, code: ?string, pack_size: ?float, track_expiry: bool, is_allowed: bool, is_active: bool, reorder_level: ?float}> */
     private function variants(array $in, UnitOfMeasure $base, ?UnitOfMeasure $alt): array
     {
         $out = [];
@@ -122,10 +125,25 @@ class Ingredients
                 'code' => isset($v['code']) && trim((string) $v['code']) !== '' ? mb_substr(trim((string) $v['code']), 0, 40) : null,
                 'pack_size' => $this->packSize($v, $base, $alt, $name),
                 'track_expiry' => (bool) ($v['track_expiry'] ?? false), 'is_allowed' => (bool) ($v['is_allowed'] ?? true), 'is_active' => (bool) ($v['is_active'] ?? true),
+                'reorder_level' => $this->level($v, $name),
             ];
         }
 
         return $out;
+    }
+
+    /** The least to keep on the shelf, in the base unit (empty for no level). */
+    private function level(array $v, string $name): ?float
+    {
+        if (! isset($v['reorder_level']) || $v['reorder_level'] === '' || $v['reorder_level'] === null) {
+            return null;
+        }
+        $n = (float) $v['reorder_level'];
+        if ($n < 0) {
+            throw new BooksException("The level to keep of {$name} can not be below nothing.");
+        }
+
+        return $n > 0 ? round($n, 4) : null;
     }
 
     /** The pack size in the base unit. It can be typed in the base unit or the alternate one (2 in kg is 2000 g). */

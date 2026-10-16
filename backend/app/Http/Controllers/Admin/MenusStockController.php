@@ -12,14 +12,17 @@ use App\Models\TaxRate;
 use App\Services\Books\BooksException;
 use App\Services\Menus\IngredientReceiving;
 use App\Services\Menus\IngredientStock;
+use App\Services\Menus\StockCounts;
+use App\Services\Menus\StockTransfers;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /** Menus → Stock: what is on the shelf at a branch, in packs and in the base and alternate units, and the receipts that put it there. */
 class MenusStockController extends Controller
 {
-    public function __construct(private IngredientStock $stock, private IngredientReceiving $receiving)
+    public function __construct(private IngredientStock $stock, private IngredientReceiving $receiving, private StockCounts $counts, private StockTransfers $transfers)
     {
     }
 
@@ -35,7 +38,7 @@ class MenusStockController extends Controller
                 $pack = $v->pack_size ? (float) $v->pack_size : null;
 
                 return [
-                    'id' => (int) $v->id, 'name' => $v->name, 'is_active' => (bool) $v->is_active, 'track_expiry' => (bool) $v->track_expiry, 'pack_size_base' => $pack,
+                    'id' => (int) $v->id, 'name' => $v->name, 'is_active' => (bool) $v->is_active, 'track_expiry' => (bool) $v->track_expiry, 'pack_size_base' => $pack, 'reorder_level' => $v->reorder_level === null ? null : (float) $v->reorder_level,
                     'qty_base' => $lv['qty'], 'qty_alt' => $i->altUnit ? round($i->baseUnit->convertTo($i->altUnit, $lv['qty']), 4) : null,
                     'packs' => $pack ? round($lv['qty'] / $pack, 4) : null, 'value' => $lv['value'], 'next_expiry' => $lv['next_expiry'],
                 ];
@@ -93,6 +96,55 @@ class MenusStockController extends Controller
             $r = $this->receiving->opening($d, $request->user());
 
             return response()->json(['message' => 'Opening stock recorded.', 'receipt_id' => $r->id, 'voucher_id' => $r->voucher_id], 201);
+        });
+    }
+
+    /** Lots that have expired or will soon. */
+    public function expiring(Request $request): JsonResponse
+    {
+        $d = $request->validate(['location_id' => 'nullable|integer', 'days' => 'nullable|integer|min:0|max:365']);
+        $loc = (int) ($d['location_id'] ?? 0) ?: (int) DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('name')->value('id');
+
+        return response()->json(['location_id' => $loc, 'days' => (int) ($d['days'] ?? 7), 'rows' => IngredientStock::installed() ? $this->stock->expiring($loc, (int) ($d['days'] ?? 7)) : []]);
+    }
+
+    public function counts(Request $request): JsonResponse
+    {
+        if (! Schema::hasTable('menus_counts')) {
+            return response()->json(['counts' => [], 'transfers' => [], 'ready' => false]);
+        }
+        $loc = $request->integer('location_id');
+        $counts = \App\Models\Menus\Count::when($loc, fn ($q) => $q->where('location_id', $loc))->orderByDesc('counted_on')->orderByDesc('id')->limit(30)->get();
+        $transfers = \App\Models\Menus\Transfer::when($loc, fn ($q) => $q->where('from_location_id', $loc)->orWhere('to_location_id', $loc))->orderByDesc('transferred_on')->orderByDesc('id')->limit(30)->get();
+
+        return response()->json(['ready' => true,
+            'counts' => $counts->map(fn ($c) => ['id' => $c->id, 'number' => $c->number, 'date' => $c->counted_on->toDateString(), 'location_id' => $c->location_id, 'value_change' => (float) $c->value_change, 'note' => $c->note, 'lines' => $c->lines()->count()])->values(),
+            'transfers' => $transfers->map(fn ($t) => ['id' => $t->id, 'number' => $t->number, 'date' => $t->transferred_on->toDateString(), 'from' => $t->from_location_id, 'to' => $t->to_location_id, 'note' => $t->note, 'lines' => $t->lines()->count()])->values()]);
+    }
+
+    /** Body: location_id, date?, note?, lines[{item_id, quantity, unit: pack|alt|base}] (only what was counted). */
+    public function count(Request $request): JsonResponse
+    {
+        $d = $request->validate(['location_id' => 'required|integer|exists:locations,id', 'date' => 'nullable|date', 'note' => 'nullable|string|max:255', 'lines' => 'required|array|min:1|max:500',
+            'lines.*.item_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric|min:0', 'lines.*.unit' => 'nullable|in:pack,alt,base']);
+
+        return $this->guard(function () use ($d, $request) {
+            $c = $this->counts->post($d, $request->user());
+
+            return response()->json(['message' => 'Stock take recorded.', 'id' => $c->id, 'number' => $c->number, 'value_change' => (float) $c->value_change], 201);
+        });
+    }
+
+    /** Body: from_location_id, to_location_id, date?, note?, lines[{item_id, quantity, unit}]. */
+    public function transfer(Request $request): JsonResponse
+    {
+        $d = $request->validate(['from_location_id' => 'required|integer|exists:locations,id', 'to_location_id' => 'required|integer|exists:locations,id', 'date' => 'nullable|date', 'note' => 'nullable|string|max:255',
+            'lines' => 'required|array|min:1|max:200', 'lines.*.item_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric|min:0.0001', 'lines.*.unit' => 'nullable|in:pack,alt,base']);
+
+        return $this->guard(function () use ($d, $request) {
+            $t = $this->transfers->send($d, $request->user());
+
+            return response()->json(['message' => 'Sent. The stock is now on the other branch\'s shelf.', 'id' => $t->id, 'number' => $t->number], 201);
         });
     }
 

@@ -22,7 +22,14 @@ trait CreatesFoodTables
     protected function createFoodTables(): void
     {
         $this->createMenusTables();
-        $this->runSqlScripts('181_menus_ingredients_own.sql', '182_menus_ingredient_stock.sql', '183_menus_recipes_own.sql', '184_menus_dishes_own.sql');
+        $this->runSqlScripts('181_menus_ingredients_own.sql', '182_menus_ingredient_stock.sql', '183_menus_recipes_own.sql', '184_menus_dishes_own.sql', '185_menus_operations_own.sql');
+        // the columns script 185 adds with its helper procedure (the test runner only reads CREATE TABLE and plain ADD COLUMN)
+        Schema::table('menus_ingredient_items', fn ($t) => $t->decimal('reorder_level', 18, 4)->nullable());
+        Schema::create('menus_waste', function ($t) {
+            $t->id(); $t->unsignedBigInteger('location_id'); $t->unsignedBigInteger('variant_id')->nullable(); $t->unsignedBigInteger('item_id')->nullable(); $t->unsignedBigInteger('dish_id')->nullable(); $t->decimal('quantity', 18, 4);
+            $t->decimal('cost', 14, 2)->default(0); $t->string('kind', 12); $t->string('note', 200)->nullable(); $t->json('voucher_ids')->nullable(); $t->unsignedBigInteger('user_id')->nullable(); $t->date('wasted_on');
+            $t->dateTime('voided_at')->nullable(); $t->unsignedBigInteger('voided_by')->nullable(); $t->timestamps();
+        });
         Schema::create('menus_dishes', function ($t) {
             $t->id(); $t->string('name'); $t->string('slug')->unique(); $t->text('description')->nullable(); $t->string('photo')->nullable(); $t->unsignedBigInteger('product_id')->nullable(); $t->unsignedBigInteger('variant_id')->nullable();
             $t->decimal('price', 18, 2)->default(0); $t->unsignedSmallInteger('prep_minutes')->nullable(); $t->json('allergens_override')->nullable(); $t->json('tags_override')->nullable(); $t->date('sold_out_on')->nullable();
@@ -30,11 +37,12 @@ trait CreatesFoodTables
         });
     }
 
-    /** @param array<int, array{name: string, pack?: float, expires?: bool, allowed?: bool, active?: bool}> $variants */
+    /** @param array<int, array{name: string, pack?: float (in the base unit), level?: float (the level to keep, base unit), expires?: bool, allowed?: bool, active?: bool}> $variants */
     protected function makeIngredient(string $name, int $base, ?int $alt, array $variants, string $rule = 'preferred', array $extra = []): Ingredient
     {
         return app(Ingredients::class)->save($extra + ['name' => $name, 'base_unit_id' => $base, 'alt_unit_id' => $alt, 'pick_rule' => $rule, 'variants' => array_map(fn ($v) => [
             'name' => $v['name'], 'track_expiry' => $v['expires'] ?? false, 'is_allowed' => $v['allowed'] ?? true, 'is_active' => $v['active'] ?? true,
+            'pack_size' => $v['pack'] ?? null, 'reorder_level' => $v['level'] ?? null,
         ], $variants)]);
     }
 

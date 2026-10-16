@@ -182,25 +182,9 @@ class IngredientReceiving
     /** Packs, the alternate unit or the base unit, as typed, in the base unit. */
     public function toBase(IngredientItem $item, string $unit, float $qty): float
     {
-        $ing = $item->ingredient;
-        if ($unit === 'base') {
-            return round($qty, 4);
-        }
-        if ($unit === 'alt') {
-            if (! $ing->altUnit) {
-                throw new BooksException("{$ing->name} has no alternate unit. Enter it in {$ing->baseUnit->code}, or give the ingredient an alternate unit first.");
-            }
+        $item->loadMissing('ingredient.baseUnit', 'ingredient.altUnit');
 
-            return round($ing->altUnit->convertTo($ing->baseUnit, $qty), 4);
-        }
-        if ($unit === 'pack') {
-            if (! $item->pack_size || (float) $item->pack_size <= 0) {
-                throw new BooksException("{$item->name} has no pack size, so it can not be counted in packs. Give it one under Ingredients, or enter the quantity in {$ing->baseUnit->code}.");
-            }
-
-            return round($qty * (float) $item->pack_size, 4);
-        }
-        throw new BooksException('Enter the quantity in packs, in the alternate unit or in the base unit.');
+        return $item->toBase($unit, $qty);
     }
 
     private function unitWord(IngredientItem $item, string $unit, float $qty = 1): string
