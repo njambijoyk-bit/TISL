@@ -15,17 +15,17 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CustomerSyncController;
 use App\Http\Controllers\Api\PolicyController;
 use App\Http\Controllers\Api\OAuthController;
-use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\AuctionController;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\BrandController;
+use App\Http\Controllers\Api\Ecommerce\ProductController;
+use App\Http\Controllers\Api\Ecommerce\AuctionController;
+use App\Http\Controllers\Api\Ecommerce\CategoryController;
+use App\Http\Controllers\Api\Ecommerce\BrandController;
 use App\Http\Controllers\Api\BugReportController;
 use App\Http\Controllers\Api\CustomerController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ServiceCatalogController;
 use App\Http\Controllers\Api\ServiceCategoryController;
 use App\Http\Controllers\Api\SearchEventController;
-use App\Http\Controllers\Api\HamperController;
+use App\Http\Controllers\Api\Ecommerce\HamperController;
 use App\Http\Controllers\Api\BooksMasterController;
 use App\Http\Controllers\Api\CompanyProfileController;
 use App\Http\Controllers\Api\QuotationController;
@@ -33,7 +33,7 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\GiftVoucherController;
 use App\Http\Controllers\Api\CustomerAccountController;
 use App\Http\Controllers\Api\BooksVoucherController;
-use App\Http\Controllers\Api\PublicHamperController;
+use App\Http\Controllers\Api\Ecommerce\PublicHamperController;
 use App\Http\Controllers\Api\CustomerAddressController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReferralController;
@@ -62,7 +62,7 @@ use App\Http\Controllers\Api\AlgorithmController;
 use App\Http\Controllers\Api\CustomerPinController;
 use App\Http\Controllers\Api\SearchAnalyticsController;
 use App\Http\Controllers\Api\AdminSavedNoteController;
-use App\Http\Controllers\Api\ProductVariantController;
+use App\Http\Controllers\Api\Ecommerce\ProductVariantController;
 use App\Http\Controllers\Api\UnitOfMeasureController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\WithholdingController;
@@ -536,8 +536,8 @@ Route::get('/services/{id}/related', [ServiceController::class, 'related']);
 Route::get('/services/{id}/brochure', [\App\Http\Controllers\Api\ServiceBrochureController::class, 'publicShow'])->whereNumber('id')->middleware('throttle:30,1');
 
 // PUBLIC PRICE LISTS, ARCHIVE AND BROCHURES (what the viewer may see; guests only see what is set for everyone)
-$pl = \App\Http\Controllers\Api\PriceListController::class;
-$ct = \App\Http\Controllers\Api\CatalogueController::class;
+$pl = \App\Http\Controllers\Api\Ecommerce\PriceListController::class;
+$ct = \App\Http\Controllers\Api\Ecommerce\CatalogueController::class;
 Route::get('/price-lists',               [$pl, 'publicIndex'])->middleware('throttle:60,1');
 Route::get('/price-lists/{id}',          [$pl, 'publicShow'])->whereNumber('id')->middleware('throttle:60,1');
 Route::get('/price-lists/{id}/csv',      [$pl, 'publicCsv'])->whereNumber('id')->middleware('throttle:20,1');
@@ -1830,8 +1830,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [ProductController::class, 'destroy'])->middleware('permission:catalogue.delete');
             Route::post('/{id}/restore', [ProductController::class, 'restore'])->middleware('permission:catalogue.edit'); // restore single
             Route::delete('/{id}/force', [ProductController::class, 'forceDelete'])->middleware('permission:catalogue.delete'); // permanent delete single
-            Route::post('/{id}/video', [\App\Http\Controllers\Api\ProductVideoController::class, 'store'])->whereNumber('id')->middleware('permission:catalogue.edit');
-            Route::delete('/{id}/video', [\App\Http\Controllers\Api\ProductVideoController::class, 'destroy'])->whereNumber('id')->middleware('permission:catalogue.edit');
+            Route::post('/{id}/video', [\App\Http\Controllers\Api\Ecommerce\ProductVideoController::class, 'store'])->whereNumber('id')->middleware('permission:catalogue.edit');
+            Route::delete('/{id}/video', [\App\Http\Controllers\Api\Ecommerce\ProductVideoController::class, 'destroy'])->whereNumber('id')->middleware('permission:catalogue.edit');
             Route::put('/{id}/stock', [ProductController::class, 'updateStock'])->middleware('permission:stock.manage');
             // Per-branch stock + price grid (multi-location)
             Route::get('/{id}/branch-stock', [ProductController::class, 'branchStock'])->middleware('permission:catalogue.view');
@@ -2144,8 +2144,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Price lists, the Archive, brochures and catalogues, and their settings
         Route::middleware(['module:ecommerce', 'permission:catalogue.pricelists'])->group(function () {
-            $pl = \App\Http\Controllers\Api\PriceListController::class;
-            $ct = \App\Http\Controllers\Api\CatalogueController::class;
+            $pl = \App\Http\Controllers\Api\Ecommerce\PriceListController::class;
+            $ct = \App\Http\Controllers\Api\Ecommerce\CatalogueController::class;
             Route::prefix('price-lists')->group(function () use ($pl) {
                 Route::get('/',                [$pl, 'index']);
                 Route::get('/picker',          [$pl, 'picker']);

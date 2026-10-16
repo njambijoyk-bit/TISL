@@ -66,8 +66,8 @@ class CheckoutService
                 $lines[] = ['type' => 'hamper', 'hamper_id' => (int) $it['hamper_id'], 'quantity' => $qty];
             } elseif (! empty($it['product_id'])) {
                 // a product with several variants must say which one — never quietly the default
-                if (empty($it['variant_id']) && \App\Models\ProductVariant::where('product_id', (int) $it['product_id'])->where('status', \App\Models\ProductVariant::STATUS_ACTIVE)->count() > 1) {
-                    $name = \App\Models\Product::whereKey((int) $it['product_id'])->value('name') ?? 'that product';
+                if (empty($it['variant_id']) && \App\Models\Ecommerce\ProductVariant::where('product_id', (int) $it['product_id'])->where('status', \App\Models\Ecommerce\ProductVariant::STATUS_ACTIVE)->count() > 1) {
+                    $name = \App\Models\Ecommerce\Product::whereKey((int) $it['product_id'])->value('name') ?? 'that product';
                     throw new BooksException("Choose an option for {$name} before you check out.");
                 }
                 $lines[] = ['type' => 'product', 'product_id' => (int) $it['product_id'], 'variant_id' => $it['variant_id'] ?? null,
@@ -198,7 +198,7 @@ class CheckoutService
             $checks = [];
             foreach ($items as $l) {
                 if ($l['type'] === 'hamper') {
-                    $h = \App\Models\Hamper::findOrFail((int) $l['hamper_id']);
+                    $h = \App\Models\Ecommerce\Hamper::findOrFail((int) $l['hamper_id']);
                     if ($pre->hamperState($h, $user)['state'] === 'buy') {
                         throw new BooksException("{$h->name} is in stock now. Order it in the normal cart.");
                     }

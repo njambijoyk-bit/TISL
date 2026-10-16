@@ -21,9 +21,9 @@ use App\Models\Books\VoucherType;
 use App\Models\ShippingOption;
 use App\Models\Currency;
 use App\Models\Customer;
-use App\Models\Hamper;
+use App\Models\Ecommerce\Hamper;
 use App\Models\Location;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\ProductVariant;
 use App\Models\Service;
 use App\Models\ServiceVariant;
 use App\Models\User;
@@ -1355,7 +1355,7 @@ class VoucherService
         }
         $line['menu_uses'] = $it->menu_uses ?? null;
         $line['dish_id'] = $it->dish_id ?? null;
-        $line['track_expiry'] = $it->product_id ? (bool) \App\Models\Product::whereKey($it->product_id)->value('track_expiry') : false;
+        $line['track_expiry'] = $it->product_id ? (bool) \App\Models\Ecommerce\Product::whereKey($it->product_id)->value('track_expiry') : false;
         $line['unit_factor'] = (float) $it->unit_factor;
         $line['quantity'] = $qty;
         $line['base_quantity'] = round($qty * (float) $it->unit_factor, 4);

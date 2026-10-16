@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Http\Controllers\Api\ProductVideoController;
-use App\Models\Product;
+use App\Http\Controllers\Api\Ecommerce\ProductVideoController;
+use App\Models\Ecommerce\Product;
 use App\Services\ServiceVideo;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Log;
 use App\Services\Chat\MimiSessionService;
 use App\Services\Chat\MimiQueryLogService;
 use App\Services\Chat\MimiBlockService;
-use App\Models\Product;
+use App\Models\Ecommerce\Product;
 use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Books\Voucher;

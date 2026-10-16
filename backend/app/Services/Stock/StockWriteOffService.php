@@ -6,7 +6,7 @@ use App\Models\Books\AccountingSetting;
 use App\Models\Books\StockMovement;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
-use App\Models\ProductVariantUnit;
+use App\Models\Ecommerce\ProductVariantUnit;
 use App\Models\StockBatch;
 use App\Models\User;
 use App\Services\Books\BooksException;

@@ -2,7 +2,7 @@
 
 namespace App\Services\Chat\Local\Resolvers;
 
-use App\Models\Product;
+use App\Models\Ecommerce\Product;
 use App\Models\Service;
 use App\Services\Chat\Local\CallerContext;
 use App\Services\Chat\Local\ResolverResult;

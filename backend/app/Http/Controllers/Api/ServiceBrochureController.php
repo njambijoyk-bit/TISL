@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
 use App\Services\Books\BooksException;
-use App\Services\Brochures\BrochureData;
-use App\Services\Brochures\BrochureSettings;
+use App\Services\Ecommerce\Brochures\BrochureData;
+use App\Services\Ecommerce\Brochures\BrochureSettings;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 

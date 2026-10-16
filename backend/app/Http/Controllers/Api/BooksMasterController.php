@@ -250,7 +250,7 @@ class BooksMasterController extends Controller
 
     private function itemModel(string $type): string
     {
-        return ['product' => \App\Models\Product::class, 'service' => \App\Models\Service::class, 'hamper' => \App\Models\Hamper::class][$type]
+        return ['product' => \App\Models\Ecommerce\Product::class, 'service' => \App\Models\Service::class, 'hamper' => \App\Models\Ecommerce\Hamper::class][$type]
             ?? abort(422, 'Unknown item type.');
     }
 

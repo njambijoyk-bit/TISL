@@ -22,7 +22,7 @@ class PolicyController extends Controller
      */
     public function index(): JsonResponse
     {
-        app(\App\Services\AuctionTermsService::class)->ensure();   // the auction terms exist from the first time policies are listed
+        app(\App\Services\Ecommerce\AuctionTermsService::class)->ensure();   // the auction terms exist from the first time policies are listed
         app(\App\Services\MimiPolicyService::class)->ensure();
         $policies = Policy::where('is_active', true)
             ->get(['id', 'key', 'title', 'content', 'disagree_consequence_text',
@@ -39,8 +39,8 @@ class PolicyController extends Controller
      */
     public function show(string $key): JsonResponse
     {
-        if ($key === \App\Services\AuctionTermsService::KEY) {
-            app(\App\Services\AuctionTermsService::class)->ensure();
+        if ($key === \App\Services\Ecommerce\AuctionTermsService::KEY) {
+            app(\App\Services\Ecommerce\AuctionTermsService::class)->ensure();
         }
         if ($key === \App\Services\MimiPolicyService::KEY) {
             app(\App\Services\MimiPolicyService::class)->ensure();
@@ -188,7 +188,7 @@ class PolicyController extends Controller
      */
     public function adminIndex(): JsonResponse
     {
-        app(\App\Services\AuctionTermsService::class)->ensure();
+        app(\App\Services\Ecommerce\AuctionTermsService::class)->ensure();
         app(\App\Services\MimiPolicyService::class)->ensure();
         $policies = Policy::withCount([
                 'acceptances as total_acceptances',

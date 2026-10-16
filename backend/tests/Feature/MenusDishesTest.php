@@ -11,7 +11,7 @@ use App\Services\Menus\DietBadges;
 use App\Services\Menus\DishInfo;
 use App\Services\Menus\DishService;
 use App\Services\Menus\MenusSettings;
-use App\Services\SkuGenerator;
+use App\Services\Ecommerce\SkuGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

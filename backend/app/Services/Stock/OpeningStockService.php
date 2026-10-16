@@ -4,7 +4,7 @@ namespace App\Services\Stock;
 
 use App\Models\Books\VoucherType;
 use App\Models\Location;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\ProductVariant;
 use App\Models\User;
 use App\Services\Books\BooksException;
 use App\Services\Books\VoucherService;

@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Api\Traits;
 
-use App\Models\HamperActivityLog;
+use App\Models\Ecommerce\HamperActivityLog;
 use Illuminate\Support\Facades\Auth;
 
 trait LogsHamperActivities

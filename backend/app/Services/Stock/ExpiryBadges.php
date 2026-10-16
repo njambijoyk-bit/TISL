@@ -2,7 +2,7 @@
 
 namespace App\Services\Stock;
 
-use App\Models\Product;
+use App\Models\Ecommerce\Product;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Throwable;

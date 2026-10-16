@@ -2,7 +2,7 @@
 
 namespace App\Services\Books;
 
-use App\Models\Auction;
+use App\Models\Ecommerce\Auction;
 use App\Models\Books\Voucher;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;

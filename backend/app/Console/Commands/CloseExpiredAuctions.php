@@ -1,7 +1,7 @@
 <?php
 namespace App\Console\Commands;
 use Illuminate\Console\Command;
-use App\Models\Auction;
+use App\Models\Ecommerce\Auction;
 // use App\Models\Order; // Uncomment when wiring to your Order system
 
 class CloseExpiredAuctions extends Command

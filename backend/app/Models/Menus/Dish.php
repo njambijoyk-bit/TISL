@@ -2,8 +2,8 @@
 
 namespace App\Models\Menus;
 
-use App\Models\Product;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\Product;
+use App\Models\Ecommerce\ProductVariant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;

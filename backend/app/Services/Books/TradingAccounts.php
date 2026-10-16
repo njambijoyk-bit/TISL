@@ -2,11 +2,11 @@
 
 namespace App\Services\Books;
 
-use App\Models\Auction;
+use App\Models\Ecommerce\Auction;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
-use App\Models\Hamper;
-use App\Models\Product;
+use App\Models\Ecommerce\Hamper;
+use App\Models\Ecommerce\Product;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;

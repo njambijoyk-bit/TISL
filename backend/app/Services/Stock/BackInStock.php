@@ -3,9 +3,9 @@
 namespace App\Services\Stock;
 
 use App\Models\Customer;
-use App\Models\Hamper;
-use App\Models\Product;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\Hamper;
+use App\Models\Ecommerce\Product;
+use App\Models\Ecommerce\ProductVariant;
 use App\Models\StockWatch;
 use App\Models\StockWatchRun;
 use App\Models\User;

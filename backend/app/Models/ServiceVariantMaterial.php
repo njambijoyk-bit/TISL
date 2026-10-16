@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Ecommerce\ProductVariant;
 
 /**
  * A material a service package normally uses: a product variant, how much of it (in the product's stock unit) and whether

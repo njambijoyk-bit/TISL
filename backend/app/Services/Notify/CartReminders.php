@@ -3,8 +3,8 @@
 namespace App\Services\Notify;
 
 use App\Models\Customer;
-use App\Models\Hamper;
-use App\Models\Product;
+use App\Models\Ecommerce\Hamper;
+use App\Models\Ecommerce\Product;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

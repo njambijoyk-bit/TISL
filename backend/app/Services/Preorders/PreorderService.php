@@ -7,12 +7,12 @@ use App\Models\Books\VoucherSeries;
 use App\Models\Books\VoucherType;
 use App\Models\Campaign;
 use App\Models\CampaignItem;
-use App\Models\Hamper;
+use App\Models\Ecommerce\Hamper;
 use App\Models\Location;
 use App\Models\PreorderLine;
 use App\Models\PreorderOffer;
-use App\Models\Product;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\Product;
+use App\Models\Ecommerce\ProductVariant;
 use App\Models\User;
 use App\Models\VariantLocationStock;
 use App\Services\Books\BooksException;
@@ -496,7 +496,7 @@ class PreorderService
     public function hamperNeeds(int $hamperId): array
     {
         $out = [];
-        foreach (\App\Models\HamperItem::where('hamper_id', $hamperId)->get(['product_id', 'variant_id', 'quantity']) as $it) {
+        foreach (\App\Models\Ecommerce\HamperItem::where('hamper_id', $hamperId)->get(['product_id', 'variant_id', 'quantity']) as $it) {
             $vid = $it->variant_id ?: app(\App\Services\Location\VariantStockService::class)->defaultVariantId((int) $it->product_id);
             if ($vid) {
                 $out[(int) $vid] = ($out[(int) $vid] ?? 0.0) + (float) $it->quantity;

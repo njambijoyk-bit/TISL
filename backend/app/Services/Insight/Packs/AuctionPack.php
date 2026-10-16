@@ -2,7 +2,7 @@
 
 namespace App\Services\Insight\Packs;
 
-use App\Models\Auction;
+use App\Models\Ecommerce\Auction;
 use App\Models\Currency;
 use App\Models\StockBatch;
 use App\Models\User;

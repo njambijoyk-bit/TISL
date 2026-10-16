@@ -2,8 +2,8 @@
 
 namespace App\Services\Books;
 
-use App\Models\Auction;
-use App\Models\AuctionCharge;
+use App\Models\Ecommerce\Auction;
+use App\Models\Ecommerce\AuctionCharge;
 use App\Models\Books\Ledger;
 use App\Models\Books\LedgerGroup;
 use App\Models\Currency;

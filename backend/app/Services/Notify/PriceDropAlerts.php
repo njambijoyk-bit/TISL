@@ -3,7 +3,7 @@
 namespace App\Services\Notify;
 
 use App\Models\Customer;
-use App\Models\Product;
+use App\Models\Ecommerce\Product;
 use App\Services\CurrencyConversionService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;

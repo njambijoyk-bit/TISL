@@ -248,7 +248,7 @@ class Service extends Model
     /** May customers download this service's brochure? (its own choice, else the shop default) */
     public function getBrochureAvailableAttribute(): bool
     {
-        return (bool) app(\App\Services\Brochures\BrochureSettings::class)->effective($this)['download'];
+        return (bool) app(\App\Services\Ecommerce\Brochures\BrochureSettings::class)->effective($this)['download'];
     }
 
     /** The service's video: an uploaded file (video_url holds its /storage path) or a link to YouTube, Vimeo, TikTok or Facebook. Null when it has none. */

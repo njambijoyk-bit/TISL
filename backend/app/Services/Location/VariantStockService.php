@@ -3,9 +3,9 @@
 namespace App\Services\Location;
 
 use App\Models\Location;
-use App\Models\Product;
-use App\Models\ProductVariant;
-use App\Models\ProductVariantUnit;
+use App\Models\Ecommerce\Product;
+use App\Models\Ecommerce\ProductVariant;
+use App\Models\Ecommerce\ProductVariantUnit;
 use App\Models\UnitOfMeasure;
 use App\Models\VariantLocationStock;
 use App\Services\Stock\BatchService;

@@ -2,9 +2,9 @@
 
 namespace App\Services\Books;
 
-use App\Models\Auction;
-use App\Models\AuctionCharge;
-use App\Models\AuctionRegistration;
+use App\Models\Ecommerce\Auction;
+use App\Models\Ecommerce\AuctionCharge;
+use App\Models\Ecommerce\AuctionRegistration;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\Customer;

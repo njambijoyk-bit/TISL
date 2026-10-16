@@ -3,7 +3,7 @@
 namespace App\Services\Insight\Packs;
 
 use App\Models\Currency;
-use App\Models\Hamper;
+use App\Models\Ecommerce\Hamper;
 use App\Models\StockBatch;
 use App\Models\User;
 use App\Services\CurrencyConversionService;

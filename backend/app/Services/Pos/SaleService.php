@@ -12,7 +12,7 @@ use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Location;
 use App\Models\Pos\Station;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\ProductVariant;
 use App\Models\User;
 use App\Services\Access\Authorizer;
 use App\Services\Books\BooksException;

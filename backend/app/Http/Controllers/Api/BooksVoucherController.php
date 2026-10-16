@@ -455,7 +455,7 @@ class BooksVoucherController extends Controller
 
         if ($kind === 'product') {
             $purchase = $request->get('purpose') === 'purchase';
-            $variants = \App\Models\ProductVariant::with(['product:id,name,sku,status,track_expiry,is_for_sale', 'units.unit:id,code,name'])
+            $variants = \App\Models\Ecommerce\ProductVariant::with(['product:id,name,sku,status,track_expiry,is_for_sale', 'units.unit:id,code,name'])
                 ->whereHas('product', fn ($p) => $p->where('status', 'active')->when(! $purchase, fn ($x) => $x->where('is_for_sale', true)))
                 ->when($q !== '', fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('sku', 'like', $like)->orWhereHas('product', fn ($p) => $p->where('name', 'like', $like)->orWhere('sku', 'like', $like))))
                 ->orderBy('product_id')->limit(30)->get();
@@ -464,11 +464,11 @@ class BooksVoucherController extends Controller
             $fuzzy = false;
             if ($variants->isEmpty() && mb_strlen($q) >= 3) {
                 $near = app(\App\Services\FuzzySuggestService::class)->suggest(
-                    \App\Models\Product::query()->where('status', 'active')->when(! $purchase, fn ($x) => $x->where('is_for_sale', true)),
+                    \App\Models\Ecommerce\Product::query()->where('status', 'active')->when(! $purchase, fn ($x) => $x->where('is_for_sale', true)),
                     $q, ['name', 'sku'], 6
                 );
                 if ($near->isNotEmpty()) {
-                    $variants = \App\Models\ProductVariant::with(['product:id,name,sku,status,track_expiry,is_for_sale', 'units.unit:id,code,name'])
+                    $variants = \App\Models\Ecommerce\ProductVariant::with(['product:id,name,sku,status,track_expiry,is_for_sale', 'units.unit:id,code,name'])
                         ->whereIn('product_id', $near->pluck('id'))->orderBy('product_id')->limit(30)->get();
                     $fuzzy = true;
                 }
@@ -488,7 +488,7 @@ class BooksVoucherController extends Controller
                     'materials' => $v->materials->map(fn ($m) => $m->toRow())->values(), 'fees' => $this->ticked($feeSvc, $v)];
             }
         } elseif ($kind === 'hamper') {
-            $h = \App\Models\Hamper::where('status', 'active')->when($q !== '', fn ($w) => $w->where('name', 'like', $like))->limit(30)->get();
+            $h = \App\Models\Ecommerce\Hamper::where('status', 'active')->when($q !== '', fn ($w) => $w->where('name', 'like', $like))->limit(30)->get();
             $who = $request->filled('customer_id') ? \App\Models\Customer::find($request->customer_id) : null;
             $rules = app(\App\Services\Books\HamperEditionService::class);
             foreach ($h as $x) {
@@ -520,7 +520,7 @@ class BooksVoucherController extends Controller
         }
     }
 
-    private function productRow(\App\Models\ProductVariant $v): array
+    private function productRow(\App\Models\Ecommerce\ProductVariant $v): array
     {
         $units = $v->units->map(function ($u) use ($v) {
             $u->setRelation('variant', $v);
@@ -542,7 +542,7 @@ class BooksVoucherController extends Controller
      */
     public function productVariants($productId): JsonResponse
     {
-        $product = \App\Models\Product::findOrFail($productId);
+        $product = \App\Models\Ecommerce\Product::findOrFail($productId);
         if ($product->productVariants()->doesntExist()) {
             try {
                 app(\App\Services\Location\VariantStockService::class)->ensureDefaultVariant($product);

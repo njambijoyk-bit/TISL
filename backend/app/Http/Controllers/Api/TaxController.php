@@ -9,7 +9,7 @@ use App\Models\TaxRule;
 use App\Models\TaxDistrict;
 use App\Models\TaxApplicability;
 use App\Models\TaxApplication;
-use App\Models\Product;
+use App\Models\Ecommerce\Product;
 use App\Models\Customer;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
@@ -282,7 +282,7 @@ class TaxController extends Controller
             || \App\Models\Books\VoucherItemTax::where('tax_rate_id', $rate->id)->exists()) {
             return response()->json(['message' => 'This rate has been applied to orders or has postings and cannot be deleted. Deactivate it instead.'], 422);
         }
-        if (\App\Models\Hamper::where('tax_rate_id', $rate->id)->exists() || \App\Models\WithholdingClassification::where('default_tax_rate_id', $rate->id)->exists()) {
+        if (\App\Models\Ecommerce\Hamper::where('tax_rate_id', $rate->id)->exists() || \App\Models\WithholdingClassification::where('default_tax_rate_id', $rate->id)->exists()) {
             return response()->json(['message' => 'A hamper or withholding classification uses this rate. Re-point it first.'], 422);
         }
         $rate->delete();

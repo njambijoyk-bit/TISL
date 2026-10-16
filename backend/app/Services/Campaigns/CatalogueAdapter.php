@@ -2,12 +2,12 @@
 
 namespace App\Services\Campaigns;
 
-use App\Models\Auction;
-use App\Models\Hamper;
+use App\Models\Ecommerce\Auction;
+use App\Models\Ecommerce\Hamper;
 use App\Models\CampaignItem;
-use App\Models\Product;
-use App\Models\ProductImage;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\Product;
+use App\Models\Ecommerce\ProductImage;
+use App\Models\Ecommerce\ProductVariant;
 use App\Models\Service;
 use App\Models\ServiceVariant;
 use App\Services\Licensing\LicenseManager;

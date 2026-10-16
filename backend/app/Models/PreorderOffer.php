@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Schema;
+use App\Models\Ecommerce\ProductVariant;
 
 /** A campaign's offer to sell one variant before it is here: a limit (all branches together), a closing date, expected dates and terms. */
 class PreorderOffer extends Model

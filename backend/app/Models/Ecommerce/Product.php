@@ -1,0 +1,569 @@
+<?php
+
+namespace App\Models\Ecommerce;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use App\Models\Ecommerce\Auction;
+use App\Traits\HasCurrencyConversion;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Str;
+use App\Models\UnitOfMeasure;
+use App\Models\User;
+
+class Product extends Model
+{
+    use HasFactory, SoftDeletes, HasCurrencyConversion, \App\Traits\HasSalesTax;
+    
+    protected $appends = [
+        'main_image_url',
+        'image_urls',
+        'video',
+        'display_price',
+        'display_currency',
+        'tax_info',
+        'display_price_incl',
+        'display_tax',
+    ];
+
+    protected $fillable = [
+        'sales_ledger_id', 'purchase_ledger_id',
+        'name',
+        'slug',
+        'sku',
+        'category_id',
+        'brand_id',
+        'type',
+        'price',
+        'currency_id',
+        'default_unit_id',
+        'alternate_unit_id',
+        'original_price',
+        'price_is_negotiable',
+        'in_stock',
+        'is_for_sale',
+        'track_expiry',
+        'stock_quantity',
+        'description',
+        'short_description',
+        'features',
+        'specifications',
+        'images',
+        'main_image',
+        'has_variants',
+        'rating',
+        'reviews',
+        'badge',
+        'is_featured',
+        'is_new',
+        'on_sale',
+        'view_count',
+        'meta_title',
+        'meta_description',
+        'meta_keywords',
+        'related_products',
+        'status',
+        'is_visible',
+        'published_at',
+        'admin_notes',
+        'brochure_meta',
+        'created_by',
+        'updated_by',
+    ];
+
+    /** The product's video: an uploaded file (video_url holds its /storage path) or a link to YouTube, Vimeo, TikTok or Facebook. Null when it has none. */
+    public function getVideoAttribute(): ?array
+    {
+        return \App\Services\ServiceVideo::describe($this->attributes['video_url'] ?? null);
+    }
+
+    protected $casts = [
+        'price' => 'decimal:2',
+        'original_price' => 'decimal:2',
+        'price_is_negotiable' => 'boolean',
+        'in_stock' => 'boolean',
+        'is_for_sale' => 'boolean',
+        'track_expiry' => 'boolean',
+        'features' => 'array',
+        'specifications' => 'array',
+        'images' => 'array',
+        'variants' => 'array',
+        'has_variants' => 'boolean',
+        'rating' => 'decimal:2',
+        'is_featured' => 'boolean',
+        'is_new' => 'boolean',
+        'on_sale' => 'boolean',
+        'is_visible' => 'boolean',
+        'meta_keywords' => 'array',
+        'related_products' => 'array',
+        'published_at' => 'datetime',
+        'brochure_meta' => 'array',
+    ];
+
+    // ========================================
+    // RELATIONSHIPS
+    // ========================================
+
+    /**
+     * Get the category this product belongs to.
+     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * Get the brand this product belongs to.
+     */
+    public function brand()
+    {
+        return $this->belongsTo(Brand::class);
+    }
+
+    /** Unit every variant's stock is counted in. */
+    public function defaultUnit()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'default_unit_id');
+    }
+
+    /** Optional second selling unit; same dimension as the default unit. */
+    public function alternateUnit()
+    {
+        return $this->belongsTo(UnitOfMeasure::class, 'alternate_unit_id');
+    }
+
+    // Relationship: Check if product has an active auction
+    public function activeAuction()
+    {
+        return $this->hasOne(Auction::class)->where('status', 'active')->latest()
+            ->with('currency:id,code,symbol'); // bids are in the auction's own currency
+    }
+    /**
+     * Get the user who created this product.
+     */
+    public function creator()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who last updated this product.
+     */
+    public function updater()
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    // ========================================
+    // VARIANT / OPTION / IMAGE RELATIONSHIPS
+    // ========================================
+    // Named productVariants()/productImages() rather than variants()/images():
+    // the products table has a raw JSON column called 'images' (see $casts above), and
+    // Eloquent resolves a magic property access against an existing raw attribute before
+    // it considers a relationship of the same name. Distinct names sidestep that trap.
+
+    /**
+     * Structured variants (product_variants table) - the new system. Does
+     * NOT replace the legacy 'variants' JSON column / has_variants flag;
+     * both currently coexist. Use hasStructuredVariants() to tell which
+     * system a given product is actually using.
+     */
+    public function productVariants()
+    {
+        return $this->hasMany(ProductVariant::class)->orderBy('id');
+    }
+
+    public function activeProductVariants()
+    {
+        return $this->hasMany(ProductVariant::class)->where('status', 'active');
+    }
+
+    public function defaultVariant()
+    {
+        return $this->hasOne(ProductVariant::class)->where('is_default', true);
+    }
+
+    public function options()
+    {
+        return $this->hasMany(ProductOption::class)->orderBy('position');
+    }
+
+    /** Gallery/variant/option-value images from product_images - distinct from the raw 'images' JSON column. */
+    public function productImages()
+    {
+        return $this->hasMany(ProductImage::class)->orderBy('position');
+    }
+
+    /** Entity-level tax overrides where this product is the taxable entity. */
+    public function taxApplicability()
+    {
+        return $this->morphMany(\App\Models\TaxApplicability::class, 'taxable');
+    }
+
+    /** All per-branch stock rows across this product's variants (multi-location). */
+    public function variantLocationStocks()
+    {
+        return $this->hasManyThrough(
+            \App\Models\VariantLocationStock::class,
+            \App\Models\Ecommerce\ProductVariant::class,
+            'product_id',          // FK on product_variants
+            'product_variant_id',  // FK on variant_location_stock
+            'id',
+            'id'
+        );
+    }
+
+    /** Per-branch price overrides (polymorphic location_price for this product). */
+    public function locationPrices()
+    {
+        return $this->morphMany(\App\Models\LocationPrice::class, 'sellable', 'sellable_type', 'sellable_id');
+    }
+
+    /**
+     * True once any of this product's variants has a per-branch stock row.
+     * A product with no rows is legacy/global — shown at every branch until
+     * an admin sets its branch stock.
+     */
+    public function isLocationManaged(): bool
+    {
+        return $this->variantLocationStocks()->exists();
+    }
+
+    /**
+     * Products available at a branch: either not location-managed (global) OR
+     * offered at this branch (has a stock row there, any quantity).
+     */
+    public function scopeAvailableAtLocation($query, ?int $locationId)
+    {
+        if (!$locationId) {
+            return $query;
+        }
+        return $query->where(function ($w) use ($locationId) {
+            $w->whereDoesntHave('variantLocationStocks')
+              ->orWhereHas('variantLocationStocks', fn ($s) => $s->where('location_id', $locationId));
+        });
+    }
+
+    /** Is this product offered at the given branch? */
+    public function offeredAt(?int $locationId): bool
+    {
+        if (!$locationId || !$this->isLocationManaged()) {
+            return true;
+        }
+        return $this->variantLocationStocks()->where('location_id', $locationId)->exists();
+    }
+
+    /** Location ids where this product has stock (quantity > 0). */
+    public function branchIdsInStock(): array
+    {
+        return $this->variantLocationStocks()->where('quantity', '>', 0)
+            ->pluck('variant_location_stock.location_id')->unique()->values()->all();
+    }
+
+    // ========================================
+    // ACCESSORS & MUTATORS
+    // ========================================
+
+    /**
+     * Get main image URL.
+     * ✨ FIXED: Now properly accesses raw attributes
+     */
+    public function getMainImageUrlAttribute(): ?string
+    {
+        // Get raw main_image from database attributes (not the accessor)
+        $mainImage = $this->attributes['main_image'] ?? null;
+        
+        if ($mainImage) {
+            // If already full URL (external like CDN)
+            if (str_starts_with($mainImage, 'http')) {
+                return $mainImage;
+            }
+            // Local storage path - convert to full URL
+            // /storage/products/abc.png → http://localhost:8000/storage/products/abc.png
+            return asset($mainImage);
+        }
+
+        // Fallback to first image if main_image is null
+        $images = $this->attributes['images'] ?? null;
+        if ($images) {
+            // Decode JSON if images is stored as JSON string
+            if (is_string($images)) {
+                $images = json_decode($images, true);
+            }
+            
+            if (!empty($images) && is_array($images)) {
+                $firstImage = $images[0];
+                if (str_starts_with($firstImage, 'http')) {
+                    return $firstImage;
+                }
+                return asset($firstImage);
+            }
+        }
+
+        // Default placeholder
+        return asset('images/product-placeholder.png');
+    }
+
+    /**
+     * Get all image URLs.
+     * ✨ FIXED: Now properly handles JSON and array images
+     */
+    public function getImageUrlsAttribute(): array
+    {
+        // Get raw images from database
+        $images = $this->attributes['images'] ?? null;
+        
+        // Handle empty images
+        if (empty($images)) {
+            return [asset('images/product-placeholder.png')];
+        }
+        
+        // Decode JSON if needed
+        if (is_string($images)) {
+            $images = json_decode($images, true);
+        }
+        
+        // Ensure it's an array
+        if (!is_array($images)) {
+            return [asset('images/product-placeholder.png')];
+        }
+
+        // Convert all paths to full URLs
+        return array_map(function ($image) {
+            if (str_starts_with($image, 'http')) {
+                return $image; // Already full URL
+            }
+            return asset($image); // Convert to full URL
+        }, $images);
+    }
+
+    /**
+     * Automatically generate slug from name.
+     */
+    public function setNameAttribute($value)
+    {
+        $this->attributes['name'] = $value;
+        
+        if (!isset($this->attributes['slug']) || empty($this->attributes['slug'])) {
+            $this->attributes['slug'] = Str::slug($value);
+        }
+    }
+
+    /**
+     * Get discount percentage if on sale.
+     */
+    public function getDiscountPercentageAttribute(): ?float
+    {
+        if ($this->original_price && $this->original_price > $this->price) {
+            return round((($this->original_price - $this->price) / $this->original_price) * 100, 2);
+        }
+        return null;
+    }
+
+    /** Converted price for browsing/comparison — the raw price/currency_id stay untouched. */
+    public function getDisplayPriceAttribute(): ?float
+    {
+        return $this->convertAmount((float) $this->price);
+    }
+
+    // ========================================
+    // SCOPES
+    // ========================================
+
+    /**
+     * Scope to get active products.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active')->where('is_visible', true);
+    }
+
+    /**
+     * What a customer may see and buy right now: for sale, and — when Settings → Stock & expiry says to hide
+     * them — not a product whose stock has all expired (it tracks expiry, has expired stock left, and nothing
+     * in date). With the setting on "show as out of stock" they stay listed and read as out of stock, because
+     * expired stock is never counted in the shop's stock numbers.
+     */
+    public function scopeOnShelf($query)
+    {
+        $query->where('products.is_for_sale', true);
+        if (app(\App\Services\Stock\StockPolicy::class)->global()['expired_on_storefront'] === 'hide') {
+            $held = "SELECT 1 FROM stock_batches sb JOIN product_variants pv ON pv.id = sb.variant_id JOIN stock_batch_balances bb ON bb.batch_id = sb.id WHERE pv.product_id = products.id AND bb.quantity > 0";
+            $query->whereRaw("NOT (products.track_expiry = 1"
+                . " AND EXISTS ({$held} AND (sb.status = 'expired' OR (sb.status = 'active' AND sb.expiry_date < CURDATE())))"
+                . " AND NOT EXISTS ({$held} AND sb.status = 'active' AND (sb.expiry_date IS NULL OR sb.expiry_date >= CURDATE())))");
+        }
+
+        return $query;
+    }
+
+    /**
+     * Sold to customers. A "not for sale" product is a material / ingredient /
+     * consumable: counted and valued, but never on the storefront or at the till.
+     */
+    public function scopeForSale($query)
+    {
+        return $query->where('is_for_sale', true);
+    }
+
+    /**
+     * Scope to get in stock products.
+     */
+    public function scopeInStock($query)
+    {
+        return $query->where('in_stock', true)->where($this->sellableColumn(), '>', 0);
+    }
+
+    /** The stock column customers are shown: what the locations that sell to them hold (plain stock before script 97). */
+    private function sellableColumn(): string
+    {
+        static $has = null;
+        $has ??= \Illuminate\Support\Facades\Schema::hasColumn('products', 'sellable_quantity');
+
+        return $has ? 'sellable_quantity' : 'stock_quantity';
+    }
+
+    /**
+     * Scope to get featured products.
+     */
+    public function scopeFeatured($query)
+    {
+        return $query->where('is_featured', true);
+    }
+
+    /**
+     * Scope to get products on sale.
+     */
+    public function scopeOnSale($query)
+    {
+        return $query->where('on_sale', true);
+    }
+
+    /**
+     * Scope to get new products.
+     */
+    public function scopeNew($query)
+    {
+        return $query->where('is_new', true);
+    }
+
+    /**
+     * Scope to filter by category.
+     */
+    public function scopeInCategory($query, $categoryId)
+    {
+        return $query->where('category_id', $categoryId);
+    }
+
+    /**
+     * Scope to filter by brand.
+     */
+    public function scopeByBrand($query, $brandId)
+    {
+        return $query->where('brand_id', $brandId);
+    }
+
+    /**
+     * Scope to filter by price range.
+     */
+    public function scopePriceRange($query, $min, $max)
+    {
+        // min/max are in the display currency; products may be priced in any currency.
+        return $query->priceBetweenIn('price', $min, $max);
+    }
+
+    /**
+     * Scope to search products.
+     */
+    public function scopeSearch($query, $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%")
+              ->orWhere('short_description', 'like', "%{$search}%")
+              ->orWhere('sku', 'like', "%{$search}%");
+        });
+    }
+
+    // ========================================
+    // HELPER METHODS
+    // ========================================
+
+    /**
+     * Check if product is in stock.
+     */
+    public function isInStock(): bool
+    {
+        return $this->in_stock && $this->stock_quantity > 0;
+    }
+
+    /**
+     * Check if product needs restocking.
+     */
+    public function needsRestock($threshold = 10): bool
+    {
+        return $this->stock_quantity <= $threshold;
+    }
+
+    /**
+     * Increment view count.
+     */
+    public function incrementViewCount(): void
+    {
+        $this->increment('view_count');
+    }
+
+    /**
+     * Decrease stock quantity.
+     */
+    public function decreaseStock($quantity): void
+    {
+        $newQuantity = $this->stock_quantity - $quantity;
+        
+        $this->update([
+            'stock_quantity' => max(0, $newQuantity),
+            'in_stock' => $newQuantity > 0
+        ]);
+    }
+
+    /**
+     * Increase stock quantity.
+     */
+    public function increaseStock($quantity): void
+    {
+        $this->increment('stock_quantity', $quantity);
+        
+        if (!$this->in_stock) {
+            $this->update(['in_stock' => true]);
+        }
+    }
+
+    /**
+     * Get price to display (considering negotiable).
+     */
+    public function getDisplayPrice(): string
+    {
+        if ($this->price_is_negotiable) {
+            return 'Negotiable - Request Quote';
+        }
+
+        $price = 'KSh ' . number_format($this->price, 2);
+
+        if ($this->original_price && $this->original_price > $this->price) {
+            $originalPrice = 'KSh ' . number_format($this->original_price, 2);
+            return "{$price} <del>{$originalPrice}</del>";
+        }
+
+        return $price;
+    }
+
+    /**
+     * Whether this product's variants live in the structured product_variants
+     * table (new system) rather than only the legacy 'variants' JSON column.
+     * has_variants alone doesn't tell you which system populated it.
+     */
+    public function hasStructuredVariants(): bool
+    {
+        return $this->has_variants && $this->productVariants()->exists();
+    }
+}

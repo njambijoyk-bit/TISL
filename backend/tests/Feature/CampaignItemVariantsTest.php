@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Campaign;
 use App\Models\CampaignItem;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\ProductVariant;
 use App\Services\Campaigns\CampaignAttribution;
 use App\Services\Campaigns\CampaignPage;
 use App\Services\Campaigns\CampaignStats;

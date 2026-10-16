@@ -14,6 +14,9 @@ use App\Models\DeliveryRating;
 use App\Models\MpesaTransaction;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Auth\MustVerifyEmail;
+use App\Models\Ecommerce\Brand;
+use App\Models\Ecommerce\Category;
+use App\Models\Ecommerce\Product;
 
 class User extends Authenticatable
 {

@@ -5,8 +5,8 @@ namespace App\Services\Books;
 use App\Models\Books\Voucher;
 use App\Models\Books\VoucherType;
 use App\Models\Customer;
-use App\Models\Hamper;
-use App\Services\HamperEligibilityService;
+use App\Models\Ecommerce\Hamper;
+use App\Services\Ecommerce\HamperEligibilityService;
 use Illuminate\Support\Facades\DB;
 
 /**

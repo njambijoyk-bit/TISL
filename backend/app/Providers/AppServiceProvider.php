@@ -11,11 +11,11 @@ use Illuminate\Support\Facades\URL;
 use App\Services\PromoCodeService;
 use App\Services\DarajaService;
 use App\Services\LoyaltyService;
-use App\Services\HamperEligibilityService;
+use App\Services\Ecommerce\HamperEligibilityService;
 use App\Services\AlgorithmService;
-use App\Services\CatalogueRankingService;
+use App\Services\Ecommerce\CatalogueRankingService;
 use App\Services\CustomerCreditService;
-use App\Services\AuctionActivityService;
+use App\Services\Ecommerce\AuctionActivityService;
 use App\Services\SearchAnalyticsService;
 use App\Services\AiAnalyticsService;
 use App\Services\BugReportService;
@@ -147,7 +147,7 @@ class AppServiceProvider extends ServiceProvider
         }
 
         // Seed new variants across branches + keep the product stock total auto-calculated.
-        \App\Models\ProductVariant::observe(\App\Observers\ProductVariantObserver::class);
+        \App\Models\Ecommerce\ProductVariant::observe(\App\Observers\Ecommerce\ProductVariantObserver::class);
         \App\Models\User::observe(\App\Observers\UserAccessObserver::class);
         \App\Models\Location::observe(\App\Observers\LocationCostCentreObserver::class);
         \App\Models\Books\Voucher::observe(\App\Observers\VoucherDimensionsObserver::class);
@@ -191,9 +191,9 @@ class AppServiceProvider extends ServiceProvider
             'employee'                   => \App\Models\Employee::class,
             'customer'                   => \App\Models\Customer::class,
             'currency'                   => \App\Models\Currency::class,
-            'product'                    => \App\Models\Product::class,
-            'product_variant'            => \App\Models\ProductVariant::class,
-            'product_variant_unit'       => \App\Models\ProductVariantUnit::class,
+            'product'                    => \App\Models\Ecommerce\Product::class,
+            'product_variant'            => \App\Models\Ecommerce\ProductVariant::class,
+            'product_variant_unit'       => \App\Models\Ecommerce\ProductVariantUnit::class,
             'service'                    => \App\Models\Service::class,
             'tax_type'                   => \App\Models\TaxType::class,
             'tax_rate'                   => \App\Models\TaxRate::class,
@@ -204,6 +204,31 @@ class AppServiceProvider extends ServiceProvider
             'withholding_certificate'    => \App\Models\WithholdingCertificate::class,
             'withholding_credit'         => \App\Models\WithholdingCredit::class,
             'location'                   => \App\Models\Location::class,
+        ]);
+
+        // E-commerce models moved into App\Models\Ecommerce. Rows written before the move (activity logs and the like) hold the old
+        // class name in their *_type column, so each old name still resolves to the model, and new rows keep writing it.
+        Relation::morphMap([
+            'App\\Models\\ProductImage' => \App\Models\Ecommerce\ProductImage::class,
+            'App\\Models\\ProductOption' => \App\Models\Ecommerce\ProductOption::class,
+            'App\\Models\\ProductOptionValue' => \App\Models\Ecommerce\ProductOptionValue::class,
+            'App\\Models\\ProductVariantOption' => \App\Models\Ecommerce\ProductVariantOption::class,
+            'App\\Models\\Category' => \App\Models\Ecommerce\Category::class,
+            'App\\Models\\Brand' => \App\Models\Ecommerce\Brand::class,
+            'App\\Models\\Hamper' => \App\Models\Ecommerce\Hamper::class,
+            'App\\Models\\HamperItem' => \App\Models\Ecommerce\HamperItem::class,
+            'App\\Models\\HamperActivityLog' => \App\Models\Ecommerce\HamperActivityLog::class,
+            'App\\Models\\HamperCustomerEligibility' => \App\Models\Ecommerce\HamperCustomerEligibility::class,
+            'App\\Models\\Auction' => \App\Models\Ecommerce\Auction::class,
+            'App\\Models\\AuctionBid' => \App\Models\Ecommerce\AuctionBid::class,
+            'App\\Models\\AuctionCharge' => \App\Models\Ecommerce\AuctionCharge::class,
+            'App\\Models\\AuctionOrderActivityLog' => \App\Models\Ecommerce\AuctionOrderActivityLog::class,
+            'App\\Models\\AuctionRegistration' => \App\Models\Ecommerce\AuctionRegistration::class,
+            'App\\Models\\Brochure' => \App\Models\Ecommerce\Brochure::class,
+            'App\\Models\\BrochureItemMeta' => \App\Models\Ecommerce\BrochureItemMeta::class,
+            'App\\Models\\PriceList' => \App\Models\Ecommerce\PriceList::class,
+            'App\\Models\\PriceListArchive' => \App\Models\Ecommerce\PriceListArchive::class,
+            'App\\Models\\PriceListItem' => \App\Models\Ecommerce\PriceListItem::class,
         ]);
     }
 }

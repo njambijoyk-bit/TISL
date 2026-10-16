@@ -39,7 +39,7 @@ class CounterPreorder
             $data = ['voucher_type_id' => $type->id, 'series_id' => $this->preorders->seriesId(), 'date' => today()->toDateString(), 'location_id' => $locationId, 'channel' => 'admin',
                 'customer_id' => $customer?->id, 'party_name' => $customer ? null : ($d['party_name'] ?? null), 'party_phone' => $d['party_phone'] ?? null, 'narration' => $d['narration'] ?? null,
                 'lines' => array_map(function ($l) {
-                    $v = \App\Models\ProductVariant::findOrFail($l['variant_id']);
+                    $v = \App\Models\Ecommerce\ProductVariant::findOrFail($l['variant_id']);
 
                     return ['type' => 'product', 'product_id' => $v->product_id, 'variant_id' => $v->id, 'quantity' => $l['quantity'], 'location_id' => null];
                 }, $lines),

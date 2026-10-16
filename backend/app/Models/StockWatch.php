@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Ecommerce\Hamper;
+use App\Models\Ecommerce\Product;
+use App\Models\Ecommerce\ProductVariant;
 
 /** One "tell me when it is back" request (script 112). */
 class StockWatch extends Model

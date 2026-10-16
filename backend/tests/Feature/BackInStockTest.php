@@ -209,7 +209,7 @@ class BackInStockTest extends NotifyTestCase
     public function test_stock_going_up_tells_the_queue_and_going_down_or_nobody_waiting_does_not(): void
     {
         $stock = app(VariantStockService::class);
-        $product = \App\Models\Product::find(1);
+        $product = \App\Models\Ecommerce\Product::find(1);
         DB::table('variant_location_stock')->insert(['product_variant_id' => 1, 'location_id' => 1, 'quantity' => 0, 'created_at' => now(), 'updated_at' => now()]);
 
         $set = function (float $q) use ($stock, $product) {

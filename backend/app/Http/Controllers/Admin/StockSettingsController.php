@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
-use App\Models\Product;
+use App\Models\Ecommerce\Category;
+use App\Models\Ecommerce\Product;
 use App\Models\StockSetting;
 use App\Models\StockSettingOverride;
 use App\Services\Stock\StockPolicy;

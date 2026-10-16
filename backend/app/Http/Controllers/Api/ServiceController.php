@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Rules\NoSlash;
 use App\Http\Controllers\Controller;
 use App\Models\Service;
-use App\Models\Product;
+use App\Models\Ecommerce\Product;
 use App\Services\CurrencyConversionService;
 use App\Services\FuzzySuggestService;
 use Illuminate\Http\Request;
@@ -67,7 +67,7 @@ class ServiceController extends Controller
             else  { $query->orderBy($sortBy, $sortOrder); }
             $meta = ['personalized' => false, 'segment' => 'manual'];
         } else {
-            $order = app(\App\Services\CatalogueRankingService::class)
+            $order = app(\App\Services\Ecommerce\CatalogueRankingService::class)
                 ->getOrderExpression('service');
 
             if ($order['customer_id']) {
@@ -283,7 +283,7 @@ class ServiceController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:services,slug',
-            'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) { if ($value !== null && $value !== '' && app(\App\Services\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // left blank, a fresh one is generated
+            'sku' => ['nullable', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) { if ($value !== null && $value !== '' && app(\App\Services\Ecommerce\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // left blank, a fresh one is generated
             'category_id' => 'nullable|exists:service_categories,id',
             'type' => 'nullable|string|max:100',
             
@@ -362,7 +362,7 @@ class ServiceController extends Controller
             
             // A service always has a SKU: the one typed (checked above to be unused), or a fresh generated one
             if (empty($data['sku'])) {
-                $data['sku'] = app(\App\Services\SkuGenerator::class)->generate();
+                $data['sku'] = app(\App\Services\Ecommerce\SkuGenerator::class)->generate();
             }
 
             // Auto-generate meta info if not provided
@@ -447,7 +447,7 @@ class ServiceController extends Controller
     /** A fresh SKU (like SMMK9T1206) that no product, variant or service has. */
     public function nextSku(): \Illuminate\Http\JsonResponse
     {
-        return response()->json(['sku' => app(\App\Services\SkuGenerator::class)->generate()]);
+        return response()->json(['sku' => app(\App\Services\Ecommerce\SkuGenerator::class)->generate()]);
     }
 
     public function update(Request $request, $id)
@@ -471,7 +471,7 @@ class ServiceController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'slug' => 'nullable|string|max:255|unique:services,slug,' . $id,
-            'sku' => ['sometimes', 'required', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) use ($service) { if ($value !== $service->sku && app(\App\Services\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // a service always keeps a SKU
+            'sku' => ['sometimes', 'required', 'string', 'max:255', new NoSlash('A SKU'), function ($attr, $value, $fail) use ($service) { if ($value !== $service->sku && app(\App\Services\Ecommerce\SkuGenerator::class)->taken($value)) { $fail('That SKU is already used by another product, variant or service.'); } }],   // a service always keeps a SKU
             'category_id' => 'nullable|exists:service_categories,id',
             'type' => 'nullable|string|max:100',
             

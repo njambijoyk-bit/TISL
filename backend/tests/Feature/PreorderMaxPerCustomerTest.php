@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Campaign;
 use App\Models\CampaignItem;
-use App\Models\ProductVariant;
+use App\Models\Ecommerce\ProductVariant;
 use App\Services\Books\BooksException;
 use App\Services\Preorders\PreorderService;
 use Illuminate\Support\Facades\DB;

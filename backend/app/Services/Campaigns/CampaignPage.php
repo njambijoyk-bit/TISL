@@ -154,7 +154,7 @@ class CampaignPage
         }
         if ($both = array_intersect_key($whole, $byOption)) {
             [$type, $id] = explode(':', (string) array_key_first($both));
-            $name = ($type === 'service' ? \App\Models\Service::class : \App\Models\Product::class)::whereKey((int) $id)->value('name') ?? ucfirst($type);
+            $name = ($type === 'service' ? \App\Models\Service::class : \App\Models\Ecommerce\Product::class)::whereKey((int) $id)->value('name') ?? ucfirst($type);
             throw ValidationException::withMessages(['sections' => ["{$name} is featured as a whole and in part. Choose one: the whole {$type}, or the " . ($type === 'service' ? 'packages' : 'options') . ' you want.']]);
         }
         if ($featured) {
@@ -163,7 +163,7 @@ class CampaignPage
             }
             // an option or package must belong to the product or service it is featured under
             $owners = [];
-            foreach (['product' => \App\Models\ProductVariant::class, 'service' => ServiceVariant::class] as $type => $model) {
+            foreach (['product' => \App\Models\Ecommerce\ProductVariant::class, 'service' => ServiceVariant::class] as $type => $model) {
                 $ids = array_values(array_filter(array_map(fn ($f) => $f['item_type'] === $type ? $f['variant_id'] : 0, $featured)));
                 $owners[$type] = $ids ? $model::whereIn('id', $ids)->pluck($type . '_id', 'id') : collect();
             }

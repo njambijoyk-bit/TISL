@@ -5,8 +5,8 @@ namespace App\Services\Engagement;
 use App\Models\Campaign;
 use App\Models\CampaignMoodboard;
 use App\Models\EngagementPost;
-use App\Models\Hamper;
-use App\Models\Product;
+use App\Models\Ecommerce\Hamper;
+use App\Models\Ecommerce\Product;
 use App\Models\Service;
 use App\Services\Campaigns\Feed;
 
