@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { Lock, Eye, EyeOff, ArrowRight, ArrowLeft } from 'lucide-react';
 import authAPI from '../../../_shared/api/auth';
 import toast from 'react-hot-toast';
+import { AuthBrandBar, AuthBrandPanel } from './AuthBrand';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -94,17 +95,7 @@ export default function ResetPassword() {
           padding: '20px 24px', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: 10,
-              background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>T</span>
-            </div>
-            <div>
-              <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem' }}>TISL</div>
-              <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 500 }}>Industrial Solutions</div>
-            </div>
+            <AuthBrandBar />
           </div>
         </div>
 
@@ -127,19 +118,7 @@ export default function ResetPassword() {
             <div style={{ position: 'absolute', top: '40%', left: -30, width: 120, height: 120, borderRadius: 24, background: 'rgba(255,255,255,0.07)', transform: 'rotate(20deg)' }} />
 
             <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-              <div style={{
-                width: 72, height: 72, borderRadius: 20,
-                background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)',
-                border: '1.5px solid rgba(255,255,255,0.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-              }}>
-                <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.04em' }}>T</span>
-              </div>
-              <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>TISL</h2>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', margin: '6px 0 0', fontWeight: 500 }}>
-                Industrial Solutions
-              </p>
+              <AuthBrandPanel />
             </div>
 
             <div style={{ position: 'relative', zIndex: 1, width: '100%' }}>

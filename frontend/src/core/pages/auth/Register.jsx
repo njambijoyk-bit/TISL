@@ -5,6 +5,8 @@ import { authAPI } from '../../../_shared/api/index';
 import { useAuthStore } from '../../../_shared/store/index';
 import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
+import { AuthBrandBar, AuthBrandPanel } from './AuthBrand';
+import { useAuthBrand } from './useAuthBrand';
 
 // ── Reusable field renderer (must be OUTSIDE Register to preserve focus) ──
 function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, rightEl, error: fieldError, value, focused, setFocused, handleChange }) {
@@ -45,6 +47,7 @@ function EyeBtn({ show, toggle }) {
 }
 
 export default function Register() {
+  const brand = useAuthBrand();
   const navigate = useNavigate();
   const { login } = useAuthStore();
 
@@ -128,13 +131,7 @@ export default function Register() {
         padding: '20px 24px', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '1rem', fontWeight: 900, color: 'white' }}>T</span>
-          </div>
-          <div>
-            <div style={{ color: 'white', fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.01em' }}>Target</div>
-            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.65rem', fontWeight: 500 }}>Industrial Suppliers LTD</div>
-          </div>
+          <AuthBrandBar />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Link to="/login" style={{ color: 'rgba(255,255,255,0.9)', borderRadius: 8, padding: '7px 16px', fontSize: '0.78rem', fontWeight: 600, textDecoration: 'none', border: '1.5px solid rgba(255,255,255,0.35)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Login</Link>
@@ -161,11 +158,7 @@ export default function Register() {
           <div style={{ position: 'absolute', bottom: '25%', right: -20, width: 90, height: 90, borderRadius: 16, background: 'rgba(255,255,255,0.07)', transform: 'rotate(-15deg)' }} />
 
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
-            <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(8px)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)' }}>
-              <span style={{ fontSize: '1.6rem', fontWeight: 900, color: 'white', letterSpacing: '-0.04em' }}>T</span>
-            </div>
-            <h2 style={{ color: 'white', fontSize: '1.5rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Target</h2>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.8rem', margin: '6px 0 0', fontWeight: 500 }}>Industrial Suppliers LTD</p>
+            <AuthBrandPanel />
           </div>
 
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
@@ -175,7 +168,7 @@ export default function Register() {
 
           <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
             <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.78rem', margin: 0, lineHeight: 1.7, fontWeight: 400 }}>
-              Join TISL for easy industrial shopping
+              {brand.tagline || 'Create your account to get started'}
             </p>
           </div>
         </div>
