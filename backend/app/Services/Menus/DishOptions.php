@@ -3,12 +3,11 @@
 namespace App\Services\Menus;
 
 use App\Models\Menus\Dish;
-use App\Models\Menus\IngredientFamily;
+use App\Models\Menus\Ingredient;
 use App\Models\Menus\Option;
 use App\Models\Menus\OptionGroup;
 use App\Models\Menus\OptionUse;
 use App\Services\Books\BooksException;
-use App\Services\Stock\RecipeService;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -24,7 +23,7 @@ class DishOptions
      */
     public function save(Dish $dish, array $groups): void
     {
-        $dish->loadMissing('recipe.items');
+        $dish->loadMissing('menuRecipe.lines');
         $clean = [];
         foreach (array_values($groups) as $g) {
             $clean[] = $this->checkGroup($dish, $g);
@@ -65,7 +64,7 @@ class DishOptions
             'id' => $g->id, 'name' => $g->name, 'kind' => $g->kind, 'min_choices' => $g->min_choices, 'max_choices' => $g->max_choices,
             'options' => $g->options->map(fn (Option $o) => [
                 'id' => $o->id, 'name' => $o->name, 'price_delta' => (float) $o->price_delta, 'is_default' => $o->is_default, 'charge_removal' => $o->charge_removal, 'linked_dish_id' => $o->linked_dish_id, 'is_active' => $o->is_active,
-                'uses' => $o->uses->map(fn (OptionUse $u) => ['mode' => $u->mode, 'family_id' => $u->family_id, 'variant_id' => $u->variant_id, 'quantity' => $u->quantity === null ? null : (float) $u->quantity, 'unit_id' => $u->unit_id])->values()->all(),
+                'uses' => $o->uses->map(fn (OptionUse $u) => ['mode' => $u->mode, 'ingredient_id' => $u->ingredient_id, 'quantity' => $u->quantity === null ? null : (float) $u->quantity, 'unit' => $u->unit ?: 'base'])->values()->all(),
             ])->values()->all(),
         ])->values()->all();
     }
@@ -165,35 +164,27 @@ class DishOptions
         if (! in_array($mode, ['add', 'remove'], true)) {
             throw new BooksException("{$where}: a choice either uses more of something or leaves something out.");
         }
-        $family = ! empty($u['family_id']) ? (int) $u['family_id'] : null;
-        $variant = ! empty($u['variant_id']) ? (int) $u['variant_id'] : null;
-        if (($family === null) === ($variant === null)) {
-            throw new BooksException("{$where}: name one ingredient or one stock item.");
-        }
-        if ($family !== null && ! IngredientFamily::whereKey($family)->exists()) {
-            throw new BooksException("{$where}: that ingredient does not exist any more.");
-        }
-        if ($variant !== null && ! DB::table('product_variants')->where('id', $variant)->exists()) {
-            throw new BooksException("{$where}: that stock item does not exist any more.");
+        $ingredient = ! empty($u['ingredient_id']) ? Ingredient::with('altUnit', 'baseUnit')->find((int) $u['ingredient_id']) : null;
+        if (! $ingredient) {
+            throw new BooksException("{$where}: name the ingredient it uses more of or leaves out.");
         }
         if ($mode === 'remove') {
-            $recipe = $dish->recipe;
-            $has = $recipe && $recipe->items->contains(fn ($i) => ($family !== null && (int) $i->family_id === $family) || ($variant !== null && (int) $i->variant_id === $variant));
-            if ($recipe && ! $has) {
-                throw new BooksException("{$where}: the recipe does not use that, so there is nothing to leave out.");
+            $recipe = $dish->menuRecipe;
+            if ($recipe && ! $recipe->lines->contains('ingredient_id', $ingredient->id)) {
+                throw new BooksException("{$where}: the recipe does not use {$ingredient->name}, so there is nothing to leave out.");
             }
 
-            return ['mode' => 'remove', 'family_id' => $family, 'variant_id' => $variant, 'quantity' => null, 'unit_id' => null];
+            return ['mode' => 'remove', 'ingredient_id' => $ingredient->id, 'quantity' => null, 'unit' => 'base'];
         }
         $qty = (float) ($u['quantity'] ?? 0);
         if ($qty <= 0) {
             throw new BooksException("{$where}: say how much more it uses.");
         }
-        $unit = ! empty($u['unit_id']) ? (int) $u['unit_id'] : null;
-        if ($unit !== null) {
-            app(RecipeService::class)->checkUnit(['unit_id' => $unit, 'family_id' => $family, 'variant_id' => $variant]);
+        $unit = (string) ($u['unit'] ?? 'base');
+        if (! in_array($unit, ['base', 'alt'], true) || ($unit === 'alt' && ! $ingredient->altUnit)) {
+            throw new BooksException("{$where}: write the amount in {$ingredient->baseUnit?->code}".($ingredient->altUnit ? " or {$ingredient->altUnit->code}" : '').'.');
         }
 
-        return ['mode' => 'add', 'family_id' => $family, 'variant_id' => $variant, 'quantity' => round($qty, 4), 'unit_id' => $unit];
+        return ['mode' => 'add', 'ingredient_id' => $ingredient->id, 'quantity' => round($qty, 4), 'unit' => $unit];
     }
 }

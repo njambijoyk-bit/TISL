@@ -34,21 +34,37 @@ class IngredientUse
 
     /**
      * What `$portions` of the recipe take, per ingredient, in the base unit and with the waste added back.
+     * `$uses` are what a customer's choices change in each portion: an ingredient left out ("no onion": it takes nothing) or more of one (extra cheese: its amount is added).
      *
+     * @param array<int, array{mode?: string, ingredient_id?: ?int, quantity?: ?float, unit?: ?string}> $uses
      * @return array<int, array{ingredient: Ingredient, qty: float}> keyed by ingredient id
      */
-    public function needs(DishRecipe $r, float $portions): array
+    public function needs(DishRecipe $r, float $portions, array $uses = []): array
     {
         $r->loadMissing('lines.ingredient.baseUnit', 'lines.ingredient.altUnit');
         $factor = $portions / max((float) $r->yield_qty, self::EPS);
+        $left = array_map('intval', array_column(array_filter($uses, fn ($u) => ($u['mode'] ?? '') === 'remove' && ! empty($u['ingredient_id'])), 'ingredient_id'));
         $out = [];
         foreach ($r->lines as $l) {
             $ing = $l->ingredient;
             if (! $ing) {
                 throw new BooksException('An ingredient of this recipe has been removed. Fix the recipe first.');
             }
+            if (in_array((int) $ing->id, $left, true)) {
+                continue;
+            }
             $qty = $ing->toBase((float) $l->quantity, $l->unit) * $factor / (1 - (float) $l->waste_pct / 100);
             $out[$ing->id] = ['ingredient' => $ing, 'qty' => round(($out[$ing->id]['qty'] ?? 0) + $qty, 6)];
+        }
+        foreach ($uses as $u) {
+            if (($u['mode'] ?? '') !== 'add' || empty($u['ingredient_id']) || (float) ($u['quantity'] ?? 0) <= 0) {
+                continue;
+            }
+            $ing = $out[(int) $u['ingredient_id']]['ingredient'] ?? Ingredient::with('baseUnit', 'altUnit')->find((int) $u['ingredient_id']);
+            if (! $ing) {
+                throw new BooksException('An ingredient a choice uses has been removed.');
+            }
+            $out[$ing->id] = ['ingredient' => $ing, 'qty' => round(($out[$ing->id]['qty'] ?? 0) + $ing->toBase((float) $u['quantity'], (string) ($u['unit'] ?? 'base')) * $portions, 6)];
         }
 
         return $out;
@@ -164,7 +180,7 @@ class IngredientUse
      * Use the stock for `$portions` of the dish: batches go down, each movement is recorded, and the cost is booked. All or nothing.
      *
      * @param array{type: string, id: int} $ref what it was for (a voucher, a production run...)
-     * @param array{date?: ?string, post?: bool, narration?: ?string} $o
+     * @param array{date?: ?string, post?: bool, narration?: ?string, uses?: array} $o `uses`: what the customer's choices change (see needs()); `post` false leaves the booking to the caller
      * @return array{use_id: int, cost: float, journal_id: ?int}
      */
     public function consume(DishRecipe $r, float $portions, int $locationId, array $ref, ?User $by, array $o = []): array
@@ -178,7 +194,7 @@ class IngredientUse
             $on = isset($o['date']) ? Carbon::parse($o['date']) : today();
             $use = StockUse::create(['ref_type' => $ref['type'], 'ref_id' => $ref['id'], 'dish_id' => $r->dish_id, 'recipe_id' => $r->id, 'location_id' => $locationId, 'portions' => $portions, 'cost' => 0, 'status' => 'posted', 'created_by' => $by?->id]);
             $total = 0.0;
-            foreach ($this->needs($r, $portions) as $row) {
+            foreach ($this->needs($r, $portions, $o['uses'] ?? []) as $row) {
                 foreach ($this->allocate($row['ingredient'], $row['qty'], $locationId, $on, true) as $a) {
                     /** @var StockBatch $b */
                     $b = $a['batch'];
@@ -194,7 +210,7 @@ class IngredientUse
             $journal = null;
             if ($total > 0 && ($o['post'] ?? true)) {
                 $dish = $r->dish?->name ?? 'a dish';
-                $journal = $this->journal(FoodLedgers::cost(), FoodLedgers::inventory(), $total, $o['narration'] ?? "Ingredients used for {$this->fmt($portions)} x {$dish}", $locationId, $on, $by);
+                $journal = $this->book(FoodLedgers::cost(), FoodLedgers::inventory(), $total, $o['narration'] ?? "Ingredients used for {$this->fmt($portions)} x {$dish}", $locationId, $on, $by);
             }
             $use->update(['cost' => $total, 'journal_id' => $journal?->id]);
 
@@ -233,7 +249,8 @@ class IngredientUse
         return StockUse::where('ref_type', $refType)->where('ref_id', $refId)->where('status', 'posted')->exists();
     }
 
-    private function journal(int $debit, int $credit, float $amount, string $narration, int $locationId, Carbon $on, ?User $by): Voucher
+    /** A two-line journal in the base currency, debiting one account and crediting another. */
+    public function book(int $debit, int $credit, float $amount, string $narration, int $locationId, Carbon $on, ?User $by): Voucher
     {
         $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
 

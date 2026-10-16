@@ -77,8 +77,8 @@ class MenuOrderService
         $lines = [];
         $dishes = [];
         foreach ($wanted as $w) {
-            $dish = Dish::with('product')->find($w['dish_id']);
-            if (! $dish || ! $dish->is_active || ! $dish->variant_id) {
+            $dish = Dish::find($w['dish_id']);
+            if (! $dish || ! $dish->is_active) {
                 throw new BooksException('One of the dishes is not available any more.');
             }
             if (! in_array((int) $dish->id, $onMenu, true)) {
@@ -93,8 +93,8 @@ class MenuOrderService
             $need[$dish->id] = ($need[$dish->id] ?? 0) + $w['quantity'];
             $linked = [];
             foreach ($p['linked_dishes'] as $lid) {
-                $ld = $dishes[$lid] ??= Dish::with('product')->find($lid);
-                if (! $ld || ! $ld->is_active || ! $ld->variant_id) {
+                $ld = $dishes[$lid] ??= Dish::find($lid);
+                if (! $ld || ! $ld->is_active) {
                     throw new BooksException('One of the set-meal items is not available any more.');
                 }
                 $need[$ld->id] = ($need[$ld->id] ?? 0) + $w['quantity'];
@@ -231,7 +231,7 @@ class MenuOrderService
         return ['mode' => 'online', 'method' => $method];
     }
 
-    /** The Sales Order's product lines for dishes ordered: the dish at its price with the choices, and a set meal's sides as free lines (so their stock is taken). */
+    /** The Sales Order's dish lines for dishes ordered: the dish at its price with the choices, and a set meal's sides as free lines (so what they are made of is taken). */
     public function lineRows(array $lines, Location $loc): array
     {
         $rows = [];
@@ -239,14 +239,14 @@ class MenuOrderService
             /** @var Dish $d */
             $d = $l['dish'];
             $names = array_map(fn ($o) => $o['name'], $l['options']);
-            $row = ['type' => 'product', 'product_id' => $d->product_id, 'variant_id' => $d->variant_id, 'quantity' => $l['quantity'], 'rate' => $l['unit_price'], 'location_id' => $loc->id,
+            $row = ['type' => 'dish', 'dish_id' => $d->id, 'quantity' => $l['quantity'], 'rate' => $l['unit_price'], 'location_id' => $loc->id,
                 'notes' => trim(implode(', ', $names).($l['note'] ? ($names ? ' — ' : '').$l['note'] : '')) ?: null];
             if ($l['uses']) {
                 $row['menu_uses'] = $l['uses'];
             }
             $rows[] = $row;
             foreach ($l['linked'] as $ld) {   // a set meal's side: its own line at no charge, so its stock is taken
-                $rows[] = ['type' => 'product', 'product_id' => $ld->product_id, 'variant_id' => $ld->variant_id, 'quantity' => $l['quantity'], 'rate' => 0, 'location_id' => $loc->id, 'notes' => 'Part of '.$d->name];
+                $rows[] = ['type' => 'dish', 'dish_id' => $ld->id, 'quantity' => $l['quantity'], 'rate' => 0, 'location_id' => $loc->id, 'notes' => 'Part of '.$d->name];
             }
         }
 
@@ -330,7 +330,7 @@ class MenuOrderService
             ]);
             $order->update(['number' => 'MO-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
             foreach ($p['lines'] as $l) {
-                MenuOrderLine::create(['order_id' => $order->id, 'dish_id' => $l['dish']->id, 'variant_id' => $l['dish']->variant_id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'],
+                MenuOrderLine::create(['order_id' => $order->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'],
                     'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'], 'options' => array_map(fn ($o) => ['id' => $o['id'], 'group' => $o['group'], 'name' => $o['name'], 'price_delta' => $o['price_delta']], $l['options']), 'note' => $l['note']]);
             }
             $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menu_order_id' => $order->id])]);

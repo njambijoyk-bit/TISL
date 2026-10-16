@@ -70,7 +70,7 @@ class CookingService
         if (! Schema::hasColumn('menus_dishes', 'lead_hours')) {
             return [];
         }
-        $dishes = Dish::where('is_active', true)->where('lead_hours', '>', 0)->whereNotNull('variant_id')->orderBy('sort_order')->orderBy('name')->get();
+        $dishes = Dish::where('is_active', true)->where('lead_hours', '>', 0)->orderBy('sort_order')->orderBy('name')->get();
         $groups = OptionGroup::with(['options' => fn ($q) => $q->where('is_active', true)->orderBy('sort_order')])->whereIn('dish_id', $dishes->pluck('id'))->orderBy('sort_order')->get()->groupBy('dish_id');
         $loc = Location::defaultSelling();
         $out = [];
@@ -189,7 +189,7 @@ class CookingService
         $need = $kind === 'cake' ? 0 : $cateringHours;
         foreach ($wanted as $w) {
             $dish = Dish::find($w['dish_id']);
-            if (! $dish || ! $dish->is_active || ! $dish->variant_id) {
+            if (! $dish || ! $dish->is_active) {
                 throw new BooksException('One of the dishes is not available any more.');
             }
             if ($kind === 'cake') {
@@ -270,8 +270,8 @@ class CookingService
         $ledger = MenusSettings::all()['sales_ledger_id'];
         foreach ($r->lines as $l) {
             $dish = $l->dish_id ? Dish::find($l->dish_id) : null;
-            if ($dish && $dish->variant_id) {
-                $row = ['type' => 'product', 'product_id' => $dish->product_id, 'variant_id' => $dish->variant_id, 'quantity' => (float) $l->quantity, 'rate' => (float) $l->unit_price, 'location_id' => $r->location_id,
+            if ($dish) {
+                $row = ['type' => 'dish', 'dish_id' => $dish->id, 'quantity' => (float) $l->quantity, 'rate' => (float) $l->unit_price, 'location_id' => $r->location_id,
                     'notes' => trim(implode(', ', array_column($l->options ?? [], 'name')).($l->note ? ($l->options ? ' — ' : '').$l->note : '')) ?: null];
                 $ids = array_column($l->options ?? [], 'id');
                 if ($ids) {
@@ -338,7 +338,7 @@ class CookingService
         $lines = [];
         foreach ((array) ($in['lines'] ?? []) as $l) {
             $dish = ! empty($l['dish_id']) ? Dish::find((int) $l['dish_id']) : null;
-            if (! empty($l['dish_id']) && (! $dish || ! $dish->variant_id)) {
+            if (! empty($l['dish_id']) && ! $dish) {
                 throw new BooksException('One of the dishes does not exist.');
             }
             $name = trim((string) ($l['name'] ?? $dish?->name ?? ''));

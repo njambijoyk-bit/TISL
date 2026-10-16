@@ -54,7 +54,7 @@ class DishPricing
             $delta += (float) $o->price_delta;
             $out[] = ['id' => (int) $o->id, 'group' => $g->name, 'name' => $o->name, 'price_delta' => (float) $o->price_delta];
             foreach ($o->uses as $u) {
-                $uses[] = ['mode' => $u->mode, 'family_id' => $u->family_id, 'variant_id' => $u->variant_id, 'quantity' => $u->quantity === null ? null : (float) $u->quantity, 'unit_id' => $u->unit_id];
+                $uses[] = ['mode' => $u->mode, 'ingredient_id' => $u->ingredient_id, 'quantity' => $u->quantity === null ? null : (float) $u->quantity, 'unit' => $u->unit ?: 'base'];
             }
             if ($o->linked_dish_id) {
                 $linked[] = (int) $o->linked_dish_id;

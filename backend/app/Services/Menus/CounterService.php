@@ -471,7 +471,7 @@ class CounterService
     public function addLines(MenuOrder $o, array $lines, int $round): void
     {
         foreach ($lines as $l) {
-            MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'variant_id' => $l['dish']->variant_id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
+            MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
                 'options' => array_map(fn ($x) => ['id' => $x['id'], 'group' => $x['group'], 'name' => $x['name'], 'price_delta' => $x['price_delta']], $l['options']), 'note' => $l['note'], 'round' => $round,
                 'uses' => $l['uses'] ?: null, 'linked' => array_map(fn ($d) => $d->id, $l['linked']) ?: null]);
         }
@@ -482,9 +482,9 @@ class CounterService
     {
         $out = [];
         foreach ($o->lines()->get() as $l) {
-            $dish = Dish::with('product')->find($l->dish_id) ?? throw new BooksException("{$l->name} is not on the menu any more: ask a manager.");
+            $dish = Dish::find($l->dish_id) ?? throw new BooksException("{$l->name} is not on the menu any more: ask a manager.");
             $out[] = ['dish' => $dish, 'quantity' => (float) $l->quantity, 'base_price' => (float) $l->base_price, 'unit_price' => (float) $l->unit_price, 'options' => $l->options ?? [], 'uses' => $l->uses ?? [],
-                'linked' => array_values(array_filter(array_map(fn ($id) => Dish::with('product')->find($id), $l->linked ?? []))), 'note' => $l->note];
+                'linked' => array_values(array_filter(array_map(fn ($id) => Dish::find($id), $l->linked ?? []))), 'note' => $l->note];
         }
 
         return $out;

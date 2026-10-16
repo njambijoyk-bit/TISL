@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menus\Dish;
-use App\Models\Menus\IngredientFamily;
 use App\Models\Menus\Menu;
 use App\Services\Books\BooksException;
 use App\Services\Menus\DishOptions;
@@ -60,42 +59,34 @@ class MenusMenuController extends Controller
     /** The choices on one dish, with what the screen needs to edit them. */
     public function options(int $id): JsonResponse
     {
-        $dish = Dish::with('recipe.items')->findOrFail($id);
+        $dish = Dish::with('menuRecipe.lines.ingredient')->findOrFail($id);
 
         return response()->json([
-            'dish' => ['id' => $dish->id, 'name' => $dish->name, 'has_recipe' => (bool) $dish->recipe],
+            'dish' => ['id' => $dish->id, 'name' => $dish->name, 'has_recipe' => (bool) $dish->menuRecipe],
             'groups' => $this->options->forDish($dish),
-            'families' => IngredientFamily::where('is_active', true)->with('unit:id,code')->orderBy('name')->get()->map(fn ($f) => ['id' => $f->id, 'name' => $f->name, 'unit' => $f->unit?->code, 'unit_id' => $f->unit_id]),
-            'units' => DB::table('units_of_measure')->where('is_active', 1)->orderBy('dimension')->orderBy('to_base_factor')->get(['id', 'code', 'name', 'dimension']),
+            'ingredients' => \App\Models\Menus\Ingredient::where('is_active', true)->with(['baseUnit:id,code', 'altUnit:id,code'])->orderBy('name')->get()->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code]),
             'dishes' => Dish::where('id', '!=', $dish->id)->orderBy('name')->get(['id', 'name']),
-            'recipe_lines' => $dish->recipe ? $dish->recipe->items->map(fn ($i) => ['family_id' => $i->family_id, 'variant_id' => $i->variant_id, 'name' => $i->family_id ? IngredientFamily::where('id', $i->family_id)->value('name') : $this->variantName((int) $i->variant_id)])->values() : [],
+            'recipe_lines' => $dish->menuRecipe ? $dish->menuRecipe->lines->map(fn ($l) => ['ingredient_id' => (int) $l->ingredient_id, 'name' => $l->ingredient?->name])->values() : [],
         ]);
     }
 
-    /** Body: groups[{id?, name, kind, min_choices, max_choices, options[{id?, name, price_delta, is_default, charge_removal, linked_dish_id, is_active, uses[{mode, family_id|variant_id, quantity, unit_id}]}]}]. */
+    /** Body: groups[{id?, name, kind, min_choices, max_choices, options[{id?, name, price_delta, is_default, charge_removal, linked_dish_id, is_active, uses[{mode, ingredient_id, quantity, unit: base|alt}]}]}]. */
     public function saveOptions(Request $request, int $id): JsonResponse
     {
         $d = $request->validate([
             'groups' => 'present|array|max:20', 'groups.*.id' => 'nullable|integer', 'groups.*.name' => 'required|string|max:120', 'groups.*.kind' => 'nullable|string|max:8', 'groups.*.min_choices' => 'nullable|integer|min:0|max:50', 'groups.*.max_choices' => 'nullable|integer|min:1|max:50',
             'groups.*.options' => 'required|array|min:1|max:60', 'groups.*.options.*.id' => 'nullable|integer', 'groups.*.options.*.name' => 'required|string|max:120', 'groups.*.options.*.price_delta' => 'nullable|numeric',
             'groups.*.options.*.is_default' => 'nullable|boolean', 'groups.*.options.*.charge_removal' => 'nullable|boolean', 'groups.*.options.*.linked_dish_id' => 'nullable|integer', 'groups.*.options.*.is_active' => 'nullable|boolean',
-            'groups.*.options.*.uses' => 'nullable|array|max:20', 'groups.*.options.*.uses.*.mode' => 'required|string|max:8', 'groups.*.options.*.uses.*.family_id' => 'nullable|integer', 'groups.*.options.*.uses.*.variant_id' => 'nullable|integer',
-            'groups.*.options.*.uses.*.quantity' => 'nullable|numeric|min:0', 'groups.*.options.*.uses.*.unit_id' => 'nullable|integer',
+            'groups.*.options.*.uses' => 'nullable|array|max:20', 'groups.*.options.*.uses.*.mode' => 'required|string|max:8', 'groups.*.options.*.uses.*.ingredient_id' => 'nullable|integer',
+            'groups.*.options.*.uses.*.quantity' => 'nullable|numeric|min:0', 'groups.*.options.*.uses.*.unit' => 'nullable|in:base,alt',
         ]);
 
         return $this->guard(function () use ($d, $id) {
-            $dish = Dish::with('recipe.items')->findOrFail($id);
+            $dish = Dish::with('menuRecipe.lines')->findOrFail($id);
             $this->options->save($dish, $d['groups']);
 
             return response()->json(['message' => 'Choices saved.', 'groups' => $this->options->forDish($dish)]);
         });
-    }
-
-    private function variantName(int $variantId): ?string
-    {
-        $v = DB::table('product_variants as pv')->join('products as p', 'p.id', '=', 'pv.product_id')->where('pv.id', $variantId)->first(['p.name', 'pv.name as variant']);
-
-        return $v ? $v->name.($v->variant && $v->variant !== 'Standard' ? " — {$v->variant}" : '') : null;
     }
 
     private function guard(\Closure $fn): JsonResponse

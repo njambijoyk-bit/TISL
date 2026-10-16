@@ -3,22 +3,20 @@
 namespace App\Services\Menus;
 
 use App\Models\Menus\Dish;
-use App\Models\Product;
+use App\Models\Menus\DishBatch;
+use App\Models\Menus\DishRecipe;
+use App\Models\Menus\Option;
+use App\Models\Menus\OptionGroup;
 use App\Services\Books\BooksException;
-use App\Services\Books\TradingAccounts;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 
-/** Making and changing dishes. */
+/** Making and changing dishes. A dish stands on its own: its own price, and a recipe on ingredients; no product is made behind it. */
 class DishService
 {
-    public function __construct(private DishItems $items)
-    {
-    }
-
     /**
-     * @param array{name?: string, description?: ?string, photo?: ?string, price?: float, sales_ledger_id?: ?int, prep_minutes?: ?int, sort_order?: int, is_active?: bool,
+     * @param array{name?: string, description?: ?string, photo?: ?string, price?: float, prep_minutes?: ?int, sort_order?: int, is_active?: bool,
      *              allergens?: ?array, tags?: ?array} $d `allergens` / `tags`: absent or null = worked out from the ingredients, a list (even an empty one) = exactly these are declared
      */
     public function save(array $d, ?int $id = null, ?int $by = null): Dish
@@ -50,28 +48,14 @@ class DishService
 
         return DB::transaction(function () use ($d, $dish, $name, $by, $override) {
             if (! $dish) {
-                $settings = MenusSettings::all();
-                $ledger = ! empty($d['sales_ledger_id']) ? (int) $d['sales_ledger_id'] : ($settings['sales_ledger_id'] ? (int) $settings['sales_ledger_id'] : null);
-                if (! $ledger) {
-                    throw new BooksException('Choose the sales account dishes are booked under (Settings → Menus), so the tax is right.');
+                if (! (MenusSettings::all()['sales_ledger_id'] ?? null)) {
+                    throw new BooksException('Choose the sales account dishes are booked under (Menus, Configuration), so the tax is right.');
                 }
-                if ($problem = TradingAccounts::problem($ledger, 'sales')) {
-                    throw new BooksException($problem);
-                }
-                [$product, $variant] = $this->items->make($name, (float) $d['price'], $ledger, $settings['category_id'] ? (int) $settings['category_id'] : null, $by);
-                $dish = new Dish(['product_id' => $product->id, 'variant_id' => $variant->id, 'created_by' => $by, 'slug' => $this->slug($name)]);
-            } else {
-                $product = Product::findOrFail($dish->product_id);
-                $this->items->makeSellable($product);
-                if (array_key_exists('price', $d)) {
-                    $this->items->setPrice($product, $dish->variant, (float) $d['price']);
-                }
+                $dish = new Dish(['created_by' => $by, 'slug' => $this->slug($name)]);
             }
-            $dish->fill(['name' => $name] + $override + array_intersect_key($d, array_flip(['description', 'photo', 'prep_minutes', 'sort_order', 'is_active']))
+            $dish->fill(['name' => $name] + $override + (array_key_exists('price', $d) ? ['price' => round((float) $d['price'], 2)] : [])
+                + array_intersect_key($d, array_flip(['description', 'photo', 'prep_minutes', 'sort_order', 'is_active']))
                 + (array_key_exists('lead_hours', $d) && Schema::hasColumn('menus_dishes', 'lead_hours') ? ['lead_hours' => $d['lead_hours'] ?: null] : []));   // (script 143)
-            if ($dish->exists && $dish->isDirty('name')) {
-                Product::where('id', $dish->product_id)->update(['name' => $name]);
-            }
             if (array_key_exists('station_id', $d) && KitchenService::installed()) {
                 $st = $d['station_id'] ? \App\Models\Menus\Station::find($d['station_id']) : null;
                 if ($d['station_id'] && ! $st) {
@@ -100,25 +84,26 @@ class DishService
         return $dish;
     }
 
-    /** A dish that was never sold, stocked or priced anywhere can be deleted; anything else is switched off instead (the books keep their history). */
+    /** A dish that was never sold or made can be deleted; anything else is switched off instead (the books keep their history). */
     public function delete(Dish $dish): void
     {
-        foreach (['stock_movements' => 'variant_id', 'stock_batches' => 'variant_id', 'voucher_items' => 'variant_id', 'productions' => 'variant_id'] as $table => $col) {
-            if (Schema::hasTable($table) && Schema::hasColumn($table, $col) && DB::table($table)->where($col, $dish->variant_id)->exists()) {
-                throw new BooksException("{$dish->name} has been sold or stocked, so it can not be deleted. Switch it off instead and it disappears from the menus; the history stays.");
-            }
+        $history = (Schema::hasColumn('voucher_items', 'dish_id') && DB::table('voucher_items')->where('dish_id', $dish->id)->exists())
+            || (Schema::hasTable('menus_dish_batches') && DishBatch::where('dish_id', $dish->id)->exists())
+            || (Schema::hasTable('menus_order_lines') && DB::table('menus_order_lines')->where('dish_id', $dish->id)->exists());
+        if ($history) {
+            throw new BooksException("{$dish->name} has been sold or made, so it can not be deleted. Switch it off instead and it disappears from the menus; the history stays.");
         }
         DB::transaction(function () use ($dish) {
-            DB::table('recipes')->where('variant_id', $dish->variant_id)->get(['id'])->each(function ($r) {
-                DB::table('recipe_items')->where('recipe_id', $r->id)->delete();
-                if (Schema::hasTable('recipe_steps')) {
-                    DB::table('recipe_steps')->where('recipe_id', $r->id)->delete();
-                }
-                DB::table('recipes')->where('id', $r->id)->delete();
-            });
-            DB::table('product_variant_units')->where('variant_id', $dish->variant_id)->delete();
-            DB::table('product_variants')->where('id', $dish->variant_id)->delete();
-            Product::where('id', $dish->product_id)->delete();
+            if (DishRecipes::installed()) {
+                app(DishRecipes::class)->delete($dish);
+            }
+            foreach (OptionGroup::where('dish_id', $dish->id)->get() as $g) {
+                $ids = Option::where('group_id', $g->id)->pluck('id');
+                \App\Models\Menus\OptionUse::whereIn('option_id', $ids)->delete();
+                Option::whereIn('id', $ids)->delete();
+                $g->delete();
+            }
+            DB::table('menus_section_dishes')->where('dish_id', $dish->id)->delete();
             $dish->delete();
         });
     }

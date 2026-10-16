@@ -24,7 +24,7 @@ class MenusDishController extends Controller
     public function index(Request $request): JsonResponse
     {
         $location = $request->integer('location_id') ?: (int) DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('id')->value('id');
-        $rows = Dish::with('recipe.items')->orderBy('sort_order')->orderBy('name')->get()->map(fn (Dish $d) => $this->row($d, $location))->values();
+        $rows = Dish::with('menuRecipe')->orderBy('sort_order')->orderBy('name')->get()->map(fn (Dish $d) => $this->row($d, $location))->values();
 
         return response()->json([
             'dishes' => $rows, 'location_id' => $location, 'settings' => MenusSettings::all(), 'settings_ready' => MenusSettings::ready(),
@@ -35,19 +35,19 @@ class MenusDishController extends Controller
         ]);
     }
 
-    /** Body: name, price, description?, photo?, prep_minutes?, sort_order?, is_active?, sales_ledger_id? (new dishes), allergens? / tags? (omit or null = from the ingredients; a list = declared). */
+    /** Body: name, price, description?, photo?, prep_minutes?, sort_order?, is_active?, allergens? / tags? (omit or null = from the ingredients; a list = declared). */
     public function save(Request $request, ?int $id = null): JsonResponse
     {
         $d = $request->validate([
             'name' => 'required|string|max:150', 'price' => 'nullable|numeric|min:0', 'description' => 'nullable|string|max:3000', 'photo' => 'nullable|string|max:255', 'prep_minutes' => 'nullable|integer|min:0|max:6000', 'lead_hours' => 'nullable|integer|min:0|max:2000',
-            'sort_order' => 'nullable|integer|min:0|max:9999', 'is_active' => 'nullable|boolean', 'sales_ledger_id' => 'nullable|integer', 'station_id' => 'nullable|integer', 'chef_id' => 'nullable|integer',
+            'sort_order' => 'nullable|integer|min:0|max:9999', 'is_active' => 'nullable|boolean', 'station_id' => 'nullable|integer', 'chef_id' => 'nullable|integer',
             'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20',
         ]);
 
         return $this->guard(function () use ($d, $id, $request) {
             $dish = $this->dishes->save($d, $id, $request->user()?->id);
 
-            return response()->json(['message' => 'Dish saved.', 'dish' => $this->row($dish->load('recipe.items'), null)], $id === null ? 201 : 200);
+            return response()->json(['message' => 'Dish saved.', 'dish' => $this->row($dish->load('menuRecipe'), null)], $id === null ? 201 : 200);
         });
     }
 
@@ -57,7 +57,7 @@ class MenusDishController extends Controller
         $d = $request->validate(['sold_out' => 'required|boolean']);
         $dish = $this->dishes->soldOutToday(Dish::findOrFail($id), (bool) $d['sold_out']);
 
-        return response()->json(['message' => $dish->sold_out_on ? "{$dish->name} is marked sold out for today." : "{$dish->name} is available again.", 'dish' => $this->row($dish->load('recipe.items'), null)]);
+        return response()->json(['message' => $dish->sold_out_on ? "{$dish->name} is marked sold out for today." : "{$dish->name} is available again.", 'dish' => $this->row($dish->load('menuRecipe'), null)]);
     }
 
     public function destroy(int $id): JsonResponse
@@ -85,12 +85,12 @@ class MenusDishController extends Controller
     private function row(Dish $d, ?int $location): array
     {
         $profile = $this->info->profile($d);
-        $recipe = $d->recipe;
+        $recipe = $d->menuRecipe;
 
         return [
-            'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'lead_hours' => $d->lead_hours ?? null, 'sort_order' => $d->sort_order, 'is_active' => $d->is_active,
-            'variant_id' => (int) $d->variant_id, 'product_id' => (int) $d->product_id, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
-            'has_recipe' => (bool) $recipe, 'made_to_order' => (bool) ($recipe && $recipe->deduct_on_sale),
+            'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'lead_hours' => $d->lead_hours ?? null, 'sort_order' => $d->sort_order, 'is_active' => (bool) $d->is_active,
+            'price' => (float) $d->price, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
+            'has_recipe' => (bool) $recipe, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
             'allergens' => $profile['allergens'], 'tags' => $profile['tags'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'], 'declared' => $profile['declared'],
             'allergens_declared' => $d->allergens_override !== null, 'tags_declared' => $d->tags_override !== null,
         ] + ($location ? ['available' => $this->info->portions($d, $location)] + $this->info->money($d, $location) : []);

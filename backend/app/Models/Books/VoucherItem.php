@@ -15,7 +15,7 @@ class VoucherItem extends Model
     protected $table = 'voucher_items';
 
     protected $fillable = [
-        'voucher_id', 'parent_item_id', 'line_no', 'item_type', 'is_header', 'product_id', 'variant_id',
+        'dish_id', 'voucher_id', 'parent_item_id', 'line_no', 'item_type', 'is_header', 'product_id', 'variant_id',
         'variant_unit_id', 'service_id', 'service_variant_id', 'hamper_id', 'description', 'variant_label',
         'sku', 'unit_code', 'unit_factor', 'quantity', 'base_quantity', 'rate', 'discount_amount', 'amount',
         'tax_rate_id', 'tax_rate_percent', 'tax_amount', 'ledger_id', 'location_id', 'delivered_quantity',

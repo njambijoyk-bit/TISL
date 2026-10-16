@@ -779,7 +779,7 @@ class VoucherService
             $hamperPromo = [];   // typed hamper line => its price, when the hamper takes promo codes (a promo code only; no other discount reaches a hamper)
             foreach ($resolved as $rl) {
                 if (isset($rl['_src'])) {
-                    $eligible[$rl['_src']] = (in_array($rl['item_type'], ['product', 'service', 'custom'], true) && empty($rl['gift_meta'])) ? max(0.0, (float) $rl['amount']) : 0.0;
+                    $eligible[$rl['_src']] = (in_array($rl['item_type'], ['product', 'service', 'custom', 'dish'], true) && empty($rl['gift_meta'])) ? max(0.0, (float) $rl['amount']) : 0.0;
                     if (! empty($rl['is_header']) && ! empty($rl['hamper_id']) && app(HamperEditionService::class)->takesPromo((int) $rl['hamper_id'])) {
                         $hamperPromo[$rl['_src']] = max(0.0, (float) $rl['amount']);
                     }
@@ -897,13 +897,13 @@ class VoucherService
 
     // ── lines ───────────────────────────────────────────────────────────
 
-    /** Products, services and hampers are the E-commerce module's: with it switched off they cannot go on a voucher. */
+    /** Products, services and hampers are the E-commerce module's, and dishes are Menus': with the module switched off they cannot go on a voucher. */
     private function assertLineModuleOn(string $kind, int $i): void
     {
-        $module = ['product' => 'ecommerce', 'service' => 'ecommerce', 'hamper' => 'ecommerce.hampers'][$kind] ?? null;
+        $module = ['product' => 'ecommerce', 'service' => 'ecommerce', 'hamper' => 'ecommerce.hampers', 'dish' => 'menus'][$kind] ?? null;
         if ($module && ! app(\App\Services\Licensing\LicenseManager::class)->isActive($module)) {
-            $what = ['product' => 'Products', 'service' => 'Services', 'hamper' => 'Hampers'][$kind];
-            throw new BooksException("{$what} can't be used on line " . ($i + 1) . ": the E-commerce module is currently switched off.");
+            $what = ['product' => 'Products', 'service' => 'Services', 'hamper' => 'Hampers', 'dish' => 'Dishes'][$kind];
+            throw new BooksException("{$what} can't be used on line " . ($i + 1) . ': the ' . ($kind === 'dish' ? 'Menus' : 'E-commerce') . ' module is currently switched off.');
         }
     }
 
@@ -921,6 +921,7 @@ class VoucherService
                 'hamper'  => $this->hamperLines($l, $ctx),
                 'charge'  => $this->chargeLine($l, $ctx),
                 'custom'  => $this->customLine($l, $ctx),
+                'dish'    => $this->dishLine($l, $ctx),
                 default   => throw new BooksException('Unknown line type on line ' . ($i + 1) . '.'),
             };
             $row['_src'] = $i;   // which line the admin typed this came from (a service's parts have none)
@@ -990,7 +991,7 @@ class VoucherService
             'discount_ledger_id' => null, 'discount_source' => null, 'discount_ref' => null, 'shipping_option_id' => null, 'pending_price' => false,
             'gift_meta' => null, 'batch_no' => null, 'mfg_date' => null, 'expiry_date' => null, 'track_expiry' => false, 'pick_batch_id' => null,
             'material_mode' => null, 'under_service' => false, 'cost_amount' => 0.0, 'paid_ledger_id' => null,
-            'taxes' => [], 'children' => [], 'stock_qty' => 0.0, 'menu_uses' => null,
+            'taxes' => [], 'children' => [], 'stock_qty' => 0.0, 'menu_uses' => null, 'dish_id' => null,
         ];
     }
 
@@ -1321,6 +1322,28 @@ class VoucherService
         return $line;
     }
 
+    /**
+     * A dish sold (Menus). It is an ordinary line posted to the Menus sales account, which decides the tax, with no product behind it. What it takes off the kitchen's shelf is done
+     * after the voucher is saved (DishStock), for vouchers that move stock out. `menu_uses` carries what the customer's choices change in the recipe.
+     */
+    private function dishLine(array $l, array $ctx): array
+    {
+        $dish = \App\Models\Menus\Dish::find((int) ($l['dish_id'] ?? 0));
+        if (! $dish) {
+            throw new BooksException('That dish does not exist any more.');
+        }
+        $ledger = ! empty($l['ledger_id']) ? (int) $l['ledger_id'] : (\App\Services\Menus\MenusSettings::all()['sales_ledger_id'] ?? null);
+        if (! $ledger) {
+            throw new BooksException('Choose the sales account dishes are booked under in Menus, Configuration, so every dish has the right tax.');
+        }
+        $line = $this->customLine(['description' => $l['description'] ?? $dish->name, 'ledger_id' => $ledger] + $l, $ctx);
+        $line['item_type'] = 'dish';
+        $line['dish_id'] = $dish->id;
+        $line['menu_uses'] = ! empty($l['menu_uses']) && is_array($l['menu_uses']) ? array_values($l['menu_uses']) : null;
+
+        return $line;
+    }
+
     private function cloneLine(VoucherItem $it, float $qty, float $ratio, float $stockSellingQty): array
     {
         $line = $this->blank($it->item_type);
@@ -1331,6 +1354,7 @@ class VoucherService
             $line[$k] = $it->{$k};
         }
         $line['menu_uses'] = $it->menu_uses ?? null;
+        $line['dish_id'] = $it->dish_id ?? null;
         $line['track_expiry'] = $it->product_id ? (bool) \App\Models\Product::whereKey($it->product_id)->value('track_expiry') : false;
         $line['unit_factor'] = (float) $it->unit_factor;
         $line['quantity'] = $qty;
@@ -2520,6 +2544,7 @@ class VoucherService
                 StockBatch::whereKey($m['batch_id'])->update(['received_voucher_id' => $voucher->id]);
             }
         }
+        app(\App\Services\Menus\DishStock::class)->apply($voucher, $user);   // the dishes sold take what they are made of off the kitchen's own shelf (refused, with the voucher, when it is short)
 
         return $voucher;
     }
@@ -2540,7 +2565,8 @@ class VoucherService
             'pending_price' => ! empty($l['pending_price']), 'gift_meta' => $l['gift_meta'] ?? null,
             'batch_no' => $l['batch_no'] ?? null, 'mfg_date' => $l['mfg_date'] ?? null, 'expiry_date' => $l['expiry_date'] ?? null,
             'material_mode' => $l['material_mode'] ?? null, 'cost_amount' => ($l['cost_amount'] ?? 0) > 0 ? $l['cost_amount'] : null, 'paid_ledger_id' => $l['paid_ledger_id'] ?? null,
-        ] + (! empty($l['menu_uses']) ? ['menu_uses' => $l['menu_uses']] : []));   // (the column exists once Menus' script 136 is run; a line without choices never mentions it)
+        ] + (! empty($l['menu_uses']) ? ['menu_uses' => $l['menu_uses']] : [])   // (the column exists once Menus' script 136 is run; a line without choices never mentions it)
+          + (! empty($l['dish_id']) ? ['dish_id' => $l['dish_id']] : []));   // (and dish_id once script 184 is run)
         foreach ($l['taxes'] as $t) {
             VoucherItemTax::create(['item_id' => $item->id, 'tax_rate_id' => $t['tax_rate_id'], 'ledger_id' => $t['ledger_id'], 'label' => $t['label'], 'base_amount' => $t['base_amount'], 'tax_amount' => $t['tax_amount']]);
         }
@@ -2685,6 +2711,7 @@ class VoucherService
     /** Undo a voucher's stock and chain effects (before an edit or a cancel). */
     private function reverseEffects(Voucher $voucher): void
     {
+        app(\App\Services\Menus\DishStock::class)->undo($voucher, null);   // what the dishes on it took off the kitchen's shelf goes back
         // Stock this voucher brought in cannot be taken back once some of it has been sold or used.
         foreach (StockMovement::where('voucher_id', $voucher->id)->where('reversed', false)->where('quantity', '>', 0)->whereNotNull('batch_id')->get() as $m) {
             $left = (float) DB::table('stock_batch_balances')->where('batch_id', $m->batch_id)->where('location_id', $m->location_id)->value('quantity');

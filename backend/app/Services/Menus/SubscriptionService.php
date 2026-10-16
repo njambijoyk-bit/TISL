@@ -184,7 +184,7 @@ class SubscriptionService
             if ($day->lt($s->start_date->copy()->startOfDay()) || $s->pausedOn($day) || ! isset($menu[$wd])) {
                 continue;
             }
-            $list = $menu[$wd]->map(fn ($m) => $dishes[$m->dish_id] ?? null)->filter(fn ($d) => $d && $d->is_active && $d->variant_id)->values()->all();
+            $list = $menu[$wd]->map(fn ($m) => $dishes[$m->dish_id] ?? null)->filter(fn ($d) => $d && $d->is_active)->values()->all();
             if ($list) {
                 $out[$day->toDateString()] = $list;
             }
@@ -227,7 +227,7 @@ class SubscriptionService
                 $rate = $free ? 0.0 : ($i === count($dishes) - 1 ? round($left, 2) : round($dayPrice * $prices[$i] / $sum, 2));
                 $left -= $rate;
                 $lines[] = ['dish_id' => $d->id, 'name' => $d->name, 'price' => $rate, 'base_price' => $prices[$i]];
-                $rows[] = ['type' => 'product', 'product_id' => $d->product_id, 'variant_id' => $d->variant_id, 'quantity' => 1, 'rate' => $rate, 'location_id' => $p->location_id,
+                $rows[] = ['type' => 'dish', 'dish_id' => $d->id, 'quantity' => 1, 'rate' => $rate, 'location_id' => $p->location_id,
                     'notes' => Carbon::parse($date)->format('D j M').' — '.$d->name.($free ? ' (owed from a skipped day)' : '')];
             }
             $plan[] = [$date, $free, $lines, false];
@@ -364,8 +364,7 @@ class SubscriptionService
                 'notes' => "Meal plan {$s->number}: deliver between ".substr((string) $p->slot_from, 0, 5).' and '.substr((string) $p->slot_to, 0, 5).($d->free ? ' (a day owed: not charged)' : ''), 'placed_at' => now()]);
             $o->update(['number' => 'MO-'.str_pad((string) $o->id, 6, '0', STR_PAD_LEFT)]);
             foreach ($lines as $l) {
-                $dish = Dish::find($l['dish_id']);
-                MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish_id'], 'variant_id' => $dish?->variant_id ?? 0, 'name' => $l['name'], 'quantity' => 1, 'base_price' => $l['base_price'] ?? $l['price'], 'unit_price' => $l['price'], 'options' => null, 'note' => null]);
+                MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish_id'], 'name' => $l['name'], 'quantity' => 1, 'base_price' => $l['base_price'] ?? $l['price'], 'unit_price' => $l['price'], 'options' => null, 'note' => null]);
             }
             $d->update(['status' => 'ordered', 'order_id' => $o->id]);
 

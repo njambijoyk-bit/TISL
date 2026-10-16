@@ -41,7 +41,7 @@ class PublicMenu
 
         return [
             'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes,
-            'price' => $d->product ? (float) $d->product->price : null, 'price_incl' => $this->inclusive($d),
+            'price' => (float) $d->price, 'price_incl' => $this->inclusive($d),
             'available' => $portions > 0, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'allergens' => $profile['allergens'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'],
             'options' => $this->options($d), 'chef' => $this->chefName($d),
@@ -61,9 +61,9 @@ class PublicMenu
     private function inclusive(Dish $d): ?float
     {
         try {
-            $v = $d->product?->display_price_incl;
+            $ledger = MenusSettings::all()['sales_ledger_id'] ?? null;
 
-            return $v === null ? null : (float) $v;
+            return $ledger ? (float) \App\Services\Books\PriceTax::split((float) $d->price, \App\Services\Books\PriceTax::forAccount((int) $ledger))['gross'] : null;
         } catch (\Throwable) {
             return null;   // no tax figure can be worked out (no tax set on the account yet): the screen shows the price before tax
         }
