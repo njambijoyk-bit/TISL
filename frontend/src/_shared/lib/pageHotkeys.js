@@ -7,6 +7,7 @@
 //   Save     Save, Save changes         (Ctrl+S / Cmd+S)
 //   Close    Close, or the X of the open dialog    (Esc)
 //   Previous / Next / Refresh   (Shift+Left / Shift+Right / Shift+R)
+//   Books voucher page: Edit (Shift+E), Cancel (Shift+X), Customer copy (Shift+D), Send (Shift+S), Convert (Shift+C), Receive payment (Shift+P), Edit log (F4)
 // Buttons that do something else with the word ("Save configuration", "Use shop-wide configuration", "Save and close") are not matched. When two different buttons carry
 // the name, nothing is pressed: the key never guesses.
 const MATCHERS = {
@@ -20,6 +21,13 @@ const MATCHERS = {
   Previous: /^(?:previous|prev)(?: page)?$/i,
   Next: /^next(?: page)?$/i,
   Refresh: /^refresh$/i,
+  Edit: /^edit$/i,
+  Cancel: /^cancel$/i,
+  CustomerCopy: /^customer copy$/i,
+  Send: /^send$/i,
+  Convert: /^convert$/i,
+  Receive: /^receive payment$/i,
+  EditLog: /^edit log$/i,
 };
 
 const DIALOGS = '[role="dialog"]:not([data-shortcut-list]), dialog[open], [aria-modal="true"]';
@@ -38,12 +46,12 @@ const pageRoot = () => document.querySelector('main') || document;
 
 /**
  * The control a key should press, or null when there is none or it cannot be told which (two different buttons by that name).
- * Buttons are preferred over links; several links that go to the same place count as one.
+ * Buttons are preferred over links; several links that go to the same place count as one. `skip` is a selector for places not to look in (the section tabs).
  */
-export function pageHotkeyTarget(key, root = pageRoot()) {
+export function pageHotkeyTarget(key, root = pageRoot(), skip = null) {
   const match = MATCHERS[key];
   if (!match || !root) return null;
-  const found = [...root.querySelectorAll('button, a[href], [role="tab"]')].filter((el) => usable(el) && match.test(nameOf(el)));
+  const found = [...root.querySelectorAll('button, a[href], [role="tab"]')].filter((el) => usable(el) && !(skip && el.closest(skip)) && match.test(nameOf(el)));
   const buttons = found.filter((el) => el.tagName !== 'A');
   if (buttons.length) return buttons.length === 1 ? buttons[0] : null;
   const links = found.filter((el) => el.tagName === 'A');

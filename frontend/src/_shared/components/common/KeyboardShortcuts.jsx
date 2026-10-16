@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, UserCircle, LayoutDashboard, Home, X } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
-import { isStaff, roleName } from '../../lib/roles';
+import { hasPermission, isStaff, roleName } from '../../lib/roles';
+import booksAPI from '../../api/books';
+import { newVoucherPath } from '../../../core/components/admin/books/booksFmt';
 import { toggleAccountMenu } from '../../lib/accountShortcut';
 import useNavStore from '../../store/navStore';
 import useThemeStore from '../../store/themeStore';
@@ -32,8 +34,13 @@ export default function KeyboardShortcuts() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const [account, setAccount] = useState(false);
   const [list, setList] = useState(false);
+  const [picker, setPicker] = useState(false);   // Shift+V in Books: pick a voucher type by its letter
+  const [types, setTypes] = useState([]);
   const staff = isAuthenticated && isStaff(user);
   const inAdmin = pathname.startsWith('/admin');
+  const inBooks = pathname.startsWith('/admin/books');
+  const voucherPage = /^\/admin\/books\/vouchers\/\d+\/?$/.test(pathname);
+  const canPost = isAuthenticated && hasPermission(user, 'books.post');
   const { links, loaded, fetch: fetchNav } = useNavStore();
   // letter -> link, for the storefront only: the admin has its own fixed shortcuts
   const byLetter = {};
@@ -45,7 +52,9 @@ export default function KeyboardShortcuts() {
   const { mode, setMode } = useTheme();
   const { setTheme } = useThemeStore();
   const popupOpen = useRef(false);
-  popupOpen.current = account || list;
+  popupOpen.current = account || list || picker;
+  const pick = useRef({ open: false, types: [] });
+  pick.current = { open: picker, types };
   const signOut = () => { logout(); setAccount(false); navigate(inAdmin ? '/login' : '/'); };
   const toggleDark = () => {
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
@@ -53,7 +62,10 @@ export default function KeyboardShortcuts() {
     setMode(next); setTheme(next);
   };
 
-  useEffect(() => { setAccount(false); setList(false); }, [pathname]);
+  useEffect(() => { setAccount(false); setList(false); setPicker(false); }, [pathname]);
+  useEffect(() => {   // the voucher types and their letters, once, when Books is opened
+    if (inBooks && canPost && !types.length) booksAPI.types().then((r) => setTypes((r ?? []).filter((t) => t.is_active))).catch(() => {});
+  }, [inBooks, canPost, types.length]);
   useEffect(() => {
     const press = (el) => { if (el) { el.click(); return true; } return false; };
     const onKey = (e) => {
@@ -64,11 +76,18 @@ export default function KeyboardShortcuts() {
           if (isAuthenticated) { e.preventDefault(); signOut(); }
           return;
         }
-        if (popupOpen.current) { setAccount(false); setList(false); return; }
+        if (popupOpen.current) { setAccount(false); setList(false); setPicker(false); return; }
         if (!e.defaultPrevented) press(closeTarget());
         return;
       }
       if (quiet(pathname)) return;
+      // the voucher picker: a letter opens a new voucher of that type
+      if (pick.current.open && !e.ctrlKey && !e.metaKey && !e.altKey && /^Key[A-Z]$/.test(e.code)) {
+        e.preventDefault();
+        const type = pick.current.types.find((t) => t.shortcut === e.code.slice(3));
+        if (type) { setPicker(false); navigate(newVoucherPath(type)); }
+        return;
+      }
       // Ctrl+S / Cmd+S presses the one Save button of the dialog or page. The browser's own Save page is never wanted in the app.
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') {
         e.preventDefault();
@@ -82,6 +101,10 @@ export default function KeyboardShortcuts() {
         if (e.key === '/' && free) {
           const box = searchBox();
           if (box) { e.preventDefault(); box.focus(); box.select?.(); }
+        } else if (e.key === 'F4' && inBooks && !dialogOpen()) {   // the edit log: this voucher's when the page has that button, else the whole log
+          e.preventDefault();
+          const log = pageHotkeyTarget('EditLog', undefined, 'nav.admin-section-tabs');
+          if (log) log.click(); else navigate('/admin/books/edit-log');
         } else if (['F2', 'F8', 'F9'].includes(e.key) && !dialogOpen() && (e.key !== 'F2' || inAdmin)) {
           const target = pageHotkeyTarget(e.key);
           if (target) { e.preventDefault(); target.click(); }
@@ -111,6 +134,11 @@ export default function KeyboardShortcuts() {
           N: () => press(document.querySelector('button[aria-label="Open the memo panel"]') ?? topDialog()?.querySelector('button[aria-label="Close"]')),
           R: () => press(pageHotkeyTarget('Refresh')),
           T: toggleDark,
+          ...(inBooks && canPost ? { V: () => setPicker(true) } : {}),
+          ...(voucherPage ? {
+            E: () => press(pageHotkeyTarget('Edit')), X: () => press(pageHotkeyTarget('Cancel')), D: () => press(pageHotkeyTarget('CustomerCopy')),
+            S: () => press(pageHotkeyTarget('Send')), C: () => press(pageHotkeyTarget('Convert')), P: () => press(pageHotkeyTarget('Receive')),
+          } : {}),
         };
         if (fixed[letter]) { e.preventDefault(); fixed[letter](); return; }
         const to = Object.fromEntries(JSON.parse(letters))[letter];
@@ -120,7 +148,7 @@ export default function KeyboardShortcuts() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, isAuthenticated, navigate, inAdmin, letters, mode]);
+  }, [pathname, isAuthenticated, navigate, inAdmin, inBooks, voucherPage, canPost, letters, mode]);
 
   const mod = MAC ? '⌘' : 'Ctrl';
   const rows = [
@@ -142,6 +170,8 @@ export default function KeyboardShortcuts() {
     ['Shift', 'Esc', 'Sign out'],
     ...(inAdmin ? [['', 'F2', 'New: add what this page lists'], ['', 'F12', 'Open the Configuration of this page or section'], ['', 'F7', 'Open the Recycle bin or Trash of this page'],
       ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Alt', 'I', 'Open the AI panel (Esc closes it)'], ['Ctrl', 'B', 'Show or hide the menu']] : []),
+    ...(inBooks && canPost ? [['Shift', 'V', 'New voucher: then press the type\'s letter'], ['', 'F4', 'Open the edit log']] : []),
+    ...(voucherPage ? [['Shift', 'E', 'Edit this voucher'], ['Shift', 'X', 'Cancel this voucher (asks why first)'], ['Shift', 'D', 'Download the customer copy'], ['Shift', 'S', 'Send this voucher'], ['Shift', 'C', 'Convert this voucher'], ['Shift', 'P', 'Receive payment']] : []),
   ];
   const link = { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)', textDecoration: 'none' };
 
@@ -164,6 +194,29 @@ export default function KeyboardShortcuts() {
             <button type="button" role="menuitem" onClick={signOut} style={{ ...link, width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: '#ef4444' }}><LogOut size={16} /> Sign out</button>
           </div>
         </>
+      )}
+      {picker && (
+        <div role="dialog" data-shortcut-list aria-label="New voucher" onClick={() => setPicker(false)} style={{ position: 'fixed', inset: 0, zIndex: 9992, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(420px, 100%)', maxHeight: 'calc(100dvh - 32px)', display: 'flex', flexDirection: 'column', borderRadius: 18, background: 'var(--bg-card, #fff)', color: 'var(--text-primary)', boxShadow: '0 30px 80px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+            <div style={{ height: 6, flexShrink: 0, background: `linear-gradient(90deg, ${ACCENTS.join(', ')})` }} />
+            <div style={{ padding: '0 20px 20px', display: 'grid', gap: 6, alignContent: 'start', overflowY: 'auto', minHeight: 0, flex: 1 }}>
+              <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0 8px', background: 'var(--bg-card, #fff)' }}>
+                <strong style={{ fontSize: '1.05rem' }}>New voucher: press a letter</strong>
+                <button type="button" aria-label="Close" onClick={() => setPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'grid', padding: 4 }}><X size={18} /></button>
+              </div>
+              {types.length === 0 && <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>Loading the voucher types…</span>}
+              {types.map((t, i) => {
+                const c = ACCENTS[i % ACCENTS.length];
+                return (
+                  <button key={t.id} type="button" onClick={() => { setPicker(false); navigate(newVoucherPath(t)); }} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 10, border: 'none', borderLeft: `4px solid ${c}`, background: 'var(--bg-secondary, #f9fafb)', color: 'inherit', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+                    <kbd style={{ minWidth: 30, padding: '3px 9px', borderRadius: 7, textAlign: 'center', fontSize: '0.78rem', fontWeight: 800, fontFamily: 'inherit', color: c, background: `color-mix(in srgb, ${c} 14%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 45%, transparent)`, boxShadow: `0 2px 0 color-mix(in srgb, ${c} 35%, transparent)` }}>{t.shortcut || '–'}</kbd>
+                    <span style={{ fontSize: '0.88rem' }}>{t.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       )}
       {list && (
         <div role="dialog" data-shortcut-list aria-label="Keyboard shortcuts" onClick={() => setList(false)} style={{ position: 'fixed', inset: 0, zIndex: 9992, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 16 }}>

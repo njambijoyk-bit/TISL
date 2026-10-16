@@ -286,7 +286,13 @@ class BooksMasterController extends Controller
     public function updateType(Request $request, $id): JsonResponse
     {
         $t = VoucherType::findOrFail($id);
-        $d = $request->validate(['name' => 'sometimes|string|max:80', 'is_active' => 'sometimes|boolean', 'default_ledger_id' => 'sometimes|nullable|exists:ledgers,id']);
+        $d = $request->validate(['name' => 'sometimes|string|max:80', 'is_active' => 'sometimes|boolean', 'default_ledger_id' => 'sometimes|nullable|exists:ledgers,id', 'shortcut' => 'sometimes|nullable|string|size:1|regex:/^[A-Za-z]$/']);
+        if (array_key_exists('shortcut', $d)) {   // the letter Shift+V then picks this type; one letter, one type
+            $d['shortcut'] = ($d['shortcut'] ?? '') === '' ? null : strtoupper($d['shortcut']);
+            if ($d['shortcut'] !== null && VoucherType::where('shortcut', $d['shortcut'])->where('id', '!=', $t->id)->exists()) {
+                return response()->json(['message' => "The letter {$d['shortcut']} already opens another voucher type."], 422);
+            }
+        }
         $t->update($d);
 
         return response()->json(['message' => 'Voucher type updated', 'data' => $t]);

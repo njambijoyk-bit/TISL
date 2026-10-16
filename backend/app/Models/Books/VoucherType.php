@@ -12,7 +12,7 @@ class VoucherType extends Model
 
     protected $fillable = [
         'code', 'name', 'base_type', 'posts_accounts', 'stock_effect', 'has_items',
-        'party_kind', 'default_ledger_id', 'is_system', 'is_active',
+        'party_kind', 'default_ledger_id', 'is_system', 'is_active', 'shortcut',
     ];
 
     protected $casts = [

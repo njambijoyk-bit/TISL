@@ -116,6 +116,12 @@ function NumberingSection({ branches }) {
   const toggleType = async (t) => {
     try { await booksAPI.updateType(t.id, { is_active: !t.is_active }); load(); } catch (e) { toast.error(errMsg(e, 'Could not update the voucher type')); }
   };
+  const setLetter = async (t, raw) => {
+    const next = raw.trim().toUpperCase().slice(-1).replace(/[^A-Z]/g, '') || null;
+    if (next === (t.shortcut || null)) return;
+    try { await booksAPI.updateType(t.id, { shortcut: next }); toast.success(next ? `Shift+V then ${next} opens a new ${t.name}` : 'Shortcut removed'); } catch (e) { toast.error(errMsg(e, 'Could not save the shortcut')); }
+    load();
+  };
   const delSeries = async (s) => {
     if (!confirm(`Delete the series “${s.name}”?`)) return;
     try { await booksAPI.deleteSeries(s.id); toast.success('Series deleted'); load(); } catch (e) { toast.error(errMsg(e, 'Could not delete the series')); }
@@ -126,6 +132,11 @@ function NumberingSection({ branches }) {
       {types.map((t) => (
         <Section key={t.id} title={t.name} hint={`${t.base_type.replace('_', ' ')} · ${t.posts_accounts ? 'posts to the books' : 'no accounting entries'}${t.stock_effect !== 'none' ? ` · stock ${t.stock_effect}` : ''}`}
           action={<div style={{ display: 'flex', gap: 8 }}>
+            <label title="Shift+V on any Books page lists the voucher types; this letter opens a new one of this type. Leave empty for none." style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: colors.textFaint }}>
+              Shortcut
+              <input key={`${t.id}-${t.shortcut || ''}`} defaultValue={t.shortcut || ''} maxLength={2} aria-label={`Shortcut letter for ${t.name}`} onBlur={(e) => setLetter(t, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                style={{ width: 28, textAlign: 'center', textTransform: 'uppercase', fontWeight: 700, padding: '4px 0', borderRadius: 7, border: `1px solid ${colors.tint(0.2)}`, background: 'transparent', color: 'inherit', fontFamily: 'inherit' }} />
+            </label>
             <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => toggleType(t)}>{t.is_active ? 'Switch off' : 'Switch on'}</button>
             <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setForm({ type: t })}><Plus size={12} /> Series</button>
           </div>}>
