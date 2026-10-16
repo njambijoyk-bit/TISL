@@ -266,7 +266,7 @@ export const ADMIN_NAV = [
           { title: 'Teaching', path: '/admin/courses/teaching', icon: GraduationCap, color: '#10b981' },
           { title: 'Enrolments', path: '/admin/courses/enrolments', icon: Users, color: '#0ea5e9' },
           { title: 'Books', path: '/admin/courses/books', icon: BookMarked, color: '#e11d48' },
-          { title: 'Settings', path: '/admin/courses/settings', icon: Settings2, color: '#64748b' },
+          { title: 'Configuration', path: '/admin/courses/settings', icon: Settings2, color: '#64748b' },
         ],
       },
     ],
@@ -497,11 +497,12 @@ function withOpenTabs(item, user) {
 /** The tabs of a list this person may open (the same rule the sidebar and section tabs use). */
 export const openTabs = (tabs, user) => tabs.filter((t) => allowed(t, user, true));
 
-/** The tab F12 goes to from this page: the first one called Configuration in the same group of the menu, among those already open to this person. */
+/** The tab F12 goes to when the page has no Configuration button of its own: one called Configuration in this item, else in the same group of the menu, among those already open to this person. */
 export function configurationTab(nav, item) {
   const group = nav.find((g) => g.items.includes(item));
+  const named = (tabs) => tabs.find((t) => /^(?:[\p{L}'-]+ )?configuration$/iu.test(t.title));
 
-  return (group?.items ?? []).flatMap((i) => i.tabs ?? []).find((t) => /^configuration$/i.test(t.title)) ?? null;
+  return named(item?.tabs ?? []) ?? named((group?.items ?? []).flatMap((i) => i.tabs ?? [])) ?? null;
 }
 
 export const liveTabs = (item) => (item?.tabs ?? []).filter((t) => !t.soon);

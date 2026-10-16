@@ -15,7 +15,7 @@ export default function CoursesSettings() {
   const [s, setS] = useState(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => { coursesAPI.meta().then((m) => setS(m.settings)).catch((e) => toast.error(errMsg(e, 'Could not load'))); }, []);
-  if (!hasPermission(user, 'courses.manage')) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="Courses settings" /></div></AdminLayout>;
+  if (!hasPermission(user, 'courses.manage')) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="Courses configuration" /></div></AdminLayout>;
   const set = (k) => (e) => setS((x) => ({ ...x, [k]: e.target.value }));
   const save = async () => {
     setBusy(true);
@@ -29,7 +29,7 @@ export default function CoursesSettings() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 760, margin: '0 auto' }} data-testid="courses-settings">
         <CoursesNav />
-        <HubHeader title="Courses settings" description="When live links show, how long download links last, and how big a file can be." />
+        <HubHeader title="Courses configuration" description="When live links show, how long download links last, and how big a file can be." />
         {s && (
           <section style={{ ...card, padding: 16 }}>
             <FormStack>

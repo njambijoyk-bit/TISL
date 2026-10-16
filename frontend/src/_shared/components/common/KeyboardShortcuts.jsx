@@ -5,6 +5,7 @@ import useAuthStore from '../../store/authStore';
 import { isStaff, roleName } from '../../lib/roles';
 import { toggleAccountMenu } from '../../lib/accountShortcut';
 import useNavStore from '../../store/navStore';
+import { dialogOpen } from '../../lib/pageHotkeys';
 
 /** Where a key press must be left alone: typing in a box, or a screen that is full of scanner input. */
 const typing = (e) => {
@@ -12,8 +13,6 @@ const typing = (e) => {
 
   return !!t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
 };
-/** A dialog (other than our own list) is open: the page behind it is not the one being used. */
-const dialogOpen = () => !!document.querySelector('[role="dialog"]:not([data-shortcut-list]), dialog[open], [aria-modal="true"]');
 const quiet = (path) => /^\/(admin\/pos|pos\/|kiosk\/)/.test(path);
 
 const ACCENTS = ['#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
@@ -74,7 +73,7 @@ export default function KeyboardShortcuts() {
     ['Alt', 'A', 'Open your account menu'],
     ['Shift', 'A', 'Show this list'],
     ...Object.keys(byLetter).sort().map((k) => ['Shift', k, `Go to ${byLetter[k].label}`]),
-    ...(inAdmin ? [['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Ctrl', 'B', 'Show or hide the menu'], ['F12', '', 'Open the Configuration of this section']] : []),
+    ...(inAdmin ? [['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Ctrl', 'B', 'Show or hide the menu'], ['F12', '', 'Open the Configuration of this page or section'], ['F7', '', 'Open the Recycle bin of this page']] : []),
     ['Esc', '', 'Close whatever is open'],
   ];
   const signOut = () => { logout(); setAccount(false); navigate(inAdmin ? '/login' : '/'); };

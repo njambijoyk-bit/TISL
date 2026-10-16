@@ -20,7 +20,7 @@ import EventSettingsTab from '../../components/admin/EventSettingsTab';
 import RefundsTab from '../../components/admin/RefundsTab';
 import { whenText } from '../../lib/eventFormat';
 
-const BASE_TABS = [{ id: 'events', label: 'Events' }, { id: 'refunds', label: 'Refunds' }, { id: 'settings', label: 'Settings' }];
+const BASE_TABS = [{ id: 'events', label: 'Events' }, { id: 'refunds', label: 'Refunds' }, { id: 'settings', label: 'Configuration' }];
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.74rem' };
 
 /** Admin → Events: every event with what is sold, and the buttons to put it on sale, take it down or cancel it. */

@@ -6,7 +6,7 @@ import { CheckboxRow, Field, NumberInput, TextInput, FormGrid, FormStack } from 
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 
-/** Events → Settings: how long seats are kept for someone who has not paid, the reminder time, the income account tickets are booked to when an event names none, and a line for every ticket. */
+/** Events → Configuration: how long seats are kept for someone who has not paid, the reminder time, the income account tickets are booked to when an event names none, and a line for every ticket. */
 export default function EventSettingsTab({ canEdit }) {
   const [s, setS] = useState(null);
   const [ready, setReady] = useState(true);

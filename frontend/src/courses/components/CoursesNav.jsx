@@ -6,7 +6,7 @@ const PAGES = [
   { path: '/admin/courses/teaching', title: 'Teaching', icon: GraduationCap, color: '#10b981' },
   { path: '/admin/courses/enrolments', title: 'Enrolments', icon: Users, color: '#0ea5e9' },
   { path: '/admin/courses/books', title: 'Books', icon: BookMarked, color: '#e11d48' },
-  { path: '/admin/courses/settings', title: 'Settings', icon: Settings2, color: '#64748b' },
+  { path: '/admin/courses/settings', title: 'Configuration', icon: Settings2, color: '#64748b' },
 ];
 
 /** Courses › this page, and a row to move between the Courses pages. */

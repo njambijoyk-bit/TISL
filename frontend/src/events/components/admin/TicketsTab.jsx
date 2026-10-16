@@ -29,7 +29,7 @@ export default function TicketsTab({ event, onEvent, types, onTypes, sessions, r
               <CurrencySelect id="ev-cur" value={event.currency_id} onChange={(v) => onEvent({ currency_id: v })} disabled={readOnly} />
             </Field>
             <SalesAccountSelect kind="sales" scope="service" label="Income account" value={event.sales_ledger_id} disabled={readOnly}
-              onChange={(v) => onEvent({ sales_ledger_id: v })} hint="Leave empty to use the one in Events → Settings. The account decides the tax." />
+              onChange={(v) => onEvent({ sales_ledger_id: v })} hint="Leave empty to use the one in Events → Configuration. The account decides the tax." />
           </FormGrid>
         </div>
       )}

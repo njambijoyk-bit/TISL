@@ -8,6 +8,7 @@ import useCalculatorStore from '../../store/calculatorStore';
 import { AdminShellContext } from './adminShellContext';
 import useAuthStore from '../../store/authStore';
 import { visibleNav, findActive, configurationTab } from '../../navigation/adminNav';
+import { HOTKEYS, dialogOpen, pageHotkeyTarget } from '../../lib/pageHotkeys';
 
 /**
  * The frame around every /admin and /driver page (a layout route in App.jsx):
@@ -67,14 +68,14 @@ export default function AdminShell() {
     return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  // F12 anywhere in the admin: the Configuration page of the section you are in (any tab called Configuration), if you may open it
+  // F12 and F7 anywhere in the admin press the page's own Configuration / Recycle bin control (see pageHotkeys); F12 falls back to the section's Configuration tab
   const configPath = useMemo(() => configurationTab(nav, active.item)?.path, [nav, active.item]);
   useEffect(() => {
-    if (!configPath) return undefined;
     const onKey = (e) => {
-      if (e.key !== 'F12' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-      e.preventDefault();
-      navigate(configPath);
+      if (!HOTKEYS.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || dialogOpen()) return;
+      const target = pageHotkeyTarget(e.key);
+      if (target) { e.preventDefault(); target.click(); return; }
+      if (e.key === 'F12' && configPath) { e.preventDefault(); navigate(configPath); }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
