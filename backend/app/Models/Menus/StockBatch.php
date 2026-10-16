@@ -10,7 +10,7 @@ class StockBatch extends Model
 {
     protected $table = 'menus_stock_batches';
 
-    protected $fillable = ['item_id', 'location_id', 'batch_no', 'received_on', 'expiry_date', 'unit_cost', 'qty_in', 'qty_left', 'status', 'source', 'receipt_id'];
+    protected $fillable = ['item_id', 'location_id', 'batch_no', 'received_on', 'expiry_date', 'unit_cost', 'qty_in', 'qty_left', 'status', 'source', 'receipt_id', 'voucher_id', 'voucher_item_id'];
 
     protected $casts = ['received_on' => 'date', 'expiry_date' => 'date', 'unit_cost' => 'decimal:6', 'qty_in' => 'decimal:4', 'qty_left' => 'decimal:4'];
 

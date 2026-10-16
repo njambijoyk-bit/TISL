@@ -2,15 +2,17 @@
 
 namespace App\Services\Menus;
 
-use App\Models\Menus\Count;
-use App\Models\Menus\CountLine;
 use App\Models\Menus\IngredientItem;
 use App\Models\Menus\StockBatch;
 use App\Models\Menus\StockMove;
+use App\Models\StockCount;
+use App\Models\StockCountIngredientLine;
 use App\Models\User;
 use App\Services\Books\BooksException;
+use App\Services\Stock\StockCountService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Stock taking: the shelf is counted (in packs, the bigger unit or the base unit: 10 packs of Exe 2 kg is 20 kg) and the system is made to agree. A shortage takes stock off the lots
@@ -21,10 +23,6 @@ class StockCounts
 {
     private const EPS = 0.00005;
 
-    public function __construct(private IngredientUse $use)
-    {
-    }
-
     /** Everything physically on the shelf for a variant at a branch, whatever the lot's status. */
     public function expected(int $itemId, int $loc): float
     {
@@ -32,9 +30,11 @@ class StockCounts
     }
 
     /**
+     * A quick count from Menus: the lines typed are put on a core stock count (the same one the Purchases menu lists, with its Journal) and posted at once.
+     *
      * @param array{location_id: int, date?: ?string, note?: ?string, lines: array<int, array{item_id: int, quantity: float, unit?: string}>} $d
      */
-    public function post(array $d, ?User $by): Count
+    public function post(array $d, ?User $by): StockCount
     {
         $loc = (int) ($d['location_id'] ?? 0);
         if (! DB::table('locations')->where('id', $loc)->exists()) {
@@ -48,12 +48,14 @@ class StockCounts
         if (! $in) {
             throw new BooksException('Count at least one ingredient.');
         }
+        if (! self::countsInstalled()) {
+            throw new BooksException('Run database script 187_menus_core_stock.sql first: stock counts of ingredients need it.');
+        }
 
         return DB::transaction(function () use ($d, $by, $loc, $on, $in) {
-            $count = Count::create(['number' => 'TMP', 'location_id' => $loc, 'counted_on' => $on->toDateString(), 'note' => mb_substr(trim((string) ($d['note'] ?? '')), 0, 255) ?: null, 'created_by' => $by?->id]);
+            $count = StockCount::create(['number' => 'TMP', 'location_id' => $loc, 'status' => 'open', 'note' => mb_substr(trim((string) ($d['note'] ?? '')), 0, 255) ?: null, 'created_by' => $by?->id]);
             $count->update(['number' => 'SC-'.str_pad((string) $count->id, 6, '0', STR_PAD_LEFT)]);
             $seen = [];
-            $net = 0.0;
             foreach ($in as $n => $l) {
                 $row = $n + 1;
                 $item = IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->find((int) ($l['item_id'] ?? 0));
@@ -69,28 +71,37 @@ class StockCounts
                     throw new BooksException("Line {$row}: enter how much {$item->name} was counted (0 if there is none).");
                 }
                 $unit = (string) ($l['unit'] ?? 'base');
-                $counted = $item->toBase($unit, $typed);
-                $expected = $this->expected($item->id, $loc);
-                $var = round($counted - $expected, 4);
-                $value = $var < -self::EPS ? -$this->takeOff($item, $loc, -$var, $count, $on, $by) : ($var > self::EPS ? $this->putOn($item, $loc, $var, $count, $on, $by) : 0.0);
-                $net += $value;
-                CountLine::create(['count_id' => $count->id, 'item_id' => $item->id, 'input_qty' => $typed, 'input_unit' => $unit, 'expected' => $expected, 'counted' => $counted, 'variance' => $var, 'value_change' => round($value, 2)]);
+                StockCountIngredientLine::create(['count_id' => $count->id, 'item_id' => $item->id, 'expected_qty' => $this->expected($item->id, $loc), 'input_qty' => $typed, 'input_unit' => $unit,
+                    'counted_qty' => $item->toBase($unit, $typed), 'unit_cost' => $this->averageCost($item->id, $loc)]);
             }
-            $net = round($net, 2);
-            $journal = null;
-            if (abs($net) >= 0.01) {
-                $journal = $net < 0
-                    ? $this->use->book(FoodLedgers::waste(), FoodLedgers::inventory(), -$net, "Stock take {$count->number}: stock missing", $loc, $on, $by)
-                    : $this->use->book(FoodLedgers::inventory(), FoodLedgers::waste(), $net, "Stock take {$count->number}: stock found", $loc, $on, $by);
-            }
-            $count->update(['value_change' => $net, 'journal_id' => $journal?->id]);
+            app(StockCountService::class)->post($count, [], $by, $on);
 
-            return $count->load('lines');
+            return $count->fresh()->load('ingredientLines');
         });
     }
 
+    /** Are the tables a count of ingredients needs there (script 187)? */
+    public static function countsInstalled(): bool
+    {
+        return Schema::hasTable('stock_count_ingredient_lines') && Schema::hasColumn('stock_counts', 'ingredient_voucher_id');
+    }
+
+    /**
+     * Make the shelf agree with what was counted: a shortage comes off the lots first-expiring first, stock found becomes a lot at the last known cost.
+     *
+     * @return array{expected: float, variance: float, value: float} value is what the difference is worth: a loss is negative
+     */
+    public function adjust(IngredientItem $item, int $loc, float $countedBase, int $countId, Carbon $on, ?User $by): array
+    {
+        $expected = $this->expected($item->id, $loc);
+        $var = round($countedBase - $expected, 4);
+        $value = $var < -self::EPS ? -$this->takeOff($item, $loc, -$var, $countId, $on, $by) : ($var > self::EPS ? $this->putOn($item, $loc, $var, $countId, $on, $by) : 0.0);
+
+        return ['expected' => $expected, 'variance' => $var, 'value' => round($value, 2)];
+    }
+
     /** @return float what the missing stock was worth */
-    private function takeOff(IngredientItem $item, int $loc, float $qty, Count $count, Carbon $on, ?User $by): float
+    private function takeOff(IngredientItem $item, int $loc, float $qty, int $countId, Carbon $on, ?User $by): float
     {
         $cost = 0.0;
         $left = $qty;
@@ -102,8 +113,8 @@ class StockCounts
             }
             $take = round(min((float) $b->qty_left, $left), 4);
             StockBatch::whereKey($b->id)->update(['qty_left' => DB::raw('qty_left - '.number_format($take, 4, '.', ''))]);
-            StockMove::create(['item_id' => $item->id, 'location_id' => $loc, 'batch_id' => $b->id, 'kind' => 'count', 'quantity' => -$take, 'unit_cost' => $b->unit_cost, 'ref_type' => 'count', 'ref_id' => $count->id,
-                'note' => 'Stock take: missing', 'moved_on' => $on->toDateString(), 'created_by' => $by?->id]);
+            StockMove::create(['item_id' => $item->id, 'location_id' => $loc, 'batch_id' => $b->id, 'kind' => 'count', 'quantity' => -$take, 'unit_cost' => $b->unit_cost, 'ref_type' => 'count', 'ref_id' => $countId,
+                'note' => 'Stock count: missing', 'moved_on' => $on->toDateString(), 'created_by' => $by?->id]);
             $cost += $take * (float) $b->unit_cost;
             $left = round($left - $take, 4);
         }
@@ -112,14 +123,22 @@ class StockCounts
     }
 
     /** @return float what the stock found is worth */
-    private function putOn(IngredientItem $item, int $loc, float $qty, Count $count, Carbon $on, ?User $by): float
+    private function putOn(IngredientItem $item, int $loc, float $qty, int $countId, Carbon $on, ?User $by): float
     {
         $unitCost = $this->lastCost($item->id, $loc);
         $b = StockBatch::create(['item_id' => $item->id, 'location_id' => $loc, 'received_on' => $on->toDateString(), 'unit_cost' => $unitCost, 'qty_in' => $qty, 'qty_left' => $qty, 'status' => 'ok', 'source' => 'count']);
-        StockMove::create(['item_id' => $item->id, 'location_id' => $loc, 'batch_id' => $b->id, 'kind' => 'count', 'quantity' => $qty, 'unit_cost' => $unitCost, 'ref_type' => 'count', 'ref_id' => $count->id,
-            'note' => 'Stock take: found', 'moved_on' => $on->toDateString(), 'created_by' => $by?->id]);
+        StockMove::create(['item_id' => $item->id, 'location_id' => $loc, 'batch_id' => $b->id, 'kind' => 'count', 'quantity' => $qty, 'unit_cost' => $unitCost, 'ref_type' => 'count', 'ref_id' => $countId,
+            'note' => 'Stock count: found', 'moved_on' => $on->toDateString(), 'created_by' => $by?->id]);
 
         return $qty * $unitCost;
+    }
+
+    /** What one base unit is worth on the shelf now, on average (the last known cost when the shelf is empty). */
+    public function averageCost(int $itemId, int $loc): float
+    {
+        $row = StockBatch::where('item_id', $itemId)->where('location_id', $loc)->where('qty_left', '>', 0)->selectRaw('SUM(qty_left) as q, SUM(qty_left * unit_cost) as v')->first();
+
+        return $row && (float) $row->q > 0 ? round((float) $row->v / (float) $row->q, 6) : $this->lastCost($itemId, $loc);
     }
 
     /** What one base unit last cost: at this branch, else anywhere. */

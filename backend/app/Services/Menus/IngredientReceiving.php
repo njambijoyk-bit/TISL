@@ -9,7 +9,6 @@ use App\Models\Location;
 use App\Models\Menus\Ingredient;
 use App\Models\Menus\IngredientItem;
 use App\Models\Menus\Receipt;
-use App\Models\Menus\ReceiptLine;
 use App\Models\User;
 use App\Services\Books\BooksException;
 use App\Services\Books\VoucherService;
@@ -17,11 +16,10 @@ use App\Services\CurrencyConversionService;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Receiving ingredients: the supplier's goods in, as a Purchase voucher in the books and batches on Menus' own shelf.
- *   The books:  Dr Food Ingredients Inventory (and input tax)   Cr the supplier (a ledger under Sundry Creditors), or the cash or bank account when paid at once.
- *   The shelf:  one batch per line, in the ingredient's base unit, costed per base unit (before tax).
- * The Purchase voucher carries plain lines posted to the inventory account, so it is an ordinary supplier bill for payments, ageing and tax; it names its receipt, so it can only be
- * cancelled (which takes the stock back, if none of it has been used) and not edited. Opening stock is the same shelf with a Journal against the opening balance account.
+ * Receiving ingredients: the supplier's goods in, as a Purchase voucher whose lines are the ingredient variants (item = the ingredient, variant = the variant, quantity in packs, the bigger
+ * unit or the base unit, the rate the price of one of those). The books' own hooks put the lots on the kitchen's shelf (IngredientVoucherStock) and book the stock to Food Ingredients
+ * Inventory, so a delivery made here and one typed on the Purchases screen are the same voucher. Opening stock is one Opening stock voucher for each ingredient variant, balanced
+ * against the opening balance account like a product's. Cancelling a voucher takes its lots back, refused when some has been used.
  */
 class IngredientReceiving
 {
@@ -33,7 +31,7 @@ class IngredientReceiving
      * @param array{location_id?: ?int, date?: ?string, supplier_ledger_id?: ?int, paid_ledger_id?: ?int, payment_method_id?: ?int, supplier_invoice_no?: ?string, due_date?: ?string, narration?: ?string,
      *              lines: array<int, array{item_id: int, quantity: float, unit?: string, rate: float, tax_rate_id?: ?int, batch_no?: ?string, expiry_date?: ?string}>} $d
      */
-    public function receive(array $d, ?User $by): Receipt
+    public function receive(array $d, ?User $by): Voucher
     {
         $type = VoucherType::byBase(VoucherType::PURCHASE) ?? throw new BooksException('The Purchase voucher type is switched off.');
         $location = $this->location($d);
@@ -41,61 +39,51 @@ class IngredientReceiving
         if (empty($d['supplier_ledger_id']) && empty($d['paid_ledger_id']) && empty($d['payment_method_id'])) {
             throw new BooksException('Choose the supplier, or the cash or bank account it was paid from.');
         }
-        $inventory = FoodLedgers::inventory();
 
-        return DB::transaction(function () use ($d, $by, $type, $location, $lines, $inventory) {
-            $date = $d['date'] ?? today()->toDateString();
-            $voucher = $this->vouchers->create(array_filter([
-                'voucher_type_id' => $type->id, 'date' => $date, 'location_id' => $location, 'party_ledger_id' => $d['supplier_ledger_id'] ?? null,
-                'paid_ledger_id' => $d['paid_ledger_id'] ?? null, 'payment_method_id' => $d['payment_method_id'] ?? null, 'supplier_invoice_no' => $d['supplier_invoice_no'] ?? null,
-                'due_date' => $d['due_date'] ?? null, 'narration' => $d['narration'] ?? 'Ingredients received', 'moves_stock' => false,   // the kitchen's own shelf holds this stock, not the product stock
-                'lines' => array_map(fn ($l) => array_filter([
-                    'type' => 'custom', 'description' => $l['label'], 'quantity' => $l['input_qty'], 'rate' => $l['rate'], 'ledger_id' => $inventory, 'tax_rate_id' => $l['tax_rate_id'],
-                ], fn ($v) => $v !== null), $lines),
-            ], fn ($v) => $v !== null), $by);
-
-            $receipt = Receipt::create([
-                'kind' => 'purchase', 'location_id' => $location, 'supplier_ledger_id' => $d['supplier_ledger_id'] ?? null, 'supplier_invoice_no' => $d['supplier_invoice_no'] ?? null, 'receipt_date' => $date,
-                'voucher_id' => $voucher->id, 'status' => 'posted', 'narration' => $d['narration'] ?? null, 'subtotal' => (float) $voucher->subtotal, 'tax_total' => (float) $voucher->tax_total,
-                'total' => (float) $voucher->total_amount, 'created_by' => $by?->id,
-            ]);
-            $this->shelve($receipt, $lines, $date, 'purchase', $by, $voucher);
-            $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menus_receipt_id' => $receipt->id])]);
-
-            return $receipt->load('lines');
-        });
+        return DB::transaction(fn () => $this->vouchers->create(array_filter([
+            'voucher_type_id' => $type->id, 'date' => $d['date'] ?? today()->toDateString(), 'location_id' => $location, 'party_ledger_id' => $d['supplier_ledger_id'] ?? null,
+            'paid_ledger_id' => $d['paid_ledger_id'] ?? null, 'payment_method_id' => $d['payment_method_id'] ?? null, 'supplier_invoice_no' => $d['supplier_invoice_no'] ?? null,
+            'due_date' => $d['due_date'] ?? null, 'narration' => $d['narration'] ?? 'Ingredients received',
+            'lines' => array_map(fn ($l) => $this->voucherLine($l), $lines),
+        ], fn ($v) => $v !== null), $by));
     }
 
     /**
-     * Stock a kitchen starts with: the same shelf, and a Journal Dr Food Ingredients Inventory, Cr the opening balance account.
+     * Stock a kitchen starts with: one Opening stock voucher for each ingredient variant, balanced against the opening balance account, as products have. All of them or none.
      *
      * @param array{location_id?: ?int, date?: ?string, narration?: ?string, lines: array<int, array{item_id: int, quantity: float, unit?: string, rate: float, batch_no?: ?string, expiry_date?: ?string}>} $d
+     * @return array<int, Voucher>
      */
-    public function opening(array $d, ?User $by): Receipt
+    public function opening(array $d, ?User $by): array
     {
-        $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
+        $type = VoucherType::byBase(VoucherType::OPENING_STOCK) ?? throw new BooksException('The Opening stock voucher type is not set up yet: run script 24_purchase_batches_and_opening_stock.sql.');
         $location = $this->location($d);
         $lines = $this->lines($d['lines'] ?? [], false);
-        $against = AccountingSetting::current()->opening_balance_ledger_id ?? throw new BooksException('Choose the opening balance account under Books, Settings, Default ledgers first: opening stock is booked against it.');
-        $inventory = FoodLedgers::inventory();
+        $seen = [];
+        foreach ($lines as $l) {
+            if (isset($seen[$l['item']->id])) {
+                throw new BooksException("{$l['item']->name} is listed twice. Add the two together: each variant gets one opening stock voucher.");
+            }
+            $seen[$l['item']->id] = true;
+        }
+        AccountingSetting::current()->opening_balance_ledger_id ?? throw new BooksException('Choose the opening balance account under Books, Settings, Default ledgers first: opening stock is balanced against it.');
 
-        return DB::transaction(function () use ($d, $by, $type, $location, $lines, $against, $inventory) {
+        return DB::transaction(function () use ($d, $by, $type, $location, $lines) {
             $date = $d['date'] ?? today()->toDateString();
-            $total = round(array_sum(array_column($lines, 'amount')), 2);
-            $voucher = $this->vouchers->create([
-                'voucher_type_id' => $type->id, 'date' => $date, 'currency_id' => $this->money->getBaseCurrency()->id, 'location_id' => $location,
-                'narration' => $d['narration'] ?? 'Opening stock of ingredients',
-                'entries' => [['ledger_id' => $inventory, 'side' => 'D', 'amount' => $total], ['ledger_id' => $against, 'side' => 'C', 'amount' => $total]],
-            ], $by);
-            $receipt = Receipt::create([
-                'kind' => 'opening', 'location_id' => $location, 'receipt_date' => $date, 'voucher_id' => $voucher->id, 'status' => 'posted', 'narration' => $d['narration'] ?? null,
-                'subtotal' => $total, 'tax_total' => 0, 'total' => $total, 'created_by' => $by?->id,
-            ]);
-            $this->shelve($receipt, $lines, $date, 'opening', $by);
-            $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menus_receipt_id' => $receipt->id])]);
 
-            return $receipt->load('lines');
+            return array_map(fn ($l) => $this->vouchers->create([
+                'voucher_type_id' => $type->id, 'date' => $date, 'location_id' => $location, 'narration' => $d['narration'] ?? 'Opening stock of ingredients', 'lines' => [$this->voucherLine($l)],
+            ], $by), $lines);
         });
+    }
+
+    /** One line as the books take it. */
+    private function voucherLine(array $l): array
+    {
+        return array_filter([
+            'type' => 'ingredient', 'ingredient_item_id' => $l['item']->id, 'quantity' => $l['input_qty'], 'unit' => $l['unit'], 'rate' => $l['rate'], 'tax_rate_id' => $l['tax_rate_id'],
+            'batch_no' => $l['batch_no'], 'expiry_date' => $l['expiry_date'],
+        ], fn ($v) => $v !== null);
     }
 
     /** The books are cancelling the receipt's voucher: take its stock off the shelf first (refused when some has been used), and mark the receipt. Call inside the cancel's transaction. */
@@ -109,7 +97,15 @@ class IngredientReceiving
         $receipt->update(['status' => 'cancelled', 'cancelled_at' => now()]);
     }
 
-    /** Cancel a receipt from Menus: the voucher is cancelled in the books, which takes the stock back. */
+    /** Cancel a voucher that received ingredients: the books cancel it, which takes the lots back off the shelf (refused when some has been used). */
+    public function cancelVoucher(Voucher $voucher, ?string $reason, ?User $by): Voucher
+    {
+        DB::transaction(fn () => $this->vouchers->cancel($voucher, $reason ?: 'Cancelled in Menus', $by));
+
+        return $voucher->fresh();
+    }
+
+    /** Cancel an older receipt (made before ingredients had their own voucher lines): the voucher is cancelled in the books, which takes the stock back. */
     public function cancel(Receipt $receipt, ?string $reason, ?User $by): Receipt
     {
         if ($receipt->status === 'cancelled') {
@@ -192,20 +188,5 @@ class IngredientReceiving
         $ing = $item->ingredient;
 
         return match ($unit) { 'pack' => $qty == 1.0 ? 'pack' : 'packs', 'alt' => $ing->altUnit?->code ?? '', default => $ing->baseUnit?->code ?? '' };
-    }
-
-    /** Make the batches and the receipt lines. */
-    private function shelve(Receipt $receipt, array $lines, string $date, string $source, ?User $by, ?Voucher $voucher = null): void
-    {
-        $taxes = $voucher ? $voucher->items()->orderBy('line_no')->pluck('tax_amount')->map(fn ($t) => (float) $t)->values()->all() : [];
-        foreach (array_values($lines) as $i => $l) {
-            $batch = $this->stock->receive($l['item'], (int) $receipt->location_id, $l['qty_base'], $l['cost_base'], [
-                'batch_no' => $l['batch_no'], 'expiry_date' => $l['expiry_date'], 'date' => $date, 'source' => $source, 'receipt_id' => $receipt->id, 'voucher_id' => $receipt->voucher_id, 'by' => $by?->id,
-            ]);
-            ReceiptLine::create([
-                'receipt_id' => $receipt->id, 'item_id' => $l['item']->id, 'input_qty' => $l['input_qty'], 'input_unit' => $l['unit'], 'qty_base' => $l['qty_base'], 'rate' => $l['rate'],
-                'amount' => $l['amount'], 'tax_rate_id' => $l['tax_rate_id'], 'tax_amount' => $taxes[$i] ?? 0, 'batch_id' => $batch->id,
-            ]);
-        }
     }
 }

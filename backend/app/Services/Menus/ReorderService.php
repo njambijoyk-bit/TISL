@@ -114,7 +114,12 @@ class ReorderService
     /** Who this was last bought from. @return array{0: ?int, 1: ?string} */
     public function supplier(int $itemId): array
     {
-        $id = DB::table('menus_stock_batches as b')->join('menus_receipts as r', 'r.id', '=', 'b.receipt_id')->where('b.item_id', $itemId)->where('r.status', 'posted')->whereNotNull('r.supplier_ledger_id')
+        $id = null;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('menus_stock_batches', 'voucher_id')) {
+            $id = DB::table('menus_stock_batches as b')->join('vouchers as v', 'v.id', '=', 'b.voucher_id')->where('b.item_id', $itemId)->where('v.status', '!=', 'cancelled')->whereNotNull('v.party_ledger_id')
+                ->orderByDesc('b.id')->value('v.party_ledger_id');
+        }
+        $id ??= DB::table('menus_stock_batches as b')->join('menus_receipts as r', 'r.id', '=', 'b.receipt_id')->where('b.item_id', $itemId)->where('r.status', 'posted')->whereNotNull('r.supplier_ledger_id')
             ->orderByDesc('b.id')->value('r.supplier_ledger_id');
 
         return $id ? [(int) $id, DB::table('ledgers')->where('id', $id)->value('name')] : [null, null];

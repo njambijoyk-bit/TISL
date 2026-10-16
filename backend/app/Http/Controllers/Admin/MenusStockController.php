@@ -58,19 +58,34 @@ class MenusStockController extends Controller
         ]);
     }
 
+    /** The vouchers that brought ingredients in (purchases, goods received, opening stock), newest first, with any older receipts made before ingredients had voucher lines of their own. */
     public function receipts(Request $request): JsonResponse
     {
         if (! IngredientStock::installed()) {
             return response()->json(['receipts' => []]);
         }
-        $rows = Receipt::when($request->integer('location_id'), fn ($q, $l) => $q->where('location_id', $l))->orderByDesc('receipt_date')->orderByDesc('id')->limit(60)->get();
-        $numbers = Voucher::whereIn('id', $rows->pluck('voucher_id')->filter())->pluck('voucher_number', 'id');
-        $suppliers = Ledger::whereIn('id', $rows->pluck('supplier_ledger_id')->filter())->pluck('name', 'id');
+        $loc = $request->integer('location_id');
+        $out = [];
+        if (\Illuminate\Support\Facades\Schema::hasColumn('voucher_items', 'ingredient_item_id')) {
+            $vouchers = Voucher::with('type')->whereIn('id', DB::table('voucher_items')->where('item_type', 'ingredient')->select('voucher_id'))->when($loc, fn ($q) => $q->where('location_id', $loc))
+                ->orderByDesc('date')->orderByDesc('id')->limit(60)->get();
+            $suppliers = Ledger::whereIn('id', $vouchers->pluck('party_ledger_id')->filter())->pluck('name', 'id');
+            foreach ($vouchers as $v) {
+                $out[] = ['id' => $v->id, 'legacy' => false, 'kind' => $v->type?->base_type === 'opening_stock' ? 'opening' : ($v->type?->base_type === 'receipt_note' ? 'goods' : 'purchase'), 'date' => $v->date?->toDateString(), 'voucher_id' => $v->id,
+                    'voucher_number' => $v->voucher_number, 'supplier' => $suppliers[$v->party_ledger_id] ?? null, 'supplier_invoice_no' => $v->supplier_invoice_no, 'total' => (float) $v->total_amount,
+                    'status' => $v->status === Voucher::CANCELLED ? 'cancelled' : 'posted', 'narration' => $v->narration];
+            }
+        }
+        $old = Receipt::when($loc, fn ($q) => $q->where('location_id', $loc))->orderByDesc('receipt_date')->orderByDesc('id')->limit(60)->get();
+        $numbers = Voucher::whereIn('id', $old->pluck('voucher_id')->filter())->pluck('voucher_number', 'id');
+        $oldSuppliers = Ledger::whereIn('id', $old->pluck('supplier_ledger_id')->filter())->pluck('name', 'id');
+        foreach ($old as $r) {
+            $out[] = ['id' => $r->id, 'legacy' => true, 'kind' => $r->kind, 'date' => $r->receipt_date?->toDateString(), 'voucher_id' => $r->voucher_id, 'voucher_number' => $numbers[$r->voucher_id] ?? null,
+                'supplier' => $oldSuppliers[$r->supplier_ledger_id] ?? null, 'supplier_invoice_no' => $r->supplier_invoice_no, 'total' => (float) $r->total, 'status' => $r->status, 'narration' => $r->narration];
+        }
+        usort($out, fn ($a, $b) => [$b['date'], $b['id']] <=> [$a['date'], $a['id']]);
 
-        return response()->json(['receipts' => $rows->map(fn (Receipt $r) => [
-            'id' => $r->id, 'kind' => $r->kind, 'date' => $r->receipt_date?->toDateString(), 'voucher_id' => $r->voucher_id, 'voucher_number' => $numbers[$r->voucher_id] ?? null,
-            'supplier' => $suppliers[$r->supplier_ledger_id] ?? null, 'supplier_invoice_no' => $r->supplier_invoice_no, 'total' => (float) $r->total, 'status' => $r->status, 'narration' => $r->narration,
-        ])->values()]);
+        return response()->json(['receipts' => array_slice($out, 0, 60)]);
     }
 
     /** Body: location_id, date, supplier_ledger_id | paid_ledger_id | payment_method_id, supplier_invoice_no?, due_date?, narration?, lines[{item_id, quantity, unit: pack|alt|base, rate, tax_rate_id?, batch_no?, expiry_date?}]. */
@@ -82,9 +97,9 @@ class MenusStockController extends Controller
         ]);
 
         return $this->guard(function () use ($d, $request) {
-            $r = $this->receiving->receive($d, $request->user());
+            $v = $this->receiving->receive($d, $request->user());
 
-            return response()->json(['message' => 'Received. The supplier bill is in the books and the stock is on the shelf.', 'receipt_id' => $r->id, 'voucher_id' => $r->voucher_id], 201);
+            return response()->json(['message' => 'Received. The supplier bill is in the books and the stock is on the shelf.', 'voucher_id' => $v->id], 201);
         });
     }
 
@@ -93,9 +108,10 @@ class MenusStockController extends Controller
         $d = $request->validate($this->rules());
 
         return $this->guard(function () use ($d, $request) {
-            $r = $this->receiving->opening($d, $request->user());
+            $made = $this->receiving->opening($d, $request->user());
+            $n = count($made);
 
-            return response()->json(['message' => 'Opening stock recorded.', 'receipt_id' => $r->id, 'voucher_id' => $r->voucher_id], 201);
+            return response()->json(['message' => $n === 1 ? 'Opening stock recorded: 1 Opening stock voucher.' : "Opening stock recorded: {$n} Opening stock vouchers, one for each ingredient variant.", 'voucher_ids' => array_map(fn ($v) => $v->id, $made)], 201);
         });
     }
 
@@ -114,12 +130,32 @@ class MenusStockController extends Controller
             return response()->json(['counts' => [], 'transfers' => [], 'ready' => false]);
         }
         $loc = $request->integer('location_id');
-        $counts = \App\Models\Menus\Count::when($loc, fn ($q) => $q->where('location_id', $loc))->orderByDesc('counted_on')->orderByDesc('id')->limit(30)->get();
-        $transfers = \App\Models\Menus\Transfer::when($loc, fn ($q) => $q->where('from_location_id', $loc)->orWhere('to_location_id', $loc))->orderByDesc('transferred_on')->orderByDesc('id')->limit(30)->get();
+        $out = [];
+        if (StockCounts::countsInstalled()) {
+            foreach (\App\Models\StockCount::whereIn('id', DB::table('stock_count_ingredient_lines')->select('count_id'))->when($loc, fn ($q) => $q->where('location_id', $loc))->orderByDesc('id')->limit(30)->get() as $c) {
+                $out[] = ['id' => $c->id, 'number' => $c->number, 'date' => ($c->posted_at ?? $c->created_at)?->toDateString(), 'location_id' => $c->location_id, 'status' => $c->status,
+                    'value_change' => (float) DB::table('stock_count_ingredient_lines')->where('count_id', $c->id)->sum('value_change'), 'note' => $c->note,
+                    'lines' => DB::table('stock_count_ingredient_lines')->where('count_id', $c->id)->count(), 'voucher_id' => $c->ingredient_voucher_id, 'legacy' => false];
+            }
+        }
+        foreach (\App\Models\Menus\Count::when($loc, fn ($q) => $q->where('location_id', $loc))->orderByDesc('counted_on')->orderByDesc('id')->limit(30)->get() as $c) {
+            $out[] = ['id' => $c->id, 'number' => $c->number, 'date' => $c->counted_on->toDateString(), 'location_id' => $c->location_id, 'status' => 'posted', 'value_change' => (float) $c->value_change, 'note' => $c->note,
+                'lines' => $c->lines()->count(), 'voucher_id' => $c->journal_id, 'legacy' => true];
+        }
+        usort($out, fn ($a, $b) => [$b['date'], $b['id']] <=> [$a['date'], $a['id']]);
+        $moves = [];
+        if (StockTransfers::installed()) {
+            foreach (\App\Models\StockTransfer::whereIn('id', DB::table('stock_transfer_ingredient_lines')->select('transfer_id'))->when($loc, fn ($q) => $q->where('from_location_id', $loc)->orWhere('to_location_id', $loc))->orderByDesc('id')->limit(30)->get() as $t) {
+                $moves[] = ['id' => $t->id, 'number' => $t->number, 'date' => ($t->sent_at ?? $t->created_at)?->toDateString(), 'from' => $t->from_location_id, 'to' => $t->to_location_id, 'note' => $t->note, 'status' => $t->status,
+                    'lines' => DB::table('stock_transfer_ingredient_lines')->where('transfer_id', $t->id)->count(), 'legacy' => false];
+            }
+        }
+        foreach (\App\Models\Menus\Transfer::when($loc, fn ($q) => $q->where('from_location_id', $loc)->orWhere('to_location_id', $loc))->orderByDesc('transferred_on')->orderByDesc('id')->limit(30)->get() as $t) {
+            $moves[] = ['id' => $t->id, 'number' => $t->number, 'date' => $t->transferred_on->toDateString(), 'from' => $t->from_location_id, 'to' => $t->to_location_id, 'note' => $t->note, 'status' => 'received', 'lines' => $t->lines()->count(), 'legacy' => true];
+        }
+        usort($moves, fn ($a, $b) => [$b['date'], $b['id']] <=> [$a['date'], $a['id']]);
 
-        return response()->json(['ready' => true,
-            'counts' => $counts->map(fn ($c) => ['id' => $c->id, 'number' => $c->number, 'date' => $c->counted_on->toDateString(), 'location_id' => $c->location_id, 'value_change' => (float) $c->value_change, 'note' => $c->note, 'lines' => $c->lines()->count()])->values(),
-            'transfers' => $transfers->map(fn ($t) => ['id' => $t->id, 'number' => $t->number, 'date' => $t->transferred_on->toDateString(), 'from' => $t->from_location_id, 'to' => $t->to_location_id, 'note' => $t->note, 'lines' => $t->lines()->count()])->values()]);
+        return response()->json(['ready' => true, 'counts' => array_slice($out, 0, 30), 'transfers' => array_slice($moves, 0, 30)]);
     }
 
     /** Body: location_id, date?, note?, lines[{item_id, quantity, unit: pack|alt|base}] (only what was counted). */
@@ -131,7 +167,7 @@ class MenusStockController extends Controller
         return $this->guard(function () use ($d, $request) {
             $c = $this->counts->post($d, $request->user());
 
-            return response()->json(['message' => 'Stock take recorded.', 'id' => $c->id, 'number' => $c->number, 'value_change' => (float) $c->value_change], 201);
+            return response()->json(['message' => 'Stock count recorded.', 'id' => $c->id, 'number' => $c->number, 'value_change' => (float) $c->ingredientLines->sum('value_change'), 'voucher_id' => $c->ingredient_voucher_id], 201);
         });
     }
 
@@ -150,10 +186,14 @@ class MenusStockController extends Controller
 
     public function cancel(Request $request, int $id): JsonResponse
     {
-        $d = $request->validate(['reason' => 'nullable|string|max:255']);
+        $d = $request->validate(['reason' => 'nullable|string|max:255', 'legacy' => 'nullable|boolean']);
 
         return $this->guard(function () use ($d, $request, $id) {
-            $this->receiving->cancel(Receipt::findOrFail($id), $d['reason'] ?? null, $request->user());
+            if (! empty($d['legacy'])) {
+                $this->receiving->cancel(Receipt::findOrFail($id), $d['reason'] ?? null, $request->user());
+            } else {
+                $this->receiving->cancelVoucher(Voucher::findOrFail($id), $d['reason'] ?? null, $request->user());
+            }
 
             return response()->json(['message' => 'Receipt cancelled. The stock is off the shelf and the bill is cancelled in the books.']);
         });

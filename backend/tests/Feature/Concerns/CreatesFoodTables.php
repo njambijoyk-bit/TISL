@@ -25,6 +25,28 @@ trait CreatesFoodTables
         $this->runSqlScripts('181_menus_ingredients_own.sql', '182_menus_ingredient_stock.sql', '183_menus_recipes_own.sql', '184_menus_dishes_own.sql', '185_menus_operations_own.sql');
         // the columns script 185 adds with its helper procedure (the test runner only reads CREATE TABLE and plain ADD COLUMN)
         Schema::table('menus_ingredient_items', fn ($t) => $t->decimal('reorder_level', 18, 4)->nullable());
+        // the core stock count (script 30) and script 187's tables and columns for ingredients on it
+        if (! Schema::hasTable('stock_counts')) {
+            Schema::create('stock_counts', function ($t) {
+                $t->id(); $t->string('number', 30)->nullable(); $t->unsignedBigInteger('location_id'); $t->string('status', 10)->default('open'); $t->string('note')->nullable(); $t->unsignedBigInteger('created_by')->nullable();
+                $t->unsignedBigInteger('posted_by')->nullable(); $t->dateTime('posted_at')->nullable(); $t->unsignedBigInteger('voucher_id')->nullable(); $t->unsignedBigInteger('ingredient_voucher_id')->nullable(); $t->timestamps();
+            });
+            Schema::create('stock_count_lines', function ($t) {
+                $t->id(); $t->unsignedBigInteger('count_id'); $t->unsignedBigInteger('variant_id'); $t->unsignedBigInteger('batch_id'); $t->decimal('expected_qty', 18, 4); $t->decimal('counted_qty', 18, 4)->nullable(); $t->decimal('unit_cost', 18, 4)->default(0);
+            });
+        }
+        if (! Schema::hasTable('stock_transfers')) {
+            Schema::create('stock_transfers', function ($t) {
+                $t->id(); $t->string('number', 30)->nullable(); $t->unsignedBigInteger('from_location_id'); $t->unsignedBigInteger('to_location_id'); $t->string('status', 12)->default('in_transit'); $t->string('note')->nullable();
+                $t->unsignedBigInteger('sent_by')->nullable(); $t->dateTime('sent_at')->nullable(); $t->unsignedBigInteger('received_by')->nullable(); $t->dateTime('received_at')->nullable(); $t->timestamps();
+            });
+            Schema::create('stock_transfer_lines', function ($t) {
+                $t->id(); $t->unsignedBigInteger('transfer_id'); $t->unsignedBigInteger('variant_id'); $t->unsignedBigInteger('batch_id'); $t->decimal('quantity', 18, 4); $t->decimal('received_qty', 18, 4)->nullable(); $t->decimal('unit_cost', 18, 4)->default(0);
+            });
+        }
+        $this->runSqlScripts('187_menus_core_stock.sql');
+        // script 187's columns on the lots (the books' own tables are made by the tests that need them)
+        Schema::table('menus_stock_batches', function ($t) { $t->unsignedBigInteger('voucher_id')->nullable(); $t->unsignedBigInteger('voucher_item_id')->nullable(); });
         Schema::create('menus_waste', function ($t) {
             $t->id(); $t->unsignedBigInteger('location_id'); $t->unsignedBigInteger('variant_id')->nullable(); $t->unsignedBigInteger('item_id')->nullable(); $t->unsignedBigInteger('dish_id')->nullable(); $t->decimal('quantity', 18, 4);
             $t->decimal('cost', 14, 2)->default(0); $t->string('kind', 12); $t->string('note', 200)->nullable(); $t->json('voucher_ids')->nullable(); $t->unsignedBigInteger('user_id')->nullable(); $t->date('wasted_on');

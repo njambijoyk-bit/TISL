@@ -233,7 +233,7 @@ class StockReportService
     {
         return ['sales' => 'Sale', 'cash_sale' => 'Cash sale', 'delivery_note' => 'Delivery note', 'credit_note' => 'Customer return', 'purchase' => 'Purchase', 'receipt_note' => 'Goods received',
             'debit_note' => 'Returned to supplier', 'opening_stock' => 'Opening stock', 'write_off' => 'Write-off', 'transfer_out' => 'Transfer out', 'transfer_in' => 'Transfer in',
-            'count_loss' => 'Count shortage', 'count_gain' => 'Count surplus', 'production_use' => 'Used in production', 'production_out' => 'Produced', 'job_issue' => 'Issued to a job', 'job_return' => 'Returned from a job'];
+            'count_loss' => 'Count shortage', 'count_gain' => 'Count surplus', 'production_use' => 'Used in production', 'production_out' => 'Produced', 'ingredient_use' => 'Used in dishes', 'reversal' => 'Taken back', 'job_issue' => 'Issued to a job', 'job_return' => 'Returned from a job'];
     }
 
     /** The Stock Query card for one item. */
@@ -246,7 +246,8 @@ class StockReportService
         $val = round((float) $tot->v, 2);
         [$t, $i] = $this->cols();
         $batchTbl = StockMovement::hasItemColumns('stock_batches');
-        $lastCost = DB::table('stock_batches as sb')->when($batchTbl, fn ($s) => $s->where('sb.item_type', $type)->where('sb.item_id', $id), fn ($s) => $s->where('sb.variant_id', $id))
+        $owner = StockItemRegistry::get($type);   // a kind of item that keeps its own lots (ingredients) says where it is and what it last cost
+        $lastCost = $owner && method_exists($owner, 'lastCost') ? $owner->lastCost($id) : DB::table('stock_batches as sb')->when($batchTbl, fn ($s) => $s->where('sb.item_type', $type)->where('sb.item_id', $id), fn ($s) => $s->where('sb.variant_id', $id))
             ->orderByDesc('sb.id')->value('sb.unit_cost');
         $cost = abs($qty) > 0.00005 ? round($val / $qty, 4) : ($lastCost !== null ? round((float) $lastCost, 4) : null);
 
@@ -269,11 +270,13 @@ class StockReportService
                     'amount' => $amount !== null ? round($amount, 2) : null, 'voucher_id' => $r->voucher_id ? (int) $r->voucher_id : null, 'voucher_number' => $r->voucher_number];
             })->values()->all();
 
-        $places = DB::table('stock_batch_balances as b')->join('stock_batches as sb', 'sb.id', '=', 'b.batch_id')->join('locations as lo', 'lo.id', '=', 'b.location_id')
+        $places = $owner && method_exists($owner, 'places') ? $owner->places($id, $loc) : (function () use ($batchTbl, $type, $id, $loc) {
+            return DB::table('stock_batch_balances as b')->join('stock_batches as sb', 'sb.id', '=', 'b.batch_id')->join('locations as lo', 'lo.id', '=', 'b.location_id')
             ->when($batchTbl, fn ($s) => $s->where('sb.item_type', $type)->where('sb.item_id', $id), fn ($s) => $s->where('sb.variant_id', $id))
             ->when($loc, fn ($s) => $s->where('b.location_id', $loc))->when(true, fn ($s) => app(\App\Services\Access\BranchFilter::class)->apply($s, 'b.location_id', 'stock', 'reports'))->where('b.quantity', '!=', 0)->orderBy('lo.name')->orderBy('sb.received_at')
             ->get(['lo.name as location', 'sb.batch_no', 'sb.expiry_date', 'sb.status', 'b.quantity'])
             ->map(fn ($r) => ['location' => $r->location, 'batch_no' => $r->batch_no, 'expiry_date' => $r->expiry_date ? Carbon::parse($r->expiry_date)->toDateString() : null, 'status' => $r->status, 'quantity' => (float) $r->quantity])->values()->all();
+        })();
 
         $same = [];
         if ($item['group']) {

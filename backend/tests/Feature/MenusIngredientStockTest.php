@@ -6,7 +6,6 @@ use App\Http\Controllers\Admin\MenusStockController;
 use App\Models\Books\Voucher;
 use App\Models\Menus\Ingredient;
 use App\Models\Menus\IngredientItem;
-use App\Models\Menus\Receipt;
 use App\Models\Menus\StockBatch;
 use App\Models\Menus\StockMove;
 use App\Services\Books\BooksException;
@@ -20,61 +19,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
-/** Menus stock, step 2 (script 182): ingredients come in as a supplier bill in the books and batches on Menus' own shelf, in packs, the alternate unit or the base unit. */
+/** Menus stock (scripts 182 and 187): ingredients come in on a Purchase voucher (one line per variant) and as lots on Menus' own shelf, in packs, the alternate unit or the base unit. */
 class MenusIngredientStockTest extends TestCase
 {
-    use Concerns\CreatesMenusTables, Concerns\RunsSqlScripts;
+    use Concerns\CreatesIngredientWorld;
 
-    private array $posted = [];
-    private int $inventory;
-    private int $supplier;
     private int $exe;
     private int $pembe;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->createMenusTables();
-        $this->runSqlScripts('181_menus_ingredients_own.sql', '182_menus_ingredient_stock.sql');
-        Schema::create('ledger_groups', function ($t) { $t->id(); $t->unsignedBigInteger('parent_id')->nullable(); $t->string('name'); $t->string('nature')->nullable(); $t->timestamps(); });
-        Schema::create('ledgers', function ($t) { $t->id(); $t->string('name'); $t->unsignedBigInteger('group_id'); $t->boolean('is_active')->default(true); $t->timestamps(); $t->softDeletes(); });
-        Schema::create('voucher_types', function ($t) { $t->id(); $t->string('base_type'); $t->boolean('is_active')->default(true); $t->timestamps(); });
-        Schema::create('vouchers', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_type_id')->nullable(); $t->string('voucher_number')->nullable(); $t->string('status')->default('posted'); $t->unsignedBigInteger('location_id')->nullable(); $t->decimal('subtotal', 18, 2)->default(0); $t->decimal('tax_total', 18, 2)->default(0); $t->decimal('total_amount', 18, 2)->default(0); $t->json('meta')->nullable(); $t->timestamps(); });
-        Schema::create('voucher_items', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_id'); $t->unsignedInteger('line_no')->default(1); $t->decimal('tax_amount', 18, 2)->default(0); });
-        Schema::create('accounting_settings', function ($t) { $t->id(); $t->unsignedBigInteger('opening_balance_ledger_id')->nullable(); $t->integer('edit_window_days')->default(30); $t->timestamps(); });
-        Schema::create('currencies', function ($t) { $t->id(); $t->string('code', 8); $t->boolean('is_base')->default(false); $t->timestamps(); });
-        DB::table('currencies')->insert(['id' => 1, 'code' => 'KES', 'is_base' => true]);
-        DB::table('accounting_settings')->insert(['id' => 1, 'edit_window_days' => 30]);
-        DB::table('voucher_types')->insert([['id' => 1, 'base_type' => 'purchase'], ['id' => 2, 'base_type' => 'journal']]);
-
-        $stock = DB::table('ledger_groups')->insertGetId(['name' => 'Stock-in-hand']);
-        $creditors = DB::table('ledger_groups')->insertGetId(['name' => 'Sundry Creditors']);
-        $direct = DB::table('ledger_groups')->insertGetId(['name' => 'Direct Expenses']);
-        $this->inventory = DB::table('ledgers')->insertGetId(['name' => 'Food Ingredients Inventory', 'group_id' => $stock]);
-        DB::table('ledgers')->insert([['name' => 'Food Cost of Sales', 'group_id' => $direct], ['name' => 'Food Waste Expense', 'group_id' => $direct]]);
-        $this->supplier = DB::table('ledgers')->insertGetId(['name' => 'Naivas Wholesale', 'group_id' => $creditors]);
-
-        // the books are stood in for: what is asked of them is kept in $posted
-        $books = $this->createMock(VoucherService::class);
-        $books->method('create')->willReturnCallback(function (array $d) {
-            $this->posted[] = $d;
-            $sub = collect($d['lines'] ?? [])->sum(fn ($l) => round($l['quantity'] * $l['rate'], 2));
-            $id = DB::table('vouchers')->insertGetId(['voucher_type_id' => $d['voucher_type_id'], 'voucher_number' => 'PV-'.count($this->posted), 'location_id' => $d['location_id'] ?? null,
-                'subtotal' => $sub, 'tax_total' => 0, 'total_amount' => $sub, 'created_at' => now(), 'updated_at' => now()]);
-            foreach (array_values($d['lines'] ?? []) as $i => $l) {
-                DB::table('voucher_items')->insert(['voucher_id' => $id, 'line_no' => $i + 1, 'tax_amount' => 0]);
-            }
-
-            return Voucher::find($id);
-        });
-        $books->method('cancel')->willReturnCallback(function (Voucher $v) {
-            app(IngredientReceiving::class)->beforeVoucherCancelled($v, null);   // what VoucherService::cancel does for a voucher that names a receipt
-            $v->update(['status' => 'cancelled']);
-
-            return $v;
-        });
-        $this->app->instance(VoucherService::class, $books);
-
+        $this->createIngredientWorld();
         $flour = app(Ingredients::class)->save(['name' => 'Wheat flour', 'base_unit_id' => $this->g, 'alt_unit_id' => $this->kg, 'variants' => [
             ['name' => 'Exe 2 kg', 'pack_size' => 2, 'pack_unit_id' => $this->kg],
             ['name' => 'Pembe 24 kg', 'pack_size' => 24, 'pack_unit_id' => $this->kg, 'track_expiry' => true],
@@ -83,35 +39,38 @@ class MenusIngredientStockTest extends TestCase
         [$this->exe, $this->pembe] = $flour->variants->pluck('id')->all();
     }
 
-    private function receive(array $lines, array $over = [])
+    private function receive(array $lines, array $over = []): Voucher
     {
         return app(IngredientReceiving::class)->receive($over + ['location_id' => self::BRANCH, 'date' => '2026-10-16', 'supplier_ledger_id' => $this->supplier, 'supplier_invoice_no' => 'INV-77', 'lines' => $lines], null);
     }
 
-    public function test_packs_arrive_as_base_units_with_a_supplier_bill_in_the_books(): void
+    private function open(array $lines): array
     {
-        $r = $this->receive([['item_id' => $this->exe, 'quantity' => 10, 'unit' => 'pack', 'rate' => 260]]);
+        return app(IngredientReceiving::class)->opening(['location_id' => self::BRANCH, 'date' => '2026-10-01', 'lines' => $lines], null);
+    }
 
-        $batch = StockBatch::where('receipt_id', $r->id)->firstOrFail();
+    public function test_packs_arrive_as_base_units_on_a_purchase_voucher_line_of_their_own(): void
+    {
+        $v = $this->receive([['item_id' => $this->exe, 'quantity' => 10, 'unit' => 'pack', 'rate' => 260]]);
+
+        $batch = StockBatch::where('voucher_id', $v->id)->firstOrFail();
         $this->assertEquals(20000, $batch->qty_in);
         $this->assertEquals(20000, $batch->qty_left);
         $this->assertEquals(0.13, $batch->unit_cost, 'what one gram cost');
         $this->assertSame('purchase', $batch->source);
-        $line = $r->lines[0];
-        $this->assertEquals(10, $line->input_qty);
-        $this->assertSame('pack', $line->input_unit);
-        $this->assertEquals(2600, $line->amount);
+        $this->assertNotNull($batch->voucher_item_id, 'the lot knows the voucher line it came in on');
 
-        $voucher = $this->posted[0];
-        $this->assertSame(1, $voucher['voucher_type_id'], 'a Purchase voucher');
-        $this->assertSame($this->supplier, $voucher['party_ledger_id'], 'the supplier is credited');
-        $this->assertSame('INV-77', $voucher['supplier_invoice_no']);
-        $this->assertSame(self::BRANCH, $voucher['location_id']);
-        $this->assertCount(1, $voucher['lines']);
-        $this->assertEquals(['custom', $this->inventory, 10, 260], [$voucher['lines'][0]['type'], $voucher['lines'][0]['ledger_id'], $voucher['lines'][0]['quantity'], $voucher['lines'][0]['rate']], 'a plain line posted to the inventory account');
-        $this->assertStringContainsString('Wheat flour – Exe 2 kg: 10 packs', $voucher['lines'][0]['description']);
-        $this->assertSame($r->id, Voucher::find($r->voucher_id)->meta['menus_receipt_id'], 'the voucher names its receipt, so Books can not edit it');
-        $this->assertEquals(2600, $r->total);
+        $line = DB::table('voucher_items')->where('voucher_id', $v->id)->first();
+        $this->assertSame(['ingredient', $this->exe, 'Wheat flour', 'Exe 2 kg'], [$line->item_type, (int) $line->ingredient_item_id, $line->description, $line->variant_label], 'item = the ingredient, variant = the variant');
+        $this->assertEquals([10, 2000, 20000, 260, 2600], [$line->quantity, $line->unit_factor, $line->base_quantity, $line->rate, $line->amount], 'ten packs of 2000 g at 260 a pack');
+
+        $posted = $this->posted[0];
+        $this->assertSame(1, $posted['voucher_type_id'], 'a Purchase voucher');
+        $this->assertSame($this->supplier, $posted['party_ledger_id'], 'the supplier is credited');
+        $this->assertSame('INV-77', $posted['supplier_invoice_no']);
+        $this->assertSame(self::BRANCH, $posted['location_id']);
+        $this->assertSame(['ingredient', $this->exe, 'pack'], [$posted['lines'][0]['type'], $posted['lines'][0]['ingredient_item_id'], $posted['lines'][0]['unit']], 'an ingredient line, not a plain one');
+        $this->assertEquals(2600, $v->total_amount);
     }
 
     public function test_the_alternate_and_base_units_work_and_cost_the_same_per_gram(): void
@@ -124,11 +83,12 @@ class MenusIngredientStockTest extends TestCase
         $this->assertEquals(6000, app(IngredientStock::class)->onHand($this->exe, self::BRANCH));
     }
 
-    public function test_every_receipt_leaves_a_move_for_every_batch(): void
+    public function test_every_voucher_line_leaves_a_move_for_its_batch(): void
     {
-        $r = $this->receive([['item_id' => $this->exe, 'quantity' => 2, 'unit' => 'pack', 'rate' => 260], ['item_id' => $this->exe, 'quantity' => 500, 'unit' => 'base', 'rate' => 0.13]]);
-        $this->assertSame(2, StockMove::where('receipt_id', $r->id)->where('kind', 'purchase')->count());
+        $v = $this->receive([['item_id' => $this->exe, 'quantity' => 2, 'unit' => 'pack', 'rate' => 260], ['item_id' => $this->exe, 'quantity' => 500, 'unit' => 'base', 'rate' => 0.13]]);
+        $this->assertSame(2, StockMove::where('voucher_id', $v->id)->where('kind', 'purchase')->count());
         $this->assertEquals([4000, 500], StockMove::orderBy('id')->pluck('quantity')->map(fn ($q) => (float) $q)->all());
+        $this->assertSame(2, DB::table('voucher_items')->where('voucher_id', $v->id)->count(), 'one voucher line for each');
     }
 
     public function test_a_pack_needs_a_pack_size_and_the_alternate_unit_needs_one_set(): void
@@ -179,7 +139,7 @@ class MenusIngredientStockTest extends TestCase
                 $this->assertStringContainsString($says, $e->getMessage());
             }
         }
-        $this->assertSame([0, 0, 0, 0], [Receipt::count(), StockBatch::count(), StockMove::count(), count($this->posted)]);
+        $this->assertSame([0, 0, 0, 0], [DB::table('voucher_items')->count(), StockBatch::count(), StockMove::count(), count($this->posted)]);
     }
 
     public function test_paying_at_once_needs_no_supplier(): void
@@ -190,52 +150,61 @@ class MenusIngredientStockTest extends TestCase
         $this->assertArrayNotHasKey('party_ledger_id', $this->posted[0]);
     }
 
-    public function test_cancelling_takes_the_stock_back_only_while_none_has_been_used(): void
+    public function test_cancelling_the_voucher_takes_the_stock_back_only_while_none_has_been_used(): void
     {
-        $r = $this->receive([['item_id' => $this->exe, 'quantity' => 10, 'unit' => 'pack', 'rate' => 260]]);
+        $v = $this->receive([['item_id' => $this->exe, 'quantity' => 10, 'unit' => 'pack', 'rate' => 260]]);
         $stock = app(IngredientStock::class);
-        StockBatch::where('receipt_id', $r->id)->update(['qty_left' => 19000]);   // 1 kg went into a dish
+        StockBatch::where('voucher_id', $v->id)->update(['qty_left' => 19000]);   // 1 kg went into a dish
         try {
-            app(IngredientReceiving::class)->cancel($r, 'wrong supplier', null);
+            app(IngredientReceiving::class)->cancelVoucher($v, 'wrong supplier', null);
             $this->fail('cancelled though some was used');
         } catch (BooksException $e) {
             $this->assertStringContainsString('has been used', $e->getMessage());
             $this->assertStringContainsString('19000 of 20000', $e->getMessage());
         }
-        $this->assertSame('posted', $r->fresh()->status);
+        $this->assertSame('posted', $v->fresh()->status);
         $this->assertEquals(19000, $stock->onHand($this->exe, self::BRANCH));
 
-        StockBatch::where('receipt_id', $r->id)->update(['qty_left' => 20000]);
-        app(IngredientReceiving::class)->cancel($r, 'wrong supplier', null);
-        $this->assertSame('cancelled', $r->fresh()->status);
+        StockBatch::where('voucher_id', $v->id)->update(['qty_left' => 20000]);
+        app(IngredientReceiving::class)->cancelVoucher($v, 'wrong supplier', null);
+        $this->assertSame('cancelled', $v->fresh()->status);
         $this->assertEquals(0, $stock->onHand($this->exe, self::BRANCH));
         $this->assertSame(['purchase', 'reversal'], StockMove::orderBy('id')->pluck('kind')->all());
         $this->assertEquals(-20000, StockMove::where('kind', 'reversal')->value('quantity'));
-        $this->assertSame('cancelled', Voucher::find($r->voucher_id)->status);
+        $this->assertSame([$v->id, 'wrong supplier'], end($this->cancelled));
     }
 
-    public function test_opening_stock_is_a_journal_against_the_opening_balance_account(): void
+    public function test_opening_stock_is_one_opening_stock_voucher_for_each_variant_against_the_opening_balance_account(): void
     {
         $equity = DB::table('ledgers')->insertGetId(['name' => 'Opening Balance Equity', 'group_id' => 1]);
         try {
-            app(IngredientReceiving::class)->opening(['location_id' => self::BRANCH, 'lines' => [['item_id' => $this->exe, 'quantity' => 3, 'unit' => 'pack', 'rate' => 250]]], null);
+            $this->open([['item_id' => $this->exe, 'quantity' => 3, 'unit' => 'pack', 'rate' => 250]]);
             $this->fail('accepted with no opening balance account');
         } catch (BooksException $e) {
             $this->assertStringContainsString('opening balance account', $e->getMessage());
         }
-        $this->assertSame(0, Receipt::count());
+        $this->assertSame(0, StockBatch::count());
 
         DB::table('accounting_settings')->where('id', 1)->update(['opening_balance_ledger_id' => $equity]);
-        $r = app(IngredientReceiving::class)->opening(['location_id' => self::BRANCH, 'date' => '2026-10-01', 'lines' => [['item_id' => $this->exe, 'quantity' => 3, 'unit' => 'pack', 'rate' => 250]]], null);
+        $made = $this->open([['item_id' => $this->exe, 'quantity' => 3, 'unit' => 'pack', 'rate' => 250], ['item_id' => $this->pembe, 'quantity' => 1, 'unit' => 'pack', 'rate' => 2400, 'expiry_date' => '2027-03-01']]);
 
-        $j = $this->posted[0];
-        $this->assertSame(2, $j['voucher_type_id'], 'a Journal');
-        $this->assertEquals([[$this->inventory, 'D', 750], [$equity, 'C', 750]], array_map(fn ($e) => [$e['ledger_id'], $e['side'], $e['amount']], $j['entries']));
-        $b = StockBatch::firstOrFail();
+        $this->assertCount(2, $made, 'a voucher for each variant');
+        $this->assertSame([7, 7], array_map(fn ($v) => (int) $v->voucher_type_id, $made), 'Opening stock vouchers, not a journal');
+        $this->assertSame([1, 1], array_map(fn ($v) => DB::table('voucher_items')->where('voucher_id', $v->id)->count(), $made), 'one line each');
+        $this->assertSame([$this->exe, $this->pembe], array_map(fn ($v) => (int) DB::table('voucher_items')->where('voucher_id', $v->id)->value('ingredient_item_id'), $made));
+        $b = StockBatch::where('item_id', $this->exe)->firstOrFail();
         $this->assertSame('opening', $b->source);
         $this->assertEquals(6000, $b->qty_in);
-        $this->assertSame('opening', StockMove::firstOrFail()->kind);
-        $this->assertSame('opening', $r->kind);
+        $this->assertSame(['opening', 'opening'], StockMove::orderBy('id')->pluck('kind')->all());
+        $this->assertSame([$made[0]->id, $made[1]->id], StockMove::orderBy('id')->pluck('voucher_id')->map(fn ($i) => (int) $i)->all(), 'each move names its voucher');
+    }
+
+    public function test_a_variant_can_not_be_listed_twice_on_opening_stock(): void
+    {
+        DB::table('accounting_settings')->where('id', 1)->update(['opening_balance_ledger_id' => DB::table('ledgers')->insertGetId(['name' => 'Opening Balance Equity', 'group_id' => 1])]);
+        $this->expectException(BooksException::class);
+        $this->expectExceptionMessage('listed twice');
+        $this->open([['item_id' => $this->exe, 'quantity' => 1, 'unit' => 'pack', 'rate' => 250], ['item_id' => $this->exe, 'quantity' => 2, 'unit' => 'pack', 'rate' => 250]]);
     }
 
     public function test_the_three_accounts_are_found_by_name_and_a_missing_one_says_which_script_to_run(): void
@@ -269,19 +238,30 @@ class MenusIngredientStockTest extends TestCase
         $c = app(MenusStockController::class);
         $ok = $c->receive(Request::create('/x', 'POST', ['location_id' => self::BRANCH, 'supplier_ledger_id' => $this->supplier, 'lines' => [['item_id' => $this->exe, 'quantity' => 1, 'unit' => 'pack', 'rate' => 260]]]));
         $this->assertSame(201, $ok->getStatusCode());
-        $this->assertSame(1, Receipt::count());
+        $this->assertSame(1, StockBatch::count());
 
         $loose = IngredientItem::where('name', 'Loose')->value('id');
         $bad = $c->receive(Request::create('/x', 'POST', ['location_id' => self::BRANCH, 'supplier_ledger_id' => $this->supplier, 'lines' => [['item_id' => $loose, 'quantity' => 1, 'unit' => 'pack', 'rate' => 5]]]));
         $this->assertSame(422, $bad->getStatusCode());
         $this->assertStringContainsString('no pack size', $bad->getData(true)['message']);
-        $this->assertSame(1, Receipt::count(), 'the refused one left nothing');
+        $this->assertSame(1, StockBatch::count(), 'the refused one left nothing');
     }
 
-    public function test_books_may_not_edit_or_return_a_voucher_that_received_ingredients_and_cancelling_it_takes_the_stock_back(): void
+    public function test_the_receipts_list_shows_the_vouchers_that_brought_ingredients_in(): void
+    {
+        $this->receive([['item_id' => $this->exe, 'quantity' => 1, 'unit' => 'pack', 'rate' => 260]]);
+        DB::table('accounting_settings')->where('id', 1)->update(['opening_balance_ledger_id' => DB::table('ledgers')->insertGetId(['name' => 'Opening Balance Equity', 'group_id' => 1])]);
+        $this->open([['item_id' => $this->exe, 'quantity' => 1, 'unit' => 'pack', 'rate' => 250]]);
+        $rows = app(MenusStockController::class)->receipts(Request::create('/x', 'GET', ['location_id' => self::BRANCH]))->getData(true)['receipts'];
+        $this->assertSame(['purchase', 'opening'], collect($rows)->sortBy('id')->pluck('kind')->values()->all());
+        $this->assertSame([false, false], collect($rows)->pluck('legacy')->all());
+    }
+
+    public function test_the_books_hand_a_voucher_with_ingredient_lines_to_the_shelf_and_take_them_back(): void
     {
         $source = file_get_contents(base_path('app/Services/Books/VoucherService.php'));
-        $this->assertSame(3, substr_count($source, "meta['menus_receipt_id']"), 'edit, return and cancel each look for the receipt');
-        $this->assertStringContainsString('IngredientReceiving::class)->beforeVoucherCancelled', $source);
+        $this->assertStringContainsString('IngredientVoucherStock::class)->apply($voucher', $source, 'saving a voucher puts its ingredient lots on the shelf');
+        $this->assertStringContainsString('IngredientVoucherStock::class)->undo($voucher', $source, 'undoing it takes them off again');
+        $this->assertStringContainsString("meta['menus_receipt_id']", $source, 'older receipts are still recognised');
     }
 }

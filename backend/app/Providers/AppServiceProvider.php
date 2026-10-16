@@ -148,6 +148,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Seed new variants across branches + keep the product stock total auto-calculated.
         \App\Models\Ecommerce\ProductVariant::observe(\App\Observers\Ecommerce\ProductVariantObserver::class);
+        \App\Models\Menus\StockMove::observe(\App\Observers\Menus\StockMoveObserver::class);   // ingredient movements also go to the core stock journal
         \App\Models\User::observe(\App\Observers\UserAccessObserver::class);
         \App\Models\Location::observe(\App\Observers\LocationCostCentreObserver::class);
         \App\Models\Books\Voucher::observe(\App\Observers\VoucherDimensionsObserver::class);

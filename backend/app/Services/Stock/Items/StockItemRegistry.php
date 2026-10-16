@@ -23,6 +23,10 @@ class StockItemRegistry
             self::register(new ProductVariantSource());
         }
 
+        if (! isset(self::$sources[\App\Services\Menus\IngredientItemSource::TYPE]) && \App\Services\Menus\IngredientStock::moduleOn()) {
+            self::register(new \App\Services\Menus\IngredientItemSource());   // Menus is on: its ingredients are stocked items too
+        }
+
         return self::$sources;
     }
 

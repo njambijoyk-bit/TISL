@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\Menus\Count;
+use App\Models\StockCount;
 use App\Models\Menus\DishBatch;
 use App\Models\Menus\StockBatch;
 use App\Models\Menus\StockMove;
@@ -220,10 +220,14 @@ class MenusOperationsTest extends TestCase
         $old = $this->shelve('Exe 2 kg', 12000, 0.10, '2026-11-01');
         $new = $this->shelve('Exe 2 kg', 13000, 0.12, '2027-01-01');   // 25 kg on the books
         $c = $this->counts()->post(['location_id' => self::BRANCH, 'date' => '2026-10-16', 'lines' => [['item_id' => $this->itemId('Exe 2 kg'), 'quantity' => 10, 'unit' => 'pack']]], null);   // 10 packs of 2 kg = 20 kg
-        $line = $c->lines->first();
-        $this->assertSame([25000.0, 20000.0, -5000.0], [(float) $line->expected, (float) $line->counted, (float) $line->variance]);
+        $line = $c->ingredientLines->first();
+        $this->assertSame([25000.0, 20000.0, -5000.0], [(float) $line->expected_qty, (float) $line->counted_qty, (float) $line->variance_qty]);
+        $this->assertSame([10.0, 'pack'], [(float) $line->input_qty, $line->input_unit], 'kept as typed');
         $this->assertSame([7000.0, 13000.0], [$this->left($old), $this->left($new)], 'the lot expiring first is short');
-        $this->assertEqualsWithDelta(-500.0, (float) $c->value_change, 0.001, '5000 x 0.10');
+        $this->assertEqualsWithDelta(-500.0, (float) $line->value_change, 0.001, '5000 x 0.10');
+        $this->assertNotNull($c->ingredient_voucher_id, 'the count has a voucher of its own for the kitchen');
+        $this->assertSame(['posted', $c->ingredient_voucher_id], [$c->status, (int) $c->ingredient_voucher_id]);
+        $this->assertSame(['stock_count' => ['count_id' => $c->id, 'ingredients' => true]], $this->posted[array_key_last($this->posted)]['meta']);
         $this->assertSame([$this->wasteLedger(), $this->inventory, 500.0], $this->lastJournal());
         $this->assertSame('SC-'.str_pad((string) $c->id, 6, '0', STR_PAD_LEFT), $c->number);
         $this->assertSame(5000.0, abs((float) StockMove::where('kind', 'count')->value('quantity')));
@@ -236,7 +240,7 @@ class MenusOperationsTest extends TestCase
         $c = $this->counts()->post(['location_id' => self::BRANCH, 'lines' => [['item_id' => $this->itemId('Exe 2 kg'), 'quantity' => 14, 'unit' => 'alt']]], null);
         $found = StockBatch::where('source', 'count')->first();
         $this->assertSame([4000.0, 0.15], [(float) $found->qty_left, (float) $found->unit_cost]);
-        $this->assertEqualsWithDelta(600.0, (float) $c->value_change, 0.001);
+        $this->assertEqualsWithDelta(600.0, (float) $c->ingredientLines->first()->value_change, 0.001);
         $this->assertSame([$this->inventory, $this->wasteLedger(), 600.0], $this->lastJournal(), 'Dr Inventory, Cr Food Waste Expense');
         $this->assertSame(14000.0, app(StockCounts::class)->expected($this->itemId('Exe 2 kg'), self::BRANCH));
     }
@@ -247,13 +251,13 @@ class MenusOperationsTest extends TestCase
         $this->shelve('Exe 2 kg', 10000, 0.1);
         $exe = $this->itemId('Exe 2 kg');
         $c = $this->counts()->post(['location_id' => self::BRANCH, 'lines' => [['item_id' => $exe, 'quantity' => 10, 'unit' => 'alt']]], null);
-        $this->assertSame([0, null], [count($this->posted), $c->journal_id]);
+        $this->assertSame([0, null], [count($this->posted), $c->ingredient_voucher_id]);
         $this->fails(fn () => $this->counts()->post(['location_id' => self::BRANCH, 'lines' => [['item_id' => $exe, 'quantity' => 1, 'unit' => 'alt'], ['item_id' => $exe, 'quantity' => 2]]], null), 'counted twice');
         $this->fails(fn () => $this->counts()->post(['location_id' => self::BRANCH, 'lines' => [['item_id' => $exe, 'quantity' => -1]]], null), 'how much');
         $this->fails(fn () => $this->counts()->post(['location_id' => self::BRANCH, 'lines' => []], null), 'at least one');
         $this->fails(fn () => $this->counts()->post(['location_id' => 99, 'lines' => [['item_id' => $exe, 'quantity' => 1]]], null), 'branch');
         $this->fails(fn () => $this->counts()->post(['location_id' => self::BRANCH, 'lines' => [['item_id' => $exe, 'quantity' => 3, 'unit' => 'alt'], ['item_id' => 999, 'quantity' => 1]]], null), 'choose an ingredient');
-        $this->assertSame([1, 10000.0], [Count::count(), app(StockCounts::class)->expected($exe, self::BRANCH)], 'the failed counts left no trace (and the shelf is as it was)');
+        $this->assertSame([1, 10000.0], [StockCount::count(), app(StockCounts::class)->expected($exe, self::BRANCH)], 'the failed counts left no trace (and the shelf is as it was)');
     }
 
     // ------------------------------------------------------------ between branches
@@ -269,7 +273,8 @@ class MenusOperationsTest extends TestCase
         $this->assertSame([0.0, 4000.0], [$this->left($a), $this->left($b)], 'the lot expiring first goes first');
         $there = StockBatch::where('location_id', self::OTHER)->orderBy('id')->get();
         $this->assertSame([[3000.0, 0.10, '2026-11-01', 'B-1'], [1000.0, 0.14, '2027-02-01', null]], $there->map(fn ($x) => [(float) $x->qty_left, (float) $x->unit_cost, $x->expiry_date->toDateString(), $x->batch_no])->all());
-        $this->assertSame([4000.0, 0.11], [(float) $t->lines->first()->quantity, (float) $t->lines->first()->unit_cost], '(3000 x 0.10 + 1000 x 0.14) / 4000');
+        $this->assertSame([[3000.0, 0.10], [1000.0, 0.14]], $t->ingredientLines->map(fn ($l) => [(float) $l->quantity, (float) $l->unit_cost])->all(), 'a line for each lot it left');
+        $this->assertSame(['received', [3000.0, 1000.0]], [$t->status, $t->ingredientLines->map(fn ($l) => (float) $l->received_qty)->all()], 'sent and received at once from Menus');
         $this->assertSame(2, StockMove::where('kind', 'transfer_in')->count());
         $this->assertSame([4000.0, 4000.0], [app(StockCounts::class)->expected($exe, self::BRANCH), app(StockCounts::class)->expected($exe, self::OTHER)]);
     }

@@ -23,6 +23,19 @@ class IngredientStock
         return Schema::hasTable('menus_stock_batches') && Schema::hasTable('menus_stock_moves');
     }
 
+    /** Is the Menus module switched on, with its stock tables in place? The core stock pages list ingredients only then. */
+    public static function moduleOn(): bool
+    {
+        if (! Schema::hasTable('menus_ingredient_items')) {
+            return false;
+        }
+        try {
+            return app(\App\Services\Licensing\LicenseManager::class)->isActive('menus');
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
     /**
      * Put a received lot on the shelf.
      *
@@ -43,7 +56,7 @@ class IngredientStock
         $batch = StockBatch::create([
             'item_id' => $item->id, 'location_id' => $locationId, 'batch_no' => $o['batch_no'] ?? null, 'received_on' => $on, 'expiry_date' => $item->track_expiry ? $o['expiry_date'] : null,
             'unit_cost' => round(max(0.0, $costPerBase), 6), 'qty_in' => $qty, 'qty_left' => $qty, 'status' => 'ok', 'source' => $source, 'receipt_id' => $o['receipt_id'] ?? null,
-        ]);
+        ] + (Schema::hasColumn('menus_stock_batches', 'voucher_id') ? ['voucher_id' => $o['voucher_id'] ?? null, 'voucher_item_id' => $o['voucher_item_id'] ?? null] : []));
         StockMove::create([
             'item_id' => $item->id, 'location_id' => $locationId, 'batch_id' => $batch->id, 'kind' => $source === 'opening' ? 'opening' : 'purchase', 'quantity' => $qty, 'unit_cost' => $batch->unit_cost,
             'receipt_id' => $o['receipt_id'] ?? null, 'voucher_id' => $o['voucher_id'] ?? null, 'note' => $o['note'] ?? null, 'moved_on' => $on, 'created_by' => $o['by'] ?? null,
@@ -66,6 +79,38 @@ class IngredientStock
             StockMove::create([
                 'item_id' => $b->item_id, 'location_id' => $b->location_id, 'batch_id' => $b->id, 'kind' => 'reversal', 'quantity' => -(float) $b->qty_left, 'unit_cost' => $b->unit_cost,
                 'receipt_id' => $receipt->id, 'voucher_id' => $receipt->voucher_id, 'note' => 'Receipt cancelled', 'moved_on' => today()->toDateString(), 'created_by' => $by,
+            ]);
+            $b->update(['qty_left' => 0]);
+        }
+    }
+
+    /** Take what a voucher brought in off the shelf again (it was cancelled or is being changed). Refused, naming the item, when some of it has been used since. Safe to call twice. */
+    public function reverseVoucher(int $voucherId, ?int $by): void
+    {
+        if (! Schema::hasColumn('menus_stock_batches', 'voucher_id')) {
+            return;
+        }
+        $batches = StockBatch::where('voucher_id', $voucherId)->where('qty_in', '>', 0)->lockForUpdate()->get();
+        foreach ($batches as $b) {
+            if ((float) $b->qty_left > 0 && (float) $b->qty_left < (float) $b->qty_in - self::EPS) {
+                $name = IngredientItem::whereKey($b->item_id)->value('name') ?? "Item {$b->item_id}";
+                throw new BooksException("Some of the {$name} from this voucher has been used or written off already ({$this->fmt($b->qty_left)} of {$this->fmt($b->qty_in)} is left), so the voucher can not be cancelled or changed.");
+            }
+            if ((float) $b->qty_left <= 0 && StockMove::where('batch_id', $b->id)->where('kind', 'reversal')->exists()) {
+                continue;   // already taken back
+            }
+            if ((float) $b->qty_left <= 0) {
+                $name = IngredientItem::whereKey($b->item_id)->value('name') ?? "Item {$b->item_id}";
+                throw new BooksException("All of the {$name} from this voucher has been used or written off already, so the voucher can not be cancelled or changed.");
+            }
+        }
+        foreach ($batches as $b) {
+            if ((float) $b->qty_left <= 0) {
+                continue;
+            }
+            StockMove::create([
+                'item_id' => $b->item_id, 'location_id' => $b->location_id, 'batch_id' => $b->id, 'kind' => 'reversal', 'quantity' => -(float) $b->qty_left, 'unit_cost' => $b->unit_cost,
+                'voucher_id' => $voucherId, 'note' => 'Voucher cancelled', 'moved_on' => today()->toDateString(), 'created_by' => $by,
             ]);
             $b->update(['qty_left' => 0]);
         }

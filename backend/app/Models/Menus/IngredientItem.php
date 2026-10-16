@@ -43,4 +43,26 @@ class IngredientItem extends Model
         }
         throw new BooksException('Enter the quantity in packs, in the alternate unit or in the base unit.');
     }
+
+    /**
+     * The ways an amount of this variant can be typed: packs (when it has a pack size), the bigger unit (when the ingredient has one) and the base unit.
+     * `per` is how many base units one of it is.
+     *
+     * @return array<int, array{unit: string, label: string, per: float}>
+     */
+    public function unitChoices(): array
+    {
+        $this->loadMissing('ingredient.baseUnit', 'ingredient.altUnit');
+        $ing = $this->ingredient;
+        $out = [];
+        if ($this->pack_size && (float) $this->pack_size > 0) {
+            $out[] = ['unit' => 'pack', 'label' => 'pack', 'per' => (float) $this->pack_size];
+        }
+        if ($ing?->altUnit && $ing->baseUnit) {
+            $out[] = ['unit' => 'alt', 'label' => (string) $ing->altUnit->code, 'per' => round($ing->altUnit->convertTo($ing->baseUnit, 1), 6)];
+        }
+        $out[] = ['unit' => 'base', 'label' => (string) ($ing?->baseUnit?->code ?? ''), 'per' => 1.0];
+
+        return $out;
+    }
 }

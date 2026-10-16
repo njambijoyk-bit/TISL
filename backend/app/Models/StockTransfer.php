@@ -21,6 +21,12 @@ class StockTransfer extends Model
         return $this->hasMany(StockTransferLine::class, 'transfer_id');
     }
 
+    /** The ingredient lots on it (when Menus is on and script 187 is run). */
+    public function ingredientLines(): HasMany
+    {
+        return $this->hasMany(StockTransferIngredientLine::class, 'transfer_id');
+    }
+
     public function from(): BelongsTo
     {
         return $this->belongsTo(Location::class, 'from_location_id');

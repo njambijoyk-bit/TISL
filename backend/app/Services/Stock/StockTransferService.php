@@ -7,7 +7,12 @@ use App\Models\Books\StockMovement;
 use App\Models\Books\VoucherType;
 use App\Models\StockBatch;
 use App\Models\StockTransfer;
+use App\Models\StockTransferIngredientLine;
 use App\Models\StockTransferLine;
+use App\Models\Menus\IngredientItem;
+use App\Services\Menus\FoodLedgers;
+use App\Services\Menus\StockTransfers;
+use Illuminate\Support\Carbon;
 use App\Models\User;
 use App\Services\Books\BooksException;
 use App\Services\Books\VoucherService;
@@ -18,7 +23,8 @@ use Illuminate\Support\Facades\DB;
  * Stock between branches. Sending takes the stock out of the sending branch at once (first-expiring batches first);
  * it is "in transit" until the other branch receives it, batch numbers, expiry and cost intact. Cancelling while it
  * is in transit puts it back. A shortfall on receipt is written off as a Stock Loss. Nothing else is posted: it is
- * the same stock, in the same company.
+ * the same stock, in the same company. With Menus on the kitchen's ingredient lots travel the same way (their lines are kept apart, in the base unit); anything short of
+ * them is Dr Food Waste Expense, Cr Food Ingredients Inventory.
  */
 class StockTransferService
 {
@@ -26,18 +32,23 @@ class StockTransferService
 
     /**
      * @param  array<int, array{variant_id:int, quantity:float}>  $items  base units
+     * @param  array<int, array{item_id:int, quantity:float}>  $ingredients  ingredient variants, in the ingredient's base unit
      */
-    public function send(int $from, int $to, array $items, ?string $note, ?User $user = null): StockTransfer
+    public function send(int $from, int $to, array $items, ?string $note, ?User $user = null, array $ingredients = [], ?Carbon $on = null): StockTransfer
     {
         if ($from === $to) {
             throw new BooksException('Choose two different branches.');
         }
         $items = array_values(array_filter($items, fn ($i) => (float) ($i['quantity'] ?? 0) > 0));
-        if (! $items) {
+        $ingredients = array_values(array_filter($ingredients, fn ($i) => (float) ($i['quantity'] ?? 0) > 0));
+        if (! $items && ! $ingredients) {
             throw new BooksException('Add at least one item to send.');
         }
+        if ($ingredients && ! StockTransfers::installed()) {
+            throw new BooksException('Run database script 187_menus_core_stock.sql first: transfers of ingredients need it.');
+        }
 
-        return DB::transaction(function () use ($from, $to, $items, $note, $user) {
+        return DB::transaction(function () use ($from, $to, $items, $ingredients, $note, $user, $on) {
             $t = StockTransfer::create(['from_location_id' => $from, 'to_location_id' => $to, 'status' => StockTransfer::IN_TRANSIT,
                 'note' => $note, 'sent_by' => $user?->id, 'sent_at' => now()]);
             $t->update(['number' => 'TR-' . str_pad((string) $t->id, 6, '0', STR_PAD_LEFT)]);
@@ -57,19 +68,26 @@ class StockTransferService
                 }
             }
 
-            return $t->load('lines');
+            foreach ($ingredients as $i) {
+                $item = IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->find((int) $i['item_id']) ?? throw new BooksException('Choose an ingredient variant.');
+                foreach (app(StockTransfers::class)->dispatch($item, $from, round((float) $i['quantity'], 4), $t->id, $on ?? today(), $user) as $a) {
+                    StockTransferIngredientLine::create(['transfer_id' => $t->id, 'item_id' => $item->id, 'batch_id' => $a['batch_id'], 'quantity' => $a['qty'], 'unit_cost' => $a['unit_cost']]);
+                }
+            }
+
+            return $t->load('lines', 'ingredientLines');
         });
     }
 
     /**
      * The receiving branch accepts the stock. `$received` maps line id => quantity that arrived (default: all of it).
-     * Anything short is written off as a Stock Loss.
+     * Anything short is written off as a Stock Loss. `$ingredientReceived` is the same for the ingredient lines, in the base unit.
      */
-    public function receive(StockTransfer $t, array $received = [], ?User $user = null): StockTransfer
+    public function receive(StockTransfer $t, array $received = [], ?User $user = null, array $ingredientReceived = []): StockTransfer
     {
         $this->needInTransit($t);
 
-        return DB::transaction(function () use ($t, $received, $user) {
+        return DB::transaction(function () use ($t, $received, $user, $ingredientReceived) {
             $short = 0.0;
             foreach ($t->lines as $l) {
                 $got = round(min((float) $l->quantity, max(0.0, (float) ($received[$l->id] ?? $l->quantity))), 4);
@@ -83,9 +101,22 @@ class StockTransferService
             if ($short >= 0.005) {
                 $this->writeOffShortfall($t, round($short, 2), $user);
             }
+            $shortIng = 0.0;
+            if (StockTransfers::installed()) {
+                $kitchen = app(StockTransfers::class);
+                foreach ($t->ingredientLines()->get() as $l) {
+                    $got = round(min((float) $l->quantity, max(0.0, (float) ($ingredientReceived[$l->id] ?? $l->quantity))), 4);
+                    $kitchen->arrive((int) $l->batch_id, (int) $t->to_location_id, $got, (int) $t->id, today(), $user);
+                    $l->update(['received_qty' => $got]);
+                    $shortIng += ((float) $l->quantity - $got) * (float) $l->unit_cost;
+                }
+                if ($shortIng >= 0.005) {
+                    $this->writeOffKitchenShortfall($t, round($shortIng, 2), $user);
+                }
+            }
             $t->update(['status' => StockTransfer::RECEIVED, 'received_by' => $user?->id, 'received_at' => now()]);
 
-            return $t->load('lines');
+            return $t->load('lines', 'ingredientLines');
         });
     }
 
@@ -98,6 +129,11 @@ class StockTransferService
             foreach ($t->lines as $l) {
                 $this->stock->applyDelta((int) $l->variant_id, (int) $t->from_location_id, (float) $l->quantity, ['batch_id' => $l->batch_id, 'no_blend' => true]);
             }
+            if (StockTransfers::installed()) {
+                foreach ($t->ingredientLines()->get() as $l) {
+                    app(StockTransfers::class)->putBack((int) $l->batch_id, (float) $l->quantity, (int) $t->id, null);
+                }
+            }
             StockMovement::where('ref_type', 'transfer')->where('ref_id', $t->id)->update(['reversed' => true]);
             $t->update(['status' => StockTransfer::CANCELLED]);
 
@@ -108,8 +144,28 @@ class StockTransferService
     /** Cost of everything still on the road (base currency). */
     public function inTransitValue(): float
     {
-        return round((float) DB::table('stock_transfer_lines as l')->join('stock_transfers as t', 't.id', '=', 'l.transfer_id')
-            ->where('t.status', StockTransfer::IN_TRANSIT)->selectRaw('COALESCE(SUM(l.quantity * l.unit_cost), 0) as v')->value('v'), 2);
+        $v = (float) DB::table('stock_transfer_lines as l')->join('stock_transfers as t', 't.id', '=', 'l.transfer_id')
+            ->where('t.status', StockTransfer::IN_TRANSIT)->selectRaw('COALESCE(SUM(l.quantity * l.unit_cost), 0) as v')->value('v');
+        if (StockTransfers::installed()) {
+            $v += (float) DB::table('stock_transfer_ingredient_lines as l')->join('stock_transfers as t', 't.id', '=', 'l.transfer_id')
+                ->where('t.status', StockTransfer::IN_TRANSIT)->selectRaw('COALESCE(SUM(l.quantity * l.unit_cost), 0) as v')->value('v');
+        }
+
+        return round($v, 2);
+    }
+
+    private function writeOffKitchenShortfall(StockTransfer $t, float $cost, ?User $user): void
+    {
+        $journal = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
+        $this->vouchers->create([
+            'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'location_id' => $t->to_location_id,
+            'narration' => "Short delivery of ingredients on transfer {$t->number}",
+            'meta' => ['transfer_shortfall' => ['transfer_id' => $t->id, 'ingredients' => true]],
+            'entries' => [
+                ['ledger_id' => FoodLedgers::waste(), 'side' => 'D', 'amount' => $cost],
+                ['ledger_id' => FoodLedgers::inventory(), 'side' => 'C', 'amount' => $cost],
+            ],
+        ], $user);
     }
 
     private function writeOffShortfall(StockTransfer $t, float $cost, ?User $user): void

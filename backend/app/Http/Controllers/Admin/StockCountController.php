@@ -9,6 +9,8 @@ use App\Services\Stock\StockCountService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use App\Models\Menus\IngredientItem;
 
 /** Stock counts: start one for a branch, enter what was found, post the differences. */
 class StockCountController extends Controller
@@ -40,7 +42,8 @@ class StockCountController extends Controller
         $this->branches()->apply($q, 'location_id', 'stock', 'counts');
         $rows = $q->get()->map(function (StockCount $c) {
             return ['id' => $c->id, 'number' => $c->number, 'status' => $c->status, 'note' => $c->note, 'location' => DB::table('locations')->where('id', $c->location_id)->value('name'),
-                'lines' => DB::table('stock_count_lines')->where('count_id', $c->id)->count(), 'created_at' => (string) $c->created_at, 'posted_at' => $c->posted_at ? (string) $c->posted_at : null, 'voucher_id' => $c->voucher_id];
+                'lines' => DB::table('stock_count_lines')->where('count_id', $c->id)->count() + $this->ingredientLineCount($c), 'created_at' => (string) $c->created_at, 'posted_at' => $c->posted_at ? (string) $c->posted_at : null, 'voucher_id' => $c->voucher_id,
+                'ingredient_voucher_id' => $c->ingredient_voucher_id ?? null];
         })->values();
 
         return response()->json(['rows' => $rows, 'branches' => DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name'])]);
@@ -55,7 +58,32 @@ class StockCountController extends Controller
             ->map(fn ($r) => ['id' => (int) $r->id, 'product' => $r->product, 'variant' => $r->variant, 'sku' => $r->sku, 'batch_no' => $r->batch_no, 'expiry_date' => $r->expiry_date,
                 'expected_qty' => (float) $r->expected_qty, 'counted_qty' => $r->counted_qty !== null ? (float) $r->counted_qty : null, 'unit_cost' => (float) $r->unit_cost])->values();
 
-        return response()->json(['id' => $c->id, 'number' => $c->number, 'status' => $c->status, 'note' => $c->note, 'location' => DB::table('locations')->where('id', $c->location_id)->value('name'), 'voucher_id' => $c->voucher_id, 'lines' => $lines]);
+        return response()->json(['id' => $c->id, 'number' => $c->number, 'status' => $c->status, 'note' => $c->note, 'location' => DB::table('locations')->where('id', $c->location_id)->value('name'), 'voucher_id' => $c->voucher_id,
+            'ingredient_voucher_id' => $c->ingredient_voucher_id ?? null, 'lines' => $lines, 'ingredient_lines' => $this->ingredientLines($c)]);
+    }
+
+    private function ingredientLineCount(StockCount $c): int
+    {
+        return Schema::hasTable('stock_count_ingredient_lines') ? DB::table('stock_count_ingredient_lines')->where('count_id', $c->id)->count() : 0;
+    }
+
+    /** The ingredient variants on a count: the ingredient and the variant named separately, the quantities in the base unit and as typed, with the packs, bigger unit and base unit it can be typed in. */
+    private function ingredientLines(StockCount $c): array
+    {
+        if (! Schema::hasTable('stock_count_ingredient_lines')) {
+            return [];
+        }
+
+        return \App\Models\StockCountIngredientLine::where('count_id', $c->id)->orderBy('item_id')->get()->map(function ($l) {
+            $item = IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->find($l->item_id);
+
+            return [
+                'id' => (int) $l->id, 'item_id' => (int) $l->item_id, 'ingredient' => $item?->ingredient?->name, 'variant' => $item?->name, 'sku' => $item?->code,
+                'units' => $item ? $item->unitChoices() : [], 'expected_qty' => (float) $l->expected_qty, 'counted_qty' => $l->counted_qty !== null ? (float) $l->counted_qty : null,
+                'input_qty' => $l->input_qty !== null ? (float) $l->input_qty : null, 'input_unit' => $l->input_unit, 'unit_cost' => (float) $l->unit_cost,
+                'variance_qty' => $l->variance_qty !== null ? (float) $l->variance_qty : null, 'value_change' => $l->value_change !== null ? (float) $l->value_change : null,
+            ];
+        })->values()->all();
     }
 
     public function store(Request $request): JsonResponse
@@ -70,13 +98,13 @@ class StockCountController extends Controller
         });
     }
 
-    /** Body: counted {line_id: qty|null}. */
+    /** Body: counted {line_id: qty|null}, ingredients {ingredient_line_id: {quantity, unit: pack|alt|base}|null}. */
     public function save(Request $request, int $id): JsonResponse
     {
-        $d = $request->validate(['counted' => 'required|array', 'counted.*' => 'nullable|numeric|min:0']);
+        $d = $request->validate(['counted' => 'nullable|array', 'counted.*' => 'nullable|numeric|min:0', 'ingredients' => 'nullable|array', 'ingredients.*.quantity' => 'nullable|numeric|min:0', 'ingredients.*.unit' => 'nullable|in:pack,alt,base']);
 
         return $this->guard(function () use ($d, $id) {
-            $this->counts->save($this->mine(StockCount::findOrFail($id)), $d['counted']);
+            $this->counts->save($this->mine(StockCount::findOrFail($id)), $d['counted'] ?? [], $d['ingredients'] ?? []);
 
             return response()->json(['message' => 'Saved.']);
         });
@@ -84,10 +112,10 @@ class StockCountController extends Controller
 
     public function post(Request $request, int $id): JsonResponse
     {
-        $d = $request->validate(['counted' => 'nullable|array', 'counted.*' => 'nullable|numeric|min:0']);
+        $d = $request->validate(['counted' => 'nullable|array', 'counted.*' => 'nullable|numeric|min:0', 'ingredients' => 'nullable|array', 'ingredients.*.quantity' => 'nullable|numeric|min:0', 'ingredients.*.unit' => 'nullable|in:pack,alt,base']);
 
         return $this->guard(function () use ($d, $request, $id) {
-            $r = $this->counts->post($this->mine(StockCount::findOrFail($id)), $d['counted'] ?? [], $request->user());
+            $r = $this->counts->post($this->mine(StockCount::findOrFail($id)), $d['counted'] ?? [], $request->user(), null, $d['ingredients'] ?? []);
 
             return response()->json(['message' => "Count posted: {$r['lines']} batch(es) corrected — loss " . number_format($r['loss'], 2) . ', gain ' . number_format($r['gain'], 2) . '.'] + $r);
         });
