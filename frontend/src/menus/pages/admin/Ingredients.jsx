@@ -111,6 +111,12 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
 
           <div>
             <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 6 }}>Variants, in order of preference (the kitchen takes the first, then the next)</div>
+            <p style={{ margin: '0 0 8px', fontSize: '0.74rem', color: colors.textFaint }}>
+              A variant is a version you buy. Save the ingredient first, then put the stock on the shelf under <strong>Menus, Stock</strong> (Opening stock for what you already have, Receive ingredients for deliveries).
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '22px 1.4fr 0.8fr 1fr auto', gap: 8, padding: '0 10px 4px', fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: colors.textFaint }}>
+              <span /><span>Name of what you buy</span><span title="Your own reference. Only kept for your records; nothing uses it yet.">Code (optional)</span><span title="How much one pack holds. Lets you receive and count in packs.">Pack holds</span><span />
+            </div>
             <div style={{ display: 'grid', gap: 8 }}>
               {items.map((x, i) => (
                 <div key={x.key} data-testid="ingredient-item" style={{ ...card, padding: 10, display: 'grid', gridTemplateColumns: '22px 1.4fr 0.8fr 1fr auto', gap: 8, alignItems: 'center' }}>
@@ -130,10 +136,10 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
                   </span>
                   <span />
                   <div style={{ gridColumn: '2 / -1', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                    <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.is_allowed} onChange={(e) => patch(x.key, { is_allowed: e.target.checked })} /> may be used</label>
-                    <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.track_expiry} onChange={(e) => patch(x.key, { track_expiry: e.target.checked })} /> expires</label>
-                    <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.is_active} onChange={(e) => patch(x.key, { is_active: e.target.checked })} /> in use</label>
-                    <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 6, alignItems: 'center' }} title="When a branch has less than this, What to buy suggests ordering it.">
+                    <label title="Untick to keep it on the shelf but never use it in a dish, not even as a substitute." style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.is_allowed} onChange={(e) => patch(x.key, { is_allowed: e.target.checked })} /> may be used</label>
+                    <label title="Receiving it asks for an expiry date; expired stock is never used and shows on the Stock page." style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.track_expiry} onChange={(e) => patch(x.key, { track_expiry: e.target.checked })} /> expires</label>
+                    <label title="Untick when you stop buying it. It disappears from receiving and counting; its history stays." style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.is_active} onChange={(e) => patch(x.key, { is_active: e.target.checked })} /> in use</label>
+                    <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 6, alignItems: 'center' }} title="When a branch has less than this on the shelf, Operations, What to buy suggests ordering it. Empty means no level.">
                       keep at least
                       <NumberInput aria-label="Level to keep" min="0" step="any" style={{ width: 90 }} value={x.level_base == null || x.level_base === '' ? '' : Math.round((Number(x.level_base) / levelFactor) * 10000) / 10000}
                         onChange={(e) => patch(x.key, { level_base: e.target.value === '' ? null : Number(e.target.value) * levelFactor })} /> {levelUnit}
