@@ -339,10 +339,8 @@ export default function PosSelfPage() {
             <div style={{ position: 'absolute', top: -60, left: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
             <div style={{ position: 'absolute', bottom: -40, right: -40, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ width: narrow ? 52 : 72, height: narrow ? 52 : 72, borderRadius: 20, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'grid', placeItems: 'center', margin: '0 auto 12px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
-                {cfg.logo
-                  ? <img src={cfg.logo} alt={cfg.business} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8, boxSizing: 'border-box' }} />
-                  : <span style={{ fontSize: narrow ? '1.2rem' : '1.6rem', fontWeight: 900 }}>{String(cfg.business).slice(0, 1).toUpperCase()}</span>}
+              <div style={{ width: narrow ? 52 : 72, height: narrow ? 52 : 72, borderRadius: 20, background: 'rgba(255,255,255,0.18)', border: '1.5px solid rgba(255,255,255,0.3)', display: 'grid', placeItems: 'center', margin: '0 auto 12px', boxShadow: '0 8px 32px rgba(0,0,0,0.12)', }}>
+                <ScanLine size={narrow ? 26 : 36} aria-hidden="true" />
               </div>
               <h2 style={{ margin: 0, fontSize: narrow ? '1.1rem' : '1.4rem', fontWeight: 800 }}>{cfg.business}</h2>
               <p style={{ margin: '6px 0 0', fontSize: '0.8rem', opacity: 0.8 }}>Self checkout</p>
