@@ -57,33 +57,33 @@ Press **New ingredient** once per row of table 1A, then add its variants from ta
 | Baking powder | g | kg | The preferred one first | | |
 | Tea leaves | g | kg | The preferred one first | | Caffeine |
 
-**1B. The variants.** "Order" is the position in the list (1 is taken first). "Price" is what one pack costs and is entered when stock is received (table 2), not on this form. A tick is on, a dash is off.
+**1B. The variants.** "Order" is the position in the list (1 is taken first). A tick is on, a dash is off. There is no price on this form: what a pack costs is typed when stock comes in (section 2, "Price of one pack").
 
-| Ingredient | Order | Variant name | Code | Pack holds | may be used | expires | in use | keep at least | Price |
-|---|---|---|---|---|---|---|---|---|---|
-| Wheat flour | 1 | Pembe 24 kg | PEMBE24 | 24 kg | ✓ | – | ✓ | | 2,400 |
-| Wheat flour | 2 | Exe 2 kg | EXE2 | 2 kg | ✓ | – | ✓ | 6 kg | 260 |
-| Wheat flour | 3 | Soko 1 kg | SOKO1 | 1 kg | **–** | – | ✓ | | 140 |
-| Wheat flour | 4 | Jogoo 2 kg | JOGOO2 | 2 kg | ✓ | – | **–** | | 250 |
-| Sugar | 1 | Kabras 1 kg | | 1 kg | ✓ | – | ✓ | | 160 |
-| Eggs | 1 | Tray of 30 | | 30 each | ✓ | **✓** | ✓ | 60 each | 450 |
-| Milk | 1 | Fresh 1 L | | 1 L | ✓ | – | ✓ | | 120 |
-| Milk | 2 | Fresh 500 ml | | 0.5 L | ✓ | – | ✓ | | 65 |
-| Butter | 1 | Block 250 g | | 250 g | ✓ | **✓** | ✓ | | 330 |
-| Cooking oil | 1 | Jerrycan 5 L | | 5 L | ✓ | – | ✓ | | 1,550 |
-| Cooking oil | 2 | Bottle 1 L | | 1 L | ✓ | – | ✓ | | 340 |
-| Beef | 1 | Stewing meat 1 kg | | 1 kg | ✓ | **✓** | ✓ | | 800 |
-| Chicken | 1 | Breast 1 kg | | 1 kg | ✓ | **✓** | ✓ | | 650 |
-| Tomatoes | 1 | Tomatoes 1 kg | | 1 kg | ✓ | – | ✓ | | 120 |
-| Onions | 1 | Onions 1 kg | | 1 kg | ✓ | – | ✓ | | 100 |
-| Potatoes | 1 | Potatoes 1 kg | | 1 kg | ✓ | – | ✓ | | 90 |
-| Rice | 1 | Pishori 2 kg | | 2 kg | ✓ | – | ✓ | | 380 |
-| Kale | 1 | Sukuma wiki 1 kg | | 1 kg | ✓ | – | ✓ | | 60 |
-| Maize flour | 1 | Unga 2 kg | | 2 kg | ✓ | – | ✓ | | 200 |
-| Salt | 1 | Salt 500 g | | 500 g | ✓ | – | ✓ | **1 kg** | 40 |
-| Cocoa | 1 | Cocoa tin 200 g | | 200 g | ✓ | – | ✓ | | 380 |
-| Baking powder | 1 | Tin 100 g | | 100 g | ✓ | – | ✓ | | 120 |
-| Tea leaves | 1 | Pack 250 g | | 250 g | ✓ | – | ✓ | | 150 |
+| Ingredient | Order | Variant name | Code | Pack holds | may be used | expires | in use | keep at least |
+|---|---|---|---|---|---|---|---|---|
+| Wheat flour | 1 | Pembe 24 kg | PEMBE24 | 24 kg | ✓ | – | ✓ | |
+| Wheat flour | 2 | Exe 2 kg | EXE2 | 2 kg | ✓ | – | ✓ | 6 kg |
+| Wheat flour | 3 | Soko 1 kg | SOKO1 | 1 kg | **–** | – | ✓ | |
+| Wheat flour | 4 | Jogoo 2 kg | JOGOO2 | 2 kg | ✓ | – | **–** | |
+| Sugar | 1 | Kabras 1 kg | | 1 kg | ✓ | – | ✓ | |
+| Eggs | 1 | Tray of 30 | | 30 each | ✓ | **✓** | ✓ | 60 each |
+| Milk | 1 | Fresh 1 L | | 1 L | ✓ | – | ✓ | |
+| Milk | 2 | Fresh 500 ml | | 0.5 L | ✓ | – | ✓ | |
+| Butter | 1 | Block 250 g | | 250 g | ✓ | **✓** | ✓ | |
+| Cooking oil | 1 | Jerrycan 5 L | | 5 L | ✓ | – | ✓ | |
+| Cooking oil | 2 | Bottle 1 L | | 1 L | ✓ | – | ✓ | |
+| Beef | 1 | Stewing meat 1 kg | | 1 kg | ✓ | **✓** | ✓ | |
+| Chicken | 1 | Breast 1 kg | | 1 kg | ✓ | **✓** | ✓ | |
+| Tomatoes | 1 | Tomatoes 1 kg | | 1 kg | ✓ | – | ✓ | |
+| Onions | 1 | Onions 1 kg | | 1 kg | ✓ | – | ✓ | |
+| Potatoes | 1 | Potatoes 1 kg | | 1 kg | ✓ | – | ✓ | |
+| Rice | 1 | Pishori 2 kg | | 2 kg | ✓ | – | ✓ | |
+| Kale | 1 | Sukuma wiki 1 kg | | 1 kg | ✓ | – | ✓ | |
+| Maize flour | 1 | Unga 2 kg | | 2 kg | ✓ | – | ✓ | |
+| Salt | 1 | Salt 500 g | | 500 g | ✓ | – | ✓ | **1 kg** |
+| Cocoa | 1 | Cocoa tin 200 g | | 200 g | ✓ | – | ✓ | |
+| Baking powder | 1 | Tin 100 g | | 100 g | ✓ | – | ✓ | |
+| Tea leaves | 1 | Pack 250 g | | 250 g | ✓ | – | ✓ | |
 
 What the bold cells are there to show:
 - **Pembe 24 kg** is first in order but will have no stock, so flour comes from Exe (the next in order).
@@ -140,7 +140,7 @@ Each dish has its own price (before tax). "Made at" is the station.
 
 ## 4. Recipes (Menus, Recipes)
 
-Quantities are per portion unless it says batch. "Waste %" is added back: 5% on 200 g means 210.5 g is taken from the shelf. The cost shown on the Recipes screen is per gram or ml as in step 1; where an ingredient has several variants on the shelf it is the average of what is there (so cooking oil is 0.32 a ml, a mix of the jerrycan and the bottle, and milk 0.122).
+Quantities are per portion unless it says batch. "Waste %" is added back: 5% on 200 g means 210.5 g is taken from the shelf. The cost shown on the Recipes screen is per gram or ml, worked out from the prices in section 2 (a pack's price divided by what it holds); where an ingredient has several variants on the shelf it is the average of what is there (so cooking oil is 0.32 a ml, a mix of the jerrycan and the bottle, and milk 0.122).
 
 **Made to order** (selling it uses the ingredients). On the recipe, "How it is made" is "Made to order", which is the default.
 
