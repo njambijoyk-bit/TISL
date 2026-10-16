@@ -52,9 +52,13 @@ The Menus tests that build products today (dishes, counter, kitchen, orders, reo
 ## Not needed
 - **No migration** of ingredient or recipe data: Menus has only been tried with test data. The old ingredient tables are left alone until the owner says to drop them.
 
-## Questions for the owner
-1. **Own stock tables, or the core engine made general?** Recommended: Menus' own tables (above). Generalising the core engine to any item type touches about 17 files that Books and Products rely on, and the products are moving out of core anyway.
-2. **Dishes leave products too?** The plan says yes (the `dish` line). Say if you would rather keep the hidden-product approach for dishes only.
-3. **Pack sizes.** A variant "Exe 2 kg" is bought as packs. Plan: the variant may carry a pack size (2 kg) so a purchase can be typed as "10 packs" and stored as 20 kg. The units table has no "pack" unit, so this lives on the variant. OK?
-4. **Ledgers.** Three Menus accounts as above, defaulting to the existing ones. OK?
-5. **Branches.** Stock per branch, as today. OK?
+## Decisions (the owner's answers)
+1. **Menus' own tables.** Yes.
+2. **Dishes leave products too** (the `dish` line). Yes.
+3. **Pack sizes.** Yes, and it is for stock taking: a variant "Exe 2 kg" has a pack size of 2 kg; the count screen asks "how many packs" (10 packs is 20 kg); another variant "Exe 10 kg" with 3 packs is 30 kg. Stock is stored in the base unit; the count and purchase screens take packs, the alternate unit or the base unit.
+4. **Ledgers.** Named as the owner's list: **Food Ingredients Inventory** (current asset), **Food Cost of Sales** (direct expense), **Food Waste Expense** (direct expense). Suppliers on a purchase are the ledgers under the **Sundry Creditors** group.
+5. **Branches.** Each branch has its own stock.
+
+## Build notes
+- Step 1 is built as new tables beside the old ones (script 181: `menus_ingredients`, `menus_ingredient_items`) with their own screen and API (`/admin/menus/stock/ingredients`). The old `menus_ingredient_families` and `menus_ingredient_variants` stay until recipes are moved onto the new ingredients in step 3; until then the Recipes screen still reads the old ones, so Ingredients and Recipes are not meant to be tried together before step 3.
+- A variant's pack size is kept in the base unit and may be typed in the alternate unit.

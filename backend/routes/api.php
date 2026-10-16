@@ -952,6 +952,7 @@ Route::middleware('auth:sanctum')->group(function () {
         $in = \App\Http\Controllers\Admin\MenusIngredientController::class;
         $dc = \App\Http\Controllers\Admin\MenusDishController::class;
         Route::get('/ingredients', [$in, 'index']);
+        Route::get('/stock/ingredients', [\App\Http\Controllers\Admin\MenusIngredientsController::class, 'index']);   // Menus' own ingredients (no products behind them)
         $mc = \App\Http\Controllers\Admin\MenusMenuController::class;
         Route::get('/menus', [$mc, 'index']);
         Route::get('/dishes/{id}/options', [$mc, 'options'])->whereNumber('id');
@@ -1081,6 +1082,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/ingredients/{id}', [$in, 'save'])->whereNumber('id');
             Route::delete('/ingredients/{id}', [$in, 'destroy'])->whereNumber('id');
             Route::post('/ingredients/suggest', [$in, 'suggest']);
+            $si = \App\Http\Controllers\Admin\MenusIngredientsController::class;
+            Route::post('/stock/ingredients', [$si, 'save']);
+            Route::put('/stock/ingredients/{id}', [$si, 'save'])->whereNumber('id');
+            Route::delete('/stock/ingredients/{id}', [$si, 'destroy'])->whereNumber('id');
             Route::put('/recipes', [$r, 'save']);
             Route::delete('/recipes/{id}', [$r, 'destroy'])->whereNumber('id');
             Route::post('/recipes/{id}/produce', [$r, 'produce'])->whereNumber('id');
