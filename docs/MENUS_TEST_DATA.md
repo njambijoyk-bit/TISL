@@ -120,7 +120,7 @@ The Opening stock form has a line per variant with: **Ingredient variant**, **Qu
 | Tin 100 g | 2 | packs | 120 | | | 200 g |
 | Pack 250 g | 3 | packs | 150 | | | 750 g |
 
-Try this too: type the same Exe stock as **20 kg** (In: kg, price 130 a kg) instead of 10 packs and see that the shelf shows the same 10 packs. Jogoo 2 kg is not in the variant list on this form, because it is not "in use".
+Try this too: type the same Exe stock as **20 kg** (In: kg, price 130 a kg) instead of 10 packs and see that the shelf shows the same 10 packs. Jogoo 2 kg is not in the variant list on this form, because it is not "in use" (it shows faded on the shelf table).
 
 ## 3. Dishes (Menus, Dishes)
 
@@ -181,7 +181,7 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 ## 7. What to look for once it is in
 
 **Stock and ingredients**
-- Menus, Stock shows Exe at 10 packs, 20 kg, 20,000 g; Pembe at nothing; Jogoo is not listed (not in use). Receiving a delivery (say 5 packs of Exe at 260 from Naivas Wholesale) puts a supplier bill in Books (Dr Food Ingredients Inventory, Cr Naivas Wholesale) and 10,000 g on the shelf. Cancelling that receipt takes it off again, unless some was used.
+- Menus, Stock shows Exe at 10 packs, 20 kg, 20,000 g; Pembe at nothing; Jogoo shows faded (not in use). Receiving a delivery (say 5 packs of Exe at 260 from Naivas Wholesale) puts a supplier bill in Books (Dr Food Ingredients Inventory, Cr Naivas Wholesale) and 10,000 g on the shelf. Cancelling that receipt takes it off again, unless some was used.
 - Deleting an ingredient that a recipe uses, or a variant with stock history, is refused.
 
 **Selling**
