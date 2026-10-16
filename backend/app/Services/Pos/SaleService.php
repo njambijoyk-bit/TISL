@@ -723,7 +723,7 @@ class SaleService
             $note = $this->vouchers->createReturn($source, $opts, $u);
             $sup = $this->pins->spend($in['approval_token'] ?? null, $u, $station, 'return', ['against' => $source->voucher_number, 'note' => $note->voucher_number]);   // spent only once the note is made
             $this->tag($note->id, $station, $shiftId);
-            $refund = isset($opts['refund_ledger_id']) ? ['pos_refund' => ['ledger_id' => $opts['refund_ledger_id'], 'amount' => (float) $note->total_amount, 'cash' => $this->shifts->isCashLedger((int) $opts['refund_ledger_id'])]] : [];
+            $refund = isset($opts['refund_ledger_id']) ? ['pos_refund' => ['ledger_id' => $opts['refund_ledger_id'], 'amount' => (float) $note->total_amount, 'cash' => $this->shifts->isCashLedger((int) $opts['refund_ledger_id']), 'method_id' => $this->refundMethodId($source, $this->shifts->isCashLedger((int) $opts['refund_ledger_id']))]] : [];
             $this->addMeta($note, $refund + ['pos_approval' => ['return' => $sup], 'pos' => ['station_id' => $station->id, 'station' => $station->name, 'cashier' => $u->name]], ['channel' => 'pos']);
             // the sale's points, promo code use and gift voucher go back with it; a gift voucher's part is not handed back as cash
             $undone = app(ReturnRewardsService::class)->reverse($note->fresh(), $source, $u, $opts['refund_ledger_id'] ?? null);
@@ -747,6 +747,18 @@ class SaleService
     {
         $v->refresh();
         $v->update(['meta' => array_merge($v->meta ?? [], $add)] + $also);
+    }
+
+    /** Which way of paying a refund goes back through, for the shift's figures: the sale's biggest bank or mobile-money payment (a cash refund is the cash row's). Null when the sale had none. */
+    private function refundMethodId(Voucher $source, bool $cash): ?int
+    {
+        if ($cash) {
+            return null;
+        }
+        $id = DB::table('voucher_tenders as x')->join('payment_methods as m', 'm.id', '=', 'x.payment_method_id')->where('x.voucher_id', $source->id)
+            ->where(fn ($q) => $q->whereNull('m.kind')->orWhereNotIn('m.kind', ['cash', 'gift_voucher']))->orderByDesc('x.amount')->value('m.id');
+
+        return $id ? (int) $id : null;
     }
 
     /** Removing an item from a basket, or clearing it, is recorded; someone without pos.void needs a supervisor's approval for it. */

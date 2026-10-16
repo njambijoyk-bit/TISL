@@ -127,23 +127,30 @@ class ShiftService
 
         $refunds = 0.0;
         $cashRefunds = 0.0;
+        $byMethod = [];   // refunds paid back through a bank or mobile-money ledger, by the payment method of the sale they went back to
+        $giftBack = 0.0;   // the part of returned sales that was paid by gift voucher: it went back on the voucher
         $notes = DB::table('vouchers as v')->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')->where('v.shift_id', $sh->id)->where('v.status', 'posted')->where('t.base_type', VoucherType::CREDIT_NOTE)->get(['v.total_amount', 'v.meta']);
         foreach ($notes as $n) {
             $m = json_decode((string) $n->meta, true) ?: [];
             if (! empty($m['pos_refund'])) {   // money handed back at the till
                 $refunds += (float) $m['pos_refund']['amount'];
                 $cashRefunds += ! empty($m['pos_refund']['cash']) ? (float) $m['pos_refund']['amount'] : 0;
+                if (empty($m['pos_refund']['cash']) && ! empty($m['pos_refund']['method_id'])) {
+                    $byMethod[(int) $m['pos_refund']['method_id']] = ($byMethod[(int) $m['pos_refund']['method_id']] ?? 0) + (float) $m['pos_refund']['amount'];
+                }
             }
+            $giftBack += (float) ($m['pos_reversal']['gift_base'] ?? 0);
         }
         $discounts = (float) DB::table('voucher_items as i')->join('vouchers as v', 'v.id', '=', 'i.voucher_id')->where('v.shift_id', $sh->id)->where('v.status', 'posted')->sum('i.discount_amount');
         $until = $sh->closed_at ?? now();
         $voids = AccessLog::where('action', 'pos_void')->where('actor_id', $sh->user_id)->whereBetween('created_at', [$sh->opened_at, $until])->count();
 
-        $methods = $takings->map(function ($t) use ($sh, $cashRefunds) {
+        $methods = $takings->map(function ($t) use ($sh, $cashRefunds, $byMethod, $giftBack) {
             $cash = $t->kind === 'cash';
+            $back = $cash ? $cashRefunds : (float) ($byMethod[(int) $t->id] ?? 0) + ($t->kind === 'gift_voucher' ? $giftBack : 0);   // what went back out through this way of paying
 
             return ['id' => (int) $t->id, 'name' => $t->name, 'kind' => $t->kind, 'taken' => round((float) $t->amount, 2),
-                'expected' => round(((float) $t->amount) + ($cash ? (float) $sh->opening_float - $cashRefunds : 0), 2)];
+                'expected' => round(((float) $t->amount) + ($cash ? (float) $sh->opening_float : 0) - $back, 2)];
         })->values()->all();
         if (! collect($methods)->contains('kind', 'cash')) {   // a shift with no cash sale still has its float, less refunds, in the drawer
             $cashMethod = \App\Models\Books\PaymentMethod::where('kind', 'cash')->where('is_active', true)->first();

@@ -334,4 +334,18 @@ class PosFoundationTest extends TestCase
         $this->expectExceptionMessage('can not approve');
         $this->shifts()->reopen($this->cashier, $sh->id, 'by mistake', $token, $this->till);
     }
+
+    public function test_refunds_and_returned_gift_vouchers_come_off_the_rows_they_went_back_through(): void
+    {
+        $sh = $this->shifts()->open($this->cashier, $this->till, 100);
+        $this->cashSale($sh->id, [1 => 1000, 2 => 600, 3 => 200]);
+        $note = fn (array $meta) => DB::table('vouchers')->insert(['voucher_type_id' => 3, 'voucher_number' => 'CN-'.random_int(100, 999), 'status' => 'posted', 'total_amount' => 0, 'shift_id' => $sh->id, 'meta' => json_encode($meta)]);
+        $note(['pos_refund' => ['ledger_id' => 10, 'amount' => 300, 'cash' => true, 'method_id' => null]]);   // cash handed back
+        $note(['pos_refund' => ['ledger_id' => 20, 'amount' => 250, 'cash' => false, 'method_id' => 2], 'pos_reversal' => ['gift_base' => 80]]);   // M-Pesa refund of a sale part paid by gift voucher
+
+        $by = collect($this->shifts()->report($this->cashier, $sh->id)['methods'])->keyBy('kind');
+        $this->assertEquals(800, $by['cash']['expected']);        // 100 float + 1000 - 300
+        $this->assertEquals(350, $by['mpesa']['expected']);       // 600 - 250
+        $this->assertEquals(120, $by['gift_voucher']['expected']); // 200 - 80 went back on the voucher
+    }
 }
