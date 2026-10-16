@@ -31,23 +31,23 @@ import { accountType, hasPermission, isStaff } from '../lib/roles';
 
 /**
  * The pages of the Menus module, as the tab row on each of them and the Dishes section tabs show them. Each names who may open it, so a till
- * cashier (Till and Floor only) is not offered the rest. Any tab called Configuration also answers to F12 (see `configurationTab`).
+ * cashier (Till and Floor only) is not offered the rest. Any tab called Configuration also answers to F12 (see `configurationTab`); every other tab answers to G then its `key`.
  */
 export const MENUS_TABS = [
-  { title: 'Till', path: '/admin/menus/till', icon: Coins, color: '#10b981', perm: ['menus.view', 'menus.till'] },
-  { title: 'Floor', path: '/admin/menus/floor', icon: Armchair, color: '#8b5cf6', perm: ['menus.view', 'menus.till'] },
-  { title: 'Orders', path: '/admin/menus/orders', icon: BellRing, color: '#ef4444', perm: 'menus.view' },
-  { title: 'Meal plans', path: '/admin/menus/plans', icon: Soup, color: '#16a34a', perm: 'menus.view' },
-  { title: 'Cakes & catering', path: '/admin/menus/custom', icon: CakeSlice, color: '#e11d48', perm: 'menus.view' },
-  { title: 'Kitchen', path: '/admin/menus/kitchen', icon: ChefHat, color: '#0ea5e9', perm: 'menus.view' },
-  { title: 'Chefs', path: '/admin/menus/chefs', icon: Users, color: '#ec4899', perm: 'menus.view' },
-  { title: 'Rota', path: '/admin/menus/rota', icon: CalendarDays, color: '#6366f1', perm: 'menus.view' },
-  { title: 'Operations', path: '/admin/menus/operations', icon: ClipboardCheck, color: '#14b8a6', perm: 'menus.view' },
-  { title: 'Dishes', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316', perm: 'menus.view' },
-  { title: 'Menus', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7', perm: 'menus.view' },
-  { title: 'Ingredients', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e', perm: 'menus.view' },
-  { title: 'Stock', path: '/admin/menus/stock', icon: Warehouse, color: '#0ea5e9', perm: 'menus.view' },
-  { title: 'Recipes', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b', perm: 'menus.view' },
+  { title: 'Till', key: 'T', path: '/admin/menus/till', icon: Coins, color: '#10b981', perm: ['menus.view', 'menus.till'] },
+  { title: 'Floor', key: 'F', path: '/admin/menus/floor', icon: Armchair, color: '#8b5cf6', perm: ['menus.view', 'menus.till'] },
+  { title: 'Orders', key: 'O', path: '/admin/menus/orders', icon: BellRing, color: '#ef4444', perm: 'menus.view' },
+  { title: 'Meal plans', key: 'M', path: '/admin/menus/plans', icon: Soup, color: '#16a34a', perm: 'menus.view' },
+  { title: 'Cakes & catering', key: 'C', path: '/admin/menus/custom', icon: CakeSlice, color: '#e11d48', perm: 'menus.view' },
+  { title: 'Kitchen', key: 'K', path: '/admin/menus/kitchen', icon: ChefHat, color: '#0ea5e9', perm: 'menus.view' },
+  { title: 'Chefs', key: 'H', path: '/admin/menus/chefs', icon: Users, color: '#ec4899', perm: 'menus.view' },
+  { title: 'Rota', key: 'R', path: '/admin/menus/rota', icon: CalendarDays, color: '#6366f1', perm: 'menus.view' },
+  { title: 'Operations', key: 'P', path: '/admin/menus/operations', icon: ClipboardCheck, color: '#14b8a6', perm: 'menus.view' },
+  { title: 'Dishes', key: 'D', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316', perm: 'menus.view' },
+  { title: 'Menus', key: 'N', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7', perm: 'menus.view' },
+  { title: 'Ingredients', key: 'I', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e', perm: 'menus.view' },
+  { title: 'Stock', key: 'S', path: '/admin/menus/stock', icon: Warehouse, color: '#0ea5e9', perm: 'menus.view' },
+  { title: 'Recipes', key: 'E', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b', perm: 'menus.view' },
   { title: 'Configuration', path: '/admin/menus/settings', icon: Settings2, color: '#64748b', perm: 'menus.view' },
 ];
 

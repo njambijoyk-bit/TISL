@@ -10,6 +10,7 @@ import useAiPanelStore from '../../store/useAiPanelStore';
 import useNavStore from '../../store/navStore';
 import useThemeStore from '../../store/themeStore';
 import { useTheme } from '../../theme';
+import { MENUS_TABS, openTabs } from '../../navigation/adminNav';
 import { closeTarget, dialogOpen, pageHotkeyTarget, saveTarget, searchBox, topDialog } from '../../lib/pageHotkeys';
 
 /** Where a key press must be left alone: typing in a box, or a screen that is full of scanner input. */
@@ -42,6 +43,8 @@ export default function KeyboardShortcuts() {
   const inAdmin = pathname.startsWith('/admin');
   const aiHere = !!useAiPanelStore((st) => st.context);   // the AI panel is only on pages it has context for
   const inBooks = pathname.startsWith('/admin/books');
+  const inMenus = pathname.startsWith('/admin/menus');
+  const goPending = useRef(0);   // when G was pressed in Menus: the next letter picks a page
   const voucherPage = /^\/admin\/books\/vouchers\/\d+\/?$/.test(pathname);
   const canPost = isAuthenticated && hasPermission(user, 'books.post');
   const { links, loaded, fetch: fetchNav } = useNavStore();
@@ -84,6 +87,19 @@ export default function KeyboardShortcuts() {
         return;
       }
       if (quiet(pathname)) return;
+      // Menus pages: G, then a letter, goes to that Menus page (only the ones this person may open)
+      if (inMenus && !e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && !typing(e) && !dialogOpen() && /^Key[A-Z]$/.test(e.code)) {
+        const letter = e.code.slice(3);
+        if (goPending.current && Date.now() - goPending.current < 1500) {
+          goPending.current = 0;
+          const tab = openTabs(MENUS_TABS, user).find((t) => t.key === letter);
+          if (tab) { e.preventDefault(); navigate(tab.path); return; }
+        } else if (letter === 'G') {
+          goPending.current = Date.now();
+          return;
+        }
+      }
+      if (!['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) goPending.current = 0;
       // the voucher picker: a letter opens a new voucher of that type
       if (pick.current.open && !e.ctrlKey && !e.metaKey && !e.altKey && /^Key[A-Z]$/.test(e.code)) {
         e.preventDefault();
@@ -151,7 +167,7 @@ export default function KeyboardShortcuts() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname, isAuthenticated, navigate, inAdmin, inBooks, voucherPage, canPost, letters, mode]);
+  }, [pathname, isAuthenticated, navigate, inAdmin, inBooks, inMenus, user, voucherPage, canPost, letters, mode]);
 
   const mod = MAC ? '⌘' : 'Ctrl';
   const rows = [
@@ -173,6 +189,7 @@ export default function KeyboardShortcuts() {
     ['Shift', 'Esc', 'Sign out'],
     ...(inAdmin ? [['', 'F2', 'New: add what this page lists'], ['', 'F12', 'Open the Configuration of this page or section'], ['', 'F7', 'Open the Recycle bin or Trash of this page'],
       ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ...(aiHere ? [['Alt', 'I', 'Open the AI panel (Esc closes it)']] : []), ['Ctrl', 'B', 'Show or hide the menu']] : []),
+    ...(inMenus ? openTabs(MENUS_TABS, user).filter((t) => t.key).map((t) => ['G', t.key, `Go to Menus, ${t.title} (press G, then ${t.key})`]) : []),
     ...(inBooks && canPost ? [['Shift', 'V', 'New voucher: then press the type\'s letter'], ['', 'F4', 'Open the edit log']] : []),
     ...(voucherPage ? [['Shift', 'E', 'Edit this voucher'], ['Shift', 'X', 'Cancel this voucher (asks why first)'], ['Shift', 'D', 'Download the customer copy'], ['Shift', 'S', 'Send this voucher'], ['Shift', 'C', 'Convert this voucher'], ['Shift', 'P', 'Receive payment']] : []),
   ];
@@ -244,7 +261,7 @@ export default function KeyboardShortcuts() {
                 return (
                   <div key={`${a}${b}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 10, borderLeft: `4px solid ${c}`, background: 'var(--bg-secondary, #f9fafb)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 104 }}>
-                      {a && <><kbd style={cap}>{a === 'Alt' && MAC ? '⌥ Option' : a}</kbd><span style={{ opacity: 0.5 }}>+</span></>}<kbd style={cap}>{b}</kbd>
+                      {a && <><kbd style={cap}>{a === 'Alt' && MAC ? '⌥ Option' : a}</kbd><span style={{ opacity: 0.5 }}>{a === 'G' ? 'then' : '+'}</span></>}<kbd style={cap}>{b}</kbd>
                     </span>
                     <span style={{ fontSize: '0.85rem' }}>{what}</span>
                   </div>

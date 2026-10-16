@@ -20,12 +20,12 @@ export default function MenusNav() {
         <span aria-current="page" style={{ fontWeight: 700, color: here?.color }}>{here?.title ?? 'Menus'}</span>
       </nav>
       <div role="tablist" aria-label="Menus pages" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {PAGES.map(({ path, title, icon, color }) => {
+        {PAGES.map(({ path, title, icon, color, key }) => {
           const Icon = icon;
           const active = path === pathname;
 
           return (
-            <Link key={path} to={path} role="tab" aria-selected={active} aria-current={active ? 'page' : undefined} style={{
+            <Link key={path} to={path} role="tab" title={key ? `Press G, then ${key}` : title === 'Configuration' ? 'Press F12' : undefined} aria-keyshortcuts={key ? `g ${key.toLowerCase()}` : undefined} aria-selected={active} aria-current={active ? 'page' : undefined} style={{
               display: 'inline-flex', alignItems: 'center', gap: 7, padding: '7px 13px', borderRadius: 999, fontSize: '0.8rem', fontWeight: 700, textDecoration: 'none',
               border: `1.5px solid ${active ? color : 'var(--line, rgba(148,163,184,0.3))'}`,
               background: active ? `color-mix(in srgb, ${color} 16%, transparent)` : 'transparent',
