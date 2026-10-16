@@ -18,7 +18,7 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 const TYPES = [
   { id: 'variant', label: 'Products' }, { id: 'pack', label: 'Packs and cartons' }, { id: 'asset', label: 'Assets' }, { id: 'batch', label: 'Stock batches' },
 ];
-const TABS = [...TYPES, { id: 'prints', label: 'Print log' }, { id: 'settings', label: 'Settings' }];
+const TABS = [...TYPES, { id: 'prints', label: 'Print log' }, { id: 'settings', label: 'Configuration' }];
 const when = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '');
 const input = { padding: '8px 10px', borderRadius: 10, border: '1.5px solid var(--line, #d1d5db)', background: 'var(--surface-input, #fff)', color: 'inherit', fontFamily: 'inherit', fontSize: '0.85rem' };
 

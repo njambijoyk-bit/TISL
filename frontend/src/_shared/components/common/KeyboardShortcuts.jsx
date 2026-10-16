@@ -141,7 +141,7 @@ export default function KeyboardShortcuts() {
     ['', 'Esc', 'Close the open dialog'],
     ['Shift', 'Esc', 'Sign out'],
     ...(inAdmin ? [['', 'F2', 'New: add what this page lists'], ['', 'F12', 'Open the Configuration of this page or section'], ['', 'F7', 'Open the Recycle bin or Trash of this page'],
-      ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Ctrl', 'B', 'Show or hide the menu']] : []),
+      ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Alt', 'I', 'Open the AI panel (Esc closes it)'], ['Ctrl', 'B', 'Show or hide the menu']] : []),
   ];
   const link = { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)', textDecoration: 'none' };
 
@@ -167,10 +167,10 @@ export default function KeyboardShortcuts() {
       )}
       {list && (
         <div role="dialog" data-shortcut-list aria-label="Keyboard shortcuts" onClick={() => setList(false)} style={{ position: 'fixed', inset: 0, zIndex: 9992, background: 'rgba(15,23,42,0.45)', display: 'grid', placeItems: 'center', padding: 16 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(400px, 100%)', maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', borderRadius: 18, background: 'var(--bg-card, #fff)', color: 'var(--text-primary)', boxShadow: '0 30px 80px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
-            <div style={{ height: 6, background: `linear-gradient(90deg, ${ACCENTS.join(', ')})` }} />
-            <div style={{ padding: '16px 20px 20px', display: 'grid', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(400px, 100%)', maxHeight: 'calc(100dvh - 32px)', display: 'flex', flexDirection: 'column', borderRadius: 18, background: 'var(--bg-card, #fff)', color: 'var(--text-primary)', boxShadow: '0 30px 80px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
+            <div style={{ height: 6, flexShrink: 0, background: `linear-gradient(90deg, ${ACCENTS.join(', ')})` }} />
+            <div style={{ padding: '0 20px 20px', display: 'grid', gap: 8, alignContent: 'start', overflowY: 'auto', minHeight: 0, flex: 1 }}>
+              <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0 8px', background: 'var(--bg-card, #fff)' }}>
                 <strong style={{ fontSize: '1.05rem' }}>Shortcuts</strong>
                 <button type="button" aria-label="Close" onClick={() => setList(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'grid', padding: 4 }}><X size={18} /></button>
               </div>

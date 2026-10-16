@@ -235,6 +235,24 @@ export default function AiPanel() {
     setMaximised(m => !m);
   };
 
+  // Alt+I opens (or closes) the panel; Esc closes it. Esc is caught first and marked handled, so a page dialog under it is not also closed.
+  useEffect(() => {
+    if (!isAdmin) return undefined;
+    const onKey = (e) => {
+      const st = useAiPanelStore.getState();
+      if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyI') {
+        e.preventDefault();
+        if (st.open) { audio.playDelete(); st.close(); } else { audio.playActivate(); st.toggleOpen(); }
+      } else if (e.key === 'Escape' && !e.shiftKey && !e.defaultPrevented && st.open) {
+        e.preventDefault();
+        audio.playDelete();
+        st.close();
+      }
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [isAdmin, audio]);
+
   // ── Don't render for non-admin ────────────────────────────────
   if (!isAdmin) return null;
 

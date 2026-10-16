@@ -255,6 +255,18 @@ export default function Mimi({ embedded = false }) {
     if (open && !embedded) inputRef.current?.focus();
   }, [open]);
 
+  // Esc closes the chat. Caught first (capture) and marked handled, so a page dialog under it is not also closed.
+  useEffect(() => {
+    if (!open || embedded) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || e.shiftKey || e.defaultPrevented) return;
+      e.preventDefault();
+      setOpen(false);
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [open, embedded]);
+
   // ── Mimi session token (sessionStorage — clears on tab close) ─────────────
   const getMimiToken = () => sessionStorage.getItem('mimi_session_token') ?? '';
   const setMimiToken = (token) => { if (token) sessionStorage.setItem('mimi_session_token', token); };
