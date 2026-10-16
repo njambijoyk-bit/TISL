@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Menus\Dish;
 use App\Models\Menus\DishRecipe;
 use App\Models\Menus\Ingredient;
+use App\Models\Menus\Production;
 use App\Services\Books\BooksException;
+use App\Services\Menus\DishProduction;
 use App\Services\Menus\DishRecipes;
 use App\Services\Menus\IngredientUse;
 use Illuminate\Http\JsonResponse;
@@ -50,6 +52,46 @@ class MenusRecipesController extends Controller
             $r = $this->recipes->save(Dish::findOrFail($dishId), $d);
 
             return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r->load(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps']), null)]);
+        });
+    }
+
+    /** Recent batches of made-ahead dishes, and the dishes that can be made ahead. */
+    public function productions(Request $request): JsonResponse
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasTable('menus_productions')) {
+            return response()->json(['ready' => false, 'runs' => [], 'dishes' => []]);
+        }
+        $loc = $request->integer('location_id');
+        $runs = Production::when($loc, fn ($q) => $q->where('location_id', $loc))->orderByDesc('made_on')->orderByDesc('id')->limit(40)->get();
+        $names = Dish::whereIn('id', $runs->pluck('dish_id'))->pluck('name', 'id');
+        $left = \App\Models\Menus\DishBatch::whereIn('id', $runs->pluck('batch_id')->filter())->pluck('qty_left', 'id');
+        $ahead = DishRecipe::where('is_active', true)->where('made_to_order', false)->pluck('dish_id');
+
+        return response()->json(['ready' => true,
+            'dishes' => Dish::whereIn('id', $ahead)->where('is_active', true)->orderBy('name')->get(['id', 'name'])->values(),
+            'runs' => $runs->map(fn (Production $p) => ['id' => $p->id, 'number' => $p->number, 'dish' => $names[$p->dish_id] ?? 'Dish', 'date' => $p->made_on->toDateString(), 'portions' => (float) $p->portions, 'left' => (float) ($left[$p->batch_id] ?? 0),
+                'cost' => (float) $p->cost, 'unit_cost' => (float) $p->unit_cost, 'status' => $p->status, 'note' => $p->note, 'location_id' => $p->location_id])->values()]);
+    }
+
+    /** Body: dish_id, location_id, portions, date?, batch_no?, expiry_date?, note?. Uses the ingredients and puts the portions on the dish's own shelf. */
+    public function produce(Request $request, DishProduction $production): JsonResponse
+    {
+        $d = $request->validate(['dish_id' => 'required|integer', 'location_id' => 'required|integer|exists:locations,id', 'portions' => 'required|numeric|gt:0', 'date' => 'nullable|date', 'batch_no' => 'nullable|string|max:60',
+            'expiry_date' => 'nullable|date', 'note' => 'nullable|string|max:255']);
+
+        return $this->guard(function () use ($d, $request, $production) {
+            $p = $production->run(Dish::findOrFail($d['dish_id']), (int) $d['location_id'], (float) $d['portions'], $d, $request->user());
+
+            return response()->json(['message' => "Made. {$p->number} is on the shelf and the ingredients are used.", 'id' => $p->id, 'number' => $p->number, 'cost' => (float) $p->cost], 201);
+        });
+    }
+
+    public function cancelRun(Request $request, DishProduction $production, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($request, $production, $id) {
+            $production->cancel(Production::findOrFail($id), $request->user());
+
+            return response()->json(['message' => 'Batch cancelled. The ingredients are back on the shelf.']);
         });
     }
 

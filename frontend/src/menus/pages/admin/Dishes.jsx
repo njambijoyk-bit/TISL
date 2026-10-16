@@ -17,8 +17,8 @@ import DishOptionsModal from '../../components/DishOptionsModal';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
 
 /**
- * Menus → Dishes: what a customer sees. Behind each dish is one hidden stock item, so sales, batches, cost of sales and recipes work as for any item.
- * Allergens and diet badges come from the ingredients; a dish can instead declare its own.
+ * Menus → Dishes: what a customer sees. A dish has its own price and, once it has a recipe, uses the kitchen's ingredient stock when it is sold (or its own batches, when it is made ahead).
+ * No product stands behind it. Allergens and diet badges come from the ingredients; a dish can instead declare its own.
  */
 
 const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };

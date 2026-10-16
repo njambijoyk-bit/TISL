@@ -1,5 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, PackagePlus, Trash2 } from 'lucide-react';
+import { Plus, PackagePlus, Trash2, ClipboardList, Truck, ChefHat } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
@@ -11,6 +12,7 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
+import { BatchModal, CountModal, TransferModal } from '../../components/StockActions';
 
 /**
  * Menus → Stock: what is on the kitchen's shelf at a branch, per ingredient and per variant, in packs, the alternate unit and the base unit, and how it got there.
@@ -127,6 +129,7 @@ export default function MenusStock() {
   const canWrite = canManageMenus(user);
   const [data, setData] = useState(null);
   const [receipts, setReceipts] = useState([]);
+  const [extra, setExtra] = useState({ expiring: [], counts: [], transfers: [], runs: [], dishes: [] });
   const [loc, setLoc] = useState('');
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -135,8 +138,8 @@ export default function MenusStock() {
   const load = useCallback(() => {
     setLoading(true);
     const params = loc ? { location_id: loc } : undefined;
-    Promise.all([menusAPI.stock(params), menusAPI.stockReceipts(params)])
-      .then(([s, r]) => { setData(s); setReceipts(r.receipts); if (first.current) { first.current = false; setLoc(String(s.location_id)); } })
+    Promise.all([menusAPI.stock(params), menusAPI.stockReceipts(params), menusAPI.stockExpiring({ ...params, days: 7 }).catch(() => ({ rows: [] })), menusAPI.stockCounts(params).catch(() => ({})), menusAPI.productions(params).catch(() => ({}))])
+      .then(([s, r, x, c, p]) => { setData(s); setReceipts(r.receipts); setExtra({ expiring: x.rows ?? [], counts: c.counts ?? [], transfers: c.transfers ?? [], runs: p.runs ?? [], dishes: p.dishes ?? [] }); if (first.current) { first.current = false; setLoc(String(s.location_id)); } })
       .catch((e) => toast.error(errMsg(e, 'Could not load the stock')))
       .finally(() => setLoading(false));
   }, [loc]);
@@ -146,6 +149,11 @@ export default function MenusStock() {
     const reason = window.prompt(`Cancel the receipt ${r.voucher_number ?? `#${r.id}`}? Say why (the stock comes off the shelf and the bill is cancelled in the books):`);
     if (reason === null) return;
     try { const res = await menusAPI.cancelReceipt(r.id, reason); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not cancel'), { duration: 8000 }); }
+  };
+
+  const cancelBatch = async (r) => {
+    if (!window.confirm(`Cancel batch ${r.number}? The ingredients go back on the shelf.`)) return;
+    try { const res = await menusAPI.cancelBatch(r.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not cancel the batch'), { duration: 8000 }); }
   };
 
   if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the kitchen stock" /></div></AdminLayout>;
@@ -163,6 +171,9 @@ export default function MenusStock() {
           </div>
           {canWrite && data?.installed && (
             <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('count')}><ClipboardList size={14} /> Count stock</button>
+              <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('transfer')}><Truck size={14} /> Send to a branch</button>
+              <button type="button" style={btnGhost} onClick={() => setModal('batch')}><ChefHat size={14} /> Make a batch</button>
               <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('opening')}>Opening stock</button>
               <button type="button" style={btnPrimary} disabled={noVariants} onClick={() => setModal('receive')}><PackagePlus size={14} /> Receive ingredients</button>
             </div>
@@ -200,6 +211,57 @@ export default function MenusStock() {
           )}
         </div>
 
+        {extra.expiring.length > 0 && (
+          <>
+            <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Expired or expiring this week</h2>
+            <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="expiring">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr><th style={th}>Ingredient / variant</th><th style={th}>Expires</th><th style={{ ...th, textAlign: 'right' }}>Left</th><th style={{ ...th, textAlign: 'right' }}>Worth</th><th style={th} /></tr></thead>
+                <tbody>{extra.expiring.map((x) => (
+                  <tr key={x.batch_id}>
+                    <td style={td}>{x.name}{x.batch_no ? <span style={{ color: colors.textFaint }}> · {x.batch_no}</span> : null}{x.status !== 'ok' ? <span style={{ color: colors.textFaint }}> · {x.status}</span> : null}</td>
+                    <td style={{ ...td, color: x.expired ? '#b91c1c' : undefined, fontWeight: x.expired ? 700 : 400 }}>{x.expiry_date} · {x.expired ? `expired ${-x.days_left} day${x.days_left === -1 ? '' : 's'} ago` : x.days_left === 0 ? 'today' : `in ${x.days_left} day${x.days_left === 1 ? '' : 's'}`}</td>
+                    <td style={{ ...td, textAlign: 'right' }}>{num(x.quantity, 3)} {x.unit}</td><td style={{ ...td, textAlign: 'right' }}>{num(x.value)}</td>
+                    <td style={td}>{canWrite && <Link to="/admin/menus/operations" style={{ fontSize: '0.74rem' }}>Record as waste</Link>}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {extra.runs.length > 0 && (
+          <>
+            <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Batches made</h2>
+            <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="batches">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr><th style={th}>Date</th><th style={th}>Batch</th><th style={th}>Dish</th><th style={{ ...th, textAlign: 'right' }}>Portions</th><th style={{ ...th, textAlign: 'right' }}>Left</th><th style={{ ...th, textAlign: 'right' }}>Cost</th><th style={th} /></tr></thead>
+                <tbody>{extra.runs.map((r) => (
+                  <tr key={r.id} style={r.status === 'cancelled' ? { opacity: 0.5 } : undefined}>
+                    <td style={td}>{r.date}</td><td style={td}>{r.number}</td><td style={td}>{r.dish}</td><td style={{ ...td, textAlign: 'right' }}>{num(r.portions)}</td><td style={{ ...td, textAlign: 'right' }}>{r.status === 'cancelled' ? 'Cancelled' : num(r.left)}</td><td style={{ ...td, textAlign: 'right' }}>{num(r.cost)}</td>
+                    <td style={td}>{canWrite && r.status === 'posted' && <button type="button" style={small} onClick={() => cancelBatch(r)}>Cancel</button>}</td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        {(extra.counts.length > 0 || extra.transfers.length > 0) && (
+          <>
+            <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Stock takes and transfers</h2>
+            <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="counts">
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr><th style={th}>Date</th><th style={th}>Number</th><th style={th}>What</th><th style={{ ...th, textAlign: 'right' }}>Difference worth</th></tr></thead>
+                <tbody>
+                  {extra.counts.map((c) => <tr key={`c${c.id}`}><td style={td}>{c.date}</td><td style={td}>{c.number}</td><td style={td}>Stock take · {c.lines} line{c.lines === 1 ? '' : 's'}{c.note ? ` · ${c.note}` : ''}</td><td style={{ ...td, textAlign: 'right' }}>{num(c.value_change)}</td></tr>)}
+                  {extra.transfers.map((t) => <tr key={`t${t.id}`}><td style={td}>{t.date}</td><td style={td}>{t.number}</td><td style={td}>Sent {data?.branches.find((b) => b.id === t.from)?.name ?? ''} → {data?.branches.find((b) => b.id === t.to)?.name ?? ''} · {t.lines} line{t.lines === 1 ? '' : 's'}</td><td style={td} /></tr>)}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
         <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Receipts</h2>
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
           {receipts.length === 0 ? <p style={{ padding: 16, margin: 0, color: colors.textMuted, fontSize: '0.82rem' }}>Nothing received yet.</p> : (
@@ -219,7 +281,10 @@ export default function MenusStock() {
           )}
         </div>
       </div>
-      {modal && data && <ReceiveModal data={data} locationId={loc || data.location_id} opening={modal === 'opening'} onClose={() => setModal(null)} onDone={done} />}
+      {modal === 'count' && data && <CountModal data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
+      {modal === 'transfer' && data && <TransferModal data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
+      {modal === 'batch' && data && <BatchModal dishes={extra.dishes} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
+      {(modal === 'receive' || modal === 'opening') && data && <ReceiveModal data={data} locationId={loc || data.location_id} opening={modal === 'opening'} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }

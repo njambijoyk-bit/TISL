@@ -34,15 +34,14 @@ export default function DishOptionsModal({ dish, onClose, onDone }) {
         ...(g.id ? { id: g.id } : {}), name: g.name, kind: g.kind, min_choices: Number(g.min_choices) || 0, max_choices: g.kind === 'multiple' && g.max_choices ? Number(g.max_choices) : null,
         options: g.options.map((o) => ({
           ...(o.id ? { id: o.id } : {}), name: o.name, price_delta: Number(o.price_delta) || 0, is_default: o.is_default, is_active: o.is_active, charge_removal: o.charge_removal, linked_dish_id: o.linked_dish_id || null,
-          uses: o.uses.filter((u) => u.family_id || u.variant_id).map((u) => ({ mode: u.mode, family_id: u.family_id || null, variant_id: u.variant_id || null, quantity: u.mode === 'add' ? Number(u.quantity) || 0 : null, unit_id: u.mode === 'add' && u.unit_id ? Number(u.unit_id) : null })),
+          uses: o.uses.filter((u) => u.ingredient_id).map((u) => ({ mode: u.mode, ingredient_id: Number(u.ingredient_id), quantity: u.mode === 'add' ? Number(u.quantity) || 0 : null, unit: u.mode === 'add' ? u.unit || 'base' : 'base' })),
         })),
       })));
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the choices')); } finally { setBusy(false); }
   };
 
-  const target = (u) => (u.family_id ? `f${u.family_id}` : u.variant_id ? `v${u.variant_id}` : '');
-  const pickTarget = (gi, oi, ui, v) => patchUse(gi, oi, ui, v.startsWith('f') ? { family_id: Number(v.slice(1)), variant_id: null } : v.startsWith('v') ? { variant_id: Number(v.slice(1)), family_id: null } : { family_id: null, variant_id: null });
+  const ingredientOf = (id) => data?.ingredients.find((i) => String(i.id) === String(id));
 
   return (
     <Modal title="Choices" subtitle={dish.name} onClose={onClose} width={820}>
@@ -87,19 +86,21 @@ export default function DishOptionsModal({ dish, onClose, onDone }) {
                   </div>
                   {o.uses.map((u, ui) => (
                     <div key={ui} data-testid="option-use" style={{ display: 'grid', gridTemplateColumns: '130px 1.6fr 90px 90px 24px', gap: 6, alignItems: 'center', marginTop: 4 }}>
-                      <SelectInput aria-label="What it does" value={u.mode} onChange={(e) => patchUse(gi, oi, ui, { mode: e.target.value, family_id: null, variant_id: null })}><option value="add">Uses more of</option><option value="remove">Leaves out</option></SelectInput>
-                      <SelectInput aria-label="Which ingredient" value={target(u)} onChange={(e) => pickTarget(gi, oi, ui, e.target.value)}>
+                      <SelectInput aria-label="What it does" value={u.mode} onChange={(e) => patchUse(gi, oi, ui, { mode: e.target.value, ingredient_id: null, unit: 'base' })}><option value="add">Uses more of</option><option value="remove">Leaves out</option></SelectInput>
+                      <SelectInput aria-label="Which ingredient" value={u.ingredient_id ?? ''} onChange={(e) => patchUse(gi, oi, ui, { ingredient_id: e.target.value ? Number(e.target.value) : null, unit: 'base' })}>
                         <option value="">Choose…</option>
                         {u.mode === 'add'
-                          ? data.families.map((f) => <option key={f.id} value={`f${f.id}`}>{f.name} ({f.unit})</option>)
-                          : data.recipe_lines.map((l) => <option key={l.family_id ? `f${l.family_id}` : `v${l.variant_id}`} value={l.family_id ? `f${l.family_id}` : `v${l.variant_id}`}>{l.name}</option>)}
+                          ? data.ingredients.map((i) => <option key={i.id} value={i.id}>{i.name} ({i.base_unit})</option>)
+                          : data.recipe_lines.map((l) => <option key={l.ingredient_id} value={l.ingredient_id}>{l.name}</option>)}
                       </SelectInput>
                       <NumberInput aria-label="How much" step="any" min="0" disabled={u.mode === 'remove'} value={u.mode === 'remove' ? '' : u.quantity ?? ''} placeholder="amount" onChange={(e) => patchUse(gi, oi, ui, { quantity: e.target.value })} />
-                      <SelectInput aria-label="Unit" disabled={u.mode === 'remove'} value={u.unit_id ?? ''} onChange={(e) => patchUse(gi, oi, ui, { unit_id: e.target.value })}><option value="">its unit</option>{data.units.map((x) => <option key={x.id} value={x.id}>{x.code}</option>)}</SelectInput>
+                      <SelectInput aria-label="Unit" disabled={u.mode === 'remove' || !u.ingredient_id} value={u.unit || 'base'} onChange={(e) => patchUse(gi, oi, ui, { unit: e.target.value })}>
+                        <option value="base">{ingredientOf(u.ingredient_id)?.base_unit ?? 'unit'}</option>{ingredientOf(u.ingredient_id)?.alt_unit && <option value="alt">{ingredientOf(u.ingredient_id).alt_unit}</option>}
+                      </SelectInput>
                       <button type="button" aria-label="Remove this change" style={iconBtn} onClick={() => patchOption(gi, oi, { uses: o.uses.filter((_, k) => k !== ui) })}><Trash2 size={13} /></button>
                     </div>
                   ))}
-                  <button type="button" style={{ ...small, marginTop: 6 }} onClick={() => patchOption(gi, oi, { uses: [...o.uses, { mode: 'add', family_id: null, variant_id: null, quantity: '', unit_id: '' }] })}>The kitchen uses…</button>
+                  <button type="button" style={{ ...small, marginTop: 6 }} onClick={() => patchOption(gi, oi, { uses: [...o.uses, { mode: 'add', ingredient_id: null, quantity: '', unit: 'base' }] })}>The kitchen uses…</button>
                 </div>
               ))}
               <button type="button" style={small} onClick={() => patchGroup(gi, { options: [...g.options, blankOption()] })}>Add a choice</button>

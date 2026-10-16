@@ -4,7 +4,6 @@ import { Printer } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import { Field, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
-import VariantPicker from '../../../core/components/admin/pickers/VariantPicker';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
@@ -78,19 +77,33 @@ function Prep({ branch }) {
 
 function Waste({ branch, canAct }) {
   const [data, setData] = useState(null);
-  const [item, setItem] = useState(null);
-  const [f, setF] = useState({ quantity: '', kind: 'spoilage', note: '' });
+  const [choices, setChoices] = useState({ items: [], dishes: [] });
+  const [pick, setPick] = useState('');
+  const [f, setF] = useState({ quantity: '', unit: 'base', kind: 'spoilage', note: '' });
   const [busy, setBusy] = useState(false);
   const load = useCallback(() => menusAPI.waste(branch ? { location_id: branch } : undefined).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the waste log'))), [branch]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    Promise.all([menusAPI.stock(branch ? { location_id: branch } : undefined), menusAPI.dishes()]).then(([s, d]) => setChoices({
+      items: s.ingredients.flatMap((i) => i.variants.filter((v) => v.is_active).map((v) => ({ id: v.id, label: `${i.name} — ${v.name}`, pack: v.pack_size_base, alt: i.alt_unit, base: i.base_unit }))),
+      dishes: (d.dishes ?? []).map((x) => ({ id: x.id, label: x.name })),
+    })).catch(() => {});
+  }, [branch]);
+  const chosen = pick.startsWith('i') ? choices.items.find((x) => `i${x.id}` === pick) : null;
+  const units = chosen ? [...(chosen.pack ? [['pack', 'packs']] : []), ...(chosen.alt ? [['alt', chosen.alt]] : []), ['base', chosen.base]] : [];
+  const choose = (v) => { setPick(v); const c = choices.items.find((x) => `i${x.id}` === v); setF((p) => ({ ...p, unit: c ? (c.pack ? 'pack' : c.alt ? 'alt' : 'base') : 'base' })); };
   const save = async (e) => {
     e.preventDefault(); setBusy(true);
-    try { const r = await menusAPI.recordWaste({ variant_id: item.variant_id, quantity: Number(f.quantity), kind: f.kind, note: f.note || undefined }, branch || undefined); toast.success(`Recorded: worth ${money(r.cost)}.`); setItem(null); setF({ quantity: '', kind: f.kind, note: '' }); await load(); } catch (err) { toast.error(errMsg(err, 'Could not record it'), { duration: 8000 }); } finally { setBusy(false); }
+    try {
+      const target = pick.startsWith('i') ? { item_id: Number(pick.slice(1)), unit: f.unit } : { dish_id: Number(pick.slice(1)) };
+      const r = await menusAPI.recordWaste({ ...target, quantity: Number(f.quantity), kind: f.kind, note: f.note || undefined }, branch || undefined);
+      toast.success(`Recorded: worth ${money(r.cost)}.`); setPick(''); setF({ quantity: '', unit: 'base', kind: f.kind, note: '' }); await load();
+    } catch (err) { toast.error(errMsg(err, 'Could not record it'), { duration: 8000 }); } finally { setBusy(false); }
   };
   const back = async (w) => { try { await menusAPI.voidWaste(w.id); toast.success('Taken back: the stock is returned.'); await load(); } catch (e) { toast.error(errMsg(e, 'Could not take it back'), { duration: 8000 }); } };
 
   if (!data) return <p style={{ color: colors.textMuted }}>Loading…</p>;
-  if (!data.ready) return <p role="status" style={{ color: colors.textMuted }}>Run database script 142_menus_operations.sql to switch the waste log on.</p>;
+  if (!data.ready) return <p role="status" style={{ color: colors.textMuted }}>Run database script 185_menus_operations_own.sql to switch the waste log on.</p>;
   const r = data.report;
 
   return (
@@ -98,13 +111,20 @@ function Waste({ branch, canAct }) {
       {canAct && (
         <form onSubmit={save} aria-label="Record waste" style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
           <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Record waste</h2>
-          {item ? <p style={{ margin: 0 }}><strong>{item.name}</strong> <button type="button" style={btnGhost} onClick={() => setItem(null)}>Change</button></p> : <VariantPicker onPick={(v) => setItem({ variant_id: v.variant_id, name: [v.product, v.variant].filter(Boolean).join(' ') })} placeholder="Search the item or dish that was wasted" />}
+          <Field label="What was wasted" htmlFor="w-what">
+            <SelectInput id="w-what" value={pick} onChange={(e) => choose(e.target.value)}>
+              <option value="">Choose an ingredient or a dish…</option>
+              <optgroup label="Ingredients">{choices.items.map((x) => <option key={`i${x.id}`} value={`i${x.id}`}>{x.label}</option>)}</optgroup>
+              <optgroup label="Dishes">{choices.dishes.map((x) => <option key={`d${x.id}`} value={`d${x.id}`}>{x.label}</option>)}</optgroup>
+            </SelectInput>
+          </Field>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-            <Field label="How much" htmlFor="w-qty" hint="In the item's own unit; for a dish, portions."><NumberInput id="w-qty" min="0" step="any" value={f.quantity} onChange={(e) => setF({ ...f, quantity: e.target.value })} /></Field>
+            <Field label="How much" htmlFor="w-qty" hint={chosen ? undefined : 'For a dish, portions.'}><NumberInput id="w-qty" min="0" step="any" value={f.quantity} onChange={(e) => setF({ ...f, quantity: e.target.value })} /></Field>
+            {chosen && <Field label="In" htmlFor="w-unit"><SelectInput id="w-unit" value={f.unit} onChange={(e) => setF({ ...f, unit: e.target.value })}>{units.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</SelectInput></Field>}
             <Field label="Why" htmlFor="w-kind"><SelectInput id="w-kind" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>{Object.entries(data.kinds).map(([k, n]) => <option key={k} value={k}>{n}</option>)}</SelectInput></Field>
             <Field label="Note" htmlFor="w-note"><TextInput id="w-note" maxLength={200} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
           </div>
-          <div><button type="submit" style={{ ...btnPrimary, opacity: busy || !item || !Number(f.quantity) ? 0.55 : 1 }} disabled={busy || !item || !Number(f.quantity)}>{busy ? 'Recording…' : 'Record it'}</button></div>
+          <div><button type="submit" style={{ ...btnPrimary, opacity: busy || !pick || !Number(f.quantity) ? 0.55 : 1 }} disabled={busy || !pick || !Number(f.quantity)}>{busy ? 'Recording…' : 'Record it'}</button></div>
         </form>
       )}
       {r && (
@@ -123,7 +143,7 @@ function Waste({ branch, canAct }) {
             <tbody>
               {data.recent.map((w) => (
                 <tr key={w.id} data-waste={w.item} style={{ opacity: w.voided ? 0.5 : 1 }}>
-                  <td style={td}>{w.date}</td><td style={td}>{w.item}</td><td style={td}>{num(w.quantity)}</td><td style={td}>{w.kind_label}{w.note ? ` · ${w.note}` : ''}</td><td style={td}>{money(w.cost)}</td>
+                  <td style={td}>{w.date}</td><td style={td}>{w.item}</td><td style={td}>{num(w.quantity)} {w.unit}</td><td style={td}>{w.kind_label}{w.note ? ` · ${w.note}` : ''}</td><td style={td}>{money(w.cost)}</td>
                   <td style={td}>{w.voided ? <Pill>Taken back</Pill> : canAct && <button type="button" style={btnGhost} onClick={() => back(w)}>Take back</button>}</td>
                 </tr>
               ))}
@@ -141,11 +161,11 @@ function Buy({ branch, canAct }) {
   const [picked, setPicked] = useState({});
   const [made, setMade] = useState(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { setMade(null); menusAPI.reorder({ days, ...(branch ? { location_id: branch } : {}) }).then((r) => { setData(r); setPicked(Object.fromEntries(r.rows.filter((x) => x.supplier_id).map((x) => [x.variant_id, true]))); }).catch((e) => toast.error(errMsg(e, 'Could not work out what to buy'))); }, [days, branch]);
-  const chosen = useMemo(() => (data?.rows ?? []).filter((x) => picked[x.variant_id]), [data, picked]);
+  useEffect(() => { setMade(null); menusAPI.reorder({ days, ...(branch ? { location_id: branch } : {}) }).then((r) => { setData(r); setPicked(Object.fromEntries(r.rows.filter((x) => x.supplier_id).map((x) => [x.item_id, true]))); }).catch((e) => toast.error(errMsg(e, 'Could not work out what to buy'))); }, [days, branch]);
+  const chosen = useMemo(() => (data?.rows ?? []).filter((x) => picked[x.item_id]), [data, picked]);
   const make = async () => {
     setBusy(true);
-    try { setMade(await menusAPI.makeOrders(chosen.map((x) => ({ variant_id: x.variant_id, quantity: x.quantity })), branch || undefined)); } catch (e) { toast.error(errMsg(e, 'Could not make the orders'), { duration: 8000 }); } finally { setBusy(false); }
+    try { setMade(await menusAPI.makeOrders(chosen.map((x) => ({ item_id: x.item_id, quantity: x.quantity, unit: x.unit_kind })), branch || undefined)); } catch (e) { toast.error(errMsg(e, 'Could not make the orders'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
   return (
@@ -157,10 +177,10 @@ function Buy({ branch, canAct }) {
             <thead><tr><th style={th} /><th style={th}>Item</th><th style={th}>Buy</th><th style={th}>Needed</th><th style={th}>On the shelf</th><th style={th}>Keep</th><th style={th}>From</th></tr></thead>
             <tbody>
               {data.rows.map((x) => (
-                <tr key={x.variant_id} data-buy={x.name}>
-                  <td style={td}><input type="checkbox" aria-label={`Order ${x.name}`} disabled={!x.supplier_id || !canAct} checked={Boolean(picked[x.variant_id])} onChange={(e) => setPicked((p) => ({ ...p, [x.variant_id]: e.target.checked }))} /></td>
-                  <td style={td}><strong>{x.name}</strong>{x.for && <small style={{ color: colors.textMuted }}> · for {x.for}</small>} {x.reason === 'below_par' && <Pill tone="warn">Under its level</Pill>}</td>
-                  <td style={td}><strong>{num(x.quantity)}</strong></td><td style={td}>{num(x.need)}</td><td style={td}>{num(x.on_hand)}</td><td style={td}>{x.par ? num(x.par) : '—'}</td>
+                <tr key={x.item_id} data-buy={x.name}>
+                  <td style={td}><input type="checkbox" aria-label={`Order ${x.name}`} disabled={!x.supplier_id || !canAct} checked={Boolean(picked[x.item_id])} onChange={(e) => setPicked((p) => ({ ...p, [x.item_id]: e.target.checked }))} /></td>
+                  <td style={td}><strong>{x.name}</strong>{x.reason === 'below_par' && <Pill tone="warn">Under its level</Pill>}</td>
+                  <td style={td}><strong>{num(x.quantity)} {x.unit}</strong></td><td style={td}>{num(x.need)} {x.base_unit}</td><td style={td}>{num(x.on_hand)} {x.base_unit}</td><td style={td}>{x.par ? `${num(x.par)} ${x.base_unit}` : '—'}</td>
                   <td style={td}>{x.supplier ?? <Pill tone="warn">No supplier yet</Pill>}</td>
                 </tr>
               ))}

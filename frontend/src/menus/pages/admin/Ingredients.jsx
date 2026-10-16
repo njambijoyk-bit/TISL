@@ -49,13 +49,15 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
   const [notes, setNotes] = useState(ingredient?.notes ?? '');
   const [active, setActive] = useState(ingredient?.is_active ?? true);
   const keyN = useRef(0);
-  const [items, setItems] = useState((ingredient?.variants ?? []).map((v) => ({ ...v, key: `v${v.id}`, pack_size: v.pack_size ?? '', pack_unit_id: v.pack_unit_id })));
+  const [items, setItems] = useState((ingredient?.variants ?? []).map((v) => ({ ...v, key: `v${v.id}`, pack_size: v.pack_size ?? '', pack_unit_id: v.pack_unit_id, level_base: v.reorder_level ?? null })));
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const base = options.units.find((u) => String(u.id) === String(baseId));
   const alt = options.units.find((u) => String(u.id) === String(altId));
   const sameKind = options.units.filter((u) => base && u.dimension === base.dimension && u.id !== base.id);
   const packUnits = [base, alt].filter(Boolean);
+  const levelFactor = base && alt ? Number(alt.to_base_factor) / Number(base.to_base_factor) : 1;   // base units in one alternate unit (1 kg = 1000 g)
+  const levelUnit = (alt ?? base)?.code;
 
   const pickBase = (v) => {
     setBaseId(v);
@@ -67,7 +69,7 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
     setAltId(v);
     setItems((xs) => xs.map((x) => ({ ...x, pack_unit_id: v || baseId })));   // pack sizes are typed in the bigger unit when there is one
   };
-  const add = () => setItems((xs) => [...xs, { key: `n${++keyN.current}`, id: null, name: '', code: '', pack_size: '', pack_unit_id: altId || baseId, track_expiry: false, is_allowed: true, is_active: true }]);
+  const add = () => setItems((xs) => [...xs, { key: `n${++keyN.current}`, id: null, name: '', code: '', pack_size: '', pack_unit_id: altId || baseId, track_expiry: false, is_allowed: true, is_active: true, level_base: null }]);
   const patch = (key, p) => setItems((xs) => xs.map((x) => (x.key === key ? { ...x, ...p } : x)));
   const move = (i, d) => setItems((xs) => { const ys = [...xs]; const j = i + d; if (j < 0 || j >= ys.length) return ys; [ys[i], ys[j]] = [ys[j], ys[i]]; return ys; });
 
@@ -78,7 +80,7 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
         name, base_unit_id: Number(baseId), alt_unit_id: altId ? Number(altId) : null, pick_rule: rule, allergens, tags, notes: notes || null, is_active: active,
         variants: items.map((x) => ({
           id: x.id ?? undefined, name: x.name, code: x.code || null, pack_size: x.pack_size === '' ? null : Number(x.pack_size), pack_unit_id: x.pack_unit_id ? Number(x.pack_unit_id) : null,
-          track_expiry: !!x.track_expiry, is_allowed: x.is_allowed, is_active: x.is_active,
+          track_expiry: !!x.track_expiry, is_allowed: x.is_allowed, is_active: x.is_active, reorder_level: x.level_base == null || x.level_base === '' ? null : Number(x.level_base),
         })),
       }, ingredient?.id);
       toast.success(res.message); onDone();
@@ -131,6 +133,11 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
                     <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.is_allowed} onChange={(e) => patch(x.key, { is_allowed: e.target.checked })} /> may be used</label>
                     <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.track_expiry} onChange={(e) => patch(x.key, { track_expiry: e.target.checked })} /> expires</label>
                     <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 4, alignItems: 'center' }}><input type="checkbox" checked={x.is_active} onChange={(e) => patch(x.key, { is_active: e.target.checked })} /> in use</label>
+                    <label style={{ fontSize: '0.72rem', color: colors.textMuted, display: 'flex', gap: 6, alignItems: 'center' }} title="When a branch has less than this, What to buy suggests ordering it.">
+                      keep at least
+                      <NumberInput aria-label="Level to keep" min="0" step="any" style={{ width: 90 }} value={x.level_base == null || x.level_base === '' ? '' : Math.round((Number(x.level_base) / levelFactor) * 10000) / 10000}
+                        onChange={(e) => patch(x.key, { level_base: e.target.value === '' ? null : Number(e.target.value) * levelFactor })} /> {levelUnit}
+                    </label>
                   </div>
                 </div>
               ))}
