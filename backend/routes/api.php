@@ -1887,20 +1887,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{unitId}', [ProductVariantController::class, 'adminDestroyUnit'])->middleware('permission:catalogue.delete');
         });
 
-        // Units of measure
+        // Units of measure (Core: the unit permissions; the catalogue ones still open them for the people who already hold those)
         Route::prefix('units-of-measure')->group(function () {
-            Route::get('/', [UnitOfMeasureController::class, 'adminIndex'])->middleware('permission:catalogue.view');
-            Route::post('/', [UnitOfMeasureController::class, 'adminStore'])->middleware('permission:catalogue.edit');
-            Route::get('/convert', [UnitOfMeasureController::class, 'convert'])->middleware('permission:catalogue.view'); // must sit above /{id}
-            Route::get('/{id}', [UnitOfMeasureController::class, 'adminShow'])->middleware('permission:catalogue.view');
-            Route::put('/{id}', [UnitOfMeasureController::class, 'adminUpdate'])->middleware('permission:catalogue.edit');
-            Route::delete('/{id}', [UnitOfMeasureController::class, 'adminDestroy'])->middleware('permission:catalogue.edit');
+            Route::get('/', [UnitOfMeasureController::class, 'adminIndex'])->middleware('permission:units.view,catalogue.view');
+            Route::post('/', [UnitOfMeasureController::class, 'adminStore'])->middleware('permission:units.manage,catalogue.edit');
+            Route::get('/convert', [UnitOfMeasureController::class, 'convert'])->middleware('permission:units.view,catalogue.view'); // must sit above /{id}
+            Route::get('/{id}', [UnitOfMeasureController::class, 'adminShow'])->middleware('permission:units.view,catalogue.view');
+            Route::put('/{id}', [UnitOfMeasureController::class, 'adminUpdate'])->middleware('permission:units.manage,catalogue.edit');
+            Route::delete('/{id}', [UnitOfMeasureController::class, 'adminDestroy'])->middleware('permission:units.manage,catalogue.edit');
         });
 
         Route::prefix('unit-locale-defaults')->group(function () {
-            Route::get('/', [UnitOfMeasureController::class, 'adminIndexLocaleDefaults'])->middleware('permission:catalogue.view');
-            Route::post('/', [UnitOfMeasureController::class, 'adminStoreLocaleDefault'])->middleware('permission:catalogue.edit');
-            Route::delete('/{id}', [UnitOfMeasureController::class, 'adminDestroyLocaleDefault'])->middleware('permission:catalogue.edit');
+            Route::get('/', [UnitOfMeasureController::class, 'adminIndexLocaleDefaults'])->middleware('permission:units.view,catalogue.view');
+            Route::post('/', [UnitOfMeasureController::class, 'adminStoreLocaleDefault'])->middleware('permission:units.manage,catalogue.edit');
+            Route::delete('/{id}', [UnitOfMeasureController::class, 'adminDestroyLocaleDefault'])->middleware('permission:units.manage,catalogue.edit');
         });
 
         // Admin Auction Management

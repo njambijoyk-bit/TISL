@@ -395,7 +395,7 @@ export const ADMIN_NAV = [
           { group: 'System', title: 'Overview', path: '/admin/settings', exact: true, description: 'Every setting in one place' },
           { group: 'System', title: 'General', path: '/admin/settings/general', description: 'Business details and defaults' },
           { group: 'System', title: 'Currency', path: '/admin/settings/currency', perm: 'currency.manage', description: 'Currencies and exchange rates' },
-          { group: 'System', title: 'Units', path: '/admin/settings/units', perm: 'catalogue.edit', description: 'Units of measure' },
+          { group: 'System', title: 'Units', path: '/admin/settings/units', perm: ['units.manage', 'catalogue.edit'], description: 'Units of measure' },
           { group: 'System', title: 'Customer tiers', path: '/admin/settings/customer-tiers', perm: 'customers.tiers', description: 'Tiers and their discounts' },
           { group: 'System', title: 'Shipping', path: '/admin/settings/shipping', perm: 'shipping.manage', description: 'Zones and delivery fees' },
           { group: 'System', title: 'Cost centres', path: '/admin/settings/cost-centres', perm: 'costcentres.view', description: 'Branches, utilities, payroll, projects and the defaults' },

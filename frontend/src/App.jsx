@@ -1796,7 +1796,7 @@ function App() {
               <Route
                 path="/admin/settings/units"
                 element={
-                  <ProtectedRoute requireAdmin permission="catalogue.edit">
+                  <ProtectedRoute requireAdmin permission="units.manage,catalogue.edit">
                     <UnitsOfMeasure />
                   </ProtectedRoute>
                 }

@@ -11,6 +11,23 @@ use PHPUnit\Framework\TestCase;
  */
 class AccessCatalogTest extends TestCase
 {
+    public function test_units_of_measure_belong_to_core_so_they_stay_open_when_e_commerce_is_off(): void
+    {
+        foreach (['units.view', 'units.manage'] as $key) {
+            $this->assertNull(Catalog::PERMISSIONS[$key][0], "{$key} is not tied to a module");
+        }
+        $src = (string) file_get_contents(__DIR__ . '/../../routes/api.php');
+        $block = substr($src, strpos($src, "Route::prefix('units-of-measure')"), 1800);
+        $this->assertStringNotContainsString("permission:catalogue.view'", $block, 'the unit routes also accept the unit permissions');
+        $this->assertStringContainsString('permission:units.manage,catalogue.edit', $block);
+        $roles = Catalog::roles();
+        foreach (['admin', 'manager', 'finance', 'senior_accountant'] as $r) {
+            $this->assertContains('units.manage', $roles[$r]['permissions'], "{$r} could change the catalogue, so it can change units");
+        }
+        $this->assertContains('units.view', $roles['chef']['permissions'], 'the kitchen sees units through menus.view');
+        $this->assertNotContains('units.manage', $roles['sales_rep']['permissions']);
+    }
+
     public function test_every_permission_a_route_names_exists(): void
     {
         $src = (string) file_get_contents(__DIR__ . '/../../routes/api.php');

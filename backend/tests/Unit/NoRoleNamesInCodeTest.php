@@ -152,6 +152,8 @@ class NoRoleNamesInCodeTest extends TestCase
         'users.manage' => ['super_admin', 'admin', 'manager', 'sales_rep'],
         'tickets.purge' => ['super_admin'],
         'users.purge' => ['super_admin'],
+        'units.view' => ['super_admin', 'admin', 'manager', 'finance', 'logistics', 'sales_rep'],
+        'units.manage' => ['super_admin', 'admin', 'manager', 'finance'],
         'tax.view' => ['super_admin', 'admin', 'manager', 'finance'],
         'tax.manage' => ['super_admin', 'admin', 'finance'],
         'currency.manage' => ['super_admin', 'admin', 'finance'],

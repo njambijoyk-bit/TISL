@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 15;
+    public const VERSION = 16;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        16 => ['units.view', 'units.manage'],
         15 => ['menus.till'],
         14 => ['pos.view', 'pos.sell', 'pos.invoice', 'pos.order', 'pos.return', 'pos.discount', 'pos.void', 'pos.reprint', 'pos.shift', 'pos.supervise', 'pos.manage'],
         13 => ['security.manage'],
@@ -151,6 +152,9 @@ class Catalog
         'users.manage'      => [null, 'Access', 'Manage staff accounts', true],
         'tickets.purge'     => [null, 'Support', 'Delete support tickets for good', true],
         'users.purge'       => [null, 'Access', 'Delete user accounts for good', true],
+        // units of measure are Core (version 16): they serve stock, books, tax and every module, so they no longer sit with the E-commerce catalogue permissions
+        'units.view'        => [null, 'Settings', 'See the units of measure and how they convert', false],
+        'units.manage'      => [null, 'Settings', 'Add and change units of measure and the units each place uses by default', true],
         'tax.view'          => [null, 'Tax and money', 'See taxes, withholding and tax certificates', false],
         'tax.manage'        => [null, 'Tax and money', 'Change taxes, withholding and tax certificates', true],
         'currency.manage'   => [null, 'Tax and money', 'Add and change currencies and a customer account\'s currency', true],
@@ -266,6 +270,32 @@ class Catalog
      * `acts_as` is no longer used for any decision (every check asks for a permission); the column stays so old data and the SQL script still fit.
      */
     public static function roles(): array
+    {
+        return self::withUnits(self::builtInRoles());
+    }
+
+    /**
+     * Units of measure became their own Core permissions (version 16). A built-in role that could change the catalogue can change units, and one that could see any of the
+     * places that use units (catalogue, tax, stock, menus) can see them, so nobody loses the units page or the unit lists on the forms.
+     *
+     * @param array<string, array<string, mixed>> $roles
+     */
+    private static function withUnits(array $roles): array
+    {
+        foreach ($roles as $key => $role) {
+            if (! is_array($role['permissions'])) {
+                continue;
+            }
+            $has = fn (array $any) => (bool) array_intersect($any, $role['permissions']);
+            $add = array_merge($has(['catalogue.edit']) ? ['units.manage'] : [], $has(['catalogue.view', 'catalogue.edit', 'tax.view', 'stock.view', 'menus.view']) ? ['units.view'] : []);
+            $roles[$key]['permissions'] = array_values(array_unique(array_merge($role['permissions'], $add)));
+        }
+
+        return $roles;
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private static function builtInRoles(): array
     {
         $all = array_keys(self::PERMISSIONS);
         $notOwnerOnly = array_values(array_diff($all, self::OWNER_ONLY));
