@@ -8,7 +8,7 @@ import useCalculatorStore from '../../store/calculatorStore';
 import { AdminShellContext } from './adminShellContext';
 import useAuthStore from '../../store/authStore';
 import { visibleNav, findActive, configurationTab } from '../../navigation/adminNav';
-import { HOTKEYS, dialogOpen, pageHotkeyTarget } from '../../lib/pageHotkeys';
+import { dialogOpen, pageHotkeyTarget } from '../../lib/pageHotkeys';
 
 /**
  * The frame around every /admin and /driver page (a layout route in App.jsx):
@@ -72,7 +72,7 @@ export default function AdminShell() {
   const configPath = useMemo(() => configurationTab(nav, active.item)?.path, [nav, active.item]);
   useEffect(() => {
     const onKey = (e) => {
-      if (!HOTKEYS.includes(e.key) || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || dialogOpen()) return;
+      if (!['F12', 'F7'].includes(e.key) || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || dialogOpen()) return;
       const target = pageHotkeyTarget(e.key);
       if (target) { e.preventDefault(); target.click(); return; }
       if (e.key === 'F12' && configPath) { e.preventDefault(); navigate(configPath); }

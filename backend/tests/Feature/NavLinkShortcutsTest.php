@@ -44,9 +44,9 @@ class NavLinkShortcutsTest extends TestCase
         $this->assertSame(['S', null], array_column($feed, 'shortcut'));
     }
 
-    public function test_the_shortcut_list_and_account_letters_are_kept_back(): void
+    public function test_the_letters_the_app_uses_are_kept_back(): void
     {
-        foreach (['a', 'U'] as $letter) {
+        foreach (['a', 'U', 'm', 'N', 'r', 'T'] as $letter) {
             $res = $this->set('shop', $letter);
             $this->assertSame(422, $res->getStatusCode());
             $this->assertNull(NavLink::where('key', 'shop')->value('shortcut'));

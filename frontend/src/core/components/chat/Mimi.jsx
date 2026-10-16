@@ -406,6 +406,7 @@ export default function Mimi({ embedded = false }) {
       {/* Floating bubble */}
       <button
         type="button"
+        aria-label="Chat with Mimi"
         onMouseDown={onBubbleMouseDown}
         onTouchStart={onBubbleMouseDown}
         onClick={() => { if (!didDrag.current) setOpen(o => !o); }}

@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { LogOut, UserCircle, LayoutDashboard, Home, X } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import { isStaff, roleName } from '../../lib/roles';
 import { toggleAccountMenu } from '../../lib/accountShortcut';
 import useNavStore from '../../store/navStore';
-import { dialogOpen } from '../../lib/pageHotkeys';
+import useThemeStore from '../../store/themeStore';
+import { useTheme } from '../../theme';
+import { closeTarget, dialogOpen, pageHotkeyTarget, saveTarget, searchBox, topDialog } from '../../lib/pageHotkeys';
 
 /** Where a key press must be left alone: typing in a box, or a screen that is full of scanner input. */
 const typing = (e) => {
@@ -15,6 +17,7 @@ const typing = (e) => {
 };
 const quiet = (path) => /^\/(admin\/pos|pos\/|kiosk\/)/.test(path);
 
+const MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent);
 const ACCENTS = ['#8b5cf6', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
 /**
@@ -39,44 +42,107 @@ export default function KeyboardShortcuts() {
 
   useEffect(() => { if (!loaded) fetchNav(); }, [loaded, fetchNav]);
 
+  const { mode, setMode } = useTheme();
+  const { setTheme } = useThemeStore();
+  const popupOpen = useRef(false);
+  popupOpen.current = account || list;
+  const signOut = () => { logout(); setAccount(false); navigate(inAdmin ? '/login' : '/'); };
+  const toggleDark = () => {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const next = dark ? 'light' : 'dark';
+    setMode(next); setTheme(next);
+  };
+
   useEffect(() => { setAccount(false); setList(false); }, [pathname]);
   useEffect(() => {
+    const press = (el) => { if (el) { el.click(); return true; } return false; };
     const onKey = (e) => {
-      if (e.key === 'Escape') { setAccount(false); setList(false); return; }
-      if (quiet(pathname) || e.ctrlKey || e.metaKey) return;
+      // Esc closes our own popups first, else the open dialog (its Close button or X); Shift+Esc signs out
+      if (e.key === 'Escape') {
+        if (quiet(pathname)) return;
+        if (e.shiftKey) {
+          if (isAuthenticated) { e.preventDefault(); signOut(); }
+          return;
+        }
+        if (popupOpen.current) { setAccount(false); setList(false); return; }
+        if (!e.defaultPrevented) press(closeTarget());
+        return;
+      }
+      if (quiet(pathname)) return;
+      // Ctrl+S / Cmd+S presses the one Save button of the dialog or page. The browser's own Save page is never wanted in the app.
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.code === 'KeyS') {
+        e.preventDefault();
+        const save = saveTarget();
+        if (save) { document.activeElement?.blur?.(); setTimeout(() => save.click(), 0); }   // a field that saves on leaving does so first
+        return;
+      }
+      if (e.ctrlKey || e.metaKey) return;
+      const free = !typing(e) && !dialogOpen();
+      if (!e.shiftKey && !e.altKey) {
+        if (e.key === '/' && free) {
+          const box = searchBox();
+          if (box) { e.preventDefault(); box.focus(); box.select?.(); }
+        } else if (['F2', 'F8', 'F9'].includes(e.key) && !dialogOpen() && (e.key !== 'F2' || inAdmin)) {
+          const target = pageHotkeyTarget(e.key);
+          if (target) { e.preventDefault(); target.click(); }
+        }
+        return;
+      }
+      if (e.shiftKey && !e.altKey && ['ArrowLeft', 'ArrowRight'].includes(e.key) && free) {
+        const target = pageHotkeyTarget(e.key === 'ArrowLeft' ? 'Previous' : 'Next');
+        if (target) { e.preventDefault(); target.click(); }
+        return;
+      }
       const letter = /^Key[A-Z]$/.test(e.code) ? e.code.slice(3) : '';   // the key's place, not its character: Alt+A types a different letter on a Mac
       if (!letter) return;
       if (e.altKey && !e.shiftKey && letter === 'A') {
         e.preventDefault();
         if (!isAuthenticated) { navigate('/login'); return; }
         if (!toggleAccountMenu()) setAccount((v) => !v);   // the page's own dropdown, or ours
-      } else if (e.shiftKey && !e.altKey && !typing(e) && (!dialogOpen() || letter === 'A')) {
-        if (letter === 'A') {
-          e.preventDefault();
-          setList((v) => !v);
-        } else if (letter === 'U') {
-          e.preventDefault();
+      } else if (e.shiftKey && !e.altKey && !typing(e) && (!dialogOpen() || ['A', 'N'].includes(letter))) {
+        const openAccount = () => {
           if (!isAuthenticated) { navigate('/login'); return; }
           if (!toggleAccountMenu()) setAccount((v) => !v);
-        } else {
-          const to = Object.fromEntries(JSON.parse(letters))[letter];
-          if (to) { e.preventDefault(); navigate(to); }
-        }
+        };
+        const fixed = {
+          A: () => setList((v) => !v),
+          U: openAccount,
+          M: () => press(document.querySelector('button[aria-label="Chat with Mimi"]')),   // Mimi's bubble, open or closed
+          N: () => press(document.querySelector('button[aria-label="Open the memo panel"]') ?? topDialog()?.querySelector('button[aria-label="Close"]')),
+          R: () => press(pageHotkeyTarget('Refresh')),
+          T: toggleDark,
+        };
+        if (fixed[letter]) { e.preventDefault(); fixed[letter](); return; }
+        const to = Object.fromEntries(JSON.parse(letters))[letter];
+        if (to) { e.preventDefault(); navigate(to); }
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [pathname, isAuthenticated, navigate, inAdmin, letters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname, isAuthenticated, navigate, inAdmin, letters, mode]);
 
+  const mod = MAC ? '⌘' : 'Ctrl';
   const rows = [
-    ['Shift', 'U', 'Open your account menu'],
-    ['Alt', 'A', 'Open your account menu'],
     ['Shift', 'A', 'Show this list'],
+    ['Shift', 'U', 'Open your account menu'],
+    ['Alt', 'A', 'Open your account menu (the other way)'],
     ...Object.keys(byLetter).sort().map((k) => ['Shift', k, `Go to ${byLetter[k].label}`]),
-    ...(inAdmin ? [['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Ctrl', 'B', 'Show or hide the menu'], ['F12', '', 'Open the Configuration of this page or section'], ['F7', '', 'Open the Recycle bin or Trash of this page']] : []),
-    ['Esc', '', 'Close whatever is open'],
+    ['Shift', 'M', 'Chat with Mimi'],
+    ['Shift', 'N', 'Open or close the memo'],
+    ['Shift', 'T', 'Switch between light and dark'],
+    ['', '/', 'Search this page'],
+    ['Shift', 'R', 'Refresh the list'],
+    ['Shift', '←', 'Previous page of the list'],
+    ['Shift', '→', 'Next page of the list'],
+    ['', 'F8', 'Show or hide the filters'],
+    ['', 'F9', 'Export or download'],
+    [mod, 'S', 'Save'],
+    ['', 'Esc', 'Close the open dialog'],
+    ['Shift', 'Esc', 'Sign out'],
+    ...(inAdmin ? [['', 'F2', 'New: add what this page lists'], ['', 'F12', 'Open the Configuration of this page or section'], ['', 'F7', 'Open the Recycle bin or Trash of this page'],
+      ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Ctrl', 'B', 'Show or hide the menu']] : []),
   ];
-  const signOut = () => { logout(); setAccount(false); navigate(inAdmin ? '/login' : '/'); };
   const link = { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)', textDecoration: 'none' };
 
   return (
@@ -113,9 +179,9 @@ export default function KeyboardShortcuts() {
                 const cap = { minWidth: 30, padding: '3px 9px', borderRadius: 7, textAlign: 'center', fontSize: '0.78rem', fontWeight: 800, fontFamily: 'inherit', color: c, background: `color-mix(in srgb, ${c} 14%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 45%, transparent)`, boxShadow: `0 2px 0 color-mix(in srgb, ${c} 35%, transparent)` };
 
                 return (
-                  <div key={what} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 10, borderLeft: `4px solid ${c}`, background: 'var(--bg-secondary, #f9fafb)' }}>
+                  <div key={`${a}${b}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 10, borderLeft: `4px solid ${c}`, background: 'var(--bg-secondary, #f9fafb)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 104 }}>
-                      <kbd style={cap}>{a}</kbd>{b && <><span style={{ opacity: 0.5 }}>+</span><kbd style={cap}>{b}</kbd></>}
+                      {a && <><kbd style={cap}>{a}</kbd><span style={{ opacity: 0.5 }}>+</span></>}<kbd style={cap}>{b}</kbd>
                     </span>
                     <span style={{ fontSize: '0.85rem' }}>{what}</span>
                   </div>

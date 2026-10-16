@@ -19,8 +19,8 @@ use Illuminate\Http\Request;
  */
 class NavController extends Controller
 {
-    /** Letters the app itself uses with Shift: A shows the shortcut list, U opens the account menu. */
-    public const RESERVED = ['A', 'U'];
+    /** Letters the app itself uses with Shift: A shortcut list, U account menu, M Mimi, N memo, R refresh, T light/dark. */
+    public const RESERVED = ['A', 'U', 'M', 'N', 'R', 'T'];
 
     public function __construct(private LicenseManager $manager) {}
 
@@ -83,7 +83,7 @@ class NavController extends Controller
             $data['shortcut'] = $data['shortcut'] === null || $data['shortcut'] === '' ? null : strtoupper($data['shortcut']);
             if ($data['shortcut'] !== null) {
                 if (in_array($data['shortcut'], self::RESERVED, true)) {
-                    return response()->json(['ok' => false, 'message' => "Shift+{$data['shortcut']} is kept for the shortcut list and the account menu."], 422);
+                    return response()->json(['ok' => false, 'message' => "Shift+{$data['shortcut']} is kept for the app (list, account, Mimi, memo, refresh, theme)."], 422);
                 }
                 if (NavLink::where('shortcut', $data['shortcut'])->where('id', '!=', $link->id)->exists()) {
                     return response()->json(['ok' => false, 'message' => "Shift+{$data['shortcut']} already goes to another link."], 422);

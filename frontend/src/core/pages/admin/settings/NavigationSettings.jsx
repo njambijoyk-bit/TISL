@@ -112,7 +112,7 @@ export default function NavigationSettings() {
           <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>Storefront navigation</h1>
         </div>
         <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-          Choose which links customers see in the header, and a letter for each that opens it when a customer holds Shift and presses it (A and U are kept for the shortcut list and the account menu). Only links for modules you've licensed appear here; a module that's switched off locks its links until you switch it back on.
+          Choose which links customers see in the header, and a letter for each that opens it when a customer holds Shift and presses it (A, M, N, R, T and U are kept for the app). Only links for modules you've licensed appear here; a module that's switched off locks its links until you switch it back on.
         </p>
 
         {groups.length === 0 && (
