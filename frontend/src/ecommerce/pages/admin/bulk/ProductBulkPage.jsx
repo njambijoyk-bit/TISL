@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { productsAPI } from '../../../../../_shared/api/index';
-import useProductStore from '../../../../../_shared/store/productStore';
+import { productsAPI } from '../../../../_shared/api/index';
+import useProductStore from '../../../../_shared/store/productStore';
 import ProductBulkTable from './components/ProductBulkTable';
 import BulkActionsBar from './components/BulkActionsBar';
-import SearchableDropdown from '../../../../../_shared/components/common/SearchableDropdown';
-import LoadingSpinner from '../../../../../_shared/components/layout/LoadingSpinner';
-import GeneralLayout from '../../../../../_shared/components/layout/GeneralLayout';
+import SearchableDropdown from '../../../../_shared/components/common/SearchableDropdown';
+import LoadingSpinner from '../../../../_shared/components/layout/LoadingSpinner';
+import GeneralLayout from '../../../../_shared/components/layout/GeneralLayout';
 import toast from 'react-hot-toast';
-import { isModuleActive } from '../../../../../_shared/navigation/modules';
-import pinsAPI from '../../../../../_shared/api/pins';
+import { isModuleActive } from '../../../../_shared/navigation/modules';
+import pinsAPI from '../../../../_shared/api/pins';
 const PER_PAGE = 50;
 
 export default function ProductBulkPage() {

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { productsAPI } from '../../../../../../_shared/api/index';
+import { productsAPI } from '../../../../../_shared/api/index';
 import toast from 'react-hot-toast';
 
 /**

@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import SearchableDropdown from '../../../../../../_shared/components/common/SearchableDropdown';
+import SearchableDropdown from '../../../../../_shared/components/common/SearchableDropdown';
 import ImageDrawer from './ImageDrawer';
-import { productsAPI } from '../../../../../../_shared/api/index';
+import { productsAPI } from '../../../../../_shared/api/index';
 import toast from 'react-hot-toast';
-import CurrencySelect from '../../../../../../_shared/components/common/currency/CurrencySelect';
-import useCurrencyStore from '../../../../../../_shared/store/currencyStore';
-import useTradingAccounts, { accountLabel } from '../../../../../components/admin/tax/useTradingAccounts';
-import BranchStockPanel from '../../../../../components/admin/pickers/BranchStockPanel';
+import CurrencySelect from '../../../../../_shared/components/common/currency/CurrencySelect';
+import useCurrencyStore from '../../../../../_shared/store/currencyStore';
+import useTradingAccounts, { accountLabel } from '../../../../../core/components/admin/tax/useTradingAccounts';
+import BranchStockPanel from '../../../../../core/components/admin/pickers/BranchStockPanel';
 
 /**
  * ProductBulkTable

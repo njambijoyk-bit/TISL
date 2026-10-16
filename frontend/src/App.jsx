@@ -319,7 +319,7 @@ const CustomerDeliveryHistory  = lazy(() => import('./core/pages/customer/Custom
 
 // ── Admin Settings Pages ──────────────────────────────────────────────────────
 const AdminShell           = lazy(() => import('./_shared/components/layout/AdminShell'));
-const ProductBulkPage      = lazy(() => import('./core/pages/admin/general/bulk/ProductBulkPage'));
+const ProductBulkPage      = lazy(() => import('./ecommerce/pages/admin/bulk/ProductBulkPage'));
 const CustomerBulkPage     = lazy(() => import('./core/pages/admin/general/bulk/CustomerBulkPage'));
 const EmployeeBulkPage     = lazy(() => import('./core/pages/admin/general/bulk/EmployeeBulkPage'));
 
