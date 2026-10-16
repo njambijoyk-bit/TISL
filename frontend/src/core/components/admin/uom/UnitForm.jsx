@@ -8,6 +8,8 @@ import { colors } from '../../../../_shared/theme/tokens';
 
 const SUGGESTED = ['volume', 'mass', 'length', 'area', 'count', 'packaging', 'time'];
 const NEW = '__new__';
+const BUILT_IN_SYSTEMS = ['metric', 'imperial'];
+const systemLabel = (code) => { const t = code.replace(/_/g, ' '); return t.charAt(0).toUpperCase() + t.slice(1); };
 
 /**
  * Create / edit a unit. Once a unit is used (variants, tax rates…) the server
@@ -17,6 +19,7 @@ export default function UnitForm({ unit, defaultDimension, onClose }) {
   const { units, createUnit, updateUnit, actionLoading, baseUnitFor } = useUomStore();
   const editing = Boolean(unit);
   const known = [...new Set([...SUGGESTED, ...units.map((u) => u.dimension)])].sort();
+  const otherSystems = [...new Set(units.map((u) => u.unit_system).filter((x) => x && !BUILT_IN_SYSTEMS.includes(x)).concat(unit?.unit_system && !BUILT_IN_SYSTEMS.includes(unit.unit_system) ? [unit.unit_system] : []))].sort();   // the systems already in use, beside the two built in
 
   const [form, setForm] = useState({
     code: unit?.code ?? '',
@@ -27,6 +30,7 @@ export default function UnitForm({ unit, defaultDimension, onClose }) {
     is_active: unit?.is_active ?? true,
   });
   const [customDim, setCustomDim] = useState('');
+  const [customSys, setCustomSys] = useState('');
   const [errors, setErrors] = useState({});
   const [formError, setFormError] = useState(null);
   const set = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
@@ -44,7 +48,10 @@ export default function UnitForm({ unit, defaultDimension, onClose }) {
     e.preventDefault();
     setErrors({}); setFormError(null);
     if (!dimension) { setErrors({ dimension: 'Name the new dimension.' }); return; }
-    const payload = { ...form, dimension, code: form.code.trim(), unit_system: form.unit_system || null };
+    const system = form.unit_system === NEW ? customSys.trim().toLowerCase().replace(/\s+/g, '_') : form.unit_system;
+    if (form.unit_system === NEW && !system) { setErrors({ unit_system: 'Name the new system.' }); return; }
+    if (system.length > 20) { setErrors({ unit_system: 'Keep the system name to 20 letters.' }); return; }
+    const payload = { ...form, dimension, code: form.code.trim(), unit_system: system || null };
     try {
       if (editing) await updateUnit(unit.id, payload); else await createUnit(payload);
       toast.success(editing ? 'Unit saved' : 'Unit created');
@@ -79,10 +86,17 @@ export default function UnitForm({ unit, defaultDimension, onClose }) {
               <SelectInput id="u-sys" value={form.unit_system} onChange={(e) => set('unit_system')(e.target.value)}>
                 <option value="metric">Metric</option>
                 <option value="imperial">Imperial / US</option>
+                {otherSystems.map((x) => <option key={x} value={x}>{systemLabel(x)}</option>)}
                 <option value="">Neither (e.g. piece, carton)</option>
+                <option value={NEW}>Another system…</option>
               </SelectInput>
             </Field>
           </FormGrid>
+          {form.unit_system === NEW && (
+            <Field label="New system" htmlFor="u-newsys" error={errors.unit_system} hint="For example: Local, Traditional, Cooking. It is offered from then on.">
+              <TextInput id="u-newsys" required maxLength={20} value={customSys} onChange={(e) => setCustomSys(e.target.value)} />
+            </Field>
+          )}
           {form.dimension === NEW && (
             <Field label="New dimension" htmlFor="u-newdim">
               <TextInput id="u-newdim" required value={customDim} onChange={(e) => setCustomDim(e.target.value)} placeholder="e.g. electrical_current" />
