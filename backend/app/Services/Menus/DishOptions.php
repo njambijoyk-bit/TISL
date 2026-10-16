@@ -19,7 +19,7 @@ class DishOptions
     /**
      * Replace the dish's groups with these. A group or option with an `id` of this dish keeps that id (so a customer's basket does not lose it); one left out is removed.
      *
-     * @param array<int, array{id?: int, name: string, kind?: string, min_choices?: int, max_choices?: ?int, options: array<int, array{id?: int, name: string, price_delta?: float, is_default?: bool, charge_removal?: bool, linked_dish_id?: ?int, is_active?: bool, uses?: array<int, array{mode: string, family_id?: ?int, variant_id?: ?int, quantity?: ?float, unit_id?: ?int}>}>}> $groups
+     * @param array<int, array{id?: int, name: string, kind?: string, min_choices?: int, max_choices?: ?int, options: array<int, array{id?: int, name: string, price_delta?: float, is_default?: bool, charge_removal?: bool, linked_dish_id?: ?int, is_active?: bool, uses?: array<int, array{mode: string, ingredient_id?: ?int, quantity?: ?float, unit?: string}>}>}> $groups
      */
     public function save(Dish $dish, array $groups): void
     {

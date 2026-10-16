@@ -25,11 +25,15 @@ class CoursesRecipesKitsTest extends TestCase
     {
         parent::setUp();
         $this->createCoursesWorld();
-        Schema::create('recipes', function ($t) { $t->id(); $t->unsignedBigInteger('variant_id'); $t->decimal('yield_qty', 12, 4)->default(0); $t->boolean('deduct_on_sale')->default(false); $t->string('note')->nullable(); $t->boolean('is_active')->default(true); $t->string('visibility')->default('internal'); $t->integer('prep_minutes')->nullable(); $t->integer('cook_minutes')->nullable(); $t->timestamps(); });
-        Schema::create('recipe_items', function ($t) { $t->id(); $t->unsignedBigInteger('recipe_id'); $t->unsignedBigInteger('variant_id')->nullable(); $t->unsignedBigInteger('family_id')->nullable(); $t->decimal('quantity', 12, 3); $t->unsignedBigInteger('unit_id')->nullable(); });
-        Schema::create('recipe_steps', function ($t) { $t->id(); $t->unsignedBigInteger('recipe_id'); $t->integer('position'); $t->text('body'); $t->integer('minutes')->nullable(); });
+        Schema::create('menus_dishes', function ($t) { $t->id(); $t->string('name'); });
+        Schema::create('menus_ingredients', function ($t) { $t->id(); $t->string('name'); $t->unsignedBigInteger('base_unit_id')->nullable(); $t->unsignedBigInteger('alt_unit_id')->nullable(); });
+        Schema::create('menus_recipes', function ($t) { $t->id(); $t->unsignedBigInteger('dish_id'); $t->decimal('yield_qty', 18, 4)->default(1); $t->boolean('made_to_order')->default(true); $t->string('note')->nullable(); $t->string('visibility', 12)->default('internal'); $t->unsignedSmallInteger('prep_minutes')->nullable(); $t->unsignedSmallInteger('cook_minutes')->nullable(); $t->boolean('is_active')->default(true); $t->timestamps(); });
+        Schema::create('menus_recipe_lines', function ($t) { $t->id(); $t->unsignedBigInteger('recipe_id'); $t->unsignedBigInteger('ingredient_id'); $t->decimal('quantity', 18, 4); $t->string('unit', 4)->default('base'); $t->decimal('waste_pct', 5, 2)->default(0); $t->unsignedSmallInteger('position')->default(1); });
+        Schema::create('menus_recipe_steps', function ($t) { $t->id(); $t->unsignedBigInteger('recipe_id'); $t->integer('position'); $t->text('body'); $t->integer('minutes')->nullable(); });
         Schema::create('units_of_measure', function ($t) { $t->id(); $t->string('name'); });
         DB::table('units_of_measure')->insert([['id' => 1, 'name' => 'kg'], ['id' => 2, 'name' => 'pcs']]);
+        DB::table('menus_dishes')->insert(['id' => 4, 'name' => 'Country loaf']);
+        DB::table('menus_ingredients')->insert([['id' => 11, 'name' => 'Bread flour 2kg', 'base_unit_id' => 1], ['id' => 12, 'name' => 'Apron', 'base_unit_id' => 2], ['id' => 13, 'name' => 'Pinch of salt', 'base_unit_id' => null]]);
         DB::table('products')->insert(['id' => 4, 'name' => 'Country loaf']);
         DB::table('product_variants')->insert(['id' => 14, 'product_id' => 4, 'sku' => 'LOAF']);
     }
@@ -56,9 +60,9 @@ class CoursesRecipesKitsTest extends TestCase
 
     private function recipe(array $r = []): int
     {
-        $id = DB::table('recipes')->insertGetId($r + ['variant_id' => 14, 'yield_qty' => 2, 'visibility' => 'publishable', 'is_active' => true, 'prep_minutes' => 20, 'cook_minutes' => 40, 'note' => '  Rest overnight for flavour. ']);
-        DB::table('recipe_items')->insert([['recipe_id' => $id, 'variant_id' => 11, 'quantity' => 0.5, 'unit_id' => 1], ['recipe_id' => $id, 'variant_id' => 12, 'quantity' => 1, 'unit_id' => 2]]);
-        DB::table('recipe_steps')->insert([['recipe_id' => $id, 'position' => 2, 'body' => ' Bake hot ', 'minutes' => 40], ['recipe_id' => $id, 'position' => 1, 'body' => 'Mix and knead', 'minutes' => null]]);
+        $id = DB::table('menus_recipes')->insertGetId($r + ['dish_id' => 4, 'yield_qty' => 2, 'visibility' => 'public', 'is_active' => true, 'prep_minutes' => 20, 'cook_minutes' => 40, 'note' => '  Rest overnight for flavour. ']);
+        DB::table('menus_recipe_lines')->insert([['recipe_id' => $id, 'ingredient_id' => 11, 'quantity' => 0.5, 'position' => 1], ['recipe_id' => $id, 'ingredient_id' => 12, 'quantity' => 1, 'position' => 2]]);
+        DB::table('menus_recipe_steps')->insert([['recipe_id' => $id, 'position' => 2, 'body' => ' Bake hot ', 'minutes' => 40], ['recipe_id' => $id, 'position' => 1, 'body' => 'Mix and knead', 'minutes' => null]]);
 
         return $id;
     }
@@ -99,15 +103,15 @@ class CoursesRecipesKitsTest extends TestCase
 
     public function test_a_recipe_without_ingredients_or_method_is_not_copied_and_times_fall_back_to_the_steps(): void
     {
-        $empty = DB::table('recipes')->insertGetId(['variant_id' => 14, 'visibility' => 'publishable', 'is_active' => true]);
+        $empty = DB::table('menus_recipes')->insertGetId(['dish_id' => 4, 'visibility' => 'public', 'is_active' => true]);
         $this->fails(fn () => $this->pub()->publish($empty), 'no ingredients or method');
-        $steps = DB::table('recipes')->insertGetId(['variant_id' => 14, 'visibility' => 'publishable', 'is_active' => true, 'yield_qty' => 0]);
-        DB::table('recipe_steps')->insert([['recipe_id' => $steps, 'position' => 1, 'body' => 'Wait', 'minutes' => 900], ['recipe_id' => $steps, 'position' => 2, 'body' => 'Wait more', 'minutes' => 900]]);
-        $c = $this->pub()->render(\App\Models\Recipe::find($steps));
+        $steps = DB::table('menus_recipes')->insertGetId(['dish_id' => 4, 'visibility' => 'public', 'is_active' => true, 'yield_qty' => 0]);
+        DB::table('menus_recipe_steps')->insert([['recipe_id' => $steps, 'position' => 1, 'body' => 'Wait', 'minutes' => 900], ['recipe_id' => $steps, 'position' => 2, 'body' => 'Wait more', 'minutes' => 900]]);
+        $c = $this->pub()->render(\App\Models\Menus\DishRecipe::find($steps));
         $this->assertSame(["Method\n1. Wait (900 min)\n2. Wait more (900 min)", 1440], [$c['body'], $c['minutes']]);   // no meta line; at most a day
-        $none = DB::table('recipes')->insertGetId(['variant_id' => 14, 'visibility' => 'publishable', 'is_active' => true]);
-        DB::table('recipe_items')->insert(['recipe_id' => $none, 'variant_id' => 11, 'quantity' => 1.25, 'unit_id' => null]);
-        $this->assertSame(["Ingredients\n- 1.25 Bread flour 2kg", null], array_values(array_intersect_key($this->pub()->render(\App\Models\Recipe::find($none)), array_flip(['body', 'minutes']))));
+        $none = DB::table('menus_recipes')->insertGetId(['dish_id' => 4, 'visibility' => 'public', 'is_active' => true]);
+        DB::table('menus_recipe_lines')->insert(['recipe_id' => $none, 'ingredient_id' => 13, 'quantity' => 1.25]);
+        $this->assertSame(["Makes 1\n\nIngredients\n- 1.25 Pinch of salt", null], array_values(array_intersect_key($this->pub()->render(\App\Models\Menus\DishRecipe::find($none)), array_flip(['body', 'minutes']))));
     }
 
     public function test_updating_the_copy_asks_first_when_the_teacher_edited_the_lesson(): void
@@ -115,7 +119,7 @@ class CoursesRecipesKitsTest extends TestCase
         $id = $this->recipe();
         $r = $this->pub()->publish($id);
         $l = $r['lesson'];
-        DB::table('recipe_steps')->where('recipe_id', $id)->where('position', 1)->update(['body' => 'Mix, knead and fold']);
+        DB::table('menus_recipe_steps')->where('recipe_id', $id)->where('position', 1)->update(['body' => 'Mix, knead and fold']);
         $l = $this->pub()->refresh($l);
         $this->assertStringContainsString('1. Mix, knead and fold', $l->body);
         $this->assertSame([false], array_column($this->pub()->sourcesOf($r['offering']), 'edited'));
@@ -125,14 +129,14 @@ class CoursesRecipesKitsTest extends TestCase
         $l = $this->pub()->refresh($l->fresh(), true);
         $this->assertStringNotContainsString('My own tip', $l->body);
         $this->fails(fn () => $this->pub()->refresh($this->lesson($r['offering'])), 'not copied from a Menus recipe');
-        DB::table('recipes')->where('id', $id)->update(['visibility' => 'internal']);
+        DB::table('menus_recipes')->where('id', $id)->update(['visibility' => 'internal']);
         $this->fails(fn () => $this->pub()->refresh($l->fresh()), 'has not made this recipe available');
     }
 
     public function test_a_very_long_recipe_is_cut_to_the_lesson_and_still_counts_as_unedited(): void
     {
         $id = $this->recipe();
-        DB::table('recipe_steps')->insert(['recipe_id' => $id, 'position' => 3, 'body' => str_repeat('Knead. ', 9000), 'minutes' => null]);
+        DB::table('menus_recipe_steps')->insert(['recipe_id' => $id, 'position' => 3, 'body' => str_repeat('Knead. ', 9000), 'minutes' => null]);
         $r = $this->pub()->publish($id);
         $this->assertSame(60000, mb_strlen($r['lesson']->body));
         $this->assertSame([false], array_column($this->pub()->sourcesOf($r['offering']), 'edited'));

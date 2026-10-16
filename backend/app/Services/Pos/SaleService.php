@@ -84,16 +84,6 @@ class SaleService
         return $q->selectRaw('s.variant_id as id, sum(b.quantity) as qty')->groupBy('s.variant_id')->pluck('qty', 'id')->map(fn ($v) => (float) $v)->all();
     }
 
-    /** A made-to-order item (a dish) holds no stock of its own: its ingredients leave when it is sold. */
-    private function madeToOrder(int $variantId): bool
-    {
-        try {
-            return app(\App\Services\Stock\RecipeService::class)->isMadeToOrder($variantId);
-        } catch (\Throwable) {
-            return false;
-        }
-    }
-
     /**
      * Items that can be sold: for sale, and (when a branch is given) in stock there. Each carries `stock`, the quantity that can be sold now.
      *
@@ -214,9 +204,6 @@ class SaleService
         }
         $have = $this->sellableAt(array_keys($want), $locationId);
         foreach ($want as $id => $qty) {
-            if ($this->madeToOrder((int) $id)) {
-                continue;
-            }
             $left = (float) ($have[$id] ?? 0);
             if ($left + 0.00005 >= $qty) {
                 continue;

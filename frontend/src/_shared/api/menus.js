@@ -1,10 +1,7 @@
 import api from './axios';
 
-/** Menus: ingredients (families of stock items), dishes, the Menus settings. Recipes are in stockOps.js. */
+/** Menus: ingredients, stock, recipes, dishes, the Menus settings. */
 export const menusAPI = {
-  ingredients: async (params) => (await api.get('/admin/menus/ingredients', { params })).data,
-  saveIngredient: async (payload, id) => (id ? (await api.put(`/admin/menus/ingredients/${id}`, payload)) : (await api.post('/admin/menus/ingredients', payload))).data,
-  removeIngredient: async (id) => (await api.delete(`/admin/menus/ingredients/${id}`)).data,
   stockIngredients: async () => (await api.get('/admin/menus/stock/ingredients')).data,
   saveStockIngredient: async (payload, id) => (id ? (await api.put(`/admin/menus/stock/ingredients/${id}`, payload)) : (await api.post('/admin/menus/stock/ingredients', payload))).data,
   removeStockIngredient: async (id) => (await api.delete(`/admin/menus/stock/ingredients/${id}`)).data,
@@ -23,7 +20,6 @@ export const menusAPI = {
   stockRecipes: async (params) => (await api.get('/admin/menus/stock/recipes', { params })).data,
   saveStockRecipe: async (dishId, payload) => (await api.put(`/admin/menus/stock/recipes/${dishId}`, payload)).data,
   removeStockRecipe: async (dishId) => (await api.delete(`/admin/menus/stock/recipes/${dishId}`)).data,
-  suggestUnits: async (variantId, unitId) => (await api.post('/admin/menus/ingredients/suggest', { variant_id: variantId, unit_id: unitId })).data,
   dishes: async (params) => (await api.get('/admin/menus/dishes', { params })).data,
   saveDish: async (payload, id) => (id ? (await api.put(`/admin/menus/dishes/${id}`, payload)) : (await api.post('/admin/menus/dishes', payload))).data,
   soldOut: async (id, soldOut) => (await api.post(`/admin/menus/dishes/${id}/sold-out`, { sold_out: soldOut })).data,

@@ -4,7 +4,6 @@ namespace App\Models\Menus;
 
 use App\Models\Product;
 use App\Models\ProductVariant;
-use App\Models\Recipe;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -28,14 +27,9 @@ class Dish extends Model
         return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
 
-    /** The recipe written on ingredients (Menus' own stock). Takes the place of `recipe()`, which pointed at product variants. */
+    /** The recipe written on ingredients (Menus' own stock). */
     public function menuRecipe(): HasOne
     {
         return $this->hasOne(DishRecipe::class, 'dish_id');
-    }
-
-    public function recipe(): HasOne
-    {
-        return $this->hasOne(Recipe::class, 'variant_id', 'variant_id');
     }
 }

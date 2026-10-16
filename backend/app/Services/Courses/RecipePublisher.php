@@ -5,7 +5,7 @@ namespace App\Services\Courses;
 use App\Models\Courses\Lesson;
 use App\Models\Courses\Offering;
 use App\Models\Courses\RecipeSource;
-use App\Models\Recipe;
+use App\Models\Menus\DishRecipe;
 use App\Models\User;
 use App\Services\Books\BooksException;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +23,7 @@ class RecipePublisher
 
     public static function installed(): bool
     {
-        return Schema::hasTable('course_recipe_sources') && Schema::hasTable('recipes') && Schema::hasTable('recipe_steps');
+        return Schema::hasTable('course_recipe_sources') && Schema::hasTable('menus_recipes') && Schema::hasTable('menus_recipe_steps') && Schema::hasTable('menus_recipe_lines');
     }
 
     /** @return array<int, array<string, mixed>> the recipes that may be copied, with where each already is */
@@ -32,9 +32,9 @@ class RecipePublisher
         if (! self::installed()) {
             return [];
         }
-        $rows = DB::table('recipes as r')->join('product_variants as pv', 'pv.id', '=', 'r.variant_id')->join('products as p', 'p.id', '=', 'pv.product_id')
-            ->where('r.visibility', 'publishable')->where('r.is_active', true)->when($q, fn ($w) => $w->where('p.name', 'like', '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($q)).'%'))
-            ->orderBy('p.name')->limit(100)->get(['r.id', 'p.name', 'r.prep_minutes', 'r.cook_minutes']);
+        $rows = DB::table('menus_recipes as r')->join('menus_dishes as d', 'd.id', '=', 'r.dish_id')
+            ->where('r.visibility', 'public')->where('r.is_active', true)->when($q, fn ($w) => $w->where('d.name', 'like', '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($q)).'%'))
+            ->orderBy('d.name')->limit(100)->get(['r.id', 'd.name', 'r.prep_minutes', 'r.cook_minutes']);
         $used = RecipeSource::whereIn('recipe_id', $rows->pluck('id'))->get()->groupBy('recipe_id');
 
         return $rows->map(fn ($r) => ['id' => (int) $r->id, 'name' => $r->name, 'prep_minutes' => $r->prep_minutes, 'cook_minutes' => $r->cook_minutes, 'published_in' => ($used[$r->id] ?? collect())->pluck('offering_id')->unique()->values()->all()])->all();
@@ -46,21 +46,18 @@ class RecipePublisher
     }
 
     /** @return array{title: string, body: string, minutes: ?int} */
-    public function render(Recipe $r): array
+    public function render(DishRecipe $r): array
     {
-        $title = (string) (DB::table('product_variants as pv')->join('products as p', 'p.id', '=', 'pv.product_id')->where('pv.id', $r->variant_id)->value('p.name') ?? 'Recipe');
-        $items = DB::table('recipe_items')->where('recipe_id', $r->id)->get();
-        $names = DB::table('product_variants as pv')->join('products as p', 'p.id', '=', 'pv.product_id')->whereIn('pv.id', $items->pluck('variant_id')->filter())->pluck('p.name', 'pv.id');
-        $fam = Schema::hasTable('menus_ingredient_families') ? DB::table('menus_ingredient_families')->whereIn('id', $items->pluck('family_id')->filter())->pluck('name', 'id') : collect();
-        $units = DB::table('units_of_measure')->whereIn('id', $items->pluck('unit_id')->filter())->pluck('name', 'id');
+        $title = (string) (DB::table('menus_dishes')->where('id', $r->dish_id)->value('name') ?? 'Recipe');
+        $items = DB::table('menus_recipe_lines as l')->join('menus_ingredients as i', 'i.id', '=', 'l.ingredient_id')->where('l.recipe_id', $r->id)->orderBy('l.position')->orderBy('l.id')
+            ->get(['l.quantity', 'l.unit', 'i.name', 'i.base_unit_id', 'i.alt_unit_id']);
+        $units = DB::table('units_of_measure')->whereIn('id', $items->pluck('base_unit_id')->merge($items->pluck('alt_unit_id'))->filter())->pluck('name', 'id');
         $lines = [];
         foreach ($items as $i) {
-            $what = $i->variant_id ? ($names[$i->variant_id] ?? null) : ($fam[$i->family_id] ?? null);
-            if ($what) {
-                $lines[] = '- '.$this->num((float) $i->quantity).' '.($units[$i->unit_id] ?? '').' '.$what;
-            }
+            $unit = $units[$i->unit === 'alt' ? $i->alt_unit_id : $i->base_unit_id] ?? '';
+            $lines[] = '- '.$this->num((float) $i->quantity).' '.$unit.' '.$i->name;
         }
-        $steps = DB::table('recipe_steps')->where('recipe_id', $r->id)->orderBy('position')->orderBy('id')->get();
+        $steps = DB::table('menus_recipe_steps')->where('recipe_id', $r->id)->orderBy('position')->orderBy('id')->get();
         $out = [];
         $meta = array_filter([$r->yield_qty > 0 ? 'Makes '.$this->num((float) $r->yield_qty) : null, $r->prep_minutes ? 'Prep '.$r->prep_minutes.' min' : null, $r->cook_minutes ? 'Cook '.$r->cook_minutes.' min' : null]);
         if ($meta) {
@@ -86,10 +83,10 @@ class RecipePublisher
         return ['title' => $title, 'body' => implode("\n\n", $out), 'minutes' => $minutes ? min(1440, (int) $minutes) : null];
     }
 
-    private function publishableRecipe(int $id): Recipe
+    private function publishableRecipe(int $id): DishRecipe
     {
-        $r = Recipe::find($id) ?? throw new BooksException('That recipe does not exist.');
-        if ($r->visibility !== 'publishable' || ! $r->is_active) {
+        $r = DishRecipe::find($id) ?? throw new BooksException('That recipe does not exist.');
+        if ($r->visibility !== 'public' || ! $r->is_active) {
             throw new BooksException('The kitchen has not made this recipe available for courses: set it to "May be shown on the website and in courses" in Menus first.');
         }
 

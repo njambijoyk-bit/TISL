@@ -11,7 +11,7 @@ class OptionUse extends Model
 
     public $timestamps = false;
 
-    protected $fillable = ['option_id', 'mode', 'ingredient_id', 'unit', 'family_id', 'variant_id', 'quantity', 'unit_id'];
+    protected $fillable = ['option_id', 'mode', 'ingredient_id', 'unit', 'quantity'];
 
     protected $casts = ['quantity' => 'decimal:4'];
 }

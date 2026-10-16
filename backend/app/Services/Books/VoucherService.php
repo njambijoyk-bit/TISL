@@ -1996,24 +1996,6 @@ class VoucherService
             if (! $loc) {
                 throw new BooksException('Choose the branch stock moves from.');
             }
-            // made to order (a recipe that uses its ingredients when sold): the ingredients leave stock, the item itself holds none
-            $uses = (array) ($l['menu_uses'] ?? []);   // what the customer's choices change in the recipe (extra cheese, no onion)
-            if ($type->isSalesSide() && app(\App\Services\Stock\RecipeService::class)->isMadeToOrder((int) $l['variant_id'])) {
-                if ($sign < 0) {
-                    foreach (app(\App\Services\Stock\RecipeService::class)->consumption((int) $l['variant_id'], (float) $l['stock_qty'], (int) $loc, $uses) ?? [] as $ing) {
-                        $moves[] = ['variant_id' => $ing['variant_id'], 'location_id' => (int) $loc, 'qty' => -$ing['quantity'],
-                            'product' => $ing['name'], 'purpose' => null, 'window' => $this->sellWindow($ing['product_id'], $channel, $override)];
-                    }
-                }
-
-                continue;
-            }
-            if ($uses && $sign < 0 && $type->isSalesSide()) {   // a dish made ahead still takes the extras that were asked for
-                foreach (app(\App\Services\Stock\RecipeService::class)->extrasFor((float) $l['stock_qty'], (int) $loc, $uses) as $ing) {
-                    $moves[] = ['variant_id' => $ing['variant_id'], 'location_id' => (int) $loc, 'qty' => -$ing['quantity'],
-                        'product' => $ing['name'], 'purpose' => null, 'window' => $this->sellWindow($ing['product_id'], $channel, $override)];
-                }
-            }
             $move = ['variant_id' => $l['variant_id'], 'location_id' => (int) $loc, 'qty' => $sign * (float) $l['stock_qty'], 'product' => $l['description']];
             if ($sign > 0 && $type->isSalesSide()) {
                 // a customer's return: back into the batch(es) it was sold from, at their cost (never at the selling price)
