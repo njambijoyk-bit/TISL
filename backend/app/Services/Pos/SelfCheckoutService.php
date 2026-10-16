@@ -38,7 +38,7 @@ class SelfCheckoutService
     /** @return array<string, mixed> */
     public function config(Station $s): array
     {
-        return ['name' => $s->name, 'business' => CompanyProfile::current()->name ?: config('app.name'), 'idle_seconds' => 90, 'ready' => self::installed(),
+        return ['name' => $s->name, 'business' => $this->businessName(), 'logo' => $this->logoUrl(), 'idle_seconds' => 90, 'ready' => self::installed(),
             'payment_methods' => PaymentMethod::offeredAtCheckout()->where('gateway', 'mpesa_stk')->orderBy('sort_order')->get(['id', 'name'])->all(),
             'paper' => $this->stations->paperFor($s)];
     }
@@ -214,6 +214,22 @@ class SelfCheckoutService
             return ['session' => $code, 'pay' => 'screen', 'total' => $total, 'due' => $total,
                 'attempt' => ['id' => $a->id, 'status' => $a->status, 'amount' => (float) $a->amount, 'token' => GatewayPaymentService::returnToken((int) $a->id)]];
         });
+    }
+
+    /** The trading name, else the legal name, else the short code. */
+    private function businessName(): string
+    {
+        $c = CompanyProfile::current();
+
+        return collect([$c->name, $c->legal_name, $c->short_code])->map(fn ($x) => trim((string) $x))->first(fn ($x) => $x !== '') ?? (string) config('app.name');
+    }
+
+    /** Where the company logo is served from (public, like the rest of the company profile), or null when there is none. */
+    private function logoUrl(): ?string
+    {
+        $u = CompanyProfile::current()->logo_url;
+
+        return $u ? url('/api/company/logo').'?v='.substr(md5((string) $u), 0, 8) : null;
     }
 
     private function code(): string
