@@ -30,7 +30,7 @@ class PublicMenu
             ];
         })->filter(fn ($m) => $m['sections'])->values()->all();
 
-        return ['menus' => $menus, 'allergens' => FoodTags::ALLERGENS, 'diets' => DietBadges::LABELS, 'note' => MenusSettings::all()['allergen_note'], 'now' => $now->toIso8601String()];
+        return ['menus' => $menus, 'allergens' => FoodTags::allergens(), 'diets' => DietBadges::LABELS, 'note' => MenusSettings::all()['allergen_note'], 'now' => $now->toIso8601String()];
     }
 
     /** @return array<string, mixed> */

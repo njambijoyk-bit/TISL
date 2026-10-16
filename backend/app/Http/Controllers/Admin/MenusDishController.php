@@ -28,7 +28,7 @@ class MenusDishController extends Controller
 
         return response()->json([
             'dishes' => $rows, 'location_id' => $location, 'settings' => MenusSettings::all(), 'settings_ready' => MenusSettings::ready(),
-            'allergens' => FoodTags::ALLERGENS, 'tags' => FoodTags::TAGS, 'diets' => DietBadges::LABELS,
+            'allergens' => FoodTags::allergens(), 'tags' => FoodTags::tags(), 'diets' => DietBadges::LABELS,
             'chefs' => \App\Services\Menus\ChefService::installed() ? \App\Models\Menus\Chef::where('is_active', true)->orderBy('display_name')->get(['id', 'display_name as name']) : null,
             'stations' => \App\Services\Menus\KitchenService::installed() ? \App\Models\Menus\Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : null,
             'branches' => DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name']),

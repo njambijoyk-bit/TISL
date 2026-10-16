@@ -48,7 +48,7 @@ class Ingredients
                 throw new BooksException("The alternate unit must measure the same thing as the base unit: {$base->name} and {$alt->name} are different kinds ({$base->dimension} and {$alt->dimension}).");
             }
         }
-        foreach ([['allergens', FoodTags::ALLERGENS, 'allergen'], ['tags', FoodTags::TAGS, 'tag']] as [$key, $known, $word]) {
+        foreach ([['allergens', FoodTags::allergens(), 'allergen'], ['tags', FoodTags::tags(), 'tag']] as [$key, $known, $word]) {
             if ($bad = FoodTags::unknown($d[$key] ?? [], $known)) {
                 throw new BooksException('Unknown '.$word.': '.implode(', ', $bad).'.');
             }
@@ -68,7 +68,7 @@ class Ingredients
         return DB::transaction(function () use ($d, $id, $name, $rule, $base, $alt, $variants, $keep, $existing) {
             $ingredient = Ingredient::updateOrCreate(['id' => $id], [
                 'name' => $name, 'base_unit_id' => $base->id, 'alt_unit_id' => $alt?->id, 'pick_rule' => $rule,
-                'allergens' => FoodTags::clean($d['allergens'] ?? [], FoodTags::ALLERGENS), 'tags' => FoodTags::clean($d['tags'] ?? [], FoodTags::TAGS),
+                'allergens' => FoodTags::clean($d['allergens'] ?? [], FoodTags::allergens()), 'tags' => FoodTags::clean($d['tags'] ?? [], FoodTags::tags()),
                 'notes' => isset($d['notes']) && trim((string) $d['notes']) !== '' ? mb_substr(trim((string) $d['notes']), 0, 255) : null, 'is_active' => (bool) ($d['is_active'] ?? true),
             ]);
             if ($existing->isNotEmpty()) {

@@ -25,7 +25,7 @@ class MenusIngredientsController extends Controller
         return response()->json([
             'ingredients' => $rows,
             'units' => UnitOfMeasure::active()->orderBy('dimension')->orderBy('to_base_factor')->get(['id', 'code', 'name', 'dimension', 'to_base_factor']),
-            'pick_rules' => Ingredient::PICK_RULES, 'allergens' => FoodTags::ALLERGENS, 'tags' => FoodTags::TAGS,
+            'pick_rules' => Ingredient::PICK_RULES, 'allergens' => FoodTags::allergens(), 'tags' => FoodTags::tags(),
         ]);
     }
 

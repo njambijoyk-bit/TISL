@@ -33,7 +33,7 @@ class DishService
             throw new BooksException('Give the dish a price.');
         }
         $override = [];
-        foreach ([['allergens', 'allergens_override', FoodTags::ALLERGENS, 'allergen'], ['tags', 'tags_override', FoodTags::TAGS, 'tag']] as [$in, $col, $known, $word]) {
+        foreach ([['allergens', 'allergens_override', FoodTags::allergens(), 'allergen'], ['tags', 'tags_override', FoodTags::tags(), 'tag']] as [$in, $col, $known, $word]) {
             if (array_key_exists($in, $d)) {
                 if ($d[$in] === null) {
                     $override[$col] = null;

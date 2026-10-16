@@ -4,7 +4,7 @@ A small Nairobi kitchen, made so the numbers can be checked by hand. Menus now h
 
 **units, accounts, ingredients, opening stock, dishes, recipes, menus, meal plan.**
 
-Prices are made up. Run database scripts 181 to 185 first. Every number below was checked by running this exact data through the system.
+Prices are made up. Run database scripts 181 to 186 first. Every number below was checked by running this exact data through the system.
 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
@@ -31,6 +31,8 @@ Press **New ingredient** once per row of table 1A, then add its variants from ta
 | in use | Untick when you stop buying it: it disappears from receiving and counting, its history stays. |
 | keep at least | The least you want on the shelf, in the unit beside it. Below it, Operations, What to buy suggests ordering it. Empty means no level. |
 | Allergens it contains / What it is | The tick boxes. They decide the allergens and diet badges on every dish that uses the ingredient. |
+
+**Where the allergen and "what it is" ticks come from:** the lists are kept under **Menus, Allergens** (press G, then A), not fixed in the program. The 14 allergens and 11 tags Menus always had are already there; each says which diet badges it rules out (Meat rules out vegetarian and vegan, Milk rules out vegan and dairy free, and so on). To try adding your own: on that page press **New tag**, call it **Gelatine**, tick "not vegetarian" and "not vegan", save, then tick Gelatine on an ingredient and see the dish lose its Vegetarian badge. A tag that an ingredient or a dish carries cannot be removed until it is taken off.
 
 **1A. The ingredients**
 
@@ -185,6 +187,7 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 - Deleting an ingredient that a recipe uses, or a variant with stock history, is refused.
 
 **Selling**
+- Menus, Allergens: Milk shows "not vegan, not dairy free"; Wheat / gluten shows "not gluten free"; each shows how many ingredients carry it (once the ingredients above are in: Milk 2, Wheat / gluten 1, Eggs 1, Dairy 2). Add Gelatine as above; try to remove Milk and be refused while ingredients carry it.
 - Allergens: Pancakes show wheat, eggs and milk with no one typing them on the dish. Beef stew and Sukuma wiki show none. Sukuma wiki & ugali can be shown vegetarian; Beef stew cannot.
 - Till or kiosk, sell 3 Pancakes: the flour comes out of **Exe** (360 g, so Exe goes from 20,000 g to 19,640 g, because Pembe is empty); Soko stays at 5,000 g (it is switched off as a substitute); eggs go from 120 to 117, the milk (150 ml x 3 = 450 ml) comes from the 1 L packs because milk is set to "the cheapest first" (19,550 ml left), butter goes from 1,250 g to 1,220 g. Books gets one journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory.
 - Chicken pilau: sell 5, the sixth is refused ("Not enough Chicken: need 180 g, have 100"; 1 kg holds five portions of 180 g) and the till shows the dish as sold out. Cancel one of the five sales and the chicken comes back.

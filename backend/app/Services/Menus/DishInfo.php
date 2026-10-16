@@ -24,8 +24,8 @@ class DishInfo
         $inherited = $dish->menuRecipe ? $this->ingredients($dish->menuRecipe) : ['allergens' => [], 'tags' => [], 'unknown' => 1];
         $declaredAllergens = $dish->allergens_override !== null;
         $declaredTags = $dish->tags_override !== null;
-        $allergens = FoodTags::clean($declaredAllergens ? $dish->allergens_override : $inherited['allergens'], FoodTags::ALLERGENS);
-        $tags = FoodTags::clean($declaredTags ? $dish->tags_override : $inherited['tags'], FoodTags::TAGS);
+        $allergens = FoodTags::clean($declaredAllergens ? $dish->allergens_override : $inherited['allergens'], FoodTags::allergens());
+        $tags = FoodTags::clean($declaredTags ? $dish->tags_override : $inherited['tags'], FoodTags::tags());
         $complete = ($declaredAllergens && $declaredTags) || $inherited['unknown'] === 0;
 
         return ['allergens' => $allergens, 'tags' => $tags, 'diets' => $complete ? DietBadges::for($allergens, $tags) : [], 'complete' => $complete, 'declared' => $declaredAllergens || $declaredTags];
