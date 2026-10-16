@@ -46,6 +46,9 @@ final class MenusSettings
         'plans_bill_ahead_days' => 3,    // a week is billed this many days before it starts
         'rota_no_show_alerts' => true,   // managers are told when a rostered chef has not signed in
         'rota_min_rest_hours' => 10,     // ...and when the rest between one day's work and the next is shorter than this
+        'ingredient_stock_ledger_id' => null,   // where ingredient stock is carried (empty: the account called Food Ingredients Inventory)
+        'food_cost_ledger_id' => null,          // cost of the ingredients a dish used (empty: Food Cost of Sales)
+        'food_waste_ledger_id' => null,         // ingredients thrown away (empty: Food Waste Expense)
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
     ];
 
@@ -92,7 +95,7 @@ final class MenusSettings
                 $cur[$key] = mb_substr(trim((string) $in[$key]), 0, $max);
             }
         }
-        foreach (['tip_ledger_id', 'service_charge_ledger_id'] as $key) {
+        foreach (['tip_ledger_id', 'service_charge_ledger_id', 'ingredient_stock_ledger_id', 'food_cost_ledger_id', 'food_waste_ledger_id'] as $key) {
             if (array_key_exists($key, $in)) {
                 $id = $in[$key] ? (int) $in[$key] : null;
                 if ($id && ! DB::table('ledgers')->where('id', $id)->exists()) {

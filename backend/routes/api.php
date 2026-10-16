@@ -952,7 +952,9 @@ Route::middleware('auth:sanctum')->group(function () {
         $in = \App\Http\Controllers\Admin\MenusIngredientController::class;
         $dc = \App\Http\Controllers\Admin\MenusDishController::class;
         Route::get('/ingredients', [$in, 'index']);
-        Route::get('/stock/ingredients', [\App\Http\Controllers\Admin\MenusIngredientsController::class, 'index']);   // Menus' own ingredients (no products behind them)
+        Route::get('/stock/ingredients', [\App\Http\Controllers\Admin\MenusIngredientsController::class, 'index']);
+        Route::get('/stock', [\App\Http\Controllers\Admin\MenusStockController::class, 'index']);   // what is on the shelf, per branch
+        Route::get('/stock/receipts', [\App\Http\Controllers\Admin\MenusStockController::class, 'receipts']);   // Menus' own ingredients (no products behind them)
         $mc = \App\Http\Controllers\Admin\MenusMenuController::class;
         Route::get('/menus', [$mc, 'index']);
         Route::get('/dishes/{id}/options', [$mc, 'options'])->whereNumber('id');
@@ -1086,6 +1088,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/stock/ingredients', [$si, 'save']);
             Route::put('/stock/ingredients/{id}', [$si, 'save'])->whereNumber('id');
             Route::delete('/stock/ingredients/{id}', [$si, 'destroy'])->whereNumber('id');
+            $sk = \App\Http\Controllers\Admin\MenusStockController::class;
+            Route::post('/stock/receive', [$sk, 'receive']);
+            Route::post('/stock/opening', [$sk, 'opening']);
+            Route::post('/stock/receipts/{id}/cancel', [$sk, 'cancel'])->whereNumber('id');
             Route::put('/recipes', [$r, 'save']);
             Route::delete('/recipes/{id}', [$r, 'destroy'])->whereNumber('id');
             Route::post('/recipes/{id}/produce', [$r, 'produce'])->whereNumber('id');

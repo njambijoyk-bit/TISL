@@ -127,6 +127,9 @@ class VoucherService
             if (! empty($voucher->meta['writeoff'])) {
                 throw new BooksException('A write-off can not be edited. Cancel it (the invoice opens again) and write off the right amount.');
             }
+            if (! empty($voucher->meta['menus_receipt_id'])) {
+                throw new BooksException('This voucher received ingredients into the kitchen stock, so it can not be edited. Cancel it (the stock comes back, if none has been used) and receive them again from Menus.');
+            }
             app(CreditService::class)->releaseForBill($voucher);   // credit applied to it goes back to the party's account; apply again after the edit
             $this->assertNoLiveChildren($voucher, 'edit');
             if (! $voucher->type->has_items && StockMovement::where('voucher_id', $voucher->id)->exists()) {
@@ -182,6 +185,9 @@ class VoucherService
 
             $this->versionHook($voucher, null, $user);
             app(WithholdingRegisterService::class)->void($voucher);   // refuses when part of its credit was already cleared
+            if (! empty($voucher->meta['menus_receipt_id'])) {
+                app(\App\Services\Menus\IngredientReceiving::class)->beforeVoucherCancelled($voucher, $user);   // the ingredients it received leave the kitchen's shelf (refused when some was used)
+            }
             $this->reverseEffects($voucher);
             if (! empty($voucher->meta['pos_reversal'])) {
                 app(\App\Services\Pos\ReturnRewardsService::class)->restore($voucher, $user);   // a POS return is cancelled: the sale's points, promo use and gift voucher come back, once
@@ -317,6 +323,9 @@ class VoucherService
      */
     public function createReturn(Voucher $source, array $opts, ?User $user = null): Voucher
     {
+        if (! empty($source->meta['menus_receipt_id'])) {
+            throw new BooksException('This voucher received ingredients into the kitchen stock, so it can not be returned from here. Cancel it in Menus (the stock comes back, if none has been used) and receive only what you kept.');
+        }
         $noteBase = $this->returnBase($source);
         $type = VoucherType::byBase($noteBase) ?? throw new BooksException('That voucher type is switched off.');
         $picked = collect($opts['lines'] ?? [])->keyBy(fn ($l) => (int) ($l['item_id'] ?? 0));

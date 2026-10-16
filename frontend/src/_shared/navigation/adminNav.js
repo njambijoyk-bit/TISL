@@ -5,7 +5,7 @@ import {
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
   Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck, LibraryBig, BookMarked,
-  GitBranch, Layers, IdCard, ScanLine, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
+  GitBranch, Warehouse, Layers, IdCard, ScanLine, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
 } from 'lucide-react';
 import { MODULES, isModuleActive } from './modules';
 import { accountType, hasPermission, isStaff } from '../lib/roles';
@@ -46,6 +46,7 @@ export const MENUS_TABS = [
   { title: 'Dishes', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316', perm: 'menus.view' },
   { title: 'Menus', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7', perm: 'menus.view' },
   { title: 'Ingredients', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e', perm: 'menus.view' },
+  { title: 'Stock', path: '/admin/menus/stock', icon: Warehouse, color: '#0ea5e9', perm: 'menus.view' },
   { title: 'Recipes', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b', perm: 'menus.view' },
   { title: 'Configuration', path: '/admin/menus/settings', icon: Settings2, color: '#64748b', perm: 'menus.view' },
 ];
@@ -247,6 +248,7 @@ export const ADMIN_NAV = [
         id: 'dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316', path: '/admin/menus/dishes', perm: 'menus.view', keywords: 'menu dish food allergens price sold out 86',
         tabs: MENUS_TABS,
       },
+      { id: 'menus-stock', title: 'Stock', icon: Warehouse, color: '#0ea5e9', path: '/admin/menus/stock', perm: 'menus.view', keywords: 'ingredient stock receive receiving purchase supplier opening on hand packs expiry batch' },
       { id: 'ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e', path: '/admin/menus/ingredients', perm: 'menus.view', keywords: 'ingredient flour oil substitutes allergens stock items' },
       {
         id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', perm: 'menus.view', keywords: 'recipe ingredients manufacture production made to order dish',

@@ -30,6 +30,7 @@ export default function MenusSettings() {
     setBusy(true);
     try {
       const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
+        ingredient_stock_ledger_id: s.ingredient_stock_ledger_id || null, food_cost_ledger_id: s.food_cost_ledger_id || null, food_waste_ledger_id: s.food_waste_ledger_id || null,
         tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
         qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
         custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0,
@@ -78,6 +79,14 @@ export default function MenusSettings() {
                   <Field label="A quote stays open (days)" htmlFor="ms-qd"><NumberInput id="ms-qd" min="1" max="90" value={s.custom_quote_days ?? 7} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_quote_days: e.target.value }))} /></Field>
                   <Field label="Least notice for catering (hours)" htmlFor="ms-lh" hint="Cakes use the notice set on each dish."><NumberInput id="ms-lh" min="0" max="720" value={s.custom_lead_hours ?? 72} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_lead_hours: e.target.value }))} /></Field>
                   <Field label="Least notice for a private chef (hours)" htmlFor="ms-ch"><NumberInput id="ms-ch" min="0" max="720" value={s.chef_lead_hours ?? 48} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, chef_lead_hours: e.target.value }))} /></Field>
+                </div>
+              </fieldset>
+              <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
+                <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Ingredient accounts</legend>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                  <LedgerSelect id="ms-inv" label="Ingredient stock" hint="Where ingredients on the shelf are carried. Empty: Food Ingredients Inventory." value={s.ingredient_stock_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, ingredient_stock_ledger_id: v }))} />
+                  <LedgerSelect id="ms-cos" label="Cost of food" hint="The cost of what dishes use. Empty: Food Cost of Sales." value={s.food_cost_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, food_cost_ledger_id: v }))} />
+                  <LedgerSelect id="ms-waste" label="Food waste" hint="Ingredients thrown away. Empty: Food Waste Expense." value={s.food_waste_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, food_waste_ledger_id: v }))} />
                 </div>
               </fieldset>
               <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
