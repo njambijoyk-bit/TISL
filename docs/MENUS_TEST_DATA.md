@@ -13,55 +13,114 @@ Prices are made up. Run database scripts 181 to 185 first. Every number below wa
 
 ## 1. Ingredients (Menus, Ingredients)
 
-One row per ingredient. "Base / bigger" is the base unit and the alternate unit. Each variant is a line in the ingredient, **in order of preference** (the first is taken first). "Pack" is how much one pack holds (typed in the bigger unit). Prices are what one pack costs; the cost of a gram is price / pack size.
+Press **New ingredient** once per row of table 1A, then add its variants from table 1B on the same form. Save the ingredient before you go to Stock: stock is entered on **Menus, Stock**, not on this form.
 
-| Ingredient | Base / bigger | Variants, preferred first (pack, price) | Notes |
-|---|---|---|---|
-| Wheat flour | g / kg | **Pembe 24 kg** (24 kg, 2,400), **Exe 2 kg** (2 kg, 260), **Soko 1 kg** (1 kg, 140; untick "may be used") | Allergen: wheat (gluten). Pembe is empty on purpose, so flour comes from Exe |
-| Sugar | g / kg | Kabras 1 kg (1 kg, 160) | |
-| Eggs | each | Tray of 30 (30, 450); tick "expires" | Allergen: eggs |
-| Milk | ml / L | Fresh 1 L (1 L, 120), Fresh 500 ml (0.5 L, 65) | Allergen: milk. Try the pick rule "the cheapest first" on this one |
-| Butter | g / kg | Block 250 g (250 g, 330); expires | Allergen: milk |
-| Cooking oil | ml / L | Jerrycan 5 L (5 L, 1,550), Bottle 1 L (1 L, 340) | |
-| Beef | g / kg | Stewing meat 1 kg (1 kg, 800); expires | |
-| Chicken | g / kg | Breast 1 kg (1 kg, 650); expires | |
-| Tomatoes | g / kg | Tomatoes 1 kg (1 kg, 120) | |
-| Onions | g / kg | Onions 1 kg (1 kg, 100) | |
-| Potatoes | g / kg | Potatoes 1 kg (1 kg, 90) | |
-| Rice | g / kg | Pishori 2 kg (2 kg, 380) | |
-| Kale | g / kg | Sukuma wiki 1 kg (1 kg, 60) | |
-| Maize flour | g / kg | Unga 2 kg (2 kg, 200) | |
-| Salt | g / kg | Salt 500 g (500 g, 40); "keep at least" 1 kg | Under its level on purpose: shows on "What to buy" |
-| Cocoa | g / kg | Cocoa tin 200 g (200 g, 380) | |
-| Baking powder | g / kg | Tin 100 g (100 g, 120) | |
-| Tea leaves | g / kg | Pack 250 g (250 g, 150) | |
+**What each field on the form means**
+
+| Field | What it does |
+|---|---|
+| Name | The ingredient the recipes use ("Wheat flour"). |
+| Base unit | The smallest unit. Stock is kept in it (g, ml, each). |
+| Alternate unit | A bigger unit of the same kind (kg for g, L for ml) for typing, buying and counting. Optional; none for things counted by the piece. |
+| When there are several variants | How the kitchen picks: **the preferred one first** (top of the list, then the next), **the cheapest first**, or **the one that expires first**. |
+| Variant name | The version you buy ("Exe 2 kg"). Variants are listed in order of preference; the arrows move them. |
+| Code (optional) | Your own reference (supplier code, SKU). It is only kept for your records; nothing uses it yet. |
+| Pack holds | How much one pack holds, with the unit beside it (kg, g, L, ml). It lets you receive and count in **packs**: 10 packs of 2 kg is 20 kg. Empty means no pack: you type kg or g instead. |
+| may be used | Untick to keep the stock but never use it in a dish, not even as a substitute. |
+| expires | Receiving it then asks for an expiry date. Expired stock is never used and appears on the Stock page's expiry list. |
+| in use | Untick when you stop buying it: it disappears from receiving and counting, its history stays. |
+| keep at least | The least you want on the shelf, in the unit beside it. Below it, Operations, What to buy suggests ordering it. Empty means no level. |
+| Allergens it contains / What it is | The tick boxes. They decide the allergens and diet badges on every dish that uses the ingredient. |
+
+**1A. The ingredients**
+
+| Ingredient | Base unit | Alternate unit | Pick rule | Allergens | What it is |
+|---|---|---|---|---|---|
+| Wheat flour | g | kg | The preferred one first | Wheat / gluten | Gluten |
+| Sugar | g | kg | The preferred one first | | |
+| Eggs | each | none | The preferred one first | Eggs | Egg |
+| Milk | ml | L | **The cheapest first** | Milk | Dairy |
+| Butter | g | kg | The preferred one first | Milk | Dairy |
+| Cooking oil | ml | L | The preferred one first | | |
+| Beef | g | kg | The preferred one first | | Meat |
+| Chicken | g | kg | The preferred one first | | Poultry |
+| Tomatoes | g | kg | The preferred one first | | |
+| Onions | g | kg | The preferred one first | | |
+| Potatoes | g | kg | The preferred one first | | |
+| Rice | g | kg | The preferred one first | | |
+| Kale | g | kg | The preferred one first | | |
+| Maize flour | g | kg | The preferred one first | | |
+| Salt | g | kg | The preferred one first | | |
+| Cocoa | g | kg | The preferred one first | | |
+| Baking powder | g | kg | The preferred one first | | |
+| Tea leaves | g | kg | The preferred one first | | Caffeine |
+
+**1B. The variants.** "Order" is the position in the list (1 is taken first). "Price" is what one pack costs and is entered when stock is received (table 2), not on this form. A tick is on, a dash is off.
+
+| Ingredient | Order | Variant name | Code | Pack holds | may be used | expires | in use | keep at least | Price |
+|---|---|---|---|---|---|---|---|---|---|
+| Wheat flour | 1 | Pembe 24 kg | PEMBE24 | 24 kg | ✓ | – | ✓ | | 2,400 |
+| Wheat flour | 2 | Exe 2 kg | EXE2 | 2 kg | ✓ | – | ✓ | 6 kg | 260 |
+| Wheat flour | 3 | Soko 1 kg | SOKO1 | 1 kg | **–** | – | ✓ | | 140 |
+| Wheat flour | 4 | Jogoo 2 kg | JOGOO2 | 2 kg | ✓ | – | **–** | | 250 |
+| Sugar | 1 | Kabras 1 kg | | 1 kg | ✓ | – | ✓ | | 160 |
+| Eggs | 1 | Tray of 30 | | 30 each | ✓ | **✓** | ✓ | 60 each | 450 |
+| Milk | 1 | Fresh 1 L | | 1 L | ✓ | – | ✓ | | 120 |
+| Milk | 2 | Fresh 500 ml | | 0.5 L | ✓ | – | ✓ | | 65 |
+| Butter | 1 | Block 250 g | | 250 g | ✓ | **✓** | ✓ | | 330 |
+| Cooking oil | 1 | Jerrycan 5 L | | 5 L | ✓ | – | ✓ | | 1,550 |
+| Cooking oil | 2 | Bottle 1 L | | 1 L | ✓ | – | ✓ | | 340 |
+| Beef | 1 | Stewing meat 1 kg | | 1 kg | ✓ | **✓** | ✓ | | 800 |
+| Chicken | 1 | Breast 1 kg | | 1 kg | ✓ | **✓** | ✓ | | 650 |
+| Tomatoes | 1 | Tomatoes 1 kg | | 1 kg | ✓ | – | ✓ | | 120 |
+| Onions | 1 | Onions 1 kg | | 1 kg | ✓ | – | ✓ | | 100 |
+| Potatoes | 1 | Potatoes 1 kg | | 1 kg | ✓ | – | ✓ | | 90 |
+| Rice | 1 | Pishori 2 kg | | 2 kg | ✓ | – | ✓ | | 380 |
+| Kale | 1 | Sukuma wiki 1 kg | | 1 kg | ✓ | – | ✓ | | 60 |
+| Maize flour | 1 | Unga 2 kg | | 2 kg | ✓ | – | ✓ | | 200 |
+| Salt | 1 | Salt 500 g | | 500 g | ✓ | – | ✓ | **1 kg** | 40 |
+| Cocoa | 1 | Cocoa tin 200 g | | 200 g | ✓ | – | ✓ | | 380 |
+| Baking powder | 1 | Tin 100 g | | 100 g | ✓ | – | ✓ | | 120 |
+| Tea leaves | 1 | Pack 250 g | | 250 g | ✓ | – | ✓ | | 150 |
+
+What the bold cells are there to show:
+- **Pembe 24 kg** is first in order but will have no stock, so flour comes from Exe (the next in order).
+- **Soko 1 kg, may be used off:** it has stock but the kitchen never takes it.
+- **Jogoo 2 kg, in use off:** it is not offered when you receive or count stock.
+- **Eggs, Butter, Beef, Chicken expire:** receiving them asks for an expiry date.
+- **Milk, the cheapest first:** Fresh 1 L (0.12 a ml) beats Fresh 500 ml (0.13 a ml).
+- **Keep at least:** Salt (1 kg, but 500 g on the shelf) shows up on "What to buy"; Exe (6 kg, with 20 kg on the shelf) and Eggs (60, with 120) do not.
 
 ## 2. Opening stock (Menus, Stock, Opening stock)
 
-Type it in **packs** (that is the point: counting packs is quick). It is booked against the opening balance account, so choose one under Books, Settings, Default ledgers first. Give the expiry date for the ones that expire (use a date three weeks ahead; make the eggs expire in **4 days** to see the expiry list).
+The Opening stock form has a line per variant with: **Ingredient variant**, **Quantity**, **In** (packs, the bigger unit or the base unit), **Price of one pack**, **Batch no (optional)** and **Expiry date** (only asked for variants that expire). Type quantities in **packs**: that is the point, counting packs is quick. Opening stock is booked against the opening balance account, so choose one under Books, Settings, Default ledgers first. Expiry dates are counted from today.
 
-| Variant | Packs | That is |
-|---|---|---|
-| Pembe 24 kg | 0 (leave it out) | |
-| Exe 2 kg | 10 | 20 kg |
-| Soko 1 kg | 5 | 5 kg |
-| Kabras 1 kg | 10 | 10 kg |
-| Eggs tray of 30 | 4 | 120 eggs |
-| Fresh 1 L | 20 | 20 L |
-| Fresh 500 ml | 10 | 5 L |
-| Butter block | 5 | 1,250 g |
-| Jerrycan 5 L | 2 | 10 L |
-| Bottle 1 L | 6 | 6 L |
-| Beef stewing meat | 6 | 6 kg |
-| Chicken breast | 1 | 1 kg (runs out after 5 portions, on purpose) |
-| Tomatoes / Onions | 8 / 8 | |
-| Potatoes | 15 | |
-| Pishori rice | 5 | 10 kg |
-| Sukuma wiki | 5 | |
-| Unga | 10 | 20 kg |
-| Salt 500 g | 1 | 500 g |
-| Cocoa tin / Baking powder tin | 2 / 2 | |
-| Tea leaves | 3 | |
+| Variant | Quantity | In | Price of one pack | Batch no | Expiry date | That is |
+|---|---|---|---|---|---|---|
+| Pembe 24 kg | leave it out | | | | | none, on purpose |
+| Exe 2 kg | 10 | packs | 260 | OPEN-1 | | 20 kg |
+| Soko 1 kg | 5 | packs | 140 | | | 5 kg |
+| Kabras 1 kg | 10 | packs | 160 | | | 10 kg |
+| Tray of 30 | 4 | packs | 450 | | today + **4 days** | 120 eggs (the expiry list shows them) |
+| Fresh 1 L | 20 | packs | 120 | | | 20 L |
+| Fresh 500 ml | 10 | packs | 65 | | | 5 L |
+| Block 250 g | 5 | packs | 330 | | today + 25 days | 1,250 g |
+| Jerrycan 5 L | 2 | packs | 1,550 | | | 10 L |
+| Bottle 1 L | 6 | packs | 340 | | | 6 L |
+| Stewing meat 1 kg | 6 | packs | 800 | | today + 20 days | 6 kg |
+| Breast 1 kg | 1 | packs | 650 | | today + 20 days | 1 kg (runs out after 5 portions, on purpose) |
+| Tomatoes 1 kg | 8 | packs | 120 | | | 8 kg |
+| Onions 1 kg | 8 | packs | 100 | | | 8 kg |
+| Potatoes 1 kg | 15 | packs | 90 | | | 15 kg |
+| Pishori 2 kg | 5 | packs | 380 | | | 10 kg |
+| Sukuma wiki 1 kg | 5 | packs | 60 | | | 5 kg |
+| Unga 2 kg | 10 | packs | 200 | | | 20 kg |
+| Salt 500 g | 1 | packs | 40 | | | 500 g |
+| Cocoa tin 200 g | 2 | packs | 380 | | | 400 g |
+| Tin 100 g | 2 | packs | 120 | | | 200 g |
+| Pack 250 g | 3 | packs | 150 | | | 750 g |
+
+Try this too: type the same Exe stock as **20 kg** (In: kg, price 130 a kg) instead of 10 packs and see that the shelf shows the same 10 packs. Jogoo 2 kg is not in the variant list on this form, because it is not "in use".
 
 ## 3. Dishes (Menus, Dishes)
 
@@ -122,7 +181,7 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 ## 7. What to look for once it is in
 
 **Stock and ingredients**
-- Menus, Stock shows Exe at 10 packs, 20 kg, 20,000 g; Pembe at nothing. Receiving a delivery (say 5 packs of Exe at 260 from Naivas Wholesale) puts a supplier bill in Books (Dr Food Ingredients Inventory, Cr Naivas Wholesale) and 10,000 g on the shelf. Cancelling that receipt takes it off again, unless some was used.
+- Menus, Stock shows Exe at 10 packs, 20 kg, 20,000 g; Pembe at nothing; Jogoo is not listed (not in use). Receiving a delivery (say 5 packs of Exe at 260 from Naivas Wholesale) puts a supplier bill in Books (Dr Food Ingredients Inventory, Cr Naivas Wholesale) and 10,000 g on the shelf. Cancelling that receipt takes it off again, unless some was used.
 - Deleting an ingredient that a recipe uses, or a variant with stock history, is refused.
 
 **Selling**
