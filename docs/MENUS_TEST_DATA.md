@@ -99,7 +99,7 @@ Opening stock is one sheet with a row for every variant that is in use (Jogoo is
 
 - **Finding rows:** the search box matches an ingredient or a variant ("wh" shows both Wheat flour variants and Whole milk), the Ingredient list narrows to one ingredient, and All / Touched / Not touched shows the rows you have typed in or not.
 - **Touched rows:** a row is touched as soon as anything is typed in it. The line at the top counts them ("12 rows changed · 18,540 before tax") and the button says **Save all (12)**. What you type is kept in this browser per branch, so a reload or a closed tab loses nothing; **Discard changes** throws it away.
-- **Saving:** Save all checks every touched row first (a quantity, a price, an expiry date where one is needed) and marks the rows that need fixing without saving anything. When all are right it makes one opening receipt for the branch and the date, with **one Journal**: Dr Food Ingredients Inventory, Cr the opening balance account (choose that under Books, Settings, Default ledgers first). If the books refuse, nothing is saved and the row at fault is marked.
+- **Saving:** Save all checks every touched row first (a quantity, a price, an expiry date where one is needed) and marks the rows that need fixing without saving anything. When all are right it makes **one Opening stock voucher for each variant** (item = the ingredient's name, variant = the variant's name, quantity in the unit you chose, price of one of that unit), each posting Dr Food Ingredients Inventory, Cr the opening balance account (choose that under Books, Settings, Default ledgers first). They are listed under **Purchases, Opening stock** like a product's. If the books refuse, nothing is saved and the row at fault is marked.
 - **Keyboard:** Enter moves down to the same box in the next row.
 - Expiry dates are counted from today.
 
@@ -189,7 +189,7 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 ## 7. What to look for once it is in
 
 **Stock and ingredients**
-- Menus, Stock shows Exe at 10 packs, 20 kg, 20,000 g; Pembe at nothing; Jogoo shows faded (not in use). Receiving a delivery (say 5 packs of Exe at 260 from Naivas Wholesale) puts a supplier bill in Books (Dr Food Ingredients Inventory, Cr Naivas Wholesale) and 10,000 g on the shelf. Cancelling that receipt takes it off again, unless some was used.
+- Menus, Stock shows Exe at 10 packs, 20 kg, 20,000 g; Pembe at nothing; Jogoo shows faded (not in use). Receiving a delivery (say 5 packs of Exe at 260 from Naivas Wholesale) is a **Purchase voucher** in Books with a line for the variant (Dr Food Ingredients Inventory, Cr Naivas Wholesale) and 10,000 g on the shelf; it is also listed under Purchases. Cancelling that voucher takes the stock off again, unless some was used.
 - Deleting an ingredient that a recipe uses, or a variant with stock history, is refused.
 
 **Selling**
@@ -205,7 +205,8 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 
 **Waste, counts, branches, expiry, buying**
 - Operations, Waste: waste 1 kg of Beef as "Spoilage": the shelf drops by 1,000 g and Books gets Dr Food Waste Expense, Cr Food Ingredients Inventory for its cost (800). "Take back" returns it and cancels the journal. Waste 2 Chips as "Plate waste": potatoes, oil and salt come off. Waste 3 cake slices as "Made too much": the slices go.
-- Stock, Count stock: count Exe as 9 packs: a loss of 1 pack (2 kg), booked to Food Waste Expense. Count it as 11 packs: stock found, a new lot at the last cost.
+- Stock, Count stock: count Exe as 9 packs: a loss of 1 pack (2 kg), booked to Food Waste Expense. Count it as 11 packs: stock found, a new lot at the last cost. The count is a **Stock count** under Purchases, Stock counts (with its own journal for the ingredients). You can also start a full count there: every variant on the shelf is listed, counted in packs, kg or g.
+- Purchases, Transfers: send 3 packs of Exe to the second branch. It stays in transit until the other branch receives it (receive 2 packs only and the missing one is written off to Food Waste Expense). Purchases, Expiring stock lists the ingredient lots too; Stock journal and Stock reports show every ingredient movement, transfers included.
 - Stock, Send to a branch (needs a second branch): send 2 packs of Exe; the other branch shows them, with the cost and expiry unchanged.
 - Stock shows "Expired or expiring this week": the eggs (4 days).
 - Operations, What to buy: Salt appears (under its level of 1 kg, it has 500 g) as 1 pack, from the supplier it was last received from; a week of expected sales also asks for flour, in whole packs of Pembe (the preferred variant). "Make orders" raises one Purchase Order per supplier in Books.

@@ -30,7 +30,7 @@ export default function MenusOpeningStock() {
 
   const save = async (lines) => {
     const res = await menusAPI.openingStock({ location_id: Number(loc), date, narration: note || 'Opening stock', lines });
-    toast.success(`${res.message} ${lines.length} variant${lines.length === 1 ? '' : 's'} are on the shelf.`, { duration: 6000 });
+    toast.success(`${res.message} ${lines.length} variant${lines.length === 1 ? ' is' : 's are'} on the shelf.`, { duration: 6000 });
     await load(loc);
   };
 
@@ -40,7 +40,7 @@ export default function MenusOpeningStock() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }} data-testid="opening-stock">
         <MenusNav />
-        <HubHeader title="Opening stock" description="What the kitchen starts with, as one sheet. Type a row and it counts toward Save all; nothing is booked until you save, and what you type is kept on this computer meanwhile." />
+        <HubHeader title="Opening stock" description="What the kitchen starts with, as one sheet. Type a row and it counts toward Save all; nothing is booked until you save, and what you type is kept on this computer meanwhile. Each variant gets an Opening stock voucher of its own." />
         {data && !data.installed && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 182_menus_ingredient_stock.sql first.</p>}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'end', marginBottom: 12 }}>
           <Link to="/admin/menus/stock" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}><ArrowLeft size={14} /> Stock</Link>
@@ -51,7 +51,7 @@ export default function MenusOpeningStock() {
         {!data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data.installed && loc && (
           <OpeningStockGrid ingredients={data.ingredients} locationId={loc} onSave={save} readOnly={!canWrite} />
         )}
-        <p style={{ marginTop: 14, fontSize: '0.74rem', color: colors.textFaint }}>It is booked against the opening balance account (Books, Settings, Default ledgers). Prices are before tax.</p>
+        <p style={{ marginTop: 14, fontSize: '0.74rem', color: colors.textFaint }}>Each voucher is booked against the opening balance account (Books, Settings, Default ledgers) and is listed under Purchases, Opening stock. Prices are before tax.</p>
       </div>
     </AdminLayout>
   );

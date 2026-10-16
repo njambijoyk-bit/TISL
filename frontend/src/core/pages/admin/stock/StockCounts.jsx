@@ -13,6 +13,7 @@ import { scanMatch } from '../../../lib/codes/scanLookup';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { defaultUnit, itemWord } from '../../../lib/stockKinds';
 import { btnGhost, btnPrimary, card, colors, input } from '../../../../_shared/theme/tokens';
 
 /**
@@ -53,13 +54,22 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
   const [c, setC] = useState(null);
   const [got, setGot] = useState({});
   const [busy, setBusy] = useState(false);
+  const [gotIng, setGotIng] = useState({});   // ingredient line id => { quantity, unit }: typed in packs, the bigger unit or the base unit
   const [flash, setFlash] = useState(null);   // the line the last scan counted
   useEffect(() => {
-    stockCountsAPI.show(id).then((d) => { setC(d); setGot(Object.fromEntries(d.lines.map((l) => [l.id, l.counted_qty ?? '']))); }).catch((e) => toast.error(errMsg(e, 'Could not load the count')));
+    stockCountsAPI.show(id).then((d) => {
+      setC(d); setGot(Object.fromEntries(d.lines.map((l) => [l.id, l.counted_qty ?? ''])));
+      setGotIng(Object.fromEntries((d.ingredient_lines ?? []).map((l) => [l.id, { quantity: l.input_qty ?? '', unit: l.input_unit ?? defaultUnit(l.units) }])));
+    }).catch((e) => toast.error(errMsg(e, 'Could not load the count')));
   }, [id]);
+  const ingredients = c?.ingredient_lines ?? [];
+  const perOf = (l, unit) => l.units.find((u) => u.unit === unit)?.per ?? 1;
+  const ingBase = (l) => (gotIng[l.id]?.quantity === '' || gotIng[l.id] === undefined ? null : Number(gotIng[l.id].quantity) * perOf(l, gotIng[l.id].unit));
+  const ingDiff = (l) => (ingBase(l) === null ? null : ingBase(l) - l.expected_qty);
+  const ingPayload = () => Object.fromEntries(Object.entries(gotIng).map(([k, v]) => [k, { quantity: v.quantity === '' ? null : Number(v.quantity), unit: v.unit }]));
   const open = c?.status === 'open' && canWrite;
   const diff = (l) => (got[l.id] === '' || got[l.id] === undefined ? null : Number(got[l.id]) - l.expected_qty);
-  const net = c ? c.lines.reduce((t, l) => t + (diff(l) ?? 0) * l.unit_cost, 0) : 0;
+  const net = c ? c.lines.reduce((t, l) => t + (diff(l) ?? 0) * l.unit_cost, 0) + ingredients.reduce((t, l) => t + (ingDiff(l) ?? 0) * l.unit_cost, 0) : 0;
   // Scan an item: it counts one more (a carton counts as the units in it). A product held in several batches asks for the batch.
   const scan = async (code) => {
     const m = await scanMatch(code);
@@ -85,8 +95,8 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
     <Modal title={c ? `Count ${c.number}` : 'Count'} subtitle={c ? `${c.location}${c.note ? ` · ${c.note}` : ''}` : ''} onClose={onClose} width={860}>
       {!c ? <p>Loading…</p> : (
         <div style={{ display: 'grid', gap: 12 }}>
-          {open && <CodeScanner onScan={scan} placeholder="Scan an item to count it" />}
-          <div style={{ overflow: 'auto', maxHeight: '55vh' }}>
+          {open && c.lines.length > 0 && <CodeScanner onScan={scan} placeholder="Scan an item to count it" />}
+          {c.lines.length > 0 && <div style={{ overflow: 'auto', maxHeight: '55vh' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>Item</th><th style={th}>Batch</th><th style={{ ...th, textAlign: 'right' }}>Books say</th><th style={{ ...th, width: 110 }}>Counted</th><th style={{ ...th, textAlign: 'right' }}>Difference</th></tr></thead>
               <tbody>{c.lines.map((l) => {
@@ -102,14 +112,49 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
                 );
               })}</tbody>
             </table>
-          </div>
+          </div>}
+          {ingredients.length > 0 && (
+            <div style={{ overflow: 'auto', maxHeight: '55vh' }}>
+              <p style={{ margin: '0 0 6px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint }}>Ingredients</p>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead><tr><th style={th}>Ingredient</th><th style={th}>Variant</th><th style={{ ...th, textAlign: 'right' }}>Books say</th><th style={{ ...th, width: 220 }}>Counted</th><th style={{ ...th, textAlign: 'right' }}>Difference</th></tr></thead>
+                <tbody>{ingredients.map((l) => {
+                  const d = c.status === 'posted' ? l.variance_qty : ingDiff(l);
+                  const base = l.units.find((u) => u.unit === 'base');
+                  const packs = l.units.find((u) => u.unit === 'pack');
+                  const ing = gotIng[l.id] ?? { quantity: '', unit: defaultUnit(l.units) };
+                  return (
+                    <tr key={`i${l.id}`}>
+                      <td style={td}>{l.ingredient}</td>
+                      <td style={td}>{l.variant}{l.sku && <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{l.sku}</div>}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{l.expected_qty} {base?.label}{packs ? <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{Math.round((l.expected_qty / packs.per) * 100) / 100} packs</div> : null}</td>
+                      <td style={td}>{open ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <input type="number" min="0" step="any" value={ing.quantity} aria-label={`Counted ${l.ingredient} ${l.variant}`} onChange={(e) => setGotIng((g) => ({ ...g, [l.id]: { ...ing, quantity: e.target.value } }))} style={{ ...input, padding: '5px 7px' }} />
+                          <select value={ing.unit} aria-label={`Unit of ${l.ingredient} ${l.variant}`} onChange={(e) => setGotIng((g) => ({ ...g, [l.id]: { ...ing, unit: e.target.value } }))} style={{ ...input, padding: '5px 7px', width: 90 }}>
+                            {l.units.map((u) => <option key={u.unit} value={u.unit}>{u.label}</option>)}
+                          </select>
+                        </div>
+                      ) : (l.counted_qty != null ? `${l.counted_qty} ${base?.label}` : '—')}</td>
+                      <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: d ? (d < 0 ? '#b91c1c' : '#15803d') : colors.textFaint }}>{d === null || d === undefined ? '' : `${d > 0 ? '+' : ''}${Math.round(d * 10000) / 10000} ${base?.label}`}</td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+            </div>
+          )}
           {open && <p style={{ margin: 0, fontSize: '0.8rem' }}>Net difference at cost: <strong style={{ color: net < 0 ? '#b91c1c' : '#15803d' }}>{net < 0 ? '−' : ''}{money(Math.abs(net))}</strong> {net < 0 ? '(a loss)' : net > 0 ? '(a gain)' : ''}</p>}
-          {c.status === 'posted' && c.voucher_id && <button type="button" style={{ ...btnGhost, justifySelf: 'start' }} onClick={() => nav(`/admin/books/vouchers/${c.voucher_id}`)}>View the journal</button>}
+          {c.status === 'posted' && (c.voucher_id || c.ingredient_voucher_id) && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {c.voucher_id && <button type="button" style={btnGhost} onClick={() => nav(`/admin/books/vouchers/${c.voucher_id}`)}>View the journal</button>}
+              {c.ingredient_voucher_id && <button type="button" style={btnGhost} onClick={() => nav(`/admin/books/vouchers/${c.ingredient_voucher_id}`)}>View the ingredients journal</button>}
+            </div>
+          )}
           {open && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
               <button type="button" style={btnGhost} disabled={busy} onClick={() => run(() => stockCountsAPI.cancel(id)).then(() => onClose())}>{busy ? 'Working…' : 'Cancel count'}</button>
-              <button type="button" style={btnGhost} disabled={busy} onClick={() => run(() => stockCountsAPI.save(id, got), 'Saved.')}>{busy ? 'Working…' : 'Save'}</button>
-              <button type="button" style={btnPrimary} disabled={busy} onClick={() => { if (window.confirm('Post this count? The batches will be corrected to what you counted.')) run(() => stockCountsAPI.post(id, got)).then((r) => r && onClose()); }}>{busy ? 'Posting…' : 'Post count'}</button>
+              <button type="button" style={btnGhost} disabled={busy} onClick={() => run(() => stockCountsAPI.save(id, got, ingPayload()), 'Saved.')}>{busy ? 'Working…' : 'Save'}</button>
+              <button type="button" style={btnPrimary} disabled={busy} onClick={() => { if (window.confirm('Post this count? The batches will be corrected to what you counted.')) run(() => stockCountsAPI.post(id, got, ingPayload())).then((r) => r && onClose()); }}>{busy ? 'Posting…' : 'Post count'}</button>
             </div>
           )}
         </div>
@@ -136,7 +181,7 @@ export default function StockCounts() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <HubHeader title="Stock counts" description="Count a branch's shelves and correct the books to what is really there." />
+        <HubHeader title="Stock counts" description={`Count a branch's shelves${itemWord() === 'product' ? '' : ` (${itemWord() === 'ingredient' ? 'ingredients, in packs or by weight' : 'products by batch, ingredients in packs or by weight'})`} and correct the books to what is really there.`} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 14px' }}>
           {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ kind: 'start' })}><Plus size={14} /> Start a count</button>}
         </div>
@@ -145,7 +190,7 @@ export default function StockCounts() {
             <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>No counts yet.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Count</th><th style={th}>Branch</th><th style={th}>Status</th><th style={{ ...th, textAlign: 'right' }}>Batches</th><th style={th}>Started</th><th style={th} /></tr></thead>
+              <thead><tr><th style={th}>Count</th><th style={th}>Branch</th><th style={th}>Status</th><th style={{ ...th, textAlign: 'right' }}>Lines</th><th style={th}>Started</th><th style={th} /></tr></thead>
               <tbody>{data.rows.map((r) => (
                 <tr key={r.id}>
                   <td style={td}><strong>{r.number}</strong>{r.note && <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.note}</div>}</td>

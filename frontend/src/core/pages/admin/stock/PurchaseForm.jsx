@@ -15,6 +15,7 @@ import locationsAPI from '../../../../_shared/api/locations';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { defaultUnit, lookupStock, searchPlaceholder, stockKinds } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 
 /**
@@ -55,44 +56,66 @@ const lineFrom = (row, currencyIsBase) => {
   };
 };
 
-/** Search-as-you-type over product variants, with near matches and "create new product". */
-function ItemSearch({ onPick, onCreate, onAddVariant }) {
+/** A purchase line from a picked ingredient variant: the ingredient is the item, the variant is its variant; quantity is typed in packs, the bigger unit or the base unit, the cost is of one of those. */
+const ingredientLineFrom = (row, currencyIsBase) => {
+  const unit = defaultUnit(row.units);
+  const per = row.units?.find((u) => u.unit === unit)?.per ?? 1;
+  const suggested = currencyIsBase && row.last_cost > 0 ? Math.round(row.last_cost * per * 10000) / 10000 : '';
+  return {
+    key: newKey(), ingredient: true, item_id: row.item_id, label: row.ingredient, variantName: row.variant, sku: row.sku, units: row.units ?? [], unit, quantity: 1, rate: suggested, rate_auto: suggested !== '', discount: '',
+    track_expiry: Boolean(row.track_expiry), last_cost: row.last_cost ?? 0, batch_no: '', mfg_date: '', expiry_date: '',
+  };
+};
+
+/** Search-as-you-type over what this business stocks (products when E-commerce is on, ingredients when Menus is on), with near matches and "create new product". */
+function ItemSearch({ onPick, onCreate, onAddVariant, locationId }) {
+  const kinds = stockKinds();
   const [q, setQ] = useState('');
   const [rows, setRows] = useState([]);
   const [open, setOpen] = useState(false);
   const closeTimer = useRef(null);
   useEffect(() => {
     if (!open) return undefined;
-    const t = setTimeout(() => { booksAPI.lookup('product', q, 'purchase').then(setRows).catch(() => setRows([])); }, 200);
+    const t = setTimeout(() => { lookupStock(q, { purpose: 'purchase', locationId, kinds }).then(setRows).catch(() => setRows([])); }, 200);
     return () => clearTimeout(t);
-  }, [q, open]);
+  }, [q, open]); // eslint-disable-line react-hooks/exhaustive-deps
   const fuzzy = rows.length > 0 && rows[0].fuzzy;
   return (
     <div style={{ position: 'relative' }}>
       <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => { clearTimeout(closeTimer.current); setOpen(true); }} onBlur={() => { closeTimer.current = setTimeout(() => setOpen(false), 180); }}
-        placeholder="Search a product or SKU to add…" style={small} aria-label="Search products" />
+        placeholder={searchPlaceholder(kinds)} style={small} aria-label="Search items" />
       {open && (
         <div style={{ position: 'absolute', zIndex: 30, top: '100%', left: 0, right: 0, minWidth: 320, maxHeight: 340, overflowY: 'auto', ...card, padding: 4 }}>
           {rows.length === 0 && <p style={{ margin: 8, fontSize: '0.78rem', color: colors.textMuted }}>{q ? `Nothing matches “${q}”.` : 'Start typing to search.'}</p>}
           {fuzzy && <p style={{ margin: '6px 9px', fontSize: '0.72rem', color: colors.textMuted }}>No exact match — did you mean:</p>}
-          {rows.map((r) => (
+          {rows.map((r) => (r.type === 'ingredient' ? (
+            <button key={`i${r.item_id}`} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onPick(r); setQ(''); setOpen(false); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem' }}>
+              {r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}{r.sku ? ` · ${r.sku}` : ''}</span>
+              {r.track_expiry && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.primary, fontWeight: 700 }}>EXPIRY</span>}
+              {kinds.products && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.textFaint, fontWeight: 700 }}>INGREDIENT</span>}
+            </button>
+          ) : (
             <div key={r.variant_id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onPick(r); setQ(''); setOpen(false); }}
                 style={{ flex: 1, textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem' }}>
                 {r.product} <span style={{ color: colors.textFaint }}>{r.variant && r.variant !== 'Standard' ? `${r.variant} · ` : ''}{r.sku}</span>
                 {r.track_expiry && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.primary, fontWeight: 700 }}>EXPIRY</span>}
                 {!r.for_sale && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.textFaint, fontWeight: 700 }}>MATERIAL</span>}
+                {kinds.ingredients && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.textFaint, fontWeight: 700 }}>PRODUCT</span>}
               </button>
               <button type="button" title={`Add another variant of ${r.product}`} onMouseDown={(e) => e.preventDefault()} onClick={() => onAddVariant(r.product_id)}
                 style={{ padding: '4px 8px', background: 'none', border: `1px solid ${colors.tint(0.18)}`, borderRadius: 6, cursor: 'pointer', fontSize: '0.68rem', color: colors.textMuted, whiteSpace: 'nowrap' }}>
                 + variant
               </button>
             </div>
-          ))}
-          <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onCreate(q)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left', padding: '9px', marginTop: 2, background: colors.tint(0.05), border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: colors.primary }}>
-            <PackagePlus size={14} /> Create new product{q ? ` “${q}”` : ''}
-          </button>
+          )))}
+          {kinds.products && (
+            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onCreate(q)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left', padding: '9px', marginTop: 2, background: colors.tint(0.05), border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: colors.primary }}>
+              <PackagePlus size={14} /> Create new product{q ? ` “${q}”` : ''}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -155,7 +178,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     booksAPI.voucher(id).then(async (v) => {
       const base = v.type?.base_type;
       if (!['purchase', 'receipt_note', 'opening_stock'].includes(base)) { nav(`/admin/books/vouchers/${id}/edit`, { replace: true }); return; }
-      if ((v.items ?? []).some((i) => !['product', 'custom', 'charge'].includes(i.item_type))) { nav(`/admin/books/vouchers/${id}/edit`, { replace: true }); return; }
+      if ((v.items ?? []).some((i) => !['product', 'ingredient', 'custom', 'charge'].includes(i.item_type))) { nav(`/admin/books/vouchers/${id}/edit`, { replace: true }); return; }
       setMode(base === 'opening_stock' ? 'opening' : base === 'receipt_note' ? 'receipt' : 'purchase');
       const d = readDraft(key);
       if (d) { setH({ ...blankHeader(), ...d.h }); setLines(d.lines ?? []); setRestored(true); return; }
@@ -163,7 +186,18 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       const products = [...new Set((v.items ?? []).filter((i) => i.item_type === 'product').map((i) => i.product_id))];
       const info = {};
       await Promise.all(products.map((pid) => booksAPI.productVariants(pid).then((rows) => rows.forEach((r) => { info[r.variant_id] = r; })).catch(() => {})));
+      const ingredientIds = (v.items ?? []).filter((i) => i.item_type === 'ingredient').map((i) => i.ingredient_item_id);
+      const ingredientInfo = {};
+      if (ingredientIds.length) await booksAPI.lookup('ingredient', '', 'purchase', { ids: ingredientIds.join(',') }).then((rows) => rows.forEach((r) => { ingredientInfo[r.item_id] = r; })).catch(() => {});
       setLines((v.items ?? []).map((i) => {
+        if (i.item_type === 'ingredient') {
+          const r = ingredientInfo[i.ingredient_item_id];
+          const units = r?.units ?? [];
+          // the unit it was typed in: packs, the bigger unit's code, or the base unit (what is stored is 'pack' or the unit's code)
+          const unit = i.unit_code === 'pack' ? 'pack' : (units.find((u) => u.unit !== 'pack' && u.label === i.unit_code)?.unit ?? 'base');
+          return { key: `i${i.id}`, ingredient: true, item_id: i.ingredient_item_id, label: i.description, variantName: i.variant_label, sku: i.sku, units, unit, quantity: Number(i.quantity), rate: Number(i.rate), rate_auto: false,
+            discount: Number(i.discount_amount) || '', track_expiry: Boolean(r?.track_expiry || i.expiry_date), last_cost: r?.last_cost ?? 0, batch_no: i.batch_no ?? '', mfg_date: '', expiry_date: i.expiry_date ?? '' };
+        }
         if (i.item_type !== 'product') return { key: `i${i.id}`, other: true, description: i.description, quantity: Number(i.quantity), rate: Number(i.item_type === 'charge' ? i.amount : i.rate), ledger_id: i.ledger_id ?? '' };
         const r = info[i.variant_id];
         const base0 = r ? lineFrom(r, false) : { units: [], track_expiry: Boolean(i.batch_no || i.expiry_date) };
@@ -180,7 +214,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     writeDraft(key, { h, lines });
   }, [h, lines, loading, key]);
 
-  const addVariant = (row) => setLines((ls) => [...ls, lineFrom(row, currencyIsBase)]);
+  const addVariant = (row) => setLines((ls) => [...ls, row.type === 'ingredient' ? ingredientLineFrom(row, currencyIsBase) : lineFrom(row, currencyIsBase)]);
   // Scan what arrived: a product already on the purchase counts one more; a carton code buys one carton.
   const scanAdd = async (code) => {
     const m = await scanMatch(code);
@@ -232,7 +266,10 @@ export default function PurchaseForm({ kind = 'purchase' }) {
       currency_id: h.currency_id || null, exchange_rate: h.exchange_rate === '' ? undefined : Number(h.exchange_rate),
       lines: lines.map((l) => (l.other
         ? { type: 'custom', description: l.description, quantity: Number(l.quantity) || 1, rate: Number(l.rate) || 0, ledger_id: l.ledger_id || undefined }
-        : { type: 'product', variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, quantity: Number(l.quantity) || 0,
+        : l.ingredient
+          ? { type: 'ingredient', ingredient_item_id: l.item_id, unit: l.unit, quantity: Number(l.quantity) || 0, rate: l.rate === '' ? undefined : Number(l.rate), discount: Number(l.discount) || 0,
+            batch_no: l.batch_no || undefined, expiry_date: l.expiry_date || undefined }
+          : { type: 'product', variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, quantity: Number(l.quantity) || 0,
           rate: l.rate === '' ? undefined : Number(l.rate), discount: Number(l.discount) || 0,
           batch_no: l.track_expiry || l.batch_no ? l.batch_no || undefined : undefined, mfg_date: l.mfg_date || undefined, expiry_date: l.expiry_date || undefined })),
     };
@@ -247,7 +284,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     return p;
   }, [type, h, lines, opening, receipt]);
 
-  const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id) || Boolean(h.payment_method_id));
+  const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.ingredient ? l.item_id && Number(l.quantity) > 0 && l.rate !== '' && (!l.track_expiry || l.expiry_date) : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id) || Boolean(h.payment_method_id));
 
   useEffect(() => {
     if (!ready) { setPreview(null); setPreviewErr(null); return undefined; }
@@ -268,6 +305,18 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     setSaving(true); setSaveErr(null);
     try {
       const body = !editing && prepaidIds.length ? { ...payload, apply_credit: prepaidIds } : payload;   // ticked prepayments settle this bill when it is posted
+      // opening stock of ingredients: a voucher of its own for each variant (item = the ingredient, variant = the variant); what else is on it stays together
+      const own = !editing && opening ? payload.lines.filter((x) => x.type === 'ingredient') : [];
+      if (own.length > 1 || (own.length === 1 && payload.lines.length > 1)) {
+        const rest = payload.lines.filter((x) => x.type !== 'ingredient');
+        const ids = [];
+        for (const line of own) { ids.push((await booksAPI.createVoucher({ ...payload, lines: [line] })).data.id); }
+        if (rest.length) ids.push((await booksAPI.createVoucher({ ...payload, lines: rest })).data.id);
+        clearDraft(key);
+        toast.success(`${ids.length} opening stock vouchers posted`);
+        nav(listPath);
+        return;
+      }
       const res = editing ? await booksAPI.updateVoucher(id, payload) : await booksAPI.createVoucher(body);
       clearDraft(key);
       toast.success(res.message ?? 'Saved');
@@ -382,8 +431,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
 
             <div style={{ ...card, padding: 18 }}>
               <div style={{ marginBottom: 12 }}>
-                <ItemSearch onPick={addVariant} onCreate={createProduct} onAddVariant={addVariantTo} />
-                <div style={{ marginTop: 8 }}><CodeScanner autoFocus={false} placeholder="…or scan what arrived (a carton code buys a carton)" onScan={scanAdd} /></div>
+                <ItemSearch onPick={addVariant} onCreate={createProduct} onAddVariant={addVariantTo} locationId={h.location_id} />
+                {stockKinds().products && <div style={{ marginTop: 8 }}><CodeScanner autoFocus={false} placeholder="…or scan what arrived (a carton code buys a carton)" onScan={scanAdd} /></div>}
               </div>
 
               {choose && (
@@ -401,7 +450,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               )}
 
               {lines.length === 0 ? (
-                <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>No items yet. Search above, or create a new product if it is not in the system.</p>
+                <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>No items yet. Search above{stockKinds().products ? ', or create a new product if it is not in the system' : ''}.</p>
               ) : (
                 <div style={{ display: 'grid', gap: 10 }}>
                   {lines.map((l) => (
@@ -421,6 +470,38 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                           <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem' }}>{money(lineAmount(l))}</div>
                           <button type="button" aria-label="Remove line" onClick={() => removeLine(l.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
                         </div>
+                      ) : l.ingredient ? (
+                        <>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,2fr) 100px 70px 100px 90px 100px 30px', gap: 8, alignItems: 'end' }}>
+                            <div>
+                              <label style={label}>Item</label>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{l.label}</div>
+                              <div style={{ fontSize: '0.74rem', color: colors.textMuted }}>↳ {l.variantName}{l.sku ? ` · ${l.sku}` : ''}</div>
+                            </div>
+                            <div>
+                              <label style={label}>Unit</label>
+                              <select value={l.unit} onChange={(e) => {
+                                const u = l.units.find((x) => x.unit === e.target.value);
+                                setLine(l.key, { unit: e.target.value, ...(l.rate_auto && u && l.last_cost > 0 ? { rate: Math.round(l.last_cost * u.per * 10000) / 10000 } : {}) });
+                              }} style={small} aria-label="Unit">
+                                {l.units.map((u) => <option key={u.unit} value={u.unit}>{u.unit === 'pack' ? `pack (${u.per} base)` : u.label}</option>)}
+                              </select>
+                            </div>
+                            <div><label style={label}>Qty</label><input type="number" min="0" step="any" value={l.quantity} onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={small} /></div>
+                            <div><label style={label}>Cost each</label><input type="number" min="0" step="any" value={l.rate} onChange={(e) => setLine(l.key, { rate: e.target.value, rate_auto: false })} style={small} /></div>
+                            <div><label style={label}>Discount</label><input type="number" min="0" step="any" value={l.discount} onChange={(e) => setLine(l.key, { discount: e.target.value })} style={small} /></div>
+                            <div style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.85rem' }}>{money(lineAmount(l))}</div>
+                            <button type="button" aria-label="Remove line" onClick={() => removeLine(l.key)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
+                          </div>
+                          {(() => {
+                            const per = l.units.find((u) => u.unit === l.unit)?.per ?? 1;
+                            return per !== 1 && Number(l.quantity) > 0 ? <div style={{ fontSize: '0.7rem', color: colors.textFaint, marginTop: 4 }}>= {Math.round(Number(l.quantity) * per * 10000) / 10000} in the base unit{Number(l.rate) > 0 ? ` at ${Math.round((Number(l.rate) / per) * 1000000) / 1000000} each` : ''}</div> : null;
+                          })()}
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 8, marginTop: 8 }}>
+                            <div><label style={label}>Batch no.</label><input value={l.batch_no} onChange={(e) => setLine(l.key, { batch_no: e.target.value })} style={small} /></div>
+                            {l.track_expiry && <div><label style={label}>Expiry date *</label><input type="date" value={l.expiry_date} onChange={(e) => setLine(l.key, { expiry_date: e.target.value })} style={small} /></div>}
+                          </div>
+                        </>
                       ) : (
                         <>
                           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px,2fr) 100px 70px 100px 90px 100px 30px', gap: 8, alignItems: 'end' }}>

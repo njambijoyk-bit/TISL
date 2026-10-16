@@ -44,7 +44,7 @@ class WasteService
     }
 
     /**
-     * @param array{location_id?: int, item_id?: ?int, dish_id?: ?int, quantity: float, unit?: string, kind: string, note?: ?string, date?: ?string} $in `unit` (pack, alt or base) is for ingredient variants; a dish is counted in portions
+     * @param array{location_id?: int, item_id?: ?int, batch_id?: ?int, dish_id?: ?int, quantity: float, unit?: string, kind: string, note?: ?string, date?: ?string} $in `unit` (pack, alt or base) is for ingredient variants; a dish is counted in portions
      */
     public function record(array $in, ?User $by = null): Waste
     {
@@ -73,11 +73,13 @@ class WasteService
         $reason = Waste::KINDS[$kind].($note ? ": {$note}" : '');
         $base = $item ? $item->toBase((string) ($in['unit'] ?? 'base'), $qty) : $qty;
 
-        return DB::transaction(function () use ($item, $dish, $base, $loc, $kind, $note, $date, $reason, $by) {
+        $onlyLot = ! empty($in['batch_id']) ? (int) $in['batch_id'] : null;   // an expiring lot is thrown away as that lot
+
+        return DB::transaction(function () use ($item, $dish, $base, $loc, $kind, $note, $date, $reason, $by, $onlyLot) {
             $w = Waste::create(['location_id' => $loc, 'item_id' => $item?->id, 'dish_id' => $dish?->id, 'quantity' => $base, 'cost' => 0, 'kind' => $kind, 'note' => $note, 'user_id' => $by?->id, 'wasted_on' => $date]);
             $useId = null;
             if ($item) {
-                $cost = $this->writeOffItem($item, $loc, $base, $w, $date, $by);
+                $cost = $this->writeOffItem($item, $loc, $base, $w, $date, $by, $onlyLot);
             } else {
                 [$cost, $useId] = $this->writeOffDish($dish, $loc, $base, $w, $date, $by);
             }
@@ -93,9 +95,9 @@ class WasteService
     }
 
     /** An ingredient variant thrown away: the lots it comes from, first-expiring first. @return float what it cost */
-    private function writeOffItem(IngredientItem $item, int $loc, float $base, Waste $w, string $date, ?User $by): float
+    private function writeOffItem(IngredientItem $item, int $loc, float $base, Waste $w, string $date, ?User $by, ?int $onlyLot = null): float
     {
-        $lots = StockBatch::where('item_id', $item->id)->where('location_id', $loc)->where('qty_left', '>', 0)->lockForUpdate()->get()
+        $lots = StockBatch::where('item_id', $item->id)->where('location_id', $loc)->where('qty_left', '>', 0)->when($onlyLot, fn ($q) => $q->whereKey($onlyLot))->lockForUpdate()->get()
             ->sortBy(fn (StockBatch $b) => [$b->expiry_date?->toDateString() ?? '9999-12-31', (int) $b->id])->values();
         $held = round((float) $lots->sum('qty_left'), 4);
         if ($held + self::EPS < $base) {

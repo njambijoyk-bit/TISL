@@ -10,6 +10,7 @@ import stockExpiryAPI, { stockHoldsAPI } from '../../../../_shared/api/stockExpi
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { stockKinds } from '../../../lib/stockKinds';
 import { btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 
 /**
@@ -40,7 +41,7 @@ function WriteOffModal({ row, onClose, onDone }) {
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
-      const res = await stockExpiryAPI.writeOff({ batch_id: row.batch_id, location_id: row.location_id, quantity: Number(qty), reason: `${reasonKind}${note ? ` — ${note}` : ''}` });
+      const res = await stockExpiryAPI.writeOff({ batch_id: row.batch_id, location_id: row.location_id, quantity: Number(qty), reason: `${reasonKind}${note ? ` — ${note}` : ''}`, kind: row.kind });
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not write it off')); } finally { setBusy(false); }
   };
@@ -49,11 +50,13 @@ function WriteOffModal({ row, onClose, onDone }) {
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
-          <Field label="How many"><NumberInput required min="0.0001" max={row.quantity} step="any" value={qty} onChange={(e) => setQty(e.target.value)} /></Field>
+          <Field label={row.unit ? `How many (${row.unit})` : 'How many'}><NumberInput required min="0.0001" max={row.quantity} step="any" value={qty} onChange={(e) => setQty(e.target.value)} /></Field>
           <Field label="Reason"><SelectInput value={reasonKind} onChange={(e) => setReasonKind(e.target.value)}>{REASONS.map((r) => <option key={r}>{r}</option>)}</SelectInput></Field>
           <Field label="Note (optional)"><TextInput value={note} onChange={(e) => setNote(e.target.value)} /></Field>
           <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>
-            The stock leaves the batch and {money(Number(qty || 0) * row.unit_cost)} is booked as a stock loss (Dr Stock Loss, Cr Stock). Cancelling that journal puts it back.
+            {row.kind
+              ? <>The stock leaves the lot and {money(Number(qty || 0) * row.unit_cost)} is booked as food waste (Dr Food Waste Expense, Cr Food Ingredients Inventory).</>
+              : <>The stock leaves the batch and {money(Number(qty || 0) * row.unit_cost)} is booked as a stock loss (Dr Stock Loss, Cr Stock). Cancelling that journal puts it back.</>}
           </p>
           <ModalActions onCancel={onClose} submitLabel="Write off" busy={busy} />
         </FormStack>
@@ -170,26 +173,26 @@ export default function ExpiringStock() {
 
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
           {loading ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : rows.length === 0 ? (
-            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>Nothing here{bucket ? ' in this group' : ''}. Only products that track expiry appear.</p>
+            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>Nothing here{bucket ? ' in this group' : ''}. Only items that track expiry appear.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Product</th><th style={th}>Batch</th><th style={th}>Expiry</th><th style={th}>Branch</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th}>Supplier</th>{canWrite && <th style={th} />}</tr></thead>
+              <thead><tr><th style={th}>{stockKinds().ingredients ? (stockKinds().products ? 'Item' : 'Ingredient') : 'Product'}</th><th style={th}>Batch</th><th style={th}>Expiry</th><th style={th}>Branch</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th}>Supplier</th>{canWrite && <th style={th} />}</tr></thead>
               <tbody>
                 {rows.map((r) => {
                   const b = BUCKETS.find((x) => x.id === r.bucket);
                   return (
-                    <tr key={`${r.batch_id}-${r.location_id}`}>
-                      <td style={td}><strong>{r.product}</strong>{r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.sku}</div></td>
+                    <tr key={`${r.kind ?? 'p'}-${r.batch_id}-${r.location_id}`}>
+                      <td style={td}><strong>{r.product}</strong>{r.kind ? <div style={{ fontSize: '0.78rem', color: colors.textMuted }}>↳ {r.variant}</div> : (r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : '')}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.sku}</div></td>
                       <td style={td}>{r.batch_no ?? `#${r.batch_id}`}{r.received_on && <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.received_on}</div>}</td>
                       <td style={td}>{date(r.expiry_date)}<div style={{ fontSize: '0.7rem', fontWeight: 700, color: b.tone }}>{when(r)}</div></td>
                       <td style={td}>{r.location}</td>
-                      <td style={{ ...td, textAlign: 'right' }}>{r.quantity}</td>
+                      <td style={{ ...td, textAlign: 'right' }}>{r.quantity}{r.unit ? ` ${r.unit}` : ''}</td>
                       <td style={{ ...td, textAlign: 'right' }}>{money(r.value)}</td>
                       <td style={td}>{r.supplier ?? '—'}</td>
                       {canWrite && (
                         <td style={{ ...td, whiteSpace: 'nowrap' }}>
-                          {r.bucket !== 'expired' && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 }} onClick={() => setModal({ kind: 'clearance', row: r })}>{r.clearance_percent ? `Clearance ${r.clearance_percent}%` : 'Clearance price'}</button>}
-                          <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 }} onClick={() => setModal({ kind: 'return', row: r })}>Return to supplier</button>
+                          {r.bucket !== 'expired' && !r.kind && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 }} onClick={() => setModal({ kind: 'clearance', row: r })}>{r.clearance_percent ? `Clearance ${r.clearance_percent}%` : 'Clearance price'}</button>}
+                          {!r.kind && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRight: 6 }} onClick={() => setModal({ kind: 'return', row: r })}>Return to supplier</button>}
                           {r.bucket === 'expired' && <button type="button" style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', color: '#b91c1c', borderColor: '#fecaca' }} onClick={() => setModal({ kind: 'write-off', row: r })}>Write off</button>}
                         </td>
                       )}

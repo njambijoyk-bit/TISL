@@ -8,6 +8,7 @@ import { stockJournalAPI } from '../../../../_shared/api/stockOps';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { stockKinds } from '../../../lib/stockKinds';
 import { btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 
 /** The stock journal: every movement of stock, in and out, with what caused it. Filter by item, kind, branch and date. */
@@ -18,7 +19,7 @@ const sel = { ...input, padding: '7px 10px', width: 'auto' };
 
 export default function StockJournal() {
   const user = useAuthStore((s) => s.user);
-  const [f, setF] = useState({ q: '', type: '', location_id: '', from: '', to: '' });
+  const [f, setF] = useState({ q: '', type: '', kind: '', location_id: '', from: '', to: '' });
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,12 +38,17 @@ export default function StockJournal() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <HubHeader title="Stock journal" description="Every movement of stock, newest first: sales, purchases, transfers, counts, production, write-offs." />
+        <HubHeader title="Stock journal" description={`Every movement of stock, newest first: sales, purchases, transfers, counts, ${stockKinds().ingredients ? 'what the kitchen uses and wastes, ' : ''}production, write-offs.`} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
-          <input value={f.q} onChange={(e) => set('q', e.target.value)} placeholder="Item, SKU or batch" aria-label="Search" style={{ ...sel, minWidth: 200 }} />
+          <input value={f.q} onChange={(e) => set('q', e.target.value)} placeholder={stockKinds().ingredients ? 'Item, ingredient, SKU or batch' : 'Item, SKU or batch'} aria-label="Search" style={{ ...sel, minWidth: 200 }} />
           <select value={f.type} onChange={(e) => set('type', e.target.value)} aria-label="Kind" style={sel}>
             <option value="">All kinds</option>{Object.entries(data?.types ?? {}).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
+          {stockKinds().ingredients && (data?.kinds ?? []).length > 1 && (
+            <select value={f.kind} onChange={(e) => set('kind', e.target.value)} aria-label="Items" style={sel}>
+              <option value="">All items</option>{(data?.kinds ?? []).map((k) => <option key={k.type} value={k.type}>{k.label}</option>)}
+            </select>
+          )}
           <select value={f.location_id} onChange={(e) => set('location_id', e.target.value)} aria-label="Branch" style={sel}>
             <option value="">All branches</option>{(data?.branches ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
           </select>
@@ -58,9 +64,9 @@ export default function StockJournal() {
               <tbody>{data.rows.map((r) => (
                 <tr key={r.id}>
                   <td style={td}>{String(r.date).slice(0, 10)}</td>
-                  <td style={td}>{r.product}{r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}</td>
+                  <td style={td}>{r.product}{r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}{r.sku ? <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.sku}</div> : null}</td>
                   <td style={td}>{r.label}</td><td style={td}>{r.location}</td><td style={td}>{r.batch_no ?? '—'}</td>
-                  <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: r.quantity < 0 ? '#b91c1c' : '#15803d' }}>{r.quantity > 0 ? '+' : ''}{r.quantity}</td>
+                  <td style={{ ...td, textAlign: 'right', fontWeight: 700, color: r.quantity < 0 ? '#b91c1c' : '#15803d' }}>{r.quantity > 0 ? '+' : ''}{r.quantity}{r.unit ? ` ${r.unit}` : ''}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{money(r.value)}</td>
                   <td style={td}>{r.voucher_id ? <Link to={`/admin/books/vouchers/${r.voucher_id}`}>{r.voucher_number}</Link> : (r.ref_type ? `${r.ref_type} #${r.ref_id}` : '—')}</td>
                 </tr>

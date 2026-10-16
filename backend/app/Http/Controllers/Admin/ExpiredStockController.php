@@ -58,6 +58,14 @@ class ExpiredStockController extends Controller
                 'variant' => $r->variant, 'sku' => $r->sku, 'received_on' => $r->received_on, 'supplier_id' => $r->supplier_id ? (int) $r->supplier_id : null, 'supplier' => $r->supplier,
             ];
         }
+        // the kitchen's ingredient lots (Menus on): the ingredient is the product, the variant is the variant
+        foreach ($this->ingredientLots($within, $d['location_id'] ?? null, $today) as $r) {
+            $summary[$r['bucket']]['batches'][$r['kind'].$r['batch_id']] = true;
+            $summary[$r['bucket']]['quantity'] += $r['quantity'];
+            $summary[$r['bucket']]['value'] += $r['value'];
+            $out[] = $r;
+        }
+        usort($out, fn ($a, $b) => [$a['expiry_date'], $a['batch_id']] <=> [$b['expiry_date'], $b['batch_id']]);
         foreach ($summary as $k => $v) {
             $summary[$k] = ['batches' => count($v['batches']), 'quantity' => round($v['quantity'], 4), 'value' => round($v['value'], 2)];
         }
@@ -69,10 +77,48 @@ class ExpiredStockController extends Controller
         ]);
     }
 
-    /** Write (part of) a batch off as a loss. Body: batch_id, location_id?, quantity?, reason. */
+    /** @return array<int, array<string, mixed>> */
+    private function ingredientLots(int $within, $location, $today): array
+    {
+        if (! \App\Services\Menus\IngredientStock::moduleOn() || ! \App\Services\Menus\IngredientStock::installed()) {
+            return [];
+        }
+        $rows = \App\Models\Menus\StockBatch::where('qty_left', '>', 0)->whereNotNull('expiry_date')->where('expiry_date', '<=', $today->copy()->addDays($within)->toDateString())
+            ->when($location, fn ($q) => $q->where('location_id', $location))
+            ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'location_id', 'stock', 'expiry'))->orderBy('expiry_date')->orderBy('id')->get();
+        $items = \App\Models\Menus\IngredientItem::with('ingredient.baseUnit')->whereIn('id', $rows->pluck('item_id'))->get()->keyBy('id');
+        $places = DB::table('locations')->pluck('name', 'id');
+        $out = [];
+        foreach ($rows as $b) {
+            $i = $items[$b->item_id] ?? null;
+            $left = (int) $today->diffInDays($b->expiry_date, false);
+            $out[] = [
+                'kind' => \App\Services\Menus\IngredientItemSource::TYPE, 'batch_id' => (int) $b->id, 'batch_no' => $b->batch_no, 'expiry_date' => $b->expiry_date->toDateString(), 'days_left' => $left,
+                'bucket' => $left < 0 ? 'expired' : ($left <= 30 ? 'd30' : ($left <= 60 ? 'd60' : 'd90')), 'status' => $left < 0 ? 'expired' : ($b->status === 'ok' ? 'active' : $b->status), 'location_id' => (int) $b->location_id,
+                'location' => $places[$b->location_id] ?? null, 'quantity' => round((float) $b->qty_left, 4), 'unit' => $i?->ingredient?->baseUnit?->code, 'unit_cost' => (float) $b->unit_cost, 'clearance_percent' => null,
+                'value' => round((float) $b->qty_left * (float) $b->unit_cost, 2), 'product_id' => null, 'product' => $i?->ingredient?->name ?? "Item {$b->item_id}", 'variant' => $i?->name, 'sku' => $i?->code,
+                'received_on' => null, 'supplier_id' => null, 'supplier' => null, 'item_id' => (int) $b->item_id,
+            ];
+        }
+
+        return $out;
+    }
+
+    /** Write (part of) a batch off as a loss. Body: batch_id, location_id?, quantity?, reason, kind? (menus_ingredient_item for a lot of the kitchen's ingredients; the quantity is then in its base unit). */
     public function writeOff(Request $request): JsonResponse
     {
-        $d = $request->validate(['batch_id' => 'required|integer', 'location_id' => 'nullable|integer', 'quantity' => 'nullable|numeric|min:0.0001', 'reason' => 'required|string|max:255']);
+        $d = $request->validate(['batch_id' => 'required|integer', 'location_id' => 'nullable|integer', 'quantity' => 'nullable|numeric|min:0.0001', 'reason' => 'required|string|max:255', 'kind' => 'nullable|string|max:40']);
+
+        if (($d['kind'] ?? null) === \App\Services\Menus\IngredientItemSource::TYPE) {
+            return $this->guard(function () use ($d, $request) {
+                $lot = \App\Models\Menus\StockBatch::findOrFail($d['batch_id']);
+                $this->branchWrite($request, (int) $lot->location_id);
+                $w = app(\App\Services\Menus\WasteService::class)->record(['location_id' => $lot->location_id, 'item_id' => $lot->item_id, 'batch_id' => $lot->id, 'quantity' => $d['quantity'] ?? $lot->qty_left,
+                    'unit' => 'base', 'kind' => 'spoilage', 'note' => $d['reason']], $request->user());
+
+                return response()->json(['message' => 'Written off: ' . round((float) $w->quantity, 4) . ' units, ' . number_format((float) $w->cost, 2) . ' lost.', 'quantity' => (float) $w->quantity, 'cost' => (float) $w->cost]);
+            });
+        }
 
         return $this->guard(function () use ($d, $request) {
             $this->branchWrite($request, $d['location_id'] ?? null);
@@ -85,6 +131,9 @@ class ExpiredStockController extends Controller
     /** Send (part of) a batch back to the supplier on a Debit Note. Body: batch_id, location_id, quantity, supplier_ledger_id?, reason?. */
     public function returnToSupplier(Request $request): JsonResponse
     {
+        if ($request->input('kind') === \App\Services\Menus\IngredientItemSource::TYPE) {
+            return response()->json(['message' => 'Ingredients are written off here. To send them back, cancel the purchase they came on (allowed while none has been used).'], 422);
+        }
         $d = $request->validate(['batch_id' => 'required|integer', 'location_id' => 'required|integer', 'quantity' => 'required|numeric|min:0.0001', 'supplier_ledger_id' => 'nullable|integer|exists:ledgers,id', 'reason' => 'nullable|string|max:255']);
 
         return $this->guard(function () use ($d, $request) {

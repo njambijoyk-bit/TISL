@@ -476,6 +476,21 @@ class BooksVoucherController extends Controller
             foreach ($variants as $v) {
                 $out[] = $this->productRow($v) + ['fuzzy' => $fuzzy];
             }
+        } elseif ($kind === 'ingredient') {
+            // the kitchen's ingredient variants (Menus on): the ingredient and the variant are named apart; units are packs, the bigger unit and the base unit
+            if (\App\Services\Menus\IngredientStock::moduleOn()) {
+                $loc = (int) $request->get('location_id');
+                $items = \App\Models\Menus\IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->where('is_active', true)->whereHas('ingredient', fn ($i) => $i->where('is_active', true))
+                    ->when($request->filled('ids'), fn ($v) => $v->whereIn('id', array_map('intval', explode(',', (string) $request->get('ids')))))
+                    ->when($q !== '' && ! $request->filled('ids'), fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('code', 'like', $like)->orWhereHas('ingredient', fn ($i) => $i->where('name', 'like', $like))))
+                    ->orderBy('ingredient_id')->orderBy('preference')->limit(40)->get();
+                $stock = $loc ? \App\Models\Menus\StockBatch::where('location_id', $loc)->where('qty_left', '>', 0)->groupBy('item_id')->selectRaw('item_id, SUM(qty_left) as q')->pluck('q', 'item_id') : collect();
+                $cost = \App\Models\Menus\StockBatch::whereIn('item_id', $items->pluck('id'))->where('source', '!=', 'count')->orderBy('id')->pluck('unit_cost', 'item_id');   // the latest lot's cost wins
+                foreach ($items as $i) {
+                    $out[] = ['type' => 'ingredient', 'item_id' => $i->id, 'ingredient_id' => $i->ingredient_id, 'ingredient' => $i->ingredient->name, 'variant' => $i->name, 'sku' => $i->code, 'units' => $i->unitChoices(),
+                        'track_expiry' => (bool) $i->track_expiry, 'base_unit' => $i->ingredient->baseUnit?->code, 'on_hand' => round((float) ($stock[$i->id] ?? 0), 4), 'last_cost' => (float) ($cost[$i->id] ?? 0)];   // cost per base unit
+                }
+            }
         } elseif ($kind === 'service') {
             $variants = \App\Models\ServiceVariant::with(['service:id,name,status', 'materials.variant.product:id,name,is_for_sale', 'materials.variant.units.unit:id,code'])
                 ->whereHas('service', fn ($s) => $s->where('status', 'active'))
@@ -501,7 +516,7 @@ class BooksVoucherController extends Controller
                 $out[] = ['type' => 'customer', 'customer_id' => $x->id, 'name' => trim($x->first_name . ' ' . $x->last_name), 'email' => $x->email];
             }
         } else {
-            return response()->json(['message' => 'kind must be product, service, hamper or customer.'], 422);
+            return response()->json(['message' => 'kind must be product, ingredient, service, hamper or customer.'], 422);
         }
 
         return response()->json($out);

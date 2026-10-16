@@ -53,7 +53,7 @@ class IngredientVoucherStock
             if (! $item || $base <= 0) {
                 continue;
             }
-            $cost = round((float) $it->amount / $base, 6);   // after discount, before tax
+            $cost = round((float) $it->amount * ((float) ($v->exchange_rate ?? 1) ?: 1.0) / $base, 6);   // after discount, before tax, in the base currency
             $this->stock->receive($item, $loc, $base, $cost, [
                 'batch_no' => $it->batch_no, 'expiry_date' => $it->expiry_date ? Carbon::parse($it->expiry_date)->toDateString() : null, 'date' => $date, 'source' => $opening ? 'opening' : 'purchase',
                 'voucher_id' => (int) $v->id, 'voucher_item_id' => (int) $it->id, 'by' => $by?->id, 'note' => $opening ? null : trim("{$v->voucher_number}"),

@@ -10,7 +10,8 @@ import stockTransfersAPI from '../../../../_shared/api/stockTransfers';
 import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance, canWriteFinance, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
-import VariantPicker from '../../../components/admin/pickers/VariantPicker';
+import StockItemPicker from '../../../components/admin/pickers/StockItemPicker';
+import { defaultUnit, ingredientName, itemWord, stockKinds } from '../../../lib/stockKinds';
 import CodeScanner from '../../../components/admin/codes/CodeScanner';
 import { scanMatch } from '../../../lib/codes/scanLookup';
 import { btnGhost, btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
@@ -34,11 +35,24 @@ function SendModal({ branches, onClose, onDone }) {
   const [items, setItems] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  const add = (r) => setItems((xs) => (xs.some((x) => x.variant_id === r.variant_id) ? xs : [...xs, { variant_id: r.variant_id, name: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, quantity: 1 }]));
+  const kinds = stockKinds();
+  // a product is found by its variant id, an ingredient by its item id; each is on the transfer once
+  const idOf = (x) => (x.kind === 'ingredient' ? `i${x.item_id}` : `p${x.variant_id}`);
+  const add = (r) => setItems((xs) => {
+    const row = r.type === 'ingredient'
+      ? { kind: 'ingredient', item_id: r.item_id, name: ingredientName(r), units: r.units ?? [], unit: defaultUnit(r.units), on_hand: r.on_hand, base_unit: r.base_unit, quantity: 1 }
+      : { kind: 'product', variant_id: r.variant_id, name: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, quantity: 1 };
+    return xs.some((x) => idOf(x) === idOf(row)) ? xs : [...xs, row];
+  });
+  const setItem = (k, patch) => setItems((xs) => xs.map((x) => (idOf(x) === k ? { ...x, ...patch } : x)));
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
-      const res = await stockTransfersAPI.send({ from_location_id: Number(from), to_location_id: Number(to), note: note || undefined, items: items.map((i) => ({ variant_id: i.variant_id, quantity: Number(i.quantity) })) });
+      const res = await stockTransfersAPI.send({
+        from_location_id: Number(from), to_location_id: Number(to), note: note || undefined,
+        items: items.filter((i) => i.kind === 'product').map((i) => ({ variant_id: i.variant_id, quantity: Number(i.quantity) })),
+        ingredients: items.filter((i) => i.kind === 'ingredient').map((i) => ({ item_id: i.item_id, quantity: Number(i.quantity), unit: i.unit })),
+      });
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not send the transfer')); } finally { setBusy(false); }
   };
@@ -51,22 +65,31 @@ function SendModal({ branches, onClose, onDone }) {
             <Field label="From"><SelectInput required value={from} onChange={(e) => setFrom(e.target.value)}><option value="">Choose…</option>{limitBranches(branches, 'stock').map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
             <Field label="To"><SelectInput required value={to} onChange={(e) => setTo(e.target.value)}><option value="">Choose…</option>{branches.filter((b) => String(b.id) !== String(from)).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
           </div>
-          <VariantPicker onPick={add} />
-          <CodeScanner autoFocus={false} placeholder="…or scan an item to add it (a carton adds the units in it)" onScan={async (code) => {
+          <StockItemPicker onPick={add} locationId={from || undefined} purpose="transfer" />
+          {kinds.products && <CodeScanner autoFocus={false} placeholder="…or scan an item to add it (a carton adds the units in it)" onScan={async (code) => {
             const m = await scanMatch(code);
             if (!m || !m.variant_id) { if (m) toast.error(`${m.label} is not a product we can transfer.`); return; }
             const n = m.type === 'pack' ? Number(m.pack_units || 1) : 1;
-            setItems((xs) => (xs.some((x) => x.variant_id === m.variant_id) ? xs.map((x) => (x.variant_id === m.variant_id ? { ...x, quantity: String(Number(x.quantity || 0) + n) } : x)) : [...xs, { variant_id: m.variant_id, name: m.name, quantity: String(n) }]));
-          }} />
+            setItems((xs) => (xs.some((x) => x.kind === 'product' && x.variant_id === m.variant_id) ? xs.map((x) => (x.kind === 'product' && x.variant_id === m.variant_id ? { ...x, quantity: String(Number(x.quantity || 0) + n) } : x)) : [...xs, { kind: 'product', variant_id: m.variant_id, name: m.name, quantity: String(n) }]));
+          }} />}
           {items.map((i) => (
-            <div key={i.variant_id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ flex: 1, fontSize: '0.82rem' }}>{i.name}</span>
-              <div style={{ width: 110 }}><NumberInput min="0.0001" step="any" required value={i.quantity} aria-label={`Quantity of ${i.name}`} onChange={(e) => setItems((xs) => xs.map((x) => (x.variant_id === i.variant_id ? { ...x, quantity: e.target.value } : x)))} /></div>
-              <button type="button" aria-label="Remove" onClick={() => setItems((xs) => xs.filter((x) => x.variant_id !== i.variant_id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
+            <div key={idOf(i)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ flex: 1, fontSize: '0.82rem' }}>{i.name}
+                {i.kind === 'ingredient' && from && Number.isFinite(Number(i.on_hand)) && <div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{i.on_hand} {i.base_unit} on the shelf at the sending branch (in the base unit)</div>}
+              </span>
+              {i.kind === 'ingredient' && (
+                <div style={{ width: 120 }}>
+                  <SelectInput aria-label={`Unit of ${i.name}`} value={i.unit} onChange={(e) => setItem(idOf(i), { unit: e.target.value })}>
+                    {i.units.map((u) => <option key={u.unit} value={u.unit}>{u.unit === 'pack' ? 'pack' : u.label}</option>)}
+                  </SelectInput>
+                </div>
+              )}
+              <div style={{ width: 110 }}><NumberInput min="0.0001" step="any" required value={i.quantity} aria-label={`Quantity of ${i.name}`} onChange={(e) => setItem(idOf(i), { quantity: e.target.value })} /></div>
+              <button type="button" aria-label="Remove" onClick={() => setItems((xs) => xs.filter((x) => idOf(x) !== idOf(i)))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }}><Trash2 size={15} /></button>
             </div>
           ))}
           <Field label="Note (optional)"><TextInput value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-          <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>The stock leaves the sending branch now, first-expiring batches first, and waits in transit until the other branch receives it. Expired or held stock cannot be sent.</p>
+          <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>The stock leaves the sending branch now, first-expiring batches first, and waits in transit until the other branch receives it. Expired or held stock cannot be sent.{kinds.ingredients && ' Ingredients keep their cost, expiry and batch number on the other side.'}</p>
           <ModalActions onCancel={onClose} submitLabel="Send" busy={busy} disabled={!items.length} />
         </FormStack>
       </form>
@@ -77,13 +100,15 @@ function SendModal({ branches, onClose, onDone }) {
 function ReceiveModal({ id, onClose, onDone }) {
   const [t, setT] = useState(null);
   const [got, setGot] = useState({});
+  const [gotIng, setGotIng] = useState({});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  useEffect(() => { stockTransfersAPI.show(id).then((d) => { setT(d); setGot(Object.fromEntries(d.lines.map((l) => [l.id, l.quantity]))); }).catch((e) => setErr(errMsg(e, 'Could not load'))); }, [id]);
-  const short = t ? t.lines.some((l) => Number(got[l.id]) < l.quantity) : false;
+  useEffect(() => { stockTransfersAPI.show(id).then((d) => { setT(d); setGot(Object.fromEntries(d.lines.map((l) => [l.id, l.quantity]))); setGotIng(Object.fromEntries((d.ingredient_lines ?? []).map((l) => [l.id, l.quantity]))); }).catch((e) => setErr(errMsg(e, 'Could not load'))); }, [id]);
+  const short = t ? t.lines.some((l) => Number(got[l.id]) < l.quantity) || (t.ingredient_lines ?? []).some((l) => Number(gotIng[l.id]) < l.quantity) : false;
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { const res = await stockTransfersAPI.receive(id, Object.fromEntries(Object.entries(got).map(([k, v]) => [k, Number(v)]))); toast.success(res.message); onDone(); }
+    try { const num = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Number(v)]));
+      const res = await stockTransfersAPI.receive(id, num(got), num(gotIng)); toast.success(res.message); onDone(); }
     catch (x) { setErr(errMsg(x, 'Could not receive')); } finally { setBusy(false); }
   };
   return (
@@ -98,7 +123,14 @@ function ReceiveModal({ id, onClose, onDone }) {
                 <div style={{ width: 110 }}><NumberInput min="0" max={l.quantity} step="any" required value={got[l.id] ?? ''} aria-label={`Received ${label(l)}`} onChange={(e) => setGot((g) => ({ ...g, [l.id]: e.target.value }))} /></div>
               </div>
             ))}
-            {short && <p style={{ margin: 0, fontSize: '0.78rem', color: '#b91c1c' }}>Anything short is written off as a stock loss.</p>}
+            {(t.ingredient_lines ?? []).map((l) => (
+              <div key={`i${l.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ flex: 1, fontSize: '0.82rem' }}>{l.ingredient} <span style={{ color: colors.textMuted }}>↳ {l.variant}</span><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>batch {l.batch_no ?? '—'}{l.expiry_date ? ` · expires ${String(l.expiry_date).slice(0, 10)}` : ''} · sent {l.quantity} {l.unit}</div></span>
+                <div style={{ width: 110 }}><NumberInput min="0" max={l.quantity} step="any" required value={gotIng[l.id] ?? ''} aria-label={`Received ${l.ingredient} ${l.variant}`} onChange={(e) => setGotIng((g) => ({ ...g, [l.id]: e.target.value }))} /></div>
+                <span style={{ width: 24, fontSize: '0.72rem', color: colors.textFaint }}>{l.unit}</span>
+              </div>
+            ))}
+            {short && <p style={{ margin: 0, fontSize: '0.78rem', color: '#b91c1c' }}>Anything short is written off as a stock loss{(t.ingredient_lines ?? []).length > 0 ? ' (ingredients: food waste)' : ''}.</p>}
             <ModalActions onCancel={onClose} submitLabel="Receive" busy={busy} />
           </FormStack>
         </form>
@@ -142,7 +174,7 @@ export default function StockTransfers() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <HubHeader title="Stock transfers" description="Move stock between branches. It stays in transit until the other branch receives it." />
+        <HubHeader title="Stock transfers" description={`Move ${itemWord().replace('ingredient or product', 'ingredients or products').replace(/^(ingredient|product)$/, '$1s')} between branches. It stays in transit until the other branch receives it.`} />
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', margin: '0 0 14px' }}>
           <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status" style={{ padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem', fontFamily: 'inherit' }}>
             <option value="">All</option><option value="in_transit">In transit</option><option value="received">Received</option><option value="cancelled">Cancelled</option>

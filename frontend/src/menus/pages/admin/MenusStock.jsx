@@ -142,7 +142,7 @@ export default function MenusStock() {
   const cancel = async (r) => {
     const reason = window.prompt(`Cancel the receipt ${r.voucher_number ?? `#${r.id}`}? Say why (the stock comes off the shelf and the bill is cancelled in the books):`);
     if (reason === null) return;
-    try { const res = await menusAPI.cancelReceipt(r.id, reason); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not cancel'), { duration: 8000 }); }
+    try { const res = await menusAPI.cancelReceipt(r.id, reason, r.legacy); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not cancel'), { duration: 8000 }); }
   };
 
   const cancelBatch = async (r) => {
@@ -243,12 +243,12 @@ export default function MenusStock() {
 
         {(extra.counts.length > 0 || extra.transfers.length > 0) && (
           <>
-            <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Stock takes and transfers</h2>
+            <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Stock counts and transfers</h2>
             <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="counts">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr><th style={th}>Date</th><th style={th}>Number</th><th style={th}>What</th><th style={{ ...th, textAlign: 'right' }}>Difference worth</th></tr></thead>
                 <tbody>
-                  {extra.counts.map((c) => <tr key={`c${c.id}`}><td style={td}>{c.date}</td><td style={td}>{c.number}</td><td style={td}>Stock take · {c.lines} line{c.lines === 1 ? '' : 's'}{c.note ? ` · ${c.note}` : ''}</td><td style={{ ...td, textAlign: 'right' }}>{num(c.value_change)}</td></tr>)}
+                  {extra.counts.map((c) => <tr key={`c${c.id}`}><td style={td}>{c.date}</td><td style={td}>{c.number}</td><td style={td}>Stock count · {c.lines} line{c.lines === 1 ? '' : 's'}{c.note ? ` · ${c.note}` : ''}</td><td style={{ ...td, textAlign: 'right' }}>{num(c.value_change)}</td></tr>)}
                   {extra.transfers.map((t) => <tr key={`t${t.id}`}><td style={td}>{t.date}</td><td style={td}>{t.number}</td><td style={td}>Sent {data?.branches.find((b) => b.id === t.from)?.name ?? ''} → {data?.branches.find((b) => b.id === t.to)?.name ?? ''} · {t.lines} line{t.lines === 1 ? '' : 's'}</td><td style={td} /></tr>)}
                 </tbody>
               </table>
@@ -265,7 +265,7 @@ export default function MenusStock() {
                 <tr key={r.id} style={r.status === 'cancelled' ? { opacity: 0.5 } : undefined}>
                   <td style={td}>{r.date}</td>
                   <td style={td}>{r.voucher_number ?? '—'}{r.supplier_invoice_no ? <span style={{ color: colors.textFaint }}> · {r.supplier_invoice_no}</span> : null}</td>
-                  <td style={td}>{r.kind === 'opening' ? 'Opening stock' : r.supplier ?? 'Paid at once'}</td>
+                  <td style={td}>{r.kind === 'opening' ? 'Opening stock' : r.kind === 'goods' ? `Goods received${r.supplier ? ` · ${r.supplier}` : ''}` : r.supplier ?? 'Paid at once'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{num(r.total)}</td>
                   <td style={td}>{r.status === 'cancelled' ? 'Cancelled' : 'Received'}</td>
                   <td style={td}>{canWrite && r.status === 'posted' && <button type="button" style={small} onClick={() => cancel(r)}>Cancel</button>}</td>

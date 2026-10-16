@@ -5,8 +5,8 @@ export const stockCountsAPI = {
   list: async () => (await api.get('/admin/stock/counts')).data,
   show: async (id) => (await api.get(`/admin/stock/counts/${id}`)).data,
   start: async (payload) => (await api.post('/admin/stock/counts', payload)).data,
-  save: async (id, counted) => (await api.put(`/admin/stock/counts/${id}`, { counted })).data,
-  post: async (id, counted) => (await api.post(`/admin/stock/counts/${id}/post`, { counted })).data,
+  save: async (id, counted, ingredients) => (await api.put(`/admin/stock/counts/${id}`, { counted, ingredients })).data,
+  post: async (id, counted, ingredients) => (await api.post(`/admin/stock/counts/${id}/post`, { counted, ingredients })).data,
   cancel: async (id) => (await api.post(`/admin/stock/counts/${id}/cancel`)).data,
 };
 
