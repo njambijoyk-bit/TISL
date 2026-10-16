@@ -240,6 +240,7 @@ export default function AiPanel() {
     if (!isAdmin) return undefined;
     const onKey = (e) => {
       const st = useAiPanelStore.getState();
+      if (!st.context) return;   // a page the AI has nothing to say about: no tab, no panel, no shortcut
       if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.code === 'KeyI') {
         e.preventDefault();
         if (st.open) { audio.playDelete(); st.close(); } else { audio.playActivate(); st.toggleOpen(); }
@@ -253,8 +254,8 @@ export default function AiPanel() {
     return () => window.removeEventListener('keydown', onKey, true);
   }, [isAdmin, audio]);
 
-  // ── Don't render for non-admin ────────────────────────────────
-  if (!isAdmin) return null;
+  // ── Nothing to show for non-admins, or on a page with no context (the tab is only there when the AI has something to look at) ──
+  if (!isAdmin || !context) return null;
 
   // ── Tab (collapsed trigger) ───────────────────────────────────
   if (!open) {
@@ -381,17 +382,6 @@ export default function AiPanel() {
       {/* ── Body ── */}
       {!minimised && (
         <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* ── No context ── */}
-          {!context && (
-            <div style={{ textAlign: 'center', padding: '40px 16px' }}>
-              <BrainCircuit size={36} style={{ color: C.textDim, margin: '0 auto 12px', display: 'block' }} />
-              <p style={{ fontSize: '0.82rem', color: C.textMid, margin: '0 0 4px' }}>No context detected</p>
-              <p style={{ fontSize: '0.72rem', color: C.textMid, margin: 0, lineHeight: 1.5 }}>
-                Navigate to a project, booking, order, or customer page to enable AI scanning
-              </p>
-            </div>
-          )}
 
           {context && (
             <>

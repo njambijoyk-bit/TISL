@@ -6,6 +6,7 @@ import { hasPermission, isStaff, roleName } from '../../lib/roles';
 import booksAPI from '../../api/books';
 import { newVoucherPath } from '../../../core/components/admin/books/booksFmt';
 import { toggleAccountMenu } from '../../lib/accountShortcut';
+import useAiPanelStore from '../../store/useAiPanelStore';
 import useNavStore from '../../store/navStore';
 import useThemeStore from '../../store/themeStore';
 import { useTheme } from '../../theme';
@@ -38,6 +39,7 @@ export default function KeyboardShortcuts() {
   const [types, setTypes] = useState([]);
   const staff = isAuthenticated && isStaff(user);
   const inAdmin = pathname.startsWith('/admin');
+  const aiHere = !!useAiPanelStore((st) => st.context);   // the AI panel is only on pages it has context for
   const inBooks = pathname.startsWith('/admin/books');
   const voucherPage = /^\/admin\/books\/vouchers\/\d+\/?$/.test(pathname);
   const canPost = isAuthenticated && hasPermission(user, 'books.post');
@@ -169,7 +171,7 @@ export default function KeyboardShortcuts() {
     ['', 'Esc', 'Close the open dialog'],
     ['Shift', 'Esc', 'Sign out'],
     ...(inAdmin ? [['', 'F2', 'New: add what this page lists'], ['', 'F12', 'Open the Configuration of this page or section'], ['', 'F7', 'Open the Recycle bin or Trash of this page'],
-      ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Alt', 'I', 'Open the AI panel (Esc closes it)'], ['Ctrl', 'B', 'Show or hide the menu']] : []),
+      ['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ...(aiHere ? [['Alt', 'I', 'Open the AI panel (Esc closes it)']] : []), ['Ctrl', 'B', 'Show or hide the menu']] : []),
     ...(inBooks && canPost ? [['Shift', 'V', 'New voucher: then press the type\'s letter'], ['', 'F4', 'Open the edit log']] : []),
     ...(voucherPage ? [['Shift', 'E', 'Edit this voucher'], ['Shift', 'X', 'Cancel this voucher (asks why first)'], ['Shift', 'D', 'Download the customer copy'], ['Shift', 'S', 'Send this voucher'], ['Shift', 'C', 'Convert this voucher'], ['Shift', 'P', 'Receive payment']] : []),
   ];
