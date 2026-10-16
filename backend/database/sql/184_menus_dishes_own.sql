@@ -36,7 +36,7 @@ CALL add_column_if_missing('menus_option_uses', 'unit', "VARCHAR(4) NOT NULL DEF
 DROP PROCEDURE IF EXISTS add_column_if_missing;
 
 -- a dish that had a product keeps the price the product carried
-UPDATE menus_dishes d JOIN product_variant_units u ON u.variant_id = d.variant_id AND u.role = 'base' SET d.price = u.price WHERE d.price = 0 AND u.price IS NOT NULL;
+UPDATE menus_dishes d JOIN product_variant_units u ON u.variant_id = d.variant_id AND u.role = 'base' SET d.price = u.price WHERE d.id > 0 AND d.price = 0 AND u.price IS NOT NULL;   -- (d.id > 0 is there for Workbench's safe-update mode)
 
 -- the product behind a dish, and the variant on an order line, are no longer needed
 ALTER TABLE menus_dishes MODIFY product_id BIGINT UNSIGNED NULL, MODIFY variant_id BIGINT UNSIGNED NULL;
