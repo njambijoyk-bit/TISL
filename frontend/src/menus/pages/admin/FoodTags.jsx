@@ -68,7 +68,7 @@ function Section({ kind, title, rows, diets, canWrite, onAdd, onEdit, onRemove, 
           <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>{title}</h2>
           <p style={{ margin: '3px 0 0', fontSize: '0.78rem', color: colors.textMuted }}>{KIND_NOTE[kind]}</p>
         </div>
-        {canWrite && <button type="button" style={btnPrimary} onClick={onAdd}><Plus size={14} /> {kind === 'allergen' ? 'New allergen' : 'New tag'}</button>}
+        {canWrite && <button type="button" style={btnPrimary} data-hotkey={kind === 'allergen' ? 'F2' : undefined} title={kind === 'allergen' ? 'F2' : undefined} onClick={onAdd}><Plus size={14} /> {kind === 'allergen' ? 'New allergen' : 'New tag'}</button>}
       </div>
       {rows.length === 0 ? <p style={{ margin: 0, color: colors.textMuted, fontSize: '0.84rem' }}>None yet.</p> : rows.map((t, i) => {
         const used = t.used.ingredients + t.used.dishes;

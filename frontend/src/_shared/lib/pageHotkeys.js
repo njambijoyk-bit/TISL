@@ -8,6 +8,7 @@
 //   Close    Close, or the X of the open dialog    (Esc)
 //   Previous / Next / Refresh   (Shift+Left / Shift+Right / Shift+R)
 //   Books voucher page: Edit (Shift+E), Cancel (Shift+X), Customer copy (Shift+D), Send (Shift+S), Convert (Shift+C), Receive payment (Shift+P), Edit log (F4)
+// A button can claim a key itself with data-hotkey="F2" when the page has two that would fit; that one is pressed.
 // Buttons that do something else with the word ("Save configuration", "Use shop-wide configuration", "Save and close") are not matched. When two different buttons carry
 // the name, nothing is pressed: the key never guesses.
 const MATCHERS = {
@@ -51,6 +52,9 @@ const pageRoot = () => document.querySelector('main') || document;
 export function pageHotkeyTarget(key, root = pageRoot(), skip = null) {
   const match = MATCHERS[key];
   if (!match || !root) return null;
+  // a page with two buttons that both fit (New allergen, New tag) says which one the key presses: data-hotkey="F2"
+  const chosen = [...root.querySelectorAll(`[data-hotkey="${key}"]`)].filter((el) => usable(el) && !(skip && el.closest(skip)));
+  if (chosen.length === 1) return chosen[0];
   const found = [...root.querySelectorAll('button, a[href], [role="tab"]')].filter((el) => usable(el) && !(skip && el.closest(skip)) && match.test(nameOf(el)));
   const buttons = found.filter((el) => el.tagName !== 'A');
   if (buttons.length) return buttons.length === 1 ? buttons[0] : null;

@@ -175,7 +175,7 @@ export default function MenusStock() {
               <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('transfer')}><Truck size={14} /> Send to a branch</button>
               <button type="button" style={btnGhost} onClick={() => setModal('batch')}><ChefHat size={14} /> Make a batch</button>
               <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('opening')}>Opening stock</button>
-              <button type="button" style={btnPrimary} disabled={noVariants} onClick={() => setModal('receive')}><PackagePlus size={14} /> Receive ingredients</button>
+              <button type="button" style={btnPrimary} data-hotkey="F2" title="F2" disabled={noVariants} onClick={() => setModal('receive')}><PackagePlus size={14} /> Receive ingredients</button>
             </div>
           )}
         </div>
