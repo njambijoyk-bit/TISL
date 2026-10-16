@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import SettingsLayout from '../../../../_shared/components/layout/SettingsLayout';
 import navigationAPI from '../../../../_shared/api/navigation';
+import useNavStore from '../../../../_shared/store/navStore';
 import {
   Compass, CheckCircle2, XCircle, Lock, RefreshCw, Link2,
 } from 'lucide-react';
@@ -55,6 +56,27 @@ export default function NavigationSettings() {
 
   useEffect(() => { load(); }, [load]);
 
+  const setShortcut = async (groupIdx, linkIdx, raw) => {
+    const group = groups[groupIdx];
+    const link = group.links[linkIdx];
+    const next = raw.trim().toUpperCase().slice(-1).replace(/[^A-Z]/g, '') || null;
+    if (!group.active || next === (link.shortcut || null)) return;
+    const was = link.shortcut || null;
+    const put = (v) => setGroups((gs) => gs.map((g, gi) => gi !== groupIdx ? g : {
+      ...g, links: g.links.map((l, li) => li !== linkIdx ? l : { ...l, shortcut: v }),
+    }));
+    put(next);
+    setSavingId(link.id);
+    try {
+      const res = await navigationAPI.updateLink(link.id, { shortcut: next });
+      if (!res.ok) throw new Error(res.message);
+      useNavStore.getState().fetch();   // this browser's own shortcuts follow at once
+    } catch (e) {
+      put(was);
+      toast.error(e.response?.data?.message || e.message || 'Could not save.');
+    } finally { setSavingId(null); }
+  };
+
   const toggle = async (groupIdx, linkIdx) => {
     const group = groups[groupIdx];
     const link = group.links[linkIdx];
@@ -90,7 +112,7 @@ export default function NavigationSettings() {
           <h1 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800 }}>Storefront navigation</h1>
         </div>
         <p style={{ margin: '0 0 20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-          Choose which links customers see in the header. Only links for modules you've licensed appear here; a module that's switched off locks its links until you switch it back on.
+          Choose which links customers see in the header, and a letter for each that opens it when a customer holds Shift and presses it (A and U are kept for the shortcut list and the account menu). Only links for modules you've licensed appear here; a module that's switched off locks its links until you switch it back on.
         </p>
 
         {groups.length === 0 && (
@@ -122,6 +144,19 @@ export default function NavigationSettings() {
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {savingId === link.id && <RefreshCw size={13} color="#9ca3af" />}
+                      <label title="Hold Shift and press this letter to open the link. Leave empty for none." style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                        Shift +
+                        <input
+                          key={`${link.id}-${link.shortcut || ''}`}
+                          defaultValue={link.shortcut || ''}
+                          disabled={!group.active}
+                          maxLength={2}
+                          aria-label={`Shortcut letter for ${link.label}`}
+                          onBlur={(e) => setShortcut(gi, li, e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                          style={{ width: 30, textAlign: 'center', textTransform: 'uppercase', fontWeight: 700, padding: '5px 0', borderRadius: 7, border: '1px solid var(--line)', background: 'var(--surface-card, #fff)', color: 'var(--text-primary)', fontFamily: 'inherit' }}
+                        />
+                      </label>
                       <VisibilityToggle
                         visible={link.visible}
                         disabled={!group.active}

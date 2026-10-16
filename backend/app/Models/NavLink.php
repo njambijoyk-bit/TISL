@@ -13,7 +13,7 @@ class NavLink extends Model
 {
     protected $table = 'nav_links';
 
-    protected $fillable = ['key', 'label', 'path', 'module_key', 'visible', 'sort_order'];
+    protected $fillable = ['key', 'label', 'path', 'module_key', 'visible', 'sort_order', 'shortcut'];
 
     protected $casts = [
         'visible'    => 'boolean',

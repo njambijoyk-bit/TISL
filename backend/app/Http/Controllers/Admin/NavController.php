@@ -19,6 +19,9 @@ use Illuminate\Http\Request;
  */
 class NavController extends Controller
 {
+    /** Letters the app itself uses with Shift: A shows the shortcut list, U opens the account menu. */
+    public const RESERVED = ['A', 'U'];
+
     public function __construct(private LicenseManager $manager) {}
 
     /** Admin: links grouped by their (licensed) module, with lock state. */
@@ -50,6 +53,7 @@ class NavController extends Controller
                 'path'       => $link->path,
                 'visible'    => $link->visible,
                 'sort_order' => $link->sort_order,
+                'shortcut'   => $link->shortcut,
             ];
         }
 
@@ -73,7 +77,19 @@ class NavController extends Controller
             'visible'    => 'sometimes|boolean',
             'label'      => 'sometimes|string|max:100',
             'sort_order' => 'sometimes|integer|min:0|max:9999',
+            'shortcut'   => 'sometimes|nullable|string|size:1|regex:/^[A-Za-z]$/',
         ]);
+        if (array_key_exists('shortcut', $data)) {
+            $data['shortcut'] = $data['shortcut'] === null || $data['shortcut'] === '' ? null : strtoupper($data['shortcut']);
+            if ($data['shortcut'] !== null) {
+                if (in_array($data['shortcut'], self::RESERVED, true)) {
+                    return response()->json(['ok' => false, 'message' => "Shift+{$data['shortcut']} is kept for the shortcut list and the account menu."], 422);
+                }
+                if (NavLink::where('shortcut', $data['shortcut'])->where('id', '!=', $link->id)->exists()) {
+                    return response()->json(['ok' => false, 'message' => "Shift+{$data['shortcut']} already goes to another link."], 422);
+                }
+            }
+        }
         $link->update($data);
 
         return response()->json(['ok' => true, 'message' => 'Saved.']);
@@ -84,7 +100,7 @@ class NavController extends Controller
     {
         $links = NavLink::where('visible', true)
             ->orderBy('sort_order')->orderBy('id')
-            ->get(['key', 'label', 'path', 'module_key']);
+            ->get(['key', 'label', 'path', 'module_key', 'shortcut']);
 
         $out = $links->filter(function ($l) {
             return $l->module_key === LicenseManager::CORE || $this->manager->isActive($l->module_key);
@@ -92,6 +108,7 @@ class NavController extends Controller
             'key'   => $l->key,
             'label' => $l->label,
             'path'  => $l->path,
+            'shortcut' => $l->shortcut,
         ])->values();
 
         return response()->json(['links' => $out]);
