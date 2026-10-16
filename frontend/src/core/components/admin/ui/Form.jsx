@@ -104,6 +104,7 @@ export function ModalActions({ onCancel, submitLabel, busyLabel, busy, onSubmit,
         type={onSubmit ? 'button' : 'submit'}
         onClick={onSubmit}
         disabled={busy || disabled}
+        data-hotkey={danger ? undefined : 'Save'}   // Ctrl+S / Cmd+S presses it, whatever the label says (Save ingredient, Receive, Make it...)
         style={{
           ...btnPrimary,
           ...(danger ? { background: colors.danger, boxShadow: 'none' } : {}),

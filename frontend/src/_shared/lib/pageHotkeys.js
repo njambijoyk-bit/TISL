@@ -8,7 +8,7 @@
 //   Close    Close, or the X of the open dialog    (Esc)
 //   Previous / Next / Refresh   (Shift+Left / Shift+Right / Shift+R)
 //   Books voucher page: Edit (Shift+E), Cancel (Shift+X), Customer copy (Shift+D), Send (Shift+S), Convert (Shift+C), Receive payment (Shift+P), Edit log (F4)
-// A button can claim a key itself with data-hotkey="F2" when the page has two that would fit; that one is pressed.
+// A button can claim a key itself with data-hotkey="F2" when the page has two that would fit, or none that is named for it (a dialog's main button, whatever it says, claims Save); that one is pressed.
 // Buttons that do something else with the word ("Save configuration", "Use shop-wide configuration", "Save and close") are not matched. When two different buttons carry
 // the name, nothing is pressed: the key never guesses.
 const MATCHERS = {
