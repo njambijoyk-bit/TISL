@@ -8,6 +8,7 @@ use App\Models\UnitOfMeasure;
 use App\Services\Books\BooksException;
 use App\Services\Menus\FoodTags;
 use App\Services\Menus\IngredientFamilies;
+use App\Services\Menus\IngredientItems;
 use App\Services\Menus\IngredientResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\DB;
 /** Menus → Ingredients: "Wheat flour" and the stock items the kitchen takes it from. */
 class MenusIngredientController extends Controller
 {
-    public function __construct(private IngredientFamilies $families, private IngredientResolver $resolver)
+    public function __construct(private IngredientFamilies $families, private IngredientResolver $resolver, private IngredientItems $items)
     {
     }
 
@@ -58,6 +59,21 @@ class MenusIngredientController extends Controller
             $this->families->delete(IngredientFamily::findOrFail($id));
 
             return response()->json(['message' => 'Ingredient removed. The stock items are untouched.']);
+        });
+    }
+
+    /** A new stock item for an ingredient, made here so the E-commerce module is not needed. Body: name, unit_id, expires?. Answers like the stock item search does. */
+    public function stockItem(Request $request): JsonResponse
+    {
+        $d = $request->validate(['name' => 'required|string|max:150', 'unit_id' => 'required|integer|exists:units_of_measure,id', 'expires' => 'nullable|boolean']);
+
+        return $this->guard(function () use ($d, $request) {
+            [$product, $variant] = $this->items->make($d['name'], (int) $d['unit_id'], (bool) ($d['expires'] ?? false), $request->user()?->id);
+
+            return response()->json([
+                'message' => 'Stock item made. Receive some through Purchases (or Opening stock) so it has a cost and a count.',
+                'item' => ['variant_id' => $variant->id, 'product' => $product->name, 'variant' => $variant->name, 'sku' => $variant->sku, 'track_expiry' => (bool) $product->track_expiry],
+            ], 201);
         });
     }
 

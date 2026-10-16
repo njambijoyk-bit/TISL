@@ -2,9 +2,11 @@
 
 A small Nairobi kitchen, made so the numbers can be checked by hand. Enter it in this order, because each part needs the one before: **stock items, ingredients, dishes, recipes, menus, meal plan**. Prices are made up. Use the units your system already has (kg, g, L, mL, each / piece); if a unit is missing add it under Settings, Units.
 
-## 1. Stock items (the real things you buy: Stock, Products)
+## 1. Stock items (the real things you buy)
 
-Make each as an ordinary product with one variant. "Stock unit" is the unit it is counted and bought in; "holds" is how much of the ingredient's recipe unit one stock unit contains (you type this on the ingredient, step 2). Receive the opening stock with a purchase or opening-stock voucher so the batches have a cost.
+You do **not** need the E-commerce module or its Products screens. In Menus, Ingredients, open an ingredient and press **Make a stock item here** under the stock item search: type the name and the unit it is bought and counted in (pack, sack, kg, tray...). It is a hidden product, kept out of the shop and not for sale. Then receive the opening stock below through Purchases or Opening stock (both are in the core admin, not E-commerce), so every batch has a cost.
+
+"Stock unit" is the unit it is counted and bought in; "holds" is how much of the ingredient's recipe unit one stock unit contains (you type this on the ingredient, step 2).
 
 | Stock item | Stock unit | Holds | Buying price | Opening stock |
 |---|---|---|---|---|

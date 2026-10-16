@@ -1080,6 +1080,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/ingredients', [$in, 'save']);
             Route::put('/ingredients/{id}', [$in, 'save'])->whereNumber('id');
             Route::delete('/ingredients/{id}', [$in, 'destroy'])->whereNumber('id');
+            Route::post('/ingredients/stock-items', [$in, 'stockItem']);
             Route::post('/ingredients/suggest', [$in, 'suggest']);
             Route::put('/recipes', [$r, 'save']);
             Route::delete('/recipes/{id}', [$r, 'destroy'])->whereNumber('id');

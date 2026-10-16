@@ -41,6 +41,42 @@ function Checks({ label, options, value, onChange }) {
   );
 }
 
+/** Make a stock item on the spot (no Products screen, no E-commerce module needed): a name and the unit it is bought and counted in. It is received through Purchases afterwards. */
+function NewStockItem({ units, onMade }) {
+  const [open, setOpen] = useState(false);
+  const [name, setName] = useState('');
+  const [unit, setUnit] = useState('');
+  const [expires, setExpires] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const make = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const r = await menusAPI.makeStockItem({ name, unit_id: Number(unit), expires });
+      toast.success(r.message, { duration: 7000 });
+      onMade(r.item); setName(''); setUnit(''); setExpires(false); setOpen(false);
+    } catch (x) { setErr(errMsg(x, 'Could not make the stock item')); } finally { setBusy(false); }
+  };
+  if (!open) return <button type="button" style={{ ...small, marginTop: 6 }} onClick={() => setOpen(true)}><Plus size={12} /> Not in the list? Make a stock item here</button>;
+
+  return (
+    <div style={{ ...card, padding: 12, marginTop: 8, display: 'grid', gap: 8 }}>
+      <FormError message={err} />
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+        <Field label="Stock item (what you buy)" htmlFor="si-name"><TextInput id="si-name" maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="Exe Flour 2 kg" /></Field>
+        <Field label="Bought and counted in" htmlFor="si-unit" hint="pack, kg, tray, bottle…">
+          <SelectInput id="si-unit" value={unit} onChange={(e) => setUnit(e.target.value)}><option value="">Choose…</option>{units.map((u) => <option key={u.id} value={u.id}>{u.code} — {u.name}</option>)}</SelectInput>
+        </Field>
+      </div>
+      <CheckboxRow checked={expires} onChange={setExpires} label="It expires" description="Batches then carry an expiry date and the one that expires first is used first." />
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" style={btnPrimary} disabled={busy || !name.trim() || !unit} onClick={make}>{busy ? 'Making…' : 'Make the stock item'}</button>
+        <button type="button" style={btnGhost} onClick={() => setOpen(false)}>Never mind</button>
+      </div>
+    </div>
+  );
+}
+
 function IngredientModal({ family, options, onClose, onDone }) {
   const [name, setName] = useState(family?.name ?? '');
   const [unitId, setUnitId] = useState(family?.unit_id ?? '');
@@ -100,6 +136,7 @@ function IngredientModal({ family, options, onClose, onDone }) {
 
           <Field label={`Stock items it is taken from, in order of preference${unit ? ` (amounts in ${unit.code})` : ''}`}>
             <VariantPicker onPick={add} placeholder="Search a stock item to add (Exe flour 2 kg…)" />
+            <NewStockItem units={options.units} onMade={(item) => add({ ...item, variant: item.variant })} />
           </Field>
           {items.map((x, i) => (
             <div key={x.variant_id} data-testid="ingredient-item" style={{ display: 'grid', gridTemplateColumns: '24px 1fr 140px auto', gap: 8, alignItems: 'center' }}>
