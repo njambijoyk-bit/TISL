@@ -1,26 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BellRing, BookOpenText, CakeSlice, CalendarDays, Soup, ChefHat, Coins, Armchair, Users, ClipboardCheck, ChevronRight, ClipboardList, LayoutList, Salad, Settings2, UtensilsCrossed } from 'lucide-react';
+import { BookOpenText, ChevronRight } from 'lucide-react';
+import useAuthStore from '../../_shared/store/authStore';
+import { MENUS_TABS, openTabs } from '../../_shared/navigation/adminNav';
 
-const PAGES = [
-  { path: '/admin/menus/till', title: 'Till', icon: Coins, color: '#10b981' },
-  { path: '/admin/menus/floor', title: 'Floor', icon: Armchair, color: '#8b5cf6' },
-  { path: '/admin/menus/orders', title: 'Orders', icon: BellRing, color: '#ef4444' },
-  { path: '/admin/menus/plans', title: 'Meal plans', icon: Soup, color: '#16a34a' },
-  { path: '/admin/menus/custom', title: 'Cakes & catering', icon: CakeSlice, color: '#e11d48' },
-  { path: '/admin/menus/kitchen', title: 'Kitchen', icon: ChefHat, color: '#0ea5e9' },
-  { path: '/admin/menus/chefs', title: 'Chefs', icon: Users, color: '#ec4899' },
-  { path: '/admin/menus/rota', title: 'Rota', icon: CalendarDays, color: '#6366f1' },
-  { path: '/admin/menus/operations', title: 'Operations', icon: ClipboardCheck, color: '#14b8a6' },
-  { path: '/admin/menus/dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316' },
-  { path: '/admin/menus/menus', title: 'Menus', icon: LayoutList, color: '#a855f7' },
-  { path: '/admin/menus/ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e' },
-  { path: '/admin/menus/recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b' },
-  { path: '/admin/menus/settings', title: 'Settings', icon: Settings2, color: '#64748b' },
-];
-
-/** Menus › this page, and a row to move between the Menus pages. */
+/** Menus › this page, and a row to move between the Menus pages this person may open (a till cashier sees Till and Floor). */
 export default function MenusNav() {
   const { pathname } = useLocation();
+  const user = useAuthStore((s) => s.user);
+  const PAGES = openTabs(MENUS_TABS, user);
   const here = PAGES.find((p) => p.path === pathname);
   const crumb = { color: 'var(--color-text-muted, #9ca3af)', textDecoration: 'none', fontWeight: 600 };
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import SectionTabs from './SectionTabs';
 import CommandPalette from './CommandPalette';
@@ -7,7 +7,7 @@ import Calculator from '../../../core/components/calculator/Calculator';
 import useCalculatorStore from '../../store/calculatorStore';
 import { AdminShellContext } from './adminShellContext';
 import useAuthStore from '../../store/authStore';
-import { visibleNav, findActive } from '../../navigation/adminNav';
+import { visibleNav, findActive, configurationTab } from '../../navigation/adminNav';
 
 /**
  * The frame around every /admin and /driver page (a layout route in App.jsx):
@@ -17,6 +17,7 @@ export default function AdminShell() {
   const { pathname, search } = useLocation();
   const user = useAuthStore((s) => s.user);
   const [searchOpen, setSearchOpen] = useState(false);
+  const navigate = useNavigate();
 
   const nav = useMemo(() => visibleNav(user), [user]);
   const active = useMemo(() => findActive(nav, pathname, search), [nav, pathname, search]);
@@ -65,6 +66,19 @@ export default function AdminShell() {
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  // F12 anywhere in the admin: the Configuration page of the section you are in (any tab called Configuration), if you may open it
+  const configPath = useMemo(() => configurationTab(nav, active.item)?.path, [nav, active.item]);
+  useEffect(() => {
+    if (!configPath) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'F12' || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      e.preventDefault();
+      navigate(configPath);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [configPath, navigate]);
 
   const ctx = useMemo(() => ({ openSearch }), [openSearch]);
 

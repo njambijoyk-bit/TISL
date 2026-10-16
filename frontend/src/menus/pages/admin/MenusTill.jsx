@@ -163,7 +163,7 @@ export default function MenusTill() {
       <div style={{ padding: '32px 24px', maxWidth: 1500, margin: '0 auto' }} data-testid="menus-till">
         <MenusNav />
         <HubHeader title="Till" description="Ring up a sale and take the money, or open a tab for a table." />
-        {data && !data.on && <p role="status" style={{ color: colors.textMuted }}>The counter is switched off. Switch it on under Menus → Settings → Ways to order (run database script 138_menus_counter.sql first if it is not listed).</p>}
+        {data && !data.on && <p role="status" style={{ color: colors.textMuted }}>The counter is switched off. Switch it on under Menus → Configuration → Ways to order (run database script 138_menus_counter.sql first if it is not listed).</p>}
         {data?.on && (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 360px', gap: 18, alignItems: 'start' }}>
             <section aria-label="Menu">

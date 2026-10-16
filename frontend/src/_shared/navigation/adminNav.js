@@ -29,6 +29,27 @@ import { accountType, hasPermission, isStaff } from '../lib/roles';
  * - `soon` tabs appear on the Settings hub as "Soon" and nowhere else.
  */
 
+/**
+ * The pages of the Menus module, as the tab row on each of them and the Dishes section tabs show them. Each names who may open it, so a till
+ * cashier (Till and Floor only) is not offered the rest. Any tab called Configuration also answers to F12 (see `configurationTab`).
+ */
+export const MENUS_TABS = [
+  { title: 'Till', path: '/admin/menus/till', icon: Coins, color: '#10b981', perm: ['menus.view', 'menus.till'] },
+  { title: 'Floor', path: '/admin/menus/floor', icon: Armchair, color: '#8b5cf6', perm: ['menus.view', 'menus.till'] },
+  { title: 'Orders', path: '/admin/menus/orders', icon: BellRing, color: '#ef4444', perm: 'menus.view' },
+  { title: 'Meal plans', path: '/admin/menus/plans', icon: Soup, color: '#16a34a', perm: 'menus.view' },
+  { title: 'Cakes & catering', path: '/admin/menus/custom', icon: CakeSlice, color: '#e11d48', perm: 'menus.view' },
+  { title: 'Kitchen', path: '/admin/menus/kitchen', icon: ChefHat, color: '#0ea5e9', perm: 'menus.view' },
+  { title: 'Chefs', path: '/admin/menus/chefs', icon: Users, color: '#ec4899', perm: 'menus.view' },
+  { title: 'Rota', path: '/admin/menus/rota', icon: CalendarDays, color: '#6366f1', perm: 'menus.view' },
+  { title: 'Operations', path: '/admin/menus/operations', icon: ClipboardCheck, color: '#14b8a6', perm: 'menus.view' },
+  { title: 'Dishes', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316', perm: 'menus.view' },
+  { title: 'Menus', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7', perm: 'menus.view' },
+  { title: 'Ingredients', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e', perm: 'menus.view' },
+  { title: 'Recipes', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b', perm: 'menus.view' },
+  { title: 'Configuration', path: '/admin/menus/settings', icon: Settings2, color: '#64748b', perm: 'menus.view' },
+];
+
 export const ADMIN_NAV = [
   {
     id: 'home',
@@ -224,22 +245,7 @@ export const ADMIN_NAV = [
       { id: 'operations', title: 'Operations', icon: ClipboardCheck, color: '#14b8a6', path: '/admin/menus/operations', perm: 'menus.view', keywords: 'prep list waste what to buy' },
       {
         id: 'dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316', path: '/admin/menus/dishes', perm: 'menus.view', keywords: 'menu dish food allergens price sold out 86',
-        tabs: [
-          { title: 'Till', path: '/admin/menus/till', icon: Coins, color: '#10b981' },
-          { title: 'Floor', path: '/admin/menus/floor', icon: Armchair, color: '#8b5cf6' },
-          { title: 'Orders', path: '/admin/menus/orders', icon: BellRing, color: '#ef4444' },
-          { title: 'Meal plans', path: '/admin/menus/plans', icon: Soup, color: '#16a34a' },
-          { title: 'Cakes & catering', path: '/admin/menus/custom', icon: CakeSlice, color: '#e11d48' },
-          { title: 'Kitchen', path: '/admin/menus/kitchen', icon: ChefHat, color: '#0ea5e9' },
-          { title: 'Chefs', path: '/admin/menus/chefs', icon: Users, color: '#ec4899' },
-          { title: 'Rota', path: '/admin/menus/rota', icon: CalendarDays, color: '#6366f1' },
-          { title: 'Operations', path: '/admin/menus/operations', icon: ClipboardCheck, color: '#14b8a6' },
-          { title: 'Dishes', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316' },
-          { title: 'Menus', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7' },
-          { title: 'Ingredients', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e' },
-          { title: 'Recipes & production', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b' },
-          { title: 'Settings', path: '/admin/menus/settings', icon: Settings2, color: '#64748b' },
-        ],
+        tabs: MENUS_TABS,
       },
       { id: 'ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e', path: '/admin/menus/ingredients', perm: 'menus.view', keywords: 'ingredient flour oil substitutes allergens stock items' },
       {
@@ -486,6 +492,16 @@ function withOpenTabs(item, user) {
   const opens = (path) => live.some((t) => t.path === path || (t.also ?? []).includes(path));
 
   return { ...item, tabs, path: opens(item.path) ? item.path : live[0].path };
+}
+
+/** The tabs of a list this person may open (the same rule the sidebar and section tabs use). */
+export const openTabs = (tabs, user) => tabs.filter((t) => allowed(t, user, true));
+
+/** The tab F12 goes to from this page: the first one called Configuration in the same group of the menu, among those already open to this person. */
+export function configurationTab(nav, item) {
+  const group = nav.find((g) => g.items.includes(item));
+
+  return (group?.items ?? []).flatMap((i) => i.tabs ?? []).find((t) => /^configuration$/i.test(t.title)) ?? null;
 }
 
 export const liveTabs = (item) => (item?.tabs ?? []).filter((t) => !t.soon);

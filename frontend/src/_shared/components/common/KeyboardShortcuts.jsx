@@ -74,7 +74,7 @@ export default function KeyboardShortcuts() {
     ['Alt', 'A', 'Open your account menu'],
     ['Shift', 'A', 'Show this list'],
     ...Object.keys(byLetter).sort().map((k) => ['Shift', k, `Go to ${byLetter[k].label}`]),
-    ...(inAdmin ? [['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Ctrl', 'B', 'Show or hide the menu']] : []),
+    ...(inAdmin ? [['Ctrl', 'K', 'Jump to any page'], ['Alt', 'C', 'Open the calculator'], ['Ctrl', 'B', 'Show or hide the menu'], ['F12', '', 'Open the Configuration of this section']] : []),
     ['Esc', '', 'Close whatever is open'],
   ];
   const signOut = () => { logout(); setAccount(false); navigate(inAdmin ? '/login' : '/'); };

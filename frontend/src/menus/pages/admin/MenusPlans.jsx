@@ -179,7 +179,7 @@ export default function MenusPlans() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1180, margin: '0 auto' }} data-testid="menus-plans">
         <MenusNav />
-        <HubHeader title="Meal plans" description="A rotating weekly menu delivered on the days a customer chooses, paid a week ahead. Switch it on under Menus → Settings." />
+        <HubHeader title="Meal plans" description="A rotating weekly menu delivered on the days a customer chooses, paid a week ahead. Switch it on under Menus → Configuration." />
         {data && data.ready === false && <p role="status" style={{ ...card, padding: 14, fontSize: '0.85rem' }}>Run database script 150_menus_plans.sql first.</p>}
         <div role="tablist" aria-label="Meal plans" style={{ display: 'flex', gap: 8, margin: '0 0 16px', flexWrap: 'wrap' }}>
           {[['plans', 'Plans'], ['subscribers', 'Subscribers'], ['day', 'A day: cook and deliver']].map(([k, t]) => (

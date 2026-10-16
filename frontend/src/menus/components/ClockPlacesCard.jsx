@@ -61,7 +61,7 @@ export default function ClockPlacesCard({ canEdit }) {
   return (
     <section style={{ marginTop: 28 }} aria-label="Clock-in places" data-testid="clock-places">
       <h2 style={{ margin: '0 0 6px', fontSize: '1rem', fontWeight: 800 }}>Clock-in places</h2>
-      <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: colors.textMuted }}>Set the chef rota to check the place under Menus settings above ({d.mode === 'off' ? 'it is off now' : d.mode === 'warn' ? 'warn: kept in the log, the chef is let in' : 'require: a chef away from the branch is turned away'}). The position comes from the chef&apos;s phone: it is a record and a deterrent, not proof.</p>
+      <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: colors.textMuted }}>Set the chef rota to check the place under Menus configuration above ({d.mode === 'off' ? 'it is off now' : d.mode === 'warn' ? 'warn: kept in the log, the chef is let in' : 'require: a chef away from the branch is turned away'}). The position comes from the chef&apos;s phone: it is a record and a deterrent, not proof.</p>
       {!d.ready && <p role="status" style={{ ...card, padding: 12, fontSize: '0.84rem' }}>Run database script 148_menus_rota_pay.sql first.</p>}
       <div style={{ display: 'grid', gap: 10 }}>{d.sites.map((s) => <Row key={s.location_id} s={s} canEdit={canEdit && d.ready} onSaved={load} />)}</div>
       {d.events.length > 0 && (

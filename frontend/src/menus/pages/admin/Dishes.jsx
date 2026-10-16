@@ -88,7 +88,7 @@ function DishModal({ dish, data, onClose, onDone }) {
             <Field label="Name" htmlFor="dish-name"><TextInput id="dish-name" required maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="Beef stew" /></Field>
             <Field label="Price (before tax)" htmlFor="dish-price"><NumberInput id="dish-price" required min="0" step="any" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
           </div>
-          {needsLedger && <SalesAccountSelect kind="sales" scope="product" required label="Sales account (it decides the tax)" value={ledger} onChange={setLedger} hint="Set it once for every dish under Menus → Settings." />}
+          {needsLedger && <SalesAccountSelect kind="sales" scope="product" required label="Sales account (it decides the tax)" value={ledger} onChange={setLedger} hint="Set it once for every dish under Menus → Configuration." />}
           <Field label="Description" htmlFor="dish-desc"><TextArea id="dish-desc" rows={3} maxLength={3000} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <Field label="Takes about (minutes)" htmlFor="dish-prep"><NumberInput id="dish-prep" min="0" max="6000" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>
@@ -142,7 +142,7 @@ export default function Dishes() {
         <MenusNav />
         <HubHeader title="Dishes" description="What customers can order. Each dish has a price, a recipe that says what it uses, and allergens that follow from its ingredients." />
         {data && !data.settings_ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Dishes are not set up yet: run database script 134_menus_dishes.sql in Workbench.</p>}
-        {data?.settings_ready && !data.settings.sales_ledger_id && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Choose the sales account dishes are booked under in <Link to="/admin/menus/settings">Menus → Settings</Link>, so every dish has the right tax.</p>}
+        {data?.settings_ready && !data.settings.sales_ledger_id && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Choose the sales account dishes are booked under in <Link to="/admin/menus/settings">Menus → Configuration</Link>, so every dish has the right tax.</p>}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, margin: '0 0 14px', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 200 }}>
             <SelectInput aria-label="Branch" value={loc || data?.location_id || ''} onChange={(e) => setLoc(e.target.value)}>

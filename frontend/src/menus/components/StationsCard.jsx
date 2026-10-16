@@ -36,7 +36,7 @@ function Row({ s, branches, canEdit, onSaved }) {
   );
 }
 
-/** Menus → Settings → Kitchen stations: grill, cold, pastry, bar. Each has its own screen; a dish is sent to a station on the dish itself. */
+/** Menus → Configuration → Kitchen stations: grill, cold, pastry, bar. Each has its own screen; a dish is sent to a station on the dish itself. */
 export default function StationsCard({ canEdit }) {
   const [data, setData] = useState(null);
   const [nonce, setNonce] = useState(0);

@@ -62,7 +62,7 @@ function Channel({ c, data, canEdit, onSaved }) {
   );
 }
 
-/** Menus → Settings → Ways to order. */
+/** Menus → Configuration → Ways to order. */
 export default function ChannelsCard({ canEdit }) {
   const [data, setData] = useState(null);
   const load = () => menusAPI.channels().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the ways to order')));

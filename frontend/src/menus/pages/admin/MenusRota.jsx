@@ -135,8 +135,8 @@ function OvertimeBlock({ from, to, canManage, onChanged }) {
         <span style={{ flex: 1 }} />
         {canManage && waiting.length > 1 && <button type="button" disabled={busy} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.76rem' }} onClick={all}>Approve all waiting</button>}
       </div>
-      {d.required && !d.staff && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Only chefs are covered. Turn on the setting for other staff in Menus → Settings → Chef rota.</p>}
-      {!d.required && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Approval is off: payroll pays all verified overtime. Switch it on in Menus → Settings → Chef rota.</p>}
+      {d.required && !d.staff && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Only chefs are covered. Turn on the setting for other staff in Menus → Configuration → Chef rota.</p>}
+      {!d.required && <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Approval is off: payroll pays all verified overtime. Switch it on in Menus → Configuration → Chef rota.</p>}
       {d.rows.map((r) => (
         <div key={r.id} data-overtime={r.id} style={{ ...card, padding: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.84rem' }}>
           <strong>{r.chef}</strong>{r.kind === 'staff' && <Pill tone="neutral">Staff</Pill>}<span>{label(r.date)}</span><span>{r.hours} h</span><Pill tone={r.status === 'approved' ? 'ok' : r.status === 'rejected' ? 'danger' : 'warn'}>{r.status_label}</Pill>
@@ -195,7 +195,7 @@ function PremiumPanel({ source }) {
   return (
     <div style={{ display: 'grid', gap: 8 }} data-testid="premiums">
       <h3 style={{ margin: 0, fontSize: '0.88rem', fontWeight: 800 }}>Shift premiums</h3>
-      <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Hours signed in at night, on certain weekdays or on public holidays are paid extra on top of the hourly rate. If two rules cover the same minute the better one applies (they do not add up). {source === 'payroll' ? 'Payroll adds them to the payslip.' : 'They are only shown here until you choose "Added to payroll" in Menus → Settings.'}</p>
+      <p style={{ margin: 0, fontSize: '0.76rem', color: colors.textMuted }}>Hours signed in at night, on certain weekdays or on public holidays are paid extra on top of the hourly rate. If two rules cover the same minute the better one applies (they do not add up). {source === 'payroll' ? 'Payroll adds them to the payslip.' : 'They are only shown here until you choose "Added to payroll" in Menus → Configuration.'}</p>
       {d.error && <p role="alert" style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>{d.error}</p>}
       {d.rules.map((r) => (
         <div key={r.id} data-rule={r.name} style={{ ...card, padding: 10, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', fontSize: '0.84rem', opacity: r.is_active ? 1 : 0.6 }}>
@@ -257,7 +257,7 @@ function HoursSection({ canPay, canManage, premiumSource }) {
         <span style={{ flex: 1 }} />
         {canManage && <button type="button" style={{ ...btnGhost, padding: '6px 12px', fontSize: '0.78rem' }} onClick={download}><Download size={13} aria-hidden="true" /> Download</button>}
       </div>
-      <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Rostered is the published shifts; worked is what Attendance recorded. Overtime is the time beyond the rostered hours. Payroll takes overtime from {src === 'rota' ? 'this page (the rota)' : 'Attendance (the company working day)'}; change it in Menus → Settings. Only days Attendance has verified are paid.</p>
+      <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Rostered is the published shifts; worked is what Attendance recorded. Overtime is the time beyond the rostered hours. Payroll takes overtime from {src === 'rota' ? 'this page (the rota)' : 'Attendance (the company working day)'}; change it in Menus → Configuration. Only days Attendance has verified are paid.</p>
       {!rows ? <p style={{ fontSize: '0.82rem', color: colors.textMuted }}>Loading…</p> : rows.length === 0 ? <p style={{ margin: 0, fontSize: '0.82rem', color: colors.textFaint }}>Nothing rostered or signed in this month.</p> : (
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: 640 }}>
@@ -573,7 +573,7 @@ export default function MenusRota() {
                 </tbody>
               </table>
             </div>
-            <p style={{ fontSize: '0.76rem', color: colors.textMuted, margin: '8px 2px 0' }}>Dashed: a draft the chef has not been told about. Warnings appear above {data.limits.max_week_hours} hours in a week or under {data.limits.min_rest_hours} hours of rest between days (set in Menus → Settings).</p>
+            <p style={{ fontSize: '0.76rem', color: colors.textMuted, margin: '8px 2px 0' }}>Dashed: a draft the chef has not been told about. Warnings appear above {data.limits.max_week_hours} hours in a week or under {data.limits.min_rest_hours} hours of rest between days (set in Menus → Configuration).</p>
 
             <section aria-label="Time off" style={{ marginTop: 26, display: 'grid', gap: 10 }} data-testid="days-off">
               <h2 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800 }}>Time off this week{pending.length > 0 ? ` · ${pending.length} waiting` : ''}</h2>

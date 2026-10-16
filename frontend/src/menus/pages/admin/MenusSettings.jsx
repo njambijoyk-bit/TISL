@@ -16,7 +16,7 @@ import StationsCard from '../../components/StationsCard';
 import KiosksCard from '../../components/KiosksCard';
 import ClockPlacesCard from '../../components/ClockPlacesCard';
 
-/** Menus → Settings: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
+/** Menus → Configuration: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
   const user = useAuthStore((s) => s.user);
   const canEdit = canManageMenus(user);
@@ -41,13 +41,13 @@ export default function MenusSettings() {
     } catch (e) { toast.error(errMsg(e, 'Could not save'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
-  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the Menus settings" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the Menus configuration" /></div></AdminLayout>;
 
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 820, margin: '0 auto' }} data-testid="menus-settings">
         <MenusNav />
-        <HubHeader title="Menus settings" description="Where dish sales are booked, and the words on the menu and the receipt." />
+        <HubHeader title="Menus configuration" description="Where dish sales are booked, and the words on the menu and the receipt." />
         {!s ? <p style={{ color: colors.textMuted, fontSize: '0.82rem' }}>Loading…</p> : (
           <div style={{ ...card, padding: 20 }}>
             {!ready && <p role="status" style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Run database script 134_menus_dishes.sql first: until then these settings can be read but not saved.</p>}

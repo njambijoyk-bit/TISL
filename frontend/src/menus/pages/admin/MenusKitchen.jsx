@@ -118,7 +118,7 @@ export default function MenusKitchen() {
         <MenusNav />
         <HubHeader title="Kitchen" description="One screen for each station, and the pass. This page refreshes by itself: put it on a tablet or a monitor in the kitchen." />
         {stations && !ready && <p role="status" style={{ color: colors.textMuted }}>Run database script 137_menus_kitchen.sql to switch the kitchen screens on.</p>}
-        {stations && ready && stations.length === 0 && <p role="status" style={{ color: colors.textMuted }}>No station yet. Add one under Menus → Settings → Kitchen stations (for example Grill, Cold, Bar).</p>}
+        {stations && ready && stations.length === 0 && <p role="status" style={{ color: colors.textMuted }}>No station yet. Add one under Menus → Configuration → Kitchen stations (for example Grill, Cold, Bar).</p>}
         {stations && stations.length > 0 && (
           <>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>

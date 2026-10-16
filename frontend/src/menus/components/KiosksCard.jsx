@@ -50,7 +50,7 @@ function Row({ k, branches, canEdit, onSaved }) {
   );
 }
 
-/** Menus → Settings → Kiosks: the self-order screens in the venue. Each has its own secret address that is opened on the screen (nobody signs in on it). */
+/** Menus → Configuration → Kiosks: the self-order screens in the venue. Each has its own secret address that is opened on the screen (nobody signs in on it). */
 export default function KiosksCard({ canEdit }) {
   const [data, setData] = useState(null);
   const [nonce, setNonce] = useState(0);
