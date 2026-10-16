@@ -15,7 +15,7 @@
 SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = DATABASE()
   AND ((table_name = 'menus_dishes' AND column_name = 'price') OR (table_name = 'voucher_items' AND column_name = 'dish_id') OR (table_name = 'menus_option_uses' AND column_name IN ('ingredient_id', 'unit')));
 SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('menus_productions', 'menus_dish_batches', 'menus_dish_moves');
-SELECT id, name, price FROM menus_dishes ORDER BY id;
+SELECT id, name FROM menus_dishes ORDER BY id;   -- the dishes that exist now (their price is filled in by Part B)
 
 -- PART B - CREATE
 DROP PROCEDURE IF EXISTS add_column_if_missing;
