@@ -1,5 +1,7 @@
 # Menus: sample data to type in (ingredients, recipes, dishes, menus, a meal plan)
 
+> **Being redesigned.** Menus is moving to its own stock: ingredients with base and alternate units and their own variants (Exe, Pembe, Soko), bought, counted and used up as ingredients, with no products behind them. Until that lands, section 1 below (stock items as products) is how the current build works; sections 2 to 7 carry over, with the stock items becoming ingredient variants. See the plan in docs/MENUS_STOCK_PLAN.md.
+
 A small Nairobi kitchen, made so the numbers can be checked by hand. Enter it in this order, because each part needs the one before: **stock items, ingredients, dishes, recipes, menus, meal plan**. Prices are made up. Use the units your system already has (kg, g, L, mL, each / piece); if a unit is missing add it under Settings, Units.
 
 ## 1. Stock items (the real things you buy: Stock, Products)
