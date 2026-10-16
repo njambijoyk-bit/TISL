@@ -53,7 +53,7 @@ class MenusKioskTest extends TestCase
     private function dish(string $name = 'Burger', float $price = 500, int $stock = 50)
     {
         $d = $this->make($name, $price);
-        $this->stock((int) $d->variant_id, $stock);
+        $this->stockDish($d, $stock);
         $m = \App\Models\Menus\Menu::first() ?? app(MenuService::class)->save(['name' => 'All day']);
         $s = $m->sections()->first() ?? $m->sections()->create(['name' => 'Mains']);
         DB::table('menus_section_dishes')->insert(['section_id' => $s->id, 'dish_id' => $d->id]);

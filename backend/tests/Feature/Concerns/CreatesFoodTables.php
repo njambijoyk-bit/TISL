@@ -77,4 +77,21 @@ trait CreatesFoodTables
 
         return $ing;
     }
+
+    /**
+     * Make a dish sellable: made to order, it gets a one-line recipe on a private ingredient (one each per portion) with that many on the shelf; made ahead, that many portions are
+     * on the shelf already made. The tests that only need "a dish with N portions available" use this.
+     */
+    protected function stockDish(Dish $d, float $portions, bool $toOrder = true, float $cost = 10.0): void
+    {
+        if ($toOrder) {
+            $name = 'Portion of '.$d->name;
+            $this->pantry($name, $portions, $cost, $this->each);
+            $this->writeRecipe($d, [[$name, 1]], true);
+
+            return;
+        }
+        $this->writeRecipe($d, [[$this->pantry('Base of '.$d->name, 0, 1, $this->each)->name, 1]], false);
+        \App\Models\Menus\DishBatch::create(['dish_id' => $d->id, 'location_id' => self::BRANCH, 'made_on' => '2026-10-01', 'unit_cost' => $cost, 'qty_in' => $portions, 'qty_left' => $portions, 'status' => 'ok']);
+    }
 }

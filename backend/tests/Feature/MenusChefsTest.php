@@ -212,7 +212,7 @@ class MenusChefsTest extends TestCase
     {
         $c = $this->chef('Wanjiru Kamau', ['display_name' => 'Chef Wanjiru', 'is_public' => true]);
         $d = $this->make('Steak', 900);
-        $this->stock((int) $d->variant_id, 5);
+        $this->stockDish($d, 5);
         app(MenuService::class)->save(['name' => 'All day', 'sections' => [['name' => 'Mains', 'dishes' => [$d->id]]]]);
         $this->fails(fn () => app(DishService::class)->save(['name' => 'Steak', 'chef_id' => 999], $d->id), 'chef does not exist');
         app(DishService::class)->save(['name' => 'Steak', 'chef_id' => $c->id], $d->id);

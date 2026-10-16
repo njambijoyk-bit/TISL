@@ -36,7 +36,7 @@ class MenusMenusTest extends TestCase
         Schema::create('menus_section_dishes', function ($t) { $t->id(); $t->unsignedBigInteger('section_id'); $t->unsignedBigInteger('dish_id'); $t->integer('sort_order')->default(0); $t->unique(['section_id', 'dish_id']); });
         Schema::create('menus_option_groups', function ($t) { $t->id(); $t->unsignedBigInteger('dish_id'); $t->string('name'); $t->string('kind', 8)->default('single'); $t->unsignedTinyInteger('min_choices')->default(0); $t->unsignedTinyInteger('max_choices')->nullable(); $t->integer('sort_order')->default(0); $t->timestamps(); });
         Schema::create('menus_options', function ($t) { $t->id(); $t->unsignedBigInteger('group_id'); $t->string('name'); $t->decimal('price_delta', 12, 2)->default(0); $t->boolean('is_default')->default(false); $t->boolean('charge_removal')->default(false); $t->unsignedBigInteger('linked_dish_id')->nullable(); $t->integer('sort_order')->default(0); $t->boolean('is_active')->default(true); $t->timestamps(); });
-        Schema::create('menus_option_uses', function ($t) { $t->id(); $t->unsignedBigInteger('option_id'); $t->string('mode', 8)->default('add'); $t->unsignedBigInteger('family_id')->nullable(); $t->unsignedBigInteger('variant_id')->nullable(); $t->decimal('quantity', 18, 4)->nullable(); $t->unsignedBigInteger('unit_id')->nullable(); });
+        Schema::create('menus_option_uses', function ($t) { $t->id(); $t->unsignedBigInteger('option_id'); $t->string('mode', 8)->default('add'); $t->unsignedBigInteger('ingredient_id')->nullable(); $t->string('unit', 4)->default('base'); $t->unsignedBigInteger('family_id')->nullable(); $t->unsignedBigInteger('variant_id')->nullable(); $t->decimal('quantity', 18, 4)->nullable(); $t->unsignedBigInteger('unit_id')->nullable(); });
     }
 
     private function menus(): MenuService
@@ -206,7 +206,7 @@ class MenusMenusTest extends TestCase
     public function test_saving_again_keeps_the_ids_of_what_stays_and_removes_what_is_left_out(): void
     {
         $d = $this->make();
-        $this->opts()->save($d, [['name' => 'Size', 'options' => [$this->side('Regular'), $this->side('Large', 100)]], ['name' => 'Extras', 'kind' => 'multiple', 'options' => [$this->side('Cheese', 50, ['uses' => [['mode' => 'add', 'variant_id' => $this->item('Cheese', '1 kg'), 'quantity' => 1]]])]]]);
+        $this->opts()->save($d, [['name' => 'Size', 'options' => [$this->side('Regular'), $this->side('Large', 100)]], ['name' => 'Extras', 'kind' => 'multiple', 'options' => [$this->side('Cheese', 50, ['uses' => [['mode' => 'add', 'ingredient_id' => $this->family('Cheese'), 'quantity' => 1]]])]]]);
         $before = $this->opts()->forDish($d);
         $keep = $before[0];
         $this->opts()->save($d, [['id' => $keep['id'], 'name' => 'Portion', 'options' => [['id' => $keep['options'][1]['id'], 'name' => 'Large', 'price_delta' => 120]]]]);
@@ -220,17 +220,17 @@ class MenusMenusTest extends TestCase
     public function test_the_charge_for_a_removal_only_means_something_on_a_choice_that_only_removes(): void
     {
         $d = $this->make();
-        $this->opts()->save($d, [['name' => 'G', 'kind' => 'multiple', 'options' => [$this->side('Extra', 20, ['charge_removal' => true, 'uses' => [['mode' => 'add', 'variant_id' => $this->item('Cheese', '1 kg'), 'quantity' => 1]]])]]]);
+        $this->opts()->save($d, [['name' => 'G', 'kind' => 'multiple', 'options' => [$this->side('Extra', 20, ['charge_removal' => true, 'uses' => [['mode' => 'add', 'ingredient_id' => $this->family('Cheese'), 'quantity' => 1]]])]]]);
         $this->assertFalse($this->opts()->forDish($d)[0]['options'][0]['charge_removal']);
     }
 
     public function test_changing_what_a_choice_uses_replaces_it(): void
     {
         $d = $this->make();
-        $cheese = $this->item('Cheese', '1 kg');
-        $this->opts()->save($d, [['name' => 'G', 'kind' => 'multiple', 'options' => [$this->side('Extra', 20, ['uses' => [['mode' => 'add', 'variant_id' => $cheese, 'quantity' => 1]]])]]]);
+        $cheese = $this->family('Cheese');
+        $this->opts()->save($d, [['name' => 'G', 'kind' => 'multiple', 'options' => [$this->side('Extra', 20, ['uses' => [['mode' => 'add', 'ingredient_id' => $cheese, 'quantity' => 1]]])]]]);
         $o = $this->opts()->forDish($d)[0];
-        $this->opts()->save($d, [['id' => $o['id'], 'name' => 'G', 'kind' => 'multiple', 'options' => [['id' => $o['options'][0]['id'], 'name' => 'Extra', 'price_delta' => 20, 'uses' => [['mode' => 'add', 'variant_id' => $cheese, 'quantity' => 2]]]]]]);
+        $this->opts()->save($d, [['id' => $o['id'], 'name' => 'G', 'kind' => 'multiple', 'options' => [['id' => $o['options'][0]['id'], 'name' => 'Extra', 'price_delta' => 20, 'uses' => [['mode' => 'add', 'ingredient_id' => $cheese, 'quantity' => 2]]]]]]);
         $uses = OptionUse::all();
         $this->assertSame([1, 2.0], [$uses->count(), (float) $uses[0]->quantity]);
         $this->opts()->save($d, [['id' => $o['id'], 'name' => 'G', 'kind' => 'multiple', 'options' => [['id' => $o['options'][0]['id'], 'name' => 'Extra', 'price_delta' => 20]]]]);
@@ -278,12 +278,11 @@ class MenusMenusTest extends TestCase
             [[['name' => 'G', 'options' => [$this->side('A', 99999999)]]], 'too large'],
             [[['name' => 'G', 'options' => [$this->side('A', 0, ['linked_dish_id' => $d->id])]]], 'can not be a choice on itself'],
             [[['name' => 'G', 'options' => [$this->side('A', 0, ['linked_dish_id' => 9999])]]], 'that dish does not exist'],
-            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'swap', 'variant_id' => 1]]])]]], 'uses more of something or leaves something out'],
-            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'quantity' => 1]]])]]], 'name one ingredient or one stock item'],
-            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'variant_id' => $other->variant_id, 'family_id' => 1, 'quantity' => 1]]])]]], 'name one ingredient or one stock item'],
-            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'family_id' => 9999, 'quantity' => 1]]])]]], 'ingredient does not exist'],
-            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'variant_id' => 9999, 'quantity' => 1]]])]]], 'stock item does not exist'],
-            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'variant_id' => $other->variant_id]]])]]], 'say how much more'],
+            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'swap', 'ingredient_id' => 1]]])]]], 'uses more of something or leaves something out'],
+            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'quantity' => 1]]])]]], 'name the ingredient'],
+            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'ingredient_id' => 9999, 'quantity' => 1]]])]]], 'name the ingredient'],
+            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'ingredient_id' => $this->family('Salt')]]])]]], 'say how much more'],
+            [[['name' => 'G', 'options' => [$this->side('A', 0, ['uses' => [['mode' => 'add', 'ingredient_id' => $this->family('Salt'), 'quantity' => 1, 'unit' => 'alt']]])]]], 'write the amount in g'],
         ];
         foreach ($cases as $n => [$groups, $why]) {
             try {
@@ -299,33 +298,33 @@ class MenusMenusTest extends TestCase
     public function test_leaving_something_out_must_be_something_the_recipe_uses_and_is_free_unless_charged_for(): void
     {
         $d = $this->make('Burger');
-        $onion = $this->family('Onion', [], [[$this->item('Onions', '1 kg'), 1000]]);
-        $bun = $this->item('Bun', 'each');
+        $onion = $this->family('Onion');
+        $bun = $this->family('Bun');
         $this->recipe($d, [['family_id' => $onion, 'quantity' => 30], ['variant_id' => $bun, 'quantity' => 1]]);
-        $strangerFamily = $this->family('Mayo', [], [[$this->item('Mayo', '1 kg'), 1000]]);
+        $strangerFamily = $this->family('Mayo');
         try {
-            $this->opts()->save($d, [['name' => 'Take out', 'kind' => 'multiple', 'options' => [$this->side('No mayo', 0, ['uses' => [['mode' => 'remove', 'family_id' => $strangerFamily]]])]]]);
+            $this->opts()->save($d, [['name' => 'Take out', 'kind' => 'multiple', 'options' => [$this->side('No mayo', 0, ['uses' => [['mode' => 'remove', 'ingredient_id' => $strangerFamily]]])]]]);
             $this->fail('the recipe has no mayo');
         } catch (BooksException $e) {
-            $this->assertStringContainsString('the recipe does not use that', $e->getMessage());
+            $this->assertStringContainsString('the recipe does not use Mayo', $e->getMessage());
         }
         $this->opts()->save($d, [['name' => 'Take out', 'kind' => 'multiple', 'options' => [
-            $this->side('No onion', 25, ['uses' => [['mode' => 'remove', 'family_id' => $onion]]]),                      // someone typed a price: a removal is free
-            $this->side('No bun', 30, ['charge_removal' => true, 'uses' => [['mode' => 'remove', 'variant_id' => $bun]]]),   // this one is deliberately charged
-            $this->side('Extra onion', 10, ['uses' => [['mode' => 'add', 'family_id' => $onion, 'quantity' => 30]]]),      // an add-on carries its price
-            $this->side('No onion, extra cheese', 40, ['uses' => [['mode' => 'remove', 'family_id' => $onion], ['mode' => 'add', 'variant_id' => $this->item('Cheese', '1 kg'), 'quantity' => 1]]]),
+            $this->side('No onion', 25, ['uses' => [['mode' => 'remove', 'ingredient_id' => $onion]]]),                      // someone typed a price: a removal is free
+            $this->side('No bun', 30, ['charge_removal' => true, 'uses' => [['mode' => 'remove', 'ingredient_id' => $bun]]]),   // this one is deliberately charged
+            $this->side('Extra onion', 10, ['uses' => [['mode' => 'add', 'ingredient_id' => $onion, 'quantity' => 30]]]),      // an add-on carries its price
+            $this->side('No onion, extra cheese', 40, ['uses' => [['mode' => 'remove', 'ingredient_id' => $onion], ['mode' => 'add', 'ingredient_id' => $this->family('Cheese'), 'quantity' => 1]]]),
         ]]]);
         $o = $this->opts()->forDish($d)[0]['options'];
         $this->assertSame([0.0, 30.0, 10.0, 40.0], array_column($o, 'price_delta'));
         $this->assertSame([false, true, false, false], array_column($o, 'charge_removal'));
     }
 
-    public function test_an_extra_in_a_unit_that_does_not_fit_is_refused(): void
+    public function test_an_extra_in_a_unit_the_ingredient_does_not_have_is_refused(): void
     {
         $d = $this->make();
-        $fam = $this->family('Oil', [], [[$this->item('Oil', '1 l'), 1000]]);   // measured in grams in these tests
-        $this->expectExceptionMessage('can not be turned into it');
-        $this->opts()->save($d, [['name' => 'Extras', 'kind' => 'multiple', 'options' => [$this->side('Extra oil', 10, ['uses' => [['mode' => 'add', 'family_id' => $fam, 'quantity' => 5, 'unit_id' => $this->ml]]])]]]);
+        $fam = $this->family('Oil');   // measured in grams, with no alternate unit
+        $this->expectExceptionMessage('write the amount in g');
+        $this->opts()->save($d, [['name' => 'Extras', 'kind' => 'multiple', 'options' => [$this->side('Extra oil', 10, ['uses' => [['mode' => 'add', 'ingredient_id' => $fam, 'quantity' => 5, 'unit' => 'alt']]])]]]);
     }
 
     // ------------------------------------------------------------ what the choices mean
@@ -333,13 +332,13 @@ class MenusMenusTest extends TestCase
     private function burger(): Dish
     {
         $d = $this->make('Burger', 400);
-        $cheese = $this->family('Cheese', [], [[$this->item('Cheese', '1 kg'), 1000]]);
+        $cheese = $this->family('Cheese');
         $fries = $this->make('Fries', 150);
         $this->recipe($d, [['family_id' => $cheese, 'quantity' => 20]]);
         $this->opts()->save($d, [
             ['name' => 'Size', 'kind' => 'single', 'min_choices' => 1, 'options' => [$this->side('Regular', 0, ['is_default' => true]), $this->side('Large', 100)]],
             ['name' => 'Extras', 'kind' => 'multiple', 'max_choices' => 2, 'options' => [
-                $this->side('Extra cheese', 50, ['uses' => [['mode' => 'add', 'family_id' => $cheese, 'quantity' => 20]]]), $this->side('Bacon', 80), $this->side('Pickles', 10)]],
+                $this->side('Extra cheese', 50, ['uses' => [['mode' => 'add', 'ingredient_id' => $cheese, 'quantity' => 20]]]), $this->side('Bacon', 80), $this->side('Pickles', 10)]],
             ['name' => 'Side', 'kind' => 'single', 'options' => [$this->side('Fries', 120, ['linked_dish_id' => $fries->id]), $this->side('Salad', 100, ['is_active' => false])]],
         ]);
 
@@ -437,8 +436,8 @@ class MenusMenusTest extends TestCase
     private function card(): array
     {
         $chapati = $this->make('Chapati', 50, ['description' => 'Soft']);
-        $flour = $this->family('Flour', ['allergens' => ['wheat'], 'tags' => ['gluten']], [[$exe = $this->item('Exe', '2 kg'), 2000]]);
-        $this->stock($exe, 5);
+        $flour = $this->family('Flour', ['allergens' => ['wheat'], 'tags' => ['gluten']]);
+        $this->shelve('Flour', 5000);
         $this->recipe($chapati, [['family_id' => $flour, 'quantity' => 100]]);
         $off = $this->make('Retired', 10, ['is_active' => false]);
         $gone = $this->make('Sold out', 20);
@@ -473,7 +472,7 @@ class MenusMenusTest extends TestCase
         [$chapati, $soldOut] = $d;
         $this->assertSame([['wheat'], true, true, 50.0, true, false], [$chapati['allergens'], $chapati['info_complete'], in_array('vegetarian', $chapati['diets'], true), $chapati['price'], $chapati['available'], $chapati['sold_out_today']]);
         $this->assertNotContains('gluten_free', $chapati['diets']);
-        $this->assertNull($chapati['price_incl'], 'no tax can be worked out in this test database, so only the price before tax is given');
+        $this->assertEquals(50.0, $chapati['price_incl'], 'no tax rate is set on the account in this test database, so the price with tax is the price');
         $this->assertSame([false, true], [$soldOut['available'], $soldOut['sold_out_today']]);
         $this->assertSame(['Stew'], array_column($chapati['options'][0]['options'], 'name'), 'a switched-off choice is not offered');
         $this->assertSame('Sold out', $chapati['options'][0]['options'][0]['dish']);
@@ -521,17 +520,17 @@ class MenusMenusTest extends TestCase
     public function test_the_choices_endpoints_list_what_the_screen_needs_and_save_what_it_sends(): void
     {
         $d = $this->make('Burger');
-        $cheese = $this->family('Cheese', [], [[$this->item('Cheese', '1 kg'), 1000]]);
+        $cheese = $this->family('Cheese');
         $this->recipe($d, [['family_id' => $cheese, 'quantity' => 20]]);
         $c = app(MenusMenuController::class);
-        $res = $c->saveOptions(Request::create('/x', 'PUT', ['groups' => [['name' => 'Extras', 'kind' => 'multiple', 'options' => [['name' => 'Extra cheese', 'price_delta' => 50, 'uses' => [['mode' => 'add', 'family_id' => $cheese, 'quantity' => 20]]]]]]]), $d->id);
+        $res = $c->saveOptions(Request::create('/x', 'PUT', ['groups' => [['name' => 'Extras', 'kind' => 'multiple', 'options' => [['name' => 'Extra cheese', 'price_delta' => 50, 'uses' => [['mode' => 'add', 'ingredient_id' => $cheese, 'quantity' => 20]]]]]]]), $d->id);
         $this->assertSame(200, $res->status());
         $bad = $c->saveOptions(Request::create('/x', 'PUT', ['groups' => [['name' => 'Extras', 'options' => [['name' => 'Gone', 'uses' => [['mode' => 'remove', 'family_id' => 9999]]]]]]]), $d->id);
         $this->assertSame(422, $bad->status());
         $o = $c->options($d->id)->getData(true);
-        $this->assertSame(['Burger', true, 'Extras', 'Cheese'], [$o['dish']['name'], $o['dish']['has_recipe'], $o['groups'][0]['name'], $o['families'][0]['name']]);
+        $this->assertSame(['Burger', true, 'Extras', 'Cheese'], [$o['dish']['name'], $o['dish']['has_recipe'], $o['groups'][0]['name'], $o['ingredients'][0]['name']]);
         $this->assertSame('Cheese', $o['recipe_lines'][0]['name']);
-        $this->assertNotEmpty($o['units']);
+        $this->assertSame(['g', null], [$o['ingredients'][0]['base_unit'], $o['ingredients'][0]['alt_unit']]);
     }
 }
 

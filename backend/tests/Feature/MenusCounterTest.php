@@ -52,7 +52,7 @@ class MenusCounterTest extends TestCase
     private function dish(string $name = 'Burger', float $price = 500, int $stock = 50)
     {
         $d = $this->make($name, $price);
-        $this->stock((int) $d->variant_id, $stock);
+        $this->stockDish($d, $stock);
         $m = \App\Models\Menus\Menu::first() ?? app(MenuService::class)->save(['name' => 'All day']);
         $s = $m->sections()->first() ?? $m->sections()->create(['name' => 'Mains']);
         DB::table('menus_section_dishes')->insert(['section_id' => $s->id, 'dish_id' => $d->id]);
@@ -167,7 +167,7 @@ class MenusCounterTest extends TestCase
         $d = $this->dish('Burger', 500, 1);
         $this->fails(fn () => $this->counter()->sell($this->in([$d]), null, $this->now), 'Only 1 of Burger left');
         $other = $this->make('Hidden', 100);
-        $this->stock((int) $other->variant_id, 5);
+        $this->stockDish($other, 5);
         $this->fails(fn () => $this->counter()->sell($this->in([$other]), null, $this->now), 'not on the menu');
         Channel::where('code', 'counter')->update(['menu_ids' => [999]]);
         $e = $this->dish('Chips', 100);
@@ -192,7 +192,7 @@ class MenusCounterTest extends TestCase
 
         $q = $this->counter()->settleTab($tab, ['tip' => 50, 'tenders' => [['payment_method_id' => 1, 'amount' => 3000]]], null);
         $this->assertSame(1, count($this->placed), 'one sale for the whole tab');
-        $products = array_values(array_filter($this->placed[0]['lines'], fn ($l) => $l['type'] === 'product'));
+        $products = array_values(array_filter($this->placed[0]['lines'], fn ($l) => $l['type'] === 'dish'));
         $this->assertSame([500.0, 200.0], array_map(fn ($l) => (float) $l['rate'], $products));
         $svc = collect($this->placed[0]['lines'])->firstWhere('description', 'Service charge');
         $this->assertSame([160.0, 81], [(float) $svc['amount'], $svc['ledger_id']], '10% of 1000 + 600');

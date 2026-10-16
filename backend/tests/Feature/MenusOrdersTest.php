@@ -53,7 +53,7 @@ class MenusOrdersTest extends TestCase
         Schema::create('menus_section_dishes', function ($t) { $t->id(); $t->unsignedBigInteger('section_id'); $t->unsignedBigInteger('dish_id'); $t->integer('sort_order')->default(0); $t->unique(['section_id', 'dish_id']); });
         Schema::create('menus_option_groups', function ($t) { $t->id(); $t->unsignedBigInteger('dish_id'); $t->string('name'); $t->string('kind', 8)->default('single'); $t->unsignedTinyInteger('min_choices')->default(0); $t->unsignedTinyInteger('max_choices')->nullable(); $t->integer('sort_order')->default(0); $t->timestamps(); });
         Schema::create('menus_options', function ($t) { $t->id(); $t->unsignedBigInteger('group_id'); $t->string('name'); $t->decimal('price_delta', 12, 2)->default(0); $t->boolean('is_default')->default(false); $t->boolean('charge_removal')->default(false); $t->unsignedBigInteger('linked_dish_id')->nullable(); $t->integer('sort_order')->default(0); $t->boolean('is_active')->default(true); $t->timestamps(); });
-        Schema::create('menus_option_uses', function ($t) { $t->id(); $t->unsignedBigInteger('option_id'); $t->string('mode', 8)->default('add'); $t->unsignedBigInteger('family_id')->nullable(); $t->unsignedBigInteger('variant_id')->nullable(); $t->decimal('quantity', 18, 4)->nullable(); $t->unsignedBigInteger('unit_id')->nullable(); });
+        Schema::create('menus_option_uses', function ($t) { $t->id(); $t->unsignedBigInteger('option_id'); $t->string('mode', 8)->default('add'); $t->unsignedBigInteger('ingredient_id')->nullable(); $t->string('unit', 4)->default('base'); $t->unsignedBigInteger('family_id')->nullable(); $t->unsignedBigInteger('variant_id')->nullable(); $t->decimal('quantity', 18, 4)->nullable(); $t->unsignedBigInteger('unit_id')->nullable(); });
         Schema::create('menus_channels', function ($t) { $t->id(); $t->string('code', 30)->unique(); $t->string('name'); $t->string('order_type', 12); $t->boolean('is_active')->default(false); $t->unsignedSmallInteger('prep_minutes')->default(20); $t->unsignedSmallInteger('slot_minutes')->default(15); $t->unsignedTinyInteger('max_days_ahead')->default(2); $t->boolean('allow_asap')->default(true); $t->json('payment_modes')->nullable(); $t->json('menu_ids')->nullable(); $t->json('shipping_option_ids')->nullable(); $t->decimal('min_order', 12, 2)->default(0); $t->string('note', 300)->nullable(); $t->integer('sort_order')->default(0); $t->timestamps(); });
         Schema::create('menus_orders', function ($t) {
             $t->id(); $t->string('number', 20); $t->string('track_token', 40); $t->unsignedBigInteger('channel_id'); $t->string('order_type', 12); $t->unsignedBigInteger('location_id'); $t->unsignedBigInteger('voucher_id')->nullable(); $t->unsignedBigInteger('sale_id')->nullable();
@@ -62,7 +62,7 @@ class MenusOrdersTest extends TestCase
             $t->decimal('subtotal', 12, 2)->default(0); $t->decimal('tax_total', 12, 2)->default(0); $t->decimal('total', 12, 2)->default(0); $t->unsignedBigInteger('currency_id')->nullable(); $t->string('notes', 500)->nullable(); $t->string('cancel_reason', 300)->nullable();
             foreach (['placed_at', 'accepted_at', 'ready_at', 'completed_at', 'cancelled_at'] as $c) { $t->dateTime($c)->nullable(); } $t->timestamps();
         });
-        Schema::create('menus_order_lines', function ($t) { $t->id(); $t->unsignedBigInteger('order_id'); $t->unsignedBigInteger('dish_id'); $t->unsignedBigInteger('variant_id'); $t->string('name'); $t->decimal('quantity', 10, 2)->default(1); $t->decimal('base_price', 12, 2)->default(0); $t->decimal('unit_price', 12, 2)->default(0); $t->json('options')->nullable(); $t->string('note', 300)->nullable(); $t->timestamps(); });
+        Schema::create('menus_order_lines', function ($t) { $t->id(); $t->unsignedBigInteger('order_id'); $t->unsignedBigInteger('dish_id'); $t->unsignedBigInteger('variant_id')->nullable(); $t->string('name'); $t->decimal('quantity', 10, 2)->default(1); $t->decimal('base_price', 12, 2)->default(0); $t->decimal('unit_price', 12, 2)->default(0); $t->json('options')->nullable(); $t->string('note', 300)->nullable(); $t->timestamps(); });
         Schema::create('payment_methods', function ($t) { $t->id(); $t->string('name'); $t->string('code')->nullable(); $t->string('kind')->nullable(); $t->unsignedBigInteger('ledger_id')->nullable(); $t->boolean('is_online')->default(false); $t->string('gateway')->nullable(); $t->boolean('requires_reference')->default(false); $t->text('instructions')->nullable(); $t->integer('sort_order')->default(0); $t->boolean('is_active')->default(true); $t->timestamps(); });
         Schema::create('voucher_types', function ($t) { $t->id(); $t->string('base_type'); $t->timestamps(); });
         Schema::create('vouchers', function ($t) { $t->id(); $t->unsignedBigInteger('voucher_type_id')->nullable(); $t->string('voucher_number')->nullable(); $t->unsignedBigInteger('currency_id')->nullable(); $t->unsignedBigInteger('customer_id')->nullable(); $t->string('status')->default('posted'); $t->decimal('total_amount', 12, 2)->default(0); $t->unsignedBigInteger('source_voucher_id')->nullable(); $t->json('meta')->nullable(); $t->timestamps(); });
@@ -77,7 +77,7 @@ class MenusOrdersTest extends TestCase
 
         $vouchers = $this->createMock(VoucherService::class);
         $vouchers->method('preview')->willReturnCallback(function (array $d) {
-            $lines = array_map(fn ($l) => ['item_type' => $l['type'] === 'charge' ? 'charge' : 'product', 'amount' => $l['type'] === 'charge' ? 150.0 : $l['quantity'] * $l['rate']], $d['lines']);
+            $lines = array_map(fn ($l) => ['item_type' => $l['type'] === 'charge' ? 'charge' : 'dish', 'amount' => $l['type'] === 'charge' ? 150.0 : $l['quantity'] * $l['rate']], $d['lines']);
             $sub = array_sum(array_column($lines, 'amount'));
 
             return ['lines' => $lines, 'subtotal' => $sub, 'tax_total' => round($sub * 0.16, 2), 'total' => round($sub * 1.16, 2)];
@@ -133,7 +133,7 @@ class MenusOrdersTest extends TestCase
     private function shop(array $channel = [], float $price = 500, int $stock = 20): array
     {
         $dish = $this->make('Beef stew', $price);
-        $this->stock((int) $dish->variant_id, $stock);
+        $this->stockDish($dish, $stock);
         app(MenuService::class)->save(['name' => 'Lunch', 'starts_at' => '12:00', 'ends_at' => '15:00', 'sections' => [['name' => 'Mains', 'dishes' => [$dish->id]]]]);
         $c = Channel::create($channel + ['code' => 'online_pickup', 'name' => 'Pickup', 'order_type' => 'pickup', 'is_active' => true, 'prep_minutes' => 20, 'slot_minutes' => 15, 'max_days_ahead' => 2, 'allow_asap' => true, 'payment_modes' => ['online', 'later']]);
 
@@ -262,7 +262,7 @@ class MenusOrdersTest extends TestCase
         $p = $this->placed[0];
         $this->assertSame(['storefront', true, true], [$p['channel'], $p['meta']['menu_order'], $p['meta']['guest']]);
         $this->assertSame('Wanjiru', $p['meta']['contact']['name']);
-        $this->assertSame([$dish->variant_id, 2, 500.0], [$p['lines'][0]['variant_id'], $p['lines'][0]['quantity'], $p['lines'][0]['rate']]);
+        $this->assertSame(['dish', $dish->id, 2, 500.0], [$p['lines'][0]['type'], $p['lines'][0]['dish_id'], $p['lines'][0]['quantity'], $p['lines'][0]['rate']]);
         $this->assertSame($o->id, Voucher::find($o->voucher_id)->meta['menu_order_id'], 'the books order points back at the food order');
     }
 
@@ -294,7 +294,7 @@ class MenusOrdersTest extends TestCase
     {
         [$c, $dish] = $this->shop();
         $other = $this->make('Chips', 200);
-        $this->stock((int) $other->variant_id, 5);
+        $this->stockDish($other, 5);
         $cases = [
             'not on a menu' => [fn () => $this->order($other), 'not on the menu'],
             'empty' => [fn () => $this->order($dish, ['items' => []]), 'basket is empty'],
@@ -343,14 +343,14 @@ class MenusOrdersTest extends TestCase
     {
         [, $dish] = $this->shop();
         $side = $this->make('Kachumbari', 100);
-        $this->stock((int) $side->variant_id, 10);
+        $this->stockDish($side, 10);
         app(DishOptions::class)->save($dish, [['name' => 'Side', 'kind' => 'single', 'min_choices' => 1, 'options' => [['name' => 'With kachumbari', 'price_delta' => 80, 'linked_dish_id' => $side->id]]]]);
         $opt = (int) DB::table('menus_options')->value('id');
         $this->fails(fn () => $this->orders()->place($this->order($dish), null, $this->now), 'Side');
         $r = $this->orders()->place($this->order($dish, ['items' => [['dish_id' => $dish->id, 'quantity' => 2, 'option_ids' => [$opt], 'note' => 'Hot please']]]), null, $this->now);
         $lines = $this->placed[0]['lines'];
         $this->assertSame([580.0, 'With kachumbari — Hot please'], [$lines[0]['rate'], $lines[0]['notes']]);
-        $this->assertSame([$side->variant_id, 2, 0, 'Part of Beef stew'], [$lines[1]['variant_id'], $lines[1]['quantity'], $lines[1]['rate'], $lines[1]['notes']]);
+        $this->assertSame([$side->id, 2, 0, 'Part of Beef stew'], [$lines[1]['dish_id'], $lines[1]['quantity'], $lines[1]['rate'], $lines[1]['notes']]);
         $this->assertSame([['id' => $opt, 'group' => 'Side', 'name' => 'With kachumbari', 'price_delta' => 80]], $r['order']->lines[0]->options);
     }
 
@@ -415,7 +415,7 @@ class MenusOrdersTest extends TestCase
     {
         [, $dish] = $this->shop();
         $this->orders()->place($this->order($dish, ['address' => 'Somewhere far', 'shipping_option_id' => 70]), null, $this->now);
-        $this->assertSame(['product'], array_unique(array_column($this->placed[0]['lines'], 'type')));
+        $this->assertSame(['dish'], array_unique(array_column($this->placed[0]['lines'], 'type')));
     }
 
     public function test_delivery_does_not_count_towards_the_smallest_order(): void

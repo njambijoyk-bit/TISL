@@ -64,7 +64,7 @@ class MenusCookingTest extends TestCase
     {
         $v = $this->createMock(VoucherService::class);
         $v->method('preview')->willReturnCallback(function (array $d) {
-            $sub = array_sum(array_map(fn ($l) => in_array($l['type'], ['product', 'custom'], true) ? $l['quantity'] * $l['rate'] : 0, $d['lines']));
+            $sub = array_sum(array_map(fn ($l) => in_array($l['type'], ['product', 'custom', 'dish'], true) ? $l['quantity'] * $l['rate'] : 0, $d['lines']));
             $tax = round($sub * 0.16, 2);
 
             return ['subtotal' => $sub, 'tax_total' => $tax, 'total' => round($sub + $tax, 2), 'lines' => []];
@@ -309,8 +309,8 @@ class MenusCookingTest extends TestCase
         $this->assertSame('Pilau', $r->lines->first()->name);
         $this->assertEquals(17500.0, (float) $r->subtotal);
         $a = $this->svc()->accept($r, ['payment_method_id' => 4], $this->user());
-        $this->assertSame('product', $this->orders[0]['lines'][0]['type']);
-        $this->assertSame($d->variant_id, $this->orders[0]['lines'][0]['variant_id']);
+        $this->assertSame('dish', $this->orders[0]['lines'][0]['type']);
+        $this->assertSame($d->id, $this->orders[0]['lines'][0]['dish_id']);
         $this->assertEquals(350.0, $this->orders[0]['lines'][0]['rate']);
     }
 
@@ -636,7 +636,7 @@ class MenusCookingTest extends TestCase
         $this->assertEquals([$d->id => 2.0], app(PrepService::class)->booked($day, 1));
         $this->assertSame([], app(PrepService::class)->booked($day->copy()->addDay(), 1));                // another day
         DB::table('menus_orders')->insert(['id' => 90, 'number' => 'MO-90', 'track_token' => 'tok', 'order_type' => 'pickup', 'location_id' => 1, 'name' => 'W', 'phone' => '1', 'status' => 'placed', 'payment' => 'paid', 'fulfil_at' => '2026-10-20 10:00:00']);
-        DB::table('menus_order_lines')->insert(['order_id' => 90, 'dish_id' => $d->id, 'variant_id' => $d->variant_id, 'name' => 'Prep cake', 'quantity' => 3]);
+        DB::table('menus_order_lines')->insert(['order_id' => 90, 'dish_id' => $d->id, 'name' => 'Prep cake', 'quantity' => 3]);
         $this->assertEquals([$d->id => 5.0], app(PrepService::class)->booked($day, 1));                   // an online order for the same dish adds to the job
         $free = $this->svc()->quote($this->askCatering(), ['lines' => [['name' => 'Waiters', 'unit_price' => 100, 'quantity' => 2]]], null);
         $this->paidDeposit($this->svc()->accept($free, ['payment_method_id' => 4], $this->user())['request']);

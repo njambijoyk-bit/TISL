@@ -64,7 +64,7 @@ class MenusPlansTest extends TestCase
             $goods = array_sum(array_map(fn ($l) => $l['quantity'] * $l['rate'], $d['lines']));
             $o = Voucher::create(['voucher_type_id' => 1, 'voucher_number' => 'SO-'.(count($this->vouchers) + 1), 'currency_id' => $d['currency_id'], 'total_amount' => round($goods * 1.16, 2), 'meta' => $d['meta']]);
             foreach ($d['lines'] as $l) {
-                DB::table('voucher_items')->insert(['voucher_id' => $o->id, 'variant_id' => $l['variant_id'], 'is_header' => false]);
+                DB::table('voucher_items')->insert(['voucher_id' => $o->id, 'dish_id' => $l['dish_id'], 'is_header' => false]);
             }
             $this->vouchers[] = ['id' => $o->id, 'lines' => $d['lines'], 'meta' => $d['meta']];
 

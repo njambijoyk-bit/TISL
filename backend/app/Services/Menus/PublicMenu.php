@@ -20,7 +20,7 @@ class PublicMenu
     {
         $location = $locationId ?: (int) DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('id')->value('id');
         $dishes = [];
-        $menus = Menu::with('sections.dishes.recipe.items', 'sections.dishes.product')->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()->map(function (Menu $m) use ($now, $location, &$dishes) {
+        $menus = Menu::with('sections.dishes.menuRecipe.lines.ingredient')->where('is_active', true)->orderBy('sort_order')->orderBy('name')->get()->map(function (Menu $m) use ($now, $location, &$dishes) {
             return [
                 'id' => $m->id, 'name' => $m->name, 'slug' => $m->slug, 'description' => $m->description, 'serves' => MenuSchedule::words($m), 'serving_now' => MenuSchedule::serving($m, $now),
                 'sections' => $m->sections->map(fn ($s) => [
