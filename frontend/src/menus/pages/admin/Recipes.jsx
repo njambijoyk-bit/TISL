@@ -62,7 +62,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             <Field label="How it is made" htmlFor="rc-how">
               <SelectInput id="rc-how" value={order ? 'order' : 'ahead'} onChange={(e) => setOrder(e.target.value === 'order')}>
                 <option value="order">Made to order (a sale uses the ingredients)</option>
-                <option value="ahead">Made ahead in batches (batches arrive with the dish stock, in the next step)</option>
+                <option value="ahead">Made ahead in batches (make a batch on the Stock page; sales then take from the dish's own shelf)</option>
               </SelectInput>
             </Field>
           </div>

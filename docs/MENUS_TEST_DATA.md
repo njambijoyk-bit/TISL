@@ -4,12 +4,12 @@ A small Nairobi kitchen, made so the numbers can be checked by hand. Menus now h
 
 **units, accounts, ingredients, opening stock, dishes, recipes, menus, meal plan.**
 
-Prices are made up. Run database scripts 181 to 185 first.
+Prices are made up. Run database scripts 181 to 185 first. Every number below was checked by running this exact data through the system.
 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
-- **Menus, Configuration:** the three accounts are pre-filled with **Food Ingredients Inventory** (current asset), **Food Cost of Sales** and **Food Waste Expense** (direct expenses). Choose the **sales account** dishes are booked under (it decides the tax). Suppliers are the ledgers under **Sundry Creditors**; make one called "Naivas Wholesale" and one called "Unga Traders".
-- **Stations** (Menus, Configuration): Hot kitchen, Bar, Pastry.
+- **Menus, Configuration:** under the account selects, **Ingredient stock**, **Cost of food** and **Food waste** are empty on purpose: empty means the accounts the scripts made, **Food Ingredients Inventory** (current asset), **Food Cost of Sales** and **Food Waste Expense** (direct expenses). Choose the **Sales account for dishes** (it decides the tax). Suppliers are the ledgers under **Sundry Creditors**; make one called "Naivas Wholesale" and one called "Unga Traders".
+- **Kitchen stations** (Menus, Configuration, the stations card): Hot kitchen, Bar, Pastry.
 
 ## 1. Ingredients (Menus, Ingredients)
 
@@ -38,7 +38,7 @@ One row per ingredient. "Base / bigger" is the base unit and the alternate unit.
 
 ## 2. Opening stock (Menus, Stock, Opening stock)
 
-Type it in **packs** (that is the point: counting packs is quick). It is booked against the opening balance account, so choose one under Books, Settings first. Give the expiry date for the ones that expire (use a date three weeks ahead; make the eggs expire in **4 days** to see the expiry list).
+Type it in **packs** (that is the point: counting packs is quick). It is booked against the opening balance account, so choose one under Books, Settings, Default ledgers first. Give the expiry date for the ones that expire (use a date three weeks ahead; make the eggs expire in **4 days** to see the expiry list).
 
 | Variant | Packs | That is |
 |---|---|---|
@@ -79,26 +79,26 @@ Each dish has its own price (before tax). "Made at" is the station.
 
 ## 4. Recipes (Menus, Recipes)
 
-Quantities are per portion unless it says batch. "Waste" is added back: 5% on 200 g means 210.5 g is taken from the shelf. The cost is per gram or ml as in step 1; where an ingredient has several variants on the shelf, the cost is the average of what is there.
+Quantities are per portion unless it says batch. "Waste %" is added back: 5% on 200 g means 210.5 g is taken from the shelf. The cost shown on the Recipes screen is per gram or ml as in step 1; where an ingredient has several variants on the shelf it is the average of what is there (so cooking oil is 0.32 a ml, a mix of the jerrycan and the bottle, and milk 0.122).
 
-**Made to order** (selling it uses the ingredients). Untick nothing; "made to order" is the default.
+**Made to order** (selling it uses the ingredients). On the recipe, "How it is made" is "Made to order", which is the default.
 
 | Recipe | Lines (amount, waste) | Cost per portion, about |
 |---|---|---|
-| Beef stew & ugali | Beef 200 g (5%), Onions 60 g, Tomatoes 100 g, Cooking oil 20 ml, Salt 3 g, Maize flour 150 g | 207.9 |
-| Chicken pilau | Rice 150 g, Chicken 180 g, Onions 50 g, Cooking oil 25 ml, Tomatoes 40 g, Salt 3 g | 163.3 |
-| Sukuma wiki & ugali | Kale 150 g (10%), Onions 40 g, Tomatoes 50 g, Cooking oil 15 ml, Maize flour 150 g, Salt 2 g | 39.8 |
-| Chips | Potatoes 300 g (15% peeling waste), Cooking oil 60 ml, Salt 2 g | 50.5 |
-| Pancakes | Wheat flour 120 g, Eggs 1, Milk 150 ml, Sugar 15 g, Butter 10 g, Cooking oil 10 ml | 67.3 (with Exe flour at 0.13 a gram) |
-| Masala chai | Milk 200 ml, Tea leaves 5 g, Sugar 10 g | 28.6 |
+| Beef stew & ugali | Beef 200 g (5%), Onions 60 g, Tomatoes 100 g, Cooking oil 20 ml, Salt 3 g, Maize flour 150 g | 208.09 |
+| Chicken pilau | Rice 150 g, Chicken 180 g, Onions 50 g, Cooking oil 25 ml, Tomatoes 40 g, Salt 3 g | 163.57 |
+| Sukuma wiki & ugali | Kale 150 g (10%), Onions 40 g, Tomatoes 50 g, Cooking oil 15 ml, Maize flour 150 g, Salt 2 g | 39.98 |
+| Chips | Potatoes 300 g (15% peeling waste), Cooking oil 60 ml, Salt 2 g | 51.20 |
+| Pancakes | Wheat flour 120 g, Eggs 1, Milk 150 ml, Sugar 15 g, Butter 10 g, Cooking oil 10 ml | 67.71 (flour is Exe at 0.13 a gram, Pembe being empty) |
+| Masala chai | Milk 200 ml, Tea leaves 5 g, Sugar 10 g | 29.00 |
 
-**Made ahead** (a batch is made, the portions go on the dish's own shelf). Untick "made to order"; yield **8** portions, prep 20 min, cook 40 min.
+**Made ahead** (a batch is made, the portions go on the dish's own shelf). On the recipe, "How it is made" is "Made ahead in batches"; "One batch makes" **8** portions, prep 20 min, cook 40 min.
 
 | Recipe | Lines for the whole batch | Cost |
 |---|---|---|
-| Chocolate cake | Wheat flour 300 g, Sugar 250 g, Eggs 4, Butter 200 g, Cocoa 60 g, Milk 200 ml, Baking powder 10 g | about 553 a batch, 69 a slice |
+| Chocolate cake | Wheat flour 300 g, Sugar 250 g, Eggs 4, Butter 200 g, Cocoa 60 g, Milk 200 ml, Baking powder 10 g | the Recipes screen says 69.18 a slice (shelf average); making the batch costs **553.00**, which is **69.13** a slice, because it takes the flour from Exe and the milk from the 1 L packs |
 
-Method steps for the cake: 1 Cream the butter and sugar. 2 Beat in the eggs. 3 Fold in flour, cocoa and baking powder, loosen with milk. 4 Bake at 170 degrees for 40 minutes. 5 Cool and cut into 8. Set the cake's visibility to "may be shown on the website and in courses" to test copying it to Courses.
+Method steps for the cake: 1 Cream the butter and sugar. 2 Beat in the eggs. 3 Fold in flour, cocoa and baking powder, loosen with milk. 4 Bake at 170 degrees for 40 minutes. 5 Cool and cut into 8. On the cake, set "Who may see it" to "May be shown on the website and in courses" to test copying it to Courses.
 
 ## 5. Menus (Menus, Menus)
 
@@ -127,13 +127,13 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 
 **Selling**
 - Allergens: Pancakes show wheat, eggs and milk with no one typing them on the dish. Beef stew and Sukuma wiki show none. Sukuma wiki & ugali can be shown vegetarian; Beef stew cannot.
-- Till or kiosk, sell 3 Pancakes: the flour comes out of **Exe** (360 g, because Pembe is empty); eggs, milk, sugar, butter and oil go down by the recipe. Books gets one journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory.
-- Chicken pilau: sell 5, the sixth says it is sold out (1 kg holds five portions of 180 g). Cancel one of the five sales and the chicken comes back.
+- Till or kiosk, sell 3 Pancakes: the flour comes out of **Exe** (360 g, so Exe goes from 20,000 g to 19,640 g, because Pembe is empty); Soko stays at 5,000 g (it is switched off as a substitute); eggs go from 120 to 117, the milk (150 ml x 3 = 450 ml) comes from the 1 L packs because milk is set to "the cheapest first" (19,550 ml left), butter goes from 1,250 g to 1,220 g. Books gets one journal: Dr Food Cost of Sales, Cr Food Ingredients Inventory.
+- Chicken pilau: sell 5, the sixth is refused ("Not enough Chicken: need 180 g, have 100"; 1 kg holds five portions of 180 g) and the till shows the dish as sold out. Cancel one of the five sales and the chicken comes back.
 - Pancakes with "No butter": 10 g less butter is used.
 - Chips, Large: 150 g more potatoes are used and 100 is added to the price.
 
 **Making ahead**
-- Menus, Stock, Make a batch: Chocolate cake, 8 portions. The flour, sugar, eggs, butter, cocoa, milk and baking powder fall by the batch quantities; 8 slices appear on the dish's own shelf (the till can sell 8). Nothing is booked until the slices are sold. Selling a slice takes it from the shelf; cancelling the batch is refused once any slice is sold.
+- Menus, Stock, Make a batch: Chocolate cake, 8 portions. The flour, sugar, eggs, butter, cocoa, milk and baking powder fall by the batch quantities (it costs 553.00); 8 slices appear on the dish's own shelf (the till can sell 8). Nothing is booked until the slices are sold. Selling a slice takes it from the shelf; cancelling the batch is refused once any slice is sold.
 
 **Waste, counts, branches, expiry, buying**
 - Operations, Waste: waste 1 kg of Beef as "Spoilage": the shelf drops by 1,000 g and Books gets Dr Food Waste Expense, Cr Food Ingredients Inventory for its cost (800). "Take back" returns it and cancels the journal. Waste 2 Chips as "Plate waste": potatoes, oil and salt come off. Waste 3 cake slices as "Made too much": the slices go.
