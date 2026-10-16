@@ -6,7 +6,7 @@ const PAGES = [
   { path: '/admin/memberships/members', title: 'Members', icon: Users, color: '#0ea5e9' },
   { path: '/admin/memberships/checkin', title: 'Check-in', icon: ScanLine, color: '#16a34a' },
   { path: '/admin/memberships/reports', title: 'Reports', icon: BarChart2, color: '#f59e0b' },
-  { path: '/admin/memberships/settings', title: 'Settings', icon: Settings2, color: '#64748b' },
+  { path: '/admin/memberships/settings', title: 'Configuration', icon: Settings2, color: '#64748b' },
 ];
 
 /** Memberships › this page, and a row to move between the Memberships pages. */

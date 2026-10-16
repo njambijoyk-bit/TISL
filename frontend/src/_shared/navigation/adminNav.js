@@ -283,7 +283,7 @@ export const ADMIN_NAV = [
           { title: 'Plans', path: '/admin/memberships', icon: Layers, color: '#8b5cf6' },
           { title: 'Members', path: '/admin/memberships/members', icon: Users, color: '#0ea5e9' },
           { title: 'Reports', path: '/admin/memberships/reports', icon: BarChart2, color: '#f59e0b' },
-          { title: 'Settings', path: '/admin/memberships/settings', icon: Settings2, color: '#64748b' },
+          { title: 'Configuration', path: '/admin/memberships/settings', icon: Settings2, color: '#64748b' },
         ],
       },
       { id: 'membership-checkin', title: 'Member check-in', icon: ScanLine, color: '#16a34a', path: '/admin/memberships/checkin', perm: 'memberships.checkin', keywords: 'check in door desk scan member card gym' },

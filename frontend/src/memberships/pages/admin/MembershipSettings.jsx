@@ -15,7 +15,7 @@ export default function MembershipSettings() {
   const [s, setS] = useState(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => { membershipsAPI.meta().then((m) => setS(m.settings)).catch((e) => toast.error(errMsg(e, 'Could not load'))); }, []);
-  if (!hasPermission(user, 'memberships.manage')) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="Memberships settings" /></div></AdminLayout>;
+  if (!hasPermission(user, 'memberships.manage')) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="Memberships configuration" /></div></AdminLayout>;
   const set = (k) => (e) => setS((x) => ({ ...x, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
   const save = async () => {
     setBusy(true);
@@ -29,7 +29,7 @@ export default function MembershipSettings() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 760, margin: '0 auto' }} data-testid="membership-settings">
         <MembershipsNav />
-        <HubHeader title="Memberships settings" description="When renewals are invoiced and reminded, and what members may do themselves." />
+        <HubHeader title="Memberships configuration" description="When renewals are invoiced and reminded, and what members may do themselves." />
         {s && (
           <section style={{ ...card, padding: 16 }}>
             <FormStack>
