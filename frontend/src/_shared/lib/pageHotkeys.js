@@ -1,14 +1,14 @@
 // Function-key shortcuts that press a button the page already has, found by what it is called:
 //   F12  a button, tab or link called "Configuration" (or "Loyalty configuration", "Programme configuration": one word, then configuration)
-//   F7   a button, tab or link called "Recycle bin"
+//   F7   a button, tab or link called "Recycle bin" or "Trash"
 // A page needs no code for it: name the control that way and the key finds it. Buttons that do something with a configuration ("Save configuration",
 // "Use shop-wide configuration") are not matched.
 const MATCHERS = {
   F12: /^(?!(?:save|use|edit|reset|apply|cancel|open|add|new|set)\b)(?:[\p{L}'-]+ )?configuration$/iu,
-  F7: /^recycle bin$/i,
+  F7: /^(?:recycle bin|trash)(?: \d+)?$/i,   // a count after the name (Trash 3) is fine
 };
 
-const nameOf = (el) => (el.getAttribute('aria-label') || el.textContent || '').replace(/[^\p{L}\p{N}\s'-]/gu, ' ').replace(/\s+/g, ' ').trim();
+const nameOf = (el) => (el.getAttribute('aria-label') || el.textContent?.trim() || el.title || '').replace(/[^\p{L}\p{N}\s'-]/gu, ' ').replace(/\s+/g, ' ').trim();
 const usable = (el) => !el.disabled && el.getAttribute('aria-disabled') !== 'true' && el.getClientRects().length > 0;
 
 /** Is a dialog open? The page behind it is not the one being used. */
