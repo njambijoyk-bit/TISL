@@ -28,6 +28,12 @@ class Dish extends Model
         return $this->belongsTo(ProductVariant::class, 'variant_id');
     }
 
+    /** The recipe written on ingredients (Menus' own stock). Takes the place of `recipe()`, which pointed at product variants. */
+    public function menuRecipe(): HasOne
+    {
+        return $this->hasOne(DishRecipe::class, 'dish_id');
+    }
+
     public function recipe(): HasOne
     {
         return $this->hasOne(Recipe::class, 'variant_id', 'variant_id');

@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 /** What can be said about a dish from its recipe: allergens and diets (inherited from the ingredients), whether it can be made now, and what it costs. */
 class DishInfo
 {
-    public function __construct(private RecipeLines $lines, private RecipeCosting $costing, private BatchService $batches)
+    public function __construct(private RecipeLines $lines, private RecipeCosting $costing, private BatchService $batches, private IngredientUse $use)
     {
     }
 
@@ -24,8 +24,9 @@ class DishInfo
      */
     public function profile(Dish $dish): array
     {
-        $dish->loadMissing('recipe.items');
-        $inherited = $dish->recipe ? $this->walk($dish->recipe, 0, []) : ['allergens' => [], 'tags' => [], 'unknown' => 1];
+        $new = DishRecipes::installed();
+        $dish->loadMissing(array_merge(['recipe.items'], $new ? ['menuRecipe.lines.ingredient'] : []));
+        $inherited = $new && $dish->menuRecipe ? $this->ingredients($dish->menuRecipe) : ($dish->recipe ? $this->walk($dish->recipe, 0, []) : ['allergens' => [], 'tags' => [], 'unknown' => 1]);
         $declaredAllergens = $dish->allergens_override !== null;
         $declaredTags = $dish->tags_override !== null;
         $allergens = FoodTags::clean($declaredAllergens ? $dish->allergens_override : $inherited['allergens'], FoodTags::ALLERGENS);
@@ -33,6 +34,18 @@ class DishInfo
         $complete = ($declaredAllergens && $declaredTags) || $inherited['unknown'] === 0;
 
         return ['allergens' => $allergens, 'tags' => $tags, 'diets' => $complete ? DietBadges::for($allergens, $tags) : [], 'complete' => $complete, 'declared' => $declaredAllergens || $declaredTags];
+    }
+
+    /** What a recipe written on ingredients inherits: every ingredient says what it contains and what it is, so nothing is unknown. @return array{allergens: string[], tags: string[], unknown: int} */
+    private function ingredients(\App\Models\Menus\DishRecipe $r): array
+    {
+        $out = ['allergens' => [], 'tags' => [], 'unknown' => 0];
+        foreach ($r->lines as $l) {
+            $out['allergens'] = array_merge($out['allergens'], $l->ingredient?->allergens ?? []);
+            $out['tags'] = array_merge($out['tags'], $l->ingredient?->tags ?? []);
+        }
+
+        return $out;
     }
 
     /** @param int[] $seen recipes already on the way down (a recipe that uses itself is not followed again) @return array{allergens: string[], tags: string[], unknown: int} */
@@ -81,7 +94,11 @@ class DishInfo
         if (! $dish->is_active || ($dish->sold_out_on && $dish->sold_out_on->isToday())) {
             return 0.0;
         }
-        $dish->loadMissing('recipe.items');
+        $new = DishRecipes::installed();
+        $dish->loadMissing(array_merge(['recipe.items'], $new ? ['menuRecipe'] : []));
+        if ($new && $dish->menuRecipe && $dish->menuRecipe->is_active && $dish->menuRecipe->made_to_order) {
+            return $this->use->capacity($dish->menuRecipe, $locationId);   // what the ingredients on the shelf allow
+        }
         $r = $dish->recipe;
         if ($r && $r->is_active && $r->deduct_on_sale) {
             try {
@@ -99,8 +116,14 @@ class DishInfo
     {
         $price = DB::table('product_variant_units')->where('variant_id', $dish->variant_id)->where('role', 'base')->value('price');
         $price = $price === null ? null : (float) $price;
-        $dish->loadMissing('recipe.items');
-        $c = $dish->recipe ? $this->costing->for($dish->recipe, $locationId) : ['per_unit' => null, 'complete' => false];
+        $new = DishRecipes::installed();
+        $dish->loadMissing(array_merge(['recipe.items'], $new ? ['menuRecipe.lines.ingredient'] : []));
+        if ($new && $dish->menuRecipe) {
+            $u = $this->use->cost($dish->menuRecipe, $locationId);
+            $c = ['per_unit' => $u['per_portion'], 'complete' => $u['complete']];
+        } else {
+            $c = $dish->recipe ? $this->costing->for($dish->recipe, $locationId) : ['per_unit' => null, 'complete' => false];
+        }
         $cost = $c['per_unit'];
 
         return ['price' => $price, 'cost' => $cost, 'margin' => $price !== null && $cost !== null ? round($price - $cost, 4) : null,

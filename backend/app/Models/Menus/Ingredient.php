@@ -35,4 +35,19 @@ class Ingredient extends Model
     {
         return $this->hasMany(IngredientItem::class, 'ingredient_id')->orderBy('preference')->orderBy('id');
     }
+
+    /** An amount typed in the base or the alternate unit, in the base unit (stock is kept in it). */
+    public function toBase(float $qty, string $unit = 'base'): float
+    {
+        if ($unit === 'alt') {
+            $this->loadMissing('baseUnit', 'altUnit');
+            if (! $this->altUnit) {
+                throw new \App\Services\Books\BooksException("{$this->name} has no alternate unit.");
+            }
+
+            return round($this->altUnit->convertTo($this->baseUnit, $qty), 6);
+        }
+
+        return round($qty, 6);
+    }
 }
