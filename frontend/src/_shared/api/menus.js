@@ -5,7 +5,6 @@ export const menusAPI = {
   ingredients: async (params) => (await api.get('/admin/menus/ingredients', { params })).data,
   saveIngredient: async (payload, id) => (id ? (await api.put(`/admin/menus/ingredients/${id}`, payload)) : (await api.post('/admin/menus/ingredients', payload))).data,
   removeIngredient: async (id) => (await api.delete(`/admin/menus/ingredients/${id}`)).data,
-  makeStockItem: async (payload) => (await api.post('/admin/menus/ingredients/stock-items', payload)).data,
   suggestUnits: async (variantId, unitId) => (await api.post('/admin/menus/ingredients/suggest', { variant_id: variantId, unit_id: unitId })).data,
   dishes: async (params) => (await api.get('/admin/menus/dishes', { params })).data,
   saveDish: async (payload, id) => (id ? (await api.put(`/admin/menus/dishes/${id}`, payload)) : (await api.post('/admin/menus/dishes', payload))).data,
