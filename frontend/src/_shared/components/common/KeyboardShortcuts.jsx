@@ -35,6 +35,7 @@ export default function KeyboardShortcuts() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const [account, setAccount] = useState(false);
   const [list, setList] = useState(false);
+  const [q, setQ] = useState('');   // what is typed in the list's search box
   const [picker, setPicker] = useState(false);   // Shift+V in Books: pick a voucher type by its letter
   const [types, setTypes] = useState([]);
   const staff = isAuthenticated && isStaff(user);
@@ -130,10 +131,10 @@ export default function KeyboardShortcuts() {
           if (!toggleAccountMenu()) setAccount((v) => !v);
         };
         const fixed = {
-          A: () => setList((v) => !v),
+          A: () => setList((v) => { if (!v) setQ(''); return !v; }),
           U: openAccount,
           M: () => press(document.querySelector('button[aria-label="Chat with Mimi"]')),   // Mimi's bubble, open or closed
-          N: () => press(document.querySelector('button[aria-label="Open the memo panel"]') ?? topDialog()?.querySelector('button[aria-label="Close"]')),
+          ...(staff ? { N: () => press(document.querySelector('button[aria-label="Open the memo panel"]') ?? topDialog()?.querySelector('button[aria-label="Close"]')) } : {}),
           R: () => press(pageHotkeyTarget('Refresh')),
           T: toggleDark,
           ...(inBooks && canPost ? { V: () => setPicker(true) } : {}),
@@ -159,7 +160,7 @@ export default function KeyboardShortcuts() {
     ['Alt', 'A', 'Open your account menu (the other way)'],
     ...Object.keys(byLetter).sort().map((k) => ['Shift', k, `Go to ${byLetter[k].label}`]),
     ['Shift', 'M', 'Chat with Mimi'],
-    ['Shift', 'N', 'Open or close the memo'],
+    ...(staff ? [['Shift', 'N', 'Open or close the memo']] : []),   // the memo is for staff only
     ['Shift', 'T', 'Switch between light and dark'],
     ['', '/', 'Search this page'],
     ['Shift', 'R', 'Refresh the list'],
@@ -175,6 +176,8 @@ export default function KeyboardShortcuts() {
     ...(inBooks && canPost ? [['Shift', 'V', 'New voucher: then press the type\'s letter'], ['', 'F4', 'Open the edit log']] : []),
     ...(voucherPage ? [['Shift', 'E', 'Edit this voucher'], ['Shift', 'X', 'Cancel this voucher (asks why first)'], ['Shift', 'D', 'Download the customer copy'], ['Shift', 'S', 'Send this voucher'], ['Shift', 'C', 'Convert this voucher'], ['Shift', 'P', 'Receive payment']] : []),
   ];
+  const squash = (t) => t.toLowerCase().replace(/[\s+]/g, '');
+  const shown = rows.filter(([a, b, what]) => squash(`${a} ${a === 'Alt' ? 'option' : ''} ${a === 'Ctrl' ? 'cmd command' : ''} ${b} ${what}`).includes(squash(q)));
   const link = { display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 8, fontSize: '0.84rem', fontWeight: 600, color: 'var(--text-primary)', textDecoration: 'none' };
 
   return (
@@ -225,11 +228,16 @@ export default function KeyboardShortcuts() {
           <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(400px, 100%)', maxHeight: 'calc(100dvh - 32px)', display: 'flex', flexDirection: 'column', borderRadius: 18, background: 'var(--bg-card, #fff)', color: 'var(--text-primary)', boxShadow: '0 30px 80px rgba(0,0,0,0.3)', overflow: 'hidden' }}>
             <div style={{ height: 6, flexShrink: 0, background: `linear-gradient(90deg, ${ACCENTS.join(', ')})` }} />
             <div style={{ padding: '0 20px 20px', display: 'grid', gap: 8, alignContent: 'start', overflowY: 'auto', minHeight: 0, flex: 1 }}>
-              <div style={{ position: 'sticky', top: 0, zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 0 8px', background: 'var(--bg-card, #fff)' }}>
-                <strong style={{ fontSize: '1.05rem' }}>Shortcuts</strong>
-                <button type="button" aria-label="Close" onClick={() => setList(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'grid', padding: 4 }}><X size={18} /></button>
+              <div style={{ position: 'sticky', top: 0, zIndex: 1, padding: '16px 0 8px', background: 'var(--bg-card, #fff)', display: 'grid', gap: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <strong style={{ fontSize: '1.05rem' }}>Shortcuts</strong>
+                  <button type="button" aria-label="Close" onClick={() => setList(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', display: 'grid', padding: 4 }}><X size={18} /></button>
+                </div>
+              <input type="search" autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search shortcuts and actions" aria-label="Search shortcuts and actions"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 10, border: '1.5px solid var(--border-primary, #e5e7eb)', background: 'var(--bg-secondary, #f9fafb)', color: 'inherit', fontFamily: 'inherit', fontSize: '0.85rem', outline: 'none' }} />
               </div>
-              {rows.map(([a, b, what], i) => {
+              {shown.length === 0 && <span style={{ fontSize: '0.85rem', opacity: 0.7, padding: '6px 2px' }}>Nothing matches “{q}”.</span>}
+              {shown.map(([a, b, what], i) => {
                 const c = ACCENTS[i % ACCENTS.length];
                 const cap = { minWidth: 30, padding: '3px 9px', borderRadius: 7, textAlign: 'center', fontSize: '0.78rem', fontWeight: 800, fontFamily: 'inherit', color: c, background: `color-mix(in srgb, ${c} 14%, transparent)`, border: `1.5px solid color-mix(in srgb, ${c} 45%, transparent)`, boxShadow: `0 2px 0 color-mix(in srgb, ${c} 35%, transparent)` };
 
