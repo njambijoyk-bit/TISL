@@ -47,7 +47,7 @@ export default function AdminShell() {
   const toggleCalc = useCalculatorStore((s) => s.toggle);
   useEffect(() => {
     const onKey = (e) => {
-      if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'c') {
+      if (e.altKey && !e.ctrlKey && !e.metaKey && e.code === 'KeyC') {
         e.preventDefault();
         toggleCalc();
       }

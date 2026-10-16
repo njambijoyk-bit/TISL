@@ -181,7 +181,7 @@ export default function KeyboardShortcuts() {
                 return (
                   <div key={`${a}${b}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 10px', borderRadius: 10, borderLeft: `4px solid ${c}`, background: 'var(--bg-secondary, #f9fafb)' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 104 }}>
-                      {a && <><kbd style={cap}>{a}</kbd><span style={{ opacity: 0.5 }}>+</span></>}<kbd style={cap}>{b}</kbd>
+                      {a && <><kbd style={cap}>{a === 'Alt' && MAC ? '⌥ Option' : a}</kbd><span style={{ opacity: 0.5 }}>+</span></>}<kbd style={cap}>{b}</kbd>
                     </span>
                     <span style={{ fontSize: '0.85rem' }}>{what}</span>
                   </div>

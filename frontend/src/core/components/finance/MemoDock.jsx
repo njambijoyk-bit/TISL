@@ -48,7 +48,7 @@ function Dock({ user }) {
   useEffect(() => { if (here && finance) booksAPI.voucher(here).then((v) => setHereLabel(`${v.voucher_number} · ${v.type?.name}`)).catch(() => setHereLabel('')); else setHereLabel(''); }, [here, finance]);
   useEffect(() => { if (showLines && finance && ledgers.length === 0) booksAPI.ledgers({ all: 1 }).then((r) => setLedgers(Array.isArray(r) ? r : r.data ?? [])).catch(() => {}); }, [showLines, finance, ledgers.length]);
   useEffect(() => {
-    const key = (e) => { if (e.altKey && e.key.toLowerCase() === 'm') { e.preventDefault(); toggle(); } };
+    const key = (e) => { if (e.altKey && e.code === 'KeyM') { e.preventDefault(); toggle(); } };
     window.addEventListener('keydown', key);
     return () => window.removeEventListener('keydown', key);
   }, [toggle]);
