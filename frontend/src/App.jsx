@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { HelmetProvider } from 'react-helmet-async';
 import 'leaflet/dist/leaflet.css';
 import { useThemeStore, useAuthStore, useModuleStore, useLocationStore } from './_shared/store/index';
+import KeyboardShortcuts from './_shared/components/common/KeyboardShortcuts';
 import ModuleRoute from './_shared/components/routing/ModuleRoute';
 
 import InstallPrompt from './_shared/components/common/InstallPrompt';
@@ -503,6 +504,7 @@ function App() {
           }}
         />
 
+        <KeyboardShortcuts />
         <PWARedirect />  
         <InstallPrompt />
         <AlgorithmBanner /> 

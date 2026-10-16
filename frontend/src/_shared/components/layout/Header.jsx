@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLayoutAudio } from './useLayoutAudio';
+import { registerAccountMenu } from '../../lib/accountShortcut';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
   ShoppingCart, Heart, User, Sun, Moon, Menu, X, ChevronDown, ChevronRight,
@@ -260,6 +261,7 @@ export default function Header() {
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains('dark'));
 
   const userMenuRef = useRef(null);
+  useEffect(() => registerAccountMenu(() => setUserMenuOpen((o) => !o)), []);   // Alt+A
 
   // Smart nav: collapse to the hamburger when the desktop links can't fit.
   const headerRowRef = useRef(null);
