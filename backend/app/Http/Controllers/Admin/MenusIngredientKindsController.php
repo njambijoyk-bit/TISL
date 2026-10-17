@@ -19,12 +19,12 @@ class MenusIngredientKindsController extends Controller
     public function index(): JsonResponse
     {
         if (! IngredientKinds::installed()) {
-            return response()->json(['ready' => false, 'kinds' => [], 'uses' => IngredientKind::USES]);
+            return response()->json(['ready' => false, 'kinds' => [], 'uses' => IngredientKinds::uses(), 'ledgers_ready' => false]);
         }
-        return response()->json(['ready' => true] + $this->kinds->list());
+        return response()->json(['ready' => true, 'ledgers_ready' => IngredientKinds::ledgered()] + $this->kinds->list());
     }
 
-    /** Body: name, in_recipes?, sold_as_is?, free_extra?, packaging?. */
+    /** Body: name, in_recipes?, sold_as_is?, free_extra?, packaging?, used_up?, expense_ledger_id (the account the cost is charged to when used). */
     public function store(Request $request): JsonResponse
     {
         return $this->guard(function () use ($request) {
@@ -63,7 +63,7 @@ class MenusIngredientKindsController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate(['name' => 'required|string|max:60', 'in_recipes' => 'nullable|boolean', 'sold_as_is' => 'nullable|boolean', 'free_extra' => 'nullable|boolean', 'packaging' => 'nullable|boolean']);
+        return $request->validate(['name' => 'required|string|max:60', 'in_recipes' => 'nullable|boolean', 'sold_as_is' => 'nullable|boolean', 'free_extra' => 'nullable|boolean', 'packaging' => 'nullable|boolean', 'used_up' => 'nullable|boolean', 'expense_ledger_id' => 'nullable|integer']);
     }
 
     private function guard(\Closure $fn): JsonResponse

@@ -49,14 +49,32 @@ class MenusIngredientKindsTest extends TestCase
         return $this->makeIngredient('Cola 500ml', $this->g, null, [['name' => 'Cola 500ml']], 'preferred', ['kind_id' => $this->kind('ready_to_serve')->id]);
     }
 
-    public function test_the_script_puts_in_exactly_the_default_kinds(): void
+    public function test_the_scripts_put_in_exactly_the_default_kinds(): void
     {
-        $sql = file_get_contents(base_path('database/sql/190_menus_ingredient_kinds.sql'));
-        preg_match_all("/SELECT '(\w+)'(?: AS code)?, '([^']+)'(?: AS name)?, (\d)(?: AS in_recipes)?, (\d)(?: AS sold_as_is)?, (\d)(?: AS free_extra)?, (\d)(?: AS packaging)?/", $sql, $m, PREG_SET_ORDER);
-        $fromScript = array_map(fn ($r) => [$r[1], $r[2], array_keys(array_filter(['in_recipes' => $r[3], 'sold_as_is' => $r[4], 'free_extra' => $r[5], 'packaging' => $r[6]]))], $m);
-        $this->assertSame(IngredientKinds::DEFAULTS, $fromScript, 'the script and IngredientKinds::DEFAULTS say the same');
-        $this->assertSame(4, $this->kinds()->seedDefaults());
+        $flags = ['in_recipes', 'sold_as_is', 'free_extra', 'packaging', 'used_up'];
+        $rows = [];
+        foreach (['190_menus_ingredient_kinds.sql' => 4, '191_menus_kind_ledgers.sql' => 5] as $file => $count) {   // script 190 has four uses, 191 adds the fifth
+            $sql = file_get_contents(base_path('database/sql/'.$file));
+            preg_match_all("/SELECT '(\w+)'(?: AS code)?, '([^']+)'(?: AS name)?, (\d)(?: AS in_recipes)?, (\d)(?: AS sold_as_is)?, (\d)(?: AS free_extra)?, (\d)(?: AS packaging)?(?:, (\d)(?: AS used_up)?)?/", $sql, $m, PREG_SET_ORDER);
+            foreach ($m as $r) {
+                $on = array_slice($r, 3, $count);
+                $rows[$r[1]] = [$r[1], $r[2], array_values(array_filter($flags, fn ($f, $i) => ($on[$i] ?? '0') === '1', ARRAY_FILTER_USE_BOTH))];
+            }
+        }
+        $this->assertSame(array_map(fn ($d) => array_slice($d, 0, 3), IngredientKinds::DEFAULTS), array_values($rows), 'the scripts and IngredientKinds::DEFAULTS say the same');
+        $this->assertSame(5, $this->kinds()->seedDefaults());
         $this->assertSame(0, $this->kinds()->seedDefaults(), 'nothing is added twice');
+    }
+
+    public function test_the_default_kinds_are_charged_to_the_accounts_the_script_names(): void
+    {
+        $supplies = DB::table('ledgers')->insertGetId(['name' => 'Kitchen Supplies Used', 'group_id' => 1]);
+        $this->kinds()->seedDefaults();
+        $this->assertSame($this->costOfSales, $this->kind('cooking')->expense_ledger_id);
+        $this->assertSame($this->costOfSales, $this->kind('ready_to_serve')->expense_ledger_id);
+        $this->assertSame($supplies, $this->kind('supplies')->expense_ledger_id);
+        $this->assertSame($supplies, $this->kind('packaging')->expense_ledger_id);
+        $this->assertTrue($this->kind('supplies')->used_up);
     }
 
     public function test_a_new_ingredient_is_a_cooking_ingredient_unless_a_kind_is_chosen(): void
@@ -106,11 +124,11 @@ class MenusIngredientKindsTest extends TestCase
 
     public function test_a_kind_can_be_made_renamed_and_keeps_its_code(): void
     {
-        $k = $this->kinds()->save(['name' => 'Bar drinks', 'sold_as_is' => true]);
+        $k = $this->kinds()->save(['name' => 'Bar drinks', 'sold_as_is' => true, 'expense_ledger_id' => $this->costOfSales]);
         $this->assertSame('bar_drinks', $k->code);
         $this->assertTrue($k->sold_as_is);
         $this->assertFalse($k->in_recipes);
-        $k = $this->kinds()->save(['name' => 'Drinks from the bar', 'sold_as_is' => true, 'in_recipes' => true], $k);
+        $k = $this->kinds()->save(['name' => 'Drinks from the bar', 'sold_as_is' => true, 'in_recipes' => true, 'expense_ledger_id' => $this->costOfSales], $k);
         $this->assertSame('bar_drinks', $k->code);
         $this->assertTrue($k->fresh()->in_recipes);
     }
@@ -118,9 +136,21 @@ class MenusIngredientKindsTest extends TestCase
     public function test_a_kind_needs_a_name_a_use_and_a_name_of_its_own(): void
     {
         $this->kinds()->seedDefaults();
-        $this->fails(fn () => $this->kinds()->save(['name' => ' ', 'in_recipes' => true]), 'Give the kind a name');
-        $this->fails(fn () => $this->kinds()->save(['name' => 'Odds']), 'Say what it is used for');
-        $this->fails(fn () => $this->kinds()->save(['name' => 'packaging', 'packaging' => true]), 'already a kind called');
+        $cost = $this->costOfSales;
+        $this->fails(fn () => $this->kinds()->save(['name' => ' ', 'in_recipes' => true, 'expense_ledger_id' => $cost]), 'Give the kind a name');
+        $this->fails(fn () => $this->kinds()->save(['name' => 'Odds', 'expense_ledger_id' => $cost]), 'Say what it is used for');
+        $this->fails(fn () => $this->kinds()->save(['name' => 'packaging', 'packaging' => true, 'expense_ledger_id' => $cost]), 'already a kind called');
+    }
+
+    public function test_a_kind_must_say_which_account_its_cost_is_charged_to(): void
+    {
+        $this->fails(fn () => $this->kinds()->save(['name' => 'Gloves', 'used_up' => true]), 'Choose the account its cost is charged to');
+        $this->fails(fn () => $this->kinds()->save(['name' => 'Gloves', 'used_up' => true, 'expense_ledger_id' => 9999]), 'Choose the account its cost is charged to');
+        $k = $this->kinds()->save(['name' => 'Cleaning', 'used_up' => true, 'expense_ledger_id' => $this->costOfSales]);
+        $this->assertTrue($k->used_up);
+        $this->assertSame($this->costOfSales, $k->expense_ledger_id);
+        $row = collect($this->kinds()->list()['kinds'])->firstWhere('code', 'cleaning');
+        $this->assertSame('Food Cost of Sales', $row['expense_ledger']);
     }
 
     public function test_a_kind_can_not_stop_being_used_in_recipes_while_a_recipe_needs_it(): void
@@ -128,8 +158,8 @@ class MenusIngredientKindsTest extends TestCase
         $this->makeIngredient('Wheat flour', $this->g, $this->kg, [['name' => 'Exe']]);
         $this->dish('Pancakes', 100, [['Wheat flour', 200]]);
         $cooking = $this->kind('cooking');
-        $this->fails(fn () => $this->kinds()->save(['name' => 'Cooking ingredient', 'sold_as_is' => true], $cooking), 'in a recipe');
-        $this->kinds()->save(['name' => 'Cooking ingredient', 'in_recipes' => true, 'sold_as_is' => true], $cooking);   // adding a use is fine
+        $this->fails(fn () => $this->kinds()->save(['name' => 'Cooking ingredient', 'sold_as_is' => true, 'expense_ledger_id' => $this->costOfSales], $cooking), 'in a recipe');
+        $this->kinds()->save(['name' => 'Cooking ingredient', 'in_recipes' => true, 'sold_as_is' => true, 'expense_ledger_id' => $this->costOfSales], $cooking);   // adding a use is fine
         $this->assertTrue($cooking->fresh()->sold_as_is);
     }
 

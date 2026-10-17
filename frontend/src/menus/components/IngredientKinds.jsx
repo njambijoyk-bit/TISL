@@ -6,6 +6,7 @@ import { Field, FormError, FormStack, ModalActions, TextInput } from '../../core
 import menusAPI from '../../_shared/api/menus';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, colors } from '../../_shared/theme/tokens';
+import LedgerSelect from './LedgerSelect';
 import { Pill } from './FoodChips';
 
 /**
@@ -19,16 +20,18 @@ const USE_HINT = {
   sold_as_is: 'It can be sold as it is with no recipe (a bottle of soda).',
   free_extra: 'It can be given with a dish at no charge (a ketchup sachet).',
   packaging: 'A takeaway order can use it up (boxes, bags).',
+  used_up: 'The kitchen uses it up, and it is not food (gloves, cleaning, foil, napkins).',
 };
 
-function KindForm({ kind, uses, onClose, onDone }) {
+function KindForm({ kind, uses, ledgers, onClose, onDone }) {
   const [name, setName] = useState(kind?.name ?? '');
   const [on, setOn] = useState(() => Object.fromEntries(Object.keys(uses).map((u) => [u, !!kind?.[u]])));
+  const [ledger, setLedger] = useState(kind?.expense_ledger_id ?? null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { const res = await menusAPI.saveIngredientKind({ name, ...on }, kind?.id); toast.success(res.message); onDone(); } catch (x) { setErr(errMsg(x, 'Could not save the kind')); } finally { setBusy(false); }
+    try { const res = await menusAPI.saveIngredientKind({ name, ...on, ...(ledgers ? { expense_ledger_id: ledger } : {}) }, kind?.id); toast.success(res.message); onDone(); } catch (x) { setErr(errMsg(x, 'Could not save the kind')); } finally { setBusy(false); }
   };
 
   return (
@@ -48,7 +51,11 @@ function KindForm({ kind, uses, onClose, onDone }) {
               ))}
             </div>
           </fieldset>
-          <ModalActions onCancel={onClose} submitLabel="Save kind" busy={busy} disabled={!name.trim() || !Object.values(on).some(Boolean)} />
+          {ledgers && (
+            <LedgerSelect id="kind-ledger" label="Its cost is charged to, when it is used" value={ledger} onChange={setLedger}
+              hint="Food Cost of Sales for food. Kitchen Supplies Used for gloves, cleaning and the like. Throwing it away is waste and is booked to Food Waste Expense, whatever the kind." />
+          )}
+          <ModalActions onCancel={onClose} submitLabel="Save kind" busy={busy} disabled={!name.trim() || !Object.values(on).some(Boolean) || (ledgers && !ledger)} />
         </FormStack>
       </form>
     </Modal>
@@ -75,12 +82,13 @@ export default function IngredientKindsModal({ canWrite, onClose, onChanged }) {
     <Modal title="Kinds of ingredient" onClose={onClose} width={720}>
       <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textMuted }}>A kind says what its ingredients may be used for. Recipes list only the kinds used in recipes.</p>
       {data && !data.ready && <p role="status" style={{ fontSize: '0.82rem' }}>Run database script 190_menus_ingredient_kinds.sql first. Until then every ingredient is treated as a cooking ingredient.</p>}
+      {data?.ready && !data.ledgers_ready && <p role="status" style={{ fontSize: '0.82rem' }}>Run database script 191_menus_kind_ledgers.sql to add the Supplies kind and the account each kind is charged to.</p>}
       {!data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data.ready && (
         <div data-testid="ingredient-kinds">
           {data.kinds.map((k, i) => (
             <div key={k.id} data-kind={k.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: `1px solid ${colors.tint(0.07)}`, flexWrap: 'wrap' }}>
               <strong style={{ minWidth: 150, fontSize: '0.86rem' }}>{k.name}</strong>
-              <span style={{ flex: 1, display: 'flex', gap: 5, flexWrap: 'wrap' }}>{Object.entries(data.uses).filter(([u]) => k[u]).map(([u, label]) => <Pill key={u}>{label.toLowerCase()}</Pill>)}</span>
+              <span style={{ flex: 1, display: 'flex', gap: 5, flexWrap: 'wrap' }}>{Object.entries(data.uses).filter(([u]) => k[u]).map(([u, label]) => <Pill key={u}>{label.toLowerCase()}</Pill>)}{k.expense_ledger && <span style={{ fontSize: '0.74rem', color: colors.textMuted, alignSelf: 'center' }}>charged to {k.expense_ledger}</span>}</span>
               <span style={{ fontSize: '0.74rem', color: colors.textMuted, minWidth: 90, textAlign: 'right' }}>{k.ingredients ? `${k.ingredients} ingredient${k.ingredients === 1 ? '' : 's'}` : 'none yet'}</span>
               {canWrite && (
                 <span style={{ whiteSpace: 'nowrap' }}>
@@ -98,7 +106,7 @@ export default function IngredientKindsModal({ canWrite, onClose, onChanged }) {
           </div>
         </div>
       )}
-      {form && data && <KindForm kind={form.kind} uses={data.uses} onClose={() => setForm(null)} onDone={changed} />}
+      {form && data && <KindForm kind={form.kind} uses={data.uses} ledgers={data.ledgers_ready} onClose={() => setForm(null)} onDone={changed} />}
     </Modal>
   );
 }

@@ -40,7 +40,7 @@ function Checks({ label, options, value, onChange }) {
   );
 }
 
-const USE_WORDS = { in_recipes: 'recipes', sold_as_is: 'sold as it is', free_extra: 'a free extra', packaging: 'packaging' };
+const USE_WORDS = { in_recipes: 'recipes', sold_as_is: 'sold as it is', free_extra: 'a free extra', packaging: 'packaging', used_up: 'used up by the kitchen' };
 const kindHint = (k) => (k ? `Used for: ${Object.keys(USE_WORDS).filter((u) => k[u]).map((u) => USE_WORDS[u]).join(', ')}.` : 'Used for: recipes.');
 
 function IngredientModal({ ingredient, options, onClose, onDone }) {

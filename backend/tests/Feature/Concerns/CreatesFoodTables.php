@@ -28,6 +28,9 @@ trait CreatesFoodTables
         // script 190: the kinds of ingredient, and the column that points at one
         $this->runSqlScripts('190_menus_ingredient_kinds.sql');
         Schema::table('menus_ingredients', fn ($t) => $t->unsignedBigInteger('kind_id')->nullable());
+        // script 191: the "used up" use and the account a kind is charged to
+        Schema::table('menus_ingredient_kinds', fn ($t) => $t->boolean('used_up')->default(false));
+        Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('expense_ledger_id')->nullable());
         // the core stock count (script 30) and script 187's tables and columns for ingredients on it
         if (! Schema::hasTable('stock_counts')) {
             Schema::create('stock_counts', function ($t) {
