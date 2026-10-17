@@ -34,7 +34,7 @@ class MenusIngredientsController extends Controller
     {
         $d = $request->validate([
             'name' => 'required|string|max:120', 'base_unit_id' => 'required|integer|exists:units_of_measure,id', 'alt_unit_id' => 'nullable|integer|exists:units_of_measure,id',
-            'pick_rule' => 'nullable|string|max:16', 'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20',
+            'pick_rule' => 'nullable|string|max:16', 'purchase_ledger_id' => 'nullable|integer', 'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20',
             'notes' => 'nullable|string|max:255', 'is_active' => 'nullable|boolean',
             'variants' => 'nullable|array|max:50', 'variants.*.id' => 'nullable|integer', 'variants.*.name' => 'required|string|max:120', 'variants.*.code' => 'nullable|string|max:40',
             'variants.*.pack_size' => 'nullable|numeric|min:0', 'variants.*.pack_unit_id' => 'nullable|integer', 'variants.*.track_expiry' => 'nullable|boolean', 'variants.*.reorder_level' => 'nullable|numeric|min:0',
@@ -68,7 +68,7 @@ class MenusIngredientsController extends Controller
 
         return [
             'id' => $i->id, 'name' => $i->name, 'base_unit_id' => (int) $i->base_unit_id, 'base_unit' => $base?->code, 'alt_unit_id' => $i->alt_unit_id ? (int) $i->alt_unit_id : null, 'alt_unit' => $alt?->code,
-            'pick_rule' => $i->pick_rule, 'allergens' => $i->allergens ?? [], 'tags' => $i->tags ?? [], 'notes' => $i->notes, 'is_active' => (bool) $i->is_active,
+            'pick_rule' => $i->pick_rule, 'allergens' => $i->allergens ?? [], 'tags' => $i->tags ?? [], 'notes' => $i->notes, 'is_active' => (bool) $i->is_active, 'purchase_ledger_id' => $i->purchase_ledger_id ?? null,
             'variants' => $i->variants->map(fn ($v) => [
                 'id' => (int) $v->id, 'name' => $v->name, 'code' => $v->code, 'rank' => (int) $v->preference, 'track_expiry' => (bool) $v->track_expiry, 'is_allowed' => (bool) $v->is_allowed, 'is_active' => (bool) $v->is_active,
                 'pack_size_base' => $v->pack_size === null ? null : (float) $v->pack_size, 'reorder_level' => $v->reorder_level === null ? null : (float) $v->reorder_level,

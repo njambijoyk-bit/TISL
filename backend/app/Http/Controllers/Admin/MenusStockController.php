@@ -8,7 +8,6 @@ use App\Models\Books\LedgerGroup;
 use App\Models\Books\Voucher;
 use App\Models\Menus\Ingredient;
 use App\Models\Menus\Receipt;
-use App\Models\TaxRate;
 use App\Services\Books\BooksException;
 use App\Services\Menus\IngredientReceiving;
 use App\Services\Menus\IngredientStock;
@@ -57,7 +56,7 @@ class MenusStockController extends Controller
 
         return response()->json([
             'location_id' => $location, 'branches' => $branches, 'ingredients' => $rows, 'installed' => IngredientStock::installed(),
-            'suppliers' => $this->suppliers(), 'tax_rates' => $this->taxRates(),
+            'suppliers' => $this->suppliers(),
         ]);
     }
 
@@ -91,12 +90,12 @@ class MenusStockController extends Controller
         return response()->json(['receipts' => array_slice($out, 0, 60)]);
     }
 
-    /** Body: location_id, date, supplier_ledger_id | paid_ledger_id | payment_method_id, supplier_invoice_no?, due_date?, narration?, lines[{item_id, quantity, unit: pack|alt|base, rate, tax_rate_id?, batch_no?, expiry_date?}]. */
+    /** Body: location_id, date, supplier_ledger_id | paid_ledger_id | payment_method_id, supplier_invoice_no?, due_date?, narration?, lines[{item_id, quantity, unit: pack|alt|base, rate, batch_no?, expiry_date?}]. */
     public function receive(Request $request): JsonResponse
     {
         $d = $request->validate($this->rules() + [
             'supplier_ledger_id' => 'nullable|integer|exists:ledgers,id', 'paid_ledger_id' => 'nullable|integer|exists:ledgers,id', 'payment_method_id' => 'nullable|integer',
-            'supplier_invoice_no' => 'nullable|string|max:60', 'due_date' => 'nullable|date', 'lines.*.tax_rate_id' => 'nullable|integer',
+            'supplier_invoice_no' => 'nullable|string|max:60', 'due_date' => 'nullable|date',
         ]);
 
         return $this->guard(function () use ($d, $request) {
@@ -221,15 +220,6 @@ class MenusStockController extends Controller
         $ids = LedgerGroup::where('parent_id', $group->id)->pluck('id')->push($group->id);
 
         return Ledger::whereIn('group_id', $ids)->where('is_active', true)->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values()->all();
-    }
-
-    private function taxRates(): array
-    {
-        try {
-            return TaxRate::where('is_active', true)->orderBy('name')->get(['id', 'name', 'rate_type', 'rate_value'])->map(fn ($t) => ['id' => $t->id, 'name' => $t->name, 'percent' => $t->rate_type === 'percentage' ? (float) $t->rate_value : null])->values()->all();
-        } catch (\Throwable) {
-            return [];
-        }
     }
 
     private function guard(\Closure $fn): JsonResponse

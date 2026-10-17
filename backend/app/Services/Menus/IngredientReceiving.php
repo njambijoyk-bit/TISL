@@ -29,7 +29,7 @@ class IngredientReceiving
 
     /**
      * @param array{location_id?: ?int, date?: ?string, supplier_ledger_id?: ?int, paid_ledger_id?: ?int, payment_method_id?: ?int, supplier_invoice_no?: ?string, due_date?: ?string, narration?: ?string,
-     *              lines: array<int, array{item_id: int, quantity: float, unit?: string, rate: float, tax_rate_id?: ?int, batch_no?: ?string, expiry_date?: ?string}>} $d
+     *              lines: array<int, array{item_id: int, quantity: float, unit?: string, rate: float, batch_no?: ?string, expiry_date?: ?string}>} $d
      */
     public function receive(array $d, ?User $by): Voucher
     {
@@ -58,7 +58,7 @@ class IngredientReceiving
     {
         $type = VoucherType::byBase(VoucherType::OPENING_STOCK) ?? throw new BooksException('The Opening stock voucher type is not set up yet: run script 24_purchase_batches_and_opening_stock.sql.');
         $location = $this->location($d);
-        $lines = $this->lines($d['lines'] ?? [], false);
+        $lines = $this->lines($d['lines'] ?? []);
         $seen = [];
         foreach ($lines as $l) {
             if (isset($seen[$l['item']->id])) {
@@ -81,7 +81,7 @@ class IngredientReceiving
     private function voucherLine(array $l): array
     {
         return array_filter([
-            'type' => 'ingredient', 'ingredient_item_id' => $l['item']->id, 'quantity' => $l['input_qty'], 'unit' => $l['unit'], 'rate' => $l['rate'], 'tax_rate_id' => $l['tax_rate_id'],
+            'type' => 'ingredient', 'ingredient_item_id' => $l['item']->id, 'quantity' => $l['input_qty'], 'unit' => $l['unit'], 'rate' => $l['rate'],
             'batch_no' => $l['batch_no'], 'expiry_date' => $l['expiry_date'],
         ], fn ($v) => $v !== null);
     }
@@ -132,9 +132,9 @@ class IngredientReceiving
     /**
      * Work out every line before anything is saved: the base quantity, the cost of one base unit, the label for the voucher.
      *
-     * @return array<int, array{item: IngredientItem, input_qty: float, unit: string, qty_base: float, rate: float, amount: float, cost_base: float, label: string, tax_rate_id: ?int, batch_no: ?string, expiry_date: ?string}>
+     * @return array<int, array{item: IngredientItem, input_qty: float, unit: string, qty_base: float, rate: float, amount: float, cost_base: float, label: string, batch_no: ?string, expiry_date: ?string}>
      */
-    private function lines(array $in, bool $withTax = true): array
+    private function lines(array $in): array
     {
         if (! $in) {
             throw new BooksException('Add at least one ingredient to receive.');
@@ -163,7 +163,6 @@ class IngredientReceiving
             $out[] = [
                 'item' => $item, 'input_qty' => $qty, 'unit' => $unit, 'qty_base' => $base, 'rate' => $rate, 'amount' => $amount, 'cost_base' => $base > 0 ? $amount / $base : 0.0,
                 'label' => trim($item->ingredient->name.' – '.$item->name.': '.rtrim(rtrim(number_format($qty, 4, '.', ''), '0'), '.').' '.$this->unitWord($item, $unit, $qty)),
-                'tax_rate_id' => $withTax && ! empty($l['tax_rate_id']) ? (int) $l['tax_rate_id'] : null,
                 'batch_no' => isset($l['batch_no']) && trim((string) $l['batch_no']) !== '' ? mb_substr(trim((string) $l['batch_no']), 0, 60) : null,
                 'expiry_date' => ! empty($l['expiry_date']) ? (string) $l['expiry_date'] : null,
             ];

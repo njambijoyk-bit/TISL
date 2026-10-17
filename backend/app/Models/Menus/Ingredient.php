@@ -17,7 +17,7 @@ class Ingredient extends Model
 
     protected $table = 'menus_ingredients';
 
-    protected $fillable = ['name', 'base_unit_id', 'alt_unit_id', 'pick_rule', 'allergens', 'tags', 'notes', 'is_active'];
+    protected $fillable = ['name', 'base_unit_id', 'alt_unit_id', 'pick_rule', 'allergens', 'tags', 'notes', 'is_active', 'purchase_ledger_id'];
 
     protected $casts = ['allergens' => 'array', 'tags' => 'array', 'is_active' => 'boolean'];
 
@@ -29,6 +29,17 @@ class Ingredient extends Model
     public function altUnit(): BelongsTo
     {
         return $this->belongsTo(UnitOfMeasure::class, 'alt_unit_id');
+    }
+
+    /**
+     * The account this ingredient is bought under: its own, else the one chosen in Menus, Configuration, else null (the books' default purchase account is used). Its tax setting decides the
+     * VAT on a purchase; the stock itself is carried on Food Ingredients Inventory.
+     */
+    public function purchaseAccountId(): ?int
+    {
+        $own = $this->purchase_ledger_id ?? null;
+
+        return $own ? (int) $own : (\App\Services\Menus\MenusSettings::all()['purchase_ledger_id'] ?? null);
     }
 
     public function variants(): HasMany

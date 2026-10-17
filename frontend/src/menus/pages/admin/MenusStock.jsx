@@ -26,7 +26,7 @@ const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' };
 const num = (n, dp = 2) => (n == null ? '—' : Number(n).toLocaleString('en-KE', { maximumFractionDigits: dp }));
 
 /** One line of the receiving form. The unit choices are the ones that make sense for the variant: packs (when it has a pack size), the alternate unit, the base unit. */
-function Line({ line, variants, taxes, onChange, onRemove }) {
+function Line({ line, variants, onChange, onRemove }) {
   const v = variants.find((x) => String(x.id) === String(line.item_id));
   const units = v ? [...(v.pack_size_base ? [['pack', 'packs']] : []), ...(v.alt_unit ? [['alt', v.alt_unit]] : []), ['base', v.base_unit]] : [['base', '']];
   const unitLabel = (units.find(([k]) => k === line.unit) ?? units[0])[1];
@@ -49,12 +49,11 @@ function Line({ line, variants, taxes, onChange, onRemove }) {
         <Field label={`Price of one ${line.unit === 'pack' ? 'pack' : unitLabel || 'unit'}`}><NumberInput aria-label="Price" min="0" step="any" value={line.rate} onChange={(e) => onChange({ rate: e.target.value })} /></Field>
         <button type="button" aria-label="Remove line" onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 6 }}><Trash2 size={15} /></button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8 }}>
-        <Field label="Tax"><SelectInput aria-label="Tax" value={line.tax_rate_id} onChange={(e) => onChange({ tax_rate_id: e.target.value })}><option value="">No tax</option>{taxes.map((t) => <option key={t.id} value={t.id}>{t.name}{t.percent != null ? ` (${t.percent}%)` : ''}</option>)}</SelectInput></Field>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
         <Field label="Batch no (optional)"><TextInput aria-label="Batch number" maxLength={60} value={line.batch_no} onChange={(e) => onChange({ batch_no: e.target.value })} /></Field>
         {v?.track_expiry && <Field label="Expiry date"><TextInput type="date" aria-label="Expiry date" required value={line.expiry_date} onChange={(e) => onChange({ expiry_date: e.target.value })} /></Field>}
         <div style={{ alignSelf: 'end', fontSize: '0.74rem', color: colors.textMuted, paddingBottom: 8 }}>
-          {v && Number(line.quantity) > 0 ? <>= {num(base, 4)} {v.base_unit}{v.alt_unit ? ` (${num(base / v.alt_factor, 4)} ${v.alt_unit})` : ''} · {num(amount)} before tax</> : null}
+          {v && Number(line.quantity) > 0 ? <>= {num(base, 4)} {v.base_unit}{v.alt_unit ? ` (${num(base / v.alt_factor, 4)} ${v.alt_unit})` : ''} · {num(amount)} before tax (the tax follows the ingredient's purchase account)</> : null}
         </div>
       </div>
     </div>
@@ -66,7 +65,7 @@ function ReceiveModal({ data, locationId, onClose, onDone }) {
     id: v.id, name: v.name, ingredient: i.name, pack_size_base: v.pack_size_base, track_expiry: v.track_expiry, base_unit: i.base_unit, alt_unit: i.alt_unit,
     alt_factor: i.alt_factor ?? 1,
   }))), [data]);
-  const blank = () => ({ key: Math.random().toString(36).slice(2), item_id: '', quantity: '', unit: 'base', rate: '', tax_rate_id: '', batch_no: '', expiry_date: '' });
+  const blank = () => ({ key: Math.random().toString(36).slice(2), item_id: '', quantity: '', unit: 'base', rate: '', batch_no: '', expiry_date: '' });
   const [lines, setLines] = useState([blank()]);
   const [loc, setLoc] = useState(locationId);
   const [date, setDate] = useState(new Date().toLocaleDateString('en-CA'));
@@ -83,7 +82,7 @@ function ReceiveModal({ data, locationId, onClose, onDone }) {
     try {
       const payload = {
         location_id: Number(loc), date, narration: note || null,
-        lines: lines.map((l) => ({ item_id: Number(l.item_id), quantity: Number(l.quantity), unit: l.unit, rate: Number(l.rate), tax_rate_id: l.tax_rate_id ? Number(l.tax_rate_id) : null, batch_no: l.batch_no || null, expiry_date: l.expiry_date || null })),
+        lines: lines.map((l) => ({ item_id: Number(l.item_id), quantity: Number(l.quantity), unit: l.unit, rate: Number(l.rate), batch_no: l.batch_no || null, expiry_date: l.expiry_date || null })),
       };
       const res = await menusAPI.receiveStock({ ...payload, supplier_ledger_id: Number(supplier), supplier_invoice_no: invoice || null, due_date: due || null });
       toast.success(res.message, { duration: 6000 }); onDone();
@@ -107,7 +106,7 @@ function ReceiveModal({ data, locationId, onClose, onDone }) {
             <Field label="Due date (optional)"><TextInput type="date" aria-label="Due date" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
-            {lines.map((l) => <Line key={l.key} line={l} variants={variants} taxes={data.tax_rates} onChange={(p) => patch(l.key, p)} onRemove={() => setLines((xs) => (xs.length > 1 ? xs.filter((y) => y.key !== l.key) : xs))} />)}
+            {lines.map((l) => <Line key={l.key} line={l} variants={variants} onChange={(p) => patch(l.key, p)} onRemove={() => setLines((xs) => (xs.length > 1 ? xs.filter((y) => y.key !== l.key) : xs))} />)}
           </div>
           <div><button type="button" style={small} onClick={() => setLines((xs) => [...xs, blank()])}><Plus size={12} /> Add a line</button></div>
           <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>

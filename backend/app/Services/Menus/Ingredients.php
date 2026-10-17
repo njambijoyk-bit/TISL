@@ -7,6 +7,7 @@ use App\Models\Menus\IngredientItem;
 use App\Models\UnitOfMeasure;
 use App\Services\Books\BooksException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Making and changing ingredients and their variants (Menus' own stock, no product behind them). An ingredient has a base unit and may have an alternate unit of the same
@@ -53,6 +54,10 @@ class Ingredients
                 throw new BooksException('Unknown '.$word.': '.implode(', ', $bad).'.');
             }
         }
+        $purchase = ! empty($d['purchase_ledger_id']) ? (int) $d['purchase_ledger_id'] : null;
+        if ($purchase && ($problem = \App\Services\Books\TradingAccounts::problem($purchase, 'purchase'))) {
+            throw new BooksException($problem);
+        }
         $variants = $this->variants(array_values($d['variants'] ?? []), $base, $alt);
         $existing = $id ? Ingredient::findOrFail($id)->variants()->get()->keyBy('id') : collect();
         foreach ($variants as $v) {
@@ -65,12 +70,12 @@ class Ingredients
             $this->assertCanRemove($gone);
         }
 
-        return DB::transaction(function () use ($d, $id, $name, $rule, $base, $alt, $variants, $keep, $existing) {
+        return DB::transaction(function () use ($d, $id, $name, $rule, $base, $alt, $variants, $keep, $existing, $purchase) {
             $ingredient = Ingredient::updateOrCreate(['id' => $id], [
                 'name' => $name, 'base_unit_id' => $base->id, 'alt_unit_id' => $alt?->id, 'pick_rule' => $rule,
                 'allergens' => FoodTags::clean($d['allergens'] ?? [], FoodTags::allergens()), 'tags' => FoodTags::clean($d['tags'] ?? [], FoodTags::tags()),
                 'notes' => isset($d['notes']) && trim((string) $d['notes']) !== '' ? mb_substr(trim((string) $d['notes']), 0, 255) : null, 'is_active' => (bool) ($d['is_active'] ?? true),
-            ]);
+            ] + (Schema::hasColumn('menus_ingredients', 'purchase_ledger_id') ? ['purchase_ledger_id' => $purchase] : []));   // (once script 189 is run)
             if ($existing->isNotEmpty()) {
                 // a variant whose name is being taken by another in the same save would clash on the unique name: move the changing ones aside first
                 foreach ($existing as $e) {

@@ -1363,7 +1363,14 @@ class VoucherService
         $unit = (string) ($l['unit'] ?? 'base');
         $factor = $item->toBase($unit, 1.0);
         $ing = $item->ingredient;
-        $line = $this->customLine(['description' => $ing->name, 'ledger_id' => \App\Services\Menus\FoodLedgers::inventory()] + $l, $ctx);
+        // the stock is carried on Food Ingredients Inventory, but the purchase account decides the tax, as a product's does: the ingredient's own, else the one in Menus, else the voucher type's, else the books' default
+        unset($l['tax_rate_id']);
+        $taxAccount = $ing->purchaseAccountId() ?: ($ctx['type']->default_ledger_id ?: AccountingSetting::current()->default_purchase_ledger_id);
+        $line = $this->customLine(['description' => $ing->name, 'ledger_id' => \App\Services\Menus\FoodLedgers::inventory(), 'tax_account_id' => $taxAccount] + $l, $ctx);
+        if ($base === VoucherType::OPENING_STOCK) {
+            $line['taxes'] = [];   // what a business starts with was bought before: no tax now
+            $this->summariseTaxes($line);
+        }
         $line['item_type'] = 'ingredient';
         $line['ingredient_item_id'] = $item->id;
         $line['variant_label'] = $item->name;

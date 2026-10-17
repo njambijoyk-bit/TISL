@@ -29,7 +29,7 @@ export default function MenusSettings() {
   const save = async () => {
     setBusy(true);
     try {
-      const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
+      const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, purchase_ledger_id: s.purchase_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
         ingredient_stock_ledger_id: s.ingredient_stock_ledger_id || null, food_cost_ledger_id: s.food_cost_ledger_id || null, food_waste_ledger_id: s.food_waste_ledger_id || null,
         tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
         qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
@@ -55,6 +55,8 @@ export default function MenusSettings() {
             <FormStack gap={18}>
               <SalesAccountSelect kind="sales" scope="product" label="Sales account for dishes" value={s.sales_ledger_id} disabled={!canEdit || !ready}
                 onChange={(v) => setS((x) => ({ ...x, sales_ledger_id: v }))} hint="Every new dish is booked here unless you choose another. The account decides the tax." />
+              <SalesAccountSelect kind="purchase" label="Purchase account for ingredients" value={s.purchase_ledger_id} disabled={!canEdit || !ready}
+                onChange={(v) => setS((x) => ({ ...x, purchase_ledger_id: v }))} hint="Used for an ingredient that has none of its own. The account decides the VAT on what you buy; the stock is still carried on Food Ingredients Inventory. Empty: the books' default purchase account." />
               <Field label="Allergen note shown under the menu" htmlFor="ms-allergen" hint="Shown on the dishes page and, later, on the public menu.">
                 <TextArea id="ms-allergen" rows={3} maxLength={600} value={s.allergen_note ?? ''} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, allergen_note: e.target.value }))} />
               </Field>

@@ -8,7 +8,7 @@ Prices are made up. Run database scripts 181 to 186 first. Every number below wa
 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
-- **Menus, Configuration:** under the account selects, **Ingredient stock**, **Cost of food** and **Food waste** are empty on purpose: empty means the accounts the scripts made, **Food Ingredients Inventory** (current asset), **Food Cost of Sales** and **Food Waste Expense** (direct expenses). Choose the **Sales account for dishes** (it decides the tax). Suppliers are the ledgers under **Sundry Creditors**; make one called "Naivas Wholesale" and one called "Unga Traders".
+- **Menus, Configuration:** under the account selects, **Ingredient stock**, **Cost of food** and **Food waste** are empty on purpose: empty means the accounts the scripts made, **Food Ingredients Inventory** (current asset), **Food Cost of Sales** and **Food Waste Expense** (direct expenses). Choose the **Sales account for dishes** (it decides the tax). Choose the **Purchase account for ingredients** too (use **Purchases**, VAT-able 16%): it is the account an ingredient is bought under when it has none of its own, and it decides the VAT. Run `189_menus_purchase_accounts.sql` first: it adds the ingredient purchase account and two purchase accounts beside Purchases, **Purchases - exempt** and **Purchases - zero rated**. Suppliers are the ledgers under **Sundry Creditors**; make one called "Naivas Wholesale" and one called "Unga Traders".
 - **Kitchen stations** (Menus, Configuration, the stations card): Hot kitchen, Bar, Pastry.
 
 ## 1. Ingredients (Menus, Ingredients)
@@ -22,6 +22,7 @@ Press **New ingredient** once per row of table 1A, then add its variants from ta
 | Name | The ingredient the recipes use ("Wheat flour"). |
 | Base unit | The smallest unit. Stock is kept in it (g, ml, each). |
 | Alternate unit | A bigger unit of the same kind (kg for g, L for ml) for typing, buying and counting. Optional; none for things counted by the piece. |
+| Purchase account (decides the VAT) | The account the tax on buying this ingredient follows, as a product's purchase account does: **Purchases - exempt** for maize flour, milk and eggs, **Purchases** (VAT-able) for cooking oil and packaged goods, **Purchases - zero rated** for zero-rated goods. Empty uses the one in Menus, Configuration. The stock is still carried on Food Ingredients Inventory and costed before tax. Opening stock is never taxed. |
 | When there are several variants | How the kitchen picks: **the preferred one first** (top of the list, then the next), **the cheapest first**, or **the one that expires first**. |
 | Variant name | The version you buy ("Exe 2 kg"). Variants are listed in order of preference; the arrows move them. |
 | Code (optional) | Your own reference (supplier code, SKU). It is only kept for your records; nothing uses it yet. |

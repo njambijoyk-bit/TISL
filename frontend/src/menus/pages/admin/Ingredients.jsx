@@ -10,6 +10,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import MenusNav from '../../components/MenusNav';
 import { AllergenChips } from '../../components/FoodChips';
 
@@ -44,6 +45,7 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
   const [baseId, setBaseId] = useState(ingredient?.base_unit_id ?? '');
   const [altId, setAltId] = useState(ingredient?.alt_unit_id ?? '');
   const [rule, setRule] = useState(ingredient?.pick_rule ?? 'preferred');
+  const [purchase, setPurchase] = useState(ingredient?.purchase_ledger_id ?? '');
   const [allergens, setAllergens] = useState(ingredient?.allergens ?? []);
   const [tags, setTags] = useState(ingredient?.tags ?? []);
   const [notes, setNotes] = useState(ingredient?.notes ?? '');
@@ -77,7 +79,7 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const res = await menusAPI.saveStockIngredient({
-        name, base_unit_id: Number(baseId), alt_unit_id: altId ? Number(altId) : null, pick_rule: rule, allergens, tags, notes: notes || null, is_active: active,
+        name, base_unit_id: Number(baseId), alt_unit_id: altId ? Number(altId) : null, pick_rule: rule, purchase_ledger_id: purchase || null, allergens, tags, notes: notes || null, is_active: active,
         variants: items.map((x) => ({
           id: x.id ?? undefined, name: x.name, code: x.code || null, pack_size: x.pack_size === '' ? null : Number(x.pack_size), pack_unit_id: x.pack_unit_id ? Number(x.pack_unit_id) : null,
           track_expiry: !!x.track_expiry, is_allowed: x.is_allowed, is_active: x.is_active, reorder_level: x.level_base == null || x.level_base === '' ? null : Number(x.level_base),
@@ -108,6 +110,8 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
               <SelectInput id="ing-rule" value={rule} onChange={(e) => setRule(e.target.value)}>{Object.entries(options.pick_rules).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput>
             </Field>
           </div>
+          <SalesAccountSelect kind="purchase" label="Purchase account (decides the VAT)" value={purchase} onChange={(v) => setPurchase(v)}
+            hint="The account the tax on buying this ingredient follows: for example Purchases - exempt for maize flour, Purchases for cooking oil. Empty: the purchase account in Menus, Configuration, else the books' default." />
 
           <div>
             <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 6 }}>Variants, in order of preference (the kitchen takes the first, then the next)</div>
