@@ -11,7 +11,6 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
-import MenusNav from '../../components/MenusNav';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const when = (iso) => new Date(iso).toLocaleString('en-KE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -117,7 +116,6 @@ export default function MenusCooking() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1180, margin: '0 auto' }} data-testid="menus-cooking">
-        <MenusNav />
         <HubHeader title="Cakes & catering" description="Requests for made-to-order cakes and catering: price them, take the deposit, make them. This page refreshes by itself." />
         {data && data.ready === false && <p role="status" style={{ ...card, padding: 14, fontSize: '0.85rem' }}>Run database script 143_menus_cooking.sql first.</p>}
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap', margin: '0 0 14px', fontSize: '0.82rem', color: colors.textMuted }}>

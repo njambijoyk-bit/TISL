@@ -12,7 +12,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import DishOptionsModal from '../../components/DishOptionsModal';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
 import { useMenusBranch } from '../../lib/menusBranch';
@@ -140,7 +139,6 @@ export default function Dishes() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }} data-testid="dishes">
-        <MenusNav />
         <HubHeader title="Dishes" description="What customers can order. Each dish has a price, a recipe that says what it uses, and allergens that follow from its ingredients." />
         {data && !data.settings_ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Dishes are not set up yet: run database script 134_menus_dishes.sql in Workbench.</p>}
         {data?.settings_ready && !data.settings.sales_ledger_id && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Choose the sales account dishes are booked under in <Link to="/admin/menus/settings">Menus → Configuration</Link>, so every dish has the right tax.</p>}

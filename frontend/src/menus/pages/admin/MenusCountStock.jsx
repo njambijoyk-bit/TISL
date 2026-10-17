@@ -10,7 +10,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import CountStockGrid from '../../components/CountStockGrid';
 import { useMenusBranch } from '../../lib/menusBranch';
 
@@ -41,7 +40,6 @@ export default function MenusCountStock() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }} data-testid="count-stock">
-        <MenusNav />
         <HubHeader title="Count stock" description="Count the shelf as one sheet. Type what is really there; the difference shows at once, and nothing changes until you save. What you type is kept on this computer meanwhile." />
         {data && !data.installed && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 182_menus_ingredient_stock.sql first.</p>}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'end', marginBottom: 12 }}>

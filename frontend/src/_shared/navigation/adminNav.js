@@ -237,18 +237,18 @@ export const ADMIN_NAV = [
     label: 'Menus',
     module: MODULES.MENUS,
     items: [
-      { id: 'till', title: 'Till', icon: Coins, color: '#10b981', path: '/admin/menus/till', perm: ['menus.view', 'menus.till'], keywords: 'till cashier pay tab receipt counter' },
-      { id: 'floor', title: 'Floor', icon: Armchair, color: '#8b5cf6', path: '/admin/menus/floor', perm: ['menus.view', 'menus.till'], keywords: 'tables floor plan seat bill qr' },
-      { id: 'orders', title: 'Orders', icon: BellRing, color: '#ef4444', path: '/admin/menus/orders', perm: 'menus.view', keywords: 'orders pickup delivery board' },
-      { id: 'plans', title: 'Meal plans', icon: Soup, color: '#16a34a', path: '/admin/menus/plans', perm: 'menus.view', keywords: 'meal plan subscription weekly delivery' },
-      { id: 'custom', title: 'Cakes & catering', icon: CakeSlice, color: '#e11d48', path: '/admin/menus/custom', perm: 'menus.view', keywords: 'cake catering private chef quote deposit' },
-      { id: 'kitchen', title: 'Kitchen', icon: ChefHat, color: '#0ea5e9', path: '/admin/menus/kitchen', perm: 'menus.view', keywords: 'kitchen screen tickets station' },
-      { id: 'chefs', title: 'Chefs', icon: Users, color: '#ec4899', path: '/admin/menus/chefs', perm: 'menus.view', keywords: 'chef certificates on duty' },
-      { id: 'rota', title: 'Rota', icon: CalendarDays, color: '#6366f1', path: '/admin/menus/rota', perm: 'menus.view', keywords: 'rota shifts days off swap overtime clock' },
-      { id: 'operations', title: 'Operations', icon: ClipboardCheck, color: '#14b8a6', path: '/admin/menus/operations', perm: 'menus.view', keywords: 'prep list waste what to buy' },
+      { id: 'till', inTabsOf: 'dishes', title: 'Till', icon: Coins, color: '#10b981', path: '/admin/menus/till', perm: ['menus.view', 'menus.till'], keywords: 'till cashier pay tab receipt counter' },
+      { id: 'floor', inTabsOf: 'dishes', title: 'Floor', icon: Armchair, color: '#8b5cf6', path: '/admin/menus/floor', perm: ['menus.view', 'menus.till'], keywords: 'tables floor plan seat bill qr' },
+      { id: 'orders', inTabsOf: 'dishes', title: 'Orders', icon: BellRing, color: '#ef4444', path: '/admin/menus/orders', perm: 'menus.view', keywords: 'orders pickup delivery board' },
+      { id: 'plans', inTabsOf: 'dishes', title: 'Meal plans', icon: Soup, color: '#16a34a', path: '/admin/menus/plans', perm: 'menus.view', keywords: 'meal plan subscription weekly delivery' },
+      { id: 'custom', inTabsOf: 'dishes', title: 'Cakes & catering', icon: CakeSlice, color: '#e11d48', path: '/admin/menus/custom', perm: 'menus.view', keywords: 'cake catering private chef quote deposit' },
+      { id: 'kitchen', inTabsOf: 'dishes', title: 'Kitchen', icon: ChefHat, color: '#0ea5e9', path: '/admin/menus/kitchen', perm: 'menus.view', keywords: 'kitchen screen tickets station' },
+      { id: 'chefs', inTabsOf: 'dishes', title: 'Chefs', icon: Users, color: '#ec4899', path: '/admin/menus/chefs', perm: 'menus.view', keywords: 'chef certificates on duty' },
+      { id: 'rota', inTabsOf: 'dishes', title: 'Rota', icon: CalendarDays, color: '#6366f1', path: '/admin/menus/rota', perm: 'menus.view', keywords: 'rota shifts days off swap overtime clock' },
+      { id: 'operations', inTabsOf: 'dishes', title: 'Operations', icon: ClipboardCheck, color: '#14b8a6', path: '/admin/menus/operations', perm: 'menus.view', keywords: 'prep list waste what to buy' },
       {
         id: 'dishes', title: 'Dishes', icon: UtensilsCrossed, color: '#f97316', path: '/admin/menus/dishes', perm: 'menus.view', keywords: 'menu dish food allergens price sold out 86',
-        tabs: MENUS_TABS,
+        tabs: MENUS_TABS, tabsTitle: 'Menus',
       },
       { id: 'menus-stock', title: 'Stock', icon: Warehouse, color: '#0ea5e9', path: '/admin/menus/stock', perm: 'menus.view', keywords: 'ingredient stock receive receiving purchase supplier opening on hand packs expiry batch' },
       { id: 'ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e', path: '/admin/menus/ingredients', perm: 'menus.view', keywords: 'ingredient flour oil substitutes allergens stock items' },
@@ -554,6 +554,19 @@ export function findActive(nav, pathname, search = '') {
     }
   }
   return { item: best.item, tab: best.tab };
+}
+
+/**
+ * The item and tab the strip above a page shows. Most pages show their own item's tabs; a page that is an item of its own in the sidebar but belongs to a family of pages (every Menus page:
+ * Till, Floor, Rota... are items, and the tabs live on the Dishes item) shows the family's strip with its own tab lit.
+ */
+export function stripFor(nav, active, pathname, user) {
+  const host = active.item?.inTabsOf ? ADMIN_NAV.flatMap((g) => g.items).find((i) => i.id === active.item.inTabsOf) : null;
+  if (!host) return active;
+  const shown = { ...host, tabs: host.tabs.filter((t) => allowed(t, user, true)) };   // a cashier who may only use the Till and Floor sees just those
+  const tab = liveTabs(shown).find((t) => pathMatches(pathname, t.path.split('?')[0], t.exact)) ?? null;
+
+  return { item: shown, tab };
 }
 
 /** Every place Ctrl+K can jump to: items, then their tabs. */

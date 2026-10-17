@@ -11,7 +11,6 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
-import MenusNav from '../../components/MenusNav';
 
 const STANDING = { valid: ['ok', 'Valid'], expiring: ['warn', 'Runs out soon'], expired: ['danger', 'Has run out'], none: ['neutral', 'No end date'] };
 
@@ -122,7 +121,6 @@ export default function MenusChefs() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="menus-chefs">
-        <MenusNav />
         <HubHeader title="Chefs" description="The people in your kitchen: who is on now, the certificates they must hold, and what guests see of them." />
         {data && !data.ready && <p role="status" style={{ color: colors.textMuted }}>Run database script 141_menus_chefs.sql to switch chefs on.</p>}
         {data?.ready && (

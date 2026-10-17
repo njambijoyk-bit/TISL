@@ -9,7 +9,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import LedgerSelect from '../../components/LedgerSelect';
 import ChannelsCard from '../../components/ChannelsCard';
 import StationsCard from '../../components/StationsCard';
@@ -47,7 +46,6 @@ export default function MenusSettings() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 820, margin: '0 auto' }} data-testid="menus-settings">
-        <MenusNav />
         <HubHeader title="Menus configuration" description="Where dish sales are booked, and the words on the menu and the receipt." />
         {!s ? <p style={{ color: colors.textMuted, fontSize: '0.82rem' }}>Loading…</p> : (
           <div style={{ ...card, padding: 20 }}>

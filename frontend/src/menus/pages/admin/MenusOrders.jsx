@@ -11,7 +11,6 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
-import MenusNav from '../../components/MenusNav';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const hhmm = (iso) => new Date(iso).toLocaleString('en-KE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -89,7 +88,6 @@ export default function MenusOrders() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1180, margin: '0 auto' }} data-testid="menus-orders">
-        <MenusNav />
         <HubHeader title="Orders" description="Online pickup and delivery orders. This page refreshes by itself." />
         <div style={{ display: 'flex', gap: 14, alignItems: 'center', margin: '0 0 14px', fontSize: '0.82rem', color: colors.textMuted }}>
           {data && data.waiting_for_payment > 0 && <Pill tone="warn">{data.waiting_for_payment} waiting for payment</Pill>}

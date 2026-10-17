@@ -10,7 +10,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import { Pill } from '../../components/FoodChips';
 
 /**
@@ -118,7 +117,6 @@ export default function FoodTags() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1000, margin: '0 auto' }} data-testid="food-tags">
-        <MenusNav />
         <HubHeader title="Allergens" description="The allergens and the “what it is” tags that ingredients carry, and which diet badges each one rules out." />
         {data && !data.ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 186_menus_food_tags.sql first. Until then Menus uses its built-in lists, which can be read but not changed here.</p>}
         {!data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data.ready && (

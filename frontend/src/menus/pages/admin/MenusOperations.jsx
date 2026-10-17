@@ -10,7 +10,6 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
-import MenusNav from '../../components/MenusNav';
 import { useMenusBranch } from '../../lib/menusBranch';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -214,7 +213,6 @@ export default function MenusOperations() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="menus-operations">
-        <MenusNav />
         <HubHeader title="Operations" description="What to make tomorrow, what was wasted, and what to buy." />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }} className="no-print">
           <div role="tablist" aria-label="Operations" style={{ display: 'flex', gap: 8 }}>

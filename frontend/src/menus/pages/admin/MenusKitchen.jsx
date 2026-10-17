@@ -8,7 +8,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import { printTicket } from '../../lib/ticketPrint';
 
 const POLL_MS = 6000;
@@ -115,7 +114,6 @@ export default function MenusKitchen() {
   return (
     <AdminLayout>
       <div ref={frame} style={{ padding: '32px 24px', maxWidth: 1400, margin: '0 auto' }} data-testid="menus-kitchen">
-        <MenusNav />
         <HubHeader title="Kitchen" description="One screen for each station, and the pass. This page refreshes by itself: put it on a tablet or a monitor in the kitchen." />
         {stations && !ready && <p role="status" style={{ color: colors.textMuted }}>Run database script 137_menus_kitchen.sql to switch the kitchen screens on.</p>}
         {stations && ready && stations.length === 0 && <p role="status" style={{ color: colors.textMuted }}>No station yet. Add one under Menus → Configuration → Kitchen stations (for example Grill, Cold, Bar).</p>}

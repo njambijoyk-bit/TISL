@@ -11,7 +11,6 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
-import MenusNav from '../../components/MenusNav';
 import { AllergenChips } from '../../components/FoodChips';
 
 /**
@@ -192,7 +191,6 @@ export default function Ingredients() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="ingredients">
-        <MenusNav />
         <HubHeader title="Ingredients" description="The smallest things the kitchen stocks. Each has a base unit and, if you like, a bigger one, and variants (Exe, Pembe, Soko) that are bought and counted." />
         <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 14px' }}>
           {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ ingredient: null })}><Plus size={14} /> New ingredient</button>}

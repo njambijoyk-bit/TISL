@@ -11,7 +11,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import { BatchModal, TransferModal } from '../../components/StockActions';
 import ReceiveIngredients from '../../components/ReceiveIngredients';
 import IngredientVariantPicker from '../../components/IngredientVariantPicker';
@@ -76,7 +75,6 @@ export default function MenusStock() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="menus-stock">
-        <MenusNav />
         <HubHeader title="Stock" description="What is on the kitchen's shelf, counted in packs, kilograms and grams, and how it got there. Receive deliveries here: the supplier's bill goes into the books and the stock onto the shelf." />
         {data && !data.installed && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 182_menus_ingredient_stock.sql first: until then stock can be read but not received.</p>}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, margin: '0 0 14px', flexWrap: 'wrap' }}>

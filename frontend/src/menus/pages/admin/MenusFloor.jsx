@@ -11,7 +11,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus, canRunFoodTill } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import { useMenusBranch } from '../../lib/menusBranch';
 
 const CELL = 44;   // pixels per grid square on the plan
@@ -106,7 +105,6 @@ export default function MenusFloor() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1400, margin: '0 auto' }} data-testid="menus-floor">
-        <MenusNav />
         <HubHeader title="Floor" description="Every table at a glance. Tap a table to seat guests, take their order, ask for the bill or clean it." />
         {data && !data.ready && <p role="status" style={{ color: colors.textMuted }}>Run database script 139_menus_floor.sql to switch the floor on.</p>}
         {data?.ready && (

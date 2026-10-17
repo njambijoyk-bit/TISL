@@ -44,7 +44,7 @@ export default function SectionTabs({ item, activeTab }) {
           fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
           color: item.color,
         }}>
-          <Icon size={14} /> {item.title}
+          <Icon size={14} /> {item.tabsTitle ?? item.title}
         </span>
 
         {tabs.map((tab, i) => {
@@ -65,6 +65,8 @@ export default function SectionTabs({ item, activeTab }) {
                 ref={isActive ? activeRef : undefined}
                 to={tab.path}
                 aria-current={isActive ? 'page' : undefined}
+                title={tab.key ? `Press G, then ${tab.key}` : tab.title === 'Configuration' && item.tabsTitle ? 'Press F12' : undefined}
+                aria-keyshortcuts={tab.key ? `g ${tab.key.toLowerCase()}` : undefined}
                 style={{
                   display: 'flex', alignItems: 'center', flexShrink: 0,
                   padding: '0 12px',
@@ -76,6 +78,7 @@ export default function SectionTabs({ item, activeTab }) {
                 }}
               >
                 {tab.title}
+                {tab.key && <kbd aria-hidden style={{ marginLeft: 6, padding: '0 4px', fontSize: '0.6rem', fontFamily: 'inherit', fontWeight: 700, lineHeight: '14px', borderRadius: 4, border: '1px solid currentColor', opacity: 0.45 }}>{tab.key}</kbd>}
               </Link>
             </Fragment>
           );

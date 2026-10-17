@@ -10,7 +10,6 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
-import MenusNav from '../../components/MenusNav';
 import { useMenusBranch } from '../../lib/menusBranch';
 
 /**
@@ -145,7 +144,6 @@ export default function Recipes() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="recipes">
-        <MenusNav />
         <HubHeader title="Recipes" description="What each dish is made of, in ingredients. It shows what a portion costs from the stock on the shelf and how many portions could be made now." />
         {data && !data.installed && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 183_menus_recipes_own.sql first: until then recipes can not be saved.</p>}
         <div style={{ minWidth: 200, maxWidth: 260, margin: '0 0 14px' }}>

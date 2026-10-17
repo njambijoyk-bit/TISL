@@ -11,7 +11,6 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
-import MenusNav from '../../components/MenusNav';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const DAYS = [[1, 'Mon'], [2, 'Tue'], [3, 'Wed'], [4, 'Thu'], [5, 'Fri'], [6, 'Sat'], [7, 'Sun']];
@@ -178,7 +177,6 @@ export default function MenusPlans() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1180, margin: '0 auto' }} data-testid="menus-plans">
-        <MenusNav />
         <HubHeader title="Meal plans" description="A rotating weekly menu delivered on the days a customer chooses, paid a week ahead. Switch it on under Menus → Configuration." />
         {data && data.ready === false && <p role="status" style={{ ...card, padding: 14, fontSize: '0.85rem' }}>Run database script 150_menus_plans.sql first.</p>}
         <div role="tablist" aria-label="Meal plans" style={{ display: 'flex', gap: 8, margin: '0 0 16px', flexWrap: 'wrap' }}>

@@ -11,7 +11,6 @@ import { canViewMenus, canRunFoodTill } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import DishPicker from '../../components/DishPicker';
-import MenusNav from '../../components/MenusNav';
 import { useBasket, lineTotal } from '../../lib/basket';
 import { printReceipt } from '../../lib/receiptPrint';
 
@@ -161,7 +160,6 @@ export default function MenusTill() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1500, margin: '0 auto' }} data-testid="menus-till">
-        <MenusNav />
         <HubHeader title="Till" description="Ring up a sale and take the money, or open a tab for a table." />
         {data && !data.on && <p role="status" style={{ color: colors.textMuted }}>The counter is switched off. Switch it on under Menus → Configuration → Ways to order (run database script 138_menus_counter.sql first if it is not listed).</p>}
         {data?.on && (

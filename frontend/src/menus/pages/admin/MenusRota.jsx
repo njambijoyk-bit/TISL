@@ -11,7 +11,6 @@ import { canViewMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
-import MenusNav from '../../components/MenusNav';
 
 const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const addDays = (s, n) => { const d = new Date(`${s}T12:00:00`); d.setDate(d.getDate() + n); return iso(d); };
@@ -502,7 +501,6 @@ export default function MenusRota() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1240, margin: '0 auto' }} data-testid="menus-rota">
-        <MenusNav />
         <HubHeader title="Chef rota" description="Plan the week, publish it and each chef is told their own shifts. Changing a published shift tells the chef again." />
         {data?.ready && <ClockCard clock={data.clock} onChange={load} />}
         {data && data.ready === false && <p role="status" style={{ ...card, padding: 14, fontSize: '0.85rem' }}>Run database script 145_menus_rota.sql first.</p>}
