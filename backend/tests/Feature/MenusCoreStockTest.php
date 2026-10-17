@@ -111,6 +111,23 @@ class MenusCoreStockTest extends TestCase
         $this->assertEquals([6000, 2000, 8000], [$m['opening']['qty'], $m['months'][0]['inward']['qty'], $m['closing']['qty']]);
     }
 
+    public function test_the_stock_query_lists_one_row_for_each_branch_and_batch_not_one_for_each_lot(): void
+    {
+        $this->receive($this->exe, 1, 260);
+        $this->receive($this->exe, 2, 260);
+        $this->receive($this->pembe, 1, 2400, 'pack', ['expiry_date' => '2027-01-01']);
+        $places = (new IngredientItemSource())->places($this->exe);
+        $this->assertSame([[ 'Kitchen', 6000.0 ]], array_map(fn ($p) => [$p['location'], (float) $p['quantity']], $places), 'three packs in two lots, one row');
+    }
+
+    public function test_a_reversal_with_nothing_to_hide_is_a_movement_of_its_own(): void
+    {
+        // an older receipt's reversal names a voucher whose movements were never tied to it: the stock still went out, so the journal must show it
+        $this->receive($this->exe, 1, 260);   // +2000
+        StockMove::create(['item_id' => $this->exe, 'location_id' => self::BRANCH, 'batch_id' => StockBatch::value('id'), 'kind' => 'reversal', 'quantity' => -2000, 'unit_cost' => 0.13, 'voucher_id' => 999, 'moved_on' => '2026-10-16']);
+        $this->assertSame(0.0, (float) StockMovement::where('item_type', IngredientItemSource::TYPE)->where('reversed', false)->sum('quantity'));
+    }
+
     // ------------------------------------------------------------ debit notes
 
     private function debit(\App\Models\Books\Voucher $purchase, int $item, float $packs, bool $moves = true): \App\Models\Books\Voucher

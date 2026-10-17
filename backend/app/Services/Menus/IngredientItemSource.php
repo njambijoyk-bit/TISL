@@ -48,12 +48,19 @@ class IngredientItemSource implements StockItemSource
             ->limit($limit)->pluck('it.id')->map(fn ($i) => (int) $i)->all();
     }
 
-    /** Where it is on the shelf now, one row per lot, for the stock query card. @return array<int, array{location: string, batch_no: ?string, expiry_date: ?string, status: string, quantity: float}> */
+    /** Where it is on the shelf now, one row for each branch, batch number, expiry date and status (lots with the same of those are added together), for the stock query card. @return array<int, array{location: string, batch_no: ?string, expiry_date: ?string, status: string, quantity: float}> */
     public function places(int $id, ?int $location = null): array
     {
-        return StockBatch::where('item_id', $id)->where('qty_left', '>', 0)->when($location, fn ($q) => $q->where('location_id', $location))->orderBy('expiry_date')->orderBy('id')->get()
-            ->map(fn (StockBatch $b) => ['location' => (string) DB::table('locations')->where('id', $b->location_id)->value('name'), 'batch_no' => $b->batch_no, 'expiry_date' => $b->expiry_date?->toDateString(),
-                'status' => $b->status === 'ok' ? 'active' : $b->status, 'quantity' => round((float) $b->qty_left, 4)])->all();
+        $out = [];
+        foreach (StockBatch::where('item_id', $id)->where('qty_left', '>', 0)->when($location, fn ($q) => $q->where('location_id', $location))->orderBy('expiry_date')->orderBy('id')->get() as $b) {
+            $place = (string) DB::table('locations')->where('id', $b->location_id)->value('name');
+            $status = $b->status === 'ok' ? 'active' : $b->status;
+            $key = implode('|', [$b->location_id, $b->batch_no, $b->expiry_date?->toDateString(), $status]);
+            $out[$key] ??= ['location' => $place, 'batch_no' => $b->batch_no, 'expiry_date' => $b->expiry_date?->toDateString(), 'status' => $status, 'quantity' => 0.0];
+            $out[$key]['quantity'] = round($out[$key]['quantity'] + (float) $b->qty_left, 4);
+        }
+
+        return array_values($out);
     }
 
     /** What one base unit last cost. */

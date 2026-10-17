@@ -25,9 +25,11 @@ class StockMoveObserver
         $qty = (float) $m->quantity;
         if ($m->kind === 'reversal' && $m->voucher_id) {
             // a voucher cancelled: what it brought in is hidden from the journal, as a cancelled product voucher's movements are
-            StockMovement::where('voucher_id', $m->voucher_id)->where('item_type', IngredientItemSource::TYPE)->where('item_id', $m->item_id)->update(['reversed' => true]);
-
-            return;
+            $hidden = StockMovement::where('voucher_id', $m->voucher_id)->where('item_type', IngredientItemSource::TYPE)->where('item_id', $m->item_id)->where('reversed', false)->update(['reversed' => true]);
+            if ($hidden > 0) {
+                return;
+            }
+            // nothing under that voucher to hide (an older receipt whose movements were not tied to its voucher): the reversal is a movement of its own
         }
         StockMovement::create([
             'voucher_id' => $m->voucher_id, 'voucher_item_id' => null, 'variant_id' => null, 'location_id' => $m->location_id, 'quantity' => $qty,
