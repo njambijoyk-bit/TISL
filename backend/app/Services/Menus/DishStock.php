@@ -56,6 +56,7 @@ class DishStock
         $date = $v->date instanceof Carbon ? $v->date->toDateString() : (string) $v->date;
         $uses = [];
         $total = 0.0;
+        $byKind = [];
         foreach ($items as $it) {
             $dish = Dish::find($it->dish_id);
             $recipe = $dish ? DishRecipe::where('dish_id', $dish->id)->where('is_active', true)->first() : null;
@@ -71,10 +72,13 @@ class DishStock
             }
             $uses[] = $r['use_id'];
             $total += $r['cost'];
+            foreach (($r['by_kind'] ?? [0 => $r['cost']]) as $kindId => $amount) {
+                $byKind[$kindId] = ($byKind[$kindId] ?? 0.0) + $amount;
+            }
         }
         $total = round($total, 2);
         if ($uses && $total > 0) {
-            $journal = $this->use->book(FoodLedgers::cost(), FoodLedgers::inventory(), $total, "Food used for {$v->voucher_number}", $loc, Carbon::parse($date), $by);
+            $journal = $this->use->bookKinds($byKind, 'cost', "Food used for {$v->voucher_number}", $loc, Carbon::parse($date), $by);
             StockUse::whereIn('id', $uses)->update(['journal_id' => $journal->id]);
         }
     }

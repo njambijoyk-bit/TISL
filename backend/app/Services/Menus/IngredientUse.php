@@ -194,7 +194,9 @@ class IngredientUse
             $on = isset($o['date']) ? Carbon::parse($o['date']) : today();
             $use = StockUse::create(['ref_type' => $ref['type'], 'ref_id' => $ref['id'], 'dish_id' => $r->dish_id, 'recipe_id' => $r->id, 'location_id' => $locationId, 'portions' => $portions, 'cost' => 0, 'status' => 'posted', 'created_by' => $by?->id]);
             $total = 0.0;
+            $byKind = [];   // what it cost, by the kind of ingredient (0: none), for the books
             foreach ($this->needs($r, $portions, $o['uses'] ?? []) as $row) {
+                $kindId = (int) ($row['ingredient']->kind_id ?? 0);
                 foreach ($this->allocate($row['ingredient'], $row['qty'], $locationId, $on, true) as $a) {
                     /** @var StockBatch $b */
                     $b = $a['batch'];
@@ -204,17 +206,18 @@ class IngredientUse
                         'ref_type' => $ref['type'], 'ref_id' => $ref['id'], 'moved_on' => $on->toDateString(), 'created_by' => $by?->id,
                     ]);
                     $total += $a['qty'] * (float) $b->unit_cost;
+                    $byKind[$kindId] = ($byKind[$kindId] ?? 0.0) + $a['qty'] * (float) $b->unit_cost;
                 }
             }
             $total = round($total, 2);
             $journal = null;
             if ($total > 0 && ($o['post'] ?? true)) {
                 $dish = $r->dish?->name ?? 'a dish';
-                $journal = $this->book(FoodLedgers::cost(), FoodLedgers::inventory(), $total, $o['narration'] ?? "Ingredients used for {$this->fmt($portions)} x {$dish}", $locationId, $on, $by);
+                $journal = $this->bookKinds($byKind, 'cost', $o['narration'] ?? "Ingredients used for {$this->fmt($portions)} x {$dish}", $locationId, $on, $by);
             }
             $use->update(['cost' => $total, 'journal_id' => $journal?->id]);
 
-            return ['use_id' => $use->id, 'cost' => $total, 'journal_id' => $journal?->id];
+            return ['use_id' => $use->id, 'cost' => $total, 'journal_id' => $journal?->id, 'by_kind' => array_map(fn ($v) => round($v, 2), $byKind)];
         });
     }
 
@@ -247,6 +250,22 @@ class IngredientUse
     public function usedFor(string $refType, int $refId): bool
     {
         return StockUse::where('ref_type', $refType)->where('ref_id', $refId)->where('status', 'posted')->exists();
+    }
+
+    /**
+     * A journal for amounts by the kind of ingredient (see FoodLedgers::entries): the debit is each kind's cost account (`cost`) or the loss/waste account, the credit the account each kind's
+     * stock is carried on.
+     *
+     * @param array<int, float> $byKind kind id (0: none) => amount
+     */
+    public function bookKinds(array $byKind, string $debit, string $narration, int $locationId, Carbon $on, ?User $by): Voucher
+    {
+        $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
+
+        return $this->vouchers->create([
+            'voucher_type_id' => $type->id, 'date' => $on->toDateString(), 'currency_id' => $this->money->getBaseCurrency()->id, 'narration' => $narration, 'location_id' => $locationId,
+            'entries' => FoodLedgers::entries($byKind, $debit),
+        ], $by);
     }
 
     /** A two-line journal in the base currency, debiting one account and crediting another. */

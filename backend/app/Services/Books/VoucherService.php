@@ -1348,7 +1348,7 @@ class VoucherService
     /**
      * An ingredient bought or counted in (Menus): the item is the ingredient, the variant is the variant ("Wheat flour", "Exe 2 kg"). The quantity is typed in packs, the bigger unit or the base unit
      * (`unit`: pack | alt | base); `unit_factor` is how many base units one of it holds, so `base_quantity` is what goes on the shelf, and the rate is the price of one of what was typed. The line posts to
-     * the Food Ingredients Inventory account. What goes on the shelf is done after the voucher is saved (IngredientVoucherStock). Only on vouchers that bring stock in, and on purchase orders.
+     * the account its kind carries stock on (Food Ingredients Inventory for food, Kitchen Supplies Inventory for supplies). What goes on the shelf is done after the voucher is saved (IngredientVoucherStock). Only on vouchers that bring stock in, and on purchase orders.
      */
     private function ingredientLine(array $l, array $ctx): array
     {
@@ -1363,10 +1363,10 @@ class VoucherService
         $unit = (string) ($l['unit'] ?? 'base');
         $factor = $item->toBase($unit, 1.0);
         $ing = $item->ingredient;
-        // the stock is carried on Food Ingredients Inventory, but the purchase account decides the tax, as a product's does: the ingredient's own, else the one in Menus, else the voucher type's, else the books' default
+        // the stock is carried on the kind's stock account, but the purchase account decides the tax, as a product's does: the ingredient's own, else the one in Menus, else the voucher type's, else the books' default
         unset($l['tax_rate_id']);
         $taxAccount = $ing->purchaseAccountId() ?: ($ctx['type']->default_ledger_id ?: AccountingSetting::current()->default_purchase_ledger_id);
-        $line = $this->customLine(['description' => $ing->name, 'ledger_id' => \App\Services\Menus\FoodLedgers::inventory(), 'tax_account_id' => $taxAccount] + $l, $ctx);
+        $line = $this->customLine(['description' => $ing->name, 'ledger_id' => \App\Services\Menus\FoodLedgers::inventory($ing->kind), 'tax_account_id' => $taxAccount] + $l, $ctx);
         if ($base === VoucherType::OPENING_STOCK) {
             $line['taxes'] = [];   // what a business starts with was bought before: no tax now
             $this->summariseTaxes($line);

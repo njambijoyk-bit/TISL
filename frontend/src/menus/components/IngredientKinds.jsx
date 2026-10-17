@@ -25,15 +25,16 @@ const USE_HINT = {
   used_up: 'The kitchen uses it up, and it is not food (gloves, cleaning, foil, napkins).',
 };
 
-function KindForm({ kind, uses, ledgers, onClose, onDone }) {
+function KindForm({ kind, uses, ledgers, stockLedgers, onClose, onDone }) {
   const [name, setName] = useState(kind?.name ?? '');
   const [on, setOn] = useState(() => Object.fromEntries(Object.keys(uses).map((u) => [u, !!kind?.[u]])));
   const [ledger, setLedger] = useState(kind?.expense_ledger_id ?? null);
+  const [stockLedger, setStockLedger] = useState(kind?.stock_ledger_id ?? null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
-    try { const res = await menusAPI.saveIngredientKind({ name, ...on, ...(ledgers ? { expense_ledger_id: ledger } : {}) }, kind?.id); toast.success(res.message); onDone(); } catch (x) { setErr(errMsg(x, 'Could not save the kind')); } finally { setBusy(false); }
+    try { const res = await menusAPI.saveIngredientKind({ name, ...on, ...(ledgers ? { expense_ledger_id: ledger } : {}), ...(stockLedgers ? { stock_ledger_id: stockLedger } : {}) }, kind?.id); toast.success(res.message); onDone(); } catch (x) { setErr(errMsg(x, 'Could not save the kind')); } finally { setBusy(false); }
   };
 
   return (
@@ -53,11 +54,15 @@ function KindForm({ kind, uses, ledgers, onClose, onDone }) {
               ))}
             </div>
           </fieldset>
+          {stockLedgers && (
+            <LedgerSelect id="kind-stock-ledger" label="Its stock is carried on, while it is on the shelf" value={stockLedger} onChange={setStockLedger}
+              hint="Food Ingredients Inventory for food. Kitchen Supplies Inventory for gloves, cleaning and packaging, so they do not count as food. Kinds may share an account." />
+          )}
           {ledgers && (
             <LedgerSelect id="kind-ledger" label="Its cost is charged to, when it is used" value={ledger} onChange={setLedger}
               hint="Food Cost of Sales for food. Kitchen Supplies Used for gloves, cleaning and the like. Throwing it away is waste and is booked to Food Waste Expense, whatever the kind." />
           )}
-          <ModalActions onCancel={onClose} submitLabel="Save kind" busy={busy} disabled={!name.trim() || !Object.values(on).some(Boolean) || (ledgers && !ledger)} />
+          <ModalActions onCancel={onClose} submitLabel="Save kind" busy={busy} disabled={!name.trim() || !Object.values(on).some(Boolean) || (ledgers && !ledger) || (stockLedgers && !stockLedger)} />
         </FormStack>
       </form>
     </Modal>
@@ -81,9 +86,10 @@ export default function IngredientKindsModal({ canWrite, onClose, onChanged }) {
   };
 
   return (
-    <Modal title="Kinds of ingredient" onClose={onClose} width={860}>
+    <Modal title="Kinds of ingredient" onClose={onClose} width={980}>
       <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textMuted }}>A kind says what its ingredients may be used for. Recipes list only the kinds used in recipes.</p>
       {data && !data.ready && <p role="status" style={{ fontSize: '0.82rem' }}>Run database script 190_menus_ingredient_kinds.sql first. Until then every ingredient is treated as a cooking ingredient.</p>}
+      {data?.ready && data.ledgers_ready && !data.stock_ledgers_ready && <p role="status" style={{ fontSize: '0.82rem' }}>Run database script 192_menus_kind_stock_ledgers.sql so each kind carries its stock on its own account (supplies are then not counted as food).</p>}
       {data?.ready && !data.ledgers_ready && <p role="status" style={{ fontSize: '0.82rem' }}>Run database script 191_menus_kind_ledgers.sql to add the Supplies kind and the account each kind is charged to.</p>}
       {!data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data.ready && (
         <div data-testid="ingredient-kinds">
@@ -92,7 +98,8 @@ export default function IngredientKindsModal({ canWrite, onClose, onChanged }) {
               <tr>
                 <th style={th}>Kind</th>
                 <th style={th}>Used for</th>
-                {data.ledgers_ready && <th style={th}>Ledger</th>}
+                {data.stock_ledgers_ready && <th style={th}>Stock ledger</th>}
+                {data.ledgers_ready && <th style={th}>Expense ledger</th>}
                 <th style={{ ...th, textAlign: 'right' }}>Ingredients</th>
                 {canWrite && <th style={{ ...th, textAlign: 'right' }}>Actions</th>}
               </tr>
@@ -102,6 +109,7 @@ export default function IngredientKindsModal({ canWrite, onClose, onChanged }) {
                 <tr key={k.id} data-kind={k.name}>
                   <td style={{ ...td, fontWeight: 700, fontSize: '0.86rem' }}>{k.name}</td>
                   <td style={td}><span style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{Object.entries(data.uses).filter(([u]) => k[u]).map(([u, label]) => <Pill key={u}>{label.toLowerCase()}</Pill>)}</span></td>
+                  {data.stock_ledgers_ready && <td style={td}>{k.stock_ledger ?? <span style={{ color: colors.textFaint }}>none</span>}</td>}
                   {data.ledgers_ready && <td style={td}>{k.expense_ledger ?? <span style={{ color: colors.textFaint }}>none</span>}</td>}
                   <td style={{ ...td, textAlign: 'right', color: colors.textMuted }}>{k.ingredients ? `${k.ingredients} ingredient${k.ingredients === 1 ? '' : 's'}` : 'none yet'}</td>
                   {canWrite && (
@@ -122,7 +130,7 @@ export default function IngredientKindsModal({ canWrite, onClose, onChanged }) {
           </div>
         </div>
       )}
-      {form && data && <KindForm kind={form.kind} uses={data.uses} ledgers={data.ledgers_ready} onClose={() => setForm(null)} onDone={changed} />}
+      {form && data && <KindForm kind={form.kind} uses={data.uses} ledgers={data.ledgers_ready} stockLedgers={data.stock_ledgers_ready} onClose={() => setForm(null)} onDone={changed} />}
     </Modal>
   );
 }

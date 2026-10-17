@@ -151,9 +151,9 @@ class StockCountService
             $ingredientVoucherId = null;
             $hasIngredients = StockCounts::countsInstalled() && $c->ingredientLines()->exists();
             if ($hasIngredients) {
-                [$ingNet, $m] = $this->postIngredients($c, $user, Carbon::parse($date));
+                [$ingNet, $m, $byKind] = $this->postIngredients($c, $user, Carbon::parse($date));
                 $n += $m;
-                $ingredientVoucherId = $this->bookIngredients($c, $ingNet, $date, $user);
+                $ingredientVoucherId = $this->bookIngredients($c, $byKind, $date, $user);
                 $ingNet < 0 ? $loss += -$ingNet : $gain += $ingNet;
             }
             $c->update(['status' => 'posted', 'posted_by' => $user?->id, 'posted_at' => now(), 'voucher_id' => $voucherId] + ($hasIngredients ? ['ingredient_voucher_id' => $ingredientVoucherId] : []));
@@ -168,47 +168,52 @@ class StockCountService
         return IngredientStock::moduleOn() && StockCounts::countsInstalled();
     }
 
-    /** @return array{0: float, 1: int} what the differences of the counted ingredient lines are worth (a loss is negative), and how many lines were changed */
+    /** @return array{0: float, 1: int, 2: array<int, float>} what the differences of the counted ingredient lines are worth (a loss is negative), how many lines were changed, and the worth by kind of ingredient (0: none) */
     private function postIngredients(StockCount $c, ?User $user, Carbon $on): array
     {
         $counts = app(StockCounts::class);
         $net = 0.0;
         $n = 0;
+        $byKind = [];
         foreach ($c->ingredientLines()->get() as $l) {
             if ($l->counted_qty === null) {
                 continue;
             }
-            $item = IngredientItem::find($l->item_id);
+            $item = IngredientItem::with('ingredient')->find($l->item_id);
             if (! $item) {
                 continue;
             }
             $r = $counts->adjust($item, (int) $c->location_id, (float) $l->counted_qty, (int) $c->id, $on, $user);
             $l->update(['variance_qty' => $r['variance'], 'value_change' => $r['value']]);
             $net += $r['value'];
+            $kindId = (int) ($item->ingredient?->kind_id ?? 0);
+            $byKind[$kindId] = ($byKind[$kindId] ?? 0.0) + $r['value'];
             $n += abs($r['variance']) > 0.00005 ? 1 : 0;
         }
 
-        return [round($net, 2), $n];
+        return [round($net, 2), $n, $byKind];
     }
 
-    private function bookIngredients(StockCount $c, float $net, string $date, ?User $user): ?int
+    /**
+     * The difference the count found, as one Journal. A loss of food is Dr Food Waste Expense, Cr the stock account; supplies and packaging are used up on purpose, so a shortfall of those is
+     * charged to the kind's account (Kitchen Supplies Used) instead. A gain is the other way round.
+     *
+     * @param array<int, float> $byKind what the differences are worth by kind of ingredient (a loss is negative)
+     */
+    private function bookIngredients(StockCount $c, array $byKind, string $date, ?User $user): ?int
     {
-        if (abs($net) < 0.01) {
+        $entries = FoodLedgers::countEntries($byKind);
+        if (! $entries) {
             return null;
         }
+        $net = array_sum($byKind);
         $journal = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
-        $abs = abs($net);
-        $waste = FoodLedgers::waste();
-        $inventory = FoodLedgers::inventory();
 
         return $this->vouchers->create([
             'voucher_type_id' => $journal->id, 'date' => $date, 'location_id' => $c->location_id,
             'narration' => "Stock count {$c->number} (ingredients): " . ($net < 0 ? 'stock missing' : 'stock found'),
             'meta' => ['stock_count' => ['count_id' => $c->id, 'ingredients' => true]],
-            'entries' => [
-                ['ledger_id' => $net < 0 ? $waste : $inventory, 'side' => 'D', 'amount' => $abs],
-                ['ledger_id' => $net < 0 ? $inventory : $waste, 'side' => 'C', 'amount' => $abs],
-            ],
+            'entries' => $entries,
         ], $user)->id;
     }
 

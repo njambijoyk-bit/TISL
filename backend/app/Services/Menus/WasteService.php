@@ -80,11 +80,13 @@ class WasteService
             $useId = null;
             if ($item) {
                 $cost = $this->writeOffItem($item, $loc, $base, $w, $date, $by, $onlyLot);
+                $byKind = [(int) ($item->ingredient->kind_id ?? 0) => $cost];
             } else {
-                [$cost, $useId] = $this->writeOffDish($dish, $loc, $base, $w, $date, $by);
+                [$cost, $useId, $byKind] = $this->writeOffDish($dish, $loc, $base, $w, $date, $by);
             }
             $cost = round($cost, 2);
-            $journal = $cost > 0 ? $this->use->book(FoodLedgers::waste(), FoodLedgers::inventory(), $cost, 'Waste: '.($item ? trim($item->ingredient->name.' '.$item->name) : $dish->name).' ('.$reason.')', $loc, Carbon::parse($date), $by) : null;
+            // waste is Food Waste Expense; what comes off the shelf is taken from the account each kind's stock is carried on
+            $journal = $cost > 0 ? $this->use->bookKinds($byKind, 'waste', 'Waste: '.($item ? trim($item->ingredient->name.' '.$item->name) : $dish->name).' ('.$reason.')', $loc, Carbon::parse($date), $by) : null;
             if ($journal && $useId) {
                 StockUse::whereKey($useId)->update(['journal_id' => $journal->id]);
             }
@@ -122,7 +124,7 @@ class WasteService
         return $cost;
     }
 
-    /** A dish thrown away. Made to order: the ingredients it is made of. Made ahead: its own portions. @return array{0: float, 1: ?int} the cost and the record of the ingredients used */
+    /** A dish thrown away. Made to order: the ingredients it is made of. Made ahead: its own portions. @return array{0: float, 1: ?int, 2: array<int, float>} the cost, the record of the ingredients used, and the cost by kind of ingredient (0: none) */
     private function writeOffDish(Dish $dish, int $loc, float $portions, Waste $w, string $date, ?User $by): array
     {
         $recipe = DishRecipes::installed() ? DishRecipe::where('dish_id', $dish->id)->where('is_active', true)->first() : null;
@@ -132,7 +134,7 @@ class WasteService
         if ($recipe->made_to_order) {
             $r = $this->use->consume($recipe, $portions, $loc, ['type' => 'waste', 'id' => $w->id], $by, ['date' => $date, 'post' => false]);
 
-            return [$r['cost'], $r['use_id']];
+            return [$r['cost'], $r['use_id'], $r['by_kind']];
         }
         $lots = DishBatch::where('dish_id', $dish->id)->where('location_id', $loc)->where('qty_left', '>', 0)->lockForUpdate()->get()
             ->sortBy(fn (DishBatch $b) => [$b->expiry_date?->toDateString() ?? '9999-12-31', (int) $b->id])->values();
@@ -154,7 +156,7 @@ class WasteService
             $left = round($left - $take, 4);
         }
 
-        return [$cost, null];
+        return [$cost, null, [0 => $cost]];
     }
 
     /** A mistake: the stock goes back to the lots it came from and the journal is cancelled. */

@@ -4,7 +4,7 @@ A small Nairobi kitchen, made so the numbers can be checked by hand. Menus now h
 
 **units, accounts, ingredients, opening stock, dishes, recipes, menus, meal plan.**
 
-Prices are made up. Run database scripts 181 to 191 first (190 and 191 are the kinds of ingredient and the account each kind is charged to). Every number below was checked by running this exact data through the system.
+Prices are made up. Run database scripts 181 to 192 first (190 to 192 are the kinds of ingredient, the account each kind is charged to, and the account each kind's stock is carried on). Every number below was checked by running this exact data through the system.
 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
@@ -222,7 +222,7 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 
 ## 8. The other kinds: drinks, condiments, packaging, supplies (Menus, Ingredients, Kinds)
 
-Everything here is an ingredient with a **Kind** (the picker beside the name; it starts as Cooking ingredient). Run scripts 190 and 191 first; **Menus, Ingredients, Kinds** should list five kinds, each with its ledger: Cooking ingredient, Ready to serve and Condiment or extra on **Food Cost of Sales**; Packaging and Supplies on **Kitchen Supplies Used**.
+Everything here is an ingredient with a **Kind** (the picker beside the name; it starts as Cooking ingredient). Run scripts 190 and 191 first; **Menus, Ingredients, Kinds** should list five kinds, each with its ledger: Cooking ingredient, Ready to serve and Condiment or extra on **Food Cost of Sales**; Packaging and Supplies on **Kitchen Supplies Used**. After script 192 the Kinds table also has a **Stock ledger** column: Food Ingredients Inventory for the first three, **Kitchen Supplies Inventory** for Packaging and Supplies.
 
 **8A. The ingredients** (purchase account **Purchases** for all of them, so the buying VAT is the usual 16%)
 
@@ -240,7 +240,7 @@ Everything here is an ingredient with a **Kind** (the picker beside the name; it
 
 Then open the existing **Salt** and change its kind to **Condiment or extra** (it is allowed: that kind is also used in recipes).
 
-**8B. Opening stock** (Menus, Stock, Opening stock; one branch; it is one Opening stock voucher per variant, never taxed)
+**8B. Opening stock** (Menus, Stock, Opening stock; one branch; it is one Opening stock voucher per variant, never taxed; the gloves, soap, boxes and bags debit **Kitchen Supplies Inventory**, the others Food Ingredients Inventory; if you entered them before script 192, cancel those vouchers and enter them again)
 
 | Variant | Quantity | In | Price of one pack | Expiry date | That is | Value |
 |---|---|---|---|---|---|---|
@@ -255,16 +255,16 @@ Then open the existing **Salt** and change its kind to **Condiment or extra** (i
 | Disposable gloves, Box of 100 | 3 | packs | 350 | | 300 each (3.50 each) | 1,050.00 |
 | Dish soap, Bottle 5 L | 2 | packs | 900 | | 10 L | 1,800.00 |
 
-The nine new rows together are **16,410.00** (the Opening stock vouchers add up to that, all on Food Ingredients Inventory). Salt keeps its 40 from section 2.
+The nine new rows together are **16,410.00** (the Opening stock vouchers add up to that: 11,760.00 on Food Ingredients Inventory, 4,650.00 on Kitchen Supplies Inventory for the boxes, bags, gloves and soap). Salt keeps its 40 from section 2.
 
 **8C. What to try, and what to expect**
 - **Kinds screen:** Ready to serve 3 ingredients, Condiment or extra 3 (ketchup, sachet, Salt), Packaging 2, Supplies 2, Cooking ingredient one fewer than before (Salt moved). The Ingredients page filters by each kind. Try to remove Supplies: refused (it has ingredients). Add a kind without picking its ledger: Save stays off.
 - **Recipes:** open Recipes for any dish and look at the ingredient list. It offers Salt, Tomato ketchup and Ketchup sachet (condiments are used in recipes) and the cooking ingredients; it does **not** offer Cola, Fanta, water, boxes, bags, gloves or soap. Move **Wheat flour** to Packaging: refused, "It is in a recipe".
 - **Buying:** Purchases, New purchase, search "cola": the crate and the single bottle show under it; buy 2 crates at 1,200 with 16% VAT on Purchases. The breakdown shows the VAT and the stock rises by 48 each. Try the same for gloves.
-- **Count stock:** count Disposable gloves as 2 boxes (the row says -100 each): saved, it is a loss of 350.00 and today it is booked to **Food Waste Expense**, like any count. That is the part the "use up" entry will change: for supplies the right account is Kitchen Supplies Used.
+- **Count stock:** count Disposable gloves as 2 boxes (the row says -100 each): saved, it is a shortfall of 350.00 and it is charged to **Kitchen Supplies Used** (credit Kitchen Supplies Inventory), not to waste: supplies are used up on purpose, so counting is the using. Count the Cola short instead and that is a loss to Food Waste Expense.
 - **Waste:** waste 1 crate of Cola as Spoilage: 24 each leave and Books gets Dr Food Waste Expense 1,200.00, Cr Food Ingredients Inventory. Take it back to undo.
 - **Expiry:** Menus, Stock shows the Fanta crates in "Expired or expiring this week" (5 days). The Cola and the ketchup do not appear.
 - **What to buy:** waste 250 gloves as Other: gloves are at 50 each, under the 100 you keep, so Operations, What to buy asks for a box.
 - **Branches:** send 1 crate of Cola to the second branch: it arrives with its cost (50 each) and expiry.
 - **Selling a drink (not built yet):** there is no "sold as it is" yet, so the till cannot sell Cola straight from the shelf. To see a sale move stock now, edit the **Ready to serve** kind and tick **Used in recipes**, then make a dish "Cola" with a recipe of 1 each of Cola (the cheapest pick rule takes the crate, 50 each). Sell 1: the crate goes to 71 each and Food Cost of Sales gets 50.00. Untick it again afterwards.
-- **Not built yet, so not a bug:** nothing uses up gloves, soap, boxes or bags (there is no "use up" entry), and the "charged to" account of a kind is not posted yet.
+- **Not built yet, so not a bug:** nothing uses up boxes or bags on a takeaway order, and a sold dish does not use a sachet yet (that is the dish work).

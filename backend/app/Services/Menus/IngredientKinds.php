@@ -17,13 +17,13 @@ use Illuminate\Support\Str;
  */
 class IngredientKinds
 {
-    /** What scripts 190 and 191 put in: code, name, uses, and the account the cost is charged to (by name). */
+    /** What scripts 190 to 192 put in: code, name, uses, the account the cost is charged to when used, and the account the stock is carried on (by name). */
     public const DEFAULTS = [
-        ['cooking', 'Cooking ingredient', ['in_recipes'], 'Food Cost of Sales'],
-        ['ready_to_serve', 'Ready to serve', ['sold_as_is'], 'Food Cost of Sales'],
-        ['condiment', 'Condiment or extra', ['in_recipes', 'free_extra'], 'Food Cost of Sales'],
-        ['packaging', 'Packaging', ['packaging'], 'Kitchen Supplies Used'],
-        ['supplies', 'Supplies', ['used_up'], 'Kitchen Supplies Used'],
+        ['cooking', 'Cooking ingredient', ['in_recipes'], 'Food Cost of Sales', 'Food Ingredients Inventory'],
+        ['ready_to_serve', 'Ready to serve', ['sold_as_is'], 'Food Cost of Sales', 'Food Ingredients Inventory'],
+        ['condiment', 'Condiment or extra', ['in_recipes', 'free_extra'], 'Food Cost of Sales', 'Food Ingredients Inventory'],
+        ['packaging', 'Packaging', ['packaging'], 'Kitchen Supplies Used', 'Kitchen Supplies Inventory'],
+        ['supplies', 'Supplies', ['used_up'], 'Kitchen Supplies Used', 'Kitchen Supplies Inventory'],
     ];
 
     private static ?bool $installed = null;
@@ -44,6 +44,12 @@ class IngredientKinds
         return Schema::hasColumn('menus_ingredient_kinds', 'expense_ledger_id');
     }
 
+    /** Has script 192 been run (the account a kind's stock is carried on)? */
+    public static function stocked(): bool
+    {
+        return Schema::hasColumn('menus_ingredient_kinds', 'stock_ledger_id');
+    }
+
     /** The uses a kind can have: the "used up" one comes with script 191. @return array<string, string> */
     public static function uses(): array
     {
@@ -54,12 +60,12 @@ class IngredientKinds
     public function seedDefaults(): int
     {
         $n = 0;
-        foreach (self::DEFAULTS as $i => [$code, $name, $uses, $ledger]) {
+        foreach (self::DEFAULTS as $i => [$code, $name, $uses, $ledger, $stock]) {
             if (in_array('used_up', $uses, true) && ! self::ledgered()) {
                 continue;
             }
             if (! IngredientKind::where('code', $code)->exists()) {
-                IngredientKind::create(['code' => $code, 'name' => $name, 'sort_order' => $i + 1] + $this->flags($uses) + (self::ledgered() ? ['expense_ledger_id' => Ledger::where('name', $ledger)->value('id')] : []));
+                IngredientKind::create(['code' => $code, 'name' => $name, 'sort_order' => $i + 1] + $this->flags($uses) + (self::ledgered() ? ['expense_ledger_id' => Ledger::where('name', $ledger)->value('id')] : []) + (self::stocked() ? ['stock_ledger_id' => Ledger::where('name', $stock)->value('id')] : []));
                 $n++;
             }
         }
@@ -82,7 +88,7 @@ class IngredientKinds
     public function list(): array
     {
         $counts = Ingredient::query()->whereNotNull('kind_id')->selectRaw('kind_id, COUNT(*) as n')->groupBy('kind_id')->pluck('n', 'kind_id');
-        $kinds = IngredientKind::with(self::ledgered() ? ['expenseLedger:id,name'] : [])->orderBy('sort_order')->orderBy('id')->get()->map(fn (IngredientKind $k) => $this->row($k) + ['ingredients' => (int) ($counts[$k->id] ?? 0)])->values()->all();
+        $kinds = IngredientKind::with(array_merge(self::ledgered() ? ['expenseLedger:id,name'] : [], self::stocked() ? ['stockLedger:id,name'] : []))->orderBy('sort_order')->orderBy('id')->get()->map(fn (IngredientKind $k) => $this->row($k) + ['ingredients' => (int) ($counts[$k->id] ?? 0)])->values()->all();
 
         return ['kinds' => $kinds, 'uses' => self::uses()];
     }
@@ -91,10 +97,11 @@ class IngredientKinds
     {
         $row = ['id' => $k->id, 'code' => $k->code, 'name' => $k->name] + array_map(fn ($x) => (bool) $x, $k->only(array_keys(self::uses())));
 
-        return $row + (self::ledgered() ? ['expense_ledger_id' => $k->expense_ledger_id ? (int) $k->expense_ledger_id : null, 'expense_ledger' => $k->expenseLedger?->name] : []);
+        return $row + (self::ledgered() ? ['expense_ledger_id' => $k->expense_ledger_id ? (int) $k->expense_ledger_id : null, 'expense_ledger' => $k->expenseLedger?->name] : [])
+            + (self::stocked() ? ['stock_ledger_id' => $k->stock_ledger_id ? (int) $k->stock_ledger_id : null, 'stock_ledger' => $k->stockLedger?->name] : []);
     }
 
-    /** @param array{name: string, in_recipes?: bool, sold_as_is?: bool, free_extra?: bool, packaging?: bool, used_up?: bool, expense_ledger_id?: ?int} $d */
+    /** @param array{name: string, in_recipes?: bool, sold_as_is?: bool, free_extra?: bool, packaging?: bool, used_up?: bool, expense_ledger_id?: ?int, stock_ledger_id?: ?int} $d */
     public function save(array $d, ?IngredientKind $kind = null): IngredientKind
     {
         $name = mb_substr(trim((string) ($d['name'] ?? '')), 0, 60);
@@ -108,6 +115,13 @@ class IngredientKinds
         if (! $uses) {
             throw new BooksException('Say what it is used for: recipes, sold as it is, a free extra, packaging, or used up by the kitchen.');
         }
+        $stock = null;
+        if (self::stocked()) {
+            $stock = ! empty($d['stock_ledger_id']) ? (int) $d['stock_ledger_id'] : null;
+            if (! $stock || ! Ledger::whereKey($stock)->where('is_active', true)->exists()) {
+                throw new BooksException('Choose the account its stock is carried on while it is on the shelf (Food Ingredients Inventory for food, Kitchen Supplies Inventory for gloves and the like).');
+            }
+        }
         $ledger = null;
         if (self::ledgered()) {
             $ledger = ! empty($d['expense_ledger_id']) ? (int) $d['expense_ledger_id'] : null;
@@ -119,8 +133,8 @@ class IngredientKinds
             throw new BooksException("{$kind->name} can not stop being used in recipes: {$n} of its ingredient".($n === 1 ? ' is' : 's are').' in a recipe. Take '.($n === 1 ? 'it' : 'them').' out of the recipes first.');
         }
 
-        return DB::transaction(function () use ($kind, $name, $uses, $ledger) {
-            $extra = self::ledgered() ? ['expense_ledger_id' => $ledger] : [];
+        return DB::transaction(function () use ($kind, $name, $uses, $ledger, $stock) {
+            $extra = (self::ledgered() ? ['expense_ledger_id' => $ledger] : []) + (self::stocked() ? ['stock_ledger_id' => $stock] : []);
             if ($kind) {
                 $kind->update(['name' => $name] + $this->flags($uses) + $extra);
 

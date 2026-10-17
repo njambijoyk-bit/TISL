@@ -23,7 +23,7 @@ class IngredientKind extends Model
 
     protected $table = 'menus_ingredient_kinds';
 
-    protected $fillable = ['code', 'name', 'in_recipes', 'sold_as_is', 'free_extra', 'packaging', 'used_up', 'expense_ledger_id', 'sort_order'];
+    protected $fillable = ['code', 'name', 'in_recipes', 'sold_as_is', 'free_extra', 'packaging', 'used_up', 'expense_ledger_id', 'stock_ledger_id', 'sort_order'];
 
     protected $casts = ['in_recipes' => 'boolean', 'sold_as_is' => 'boolean', 'free_extra' => 'boolean', 'packaging' => 'boolean', 'used_up' => 'boolean', 'sort_order' => 'integer'];
 
@@ -31,6 +31,18 @@ class IngredientKind extends Model
     public function expenseLedger(): BelongsTo
     {
         return $this->belongsTo(\App\Models\Books\Ledger::class, 'expense_ledger_id');
+    }
+
+    /** The account the stock is carried on while it is on the shelf (empty until script 192). */
+    public function stockLedger(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Books\Ledger::class, 'stock_ledger_id');
+    }
+
+    /** Used up on purpose rather than sold or cooked (supplies, packaging): a count that finds less is the using, not a loss. */
+    public function consumable(): bool
+    {
+        return (bool) ($this->used_up || $this->packaging);
     }
 
     public function ingredients(): HasMany

@@ -19,12 +19,12 @@ class MenusIngredientKindsController extends Controller
     public function index(): JsonResponse
     {
         if (! IngredientKinds::installed()) {
-            return response()->json(['ready' => false, 'kinds' => [], 'uses' => IngredientKinds::uses(), 'ledgers_ready' => false]);
+            return response()->json(['ready' => false, 'kinds' => [], 'uses' => IngredientKinds::uses(), 'ledgers_ready' => false, 'stock_ledgers_ready' => false]);
         }
-        return response()->json(['ready' => true, 'ledgers_ready' => IngredientKinds::ledgered()] + $this->kinds->list());
+        return response()->json(['ready' => true, 'ledgers_ready' => IngredientKinds::ledgered(), 'stock_ledgers_ready' => IngredientKinds::stocked()] + $this->kinds->list());
     }
 
-    /** Body: name, in_recipes?, sold_as_is?, free_extra?, packaging?, used_up?, expense_ledger_id (the account the cost is charged to when used). */
+    /** Body: name, in_recipes?, sold_as_is?, free_extra?, packaging?, used_up?, expense_ledger_id (the account the cost is charged to when used), stock_ledger_id (the account the stock is carried on). */
     public function store(Request $request): JsonResponse
     {
         return $this->guard(function () use ($request) {
@@ -63,7 +63,7 @@ class MenusIngredientKindsController extends Controller
 
     private function validated(Request $request): array
     {
-        return $request->validate(['name' => 'required|string|max:60', 'in_recipes' => 'nullable|boolean', 'sold_as_is' => 'nullable|boolean', 'free_extra' => 'nullable|boolean', 'packaging' => 'nullable|boolean', 'used_up' => 'nullable|boolean', 'expense_ledger_id' => 'nullable|integer']);
+        return $request->validate(['name' => 'required|string|max:60', 'in_recipes' => 'nullable|boolean', 'sold_as_is' => 'nullable|boolean', 'free_extra' => 'nullable|boolean', 'packaging' => 'nullable|boolean', 'used_up' => 'nullable|boolean', 'expense_ledger_id' => 'nullable|integer', 'stock_ledger_id' => 'nullable|integer']);
     }
 
     private function guard(\Closure $fn): JsonResponse

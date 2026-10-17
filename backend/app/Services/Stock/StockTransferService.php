@@ -102,6 +102,7 @@ class StockTransferService
                 $this->writeOffShortfall($t, round($short, 2), $user);
             }
             $shortIng = 0.0;
+            $shortByKind = [];
             if (StockTransfers::installed()) {
                 $kitchen = app(StockTransfers::class);
                 foreach ($t->ingredientLines()->get() as $l) {
@@ -109,9 +110,14 @@ class StockTransferService
                     $kitchen->arrive((int) $l->batch_id, (int) $t->to_location_id, $got, (int) $t->id, today(), $user);
                     $l->update(['received_qty' => $got]);
                     $shortIng += ((float) $l->quantity - $got) * (float) $l->unit_cost;
+                    if ((float) $l->quantity - $got > 0) {
+                        $itemId = (int) \App\Models\Menus\StockBatch::whereKey($l->batch_id)->value('item_id');
+                        $kindId = (int) (FoodLedgers::kindOfItem($itemId)?->id ?? 0);
+                        $shortByKind[$kindId] = ($shortByKind[$kindId] ?? 0.0) + ((float) $l->quantity - $got) * (float) $l->unit_cost;
+                    }
                 }
                 if ($shortIng >= 0.005) {
-                    $this->writeOffKitchenShortfall($t, round($shortIng, 2), $user);
+                    $this->writeOffKitchenShortfall($t, $shortByKind, $user);
                 }
             }
             $t->update(['status' => StockTransfer::RECEIVED, 'received_by' => $user?->id, 'received_at' => now()]);
@@ -154,17 +160,19 @@ class StockTransferService
         return round($v, 2);
     }
 
-    private function writeOffKitchenShortfall(StockTransfer $t, float $cost, ?User $user): void
+    /** @param array<int, float> $byKind what went missing, by kind of ingredient (0: none) */
+    private function writeOffKitchenShortfall(StockTransfer $t, array $byKind, ?User $user): void
     {
+        $entries = FoodLedgers::entries($byKind, 'loss');
+        if (! $entries) {
+            return;   // less than a cent
+        }
         $journal = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
         $this->vouchers->create([
             'voucher_type_id' => $journal->id, 'date' => today()->toDateString(), 'location_id' => $t->to_location_id,
             'narration' => "Short delivery of ingredients on transfer {$t->number}",
             'meta' => ['transfer_shortfall' => ['transfer_id' => $t->id, 'ingredients' => true]],
-            'entries' => [
-                ['ledger_id' => FoodLedgers::waste(), 'side' => 'D', 'amount' => $cost],
-                ['ledger_id' => FoodLedgers::inventory(), 'side' => 'C', 'amount' => $cost],
-            ],
+            'entries' => $entries,
         ], $user);
     }
 

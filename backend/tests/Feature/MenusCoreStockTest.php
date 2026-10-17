@@ -304,6 +304,60 @@ class MenusCoreStockTest extends TestCase
         app(StockTransferService::class)->send(self::BRANCH, self::OTHER, [], null, null, [['item_id' => $this->exe, 'quantity' => 3000]]);
     }
 
+    /** Gloves of the kind Supplies, carried on Kitchen Supplies Inventory and charged to Kitchen Supplies Used when counted short. @return array{item: int, used: int, shelf: int} */
+    private function gloves(): array
+    {
+        $stock = (int) DB::table('ledger_groups')->where('name', 'Stock-in-hand')->value('id');
+        $direct = (int) DB::table('ledger_groups')->where('name', 'Direct Expenses')->value('id');
+        $used = DB::table('ledgers')->insertGetId(['name' => 'Kitchen Supplies Used', 'group_id' => $direct]);
+        $shelf = DB::table('ledgers')->insertGetId(['name' => 'Kitchen Supplies Inventory', 'group_id' => $stock]);
+        app(\App\Services\Menus\IngredientKinds::class)->seedDefaults();
+        $kind = \App\Models\Menus\IngredientKind::where('code', 'supplies')->firstOrFail();
+        $kind->update(['expense_ledger_id' => $used, 'stock_ledger_id' => $shelf]);
+        $ing = $this->makeIngredient('Disposable gloves', $this->each, null, [['name' => 'Box of 100', 'pack' => 100]], 'preferred', ['kind_id' => $kind->id]);
+
+        return ['item' => (int) $ing->variants->first()->id, 'used' => $used, 'shelf' => $shelf];
+    }
+
+    public function test_a_count_that_finds_fewer_gloves_charges_the_supplies_account_not_waste_and_flour_still_goes_to_waste(): void
+    {
+        $g = $this->gloves();
+        $this->receive($this->exe, 10, 260);   // flour: 0.13 a gram
+        $this->receive($g['item'], 3, 350);    // 3 boxes of 100 at 350: 3.50 each
+        $counts = app(StockCountService::class);
+        $c = $counts->start(self::BRANCH, 'Friday', null);
+        $exe = $c->ingredientLines()->where('item_id', $this->exe)->first();
+        $box = $c->ingredientLines()->where('item_id', $g['item'])->first();
+        $counts->post($c, [], null, null, [$exe->id => ['quantity' => 9, 'unit' => 'pack'], $box->id => ['quantity' => 2, 'unit' => 'pack']]);   // 1 box (350) and 2 kg of flour (260) short
+        $j = end($this->posted);
+        $by = collect($j['entries'])->mapWithKeys(fn ($e) => [$e['ledger_id'].$e['side'] => (float) $e['amount']]);
+        $this->assertSame(260.0, $by[$this->waste().'D'], 'flour: Dr Food Waste Expense');
+        $this->assertSame(260.0, $by[$this->inventory.'C'], 'flour: Cr Food Ingredients Inventory');
+        $this->assertSame(350.0, $by[$g['used'].'D'], 'gloves: Dr Kitchen Supplies Used, the using');
+        $this->assertSame(350.0, $by[$g['shelf'].'C'], 'gloves: Cr Kitchen Supplies Inventory');
+        $this->assertCount(4, $j['entries']);
+    }
+
+    public function test_waste_of_gloves_is_still_waste_but_comes_off_the_supplies_account(): void
+    {
+        $g = $this->gloves();
+        $this->receive($g['item'], 2, 350);
+        app(\App\Services\Menus\WasteService::class)->record(['location_id' => self::BRANCH, 'item_id' => $g['item'], 'quantity' => 1, 'unit' => 'pack', 'kind' => 'other', 'note' => 'dropped in the bin'], null);
+        $j = end($this->posted);
+        $this->assertSame([$this->waste(), 'D', 350.0, $g['shelf'], 'C'], [$j['entries'][0]['ledger_id'], $j['entries'][0]['side'], (float) $j['entries'][0]['amount'], $j['entries'][1]['ledger_id'], $j['entries'][1]['side']]);
+    }
+
+    public function test_a_short_delivery_of_gloves_is_charged_to_the_supplies_account(): void
+    {
+        $g = $this->gloves();
+        $this->receive($g['item'], 2, 350);   // 200 gloves, 3.50 each
+        $svc = app(StockTransferService::class);
+        $t = $svc->send(self::BRANCH, self::OTHER, [], null, null, [['item_id' => $g['item'], 'quantity' => 100]]);
+        $svc->receive($t, [], null, [$t->ingredientLines->first()->id => 90]);   // 10 gloves went missing: 35.00
+        $j = end($this->posted);
+        $this->assertSame([$g['used'], 'D', 35.0, $g['shelf'], 'C'], [$j['entries'][0]['ledger_id'], $j['entries'][0]['side'], (float) $j['entries'][0]['amount'], $j['entries'][1]['ledger_id'], $j['entries'][1]['side']]);
+    }
+
     private function waste(): int
     {
         return (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');

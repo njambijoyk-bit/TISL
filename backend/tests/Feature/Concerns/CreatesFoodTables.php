@@ -31,6 +31,8 @@ trait CreatesFoodTables
         // script 191: the "used up" use and the account a kind is charged to
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->boolean('used_up')->default(false));
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('expense_ledger_id')->nullable());
+        // script 192: the account a kind's stock is carried on
+        Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('stock_ledger_id')->nullable());
         // the core stock count (script 30) and script 187's tables and columns for ingredients on it
         if (! Schema::hasTable('stock_counts')) {
             Schema::create('stock_counts', function ($t) {
