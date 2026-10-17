@@ -396,6 +396,63 @@ class MenusCoreStockTest extends TestCase
         $this->assertTrue($rows[0]['fuzzy'], 'flagged, so the picker can say "did you mean"');
     }
 
+    /** A posted voucher of a base type (1 purchase, 9 debit note) with lines: ['product' => id] or ['ingredient' => item id], base quantity and amount. */
+    private function movementVoucher(int $type, array $lines, string $date = '2026-10-10'): int
+    {
+        $id = DB::table('vouchers')->insertGetId(['voucher_type_id' => $type, 'voucher_number' => 'M-'.(DB::table('vouchers')->count() + 1), 'status' => 'posted', 'party_ledger_id' => $this->supplier, 'date' => $date, 'exchange_rate' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        foreach ($lines as $i => [$what, $itemId, $qty, $amount]) {
+            DB::table('voucher_items')->insert(['voucher_id' => $id, 'line_no' => $i + 1, 'item_type' => $what, 'product_id' => $what === 'product' ? $itemId : null, 'ingredient_item_id' => $what === 'ingredient' ? $itemId : null, 'quantity' => $qty, 'base_quantity' => $qty, 'amount' => $amount]);
+        }
+
+        return $id;
+    }
+
+    private function movementWorld(): void
+    {
+        Schema::table('vouchers', function ($t) { $t->decimal('exchange_rate', 18, 6)->default(1); $t->string('party_name')->nullable(); });
+        Schema::table('voucher_items', fn ($t) => $t->unsignedBigInteger('product_id')->nullable());
+        Schema::table('voucher_types', fn ($t) => $t->string('name')->nullable());
+        Schema::table('products', function ($t) { $t->string('sku')->nullable(); $t->unsignedBigInteger('default_unit_id')->nullable(); });
+        DB::table('products')->insert(['id' => $this->exe, 'name' => 'Duct tape', 'sku' => 'TAPE']);   // the same number as an ingredient variant, on purpose
+    }
+
+    public function test_the_stock_movement_report_follows_kitchen_stock_as_well_as_products(): void
+    {
+        $this->movementWorld();
+        $this->movementVoucher(1, [['product', $this->exe, 10, 1000.0], ['ingredient', $this->exe, 4000, 520.0]]);        // 10 tapes; 2 packs of Exe (4,000 g) at 0.13 a gram
+        $this->movementVoucher(9, [['ingredient', $this->exe, 1000, 130.0]], '2026-10-12');                               // 1,000 g sent back on a debit note
+        $report = app(\App\Services\Books\MovementReportService::class);
+
+        $rows = collect($report->ledgerItems($this->supplier, '2026-10-01', '2026-10-31')['rows'])->keyBy(fn ($r) => $r['item_type'].':'.$r['item_id']);
+        $this->assertCount(2, $rows, 'the tape and the flour are not mixed up although they share a number');
+        $this->assertSame(['Duct tape', 1000.0, 10.0], [$rows["product:{$this->exe}"]['name'], $rows["product:{$this->exe}"]['purchase_value'], $rows["product:{$this->exe}"]['purchase_qty']]);
+        $flour = $rows["ingredient:{$this->exe}"];
+        $this->assertSame(['Wheat flour — Exe 2 kg', 'g', 'Cooking ingredient'], [$flour['name'], $flour['unit'], $flour['kind']]);
+        $this->assertEquals([3000, 390], [$flour['purchase_qty'], $flour['purchase_value']], 'the debit note counts against what was bought');
+        $this->assertEquals(0.13, $flour['purchase_rate']);
+        $this->assertNull($flour['product_id']);
+
+        $vouchers = $report->itemVouchers($this->exe, $this->supplier, '2026-10-01', '2026-10-31', 'ingredient');
+        $this->assertSame('Wheat flour — Exe 2 kg', $vouchers['item']['name']);
+        $this->assertCount(2, $vouchers['groups'][0]['rows'], 'the purchase and the debit note');
+        $this->assertEquals(3000, $vouchers['groups'][0]['qty']);
+        $this->assertCount(1, $report->itemVouchers($this->exe, null, '2026-10-01', '2026-10-31')['groups'][0]['rows'], 'as a product the number is the tape only');
+
+        $ledgers = $report->itemLedgers($this->exe, '2026-10-01', '2026-10-31', 'ingredient')['rows'];
+        $this->assertSame(['Naivas Wholesale'], array_column($ledgers, 'name'));
+        $this->assertEquals(390, $ledgers[0]['purchase_value']);
+    }
+
+    public function test_the_stock_movement_item_search_finds_kitchen_stock_too(): void
+    {
+        $this->movementWorld();
+        $rows = app(\App\Http\Controllers\Api\MovementReportController::class)->products(Request::create('/x', 'GET', ['q' => 'exe']))->getData(true);
+        $this->assertSame([['ingredient', "Wheat flour — Exe 2 kg"]], array_map(fn ($r) => [$r['item_type'], $r['name']], $rows));
+        $all = app(\App\Http\Controllers\Api\MovementReportController::class)->products(Request::create('/x', 'GET', ['q' => '']))->getData(true);
+        $this->assertContains('product', array_column($all, 'item_type'));
+        $this->assertContains('ingredient', array_column($all, 'item_type'));
+    }
+
     private function waste(): int
     {
         return (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');

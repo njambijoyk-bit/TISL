@@ -7,6 +7,7 @@ use App\Models\Books\LedgerGroup;
 use App\Models\Books\VoucherType;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * Two read-only views over what the books already hold (no table of its own):
@@ -32,16 +33,48 @@ class MovementReportService
         return [$from, $to];
     }
 
-    /** The stock lines of posted vouchers in a window, with what kind of movement each is. */
+    /** The stock lines of posted vouchers in a window, with what kind of movement each is: products, and the kitchen's stock (ingredient lines) when Menus has put them on vouchers. */
     private function lines(string $from, string $to)
     {
+        $kitchen = Schema::hasColumn('voucher_items', 'ingredient_item_id');
+
         return DB::table('voucher_items as i')
             ->join('vouchers as v', 'v.id', '=', 'i.voucher_id')
             ->join('voucher_types as t', 't.id', '=', 'v.voucher_type_id')
             ->where('v.status', 'posted')->whereIn('t.base_type', array_keys(self::MOVES))
-            ->whereNotNull('i.product_id')->where('i.item_type', '!=', 'charge')->where('i.is_header', false)
+            ->where(fn ($w) => $w->whereNotNull('i.product_id')->when($kitchen, fn ($x) => $x->orWhere(fn ($k) => $k->where('i.item_type', 'ingredient')->whereNotNull('i.ingredient_item_id'))))
+            ->where('i.item_type', '!=', 'charge')->where('i.is_header', false)
             ->whereBetween('v.date', [$from, $to])
             ->when(true, fn ($q) => app(\App\Services\Access\BranchFilter::class)->apply($q, 'v.location_id', 'books', 'movement'));
+    }
+
+    /** What a line is an item of: the kitchen's stock (an ingredient variant) or a product, and its id. @return array{0: string, 1: int} */
+    private function itemOf(object $r): array
+    {
+        return ($r->item_type ?? null) === 'ingredient' && ! empty($r->ingredient_item_id) ? ['ingredient', (int) $r->ingredient_item_id] : ['product', (int) $r->product_id];
+    }
+
+    /** Names, units and (for kitchen stock) kinds of items, keyed "type:id". @param array<int, array{0: string, 1: int}> $keys @return array<string, array{name: string, unit: ?string, sku: ?string, kind: ?string}> */
+    private function describe(array $keys): array
+    {
+        $out = [];
+        $products = array_values(array_unique(array_map(fn ($k) => $k[1], array_filter($keys, fn ($k) => $k[0] === 'product'))));
+        $kitchen = array_values(array_unique(array_map(fn ($k) => $k[1], array_filter($keys, fn ($k) => $k[0] === 'ingredient'))));
+        if ($products) {
+            foreach (DB::table('products as p')->leftJoin('units_of_measure as u', 'u.id', '=', 'p.default_unit_id')->whereIn('p.id', $products)->get(['p.id', 'p.name', 'p.sku', 'u.code as unit']) as $r) {
+                $out["product:{$r->id}"] = ['name' => $r->name, 'unit' => $r->unit, 'sku' => $r->sku, 'kind' => null];
+            }
+        }
+        if ($kitchen && Schema::hasTable('menus_ingredient_items')) {
+            $kinds = \App\Services\Menus\IngredientKinds::installed();
+            $q = DB::table('menus_ingredient_items as it')->join('menus_ingredients as i', 'i.id', '=', 'it.ingredient_id')->leftJoin('units_of_measure as u', 'u.id', '=', 'i.base_unit_id');
+            foreach (($kinds ? $q->leftJoin('menus_ingredient_kinds as k', 'k.id', '=', 'i.kind_id') : $q)->whereIn('it.id', $kitchen)
+                ->get(['it.id', 'it.name as variant', 'it.code', 'i.name as ingredient', 'u.code as unit'] + ($kinds ? [5 => 'k.name as kind'] : [])) as $r) {
+                $out["ingredient:{$r->id}"] = ['name' => "{$r->ingredient} — {$r->variant}", 'unit' => $r->unit, 'sku' => $r->code, 'kind' => ($r->kind ?? null) ?: 'Kitchen stock'];
+            }
+        }
+
+        return $out;
     }
 
     /** Quantity and base-currency value of one line, with its sign (a return counts negative). */
@@ -63,29 +96,29 @@ class MovementReportService
         [$from, $to] = $this->span($from, $to);
         $ledger = Ledger::findOrFail($ledgerId);
         $rows = [];
-        $names = [];
+        $kitchen = Schema::hasColumn('voucher_items', 'ingredient_item_id');
         foreach ($this->lines($from, $to)->where('v.party_ledger_id', $ledgerId)
-            ->get(['i.product_id', 'i.quantity', 'i.base_quantity', 'i.amount', 'v.exchange_rate', 't.base_type']) as $r) {
+            ->get(['i.product_id', 'i.item_type', 'i.quantity', 'i.base_quantity', 'i.amount', 'v.exchange_rate', 't.base_type'] + ($kitchen ? [9 => 'i.ingredient_item_id'] : [])) as $r) {
             [$kind, $qty, $val] = $this->figure($r);
-            $row = &$rows[$r->product_id];
-            $row ??= ['product_id' => (int) $r->product_id, 'purchase_qty' => 0.0, 'purchase_value' => 0.0, 'sale_qty' => 0.0, 'sale_value' => 0.0];
+            [$type, $id] = $this->itemOf($r);
+            $row = &$rows["{$type}:{$id}"];
+            $row ??= ['item_type' => $type, 'item_id' => $id, 'product_id' => $type === 'product' ? $id : null, 'purchase_qty' => 0.0, 'purchase_value' => 0.0, 'sale_qty' => 0.0, 'sale_value' => 0.0];
             $row[$kind . '_qty'] += $qty;
             $row[$kind . '_value'] += $val;
             unset($row);
         }
-        if ($rows) {
-            $names = DB::table('products as p')->leftJoin('units_of_measure as u', 'u.id', '=', 'p.default_unit_id')->whereIn('p.id', array_keys($rows))->get(['p.id', 'p.name', 'u.code as unit'])->keyBy('id');
-        }
+        $names = $rows ? $this->describe(array_map(fn ($r) => [$r['item_type'], $r['item_id']], array_values($rows))) : [];
         $out = [];
         $tot = ['purchase_value' => 0.0, 'sale_value' => 0.0];
-        foreach ($rows as $id => $r) {
+        foreach ($rows as $key => $r) {
             foreach (['purchase', 'sale'] as $k) {
                 $r[$k . '_rate'] = abs($r[$k . '_qty']) > 0.00001 ? round($r[$k . '_value'] / $r[$k . '_qty'], 2) : null;   // value / quantity: the effective rate
                 $r[$k . '_qty'] = round($r[$k . '_qty'], 4);
                 $r[$k . '_value'] = round($r[$k . '_value'], 2);
             }
-            $r['name'] = $names[$id]->name ?? "Item {$id}";
-            $r['unit'] = $names[$id]->unit ?? null;
+            $r['name'] = $names[$key]['name'] ?? "Item {$r['item_id']}";
+            $r['unit'] = $names[$key]['unit'] ?? null;
+            $r['kind'] = $names[$key]['kind'] ?? null;   // the kind of ingredient, for kitchen stock
             $tot['purchase_value'] += $r['purchase_value'];
             $tot['sale_value'] += $r['sale_value'];
             $out[] = $r;
@@ -101,12 +134,12 @@ class MovementReportService
      *
      * @return array{item: array, ledger: ?array, from: string, to: string, groups: array, totals: array}
      */
-    public function itemVouchers(int $productId, ?int $ledgerId, ?string $from, ?string $to): array
+    public function itemVouchers(int $itemId, ?int $ledgerId, ?string $from, ?string $to, string $type = 'product'): array
     {
         [$from, $to] = $this->span($from, $to);
-        $item = DB::table('products as p')->leftJoin('units_of_measure as u', 'u.id', '=', 'p.default_unit_id')->where('p.id', $productId)->first(['p.id', 'p.name', 'u.code as unit']);
+        $item = $this->describe([[$type, $itemId]])["{$type}:{$itemId}"] ?? null;
         abort_unless($item, 404);
-        $q = $this->lines($from, $to)->where('i.product_id', $productId)->leftJoin('ledgers as l', 'l.id', '=', 'v.party_ledger_id')
+        $q = $this->itemLines($this->lines($from, $to), $type, $itemId)->leftJoin('ledgers as l', 'l.id', '=', 'v.party_ledger_id')
             ->when($ledgerId, fn ($w) => $w->where('v.party_ledger_id', $ledgerId))
             ->orderBy('v.date')->orderBy('v.id');
         $groups = ['sale' => ['kind' => 'Sales', 'rows' => [], 'qty' => 0.0, 'value' => 0.0], 'purchase' => ['kind' => 'Purchases', 'rows' => [], 'qty' => 0.0, 'value' => 0.0]];
@@ -131,7 +164,7 @@ class MovementReportService
         }
         $ledger = $ledgerId ? Ledger::find($ledgerId) : null;
 
-        return ['item' => ['id' => (int) $item->id, 'name' => $item->name, 'unit' => $item->unit], 'ledger' => $ledger ? ['id' => $ledger->id, 'name' => $ledger->name] : null,
+        return ['item' => ['id' => $itemId, 'item_type' => $type, 'name' => $item['name'], 'unit' => $item['unit']], 'ledger' => $ledger ? ['id' => $ledger->id, 'name' => $ledger->name] : null,
             'from' => $from, 'to' => $to, 'groups' => $out];
     }
 
@@ -140,13 +173,13 @@ class MovementReportService
      *
      * @return array{item: array, from: string, to: string, rows: array}
      */
-    public function itemLedgers(int $productId, ?string $from, ?string $to): array
+    public function itemLedgers(int $itemId, ?string $from, ?string $to, string $type = 'product'): array
     {
         [$from, $to] = $this->span($from, $to);
-        $item = DB::table('products as p')->leftJoin('units_of_measure as u', 'u.id', '=', 'p.default_unit_id')->where('p.id', $productId)->first(['p.id', 'p.name', 'u.code as unit']);
+        $item = $this->describe([[$type, $itemId]])["{$type}:{$itemId}"] ?? null;
         abort_unless($item, 404);
         $rows = [];
-        foreach ($this->lines($from, $to)->where('i.product_id', $productId)->leftJoin('ledgers as l', 'l.id', '=', 'v.party_ledger_id')
+        foreach ($this->itemLines($this->lines($from, $to), $type, $itemId)->leftJoin('ledgers as l', 'l.id', '=', 'v.party_ledger_id')
             ->get(['i.quantity', 'i.base_quantity', 'i.amount', 'v.exchange_rate', 't.base_type', 'v.party_ledger_id', 'l.name as ledger_name', 'v.party_name']) as $r) {
             [$kind, $qty, $val] = $this->figure($r);
             $key = $r->party_ledger_id ?: 'x:' . ($r->party_name ?: 'walk-in');
@@ -168,7 +201,13 @@ class MovementReportService
         }
         usort($out, fn ($a, $b) => ($b['sale_value'] + $b['purchase_value']) <=> ($a['sale_value'] + $a['purchase_value']));
 
-        return ['item' => ['id' => (int) $item->id, 'name' => $item->name, 'unit' => $item->unit], 'from' => $from, 'to' => $to, 'rows' => $out];
+        return ['item' => ['id' => $itemId, 'item_type' => $type, 'name' => $item['name'], 'unit' => $item['unit']], 'from' => $from, 'to' => $to, 'rows' => $out];
+    }
+
+    /** Narrow the lines to one item: a product, or a kitchen stock variant. */
+    private function itemLines($query, string $type, int $id)
+    {
+        return $type === 'ingredient' ? $query->where('i.item_type', 'ingredient')->where('i.ingredient_item_id', $id) : $query->where('i.product_id', $id)->where('i.item_type', '!=', 'ingredient');
     }
 
     // ── money movement ──────────────────────────────────────────────────────

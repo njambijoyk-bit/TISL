@@ -24,9 +24,11 @@ export default function StockMovement() {
   const [ledgerId, setLedgerId] = useState('');
   const [q, setQ] = useState('');
   const [found, setFound] = useState([]);
-  const [product, setProduct] = useState(null);   // { id, name }
+  const [product, setProduct] = useState(null);   // { id, name, itemType }
+  const [type, setType] = useState('');          // '' | 'product' | 'ingredient': what the ledger's items are narrowed to
+  const [kind, setKind] = useState('');          // the kind of kitchen stock, when that is the type
   const [data, setData] = useState(null);
-  const [drill, setDrill] = useState(null);       // { productId, ledgerId|null }
+  const [drill, setDrill] = useState(null);       // { itemType, itemId, ledgerId|null }
   const [detail, setDetail] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -51,10 +53,11 @@ export default function StockMovement() {
 
   // the list: a ledger's items, or an item's ledgers
   useEffect(() => { setDrill(null); }, [mode, ledgerId, product]);
+  useEffect(() => { setType(''); setKind(''); }, [mode, ledgerId]);
   useEffect(() => {
     setData(null);
     const ask = mode === 'ledger' ? (ledgerId ? booksAPI.movementLedgerItems({ ledger_id: ledgerId, from, to }) : null)
-      : (product ? booksAPI.movementItemLedgers({ product_id: product.id, from, to }) : null);
+      : (product ? booksAPI.movementItemLedgers({ item_type: product.itemType, item_id: product.id, from, to }) : null);
     if (!ask) return undefined;
     let live = true;
     setBusy(true);
@@ -67,7 +70,7 @@ export default function StockMovement() {
     if (!drill) { setDetail(null); return undefined; }
     let live = true;
     setDetail(null);
-    booksAPI.movementItemVouchers({ product_id: drill.productId, ledger_id: drill.ledgerId || undefined, from, to })
+    booksAPI.movementItemVouchers({ item_type: drill.itemType, item_id: drill.itemId, ledger_id: drill.ledgerId || undefined, from, to })
       .then((d) => { if (live) setDetail(d); }).catch((e) => toast.error(errMsg(e, 'Could not load the vouchers')));
     return () => { live = false; };
   }, [drill, from, to]);
@@ -93,9 +96,9 @@ export default function StockMovement() {
             {found.length > 0 && (
               <div style={{ position: 'absolute', zIndex: 20, top: '100%', left: 0, right: 0, marginTop: 4, ...card, maxHeight: 260, overflowY: 'auto' }}>
                 {found.map((p) => (
-                  <button key={p.id} type="button" onClick={() => { setProduct({ id: p.id, name: p.name }); setFound([]); }}
+                  <button key={`${p.item_type}:${p.id}`} type="button" onClick={() => { setProduct({ id: p.id, name: p.name, itemType: p.item_type ?? 'product' }); setFound([]); }}
                     style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', fontSize: '0.8rem' }}>
-                    {p.name}{p.sku && <span style={{ color: colors.textFaint }}> · {p.sku}</span>}
+                    {p.name}{p.sku && <span style={{ color: colors.textFaint }}> · {p.sku}</span>}{p.item_type === 'ingredient' && <span style={{ marginLeft: 6, fontSize: '0.62rem', fontWeight: 800, color: colors.primary }}>KITCHEN</span>}
                   </button>
                 ))}
               </div>
@@ -117,6 +120,13 @@ export default function StockMovement() {
   }
 
   const unitOf = (r) => (mode === 'ledger' ? r.unit : data?.item?.unit);
+  // a ledger's items: products and kitchen stock; with both present a Type list narrows them, and for kitchen stock a Kind list narrows to one kind of ingredient
+  const all = mode === 'ledger' ? (data?.rows ?? []) : [];
+  const types = [...new Set(all.map((r) => r.item_type))];
+  const typeNow = types.includes(type) ? type : '';
+  const kinds = typeNow === 'ingredient' ? [...new Set(all.filter((r) => r.item_type === 'ingredient').map((r) => r.kind).filter(Boolean))] : [];
+  const kindNow = kinds.includes(kind) ? kind : '';
+  const rows = mode === 'ledger' ? all.filter((r) => (!typeNow || r.item_type === typeNow) && (!kindNow || r.kind === kindNow)) : (data?.rows ?? []);
   const empty = mode === 'ledger' ? !ledgerId : !product;
   return (
     <div>
@@ -128,6 +138,18 @@ export default function StockMovement() {
           <p style={{ margin: '0 0 8px', fontSize: '0.78rem', color: colors.textMuted }}>
             {mode === 'ledger' ? <>Stock movement for <strong>{data.ledger.name}</strong></> : <>Ledgers that moved <strong>{data.item.name}</strong></>} · {data.from} to {data.to} · amounts in the base currency · click {mode === 'ledger' ? 'an item' : 'a ledger'} for its vouchers
           </p>
+          {mode === 'ledger' && types.length > 1 && (
+            <div style={{ display: 'flex', gap: 8, margin: '0 0 8px' }}>
+              <select value={typeNow} onChange={(e) => { setType(e.target.value); setKind(''); }} style={filterStyle} aria-label="Type of stock">
+                <option value="">All stock</option><option value="product">Products</option><option value="ingredient">Kitchen stock</option>
+              </select>
+              {kinds.length > 1 && (
+                <select value={kindNow} onChange={(e) => setKind(e.target.value)} style={filterStyle} aria-label="Kind">
+                  <option value="">All kinds</option>{kinds.map((k) => <option key={k} value={k}>{k}</option>)}
+                </select>
+              )}
+            </div>
+          )}
           <div style={{ ...card, overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -142,20 +164,21 @@ export default function StockMovement() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.rows.length === 0 && <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: colors.textMuted, padding: 30 }}>Nothing moved in this period.</td></tr>}
-                  {data.rows.map((r) => (
-                    <tr key={mode === 'ledger' ? r.product_id : (r.ledger_id ?? r.name)}>
+                  {rows.length === 0 && <tr><td colSpan={7} style={{ ...td, textAlign: 'center', color: colors.textMuted, padding: 30 }}>Nothing moved in this period.</td></tr>}
+                  {rows.map((r) => (
+                    <tr key={mode === 'ledger' ? `${r.item_type}:${r.item_id}` : (r.ledger_id ?? r.name)}>
                       <td style={td}>
-                        <button type="button" style={link} onClick={() => setDrill(mode === 'ledger' ? { productId: r.product_id, ledgerId } : { productId: product.id, ledgerId: r.ledger_id })}>{r.name}</button>
+                        <button type="button" style={link} onClick={() => setDrill(mode === 'ledger' ? { itemType: r.item_type, itemId: r.item_id, ledgerId } : { itemType: product.itemType, itemId: product.id, ledgerId: r.ledger_id })}>{r.name}</button>
+                        {mode === 'ledger' && types.length > 1 && r.item_type === 'ingredient' && <span style={{ marginLeft: 6, fontSize: '0.62rem', fontWeight: 800, color: colors.primary }}>KITCHEN</span>}
                       </td>
                       <td style={{ ...td, ...num, borderLeft: `1px solid ${colors.tint(0.08)}` }}>{qty(r.purchase_qty, unitOf(r))}</td><td style={{ ...td, ...num, fontStyle: 'italic' }}>{rate(r.purchase_rate)}</td><td style={{ ...td, ...num }}>{val(r.purchase_value)}</td>
                       <td style={{ ...td, ...num, borderLeft: `1px solid ${colors.tint(0.08)}` }}>{qty(r.sale_qty, unitOf(r))}</td><td style={{ ...td, ...num, fontStyle: 'italic' }}>{rate(r.sale_rate)}</td><td style={{ ...td, ...num }}>{val(r.sale_value)}</td>
                     </tr>
                   ))}
-                  {data.rows.length > 0 && (
+                  {rows.length > 0 && (
                     <tr style={{ background: colors.tint(0.03), fontWeight: 700 }}>
-                      <td style={td}>Grand total</td><td style={td} /><td style={td} /><td style={{ ...td, ...num }}>{money(data.rows.reduce((t, r) => t + r.purchase_value, 0))}</td>
-                      <td style={td} /><td style={td} /><td style={{ ...td, ...num }}>{money(data.rows.reduce((t, r) => t + r.sale_value, 0))}</td>
+                      <td style={td}>Grand total</td><td style={td} /><td style={td} /><td style={{ ...td, ...num }}>{money(rows.reduce((t, r) => t + r.purchase_value, 0))}</td>
+                      <td style={td} /><td style={td} /><td style={{ ...td, ...num }}>{money(rows.reduce((t, r) => t + r.sale_value, 0))}</td>
                     </tr>
                   )}
                 </tbody>
@@ -163,7 +186,7 @@ export default function StockMovement() {
             </div>
           </div>
           {mode === 'item' && data.rows.length > 0 && (
-            <p style={{ margin: '10px 0 0' }}><button type="button" style={{ ...link, fontSize: '0.8rem' }} onClick={() => setDrill({ productId: product.id, ledgerId: null })}>See every voucher for {data.item.name}, all ledgers →</button></p>
+            <p style={{ margin: '10px 0 0' }}><button type="button" style={{ ...link, fontSize: '0.8rem' }} onClick={() => setDrill({ itemType: product.itemType, itemId: product.id, ledgerId: null })}>See every voucher for {data.item.name}, all ledgers →</button></p>
           )}
         </>
       )}
