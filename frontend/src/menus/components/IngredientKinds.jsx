@@ -14,6 +14,8 @@ import { Pill } from './FoodChips';
  * Cooking ingredient is the kind a new ingredient gets, so it stays; a kind that ingredients have cannot be removed.
  */
 
+const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
+const td = { padding: '9px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.07)}`, verticalAlign: 'middle' };
 const iconBtn = { background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 4 };
 const USE_HINT = {
   in_recipes: 'A recipe can list it (flour, beef, oil, salt).',
@@ -79,27 +81,41 @@ export default function IngredientKindsModal({ canWrite, onClose, onChanged }) {
   };
 
   return (
-    <Modal title="Kinds of ingredient" onClose={onClose} width={720}>
+    <Modal title="Kinds of ingredient" onClose={onClose} width={860}>
       <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: colors.textMuted }}>A kind says what its ingredients may be used for. Recipes list only the kinds used in recipes.</p>
       {data && !data.ready && <p role="status" style={{ fontSize: '0.82rem' }}>Run database script 190_menus_ingredient_kinds.sql first. Until then every ingredient is treated as a cooking ingredient.</p>}
       {data?.ready && !data.ledgers_ready && <p role="status" style={{ fontSize: '0.82rem' }}>Run database script 191_menus_kind_ledgers.sql to add the Supplies kind and the account each kind is charged to.</p>}
       {!data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data.ready && (
         <div data-testid="ingredient-kinds">
-          {data.kinds.map((k, i) => (
-            <div key={k.id} data-kind={k.name} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: `1px solid ${colors.tint(0.07)}`, flexWrap: 'wrap' }}>
-              <strong style={{ minWidth: 150, fontSize: '0.86rem' }}>{k.name}</strong>
-              <span style={{ flex: 1, display: 'flex', gap: 5, flexWrap: 'wrap' }}>{Object.entries(data.uses).filter(([u]) => k[u]).map(([u, label]) => <Pill key={u}>{label.toLowerCase()}</Pill>)}{k.expense_ledger && <span style={{ fontSize: '0.74rem', color: colors.textMuted, alignSelf: 'center' }}>charged to {k.expense_ledger}</span>}</span>
-              <span style={{ fontSize: '0.74rem', color: colors.textMuted, minWidth: 90, textAlign: 'right' }}>{k.ingredients ? `${k.ingredients} ingredient${k.ingredients === 1 ? '' : 's'}` : 'none yet'}</span>
-              {canWrite && (
-                <span style={{ whiteSpace: 'nowrap' }}>
-                  <button type="button" aria-label={`Move ${k.name} up`} style={iconBtn} disabled={i === 0} onClick={() => move(i, -1)}><ArrowUp size={14} /></button>
-                  <button type="button" aria-label={`Move ${k.name} down`} style={iconBtn} disabled={i === data.kinds.length - 1} onClick={() => move(i, 1)}><ArrowDown size={14} /></button>
-                  <button type="button" aria-label={`Edit ${k.name}`} style={iconBtn} onClick={() => setForm({ kind: k })}><Pencil size={14} /></button>
-                  <button type="button" aria-label={`Remove ${k.name}`} style={iconBtn} title={k.ingredients ? 'In use: give its ingredients another kind first' : 'Remove'} onClick={() => remove(k)}><Trash2 size={14} /></button>
-                </span>
-              )}
-            </div>
-          ))}
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr>
+                <th style={th}>Kind</th>
+                <th style={th}>Used for</th>
+                {data.ledgers_ready && <th style={th}>Ledger</th>}
+                <th style={{ ...th, textAlign: 'right' }}>Ingredients</th>
+                {canWrite && <th style={{ ...th, textAlign: 'right' }}>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {data.kinds.map((k, i) => (
+                <tr key={k.id} data-kind={k.name}>
+                  <td style={{ ...td, fontWeight: 700, fontSize: '0.86rem' }}>{k.name}</td>
+                  <td style={td}><span style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{Object.entries(data.uses).filter(([u]) => k[u]).map(([u, label]) => <Pill key={u}>{label.toLowerCase()}</Pill>)}</span></td>
+                  {data.ledgers_ready && <td style={td}>{k.expense_ledger ?? <span style={{ color: colors.textFaint }}>none</span>}</td>}
+                  <td style={{ ...td, textAlign: 'right', color: colors.textMuted }}>{k.ingredients ? `${k.ingredients} ingredient${k.ingredients === 1 ? '' : 's'}` : 'none yet'}</td>
+                  {canWrite && (
+                    <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <button type="button" aria-label={`Move ${k.name} up`} style={iconBtn} disabled={i === 0} onClick={() => move(i, -1)}><ArrowUp size={14} /></button>
+                      <button type="button" aria-label={`Move ${k.name} down`} style={iconBtn} disabled={i === data.kinds.length - 1} onClick={() => move(i, 1)}><ArrowDown size={14} /></button>
+                      <button type="button" aria-label={`Edit ${k.name}`} style={iconBtn} onClick={() => setForm({ kind: k })}><Pencil size={14} /></button>
+                      <button type="button" aria-label={`Remove ${k.name}`} style={iconBtn} title={k.ingredients ? 'In use: give its ingredients another kind first' : 'Remove'} onClick={() => remove(k)}><Trash2 size={14} /></button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12 }}>
             {canWrite ? <button type="button" style={btnPrimary} onClick={() => setForm({ kind: null })}><Plus size={14} /> New kind</button> : <span />}
             <button type="button" style={btnGhost} onClick={onClose}>Close</button>
