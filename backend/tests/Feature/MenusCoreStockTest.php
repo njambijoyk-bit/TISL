@@ -97,6 +97,19 @@ class MenusCoreStockTest extends TestCase
         $this->assertSame('Wheat flour — Exe 2 kg', StockItemRegistry::get(IngredientItemSource::TYPE)->describe([$this->exe])[$this->exe]['name']);
     }
 
+    public function test_opening_stock_is_the_opening_column_of_the_summary_whatever_its_date_and_purchases_are_inwards(): void
+    {
+        DB::table('accounting_settings')->where('id', 1)->update(['opening_balance_ledger_id' => DB::table('ledgers')->insertGetId(['name' => 'Opening Balance Equity', 'group_id' => 1])]);
+        app(IngredientReceiving::class)->opening(['location_id' => self::BRANCH, 'date' => '2026-10-01', 'lines' => [['item_id' => $this->exe, 'quantity' => 3, 'unit' => 'pack', 'rate' => 260]]], null);   // 6000 g
+        $this->receive($this->exe, 1, 260);   // 2000 g bought on 2026-10-10
+        $s = app(\App\Services\Stock\StockReportService::class)->summary(['from' => '2026-01-01', 'to' => '2026-10-31']);
+        $item = collect($s['groups'])->flatMap(fn ($g) => $g['items'])->firstWhere('item_id', $this->exe);
+        $this->assertEquals([6000, 2000, 0, 8000], [$item['opening']['qty'], $item['inward']['qty'], $item['outward']['qty'], $item['closing']['qty']]);
+        $this->assertEquals(780, $item['opening']['value']);
+        $m = app(\App\Services\Stock\StockReportService::class)->monthly(IngredientItemSource::TYPE, $this->exe, ['from' => '2026-01-01', 'to' => '2026-10-31']);
+        $this->assertEquals([6000, 2000, 8000], [$m['opening']['qty'], $m['months'][0]['inward']['qty'], $m['closing']['qty']]);
+    }
+
     // ------------------------------------------------------------ counts
 
     public function test_a_count_lists_the_ingredient_variants_on_the_shelf_and_posts_them_with_a_journal_of_their_own(): void

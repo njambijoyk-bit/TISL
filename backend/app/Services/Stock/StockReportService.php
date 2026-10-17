@@ -61,12 +61,14 @@ class StockReportService
             });
         }
         $skip = $loc ? '' : "AND m.movement_type NOT IN ('transfer_in','transfer_out')";
+        // opening stock is the opening balance whatever its date is: it is what the books start with, not stock that came in during the period
+        $isOpen = "m.movement_type = 'opening_stock'";
         $cost = 'm.quantity * COALESCE(m.unit_cost, 0)';
         $rows = $q->groupBy(DB::raw($t), DB::raw($i))->selectRaw(
             "{$t} AS t, {$i} AS i,
-             SUM(CASE WHEN m.movement_date < '{$from}' THEN m.quantity ELSE 0 END) AS oq, SUM(CASE WHEN m.movement_date < '{$from}' THEN {$cost} ELSE 0 END) AS ov,
-             SUM(CASE WHEN m.movement_date >= '{$from}' AND m.quantity > 0 {$skip} THEN m.quantity ELSE 0 END) AS iq, SUM(CASE WHEN m.movement_date >= '{$from}' AND m.quantity > 0 {$skip} THEN {$cost} ELSE 0 END) AS iv,
-             SUM(CASE WHEN m.movement_date >= '{$from}' AND m.quantity < 0 {$skip} THEN -m.quantity ELSE 0 END) AS xq, SUM(CASE WHEN m.movement_date >= '{$from}' AND m.quantity < 0 {$skip} THEN -({$cost}) ELSE 0 END) AS xv"
+             SUM(CASE WHEN m.movement_date < '{$from}' OR {$isOpen} THEN m.quantity ELSE 0 END) AS oq, SUM(CASE WHEN m.movement_date < '{$from}' OR {$isOpen} THEN {$cost} ELSE 0 END) AS ov,
+             SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity > 0 {$skip} THEN m.quantity ELSE 0 END) AS iq, SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity > 0 {$skip} THEN {$cost} ELSE 0 END) AS iv,
+             SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity < 0 {$skip} THEN -m.quantity ELSE 0 END) AS xq, SUM(CASE WHEN m.movement_date >= '{$from}' AND NOT {$isOpen} AND m.quantity < 0 {$skip} THEN -({$cost}) ELSE 0 END) AS xv"
         )->get();
 
         $byType = [];
@@ -182,7 +184,7 @@ class StockReportService
         foreach ($rows as $r) {
             $date = Carbon::parse($r->movement_date)->toDateString();
             $qty = (float) $r->quantity; $val = $qty * (float) ($r->unit_cost ?? 0);
-            if ($date < $from) {
+            if ($date < $from || $r->movement_type === 'opening_stock') {
                 $oq += $qty; $ov += $val;
                 continue;
             }
