@@ -11,6 +11,7 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
+import { useMenusBranch } from '../../lib/menusBranch';
 
 /**
  * Menus → Recipes: what each dish is made of, written on ingredients (Menus' own stock): an amount in the ingredient's base or alternate unit, and the waste in preparing it.
@@ -120,7 +121,7 @@ export default function Recipes() {
   const user = useAuthStore((s) => s.user);
   const canWrite = canManageMenus(user);
   const [data, setData] = useState(null);
-  const [loc, setLoc] = useState('');
+  const [loc, setLoc] = useMenusBranch(data?.branches);
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(true);
   const first = useRef(true);
@@ -131,7 +132,7 @@ export default function Recipes() {
       .then((d) => { setData(d); if (first.current) { first.current = false; setLoc(String(d.location_id)); } })
       .catch((e) => toast.error(errMsg(e, 'Could not load the recipes')))
       .finally(() => setLoading(false));
-  }, [loc]);
+  }, [loc, setLoc]);
   useEffect(() => { load(); }, [load]);
   const done = () => { setModal(null); load(); };
   const remove = async (d) => {

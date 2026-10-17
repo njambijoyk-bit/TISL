@@ -12,6 +12,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
 import OpeningStockGrid from '../../components/OpeningStockGrid';
+import { useMenusBranch } from '../../lib/menusBranch';
 
 /**
  * Menus → Stock → Opening stock: the whole shelf as one sheet. Type what the kitchen starts with row by row; touched rows are counted on Save all and kept in this browser
@@ -21,11 +22,11 @@ export default function MenusOpeningStock() {
   const user = useAuthStore((s) => s.user);
   const canWrite = canManageMenus(user);
   const [data, setData] = useState(null);
-  const [loc, setLoc] = useState('');
+  const [loc, setLoc] = useMenusBranch(data?.branches);
   const [date, setDate] = useState(new Date().toLocaleDateString('en-CA'));
   const [note, setNote] = useState('');
 
-  const load = useCallback((location) => menusAPI.stock(location ? { location_id: location } : undefined).then((s) => { setData(s); setLoc((l) => l || String(s.location_id)); }).catch((e) => toast.error(errMsg(e, 'Could not load the stock'))), []);
+  const load = useCallback((location) => menusAPI.stock(location ? { location_id: location } : undefined).then((s) => { setData(s); setLoc((l) => l || String(s.location_id)); }).catch((e) => toast.error(errMsg(e, 'Could not load the stock'))), [setLoc]);
   useEffect(() => { load(loc); }, [load, loc]);
 
   const save = async (lines) => {

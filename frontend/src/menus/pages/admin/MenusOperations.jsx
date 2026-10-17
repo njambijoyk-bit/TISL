@@ -11,6 +11,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
 import MenusNav from '../../components/MenusNav';
+import { useMenusBranch } from '../../lib/menusBranch';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = (n) => Number(n).toLocaleString('en-KE', { maximumFractionDigits: 2 });
@@ -205,8 +206,8 @@ export default function MenusOperations() {
   const canAct = canManageMenus(user);
   const [which, setWhich] = useState('prep');
   const [branches, setBranches] = useState([]);
-  const [branch, setBranch] = useState('');
-  useEffect(() => { menusAPI.prep({ date: tomorrow() }).then((r) => { setBranches(r.branches ?? []); setBranch((b) => b || String(r.location_id ?? '')); }).catch(() => {}); }, []);
+  const [branch, setBranch] = useMenusBranch(branches);
+  useEffect(() => { menusAPI.prep({ date: tomorrow() }).then((r) => { setBranches(r.branches ?? []); setBranch((b) => b || String(r.location_id ?? '')); }).catch(() => {}); }, [setBranch]);
 
   if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="kitchen operations" /></div></AdminLayout>;
 

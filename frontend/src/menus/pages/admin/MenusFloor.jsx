@@ -12,6 +12,7 @@ import { canViewMenus, canManageMenus, canRunFoodTill } from '../../../_shared/l
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
+import { useMenusBranch } from '../../lib/menusBranch';
 
 const CELL = 44;   // pixels per grid square on the plan
 const STATE = {
@@ -64,7 +65,7 @@ export default function MenusFloor() {
   const canAct = canManageMenus(user);   // changing the plan: areas, tables, their places, their QR codes
   const canServe = canRunFoodTill(user);   // seating, taking orders, the bill, cleaning, joining tables
   const [data, setData] = useState(null);
-  const [locationId, setLocationId] = useState('');
+  const [locationId, setLocationId] = useMenusBranch(data?.branches);
   const [areaId, setAreaId] = useState(null);
   const [pick, setPick] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -75,7 +76,7 @@ export default function MenusFloor() {
   const [areaName, setAreaName] = useState('');
   const drag = useRef(null);
 
-  const load = useCallback(() => menusAPI.floor(locationId ? { location_id: locationId } : undefined).then((r) => { setData(r); setLocationId((l) => l || String(r.location_id ?? '')); setAreaId((a) => a ?? r.areas?.[0]?.id ?? null); }).catch((e) => toast.error(errMsg(e, 'Could not load the floor'))), [locationId]);
+  const load = useCallback(() => menusAPI.floor(locationId ? { location_id: locationId } : undefined).then((r) => { setData(r); setLocationId((l) => l || String(r.location_id ?? '')); setAreaId((a) => a ?? r.areas?.[0]?.id ?? null); }).catch((e) => toast.error(errMsg(e, 'Could not load the floor'))), [locationId, setLocationId]);
   useEffect(() => { load(); const t = setInterval(() => { if (!editing) load(); }, 10000); return () => clearInterval(t); }, [load, editing]);
 
   const area = data?.areas.find((a) => a.id === areaId) ?? data?.areas[0];

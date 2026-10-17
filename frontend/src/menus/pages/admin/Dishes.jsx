@@ -15,6 +15,7 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 import MenusNav from '../../components/MenusNav';
 import DishOptionsModal from '../../components/DishOptionsModal';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
+import { useMenusBranch } from '../../lib/menusBranch';
 
 /**
  * Menus → Dishes: what a customer sees. A dish has its own price and, once it has a recipe, uses the kitchen's ingredient stock when it is sold (or its own batches, when it is made ahead).
@@ -117,7 +118,7 @@ export default function Dishes() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
-  const [loc, setLoc] = useState('');
+  const [loc, setLoc] = useMenusBranch(data?.branches);
 
   const load = useCallback(() => {
     setLoading(true);

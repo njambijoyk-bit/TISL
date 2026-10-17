@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
-import { Plus, PackagePlus, Trash2, ClipboardList, Truck, ChefHat } from 'lucide-react';
+import { Plus, PackagePlus, Trash2, ClipboardList, Truck, ChefHat, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -15,6 +15,7 @@ import MenusNav from '../../components/MenusNav';
 import { BatchModal, TransferModal } from '../../components/StockActions';
 import ReceiveIngredients from '../../components/ReceiveIngredients';
 import IngredientVariantPicker from '../../components/IngredientVariantPicker';
+import { useMenusBranch } from '../../lib/menusBranch';
 
 /**
  * Menus → Stock: what is on the kitchen's shelf at a branch, per ingredient and per variant, in packs, the alternate unit and the base unit, and how it got there.
@@ -32,8 +33,9 @@ export default function MenusStock() {
   const [data, setData] = useState(null);
   const [receipts, setReceipts] = useState([]);
   const [extra, setExtra] = useState({ expiring: [], counts: [], transfers: [], runs: [], dishes: [] });
-  const [loc, setLoc] = useState('');
+  const [loc, setLoc] = useMenusBranch(data?.branches);
   const [modal, setModal] = useState(null);
+  const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
   const first = useRef(true);
 
@@ -44,7 +46,7 @@ export default function MenusStock() {
       .then(([s, r, x, c, p]) => { setData(s); setReceipts(r.receipts); setExtra({ expiring: x.rows ?? [], counts: c.counts ?? [], transfers: c.transfers ?? [], runs: p.runs ?? [], dishes: p.dishes ?? [] }); if (first.current) { first.current = false; setLoc(String(s.location_id)); } })
       .catch((e) => toast.error(errMsg(e, 'Could not load the stock')))
       .finally(() => setLoading(false));
-  }, [loc]);
+  }, [loc, setLoc]);
   useEffect(() => { load(); }, [load]);
   const done = () => { setModal(null); load(); };
   const cancel = async (r) => {
@@ -61,6 +63,16 @@ export default function MenusStock() {
   if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="the kitchen stock" /></div></AdminLayout>;
   const noVariants = data && !data.ingredients.some((i) => i.variants.length);
 
+  // one search over everything on the page: the shelf (an ingredient shows all its variants), what is expiring, batches, receipts, counts and transfers
+  const needle = q.trim().toLowerCase();
+  const has = (...texts) => !needle || texts.some((t) => String(t ?? '').toLowerCase().includes(needle));
+  const shelf = (data?.ingredients ?? []).filter((i) => i.variants.length).map((i) => (has(i.name) ? i : { ...i, variants: i.variants.filter((v) => has(v.name)) })).filter((i) => i.variants.length);
+  const expiring = extra.expiring.filter((x) => has(x.name, x.batch_no));
+  const runs = extra.runs.filter((r) => has(r.dish, r.number));
+  const counts = extra.counts.filter((c) => has(c.number, c.note));
+  const transfers = extra.transfers.filter((t) => has(t.number, t.note));
+  const shownReceipts = receipts.filter((r) => has(r.voucher_number, r.supplier, r.supplier_invoice_no, r.narration, r.kind === 'opening' ? 'opening stock' : r.kind === 'goods' ? 'goods received' : 'purchase'));
+
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="menus-stock">
@@ -68,8 +80,14 @@ export default function MenusStock() {
         <HubHeader title="Stock" description="What is on the kitchen's shelf, counted in packs, kilograms and grams, and how it got there. Receive deliveries here: the supplier's bill goes into the books and the stock onto the shelf." />
         {data && !data.installed && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 182_menus_ingredient_stock.sql first: until then stock can be read but not received.</p>}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, margin: '0 0 14px', flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 200 }}>
-            <SelectInput aria-label="Branch" value={loc} onChange={(e) => setLoc(e.target.value)}>{(data?.branches ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', flex: '1 1 380px' }}>
+            <div style={{ minWidth: 200 }}>
+              <SelectInput aria-label="Branch" value={loc} onChange={(e) => setLoc(e.target.value)}>{(data?.branches ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput>
+            </div>
+            <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 360 }}>
+              <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
+              <TextInput aria-label="Search the stock" placeholder="Search ingredients, batches, receipts…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />
+            </div>
           </div>
           {canWrite && data?.installed && (
             <div style={{ display: 'flex', gap: 8 }}>
@@ -88,7 +106,7 @@ export default function MenusStock() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>Ingredient / variant</th><th style={{ ...th, textAlign: 'right' }}>Packs</th><th style={{ ...th, textAlign: 'right' }}>In the bigger unit</th><th style={{ ...th, textAlign: 'right' }}>In the base unit</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th}>Expires first</th></tr></thead>
               <tbody>
-                {(data?.ingredients ?? []).filter((i) => i.variants.length).map((i) => (
+                {shelf.map((i) => (
                   <Fragment key={`i${i.id}`}>
                     <tr style={{ background: colors.tint(0.03) }}>
                       <td style={{ ...td, fontWeight: 700 }}>{i.name}</td><td style={td} />
@@ -108,18 +126,19 @@ export default function MenusStock() {
                     ))}
                   </Fragment>
                 ))}
+                {shelf.length === 0 && needle && <tr><td colSpan={6} style={{ ...td, padding: 20, color: colors.textMuted }}>Nothing on the shelf matches “{q.trim()}”.</td></tr>}
               </tbody>
             </table>
           )}
         </div>
 
-        {extra.expiring.length > 0 && (
+        {expiring.length > 0 && (
           <>
             <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Expired or expiring this week</h2>
             <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="expiring">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr><th style={th}>Ingredient / variant</th><th style={th}>Expires</th><th style={{ ...th, textAlign: 'right' }}>Left</th><th style={{ ...th, textAlign: 'right' }}>Worth</th><th style={th} /></tr></thead>
-                <tbody>{extra.expiring.map((x) => (
+                <tbody>{expiring.map((x) => (
                   <tr key={x.batch_id}>
                     <td style={td}>{x.name}{x.batch_no ? <span style={{ color: colors.textFaint }}> · {x.batch_no}</span> : null}{x.status !== 'ok' ? <span style={{ color: colors.textFaint }}> · {x.status}</span> : null}</td>
                     <td style={{ ...td, color: x.expired ? '#b91c1c' : undefined, fontWeight: x.expired ? 700 : 400 }}>{x.expiry_date} · {x.expired ? `expired ${-x.days_left} day${x.days_left === -1 ? '' : 's'} ago` : x.days_left === 0 ? 'today' : `in ${x.days_left} day${x.days_left === 1 ? '' : 's'}`}</td>
@@ -132,13 +151,13 @@ export default function MenusStock() {
           </>
         )}
 
-        {extra.runs.length > 0 && (
+        {runs.length > 0 && (
           <>
             <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Batches made</h2>
             <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="batches">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr><th style={th}>Date</th><th style={th}>Batch</th><th style={th}>Dish</th><th style={{ ...th, textAlign: 'right' }}>Portions</th><th style={{ ...th, textAlign: 'right' }}>Left</th><th style={{ ...th, textAlign: 'right' }}>Cost</th><th style={th} /></tr></thead>
-                <tbody>{extra.runs.map((r) => (
+                <tbody>{runs.map((r) => (
                   <tr key={r.id} style={r.status === 'cancelled' ? { opacity: 0.5 } : undefined}>
                     <td style={td}>{r.date}</td><td style={td}>{r.number}</td><td style={td}>{r.dish}</td><td style={{ ...td, textAlign: 'right' }}>{num(r.portions)}</td><td style={{ ...td, textAlign: 'right' }}>{r.status === 'cancelled' ? 'Cancelled' : num(r.left)}</td><td style={{ ...td, textAlign: 'right' }}>{num(r.cost)}</td>
                     <td style={td}>{canWrite && r.status === 'posted' && <button type="button" style={small} onClick={() => cancelBatch(r)}>Cancel</button>}</td>
@@ -149,15 +168,15 @@ export default function MenusStock() {
           </>
         )}
 
-        {(extra.counts.length > 0 || extra.transfers.length > 0) && (
+        {(counts.length > 0 || transfers.length > 0) && (
           <>
             <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Stock counts and transfers</h2>
             <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="counts">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead><tr><th style={th}>Date</th><th style={th}>Number</th><th style={th}>What</th><th style={{ ...th, textAlign: 'right' }}>Difference worth</th></tr></thead>
                 <tbody>
-                  {extra.counts.map((c) => <tr key={`c${c.id}`}><td style={td}>{c.date}</td><td style={td}>{c.number}</td><td style={td}>Stock count · {c.lines} line{c.lines === 1 ? '' : 's'}{c.note ? ` · ${c.note}` : ''}</td><td style={{ ...td, textAlign: 'right' }}>{num(c.value_change)}</td></tr>)}
-                  {extra.transfers.map((t) => <tr key={`t${t.id}`}><td style={td}>{t.date}</td><td style={td}>{t.number}</td><td style={td}>Sent {data?.branches.find((b) => b.id === t.from)?.name ?? ''} → {data?.branches.find((b) => b.id === t.to)?.name ?? ''} · {t.lines} line{t.lines === 1 ? '' : 's'}</td><td style={td} /></tr>)}
+                  {counts.map((c) => <tr key={`c${c.id}`}><td style={td}>{c.date}</td><td style={td}>{c.number}</td><td style={td}>Stock count · {c.lines} line{c.lines === 1 ? '' : 's'}{c.note ? ` · ${c.note}` : ''}</td><td style={{ ...td, textAlign: 'right' }}>{num(c.value_change)}</td></tr>)}
+                  {transfers.map((t) => <tr key={`t${t.id}`}><td style={td}>{t.date}</td><td style={td}>{t.number}</td><td style={td}>Sent {data?.branches.find((b) => b.id === t.from)?.name ?? ''} → {data?.branches.find((b) => b.id === t.to)?.name ?? ''} · {t.lines} line{t.lines === 1 ? '' : 's'}</td><td style={td} /></tr>)}
                 </tbody>
               </table>
             </div>
@@ -166,10 +185,10 @@ export default function MenusStock() {
 
         <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Receipts</h2>
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
-          {receipts.length === 0 ? <p style={{ padding: 16, margin: 0, color: colors.textMuted, fontSize: '0.82rem' }}>Nothing received yet.</p> : (
+          {shownReceipts.length === 0 ? <p style={{ padding: 16, margin: 0, color: colors.textMuted, fontSize: '0.82rem' }}>{receipts.length === 0 ? 'Nothing received yet.' : 'No receipts match.'}</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>Date</th><th style={th}>Bill</th><th style={th}>From</th><th style={{ ...th, textAlign: 'right' }}>Total</th><th style={th}>Status</th><th style={th} /></tr></thead>
-              <tbody>{receipts.map((r) => (
+              <tbody>{shownReceipts.map((r) => (
                 <tr key={r.id} style={r.status === 'cancelled' ? { opacity: 0.5 } : undefined}>
                   <td style={td}>{r.date}</td>
                   <td style={td}>{r.voucher_number ?? '—'}{r.supplier_invoice_no ? <span style={{ color: colors.textFaint }}> · {r.supplier_invoice_no}</span> : null}</td>
