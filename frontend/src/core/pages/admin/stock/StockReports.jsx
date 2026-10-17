@@ -291,12 +291,10 @@ export default function StockReports() {
             <input type="date" value={f.from} onChange={(e) => set('from', e.target.value)} aria-label="From" style={sel} />
             <input type="date" value={f.to} onChange={(e) => set('to', e.target.value)} aria-label="To" style={sel} />
           </>}
-          {(tab === 'location' || tab === 'query') && (
-            <select value={f.location_id} onChange={(e) => set('location_id', e.target.value)} aria-label="Branch" style={sel}>
-              {tab === 'query' && <option value="">All branches</option>}
-              {(data?.locations ?? branches).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
-            </select>
-          )}
+          <select value={f.location_id} onChange={(e) => set('location_id', e.target.value)} aria-label="Branch" style={sel}>
+            {tab !== 'location' && <option value="">All branches</option>}
+            {(data?.locations ?? branches).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+          </select>
           {tab !== 'query' && (data?.item_types?.length ?? 0) > 1 && (
             <select value={f.item_type} onChange={(e) => set('item_type', e.target.value)} aria-label="Kind of item" style={sel}>
               <option value="">All kinds of item</option>{data.item_types.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
@@ -310,7 +308,7 @@ export default function StockReports() {
             {data.no_cost_items > 0 && <span style={{ color: '#92400e', fontWeight: 700 }}>{data.no_cost_items} item(s) held at no cost — their value reads 0 until a cost is set.</span>}
           </p>
         )}
-        {tab === 'location' && branch && showSummary && <p style={{ margin: '0 0 8px', fontStyle: 'italic', color: colors.textMuted }}>{branch}</p>}
+        {branch && showSummary && <p style={{ margin: '0 0 8px', fontStyle: 'italic', color: colors.textMuted }}>{branch}</p>}
         {tab === 'query' && <QueryView initial={queried} locationId={f.location_id} />}
         {showSummary && (loading && !data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data && <SummaryTable data={data} onItem={(it) => { setDrill(it); setMonth(null); }} onQuery={(it) => { setQueried(it); goTab('query'); }} />)}
         {tab !== 'query' && drill && !month && <ItemMonthly item={drill} f={f} onBack={() => setDrill(null)} onMonth={setMonth} />}
