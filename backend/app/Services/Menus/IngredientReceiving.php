@@ -33,6 +33,20 @@ class IngredientReceiving
      */
     public function receive(array $d, ?User $by): Voucher
     {
+        $data = $this->purchase($d);
+
+        return DB::transaction(fn () => $this->vouchers->create($data, $by));
+    }
+
+    /** What the books would post for this delivery, as the Purchases form shows it: the entries, the tax and the totals. Nothing is saved. @return array<string, mixed> */
+    public function preview(array $d, ?User $by): array
+    {
+        return $this->vouchers->preview($this->purchase($d), $by);
+    }
+
+    /** The Purchase voucher a delivery is. */
+    private function purchase(array $d): array
+    {
         $type = VoucherType::byBase(VoucherType::PURCHASE) ?? throw new BooksException('The Purchase voucher type is switched off.');
         $location = $this->location($d);
         $lines = $this->lines($d['lines'] ?? []);
@@ -40,12 +54,12 @@ class IngredientReceiving
             throw new BooksException('Choose the supplier, or the cash or bank account it was paid from.');
         }
 
-        return DB::transaction(fn () => $this->vouchers->create(array_filter([
+        return array_filter([
             'voucher_type_id' => $type->id, 'date' => $d['date'] ?? today()->toDateString(), 'location_id' => $location, 'party_ledger_id' => $d['supplier_ledger_id'] ?? null,
             'paid_ledger_id' => $d['paid_ledger_id'] ?? null, 'payment_method_id' => $d['payment_method_id'] ?? null, 'supplier_invoice_no' => $d['supplier_invoice_no'] ?? null,
-            'due_date' => $d['due_date'] ?? null, 'narration' => $d['narration'] ?? 'Ingredients received',
+            'reference_no' => $d['reference_no'] ?? null, 'due_date' => $d['due_date'] ?? null, 'narration' => $d['narration'] ?? 'Ingredients received',
             'lines' => array_map(fn ($l) => $this->voucherLine($l), $lines),
-        ], fn ($v) => $v !== null), $by));
+        ], fn ($v) => $v !== null);
     }
 
     /**
@@ -81,7 +95,7 @@ class IngredientReceiving
     private function voucherLine(array $l): array
     {
         return array_filter([
-            'type' => 'ingredient', 'ingredient_item_id' => $l['item']->id, 'quantity' => $l['input_qty'], 'unit' => $l['unit'], 'rate' => $l['rate'],
+            'type' => 'ingredient', 'ingredient_item_id' => $l['item']->id, 'quantity' => $l['input_qty'], 'unit' => $l['unit'], 'rate' => $l['rate'], 'discount' => $l['discount'],
             'batch_no' => $l['batch_no'], 'expiry_date' => $l['expiry_date'],
         ], fn ($v) => $v !== null);
     }
@@ -159,9 +173,10 @@ class IngredientReceiving
             }
             $unit = (string) ($l['unit'] ?? 'base');
             $base = $this->toBase($item, $unit, $qty);
-            $amount = round($qty * $rate, 2);
+            $discount = max(0.0, round((float) ($l['discount'] ?? 0), 2));
+            $amount = round($qty * $rate - $discount, 2);
             $out[] = [
-                'item' => $item, 'input_qty' => $qty, 'unit' => $unit, 'qty_base' => $base, 'rate' => $rate, 'amount' => $amount, 'cost_base' => $base > 0 ? $amount / $base : 0.0,
+                'item' => $item, 'input_qty' => $qty, 'unit' => $unit, 'qty_base' => $base, 'rate' => $rate, 'discount' => $discount, 'amount' => $amount, 'cost_base' => $base > 0 ? $amount / $base : 0.0,
                 'label' => trim($item->ingredient->name.' – '.$item->name.': '.rtrim(rtrim(number_format($qty, 4, '.', ''), '0'), '.').' '.$this->unitWord($item, $unit, $qty)),
                 'batch_no' => isset($l['batch_no']) && trim((string) $l['batch_no']) !== '' ? mb_substr(trim((string) $l['batch_no']), 0, 60) : null,
                 'expiry_date' => ! empty($l['expiry_date']) ? (string) $l['expiry_date'] : null,

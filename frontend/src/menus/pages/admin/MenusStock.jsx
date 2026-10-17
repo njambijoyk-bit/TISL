@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, PackagePlus, Trash2, ClipboardList, Truck, ChefHat } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -13,6 +13,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
 import { BatchModal, TransferModal } from '../../components/StockActions';
+import ReceiveIngredients from '../../components/ReceiveIngredients';
 import IngredientVariantPicker from '../../components/IngredientVariantPicker';
 
 /**
@@ -24,98 +25,6 @@ const th = { textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', textTr
 const td = { padding: '8px 10px', fontSize: '0.8rem', borderTop: `1px solid ${colors.tint(0.06)}`, verticalAlign: 'top' };
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' };
 const num = (n, dp = 2) => (n == null ? '—' : Number(n).toLocaleString('en-KE', { maximumFractionDigits: dp }));
-
-/** One line of the receiving form. The unit choices are the ones that make sense for the variant: packs (when it has a pack size), the alternate unit, the base unit. */
-function Line({ line, variants, onChange, onRemove }) {
-  const v = variants.find((x) => String(x.id) === String(line.item_id));
-  const units = v ? [...(v.pack_size_base ? [['pack', 'packs']] : []), ...(v.alt_unit ? [['alt', v.alt_unit]] : []), ['base', v.base_unit]] : [['base', '']];
-  const unitLabel = (units.find(([k]) => k === line.unit) ?? units[0])[1];
-  const base = v ? (line.unit === 'pack' ? Number(line.quantity) * v.pack_size_base : line.unit === 'alt' ? Number(line.quantity) * v.alt_factor : Number(line.quantity)) : 0;
-  const amount = (Number(line.quantity) || 0) * (Number(line.rate) || 0);
-
-  return (
-    <div style={{ ...card, padding: 10, display: 'grid', gap: 8 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr 1fr auto', gap: 8, alignItems: 'end' }}>
-        <Field label="Ingredient variant">
-          <IngredientVariantPicker variants={variants} value={line.item_id} onChange={(id) => {
-            const nv = variants.find((x) => String(x.id) === id);
-            onChange({ item_id: id, unit: nv?.pack_size_base ? 'pack' : nv?.alt_unit ? 'alt' : 'base' });
-          }} />
-        </Field>
-        <Field label="Quantity"><NumberInput aria-label="Quantity" min="0" step="any" value={line.quantity} onChange={(e) => onChange({ quantity: e.target.value })} /></Field>
-        <Field label="In">
-          <SelectInput aria-label="Unit" value={line.unit} onChange={(e) => onChange({ unit: e.target.value })}>{units.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</SelectInput>
-        </Field>
-        <Field label={`Price of one ${line.unit === 'pack' ? 'pack' : unitLabel || 'unit'}`}><NumberInput aria-label="Price" min="0" step="any" value={line.rate} onChange={(e) => onChange({ rate: e.target.value })} /></Field>
-        <button type="button" aria-label="Remove line" onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint, padding: 6 }}><Trash2 size={15} /></button>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-        <Field label="Batch no (optional)"><TextInput aria-label="Batch number" maxLength={60} value={line.batch_no} onChange={(e) => onChange({ batch_no: e.target.value })} /></Field>
-        {v?.track_expiry && <Field label="Expiry date"><TextInput type="date" aria-label="Expiry date" required value={line.expiry_date} onChange={(e) => onChange({ expiry_date: e.target.value })} /></Field>}
-        <div style={{ alignSelf: 'end', fontSize: '0.74rem', color: colors.textMuted, paddingBottom: 8 }}>
-          {v && Number(line.quantity) > 0 ? <>= {num(base, 4)} {v.base_unit}{v.alt_unit ? ` (${num(base / v.alt_factor, 4)} ${v.alt_unit})` : ''} · {num(amount)} before tax (the tax follows the ingredient's purchase account)</> : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ReceiveModal({ data, locationId, onClose, onDone }) {
-  const variants = useMemo(() => data.ingredients.flatMap((i) => i.variants.filter((v) => v.is_active).map((v) => ({
-    id: v.id, name: v.name, ingredient: i.name, pack_size_base: v.pack_size_base, track_expiry: v.track_expiry, base_unit: i.base_unit, alt_unit: i.alt_unit,
-    alt_factor: i.alt_factor ?? 1,
-  }))), [data]);
-  const blank = () => ({ key: Math.random().toString(36).slice(2), item_id: '', quantity: '', unit: 'base', rate: '', batch_no: '', expiry_date: '' });
-  const [lines, setLines] = useState([blank()]);
-  const [loc, setLoc] = useState(locationId);
-  const [date, setDate] = useState(new Date().toLocaleDateString('en-CA'));
-  const [supplier, setSupplier] = useState('');
-  const [invoice, setInvoice] = useState('');
-  const [due, setDue] = useState('');
-  const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-  const patch = (key, p) => setLines((xs) => xs.map((x) => (x.key === key ? { ...x, ...p } : x)));
-
-  const go = async (e) => {
-    e.preventDefault(); setBusy(true); setErr(null);
-    try {
-      const payload = {
-        location_id: Number(loc), date, narration: note || null,
-        lines: lines.map((l) => ({ item_id: Number(l.item_id), quantity: Number(l.quantity), unit: l.unit, rate: Number(l.rate), batch_no: l.batch_no || null, expiry_date: l.expiry_date || null })),
-      };
-      const res = await menusAPI.receiveStock({ ...payload, supplier_ledger_id: Number(supplier), supplier_invoice_no: invoice || null, due_date: due || null });
-      toast.success(res.message, { duration: 6000 }); onDone();
-    } catch (x) { setErr(errMsg(x, 'Could not save')); } finally { setBusy(false); }
-  };
-
-  return (
-    <Modal title="Receive ingredients" onClose={onClose} width={880}>
-      <form onSubmit={go}>
-        <FormStack>
-          <FormError message={err} />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 10 }}>
-            <Field label="Branch"><SelectInput aria-label="Branch" required value={loc} onChange={(e) => setLoc(e.target.value)}>{data.branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput></Field>
-            <Field label="Date"><TextInput type="date" aria-label="Date" required value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-            <Field label="Supplier" hint="Suppliers are the accounts under Sundry Creditors.">
-              <SelectInput aria-label="Supplier" required value={supplier} onChange={(e) => setSupplier(e.target.value)}><option value="">Choose…</option>{data.suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput>
-            </Field>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <Field label="Supplier's invoice number (optional)"><TextInput aria-label="Supplier invoice number" maxLength={60} value={invoice} onChange={(e) => setInvoice(e.target.value)} /></Field>
-            <Field label="Due date (optional)"><TextInput type="date" aria-label="Due date" value={due} onChange={(e) => setDue(e.target.value)} /></Field>
-          </div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {lines.map((l) => <Line key={l.key} line={l} variants={variants} onChange={(p) => patch(l.key, p)} onRemove={() => setLines((xs) => (xs.length > 1 ? xs.filter((y) => y.key !== l.key) : xs))} />)}
-          </div>
-          <div><button type="button" style={small} onClick={() => setLines((xs) => [...xs, blank()])}><Plus size={12} /> Add a line</button></div>
-          <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-          <ModalActions onCancel={onClose} submitLabel="Receive" busy={busy} disabled={lines.some((l) => !l.item_id || !(Number(l.quantity) > 0) || l.rate === '') || !supplier} />
-        </FormStack>
-      </form>
-    </Modal>
-  );
-}
 
 export default function MenusStock() {
   const user = useAuthStore((s) => s.user);
@@ -276,7 +185,7 @@ export default function MenusStock() {
       </div>
       {modal === 'transfer' && data && <TransferModal data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
       {modal === 'batch' && data && <BatchModal dishes={extra.dishes} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
-      {modal === 'receive' && data && <ReceiveModal data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
+      {modal === 'receive' && data && <ReceiveIngredients data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }

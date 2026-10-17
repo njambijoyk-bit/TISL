@@ -1089,6 +1089,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/stock/recipes/{dishId}', [$sr, 'save'])->whereNumber('dishId');
             Route::delete('/stock/recipes/{dishId}', [$sr, 'destroy'])->whereNumber('dishId');
             Route::post('/stock/receive', [$sk, 'receive']);
+            Route::post('/stock/receive/preview', [$sk, 'previewReceive']);
             Route::post('/stock/opening', [$sk, 'opening']);
             Route::post('/stock/productions', [$sr, 'produce']);
             Route::post('/stock/productions/{id}/cancel', [$sr, 'cancelRun'])->whereNumber('id');

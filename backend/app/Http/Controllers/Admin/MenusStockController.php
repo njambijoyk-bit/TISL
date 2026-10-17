@@ -56,7 +56,7 @@ class MenusStockController extends Controller
 
         return response()->json([
             'location_id' => $location, 'branches' => $branches, 'ingredients' => $rows, 'installed' => IngredientStock::installed(),
-            'suppliers' => $this->suppliers(),
+            'suppliers' => $this->suppliers(), 'payment_methods' => $this->paymentMethods(),
         ]);
     }
 
@@ -103,6 +103,17 @@ class MenusStockController extends Controller
 
             return response()->json(['message' => 'Received. The supplier bill is in the books and the stock is on the shelf.', 'voucher_id' => $v->id], 201);
         });
+    }
+
+    /** The same body as receive: what the books would post for it (entries, tax, totals). Nothing is saved. */
+    public function previewReceive(Request $request): JsonResponse
+    {
+        $d = $request->validate($this->rules() + [
+            'supplier_ledger_id' => 'nullable|integer|exists:ledgers,id', 'paid_ledger_id' => 'nullable|integer|exists:ledgers,id', 'payment_method_id' => 'nullable|integer',
+            'supplier_invoice_no' => 'nullable|string|max:60', 'due_date' => 'nullable|date',
+        ]);
+
+        return $this->guard(fn () => response()->json($this->receiving->preview($d, $request->user())));
     }
 
     public function opening(Request $request): JsonResponse
@@ -206,7 +217,7 @@ class MenusStockController extends Controller
         return [
             'location_id' => 'nullable|integer|exists:locations,id', 'date' => 'nullable|date', 'narration' => 'nullable|string|max:255',
             'lines' => 'required|array|min:1|max:100', 'lines.*.item_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric|gt:0',
-            'lines.*.unit' => 'nullable|in:pack,alt,base', 'lines.*.rate' => 'required|numeric|min:0', 'lines.*.batch_no' => 'nullable|string|max:60', 'lines.*.expiry_date' => 'nullable|date',
+            'lines.*.unit' => 'nullable|in:pack,alt,base', 'lines.*.rate' => 'required|numeric|min:0', 'lines.*.discount' => 'nullable|numeric|min:0', 'reference_no' => 'nullable|string|max:60', 'lines.*.batch_no' => 'nullable|string|max:60', 'lines.*.expiry_date' => 'nullable|date',
         ];
     }
 
@@ -220,6 +231,16 @@ class MenusStockController extends Controller
         $ids = LedgerGroup::where('parent_id', $group->id)->pluck('id')->push($group->id);
 
         return Ledger::whereIn('group_id', $ids)->where('is_active', true)->orderBy('name')->get(['id', 'name'])->map(fn ($l) => ['id' => $l->id, 'name' => $l->name])->values()->all();
+    }
+
+    /** How a delivery can be paid for at once: the active methods that have an account behind them (not gift vouchers). */
+    private function paymentMethods(): array
+    {
+        try {
+            return \App\Models\Books\PaymentMethod::where('is_active', true)->where('kind', '!=', 'gift_voucher')->whereNotNull('ledger_id')->orderBy('sort_order')->orderBy('name')->get(['id', 'name'])->map(fn ($m) => ['id' => $m->id, 'name' => $m->name])->values()->all();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     private function guard(\Closure $fn): JsonResponse

@@ -8,6 +8,7 @@ export const menusAPI = {
   stock: async (params) => (await api.get('/admin/menus/stock', { params })).data,
   stockReceipts: async (params) => (await api.get('/admin/menus/stock/receipts', { params })).data,
   receiveStock: async (payload) => (await api.post('/admin/menus/stock/receive', payload)).data,
+  previewReceive: async (payload) => (await api.post('/admin/menus/stock/receive/preview', payload)).data,
   openingStock: async (payload) => (await api.post('/admin/menus/stock/opening', payload)).data,
   cancelReceipt: async (id, reason, legacy = false) => (await api.post(`/admin/menus/stock/receipts/${id}/cancel`, { reason, legacy })).data,
   stockExpiring: async (params) => (await api.get('/admin/menus/stock/expiring', { params })).data,
