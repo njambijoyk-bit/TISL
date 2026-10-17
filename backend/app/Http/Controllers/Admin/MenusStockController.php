@@ -10,6 +10,7 @@ use App\Models\Menus\Ingredient;
 use App\Models\Menus\Receipt;
 use App\Services\Books\BooksException;
 use App\Services\Menus\IngredientReceiving;
+use App\Services\Menus\IngredientKinds;
 use App\Services\Menus\IngredientStock;
 use App\Services\Menus\StockCounts;
 use App\Services\Menus\StockTransfers;
@@ -33,7 +34,7 @@ class MenusStockController extends Controller
         // what a count is compared with: everything physically there, held and recalled lots too (the shelf figures above are the good stock only)
         $every = IngredientStock::installed() ? \App\Models\Menus\StockBatch::where('location_id', $location)->where('qty_left', '>', 0)->groupBy('item_id')->selectRaw('item_id, SUM(qty_left) as q, SUM(qty_left * unit_cost) as v')->get()->keyBy('item_id') : collect();
 
-        $rows = Ingredient::with(['baseUnit:id,code,name,dimension,to_base_factor', 'altUnit:id,code,name,dimension,to_base_factor', 'variants'])->orderBy('name')->get()->map(function (Ingredient $i) use ($levels, $every) {
+        $rows = Ingredient::with(array_merge(['baseUnit:id,code,name,dimension,to_base_factor', 'altUnit:id,code,name,dimension,to_base_factor', 'variants'], IngredientKinds::installed() ? ['kind:id,name'] : []))->orderBy('name')->get()->map(function (Ingredient $i) use ($levels, $every) {
             $variants = $i->variants->map(function ($v) use ($i, $levels, $every) {
                 $lv = $levels[$v->id] ?? ['qty' => 0.0, 'value' => 0.0, 'next_expiry' => null];
                 $pack = $v->pack_size ? (float) $v->pack_size : null;
@@ -47,7 +48,7 @@ class MenusStockController extends Controller
             })->values();
 
             return [
-                'id' => $i->id, 'name' => $i->name, 'is_active' => (bool) $i->is_active, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code,
+                'id' => $i->id, 'name' => $i->name, 'is_active' => (bool) $i->is_active, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code, 'kind_id' => $i->kind_id ? (int) $i->kind_id : null, 'kind' => $i->relationLoaded('kind') ? $i->kind?->name : null,
                 'alt_factor' => $i->altUnit ? round($i->altUnit->convertTo($i->baseUnit, 1), 6) : null,   // base units in one alternate unit (1 kg = 1000 g)
                 'qty_base' => round($variants->sum('qty_base'), 4), 'qty_alt' => $i->altUnit ? round($i->baseUnit->convertTo($i->altUnit, (float) $variants->sum('qty_base')), 4) : null,
                 'value' => round($variants->sum('value'), 2), 'variants' => $variants,
@@ -56,6 +57,7 @@ class MenusStockController extends Controller
 
         return response()->json([
             'location_id' => $location, 'branches' => $branches, 'ingredients' => $rows, 'installed' => IngredientStock::installed(),
+            'kinds' => IngredientKinds::installed() ? \App\Models\Menus\IngredientKind::orderBy('sort_order')->orderBy('id')->get(['id', 'name'])->map(fn ($k) => ['id' => (int) $k->id, 'name' => $k->name])->all() : [],
             'suppliers' => $this->suppliers(), 'payment_methods' => $this->paymentMethods(),
         ]);
     }

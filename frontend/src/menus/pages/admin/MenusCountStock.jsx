@@ -49,7 +49,7 @@ export default function MenusCountStock() {
           <Field label="Note (optional)" htmlFor="cs-note" style={{ flex: '1 1 220px', maxWidth: 340 }}><TextInput id="cs-note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Monthly count" /></Field>
         </div>
         {!data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data.installed && loc && (
-          <CountStockGrid ingredients={data.ingredients} locationId={loc} onSave={save} readOnly={!canWrite} />
+          <CountStockGrid ingredients={data.ingredients} kinds={data.kinds} locationId={loc} onSave={save} readOnly={!canWrite} />
         )}
         <p style={{ marginTop: 14, fontSize: '0.74rem', color: colors.textFaint }}>The books say includes stock on hold. Counts are listed under Purchases, Stock counts, with the Journal they made.</p>
       </div>

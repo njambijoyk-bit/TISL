@@ -15,6 +15,8 @@ import { BatchModal, TransferModal } from '../../components/StockActions';
 import ReceiveIngredients from '../../components/ReceiveIngredients';
 import IngredientVariantPicker from '../../components/IngredientVariantPicker';
 import { useMenusBranch } from '../../lib/menusBranch';
+import { useMenusKind } from '../../lib/menusKind';
+import KindFilter from '../../components/KindFilter';
 
 /**
  * Menus → Stock: what is on the kitchen's shelf at a branch, per ingredient and per variant, in packs, the alternate unit and the base unit, and how it got there.
@@ -33,6 +35,7 @@ export default function MenusStock() {
   const [receipts, setReceipts] = useState([]);
   const [extra, setExtra] = useState({ expiring: [], counts: [], transfers: [], runs: [], dishes: [] });
   const [loc, setLoc] = useMenusBranch(data?.branches);
+  const [kind, setKind] = useMenusKind(data?.kinds);
   const [modal, setModal] = useState(null);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(true);
@@ -65,7 +68,7 @@ export default function MenusStock() {
   // one search over everything on the page: the shelf (an ingredient shows all its variants), what is expiring, batches, receipts, counts and transfers
   const needle = q.trim().toLowerCase();
   const has = (...texts) => !needle || texts.some((t) => String(t ?? '').toLowerCase().includes(needle));
-  const shelf = (data?.ingredients ?? []).filter((i) => i.variants.length).map((i) => (has(i.name) ? i : { ...i, variants: i.variants.filter((v) => has(v.name)) })).filter((i) => i.variants.length);
+  const shelf = (data?.ingredients ?? []).filter((i) => i.variants.length && (!kind || String(i.kind_id) === kind)).map((i) => (has(i.name) ? i : { ...i, variants: i.variants.filter((v) => has(v.name)) })).filter((i) => i.variants.length);
   const expiring = extra.expiring.filter((x) => has(x.name, x.batch_no));
   const runs = extra.runs.filter((r) => has(r.dish, r.number));
   const counts = extra.counts.filter((c) => has(c.number, c.note));
@@ -82,6 +85,7 @@ export default function MenusStock() {
             <div style={{ minWidth: 200 }}>
               <SelectInput aria-label="Branch" value={loc} onChange={(e) => setLoc(e.target.value)}>{(data?.branches ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput>
             </div>
+            <KindFilter kinds={data?.kinds} value={kind} onChange={setKind} />
             <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 360 }}>
               <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
               <TextInput aria-label="Search the stock" placeholder="Search ingredients, batches, receipts…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />

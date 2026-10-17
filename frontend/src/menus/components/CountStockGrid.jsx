@@ -2,6 +2,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { SelectInput, TextInput } from '../../core/components/admin/ui/Form';
 import { btnGhost, btnPrimary, card, colors } from '../../_shared/theme/tokens';
+import { useMenusKind } from '../lib/menusKind';
+import KindFilter from './KindFilter';
 
 /**
  * The count sheet: every variant of every ingredient in one table with what the books say is there, filtered by a search or by ingredient. The counted quantity (in packs, the bigger unit
@@ -52,10 +54,12 @@ const Row = memo(function Row({ v, e, idx, error, onEdit, onEnter, readOnly }) {
   );
 });
 
-export default function CountStockGrid({ ingredients, locationId, onSave, readOnly = false }) {
+export default function CountStockGrid({ ingredients, kinds = [], locationId, onSave, readOnly = false }) {
   const [edits, setEdits] = useState(() => readDraft(locationId));
   const [q, setQ] = useState('');
   const [only, setOnly] = useState('');
+  const [kind, setKind] = useMenusKind(kinds);
+  const pickKind = (v) => { setKind(v); setOnly(''); };
   const [show, setShow] = useState('all');
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(null);
@@ -68,16 +72,17 @@ export default function CountStockGrid({ ingredients, locationId, onSave, readOn
 
   // variants in use, and any that are switched off but still have stock to count
   const variants = useMemo(() => ingredients.filter((i) => i.is_active || i.variants.some((v) => v.book_qty > 0)).flatMap((i) => i.variants.filter((v) => (v.is_active && i.is_active) || v.book_qty > 0).map((v) => ({
-    id: v.id, ingredient: i.name, ingredientId: i.id, name: v.name, pack_size_base: v.pack_size_base, base_unit: i.base_unit, alt_unit: i.alt_unit, alt_factor: i.alt_factor ?? 1, book: v.book_qty ?? 0, cost: v.book_cost,
+    id: v.id, ingredient: i.name, ingredientId: i.id, kindId: i.kind_id, name: v.name, pack_size_base: v.pack_size_base, base_unit: i.base_unit, alt_unit: i.alt_unit, alt_factor: i.alt_factor ?? 1, book: v.book_qty ?? 0, cost: v.book_cost,
   }))), [ingredients]);
   const needle = q.trim().toLowerCase();
   const rowDiff = (v) => { const b = countedBase(v, edits[v.id]); return b === null ? null : b - v.book; };
   const rows = useMemo(() => variants.filter((v) => {
     if (only && String(v.ingredientId) !== only) return false;
+    if (kind && String(v.kindId) !== kind) return false;
     if (needle && !`${v.ingredient} ${v.name}`.toLowerCase().includes(needle)) return false;
     const d = rowDiff(v);
     return show === 'all' || (show === 'counted' && d !== null) || (show === 'uncounted' && d === null) || (show === 'differs' && d !== null && Math.abs(d) >= EPS);
-  }), [variants, only, needle, show, edits]); // eslint-disable-line react-hooks/exhaustive-deps
+  }), [variants, only, kind, needle, show, edits]); // eslint-disable-line react-hooks/exhaustive-deps
   const known = useMemo(() => new Set(variants.map((v) => String(v.id))), [variants]);
   const countedIds = useMemo(() => Object.keys(edits).filter((id) => known.has(id) && counted(edits[id])), [edits, known]);
   const summary = useMemo(() => {
@@ -131,9 +136,10 @@ export default function CountStockGrid({ ingredients, locationId, onSave, readOn
           <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
           <TextInput aria-label="Search ingredients or variants" placeholder="Search ingredients or variants…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />
         </div>
+        <KindFilter kinds={kinds} value={kind} onChange={pickKind} />
         <SelectInput aria-label="Ingredient" value={only} onChange={(e) => setOnly(e.target.value)} style={{ width: 'auto', maxWidth: 220 }}>
           <option value="">All ingredients</option>
-          {ingredients.filter((i) => variants.some((v) => v.ingredientId === i.id)).map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+          {ingredients.filter((i) => (!kind || String(i.kind_id) === kind) && variants.some((v) => v.ingredientId === i.id)).map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
         </SelectInput>
         <div role="group" aria-label="Show" style={{ display: 'inline-flex' }}>
           {[['all', 'All'], ['counted', 'Counted'], ['uncounted', 'Not counted'], ['differs', 'Differences']].map(([k, l], i, a) => <button key={k} type="button" aria-pressed={show === k} onClick={() => setShow(k)} style={{ ...seg(show === k), borderRadius: i === 0 ? '8px 0 0 8px' : i === a.length - 1 ? '0 8px 8px 0' : 0, marginLeft: i ? -1 : 0 }}>{l}</button>)}

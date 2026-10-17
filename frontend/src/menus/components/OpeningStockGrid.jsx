@@ -2,6 +2,8 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Search } from 'lucide-react';
 import { SelectInput, TextInput } from '../../core/components/admin/ui/Form';
 import { btnGhost, btnPrimary, card, colors } from '../../_shared/theme/tokens';
+import { useMenusKind } from '../lib/menusKind';
+import KindFilter from './KindFilter';
 
 /**
  * The opening stock sheet: every variant of every ingredient in one table, filtered by a search or by ingredient, with the quantity, the unit, what one costs, a batch number and
@@ -50,10 +52,12 @@ const Row = memo(function Row({ v, e, idx, error, onEdit, onEnter, readOnly }) {
   );
 });
 
-export default function OpeningStockGrid({ ingredients, locationId, onSave, readOnly = false }) {
+export default function OpeningStockGrid({ ingredients, kinds = [], locationId, onSave, readOnly = false }) {
   const [edits, setEdits] = useState(() => readDraft(locationId));
   const [q, setQ] = useState('');
   const [only, setOnly] = useState('');
+  const [kind, setKind] = useMenusKind(kinds);
+  const pickKind = (v) => { setKind(v); setOnly(''); };
   const [show, setShow] = useState('all');
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState(null);
@@ -65,12 +69,12 @@ export default function OpeningStockGrid({ ingredients, locationId, onSave, read
   useEffect(() => { if (loadedFor.current === locationId) writeDraft(locationId, edits); }, [edits, locationId]);
 
   const variants = useMemo(() => ingredients.filter((i) => i.is_active).flatMap((i) => i.variants.filter((v) => v.is_active).map((v) => ({
-    id: v.id, ingredient: i.name, ingredientId: i.id, name: v.name, pack_size_base: v.pack_size_base, track_expiry: v.track_expiry, base_unit: i.base_unit, alt_unit: i.alt_unit, alt_factor: i.alt_factor ?? 1, shelf: v.qty_base,
+    id: v.id, ingredient: i.name, ingredientId: i.id, kindId: i.kind_id, name: v.name, pack_size_base: v.pack_size_base, track_expiry: v.track_expiry, base_unit: i.base_unit, alt_unit: i.alt_unit, alt_factor: i.alt_factor ?? 1, shelf: v.qty_base,
   }))), [ingredients]);
   const needle = q.trim().toLowerCase();
-  const rows = useMemo(() => variants.filter((v) => (!only || String(v.ingredientId) === only)
+  const rows = useMemo(() => variants.filter((v) => (!only || String(v.ingredientId) === only) && (!kind || String(v.kindId) === kind)
     && (!needle || `${v.ingredient} ${v.name}`.toLowerCase().includes(needle))
-    && (show === 'all' || (show === 'touched') === touched(edits[v.id]))), [variants, only, needle, show, edits]);
+    && (show === 'all' || (show === 'touched') === touched(edits[v.id]))), [variants, only, kind, needle, show, edits]);
   const known = useMemo(() => new Set(variants.map((v) => String(v.id))), [variants]);
   const dirtyIds = useMemo(() => Object.keys(edits).filter((id) => known.has(id) && touched(edits[id])), [edits, known]);
   const total = useMemo(() => dirtyIds.reduce((s, id) => s + (Number(edits[id].quantity) || 0) * (Number(edits[id].rate) || 0), 0), [dirtyIds, edits]);
@@ -125,9 +129,10 @@ export default function OpeningStockGrid({ ingredients, locationId, onSave, read
           <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
           <TextInput aria-label="Search ingredients or variants" placeholder="Search ingredients or variants…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />
         </div>
+        <KindFilter kinds={kinds} value={kind} onChange={pickKind} />
         <SelectInput aria-label="Ingredient" value={only} onChange={(e) => setOnly(e.target.value)} style={{ width: 'auto', maxWidth: 220 }}>
           <option value="">All ingredients</option>
-          {ingredients.filter((i) => i.is_active && i.variants.some((v) => v.is_active)).map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
+          {ingredients.filter((i) => i.is_active && (!kind || String(i.kind_id) === kind) && i.variants.some((v) => v.is_active)).map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
         </SelectInput>
         <div role="group" aria-label="Show" style={{ display: 'inline-flex' }}>
           {[['all', 'All'], ['touched', 'Touched'], ['untouched', 'Not touched']].map(([k, l], i, a) => <button key={k} type="button" aria-pressed={show === k} onClick={() => setShow(k)} style={{ ...seg(show === k), borderRadius: i === 0 ? '8px 0 0 8px' : i === a.length - 1 ? '0 8px 8px 0' : 0, marginLeft: i ? -1 : 0 }}>{l}</button>)}

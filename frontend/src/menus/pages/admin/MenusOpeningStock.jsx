@@ -48,7 +48,7 @@ export default function MenusOpeningStock() {
           <Field label="Note (optional)" htmlFor="os-note" style={{ flex: '1 1 220px', maxWidth: 340 }}><TextInput id="os-note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Opening stock" /></Field>
         </div>
         {!data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data.installed && loc && (
-          <OpeningStockGrid ingredients={data.ingredients} locationId={loc} onSave={save} readOnly={!canWrite} />
+          <OpeningStockGrid ingredients={data.ingredients} kinds={data.kinds} locationId={loc} onSave={save} readOnly={!canWrite} />
         )}
         <p style={{ marginTop: 14, fontSize: '0.74rem', color: colors.textFaint }}>Each voucher is booked against the opening balance account (Books, Settings, Default ledgers) and is listed under Purchases, Opening stock. Prices are before tax.</p>
       </div>

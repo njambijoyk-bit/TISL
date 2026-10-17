@@ -233,6 +233,15 @@ class MenusIngredientStockTest extends TestCase
         $this->assertSame([['id' => $this->supplier, 'name' => 'Naivas Wholesale']], $out['suppliers']);
     }
 
+    public function test_the_stock_screen_tells_each_ingredient_its_kind_and_lists_the_kinds_to_filter_by(): void
+    {
+        $out = app(MenusStockController::class)->index(Request::create('/x', 'GET', ['location_id' => self::BRANCH]))->getData(true);
+        $this->assertSame('Cooking ingredient', $out['ingredients'][0]['kind']);
+        $this->assertNotNull($out['ingredients'][0]['kind_id']);
+        $this->assertContains('Cooking ingredient', array_column($out['kinds'], 'name'));
+        $this->assertCount(\App\Models\Menus\IngredientKind::count(), $out['kinds']);
+    }
+
     public function test_the_door_answers_a_receipt_in_201_and_a_refusal_in_words(): void
     {
         $c = app(MenusStockController::class);
