@@ -160,7 +160,7 @@ export default function CountStockGrid({ ingredients, kinds = [], locationId, on
           </tr></thead>
           <tbody>
             {rows.map((v, idx) => <Row key={v.id} v={v} e={edits[v.id]} idx={idx} error={errors[v.id]} onEdit={edit} onEnter={enter} readOnly={readOnly} />)}
-            {rows.length === 0 && <tr><td colSpan={8} style={{ ...td, padding: 20, color: colors.textMuted }}>{variants.length === 0 ? 'Add items and their variants under Ingredients first.' : 'Nothing matches these filters.'}</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={8} style={{ ...td, padding: 20, color: colors.textMuted }}>{variants.length === 0 ? 'Add items and their variants under Ingredients & Supplies first.' : 'Nothing matches these filters.'}</td></tr>}
           </tbody>
         </table>
       </div>

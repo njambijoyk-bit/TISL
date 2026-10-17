@@ -101,7 +101,7 @@ export default function MenusStock() {
             </div>
           )}
         </div>
-        {noVariants && <p role="status" style={{ fontSize: '0.82rem', color: colors.textMuted }}>Add items and their variants under Ingredients first, then receive them here.</p>}
+        {noVariants && <p role="status" style={{ fontSize: '0.82rem', color: colors.textMuted }}>Add items and their variants under Ingredients & Supplies first, then receive them here.</p>}
 
         <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }}>
           {loading && !data ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : (

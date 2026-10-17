@@ -46,7 +46,7 @@ export const MENUS_TABS = [
   { title: 'Operations', key: 'P', path: '/admin/menus/operations', icon: ClipboardCheck, color: '#14b8a6', perm: 'menus.view' },
   { title: 'Dishes', key: 'D', path: '/admin/menus/dishes', icon: UtensilsCrossed, color: '#f97316', perm: 'menus.view' },
   { title: 'Menus', key: 'N', path: '/admin/menus/menus', icon: LayoutList, color: '#a855f7', perm: 'menus.view' },
-  { title: 'Ingredients', key: 'I', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e', perm: 'menus.view' },
+  { title: 'Ingredients & Supplies', key: 'I', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e', perm: 'menus.view' },
   { title: 'Stock', key: 'S', path: '/admin/menus/stock', icon: Warehouse, color: '#0ea5e9', perm: 'menus.view' },
   { title: 'Recipes', key: 'E', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b', perm: 'menus.view' },
   { title: 'Allergens', key: 'A', path: '/admin/menus/allergens', icon: ShieldAlert, color: '#dc2626', perm: 'menus.view' },
@@ -251,7 +251,7 @@ export const ADMIN_NAV = [
         tabs: MENUS_TABS, tabsTitle: 'Menus',
       },
       { id: 'menus-stock', title: 'Stock', icon: Warehouse, color: '#0ea5e9', path: '/admin/menus/stock', perm: 'menus.view', keywords: 'ingredient stock receive receiving purchase supplier opening on hand packs expiry batch' },
-      { id: 'ingredients', title: 'Ingredients', icon: Salad, color: '#22c55e', path: '/admin/menus/ingredients', perm: 'menus.view', keywords: 'ingredient flour oil substitutes allergens stock items' },
+      { id: 'ingredients', title: 'Ingredients & Supplies', icon: Salad, color: '#22c55e', path: '/admin/menus/ingredients', perm: 'menus.view', keywords: 'ingredient ingredients supplies flour oil substitutes allergens stock items kitchen stock drinks condiments packaging gloves kinds' },
       {
         id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', perm: 'menus.view', keywords: 'recipe ingredients manufacture production made to order dish',
       },

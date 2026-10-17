@@ -14,6 +14,7 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import { AllergenChips, Pill } from '../../components/FoodChips';
 import IngredientKindsModal from '../../components/IngredientKinds';
+import { useMenusKind } from '../../lib/menusKind';
 
 /**
  * Menus → Ingredients. An ingredient ("Wheat flour") is the smallest thing Menus stocks: a base unit (g) and, if wanted, a bigger alternate unit of the same kind (kg),
@@ -44,13 +45,13 @@ function Checks({ label, options, value, onChange }) {
 const USE_WORDS = { in_recipes: 'recipes', sold_as_is: 'sold as it is', free_extra: 'a free extra', packaging: 'packaging', used_up: 'used up by the kitchen' };
 const kindHint = (k) => (k ? `Used for: ${Object.keys(USE_WORDS).filter((u) => k[u]).map((u) => USE_WORDS[u]).join(', ')}.` : 'Used for: recipes.');
 
-function IngredientModal({ ingredient, initialName = '', options, onClose, onDone }) {
+function IngredientModal({ ingredient, initialName = '', initialKind = '', options, onClose, onDone }) {
   const [name, setName] = useState(ingredient?.name ?? initialName);
   const [baseId, setBaseId] = useState(ingredient?.base_unit_id ?? '');
   const [altId, setAltId] = useState(ingredient?.alt_unit_id ?? '');
   const [rule, setRule] = useState(ingredient?.pick_rule ?? 'preferred');
   const [purchase, setPurchase] = useState(ingredient?.purchase_ledger_id ?? '');
-  const [kindId, setKindId] = useState(ingredient?.kind_id ?? options.kinds?.find((k) => k.code === 'cooking')?.id ?? '');
+  const [kindId, setKindId] = useState(ingredient?.kind_id ?? (options.kinds?.some((k) => String(k.id) === String(initialKind)) ? Number(initialKind) : options.kinds?.find((k) => k.code === 'cooking')?.id) ?? '');
   const [allergens, setAllergens] = useState(ingredient?.allergens ?? []);
   const [tags, setTags] = useState(ingredient?.tags ?? []);
   const [notes, setNotes] = useState(ingredient?.notes ?? '');
@@ -95,7 +96,7 @@ function IngredientModal({ ingredient, initialName = '', options, onClose, onDon
   };
 
   return (
-    <Modal title={ingredient ? 'Edit ingredient' : 'New ingredient'} onClose={onClose} width={760}>
+    <Modal title={ingredient ? 'Edit item' : 'New item'} onClose={onClose} width={760}>
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
@@ -176,7 +177,7 @@ function IngredientModal({ ingredient, initialName = '', options, onClose, onDon
           <Checks label="What it is (for diet badges)" options={options.tags} value={tags} onChange={setTags} />
           <Field label="Note (optional)" htmlFor="ing-note"><TextInput id="ing-note" maxLength={255} value={notes} onChange={(e) => setNotes(e.target.value)} /></Field>
           {ingredient && <CheckboxRow checked={active} onChange={setActive} label="In use" description="Switch off an ingredient you no longer buy. Recipes that use it will say so until they are changed." />}
-          <ModalActions onCancel={onClose} submitLabel="Save ingredient" busy={busy} disabled={!name.trim() || !baseId} />
+          <ModalActions onCancel={onClose} submitLabel="Save item" busy={busy} disabled={!name.trim() || !baseId} />
         </FormStack>
       </form>
     </Modal>
@@ -195,8 +196,8 @@ export default function Ingredients() {
   const [params, setParams] = useSearchParams();
   const rawReturn = params.get('returnTo');
   const returnTo = rawReturn && rawReturn.startsWith('/admin/') && !rawReturn.startsWith('//') ? rawReturn : null;
-  const [kindFilter, setKindFilter] = useState('');
 
+  const [kindFilter, setKindFilter] = useMenusKind(data?.kinds);   // the same choice the stock pages keep
   const load = useCallback(() => {
     setLoading(true);
     menusAPI.stockIngredients().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the ingredients'))).finally(() => setLoading(false));
@@ -216,21 +217,38 @@ export default function Ingredients() {
     if (returnTo && saved) toast('Add its variants (what you buy), then go back to the purchase.', { icon: '➕', duration: 6000 });
     load();
   };
+  // I, then K (within a moment) opens the kinds, like G, then a letter goes to a page
+  const kindsReady = Boolean(data?.kinds_ready);
+  useEffect(() => {
+    if (!kindsReady) return undefined;
+    let at = 0;
+    const onKey = (e) => {
+      if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+      const t = e.target;
+      if ((t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName))) || document.querySelector('[role="dialog"], [aria-modal="true"]')) { at = 0; return; }
+      if (e.code === 'KeyI') { at = Date.now(); return; }
+      if (e.code === 'KeyK' && at && Date.now() - at < 1500) { e.preventDefault(); setKinds(true); }
+      at = 0;
+    };
+    window.addEventListener('keydown', onKey);
+
+    return () => window.removeEventListener('keydown', onKey);
+  }, [kindsReady]);
   const remove = async (i) => {
     if (!window.confirm(`Remove ${i.name} and its variants?`)) return;
     try { const res = await menusAPI.removeStockIngredient(i.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not remove')); }
   };
 
-  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="ingredients" /></div></AdminLayout>;
+  if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="ingredients and supplies" /></div></AdminLayout>;
 
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="ingredients">
         {returnTo && <button type="button" onClick={() => nav(returnTo)} style={{ ...small, marginBottom: 10 }}>Back to the purchase</button>}
-        <HubHeader title="Ingredients" description="The smallest things the kitchen stocks. Each has a base unit and, if you like, a bigger one, and variants (Exe, Pembe, Soko) that are bought and counted." />
+        <HubHeader title="Ingredients & Supplies" description="Everything the kitchen stocks: ingredients, drinks, condiments, packaging and supplies. Each has a kind, a base unit and, if you like, a bigger one, and variants (Exe, Pembe, Soko) that are bought and counted." />
         <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 14px' }}>
-          {data?.kinds_ready && <button type="button" style={{ ...small, margin: '0 8px 0 0', alignSelf: 'center' }} onClick={() => setKinds(true)}>Kinds</button>}
-          {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ ingredient: null })}><Plus size={14} /> New ingredient</button>}
+          {data?.kinds_ready && <button type="button" style={{ ...small, margin: '0 8px 0 0', alignSelf: 'center' }} title="I, then K" onClick={() => setKinds(true)}>Kinds</button>}
+          {canWrite && <button type="button" style={btnPrimary} data-hotkey="F2" title="F2" onClick={() => setModal({ ingredient: null })}><Plus size={14} /> New item</button>}
         </div>
         {data?.kinds_ready && data.kinds.length > 1 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 12px' }} role="group" aria-label="Filter by kind">
@@ -243,7 +261,7 @@ export default function Ingredients() {
 
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
           {loading && !data ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : !(data?.ingredients?.length) ? (
-            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>No ingredients yet. Add the things recipes use, like flour, oil, tomatoes, then their variants.</p>
+            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>Nothing here yet. Add what the kitchen stocks (flour, oil, a crate of cola, gloves), then its variants.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>Ingredient</th>{data.kinds_ready && <th style={th}>Kind</th>}<th style={th}>Variants (in order)</th><th style={th}>Allergens</th><th style={th} /></tr></thead>
@@ -268,7 +286,7 @@ export default function Ingredients() {
         </div>
       </div>
       {kinds && <IngredientKindsModal canWrite={canWrite} onClose={() => setKinds(false)} onChanged={load} />}
-      {modal && data && <IngredientModal ingredient={modal.ingredient} initialName={modal.name} options={data} onClose={() => setModal(null)} onDone={done} />}
+      {modal && data && <IngredientModal ingredient={modal.ingredient} initialName={modal.name} initialKind={kindFilter} options={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }

@@ -36,7 +36,7 @@ function ItemSearch({ variants, onPick }) {
         placeholder="Search an item…" style={small} aria-label="Search items" />
       {open && (
         <div style={{ position: 'absolute', zIndex: 30, top: '100%', left: 0, right: 0, minWidth: 320, maxHeight: 300, overflowY: 'auto', ...card, padding: 4 }}>
-          {rows.length === 0 && <p style={{ margin: 8, fontSize: '0.78rem', color: colors.textMuted }}>{q ? `Nothing matches “${q}”.` : 'No items with variants yet: add them under Ingredients.'}</p>}
+          {rows.length === 0 && <p style={{ margin: 8, fontSize: '0.78rem', color: colors.textMuted }}>{q ? `Nothing matches “${q}”.` : 'No items with variants yet: add them under Ingredients & Supplies.'}</p>}
           {rows.map((v) => (
             <button key={v.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onPick(v); setQ(''); setOpen(false); }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem' }}>

@@ -28,7 +28,7 @@ const panel = { position: 'absolute', zIndex: 30, left: 0, right: 0, top: 'calc(
 const toggleBtn = (on) => ({ padding: '2px 9px', borderRadius: 999, fontSize: '0.68rem', fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', border: `1px solid ${on ? colors.primary : colors.tint(0.2)}`, background: on ? colors.tint(0.14) : 'transparent', color: on ? colors.primary : colors.textMuted });
 
 function Results({ groups, active, onPick, ingredientsOnly, onPickIngredient, selected }) {
-  if (!groups.length) return <div style={{ padding: '10px 12px', fontSize: '0.8rem', color: colors.textMuted }}>Nothing matches. Check the spelling, or add it under Ingredients.</div>;
+  if (!groups.length) return <div style={{ padding: '10px 12px', fontSize: '0.8rem', color: colors.textMuted }}>Nothing matches. Check the spelling, or add it under Ingredients & Supplies.</div>;
   let n = -1;
 
   return groups.map((g, gi) => (
