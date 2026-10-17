@@ -729,7 +729,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                         : <Picker api={api} kind="product" purpose={SALES_SIDE.includes(base) ? 'sale' : 'purchase'} placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, track_expiry: Boolean(r.track_expiry), batch_id: '', label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
                       {l.type === 'ingredient' && (l.item_id
                         ? <div><div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div><div style={{ fontSize: '0.74rem', color: colors.textMuted }}>↳ {l.variantName}</div></div>
-                        : <Picker api={api} kind="ingredient" purpose="purchase" placeholder="Search ingredients…" onPick={(r) => setLine(l.key, { item_id: r.item_id, label: r.ingredient, variantName: r.variant, units: r.units, last_cost: r.last_cost, unit: defaultUnit(r.units), rate: r.last_cost > 0 ? Math.round(r.last_cost * (r.units.find((u) => u.unit === defaultUnit(r.units))?.per ?? 1) * 10000) / 10000 : '' })} render={(r) => <>{r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}</span></>} />)}
+                        : <Picker api={api} kind="ingredient" purpose="purchase" placeholder="Search kitchen stock…" onPick={(r) => setLine(l.key, { item_id: r.item_id, label: r.ingredient, variantName: r.variant, units: r.units, last_cost: r.last_cost, unit: defaultUnit(r.units), rate: r.last_cost > 0 ? Math.round(r.last_cost * (r.units.find((u) => u.unit === defaultUnit(r.units))?.per ?? 1) * 10000) / 10000 : '' })} render={(r) => <>{r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}</span></>} />)}
                       {l.type === 'service' && (l.service_variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
                         : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => pickService(l.key, r)} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
@@ -791,7 +791,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   );
                 })}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {[['product', 'Product'], ['ingredient', 'Ingredient'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].filter(([t]) => !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
+                  {[['product', 'Product'], ['ingredient', 'Kitchen stock'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].filter(([t]) => !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
                     <button key={t} type="button" onClick={() => addLine(t)} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> {l}</button>
                   ))}
                 </div>

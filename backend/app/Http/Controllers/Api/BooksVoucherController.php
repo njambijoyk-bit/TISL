@@ -480,15 +480,25 @@ class BooksVoucherController extends Controller
             // the kitchen's ingredient variants (Menus on): the ingredient and the variant are named apart; units are packs, the bigger unit and the base unit
             if (\App\Services\Menus\IngredientStock::moduleOn()) {
                 $loc = (int) $request->get('location_id');
-                $items = \App\Models\Menus\IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->where('is_active', true)->whereHas('ingredient', fn ($i) => $i->where('is_active', true))
+                $variants = fn () => \App\Models\Menus\IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->where('is_active', true)->whereHas('ingredient', fn ($i) => $i->where('is_active', true));
+                $items = $variants()
                     ->when($request->filled('ids'), fn ($v) => $v->whereIn('id', array_map('intval', explode(',', (string) $request->get('ids')))))
-                    ->when($q !== '' && ! $request->filled('ids'), fn ($v) => $v->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('code', 'like', $like)->orWhereHas('ingredient', fn ($i) => $i->where('name', 'like', $like))))
+                    ->when($q !== '' && ! $request->filled('ids'), fn ($v) => $this->ingredientWords($v, $q))
                     ->orderBy('ingredient_id')->orderBy('preference')->limit(40)->get();
+                // nothing matches: near matches ("did you mean..."), flagged so the picker can say so
+                $fuzzy = false;
+                if ($items->isEmpty() && $q !== '' && ! $request->filled('ids') && mb_strlen($q) >= 3) {
+                    $near = app(\App\Services\FuzzySuggestService::class)->suggest(\App\Models\Menus\Ingredient::query()->where('is_active', true), $q, ['name'], 6);
+                    if ($near->isNotEmpty()) {
+                        $items = $variants()->whereIn('ingredient_id', $near->pluck('id'))->orderBy('ingredient_id')->orderBy('preference')->limit(40)->get();
+                        $fuzzy = true;
+                    }
+                }
                 $stock = $loc ? \App\Models\Menus\StockBatch::where('location_id', $loc)->where('qty_left', '>', 0)->groupBy('item_id')->selectRaw('item_id, SUM(qty_left) as q')->pluck('q', 'item_id') : collect();
                 $cost = \App\Models\Menus\StockBatch::whereIn('item_id', $items->pluck('id'))->where('source', '!=', 'count')->orderBy('id')->pluck('unit_cost', 'item_id');   // the latest lot's cost wins
                 foreach ($items as $i) {
                     $out[] = ['type' => 'ingredient', 'item_id' => $i->id, 'ingredient_id' => $i->ingredient_id, 'ingredient' => $i->ingredient->name, 'variant' => $i->name, 'sku' => $i->code, 'units' => $i->unitChoices(),
-                        'track_expiry' => (bool) $i->track_expiry, 'base_unit' => $i->ingredient->baseUnit?->code, 'on_hand' => round((float) ($stock[$i->id] ?? 0), 4), 'last_cost' => (float) ($cost[$i->id] ?? 0)];   // cost per base unit
+                        'track_expiry' => (bool) $i->track_expiry, 'base_unit' => $i->ingredient->baseUnit?->code, 'on_hand' => round((float) ($stock[$i->id] ?? 0), 4), 'last_cost' => (float) ($cost[$i->id] ?? 0), 'fuzzy' => $fuzzy];   // cost per base unit
                 }
             }
         } elseif ($kind === 'service') {
@@ -520,6 +530,22 @@ class BooksVoucherController extends Controller
         }
 
         return response()->json($out);
+    }
+
+    /**
+     * Kitchen stock search: every word typed must be found in the ingredient's name, the variant's name or code, or the ingredient's kind ("scrub sponge" finds "Sponges, Scrub Daddy Sponge (dz)"),
+     * in any order.
+     */
+    private function ingredientWords($query, string $q)
+    {
+        $kinds = \App\Services\Menus\IngredientKinds::installed();
+        foreach (preg_split('/\s+/u', $q, -1, PREG_SPLIT_NO_EMPTY) as $word) {
+            $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $word).'%';
+            $query->where(fn ($w) => $w->where('name', 'like', $like)->orWhere('code', 'like', $like)
+                ->orWhereHas('ingredient', fn ($i) => $i->where('name', 'like', $like)->when($kinds, fn ($k) => $k->orWhereHas('kind', fn ($x) => $x->where('name', 'like', $like)))));
+        }
+
+        return $query;
     }
 
     /** One product variant as the pickers show it: names, units with prices, and what a purchase line needs (expiry tracking, last cost). */

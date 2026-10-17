@@ -1,7 +1,7 @@
 import { purchaseChargeLedgers } from '../../../components/admin/books/ledgerPicks';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom';
-import { Plus, Trash2, ArrowLeft, PackagePlus, X } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, PackagePlus, ChefHat, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../../_shared/components/layout/AdminLayout';
 import CurrencySelect from '../../../../_shared/components/common/currency/CurrencySelect';
@@ -67,8 +67,8 @@ const ingredientLineFrom = (row, currencyIsBase) => {
   };
 };
 
-/** Search-as-you-type over what this business stocks (products when E-commerce is on, ingredients when Menus is on), with near matches and "create new product". */
-function ItemSearch({ onPick, onCreate, onAddVariant, locationId }) {
+/** Search-as-you-type over what this business stocks (products when E-commerce is on, ingredients when Menus is on), with near matches ("did you mean", only when nothing matches exactly) and "create new product" / "create kitchen stock", whichever the modules on allow. */
+function ItemSearch({ onPick, onCreate, onCreateStock, onAddVariant, locationId }) {
   const kinds = stockKinds();
   const [q, setQ] = useState('');
   const [rows, setRows] = useState([]);
@@ -79,16 +79,19 @@ function ItemSearch({ onPick, onCreate, onAddVariant, locationId }) {
     const t = setTimeout(() => { lookupStock(q, { purpose: 'purchase', locationId, kinds }).then(setRows).catch(() => setRows([])); }, 200);
     return () => clearTimeout(t);
   }, [q, open]); // eslint-disable-line react-hooks/exhaustive-deps
-  const fuzzy = rows.length > 0 && rows[0].fuzzy;
+  // exact matches first; near matches ("did you mean") only when there is no exact match at all, whichever kind of item they are
+  const exact = rows.filter((r) => !r.fuzzy);
+  const shown = exact.length ? exact : rows;
+  const fuzzy = exact.length === 0 && rows.length > 0;
   return (
     <div style={{ position: 'relative' }}>
       <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => { clearTimeout(closeTimer.current); setOpen(true); }} onBlur={() => { closeTimer.current = setTimeout(() => setOpen(false), 180); }}
         placeholder={searchPlaceholder(kinds)} style={small} aria-label="Search items" />
       {open && (
         <div style={{ position: 'absolute', zIndex: 30, top: '100%', left: 0, right: 0, minWidth: 320, maxHeight: 340, overflowY: 'auto', ...card, padding: 4 }}>
-          {rows.length === 0 && <p style={{ margin: 8, fontSize: '0.78rem', color: colors.textMuted }}>{q ? `Nothing matches “${q}”.` : 'Start typing to search.'}</p>}
+          {shown.length === 0 && <p style={{ margin: 8, fontSize: '0.78rem', color: colors.textMuted }}>{q ? `Nothing matches “${q}”.` : 'Start typing to search.'}</p>}
           {fuzzy && <p style={{ margin: '6px 9px', fontSize: '0.72rem', color: colors.textMuted }}>No exact match — did you mean:</p>}
-          {rows.map((r) => (r.type === 'ingredient' ? (
+          {shown.map((r) => (r.type === 'ingredient' ? (
             <button key={`i${r.item_id}`} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onPick(r); setQ(''); setOpen(false); }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem' }}>
               {r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}{r.sku ? ` · ${r.sku}` : ''}</span>
@@ -110,11 +113,21 @@ function ItemSearch({ onPick, onCreate, onAddVariant, locationId }) {
               </button>
             </div>
           )))}
-          {kinds.products && (
-            <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onCreate(q)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', textAlign: 'left', padding: '9px', marginTop: 2, background: colors.tint(0.05), border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: colors.primary }}>
-              <PackagePlus size={14} /> Create new product{q ? ` “${q}”` : ''}
-            </button>
+          {(kinds.products || kinds.ingredients) && (
+            <div style={{ display: 'flex', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
+              {kinds.products && (
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onCreate(q)}
+                  style={{ flex: '1 1 180px', display: 'flex', alignItems: 'center', gap: 6, textAlign: 'left', padding: '9px', background: colors.tint(0.05), border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: colors.primary }}>
+                  <PackagePlus size={14} /> Create new product{q ? ` “${q}”` : ''}
+                </button>
+              )}
+              {kinds.ingredients && (
+                <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => onCreateStock(q)}
+                  style={{ flex: '1 1 180px', display: 'flex', alignItems: 'center', gap: 6, textAlign: 'left', padding: '9px', background: colors.tint(0.05), border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, color: colors.primary }}>
+                  <ChefHat size={14} /> Create new kitchen stock{q ? ` “${q}”` : ''}
+                </button>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -234,6 +247,18 @@ export default function PurchaseForm({ kind = 'purchase' }) {
   const setLine = (k, patch) => setLines((ls) => ls.map((l) => (l.key === k ? { ...l, ...patch } : l)));
   const removeLine = (k) => setLines((ls) => ls.filter((l) => l.key !== k));
 
+  // Back from the kitchen stock form: the new item's variant goes on the purchase (one variant is added, several are offered)
+  const handledStock = useRef(false);
+  useEffect(() => {
+    const ids = params.get('stock');
+    if (!ids || loading || handledStock.current) return;
+    handledStock.current = true;
+    booksAPI.lookup('ingredient', '', 'purchase', { ids })
+      .then((rows) => { if (rows.length === 1) { addVariant(rows[0]); toast.success(`${rows[0].ingredient} added`); } else if (rows.length > 1) setChoose(rows); })
+      .catch((e) => toast.error(errMsg(e, 'Could not load the new item')))
+      .finally(() => setParams((p) => { p.delete('stock'); return p; }, { replace: true }));
+  }, [params, loading]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Back from the product form: the new / changed product's variant goes on the purchase
   useEffect(() => {
     const pid = params.get('product');
@@ -258,6 +283,7 @@ export default function PurchaseForm({ kind = 'purchase' }) {
     nav(`${path}?returnTo=${encodeURIComponent(selfPath)}${extra}`);
   };
   const createProduct = (name) => goProduct('/admin/products/create', name ? `&name=${encodeURIComponent(name)}` : '');
+  const createStock = (name) => { writeDraft(key, { h, lines }); nav(`/admin/menus/ingredients?new=${encodeURIComponent(name || '')}&returnTo=${encodeURIComponent(selfPath)}`); };
   const addVariantTo = (productId) => goProduct(`/admin/products/${productId}/edit`, '&tab=variants');
 
   const payload = useMemo(() => {
@@ -437,17 +463,17 @@ export default function PurchaseForm({ kind = 'purchase' }) {
 
             <div style={{ ...card, padding: 18 }}>
               <div style={{ marginBottom: 12 }}>
-                <ItemSearch onPick={addVariant} onCreate={createProduct} onAddVariant={addVariantTo} locationId={h.location_id} />
+                <ItemSearch onPick={addVariant} onCreate={createProduct} onCreateStock={createStock} onAddVariant={addVariantTo} locationId={h.location_id} />
                 {stockKinds().products && <div style={{ marginTop: 8 }}><CodeScanner autoFocus={false} placeholder="…or scan what arrived (a carton code buys a carton)" onScan={scanAdd} /></div>}
               </div>
 
               {choose && (
                 <div style={{ ...card, padding: 12, marginBottom: 12, background: colors.tint(0.04) }}>
-                  <p style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 700 }}>Which variant of {choose[0].product} did you buy?</p>
+                  <p style={{ margin: '0 0 8px', fontSize: '0.8rem', fontWeight: 700 }}>Which variant of {choose[0].product ?? choose[0].ingredient} did you buy?</p>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {choose.map((r) => (
-                      <button key={r.variant_id} type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => { addVariant(r); }}>
-                        {r.variant && r.variant !== 'Standard' ? r.variant : 'Standard'} · {r.sku}
+                      <button key={r.variant_id ?? `i${r.item_id}`} type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => { addVariant(r); }}>
+                        {r.variant && r.variant !== 'Standard' ? r.variant : 'Standard'}{r.sku ? ` · ${r.sku}` : ''}
                       </button>
                     ))}
                     <button type="button" style={{ ...btnGhost, padding: '5px 10px', fontSize: '0.75rem' }} onClick={() => setChoose(null)}>Done</button>

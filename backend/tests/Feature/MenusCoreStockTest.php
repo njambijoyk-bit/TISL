@@ -369,6 +369,33 @@ class MenusCoreStockTest extends TestCase
         $this->assertSame('Kitchen stock: Wheat flour', $source->describe([$this->exe])[$this->exe]['group'], 'an ingredient with no kind yet');
     }
 
+    private function stockSearch(string $q): array
+    {
+        return app(\App\Http\Controllers\Api\BooksVoucherController::class)->lookup(Request::create('/x', 'GET', ['kind' => 'ingredient', 'q' => $q, 'purpose' => 'purchase']))->getData(true);
+    }
+
+    public function test_the_kitchen_stock_search_finds_words_in_any_order_across_the_name_the_variant_the_code_and_the_kind(): void
+    {
+        $sponges = $this->makeIngredient('Sponges', $this->each, null, [['name' => 'Scrub Daddy Sponge (dz)'], ['name' => 'Plain sponge']]);
+        DB::table('menus_ingredient_items')->where('name', 'Plain sponge')->update(['code' => 'SPG-PLAIN']);
+        $names = fn (array $rows) => array_map(fn ($r) => $r['variant'], $rows);
+        $this->assertSame(['Scrub Daddy Sponge (dz)'], $names($this->stockSearch('scrub daddy')), 'the variant name');
+        $this->assertSame(['Scrub Daddy Sponge (dz)'], $names($this->stockSearch('sponge scrub')), 'words in any order');
+        $this->assertSame(['Scrub Daddy Sponge (dz)', 'Plain sponge'], $names($this->stockSearch('sponges')), 'the ingredient name finds every variant');
+        $this->assertSame(['Plain sponge'], $names($this->stockSearch('spg-plain')), 'the code');
+        $this->assertSame(['Exe 2 kg', 'Pembe 24 kg'], $names($this->stockSearch('cooking ingredient flour')), 'the kind and the ingredient');
+        $this->assertFalse($this->stockSearch('scrub daddy')[0]['fuzzy'], 'an exact match is not a "did you mean"');
+        $this->assertSame([], $this->stockSearch('zzzz'), 'nothing close at all');
+    }
+
+    public function test_a_misspelt_kitchen_stock_search_offers_near_matches_flagged_as_such(): void
+    {
+        $this->makeIngredient('Sponges', $this->each, null, [['name' => 'Scrub Daddy Sponge (dz)']]);
+        $rows = $this->stockSearch('spnges');
+        $this->assertSame(['Sponges'], array_unique(array_column($rows, 'ingredient')));
+        $this->assertTrue($rows[0]['fuzzy'], 'flagged, so the picker can say "did you mean"');
+    }
+
     private function waste(): int
     {
         return (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');

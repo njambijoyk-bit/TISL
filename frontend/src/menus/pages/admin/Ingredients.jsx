@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -43,8 +44,8 @@ function Checks({ label, options, value, onChange }) {
 const USE_WORDS = { in_recipes: 'recipes', sold_as_is: 'sold as it is', free_extra: 'a free extra', packaging: 'packaging', used_up: 'used up by the kitchen' };
 const kindHint = (k) => (k ? `Used for: ${Object.keys(USE_WORDS).filter((u) => k[u]).map((u) => USE_WORDS[u]).join(', ')}.` : 'Used for: recipes.');
 
-function IngredientModal({ ingredient, options, onClose, onDone }) {
-  const [name, setName] = useState(ingredient?.name ?? '');
+function IngredientModal({ ingredient, initialName = '', options, onClose, onDone }) {
+  const [name, setName] = useState(ingredient?.name ?? initialName);
   const [baseId, setBaseId] = useState(ingredient?.base_unit_id ?? '');
   const [altId, setAltId] = useState(ingredient?.alt_unit_id ?? '');
   const [rule, setRule] = useState(ingredient?.pick_rule ?? 'preferred');
@@ -89,7 +90,7 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
           track_expiry: !!x.track_expiry, is_allowed: x.is_allowed, is_active: x.is_active, reorder_level: x.level_base == null || x.level_base === '' ? null : Number(x.level_base),
         })),
       }, ingredient?.id);
-      toast.success(res.message); onDone();
+      toast.success(res.message); onDone(res.ingredient);
     } catch (x) { setErr(errMsg(x, 'Could not save the ingredient')); } finally { setBusy(false); }
   };
 
@@ -189,6 +190,11 @@ export default function Ingredients() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [kinds, setKinds] = useState(false);
+  // arriving from a purchase (or a goods received note) to make a new item: the name searched for is filled in, and saving goes back with the new item
+  const nav = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const rawReturn = params.get('returnTo');
+  const returnTo = rawReturn && rawReturn.startsWith('/admin/') && !rawReturn.startsWith('//') ? rawReturn : null;
   const [kindFilter, setKindFilter] = useState('');
 
   const load = useCallback(() => {
@@ -196,7 +202,20 @@ export default function Ingredients() {
     menusAPI.stockIngredients().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the ingredients'))).finally(() => setLoading(false));
   }, []);
   useEffect(() => { load(); }, [load]);
-  const done = () => { setModal(null); load(); };
+  const asked = useRef(false);
+  useEffect(() => {
+    if (asked.current || !params.has('new') || !data || !canWrite) return;
+    asked.current = true;
+    setModal({ ingredient: null, name: params.get('new') ?? '' });
+    setParams((p) => { p.delete('new'); return p; }, { replace: true });
+  }, [params, data, canWrite, setParams]);
+  const done = (saved) => {
+    setModal(null);
+    const ids = (saved?.variants ?? []).map((v) => v.id);
+    if (returnTo && ids.length) { nav(`${returnTo}${returnTo.includes('?') ? '&' : '?'}stock=${ids.join(',')}`); return; }
+    if (returnTo && saved) toast('Add its variants (what you buy), then go back to the purchase.', { icon: '➕', duration: 6000 });
+    load();
+  };
   const remove = async (i) => {
     if (!window.confirm(`Remove ${i.name} and its variants?`)) return;
     try { const res = await menusAPI.removeStockIngredient(i.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not remove')); }
@@ -207,6 +226,7 @@ export default function Ingredients() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="ingredients">
+        {returnTo && <button type="button" onClick={() => nav(returnTo)} style={{ ...small, marginBottom: 10 }}>Back to the purchase</button>}
         <HubHeader title="Ingredients" description="The smallest things the kitchen stocks. Each has a base unit and, if you like, a bigger one, and variants (Exe, Pembe, Soko) that are bought and counted." />
         <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 14px' }}>
           {data?.kinds_ready && <button type="button" style={{ ...small, margin: '0 8px 0 0', alignSelf: 'center' }} onClick={() => setKinds(true)}>Kinds</button>}
@@ -248,7 +268,7 @@ export default function Ingredients() {
         </div>
       </div>
       {kinds && <IngredientKindsModal canWrite={canWrite} onClose={() => setKinds(false)} onChanged={load} />}
-      {modal && data && <IngredientModal ingredient={modal.ingredient} options={data} onClose={() => setModal(null)} onDone={done} />}
+      {modal && data && <IngredientModal ingredient={modal.ingredient} initialName={modal.name} options={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }
