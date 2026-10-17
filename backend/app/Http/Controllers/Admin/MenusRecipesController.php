@@ -10,6 +10,7 @@ use App\Models\Menus\Production;
 use App\Services\Books\BooksException;
 use App\Services\Menus\DishProduction;
 use App\Services\Menus\DishRecipes;
+use App\Services\Menus\IngredientKinds;
 use App\Services\Menus\IngredientUse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class MenusRecipesController extends Controller
             'dishes' => Dish::orderBy('sort_order')->orderBy('name')->get(['id', 'name', 'is_active'])->map(fn ($d) => [
                 'id' => $d->id, 'name' => $d->name, 'is_active' => (bool) $d->is_active, 'recipe' => ($r = $recipes->get($d->id)) ? $this->row($r, $location) : null,
             ])->values(),
-            'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code])->values(),
+            'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code])->values(),
             'visibility' => DishRecipe::VISIBILITY,
         ]);
     }

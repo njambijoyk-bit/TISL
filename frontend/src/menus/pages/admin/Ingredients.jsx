@@ -11,7 +11,8 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
-import { AllergenChips } from '../../components/FoodChips';
+import { AllergenChips, Pill } from '../../components/FoodChips';
+import IngredientKindsModal from '../../components/IngredientKinds';
 
 /**
  * Menus → Ingredients. An ingredient ("Wheat flour") is the smallest thing Menus stocks: a base unit (g) and, if wanted, a bigger alternate unit of the same kind (kg),
@@ -39,12 +40,16 @@ function Checks({ label, options, value, onChange }) {
   );
 }
 
+const USE_WORDS = { in_recipes: 'recipes', sold_as_is: 'sold as it is', free_extra: 'a free extra', packaging: 'packaging' };
+const kindHint = (k) => (k ? `Used for: ${Object.keys(USE_WORDS).filter((u) => k[u]).map((u) => USE_WORDS[u]).join(', ')}.` : 'Used for: recipes.');
+
 function IngredientModal({ ingredient, options, onClose, onDone }) {
   const [name, setName] = useState(ingredient?.name ?? '');
   const [baseId, setBaseId] = useState(ingredient?.base_unit_id ?? '');
   const [altId, setAltId] = useState(ingredient?.alt_unit_id ?? '');
   const [rule, setRule] = useState(ingredient?.pick_rule ?? 'preferred');
   const [purchase, setPurchase] = useState(ingredient?.purchase_ledger_id ?? '');
+  const [kindId, setKindId] = useState(ingredient?.kind_id ?? options.kinds?.find((k) => k.code === 'cooking')?.id ?? '');
   const [allergens, setAllergens] = useState(ingredient?.allergens ?? []);
   const [tags, setTags] = useState(ingredient?.tags ?? []);
   const [notes, setNotes] = useState(ingredient?.notes ?? '');
@@ -78,7 +83,7 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const res = await menusAPI.saveStockIngredient({
-        name, base_unit_id: Number(baseId), alt_unit_id: altId ? Number(altId) : null, pick_rule: rule, purchase_ledger_id: purchase || null, allergens, tags, notes: notes || null, is_active: active,
+        name, base_unit_id: Number(baseId), alt_unit_id: altId ? Number(altId) : null, pick_rule: rule, kind_id: kindId ? Number(kindId) : undefined, purchase_ledger_id: purchase || null, allergens, tags, notes: notes || null, is_active: active,
         variants: items.map((x) => ({
           id: x.id ?? undefined, name: x.name, code: x.code || null, pack_size: x.pack_size === '' ? null : Number(x.pack_size), pack_unit_id: x.pack_unit_id ? Number(x.pack_unit_id) : null,
           track_expiry: !!x.track_expiry, is_allowed: x.is_allowed, is_active: x.is_active, reorder_level: x.level_base == null || x.level_base === '' ? null : Number(x.level_base),
@@ -93,7 +98,16 @@ function IngredientModal({ ingredient, options, onClose, onDone }) {
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
-          <Field label="Name" htmlFor="ing-name"><TextInput id="ing-name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Wheat flour" /></Field>
+          <div style={{ display: 'grid', gridTemplateColumns: options.kinds_ready ? '1.6fr 1fr' : '1fr', gap: 10 }}>
+            <Field label="Name" htmlFor="ing-name"><TextInput id="ing-name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} placeholder="Wheat flour" /></Field>
+            {options.kinds_ready && (
+              <Field label="Kind" htmlFor="ing-kind" hint={kindHint(options.kinds.find((k) => String(k.id) === String(kindId)))}>
+                <SelectInput id="ing-kind" value={kindId} onChange={(e) => setKindId(e.target.value)}>
+                  {options.kinds.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                </SelectInput>
+              </Field>
+            )}
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: 10 }}>
             <Field label="Base unit" htmlFor="ing-base" hint="The smallest unit. Stock is kept in it.">
               <SelectInput id="ing-base" required value={baseId} onChange={(e) => pickBase(e.target.value)}>
@@ -174,6 +188,8 @@ export default function Ingredients() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
+  const [kinds, setKinds] = useState(false);
+  const [kindFilter, setKindFilter] = useState('');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -193,18 +209,28 @@ export default function Ingredients() {
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="ingredients">
         <HubHeader title="Ingredients" description="The smallest things the kitchen stocks. Each has a base unit and, if you like, a bigger one, and variants (Exe, Pembe, Soko) that are bought and counted." />
         <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 14px' }}>
+          {data?.kinds_ready && <button type="button" style={{ ...small, margin: '0 8px 0 0', alignSelf: 'center' }} onClick={() => setKinds(true)}>Kinds</button>}
           {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ ingredient: null })}><Plus size={14} /> New ingredient</button>}
         </div>
+        {data?.kinds_ready && data.kinds.length > 1 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '0 0 12px' }} role="group" aria-label="Filter by kind">
+            {[{ id: '', name: 'All' }, ...data.kinds].map((k) => (
+              <button key={k.id} type="button" aria-pressed={String(kindFilter) === String(k.id)} onClick={() => setKindFilter(k.id)}
+                style={{ ...small, marginRight: 0, ...(String(kindFilter) === String(k.id) ? { background: colors.primary, color: '#fff', borderColor: colors.primary } : {}) }}>{k.name}</button>
+            ))}
+          </div>
+        )}
 
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
           {loading && !data ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : !(data?.ingredients?.length) ? (
             <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>No ingredients yet. Add the things recipes use, like flour, oil, tomatoes, then their variants.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Ingredient</th><th style={th}>Variants (in order)</th><th style={th}>Allergens</th><th style={th} /></tr></thead>
-              <tbody>{data.ingredients.map((f) => (
+              <thead><tr><th style={th}>Ingredient</th>{data.kinds_ready && <th style={th}>Kind</th>}<th style={th}>Variants (in order)</th><th style={th}>Allergens</th><th style={th} /></tr></thead>
+              <tbody>{data.ingredients.filter((f) => !kindFilter || String(f.kind_id) === String(kindFilter)).map((f) => (
                 <tr key={f.id} style={f.is_active ? undefined : { opacity: 0.55 }}>
                   <td style={td}><strong>{f.name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{f.base_unit}{f.alt_unit ? ` and ${f.alt_unit}` : ''} · {data.pick_rules[f.pick_rule]?.toLowerCase()}{f.is_active ? '' : ' · not in use'}</div></td>
+                  {data.kinds_ready && <td style={td}>{f.kind ? <Pill>{f.kind}</Pill> : <span style={{ color: colors.textFaint }}>none</span>}</td>}
                   <td style={td}>{f.variants.length === 0 ? <span style={{ color: colors.textFaint }}>none yet</span> : f.variants.map((v, i) => (
                     <div key={v.id} style={v.is_allowed && v.is_active ? undefined : { textDecoration: 'line-through', color: colors.textFaint }}>
                       {i + 1}. {v.name}{v.pack_size != null ? ` · pack of ${v.pack_size} ${v.pack_unit}` : ''}{v.track_expiry ? ' · expires' : ''}
@@ -221,6 +247,7 @@ export default function Ingredients() {
           )}
         </div>
       </div>
+      {kinds && <IngredientKindsModal canWrite={canWrite} onClose={() => setKinds(false)} onChanged={load} />}
       {modal && data && <IngredientModal ingredient={modal.ingredient} options={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );

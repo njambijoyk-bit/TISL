@@ -952,6 +952,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock/receipts', [\App\Http\Controllers\Admin\MenusStockController::class, 'receipts']);
         Route::get('/stock/productions', [\App\Http\Controllers\Admin\MenusRecipesController::class, 'productions']);
         Route::get('/food-tags', [\App\Http\Controllers\Admin\MenusFoodTagsController::class, 'index']);
+        Route::get('/stock/ingredient-kinds', [\App\Http\Controllers\Admin\MenusIngredientKindsController::class, 'index']);
         Route::get('/stock/expiring', [\App\Http\Controllers\Admin\MenusStockController::class, 'expiring']);
         Route::get('/stock/counts', [\App\Http\Controllers\Admin\MenusStockController::class, 'counts']);
         Route::get('/stock/recipes', [\App\Http\Controllers\Admin\MenusRecipesController::class, 'index']);   // Menus' own ingredients (no products behind them)
@@ -1093,6 +1094,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/stock/opening', [$sk, 'opening']);
             Route::post('/stock/productions', [$sr, 'produce']);
             Route::post('/stock/productions/{id}/cancel', [$sr, 'cancelRun'])->whereNumber('id');
+            $ik = \App\Http\Controllers\Admin\MenusIngredientKindsController::class;
+            Route::post('/stock/ingredient-kinds', [$ik, 'store']);
+            Route::post('/stock/ingredient-kinds/order', [$ik, 'order']);
+            Route::put('/stock/ingredient-kinds/{id}', [$ik, 'update'])->whereNumber('id');
+            Route::delete('/stock/ingredient-kinds/{id}', [$ik, 'destroy'])->whereNumber('id');
             $ft = \App\Http\Controllers\Admin\MenusFoodTagsController::class;
             Route::post('/food-tags', [$ft, 'store']);
             Route::post('/food-tags/order', [$ft, 'order']);

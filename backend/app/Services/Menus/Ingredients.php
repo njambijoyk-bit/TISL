@@ -2,7 +2,9 @@
 
 namespace App\Services\Menus;
 
+use App\Models\Menus\DishRecipeLine;
 use App\Models\Menus\Ingredient;
+use App\Models\Menus\IngredientKind;
 use App\Models\Menus\IngredientItem;
 use App\Models\UnitOfMeasure;
 use App\Services\Books\BooksException;
@@ -58,6 +60,7 @@ class Ingredients
         if ($purchase && ($problem = \App\Services\Books\TradingAccounts::problem($purchase, 'purchase'))) {
             throw new BooksException($problem);
         }
+        $kind = $this->kindFor($d, $id);
         $variants = $this->variants(array_values($d['variants'] ?? []), $base, $alt);
         $existing = $id ? Ingredient::findOrFail($id)->variants()->get()->keyBy('id') : collect();
         foreach ($variants as $v) {
@@ -70,12 +73,13 @@ class Ingredients
             $this->assertCanRemove($gone);
         }
 
-        return DB::transaction(function () use ($d, $id, $name, $rule, $base, $alt, $variants, $keep, $existing, $purchase) {
+        return DB::transaction(function () use ($d, $id, $name, $rule, $base, $alt, $variants, $keep, $existing, $purchase, $kind) {
             $ingredient = Ingredient::updateOrCreate(['id' => $id], [
                 'name' => $name, 'base_unit_id' => $base->id, 'alt_unit_id' => $alt?->id, 'pick_rule' => $rule,
                 'allergens' => FoodTags::clean($d['allergens'] ?? [], FoodTags::allergens()), 'tags' => FoodTags::clean($d['tags'] ?? [], FoodTags::tags()),
                 'notes' => isset($d['notes']) && trim((string) $d['notes']) !== '' ? mb_substr(trim((string) $d['notes']), 0, 255) : null, 'is_active' => (bool) ($d['is_active'] ?? true),
-            ] + (Schema::hasColumn('menus_ingredients', 'purchase_ledger_id') ? ['purchase_ledger_id' => $purchase] : []));   // (once script 189 is run)
+            ] + (Schema::hasColumn('menus_ingredients', 'purchase_ledger_id') ? ['purchase_ledger_id' => $purchase] : [])   // (once script 189 is run)
+              + ($kind ? ['kind_id' => $kind->id] : []));   // (once script 190 is run)
             if ($existing->isNotEmpty()) {
                 // a variant whose name is being taken by another in the same save would clash on the unique name: move the changing ones aside first
                 foreach ($existing as $e) {
@@ -97,6 +101,28 @@ class Ingredients
 
             return $ingredient->load('variants');
         });
+    }
+
+    /**
+     * The kind this save gives the ingredient: the one chosen, else the one it has, else the cooking kind. Null before script 190. An ingredient that is in a recipe can not be given a
+     * kind that is not used in recipes.
+     */
+    private function kindFor(array $d, ?int $id): ?IngredientKind
+    {
+        if (! IngredientKinds::installed()) {
+            return null;
+        }
+        $current = $id ? Ingredient::find($id)?->kind_id : null;
+        $wanted = ! empty($d['kind_id']) ? (int) $d['kind_id'] : $current;
+        $kind = $wanted ? IngredientKind::find($wanted) : app(IngredientKinds::class)->defaultKind();
+        if (! $kind) {
+            throw new BooksException('Choose what kind of ingredient this is.');
+        }
+        if ($id && ! $kind->in_recipes && DishRecipeLine::where('ingredient_id', $id)->exists()) {
+            throw new BooksException("It is in a recipe, and {$kind->name} is not used in recipes. Take it out of the recipes first, or choose a kind that is.");
+        }
+
+        return $kind;
     }
 
     public function delete(Ingredient $ingredient): void

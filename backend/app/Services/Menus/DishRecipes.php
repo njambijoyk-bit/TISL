@@ -58,6 +58,9 @@ class DishRecipes
             if (isset($seen[$ing->id])) {
                 throw new BooksException("{$ing->name} is listed twice: add the amounts together.");
             }
+            if (! IngredientKinds::allowedInRecipe($ing)) {
+                throw new BooksException("Line {$row}: {$ing->name} is of the kind ".$ing->kind?->name.', which is not used in recipes. Change its kind under Menus, Ingredients.');
+            }
             $seen[$ing->id] = true;
             $unit = (string) ($l['unit'] ?? 'base');
             if (! in_array($unit, ['base', 'alt'], true)) {

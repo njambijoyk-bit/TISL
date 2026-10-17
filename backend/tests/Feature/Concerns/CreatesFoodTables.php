@@ -25,6 +25,9 @@ trait CreatesFoodTables
         $this->runSqlScripts('181_menus_ingredients_own.sql', '182_menus_ingredient_stock.sql', '183_menus_recipes_own.sql', '184_menus_dishes_own.sql', '185_menus_operations_own.sql');
         // the columns script 185 adds with its helper procedure (the test runner only reads CREATE TABLE and plain ADD COLUMN)
         Schema::table('menus_ingredient_items', fn ($t) => $t->decimal('reorder_level', 18, 4)->nullable());
+        // script 190: the kinds of ingredient, and the column that points at one
+        $this->runSqlScripts('190_menus_ingredient_kinds.sql');
+        Schema::table('menus_ingredients', fn ($t) => $t->unsignedBigInteger('kind_id')->nullable());
         // the core stock count (script 30) and script 187's tables and columns for ingredients on it
         if (! Schema::hasTable('stock_counts')) {
             Schema::create('stock_counts', function ($t) {

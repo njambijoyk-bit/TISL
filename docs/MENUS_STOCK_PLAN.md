@@ -78,4 +78,17 @@ The Menus tests that build products today (dishes, counter, kitchen, orders, reo
 ## Next session (agreed with the owner)
 - **Cooking timers** (reminded and agreed): when a dish is being prepared it can carry timers, one for each step or meal (for example the rice, the stew), so the kitchen knows when each is ready. To be planned with the dishes and recipes work.
 - **Dishes and recipes**: ingredients and stock are done (variants, purchases, opening stock, counts, transfers, expiry, debit notes, purchase orders, VAT by purchase account). Next: how dishes and recipes touch the books, what a sold dish posts (sales account and VAT, cost of food, stock used) and how the recipe cost reaches the stock reports.
-- **Soft drinks tracking, ketchup sachets, salt** (the owner will explain what is wanted).
+- **Soft drinks tracking, ketchup sachets, salt**: decided to keep one stock system. They are ingredients with another **kind** (see below), not a second stock and never called "stock items" in Menus.
+
+## Ingredient kinds (built, script 190)
+- `menus_ingredient_kinds` (code, name, `in_recipes`, `sold_as_is`, `free_extra`, `packaging`) and `menus_ingredients.kind_id`, a real foreign key. Every existing ingredient became a **Cooking ingredient**. Four kinds are put in: Cooking ingredient, Ready to serve, Condiment or extra, Packaging; the admin can add more (Menus, Ingredients, Kinds) and say what each may be used for.
+- Enforced today: a recipe line must be of a kind used in recipes (the recipe picker lists only those; an ingredient already in a recipe cannot be moved to a kind that is not; a kind cannot stop being used in recipes while a recipe needs it). A kind that ingredients have cannot be removed; Cooking ingredient (the default for new ones) stays.
+- Stored, used by the dish work that follows: `sold_as_is` (a soda sold with no recipe), `free_extra` (a sachet given with a dish), `packaging` (used up by a takeaway order).
+
+## Dishes made of reusable parts (agreed direction, not built; the owner is thinking it over)
+- Layers: ingredients (with kind) -> **component** (a portion with a recipe, or a ready-to-serve ingredient) -> **dish** (slots, fixed or choose-one, by size) -> the order line remembers which components, size and quantities were sold.
+- Ugali, kale, beef stew, boiled rice, pilau, chicken are components with one recipe each (steps and minutes), written once and reused by every dish. A soda is a ready-to-serve ingredient used as a slot; a sachet or salt is a free extra on a slot.
+- Sizes (Kids, Regular, Jumbo) live on the dish: a price, and per slot a portion multiplier with an optional fixed quantity (chicken in pieces). The recipe stays for one standard portion.
+- Timers: a made-to-order component times its cook step on the order; a made-ahead component keeps its long timer on the batch, and the order only times plating.
+- Not copied from the 11-table outline: no separate recipe and component tables, no shared sizes table yet, and plain links rather than a polymorphic type and id.
+- Open: the price is set per dish and size or built from the parts; whether a component can be sold alone; the name shown to people for a component (sides, portions, parts); sachets per dish or per order; naming of the existing option groups ("Choose a side") once components exist.

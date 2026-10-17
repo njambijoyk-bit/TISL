@@ -17,7 +17,7 @@ class Ingredient extends Model
 
     protected $table = 'menus_ingredients';
 
-    protected $fillable = ['name', 'base_unit_id', 'alt_unit_id', 'pick_rule', 'allergens', 'tags', 'notes', 'is_active', 'purchase_ledger_id'];
+    protected $fillable = ['name', 'base_unit_id', 'alt_unit_id', 'pick_rule', 'allergens', 'tags', 'notes', 'is_active', 'purchase_ledger_id', 'kind_id'];
 
     protected $casts = ['allergens' => 'array', 'tags' => 'array', 'is_active' => 'boolean'];
 
@@ -29,6 +29,12 @@ class Ingredient extends Model
     public function altUnit(): BelongsTo
     {
         return $this->belongsTo(UnitOfMeasure::class, 'alt_unit_id');
+    }
+
+    /** What it is for (Cooking ingredient, Ready to serve...); empty until script 190 is run. */
+    public function kind(): BelongsTo
+    {
+        return $this->belongsTo(IngredientKind::class, 'kind_id');
     }
 
     /**
