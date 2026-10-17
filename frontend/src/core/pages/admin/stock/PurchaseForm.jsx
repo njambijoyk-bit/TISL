@@ -286,6 +286,12 @@ export default function PurchaseForm({ kind = 'purchase' }) {
 
   const ready = Boolean(type) && lines.length > 0 && lines.every((l) => (l.other ? l.description && l.rate !== '' && l.ledger_id : l.ingredient ? l.item_id && Number(l.quantity) > 0 && l.rate !== '' && (!l.track_expiry || l.expiry_date) : l.variant_id && Number(l.quantity) > 0 && l.rate !== '')) && (opening || Boolean(h.party_ledger_id) || Boolean(h.payment_method_id));
 
+  // what is still missing before the server can work the entries out (shown instead of a breakdown that quietly disappears)
+  const missing = [
+    ...lines.filter((l) => l.ingredient && l.item_id && l.track_expiry && !l.expiry_date).map((l) => `${l.label} ${l.variantName} needs its expiry date`),
+    ...(!opening && lines.length > 0 && !h.party_ledger_id && !h.payment_method_id ? ['choose the supplier or how it was paid'] : []),
+    ...lines.filter((l) => !l.other && (l.ingredient ? !l.item_id || !(Number(l.quantity) > 0) || l.rate === '' : !l.variant_id || !(Number(l.quantity) > 0) || l.rate === '')).map((l) => `${l.label ?? 'an item'} needs a quantity and a cost`),
+  ];
   useEffect(() => {
     if (!ready) { setPreview(null); setPreviewErr(null); return undefined; }
     const t = setTimeout(() => {
@@ -560,6 +566,11 @@ export default function PurchaseForm({ kind = 'purchase' }) {
               </div>
             )}
 
+            {!preview?.entries?.length && !previewErr && missing.length > 0 && (
+              <div role="status" style={{ ...card, padding: 14, fontSize: '0.8rem', color: colors.textMuted }}>
+                The accounting entries and the tax show once everything is filled in: {missing.join('; ')}.
+              </div>
+            )}
             {preview?.entries?.length > 0 && (
               <div style={{ ...card, padding: 18 }}>
                 <p style={{ margin: '0 0 10px', fontWeight: 700, color: colors.text }}>What this will post</p>
@@ -586,8 +597,8 @@ export default function PurchaseForm({ kind = 'purchase' }) {
             <div style={{ ...card, padding: 18 }}>
               <div style={{ display: 'flex', gap: 24, justifyContent: 'flex-end', flexWrap: 'wrap', fontSize: '0.85rem' }}>
                 <div>Subtotal <strong>{money(preview?.subtotal ?? subtotal)}</strong></div>
-                {!opening && !receipt && <div>Tax <strong>{money(preview?.tax_total ?? 0)}</strong></div>}
-                <div>Total <strong style={{ color: colors.primary }}>{money(preview?.total ?? subtotal)}</strong></div>
+                {!opening && !receipt && <div>Tax <strong>{preview ? money(preview.tax_total ?? 0) : '—'}</strong></div>}
+                <div>Total <strong style={{ color: colors.primary }}>{preview || opening || receipt ? money(preview?.total ?? subtotal) : '—'}</strong></div>
               </div>
               {previewErr && <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#b91c1c' }}>{previewErr}</p>}
               {saveErr && <p style={{ margin: '10px 0 0', fontSize: '0.78rem', color: '#b91c1c' }}>{saveErr}</p>}
