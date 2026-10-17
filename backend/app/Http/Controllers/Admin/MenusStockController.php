@@ -31,9 +31,11 @@ class MenusStockController extends Controller
         $branches = DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
         $location = $request->integer('location_id') ?: (int) ($branches->first()->id ?? 0);
         $levels = IngredientStock::installed() ? $this->stock->levels($location) : [];
+        // what a count is compared with: everything physically there, held and recalled lots too (the shelf figures above are the good stock only)
+        $every = IngredientStock::installed() ? \App\Models\Menus\StockBatch::where('location_id', $location)->where('qty_left', '>', 0)->groupBy('item_id')->selectRaw('item_id, SUM(qty_left) as q, SUM(qty_left * unit_cost) as v')->get()->keyBy('item_id') : collect();
 
-        $rows = Ingredient::with(['baseUnit:id,code,name,dimension,to_base_factor', 'altUnit:id,code,name,dimension,to_base_factor', 'variants'])->orderBy('name')->get()->map(function (Ingredient $i) use ($levels) {
-            $variants = $i->variants->map(function ($v) use ($i, $levels) {
+        $rows = Ingredient::with(['baseUnit:id,code,name,dimension,to_base_factor', 'altUnit:id,code,name,dimension,to_base_factor', 'variants'])->orderBy('name')->get()->map(function (Ingredient $i) use ($levels, $every) {
+            $variants = $i->variants->map(function ($v) use ($i, $levels, $every) {
                 $lv = $levels[$v->id] ?? ['qty' => 0.0, 'value' => 0.0, 'next_expiry' => null];
                 $pack = $v->pack_size ? (float) $v->pack_size : null;
 
@@ -41,6 +43,7 @@ class MenusStockController extends Controller
                     'id' => (int) $v->id, 'name' => $v->name, 'is_active' => (bool) $v->is_active, 'track_expiry' => (bool) $v->track_expiry, 'pack_size_base' => $pack, 'reorder_level' => $v->reorder_level === null ? null : (float) $v->reorder_level,
                     'qty_base' => $lv['qty'], 'qty_alt' => $i->altUnit ? round($i->baseUnit->convertTo($i->altUnit, $lv['qty']), 4) : null,
                     'packs' => $pack ? round($lv['qty'] / $pack, 4) : null, 'value' => $lv['value'], 'next_expiry' => $lv['next_expiry'],
+                    'book_qty' => round((float) ($every[$v->id]->q ?? 0), 4), 'book_cost' => isset($every[$v->id]) && (float) $every[$v->id]->q > 0 ? round((float) $every[$v->id]->v / (float) $every[$v->id]->q, 6) : null,
                 ];
             })->values();
 

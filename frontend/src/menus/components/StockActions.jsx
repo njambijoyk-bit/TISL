@@ -9,7 +9,7 @@ import { btnGhost, colors } from '../../_shared/theme/tokens';
 import IngredientVariantPicker from './IngredientVariantPicker';
 
 /**
- * Menus → Stock actions on the kitchen's own shelf: count it (in packs, the bigger unit or the base unit), send some to another branch, and make a batch of a dish that is made ahead.
+ * Menus → Stock actions on the kitchen's own shelf: send some to another branch, and make a batch of a dish that is made ahead.
  * The units offered for a variant are the ones that make sense for it: packs (when it has a pack size), the alternate unit, the base unit.
  */
 
@@ -50,35 +50,6 @@ function useRows() {
 }
 
 const payloadRows = (rows) => rows.map((l) => ({ item_id: Number(l.item_id), quantity: Number(l.quantity), unit: l.unit }));
-
-export function CountModal({ data, locationId, onClose, onDone }) {
-  const variants = useMemo(() => variantsOf(data), [data]);
-  const { rows, patch, remove, add } = useRows();
-  const [date, setDate] = useState(today());
-  const [note, setNote] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState(null);
-  const go = async (e) => {
-    e.preventDefault(); setBusy(true); setErr(null);
-    try { const res = await menusAPI.countStock({ location_id: Number(locationId), date, note: note || null, lines: payloadRows(rows) }); toast.success(`${res.message} ${res.value_change ? `The difference is worth ${Number(res.value_change).toLocaleString('en-KE')}.` : 'Nothing was out.'}`, { duration: 7000 }); onDone(); } catch (x) { setErr(errMsg(x, 'Could not record the count')); } finally { setBusy(false); }
-  };
-
-  return (
-    <Modal title="Count stock" onClose={onClose} width={760}>
-      <form onSubmit={go}>
-        <FormStack>
-          <FormError message={err} />
-          <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Count what is really on the shelf. Packs are easiest: 10 packs of Exe 2 kg is 20 kg. Only the variants you list are changed; a difference is taken off (or added) and booked to Food Waste Expense.</p>
-          <Field label="Date"><TextInput type="date" aria-label="Date" required value={date} onChange={(e) => setDate(e.target.value)} /></Field>
-          {rows.map((r) => <QtyRow key={r.key} row={r} variants={variants} onChange={(p) => patch(r.key, p)} onRemove={() => remove(r.key)} hint={(v) => (v ? `The system says ${Number(v.on_hand).toLocaleString('en-KE', { maximumFractionDigits: 3 })} ${v.base_unit}` : undefined)} />)}
-          <div><button type="button" style={small} onClick={add}><Plus size={12} /> Add a line</button></div>
-          <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-          <ModalActions onCancel={onClose} submitLabel="Record the count" busy={busy} disabled={rows.some((l) => !l.item_id || l.quantity === '')} />
-        </FormStack>
-      </form>
-    </Modal>
-  );
-}
 
 export function TransferModal({ data, locationId, onClose, onDone }) {
   const variants = useMemo(() => variantsOf(data), [data]);

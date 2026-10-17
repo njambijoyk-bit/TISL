@@ -12,7 +12,7 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import MenusNav from '../../components/MenusNav';
-import { BatchModal, CountModal, TransferModal } from '../../components/StockActions';
+import { BatchModal, TransferModal } from '../../components/StockActions';
 import IngredientVariantPicker from '../../components/IngredientVariantPicker';
 
 /**
@@ -165,7 +165,7 @@ export default function MenusStock() {
           </div>
           {canWrite && data?.installed && (
             <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('count')}><ClipboardList size={14} /> Count stock</button>
+              <Link to="/admin/menus/stock/count" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }} aria-disabled={noVariants || undefined}><ClipboardList size={14} /> Count stock</Link>
               <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('transfer')}><Truck size={14} /> Send to a branch</button>
               <button type="button" style={btnGhost} onClick={() => setModal('batch')}><ChefHat size={14} /> Make a batch</button>
               <Link to="/admin/menus/stock/opening" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }} aria-disabled={noVariants || undefined}>Opening stock</Link>
@@ -275,7 +275,6 @@ export default function MenusStock() {
           )}
         </div>
       </div>
-      {modal === 'count' && data && <CountModal data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
       {modal === 'transfer' && data && <TransferModal data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
       {modal === 'batch' && data && <BatchModal dishes={extra.dishes} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
       {modal === 'receive' && data && <ReceiveModal data={data} locationId={loc || data.location_id} onClose={() => setModal(null)} onDone={done} />}
