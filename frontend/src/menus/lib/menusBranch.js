@@ -8,6 +8,9 @@ const KEY = 'menus.branch';
 const read = () => { try { return localStorage.getItem(KEY) || ''; } catch { return ''; } };
 const write = (v) => { try { if (v) localStorage.setItem(KEY, String(v)); } catch { /* private window: the choice just is not kept */ } };
 
+/** Drop the branch remembered on this device (the person may no longer open it): the pages then start on their own. */
+export const forgetMenusBranch = () => { try { localStorage.removeItem(KEY); } catch { /* private window: nothing was kept */ } };
+
 export function useMenusBranch(branches) {
   const [loc, set] = useState(read);
   const setLoc = useCallback((v) => set((prev) => { const next = typeof v === 'function' ? v(prev) : v; write(next); return next; }), []);

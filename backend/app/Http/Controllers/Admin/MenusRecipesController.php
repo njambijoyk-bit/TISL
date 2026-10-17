@@ -25,7 +25,7 @@ class MenusRecipesController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $branches = DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
+        $branches = app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
         $location = $request->integer('location_id') ?: (int) ($branches->first()->id ?? 0);
         $recipes = DishRecipe::with(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps'])->get()->keyBy('dish_id');
 

@@ -23,7 +23,7 @@ class MenusDishController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $location = $request->integer('location_id') ?: (int) DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('id')->value('id');
+        $location = $request->integer('location_id') ?: (int) app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderByDesc('is_default')->orderBy('id')->value('id');
         $rows = Dish::with('menuRecipe')->orderBy('sort_order')->orderBy('name')->get()->map(fn (Dish $d) => $this->row($d, $location))->values();
 
         return response()->json([
@@ -31,7 +31,7 @@ class MenusDishController extends Controller
             'allergens' => FoodTags::allergens(), 'tags' => FoodTags::tags(), 'diets' => DietBadges::LABELS,
             'chefs' => \App\Services\Menus\ChefService::installed() ? \App\Models\Menus\Chef::where('is_active', true)->orderBy('display_name')->get(['id', 'display_name as name']) : null,
             'stations' => \App\Services\Menus\KitchenService::installed() ? \App\Models\Menus\Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : null,
-            'branches' => DB::table('locations')->where('is_active', 1)->orderBy('name')->get(['id', 'name']),
+            'branches' => app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderBy('name')->get(['id', 'name']),
         ]);
     }
 

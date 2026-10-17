@@ -32,11 +32,11 @@ class MenusFloorController extends Controller
 
     public function show(Request $request): JsonResponse
     {
-        $branches = Location::query()->active()->ordered()->get(['id', 'name']);
+        $branches = app(\App\Services\Menus\MenuBranches::class)->narrow(Location::query()->active())->ordered()->get(['id', 'name']);
         if (! FloorService::installed()) {
             return response()->json(['ready' => false, 'areas' => [], 'branches' => $branches, 'location_id' => null, 'resources' => []]);
         }
-        $loc = $request->integer('location_id') ?: (int) (Location::defaultSelling()?->id ?? $branches->first()?->id);
+        $loc = $request->integer('location_id') ?: (int) ($branches->firstWhere('id', Location::defaultSelling()?->id)?->id ?? $branches->firstWhere('id', Location::default()?->id)?->id ?? $branches->first()?->id);
 
         return response()->json(['ready' => true, 'branches' => $branches, 'location_id' => $loc, 'now' => now()->toIso8601String()] + $this->floor->floor($loc) + [
             'resources' => DB::getSchemaBuilder()->hasTable('bookable_resources') ? DB::table('bookable_resources')->where('type', 'table')->where('is_active', 1)->orderBy('name')->get(['id', 'name']) : [],

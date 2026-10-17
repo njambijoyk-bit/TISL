@@ -28,7 +28,7 @@ class MenusStockController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $branches = DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
+        $branches = app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
         $location = $request->integer('location_id') ?: (int) ($branches->first()->id ?? 0);
         $levels = IngredientStock::installed() ? $this->stock->levels($location) : [];
         // what a count is compared with: everything physically there, held and recalled lots too (the shelf figures above are the good stock only)
@@ -134,7 +134,7 @@ class MenusStockController extends Controller
     public function expiring(Request $request): JsonResponse
     {
         $d = $request->validate(['location_id' => 'nullable|integer', 'days' => 'nullable|integer|min:0|max:365']);
-        $loc = (int) ($d['location_id'] ?? 0) ?: (int) DB::table('locations')->where('is_active', 1)->orderByDesc('is_default')->orderBy('name')->value('id');
+        $loc = (int) ($d['location_id'] ?? 0) ?: (int) app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderByDesc('is_default')->orderBy('name')->value('id');
 
         return response()->json(['location_id' => $loc, 'days' => (int) ($d['days'] ?? 7), 'rows' => IngredientStock::installed() ? $this->stock->expiring($loc, (int) ($d['days'] ?? 7)) : []]);
     }

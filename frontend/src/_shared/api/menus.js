@@ -1,4 +1,20 @@
 import api from './axios';
+import { forgetMenusBranch } from '../../menus/lib/menusBranch';
+
+// A branch remembered on this device that the person may not open any more (their access changed, or it is someone else's): rather than the refusal, forget it and ask again
+// for their own. The page then adopts the branch the answer comes from.
+api.interceptors.response.use(undefined, (error) => {
+  const cfg = error.config;
+  const d = error.response?.data;
+  if (error.response?.status === 403 && d?.reason === 'outside_scope' && cfg && (cfg.method ?? 'get') === 'get' && String(cfg.url ?? '').includes('/admin/menus') && cfg.params?.location_id && !cfg._branchRetried) {
+    forgetMenusBranch();
+    const { location_id: _gone, ...params } = cfg.params;
+
+    return api.request({ ...cfg, params, _branchRetried: true });
+  }
+
+  return Promise.reject(error);
+});
 
 /** Menus: ingredients, stock, recipes, dishes, the Menus settings. */
 export const menusAPI = {

@@ -31,12 +31,14 @@ class MenusOperationsController extends Controller
 
     private function location(Request $r): int
     {
-        return $r->integer('location_id') ?: (int) (Location::defaultSelling()?->id ?? Location::default()?->id);
+        $mine = $this->branches();
+
+        return $r->integer('location_id') ?: (int) ($mine->firstWhere('id', Location::defaultSelling()?->id)?->id ?? $mine->firstWhere('id', Location::default()?->id)?->id ?? $mine->first()?->id);
     }
 
     private function branches(): \Illuminate\Support\Collection
     {
-        return Location::query()->active()->ordered()->get(['id', 'name']);
+        return app(\App\Services\Menus\MenuBranches::class)->narrow(Location::query()->active())->ordered()->get(['id', 'name']);
     }
 
     public function prep(Request $request): JsonResponse

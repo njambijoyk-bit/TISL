@@ -453,6 +453,24 @@ class MenusCoreStockTest extends TestCase
         $this->assertContains('ingredient', array_column($all, 'item_type'));
     }
 
+    public function test_a_person_held_to_a_branch_is_offered_only_theirs_and_the_stock_page_opens_on_it(): void
+    {
+        $filter = $this->createMock(\App\Services\Access\BranchFilter::class);
+        $filter->method('enforcing')->willReturn(true);
+        $filter->method('limit')->willReturn([self::OTHER]);
+        $this->app->instance(\App\Services\Access\BranchFilter::class, $filter);
+        $stock = app(\App\Http\Controllers\Admin\MenusStockController::class)->index(Request::create('/x', 'GET'))->getData(true);
+        $this->assertSame([self::OTHER], array_column($stock['branches'], 'id'), 'only the branch they may open is listed');
+        $this->assertSame(self::OTHER, $stock['location_id'], 'and it is the one the page opens on, not the company default');
+    }
+
+    public function test_nothing_is_taken_away_from_a_person_nothing_limits(): void
+    {
+        $stock = app(\App\Http\Controllers\Admin\MenusStockController::class)->index(Request::create('/x', 'GET'))->getData(true);
+        $this->assertSame(2, count($stock['branches']));
+        $this->assertSame(self::BRANCH, $stock['location_id'], 'the default branch, as before');
+    }
+
     private function waste(): int
     {
         return (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');
