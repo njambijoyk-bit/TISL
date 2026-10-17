@@ -15,7 +15,7 @@ export default function StockItemPicker({ onPick, locationId, purpose = 'purchas
     const t = setTimeout(() => lookupStock(q.trim(), { purpose, locationId, kinds }).then(setRows).catch(() => setRows([])), 200);
     return () => clearTimeout(t);
   }, [q]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!kinds.products && !kinds.ingredients) return <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Switch on E-commerce (products) or Menus (ingredients) to stock anything.</p>;
+  if (!kinds.products && !kinds.ingredients) return <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Switch on E-commerce (products) or Menus (kitchen stock) to stock anything.</p>;
   return (
     <div>
       <input autoFocus={autoFocus} value={q} onChange={(e) => setQ(e.target.value)} placeholder={placeholder ?? searchPlaceholder(kinds)} style={input} aria-label="Search items" />
@@ -25,7 +25,7 @@ export default function StockItemPicker({ onPick, locationId, purpose = 'purchas
             <button key={`${r.type}-${r.item_id ?? r.variant_id}`} type="button" onClick={() => { onPick(r); setQ(''); setRows([]); }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem' }}>
               {r.type === 'ingredient'
-                ? <>{r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}</span>{kinds.products && <span style={{ marginLeft: 6, fontSize: '0.62rem', fontWeight: 800, color: colors.primary }}>INGREDIENT</span>}</>
+                ? <>{r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}</span>{kinds.products && <span style={{ marginLeft: 6, fontSize: '0.62rem', fontWeight: 800, color: colors.primary }}>KITCHEN</span>}</>
                 : <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant && r.variant !== 'Standard' ? `${r.variant} · ` : ''}{r.sku}</span>{kinds.ingredients && <span style={{ marginLeft: 6, fontSize: '0.62rem', fontWeight: 800, color: colors.textFaint }}>PRODUCT</span>}</>}
             </button>
           ))}

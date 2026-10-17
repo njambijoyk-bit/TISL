@@ -19,9 +19,10 @@ class IngredientItemSource implements StockItemSource
         return self::TYPE;
     }
 
+    /** What the stock reports call this kind of item: the kitchen's stock (ingredients, drinks, condiments, packaging, supplies). */
     public function label(): string
     {
-        return 'Ingredients';
+        return 'Kitchen stock';
     }
 
     public function describe(array $ids): array
@@ -31,10 +32,13 @@ class IngredientItemSource implements StockItemSource
         }
         $out = [];
         foreach (array_chunk(array_values(array_unique($ids)), 500) as $chunk) {
-            $rows = DB::table('menus_ingredient_items as it')->join('menus_ingredients as i', 'i.id', '=', 'it.ingredient_id')->leftJoin('units_of_measure as u', 'u.id', '=', 'i.base_unit_id')
-                ->whereIn('it.id', $chunk)->get(['it.id', 'it.name as variant', 'it.code', 'i.name as ingredient', 'u.code as unit']);
+            $kinds = IngredientKinds::installed();
+            $q = DB::table('menus_ingredient_items as it')->join('menus_ingredients as i', 'i.id', '=', 'it.ingredient_id')->leftJoin('units_of_measure as u', 'u.id', '=', 'i.base_unit_id');
+            $rows = ($kinds ? $q->leftJoin('menus_ingredient_kinds as k', 'k.id', '=', 'i.kind_id') : $q)
+                ->whereIn('it.id', $chunk)->get(['it.id', 'it.name as variant', 'it.code', 'i.name as ingredient', 'u.code as unit'] + ($kinds ? [5 => 'k.name as kind'] : []));
             foreach ($rows as $r) {
-                $out[(int) $r->id] = ['name' => "{$r->ingredient} — {$r->variant}", 'sku' => $r->code, 'group' => 'Ingredients: '.$r->ingredient, 'unit' => $r->unit, 'sale_price' => null, 'currency' => null, 'url' => '/admin/menus/ingredients'];
+                // the report groups an ingredient under its kind: "Ready to serve: Cola"
+                $out[(int) $r->id] = ['name' => "{$r->ingredient} — {$r->variant}", 'sku' => $r->code, 'group' => (($r->kind ?? null) ?: 'Kitchen stock').': '.$r->ingredient, 'unit' => $r->unit, 'sale_price' => null, 'currency' => null, 'url' => '/admin/menus/ingredients'];
             }
         }
 

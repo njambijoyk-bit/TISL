@@ -58,7 +58,7 @@ export default function MenusStock() {
   };
 
   const cancelBatch = async (r) => {
-    if (!window.confirm(`Cancel batch ${r.number}? The ingredients go back on the shelf.`)) return;
+    if (!window.confirm(`Cancel batch ${r.number}? The stock goes back on the shelf.`)) return;
     try { const res = await menusAPI.cancelBatch(r.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not cancel the batch'), { duration: 8000 }); }
   };
 
@@ -88,7 +88,7 @@ export default function MenusStock() {
             <KindFilter kinds={data?.kinds} value={kind} onChange={setKind} />
             <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 360 }}>
               <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
-              <TextInput aria-label="Search the stock" placeholder="Search ingredients, batches, receipts…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />
+              <TextInput aria-label="Search the stock" placeholder="Search items, batches, receipts…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />
             </div>
           </div>
           {canWrite && data?.installed && (
@@ -97,16 +97,16 @@ export default function MenusStock() {
               <button type="button" style={btnGhost} disabled={noVariants} onClick={() => setModal('transfer')}><Truck size={14} /> Send to a branch</button>
               <button type="button" style={btnGhost} onClick={() => setModal('batch')}><ChefHat size={14} /> Make a batch</button>
               <Link to="/admin/menus/stock/opening" style={{ ...btnGhost, textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }} aria-disabled={noVariants || undefined}>Opening stock</Link>
-              <button type="button" style={btnPrimary} data-hotkey="F2" title="F2" disabled={noVariants} onClick={() => setModal('receive')}><PackagePlus size={14} /> Receive ingredients</button>
+              <button type="button" style={btnPrimary} data-hotkey="F2" title="F2" disabled={noVariants} onClick={() => setModal('receive')}><PackagePlus size={14} /> Receive stock</button>
             </div>
           )}
         </div>
-        {noVariants && <p role="status" style={{ fontSize: '0.82rem', color: colors.textMuted }}>Add ingredients and their variants under Ingredients first, then receive them here.</p>}
+        {noVariants && <p role="status" style={{ fontSize: '0.82rem', color: colors.textMuted }}>Add items and their variants under Ingredients first, then receive them here.</p>}
 
         <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }}>
           {loading && !data ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Ingredient / variant</th><th style={{ ...th, textAlign: 'right' }}>Packs</th><th style={{ ...th, textAlign: 'right' }}>In the bigger unit</th><th style={{ ...th, textAlign: 'right' }}>In the base unit</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th}>Expires first</th></tr></thead>
+              <thead><tr><th style={th}>Item / variant</th><th style={{ ...th, textAlign: 'right' }}>Packs</th><th style={{ ...th, textAlign: 'right' }}>In the bigger unit</th><th style={{ ...th, textAlign: 'right' }}>In the base unit</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th}>Expires first</th></tr></thead>
               <tbody>
                 {shelf.map((i) => (
                   <Fragment key={`i${i.id}`}>
@@ -139,7 +139,7 @@ export default function MenusStock() {
             <h2 style={{ fontSize: '0.95rem', margin: '0 0 8px' }}>Expired or expiring this week</h2>
             <div style={{ ...card, padding: 0, overflowX: 'auto', marginBottom: 20 }} data-testid="expiring">
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>Ingredient / variant</th><th style={th}>Expires</th><th style={{ ...th, textAlign: 'right' }}>Left</th><th style={{ ...th, textAlign: 'right' }}>Worth</th><th style={th} /></tr></thead>
+                <thead><tr><th style={th}>Item / variant</th><th style={th}>Expires</th><th style={{ ...th, textAlign: 'right' }}>Left</th><th style={{ ...th, textAlign: 'right' }}>Worth</th><th style={th} /></tr></thead>
                 <tbody>{expiring.map((x) => (
                   <tr key={x.batch_id}>
                     <td style={td}>{x.name}{x.batch_no ? <span style={{ color: colors.textFaint }}> · {x.batch_no}</span> : null}{x.status !== 'ok' ? <span style={{ color: colors.textFaint }}> · {x.status}</span> : null}</td>

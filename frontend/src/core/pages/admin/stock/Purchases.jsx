@@ -25,7 +25,7 @@ export default function Purchases({ initial = 'purchase' }) {
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
         {!canReadFinance(user) ? <NoAccess what="purchases" /> : (
           <>
-            <HubHeader title="Purchases" description={`Stock you buy from suppliers. Items come from your ${[stockKinds().products && 'products', stockKinds().ingredients && 'ingredients'].filter(Boolean).join(' and ') || 'stock'}${stockKinds().products ? ' (or create a new product on the spot)' : ''} and land in the branch you choose, at the cost you enter.`} />
+            <HubHeader title="Purchases" description={`Stock you buy from suppliers. Items come from your ${[stockKinds().products && 'products', stockKinds().ingredients && 'kitchen stock'].filter(Boolean).join(' and ') || 'stock'}${stockKinds().products ? ' (or create a new product on the spot)' : ''} and land in the branch you choose, at the cost you enter.`} />
             <Tabs tabs={tabs} active={tab} onChange={(id) => setParams({ tab: id }, { replace: true })} />
             <VouchersTab key={tab} canWrite={canWriteFinance(user)} baseType={tab} newPath={newPath} newLabel={newLabel}
               viewPath={(v) => `/admin/books/vouchers/${v.id}`} />

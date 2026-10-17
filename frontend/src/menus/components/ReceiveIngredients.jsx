@@ -33,10 +33,10 @@ function ItemSearch({ variants, onPick }) {
   return (
     <div style={{ position: 'relative' }}>
       <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => { clearTimeout(closeTimer.current); setOpen(true); }} onBlur={() => { closeTimer.current = setTimeout(() => setOpen(false), 180); }}
-        placeholder="Search an ingredient…" style={small} aria-label="Search ingredients" />
+        placeholder="Search an item…" style={small} aria-label="Search items" />
       {open && (
         <div style={{ position: 'absolute', zIndex: 30, top: '100%', left: 0, right: 0, minWidth: 320, maxHeight: 300, overflowY: 'auto', ...card, padding: 4 }}>
-          {rows.length === 0 && <p style={{ margin: 8, fontSize: '0.78rem', color: colors.textMuted }}>{q ? `Nothing matches “${q}”.` : 'No ingredients with variants yet: add them under Ingredients.'}</p>}
+          {rows.length === 0 && <p style={{ margin: 8, fontSize: '0.78rem', color: colors.textMuted }}>{q ? `Nothing matches “${q}”.` : 'No items with variants yet: add them under Ingredients.'}</p>}
           {rows.map((v) => (
             <button key={v.id} type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onPick(v); setQ(''); setOpen(false); }}
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem' }}>
@@ -94,9 +94,9 @@ export default function ReceiveIngredients({ data, locationId, onClose, onDone }
   };
 
   return (
-    <Modal title="Receive ingredients" onClose={onClose} width={1040}>
+    <Modal title="Receive stock" onClose={onClose} width={1040}>
       <form onSubmit={go} style={{ display: 'grid', gap: 14 }}>
-        <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Ingredients you buy. They go on the branch's shelf at the cost you enter, and are owed to the supplier (or paid for at once). The tax follows each ingredient's purchase account.</p>
+        <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Stock you buy. It goes on the branch's shelf at the cost you enter, and is owed to the supplier (or paid for at once). The tax follows each ingredient's purchase account.</p>
         <div style={{ ...card, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
           <div>
             <label style={label}>{paidNow ? 'Supplier (optional)' : 'Supplier'}</label>

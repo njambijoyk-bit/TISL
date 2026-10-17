@@ -127,11 +127,11 @@ export default function OpeningStockGrid({ ingredients, kinds = [], locationId, 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 360 }}>
           <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
-          <TextInput aria-label="Search ingredients or variants" placeholder="Search ingredients or variants…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />
+          <TextInput aria-label="Search items or variants" placeholder="Search items or variants…" value={q} onChange={(e) => setQ(e.target.value)} style={{ paddingLeft: 30 }} />
         </div>
         <KindFilter kinds={kinds} value={kind} onChange={pickKind} />
-        <SelectInput aria-label="Ingredient" value={only} onChange={(e) => setOnly(e.target.value)} style={{ width: 'auto', maxWidth: 220 }}>
-          <option value="">All ingredients</option>
+        <SelectInput aria-label="Item" value={only} onChange={(e) => setOnly(e.target.value)} style={{ width: 'auto', maxWidth: 220 }}>
+          <option value="">All items</option>
           {ingredients.filter((i) => i.is_active && (!kind || String(i.kind_id) === kind) && i.variants.some((v) => v.is_active)).map((i) => <option key={i.id} value={i.id}>{i.name}</option>)}
         </SelectInput>
         <div role="group" aria-label="Show" style={{ display: 'inline-flex' }}>
@@ -147,11 +147,11 @@ export default function OpeningStockGrid({ ingredients, kinds = [], locationId, 
       <div style={{ ...card, padding: 0, overflow: 'auto', maxHeight: 'calc(100vh - 330px)', minHeight: 220 }}>
         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 980 }}>
           <thead><tr>
-            <th style={th}>Ingredient</th><th style={th}>Variant</th><th style={{ ...th, textAlign: 'right' }}>On the shelf now</th><th style={th}>Quantity</th><th style={th}>In</th><th style={th}>Price of one</th><th style={th}>Batch no</th><th style={th}>Expiry date</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th} />
+            <th style={th}>Item</th><th style={th}>Variant</th><th style={{ ...th, textAlign: 'right' }}>On the shelf now</th><th style={th}>Quantity</th><th style={th}>In</th><th style={th}>Price of one</th><th style={th}>Batch no</th><th style={th}>Expiry date</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th} />
           </tr></thead>
           <tbody>
             {rows.map((v, idx) => <Row key={v.id} v={v} e={edits[v.id]} idx={idx} error={errors[v.id]} onEdit={edit} onEnter={enter} readOnly={readOnly} />)}
-            {rows.length === 0 && <tr><td colSpan={10} style={{ ...td, padding: 20, color: colors.textMuted }}>{variants.length === 0 ? 'Add ingredients and their variants under Ingredients first.' : 'Nothing matches these filters.'}</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={10} style={{ ...td, padding: 20, color: colors.textMuted }}>{variants.length === 0 ? 'Add items and their variants under Ingredients first.' : 'Nothing matches these filters.'}</td></tr>}
           </tbody>
         </table>
       </div>

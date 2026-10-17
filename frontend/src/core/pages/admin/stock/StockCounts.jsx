@@ -115,9 +115,9 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
           </div>}
           {ingredients.length > 0 && (
             <div style={{ overflow: 'auto', maxHeight: '55vh' }}>
-              <p style={{ margin: '0 0 6px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint }}>Ingredients</p>
+              <p style={{ margin: '0 0 6px', fontSize: '0.7rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint }}>Kitchen stock</p>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr><th style={th}>Ingredient</th><th style={th}>Variant</th><th style={{ ...th, textAlign: 'right' }}>Books say</th><th style={{ ...th, width: 220 }}>Counted</th><th style={{ ...th, textAlign: 'right' }}>Difference</th></tr></thead>
+                <thead><tr><th style={th}>Item</th><th style={th}>Variant</th><th style={{ ...th, textAlign: 'right' }}>Books say</th><th style={{ ...th, width: 220 }}>Counted</th><th style={{ ...th, textAlign: 'right' }}>Difference</th></tr></thead>
                 <tbody>{ingredients.map((l) => {
                   const d = c.status === 'posted' ? l.variance_qty : ingDiff(l);
                   const base = l.units.find((u) => u.unit === 'base');
@@ -147,7 +147,7 @@ function CountSheet({ id, canWrite, onClose, onChanged }) {
           {c.status === 'posted' && (c.voucher_id || c.ingredient_voucher_id) && (
             <div style={{ display: 'flex', gap: 8 }}>
               {c.voucher_id && <button type="button" style={btnGhost} onClick={() => nav(`/admin/books/vouchers/${c.voucher_id}`)}>View the journal</button>}
-              {c.ingredient_voucher_id && <button type="button" style={btnGhost} onClick={() => nav(`/admin/books/vouchers/${c.ingredient_voucher_id}`)}>View the ingredients journal</button>}
+              {c.ingredient_voucher_id && <button type="button" style={btnGhost} onClick={() => nav(`/admin/books/vouchers/${c.ingredient_voucher_id}`)}>View the kitchen stock journal</button>}
             </div>
           )}
           {open && (
@@ -181,7 +181,7 @@ export default function StockCounts() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }}>
-        <HubHeader title="Stock counts" description={`Count a branch's shelves${itemWord() === 'product' ? '' : ` (${itemWord() === 'ingredient' ? 'ingredients, in packs or by weight' : 'products by batch, ingredients in packs or by weight'})`} and correct the books to what is really there.`} />
+        <HubHeader title="Stock counts" description={`Count a branch's shelves${itemWord() === 'product' ? '' : ` (${itemWord() === 'kitchen item' ? 'kitchen stock, in packs or by weight' : 'products by batch, kitchen stock in packs or by weight'})`} and correct the books to what is really there.`} />
         <div style={{ display: 'flex', justifyContent: 'flex-end', margin: '0 0 14px' }}>
           {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ kind: 'start' })}><Plus size={14} /> Start a count</button>}
         </div>

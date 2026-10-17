@@ -40,7 +40,7 @@ export default function StockJournal() {
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
         <HubHeader title="Stock journal" description={`Every movement of stock, newest first: sales, purchases, transfers, counts, ${stockKinds().ingredients ? 'what the kitchen uses and wastes, ' : ''}production, write-offs.`} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 14px' }}>
-          <input value={f.q} onChange={(e) => set('q', e.target.value)} placeholder={stockKinds().ingredients ? 'Item, ingredient, SKU or batch' : 'Item, SKU or batch'} aria-label="Search" style={{ ...sel, minWidth: 200 }} />
+          <input value={f.q} onChange={(e) => set('q', e.target.value)} placeholder={stockKinds().ingredients ? 'Item, SKU or batch' : 'Item, SKU or batch'} aria-label="Search" style={{ ...sel, minWidth: 200 }} />
           <select value={f.type} onChange={(e) => set('type', e.target.value)} aria-label="Kind" style={sel}>
             <option value="">All kinds</option>{Object.entries(data?.types ?? {}).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>

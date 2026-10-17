@@ -29,7 +29,7 @@ function QtyRow({ row, variants, onChange, onRemove, hint }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '2fr 0.8fr 0.9fr auto', gap: 8, alignItems: 'end' }}>
-      <Field label="Ingredient variant">
+      <Field label="Item variant">
         <IngredientVariantPicker variants={variants} value={row.item_id} onChange={(id) => onChange({ item_id: id, unit: defaultUnit(variants.find((x) => String(x.id) === id)) })} />
       </Field>
       <Field label="Quantity" hint={hint?.(v)}><NumberInput aria-label="Quantity" min="0" step="any" value={row.quantity} onChange={(e) => onChange({ quantity: e.target.value })} /></Field>
@@ -111,7 +111,7 @@ export function BatchModal({ dishes, locationId, onClose, onDone }) {
           <FormError message={err} />
           {dishes.length === 0 ? <p style={{ margin: 0 }}>No dish is set to be made ahead. On Recipes, untick “made to order” for a cake or anything cooked in a batch.</p> : (
             <>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>The ingredients are used up now, at their cost, and the portions go on the dish's own shelf. Sales then take from that shelf.</p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>The stock is used up now, at their cost, and the portions go on the dish's own shelf. Sales then take from that shelf.</p>
               <Field label="Dish"><SelectInput aria-label="Dish" required value={dish} onChange={(e) => setDish(e.target.value)}>{dishes.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}</SelectInput></Field>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                 <Field label="Portions made"><NumberInput aria-label="Portions made" required min="0" step="any" value={portions} onChange={(e) => setPortions(e.target.value)} /></Field>

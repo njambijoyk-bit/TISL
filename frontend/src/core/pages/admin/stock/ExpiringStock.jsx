@@ -176,7 +176,7 @@ export default function ExpiringStock() {
             <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>Nothing here{bucket ? ' in this group' : ''}. Only items that track expiry appear.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>{stockKinds().ingredients ? (stockKinds().products ? 'Item' : 'Ingredient') : 'Product'}</th><th style={th}>Batch</th><th style={th}>Expiry</th><th style={th}>Branch</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th}>Supplier</th>{canWrite && <th style={th} />}</tr></thead>
+              <thead><tr><th style={th}>{stockKinds().ingredients ? 'Item' : 'Product'}</th><th style={th}>Batch</th><th style={th}>Expiry</th><th style={th}>Branch</th><th style={{ ...th, textAlign: 'right' }}>Qty</th><th style={{ ...th, textAlign: 'right' }}>Value</th><th style={th}>Supplier</th>{canWrite && <th style={th} />}</tr></thead>
               <tbody>
                 {rows.map((r) => {
                   const b = BUCKETS.find((x) => x.id === r.bucket);

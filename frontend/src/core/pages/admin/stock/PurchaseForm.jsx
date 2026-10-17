@@ -93,7 +93,7 @@ function ItemSearch({ onPick, onCreate, onAddVariant, locationId }) {
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 9px', background: 'none', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: '0.8rem' }}>
               {r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}{r.sku ? ` · ${r.sku}` : ''}</span>
               {r.track_expiry && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.primary, fontWeight: 700 }}>EXPIRY</span>}
-              {kinds.products && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.textFaint, fontWeight: 700 }}>INGREDIENT</span>}
+              {kinds.products && <span style={{ marginLeft: 6, fontSize: '0.65rem', color: colors.textFaint, fontWeight: 700 }}>KITCHEN</span>}
             </button>
           ) : (
             <div key={r.variant_id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

@@ -60,7 +60,7 @@ function Results({ groups, active, onPick, ingredientsOnly, onPickIngredient, se
   ));
 }
 
-export default function IngredientVariantPicker({ variants, value, onChange, label = 'Ingredient variant' }) {
+export default function IngredientVariantPicker({ variants, value, onChange, label = 'Item variant' }) {
   const [mode, setMode] = useState(readMode);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
@@ -97,8 +97,8 @@ export default function IngredientVariantPicker({ variants, value, onChange, lab
   return (
     <div ref={box} style={{ position: 'relative' }} data-testid="variant-picker">
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 4, marginBottom: 3 }} role="group" aria-label="How to choose">
-        <button type="button" style={toggleBtn(mode === 'search')} aria-pressed={mode === 'search'} onClick={() => switchTo('search')} title="One search box: ingredient and variant together">One search</button>
-        <button type="button" style={toggleBtn(mode === 'steps')} aria-pressed={mode === 'steps'} onClick={() => switchTo('steps')} title="Pick the ingredient first, then its variant">Ingredient, then variant</button>
+        <button type="button" style={toggleBtn(mode === 'search')} aria-pressed={mode === 'search'} onClick={() => switchTo('search')} title="One search box: item and variant together">One search</button>
+        <button type="button" style={toggleBtn(mode === 'steps')} aria-pressed={mode === 'steps'} onClick={() => switchTo('steps')} title="Pick the item first, then its variant">Item, then variant</button>
       </div>
 
       {mode === 'search' ? (
@@ -107,7 +107,7 @@ export default function IngredientVariantPicker({ variants, value, onChange, lab
             <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
             <TextInput
               aria-label={label} role="combobox" aria-expanded={open} aria-autocomplete="list" autoComplete="off"
-              placeholder={selected ? '' : 'Search an ingredient or a variant…'}
+              placeholder={selected ? '' : 'Search an item or a variant…'}
               value={open ? query : ''} style={{ paddingLeft: 30 }}
               onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onChange={(e) => { setQuery(e.target.value); setOpen(true); }} onKeyDown={keys}
             />
@@ -120,7 +120,7 @@ export default function IngredientVariantPicker({ variants, value, onChange, lab
           <div style={{ position: 'relative' }}>
             <ChevronDown size={14} aria-hidden="true" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />
             <TextInput
-              aria-label="Ingredient" role="combobox" aria-expanded={open} autoComplete="off" placeholder={ingredient ? '' : 'Search an ingredient…'}
+              aria-label="Item" role="combobox" aria-expanded={open} autoComplete="off" placeholder={ingredient ? '' : 'Search an item…'}
               value={open ? query : ''} onFocus={() => setOpen(true)} onBlur={() => setOpen(false)} onChange={(e) => { setQuery(e.target.value); setOpen(true); }} onKeyDown={keys}
             />
             {ingredient && !open && <span style={{ position: 'absolute', left: 10, right: 28, top: '50%', transform: 'translateY(-50%)', fontSize: '0.84rem', color: colors.text, pointerEvents: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ingredient}</span>}

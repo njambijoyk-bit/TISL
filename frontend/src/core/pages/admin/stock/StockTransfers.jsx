@@ -130,7 +130,7 @@ function ReceiveModal({ id, onClose, onDone }) {
                 <span style={{ width: 24, fontSize: '0.72rem', color: colors.textFaint }}>{l.unit}</span>
               </div>
             ))}
-            {short && <p style={{ margin: 0, fontSize: '0.78rem', color: '#b91c1c' }}>Anything short is written off as a stock loss{(t.ingredient_lines ?? []).length > 0 ? ' (ingredients: food waste)' : ''}.</p>}
+            {short && <p style={{ margin: 0, fontSize: '0.78rem', color: '#b91c1c' }}>Anything short is written off as a stock loss{(t.ingredient_lines ?? []).length > 0 ? ' (kitchen stock: food waste, or supplies used)' : ''}.</p>}
             <ModalActions onCancel={onClose} submitLabel="Receive" busy={busy} />
           </FormStack>
         </form>
@@ -174,7 +174,7 @@ export default function StockTransfers() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1200, margin: '0 auto' }}>
-        <HubHeader title="Stock transfers" description={`Move ${itemWord().replace('ingredient or product', 'ingredients or products').replace(/^(ingredient|product)$/, '$1s')} between branches. It stays in transit until the other branch receives it.`} />
+        <HubHeader title="Stock transfers" description={`Move ${{ product: 'products', 'kitchen item': 'kitchen stock' }[itemWord()] ?? 'kitchen stock or products'} between branches. It stays in transit until the other branch receives it.`} />
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', margin: '0 0 14px' }}>
           <select value={status} onChange={(e) => setStatus(e.target.value)} aria-label="Status" style={{ padding: '7px 10px', borderRadius: 8, border: `1.5px solid ${colors.tint(0.18)}`, fontSize: '0.8rem', fontFamily: 'inherit' }}>
             <option value="">All</option><option value="in_transit">In transit</option><option value="received">Received</option><option value="cancelled">Cancelled</option>

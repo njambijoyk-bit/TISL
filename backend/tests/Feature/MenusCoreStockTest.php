@@ -358,6 +358,17 @@ class MenusCoreStockTest extends TestCase
         $this->assertSame([$g['used'], 'D', 35.0, $g['shelf'], 'C'], [$j['entries'][0]['ledger_id'], $j['entries'][0]['side'], (float) $j['entries'][0]['amount'], $j['entries'][1]['ledger_id'], $j['entries'][1]['side']]);
     }
 
+    public function test_the_reports_call_it_kitchen_stock_and_group_each_ingredient_under_its_kind(): void
+    {
+        $source = new IngredientItemSource();
+        $this->assertSame('Kitchen stock', $source->label());
+        $this->assertSame('Cooking ingredient: Wheat flour', $source->describe([$this->exe])[$this->exe]['group']);
+        $g = $this->gloves();
+        $this->assertSame('Supplies: Disposable gloves', $source->describe([$g['item']])[$g['item']]['group']);
+        \Illuminate\Support\Facades\DB::table('menus_ingredients')->update(['kind_id' => null]);
+        $this->assertSame('Kitchen stock: Wheat flour', $source->describe([$this->exe])[$this->exe]['group'], 'an ingredient with no kind yet');
+    }
+
     private function waste(): int
     {
         return (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');

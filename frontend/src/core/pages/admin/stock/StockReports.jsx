@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronDown, ChevronRight, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ import useAuthStore from '../../../../_shared/store/authStore';
 import { canReadFinance } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { card, colors, input } from '../../../../_shared/theme/tokens';
+import { KITCHEN_TYPE, kitchenKindOf } from '../../../lib/stockKinds';
 
 /**
  * Stock reports — Stock summary, Location summary and Stock query, for every kind of stocked item.
@@ -260,6 +261,18 @@ export default function StockReports() {
   const [queried, setQueried] = useState(null); // an item sent to the query tab
   const [branches, setBranches] = useState([]);
   const set = (k, v) => setF((x) => ({ ...x, [k]: v }));
+  // kitchen stock is grouped by kind ("Ready to serve: Cola"): when it is the type chosen, a second list narrows the report to one kind
+  const [kind, setKind] = useState('');
+  const kindNames = useMemo(() => (f.item_type === KITCHEN_TYPE ? [...new Set((data?.groups ?? []).map((g) => kitchenKindOf(g.name)).filter(Boolean))] : []), [f.item_type, data]);
+  const kindNow = kindNames.includes(kind) ? kind : '';
+  const view = useMemo(() => {
+    if (!data || !kindNow) return data;
+    const groups = data.groups.filter((g) => kitchenKindOf(g.name) === kindNow);
+    const total = Object.fromEntries(['opening', 'inward', 'outward', 'closing'].map((k) => [k, { qty: null, value: Math.round(groups.reduce((t, g) => t + g[k].value, 0) * 100) / 100 }]));
+    const items = groups.flatMap((g) => g.items);
+
+    return { ...data, groups, total, negative_items: items.filter((i) => i.negative).length, no_cost_items: items.filter((i) => i.no_cost).length };
+  }, [data, kindNow]);
   useEffect(() => { stockReportsAPI.find('').then((r) => setBranches(r.locations ?? [])).catch(() => {}); }, []);
 
   const load = useCallback(() => {
@@ -284,7 +297,7 @@ export default function StockReports() {
   return (
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1300, margin: '0 auto' }}>
-        <HubHeader title="Stock reports" description="Stock by group and item, by branch, and one item at a time — products and every other kind of stocked item." />
+        <HubHeader title="Stock reports" description="Stock by group and item, by branch, and one item at a time: products and the kitchen's stock." />
         <Tabs tabs={TABS.map(([k, l]) => ({ id: k, label: l }))} active={tab} onChange={goTab} />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '14px 0' }}>
           {tab !== 'query' && <>
@@ -296,21 +309,26 @@ export default function StockReports() {
             {(data?.locations ?? branches).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
           </select>
           {tab !== 'query' && (data?.item_types?.length ?? 0) > 1 && (
-            <select value={f.item_type} onChange={(e) => set('item_type', e.target.value)} aria-label="Kind of item" style={sel}>
-              <option value="">All kinds of item</option>{data.item_types.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
+            <select value={f.item_type} onChange={(e) => { set('item_type', e.target.value); setKind(''); }} aria-label="Type of stock" style={sel}>
+              <option value="">All stock</option>{data.item_types.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
+            </select>
+          )}
+          {tab !== 'query' && kindNames.length > 1 && (
+            <select value={kindNow} onChange={(e) => setKind(e.target.value)} aria-label="Kind" style={sel}>
+              <option value="">All kinds</option>{kindNames.map((n) => <option key={n} value={n}>{n}</option>)}
             </select>
           )}
           {tab !== 'query' && <input value={f.q} onChange={(e) => set('q', e.target.value)} placeholder="Item or SKU" aria-label="Search" style={{ ...sel, minWidth: 180 }} />}
         </div>
-        {tab !== 'query' && data && (data.negative_items > 0 || data.no_cost_items > 0) && !drill && (
+        {tab !== 'query' && view && (view.negative_items > 0 || view.no_cost_items > 0) && !drill && (
           <p style={{ margin: '0 0 10px', fontSize: '0.8rem' }}>
-            {data.negative_items > 0 && <span style={{ color: red, fontWeight: 700, marginRight: 14 }}>{data.negative_items} item(s) below zero — stock went out that was never received; check their movements.</span>}
-            {data.no_cost_items > 0 && <span style={{ color: '#92400e', fontWeight: 700 }}>{data.no_cost_items} item(s) held at no cost — their value reads 0 until a cost is set.</span>}
+            {view.negative_items > 0 && <span style={{ color: red, fontWeight: 700, marginRight: 14 }}>{view.negative_items} item(s) below zero — stock went out that was never received; check their movements.</span>}
+            {view.no_cost_items > 0 && <span style={{ color: '#92400e', fontWeight: 700 }}>{view.no_cost_items} item(s) held at no cost — their value reads 0 until a cost is set.</span>}
           </p>
         )}
         {branch && showSummary && <p style={{ margin: '0 0 8px', fontStyle: 'italic', color: colors.textMuted }}>{branch}</p>}
         {tab === 'query' && <QueryView initial={queried} locationId={f.location_id} />}
-        {showSummary && (loading && !data ? <p style={{ color: colors.textMuted }}>Loading…</p> : data && <SummaryTable data={data} onItem={(it) => { setDrill(it); setMonth(null); }} onQuery={(it) => { setQueried(it); goTab('query'); }} />)}
+        {showSummary && (loading && !data ? <p style={{ color: colors.textMuted }}>Loading…</p> : view && <SummaryTable data={view} onItem={(it) => { setDrill(it); setMonth(null); }} onQuery={(it) => { setQueried(it); goTab('query'); }} />)}
         {tab !== 'query' && drill && !month && <ItemMonthly item={drill} f={f} onBack={() => setDrill(null)} onMonth={setMonth} />}
         {tab !== 'query' && drill && month && <ItemMovements item={drill} month={month} f={f} onBack={() => setMonth(null)} />}
       </div>
