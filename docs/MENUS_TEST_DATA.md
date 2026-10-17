@@ -255,7 +255,7 @@ Then open the existing **Salt** and change its kind to **Condiment or extra** (i
 | Disposable gloves, Box of 100 | 3 | packs | 350 | | 300 each (3.50 each) | 1,050.00 |
 | Dish soap, Bottle 5 L | 2 | packs | 900 | | 10 L | 1,800.00 |
 
-The nine new rows together are **16,410.00** (the Opening stock vouchers add up to that: 11,760.00 on Food Ingredients Inventory, 4,650.00 on Kitchen Supplies Inventory for the boxes, bags, gloves and soap). Salt keeps its 40 from section 2.
+The nine new rows together are **16,410.00** (the Opening stock vouchers add up to that: 10,760.00 on Food Ingredients Inventory, 5,650.00 on Kitchen Supplies Inventory for the boxes, bags, gloves and soap). Salt keeps its 40 from section 2.
 
 **8C. What to try, and what to expect**
 - **Kinds screen:** Ready to serve 3 ingredients, Condiment or extra 3 (ketchup, sachet, Salt), Packaging 2, Supplies 2, Cooking ingredient one fewer than before (Salt moved). The Ingredients page filters by each kind. Try to remove Supplies: refused (it has ingredients). Add a kind without picking its ledger: Save stays off.
