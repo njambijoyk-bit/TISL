@@ -4,7 +4,7 @@ A small Nairobi kitchen, made so the numbers can be checked by hand. Menus now h
 
 **units, accounts, ingredients, opening stock, dishes, recipes, menus, meal plan.**
 
-Prices are made up. Run database scripts 181 to 186 first. Every number below was checked by running this exact data through the system.
+Prices are made up. Run database scripts 181 to 191 first (190 and 191 are the kinds of ingredient and the account each kind is charged to). Every number below was checked by running this exact data through the system.
 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
@@ -219,3 +219,52 @@ Masala chai sits on three menus on purpose: the same dish can be on several.
 
 **Courses**
 - Courses, Recipes: the Chocolate cake appears (it is set to public); copying it gives a lesson with the ingredients (in grams and millilitres) and the five steps. Change the recipe in Menus and "Update the copy" takes the fresh version.
+
+## 8. The other kinds: drinks, condiments, packaging, supplies (Menus, Ingredients, Kinds)
+
+Everything here is an ingredient with a **Kind** (the picker beside the name; it starts as Cooking ingredient). Run scripts 190 and 191 first; **Menus, Ingredients, Kinds** should list five kinds, each with its ledger: Cooking ingredient, Ready to serve and Condiment or extra on **Food Cost of Sales**; Packaging and Supplies on **Kitchen Supplies Used**.
+
+**8A. The ingredients** (purchase account **Purchases** for all of them, so the buying VAT is the usual 16%)
+
+| Ingredient | Kind | Base unit | Alternate unit | Pick rule | Variants (order, name, pack holds, expires, keep at least) |
+|---|---|---|---|---|---|
+| Cola | Ready to serve | each | none | **The cheapest first** | 1 Crate of 24 (24 each, expires ✓, keep at least 24 each); 2 Single bottle (1 each, expires ✓) |
+| Fanta | Ready to serve | each | none | The preferred one first | 1 Crate of 24 (24 each, expires ✓) |
+| Bottled water | Ready to serve | each | none | The preferred one first | 1 Pack of 12 (12 each, expires ✓) |
+| Tomato ketchup | Condiment or extra | ml | L | The preferred one first | 1 Bottle 1 L (1 L, expires ✓) |
+| Ketchup sachet | Condiment or extra | each | none | The preferred one first | 1 Box of 500 (500 each) |
+| Takeaway box | Packaging | each | none | The preferred one first | 1 Pack of 50 (50 each, keep at least 50 each) |
+| Paper bag | Packaging | each | none | The preferred one first | 1 Pack of 100 (100 each) |
+| Disposable gloves | Supplies | each | none | The preferred one first | 1 Box of 100 (100 each, keep at least 100 each) |
+| Dish soap | Supplies | ml | L | The preferred one first | 1 Bottle 5 L (5 L) |
+
+Then open the existing **Salt** and change its kind to **Condiment or extra** (it is allowed: that kind is also used in recipes).
+
+**8B. Opening stock** (Menus, Stock, Opening stock; one branch; it is one Opening stock voucher per variant, never taxed)
+
+| Variant | Quantity | In | Price of one pack | Expiry date | That is | Value |
+|---|---|---|---|---|---|---|
+| Cola, Crate of 24 | 3 | packs | 1,200 | today + 90 days | 72 each (50 each) | 3,600.00 |
+| Cola, Single bottle | 6 | packs | 60 | today + 90 days | 6 each | 360.00 |
+| Fanta, Crate of 24 | 2 | packs | 1,150 | today + **5 days** | 48 each (the expiry list shows them) | 2,300.00 |
+| Bottled water, Pack of 12 | 4 | packs | 480 | today + 200 days | 48 each (40 each) | 1,920.00 |
+| Tomato ketchup, Bottle 1 L | 3 | packs | 360 | today + 120 days | 3,000 ml | 1,080.00 |
+| Ketchup sachet, Box of 500 | 2 | packs | 750 | | 1,000 each (1.50 each) | 1,500.00 |
+| Takeaway box, Pack of 50 | 4 | packs | 500 | | 200 each (10 each) | 2,000.00 |
+| Paper bag, Pack of 100 | 2 | packs | 400 | | 200 each (4 each) | 800.00 |
+| Disposable gloves, Box of 100 | 3 | packs | 350 | | 300 each (3.50 each) | 1,050.00 |
+| Dish soap, Bottle 5 L | 2 | packs | 900 | | 10 L | 1,800.00 |
+
+The nine new rows together are **16,410.00** (the Opening stock vouchers add up to that, all on Food Ingredients Inventory). Salt keeps its 40 from section 2.
+
+**8C. What to try, and what to expect**
+- **Kinds screen:** Ready to serve 3 ingredients, Condiment or extra 3 (ketchup, sachet, Salt), Packaging 2, Supplies 2, Cooking ingredient one fewer than before (Salt moved). The Ingredients page filters by each kind. Try to remove Supplies: refused (it has ingredients). Add a kind without picking its ledger: Save stays off.
+- **Recipes:** open Recipes for any dish and look at the ingredient list. It offers Salt, Tomato ketchup and Ketchup sachet (condiments are used in recipes) and the cooking ingredients; it does **not** offer Cola, Fanta, water, boxes, bags, gloves or soap. Move **Wheat flour** to Packaging: refused, "It is in a recipe". Give a recipe a Cola line by typing the request another way (a saved recipe from before): refused, naming the kind.
+- **Buying:** Purchases, New purchase, search "cola": the crate and the single bottle show under it; buy 2 crates at 1,200 with 16% VAT on Purchases. The breakdown shows the VAT and the stock rises by 48 each. Try the same for gloves.
+- **Count stock:** count Disposable gloves as 2 boxes (the row says -100 each): saved, it is a loss of 350.00 and today it is booked to **Food Waste Expense**, like any count. That is the part the "use up" entry will change: for supplies the right account is Kitchen Supplies Used.
+- **Waste:** waste 1 crate of Cola as Spoilage: 24 each leave and Books gets Dr Food Waste Expense 1,200.00, Cr Food Ingredients Inventory. Take it back to undo.
+- **Expiry:** Menus, Stock shows the Fanta crates in "Expired or expiring this week" (5 days). The Cola and the ketchup do not appear.
+- **What to buy:** waste 250 gloves as Other: gloves are at 50 each, under the 100 you keep, so Operations, What to buy asks for a box.
+- **Branches:** send 1 crate of Cola to the second branch: it arrives with its cost (50 each) and expiry.
+- **Selling a drink (not built yet):** there is no "sold as it is" yet, so the till cannot sell Cola straight from the shelf. To see a sale move stock now, edit the **Ready to serve** kind and tick **Used in recipes**, then make a dish "Cola" with a recipe of 1 each of Cola (the cheapest pick rule takes the crate, 50 each). Sell 1: the crate goes to 71 each and Food Cost of Sales gets 50.00. Untick it again afterwards.
+- **Not built yet, so not a bug:** nothing uses up gloves, soap, boxes or bags (there is no "use up" entry), and the "charged to" account of a kind is not posted yet.
