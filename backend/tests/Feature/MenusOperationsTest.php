@@ -491,8 +491,8 @@ class MenusOperationsTest extends TestCase
         $po = array_values(array_filter($this->posted, fn ($d) => $d['voucher_type_id'] === 5));
         $first = $po[0];
         $this->assertSame([$this->supplier, self::BRANCH, [3.0, 10.0], [250.0, 120.0]], [$first['party_ledger_id'], $first['location_id'], array_map(fn ($l) => (float) $l['quantity'], $first['lines']), array_map(fn ($l) => (float) $l['rate'], $first['lines'])], 'a price per pack, per kg: what it last cost');
-        $this->assertSame([$this->inventory, 'custom'], [$first['lines'][0]['ledger_id'], $first['lines'][0]['type']]);
-        $this->assertStringContainsString('3 packs', $first['lines'][0]['description']);
+        $this->assertSame(['ingredient', 'pack', 3.0], [$first['lines'][0]['type'], $first['lines'][0]['unit'], (float) $first['lines'][0]['quantity']], 'an ingredient line (variant and unit), not a plain one');
+        $this->assertGreaterThan(0, $first['lines'][0]['ingredient_item_id']);
         $this->assertSame(['Naivas Wholesale', 'Unga Traders'], array_column($r['created'], 'supplier'));
     }
 }

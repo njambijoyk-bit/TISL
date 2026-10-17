@@ -306,7 +306,7 @@ class VoucherService
                 'quantity' => $qty, 'rate' => (float) $it->rate, 'amount' => $amount, 'tax_amount' => $tax, 'tax_percent' => $it->tax_rate_percent !== null ? (float) $it->tax_rate_percent : null,
                 'reversed_amount' => $reversed, 'available_amount' => $left, 'available_quantity' => round($qty * $share, 4),
                 'reversed_quantity' => round($qty - $qty * $share, 4),
-                'can_return_stock' => ! $isCharge && ! $it->is_header && (bool) $it->variant_id && $it->item_type === 'product',
+                'can_return_stock' => ! $isCharge && ! $it->is_header && (($it->item_type === 'product' && (bool) $it->variant_id) || ($it->item_type === 'ingredient' && (bool) $it->ingredient_item_id)),
             ];
         }
 
@@ -323,8 +323,8 @@ class VoucherService
      */
     public function createReturn(Voucher $source, array $opts, ?User $user = null): Voucher
     {
-        if (! empty($source->meta['menus_receipt_id']) || (\Illuminate\Support\Facades\Schema::hasColumn('voucher_items', 'ingredient_item_id') && $source->items()->where('item_type', 'ingredient')->exists())) {
-            throw new BooksException('This voucher received ingredients into the kitchen stock, so it can not be returned from here. Cancel it in Menus (the stock comes back, if none has been used) and receive only what you kept.');
+        if (! empty($source->meta['menus_receipt_id'])) {
+            throw new BooksException('This voucher received ingredients into the kitchen stock before ingredients had lines of their own, so it can not be returned from here. Cancel it in Menus (the stock comes back, if none has been used) and receive only what you kept.');
         }
         $noteBase = $this->returnBase($source);
         $type = VoucherType::byBase($noteBase) ?? throw new BooksException('That voucher type is switched off.');
@@ -370,7 +370,7 @@ class VoucherService
                     $ratio = $q0 > 0 ? $qty / $q0 : 1.0;
                 }
                 $cq = round($q0 * $ratio, 4);
-                $goods = $mode === 'return' && ! $it->is_header && $it->item_type === 'product' && $it->variant_id;
+                $goods = $mode === 'return' && ! $it->is_header && (($it->item_type === 'product' && $it->variant_id) || ($it->item_type === 'ingredient' && $it->ingredient_item_id));
 
                 if ($it->is_header) {
                     $child = [];
@@ -397,7 +397,7 @@ class VoucherService
                     $stockLines = true;
                     if (! $sale) {
                         // goods going back to the supplier leave from the batch they arrived in
-                        $batch = StockMovement::where('voucher_item_id', $it->id)->where('quantity', '>', 0)->whereNotNull('batch_id')->value('batch_id');
+                        $batch = $it->item_type === 'product' ? StockMovement::where('voucher_item_id', $it->id)->where('quantity', '>', 0)->whereNotNull('batch_id')->value('batch_id') : null;
                         if ($batch) {
                             $line['pick_batch_id'] = (int) $batch;
                         }
@@ -1354,7 +1354,7 @@ class VoucherService
     {
         $base = $ctx['type']->base_type;
         if (! in_array($base, [VoucherType::PURCHASE, VoucherType::RECEIPT_NOTE, VoucherType::OPENING_STOCK, VoucherType::PURCHASE_ORDER], true)) {
-            throw new BooksException('Ingredients can go on a purchase, goods received, opening stock or a purchase order, not on this kind of voucher.');
+            throw new BooksException('Ingredients are bought, not sold: they can go on a purchase, goods received, opening stock or a purchase order (and come back on a debit note). To sell one, make a dish from it (for example "Tomatoes 1 kg", whose recipe is 1 kg of tomatoes) and sell the dish.');
         }
         $item = \App\Models\Menus\IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->find((int) ($l['ingredient_item_id'] ?? $l['item_id'] ?? 0));
         if (! $item || ! $item->ingredient) {
@@ -1371,6 +1371,7 @@ class VoucherService
         $line['unit_code'] = match ($unit) { 'pack' => 'pack', 'alt' => $ing->altUnit?->code, default => $ing->baseUnit?->code };
         $line['unit_factor'] = $factor;
         $line['base_quantity'] = round($line['quantity'] * $factor, 4);
+        $line['stock_qty'] = $line['base_quantity'];   // what goes on the shelf (or, on a purchase order, what would)
         $line['batch_no'] = isset($l['batch_no']) && trim((string) $l['batch_no']) !== '' ? mb_substr(trim((string) $l['batch_no']), 0, 60) : null;
         $line['expiry_date'] = ! empty($l['expiry_date']) ? (string) $l['expiry_date'] : null;
         $line['track_expiry'] = (bool) $item->track_expiry;
@@ -1416,7 +1417,7 @@ class VoucherService
     /** Selling-unit quantity that should move stock when converting (0 = none). */
     private function stockQtyFor(VoucherItem $src, float $qty, string $sourceBase, string $targetBase): float
     {
-        if (! $src->variant_id) {
+        if (! $src->variant_id && ! $src->ingredient_item_id) {
             return 0.0;
         }
         if (in_array($targetBase, [VoucherType::DELIVERY_NOTE, VoucherType::RECEIPT_NOTE], true)) {
@@ -2564,7 +2565,16 @@ class VoucherService
                 StockBatch::whereKey($m['batch_id'])->update(['received_voucher_id' => $voucher->id]);
             }
         }
-        app(\App\Services\Menus\IngredientVoucherStock::class)->apply($voucher, $user);   // ingredients bought or started with go on the kitchen's own shelf
+        // ingredients bought or started with go on the kitchen's own shelf; ingredients sent back to the supplier leave the lots of what they were bought on
+        $ingredientMoves = [];
+        foreach ($made as [$madeItem, $madeLine]) {
+            if (($madeLine['item_type'] ?? null) === 'ingredient' && ! empty($madeLine['ingredient_item_id'])) {
+                $ingredientMoves[$madeItem->id] = $plan['moves_stock'] ? (float) ($madeLine['stock_qty'] ?? 0) : 0.0;
+            }
+        }
+        if ($ingredientMoves) {
+            app(\App\Services\Menus\IngredientVoucherStock::class)->apply($voucher, $user, $ingredientMoves, $voucher->source_voucher_id ? $this->documentFamily((int) $voucher->source_voucher_id, (int) $voucher->id) : []);
+        }
         app(\App\Services\Menus\DishStock::class)->apply($voucher, $user);   // the dishes sold take what they are made of off the kitchen's own shelf (refused, with the voucher, when it is short)
 
         return $voucher;

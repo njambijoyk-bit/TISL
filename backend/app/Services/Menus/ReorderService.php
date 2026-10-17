@@ -134,7 +134,6 @@ class ReorderService
     public function makeOrders(int $loc, array $picks, ?User $by = null): array
     {
         $type = VoucherType::byBase(VoucherType::PURCHASE_ORDER) ?? throw new BooksException('The Purchase Order voucher type is switched off.');
-        $inventory = FoodLedgers::inventory();
         $groups = [];
         $skipped = [];
         foreach ($picks as $p) {
@@ -152,8 +151,7 @@ class ReorderService
             $unit = (string) ($p['unit'] ?? 'base');
             $perUnit = $item->toBase($unit, 1.0);
             $rate = isset($p['rate']) ? round((float) $p['rate'], 4) : round($this->counts->lastCost($item->id, $loc) * $perUnit, 4);
-            $word = match ($unit) { 'pack' => $qty == 1.0 ? 'pack' : 'packs', 'alt' => $item->ingredient->altUnit?->code ?? '', default => $item->ingredient->baseUnit?->code ?? '' };
-            $groups[$sid][] = ['type' => 'custom', 'description' => $name.': '.rtrim(rtrim(number_format($qty, 4, '.', ''), '0'), '.').' '.$word, 'quantity' => $qty, 'rate' => $rate, 'ledger_id' => $inventory];
+            $groups[$sid][] = ['type' => 'ingredient', 'ingredient_item_id' => $item->id, 'unit' => $unit, 'quantity' => $qty, 'rate' => $rate];
         }
         $created = [];
         DB::transaction(function () use ($groups, $type, $loc, $by, &$created) {

@@ -16,6 +16,7 @@ import useModuleStore from '../../../../_shared/store/moduleStore';
 import { isModuleActive, MODULES } from '../../../../_shared/navigation/modules';
 import { canWriteFinance, hasPermission, limitBranches } from '../../../../_shared/lib/roles';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { defaultUnit } from '../../../lib/stockKinds';
 import { btnPrimary, btnGhost, card, colors, input } from '../../../../_shared/theme/tokens';
 import shippingAPI from '../../../../_shared/api/shipping';
 import taxAPI from '../../../../_shared/api/tax';
@@ -164,7 +165,7 @@ const CLEAR_BTN = { border: '1px solid #fecaca', background: '#fef2f2', color: '
 const CHANGE_LINK = { border: 'none', background: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '0.74rem', fontWeight: 700, padding: 0, marginTop: 4, textDecoration: 'underline' };
 const colHead = { fontSize: '0.68rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: colors.textFaint };
 
-const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
+const emptyLine = (type) => ({ key: Math.random().toString(36).slice(2), type, item_id: '', unit: '', units: [], quantity: 1, rate: '', discount: '', description: '', kind: 'shipping', amount: '', ledger_id: '', shipping_option_id: '' });
 
 export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
   const nav = useNavigate();
@@ -293,11 +294,22 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
             }));
             return { ...b, type: 'service', service_id: i.service_id, service_variant_id: i.service_variant_id, rate: Number(i.rate), label: i.description, materials };
           }
+          if (i.item_type === 'ingredient') return { ...b, type: 'ingredient', item_id: i.ingredient_item_id, label: i.description, variantName: i.variant_label, units: [], unit: i.unit_code === 'pack' ? 'pack' : '', unit_code: i.unit_code, rate: Number(i.rate) };   // its units arrive just below
           if (i.item_type === 'hamper') return { ...b, type: 'hamper', hamper_id: i.hamper_id, rate: '', label: i.description };
           if (i.item_type === 'charge' && i.shipping_option_id) return { ...b, type: 'charge', kind: 'shipping', shipping_option_id: i.shipping_option_id, waive: Number(i.amount) === 0 };   // re-priced and re-taxed from the shipping option
           if (i.item_type === 'charge') return { ...b, type: 'charge', kind: Number(i.amount) < 0 ? 'discount' : 'other', amount: Math.abs(Number(i.amount)), ledger_id: i.ledger_id ?? '' };
           return { ...b, type: 'custom', rate: Number(i.rate), ledger_id: i.ledger_id ?? '' };
         }));
+        // an ingredient line is typed in packs, the bigger unit or the base unit: ask what this variant offers
+        const ids = (v.items ?? []).filter((i) => i.item_type === 'ingredient').map((i) => i.ingredient_item_id);
+        if (ids.length) {
+          api.lookup('ingredient', '', undefined, { ids: ids.join(',') }).then((rows) => setLines((ls) => ls.map((l) => {
+            if (l.type !== 'ingredient') return l;
+            const r = rows.find((x) => x.item_id === l.item_id);
+            const unit = l.unit === 'pack' ? 'pack' : (r?.units.find((u) => u.unit !== 'pack' && u.label === l.unit_code)?.unit ?? 'base');
+            return r ? { ...l, units: r.units, unit, last_cost: r.last_cost } : l;
+          }))).catch(() => {});
+        }
       } else if (v.entries?.length) {
         setEntries(v.entries.map((e) => ({ ledger_id: e.ledger_id, side: e.side, amount: Number(e.amount), cost_centre_id: e.cost_centre_id && String(e.cost_centre_id) !== String(v.cost_centre_id) ? e.cost_centre_id : '' })));
       }
@@ -426,6 +438,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
         const b = { type: l.type, quantity: Number(l.quantity) || 0, discount: Number(l.discount) || 0, notes: l.notes || undefined };
         if (l.type === 'product') return { ...b, variant_id: l.variant_id, variant_unit_id: l.variant_unit_id || undefined, rate: l.rate === '' ? undefined : Number(l.rate), batch_id: l.batch_id || undefined };
         if (l.type === 'service') return { ...b, service_id: l.service_id, service_variant_id: l.service_variant_id, rate: l.rate === '' ? undefined : Number(l.rate), materials: (l.materials ?? []).map(materialPayload) };
+        if (l.type === 'ingredient') return { ...b, ingredient_item_id: l.item_id, unit: l.unit || 'base', rate: l.rate === '' ? undefined : Number(l.rate) };
         if (l.type === 'hamper') return { type: 'hamper', hamper_id: l.hamper_id, quantity: b.quantity, discount: b.discount };
         if (l.type === 'charge') return l.kind === 'shipping' && l.shipping_option_id
           ? { type: 'charge', kind: 'shipping', shipping_option_id: l.shipping_option_id, waive: l.waive || undefined }
@@ -714,6 +727,9 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                           )}
                         </div>
                         : <Picker api={api} kind="product" purpose={SALES_SIDE.includes(base) ? 'sale' : 'purchase'} placeholder="Search products…" onPick={(r) => setLine(l.key, { variant_id: r.variant_id, track_expiry: Boolean(r.track_expiry), batch_id: '', label: `${r.product}${r.variant && r.variant !== 'Standard' ? ` — ${r.variant}` : ''}`, units: r.units, variant_unit_id: (r.units.find((u) => u.is_default_sale) ?? r.units.find((u) => u.role === 'base'))?.id, rate: '' })} render={(r) => <>{r.product} <span style={{ color: colors.textFaint }}>{r.variant} · {r.sku}</span></>} />)}
+                      {l.type === 'ingredient' && (l.item_id
+                        ? <div><div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div><div style={{ fontSize: '0.74rem', color: colors.textMuted }}>↳ {l.variantName}</div></div>
+                        : <Picker api={api} kind="ingredient" purpose="purchase" placeholder="Search ingredients…" onPick={(r) => setLine(l.key, { item_id: r.item_id, label: r.ingredient, variantName: r.variant, units: r.units, last_cost: r.last_cost, unit: defaultUnit(r.units), rate: r.last_cost > 0 ? Math.round(r.last_cost * (r.units.find((u) => u.unit === defaultUnit(r.units))?.per ?? 1) * 10000) / 10000 : '' })} render={(r) => <>{r.ingredient} <span style={{ color: colors.textFaint }}>↳ {r.variant}</span></>} />)}
                       {l.type === 'service' && (l.service_variant_id
                         ? <div style={{ fontSize: '0.82rem', fontWeight: 600 }}>{l.label}</div>
                         : <Picker api={api} kind="service" placeholder="Search services…" onPick={(r) => pickService(l.key, r)} render={(r) => <>{r.service} <span style={{ color: colors.textFaint }}>{r.package}</span></>} />)}
@@ -742,7 +758,11 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                     {money0 ? <><span /><span /><span /><span /></> : (
                       <>
                         <input type="number" step="any" min="0" value={l.quantity} aria-label="Quantity" onChange={(e) => setLine(l.key, { quantity: e.target.value })} style={cellNum} />
-                        {l.type === 'product' && (l.units?.length > 1) ? (
+                        {l.type === 'ingredient' && l.units?.length > 0 ? (
+                          <select value={l.unit} aria-label="Unit" onChange={(e) => { const u = l.units.find((x) => x.unit === e.target.value); setLine(l.key, { unit: e.target.value, ...(l.last_cost > 0 && u ? { rate: Math.round(l.last_cost * u.per * 10000) / 10000 } : {}) }); }} style={small}>
+                            {l.units.map((u) => <option key={u.unit} value={u.unit}>{u.label}</option>)}
+                          </select>
+                        ) : l.type === 'product' && (l.units?.length > 1) ? (
                           <select value={l.variant_unit_id ?? ''} aria-label="Unit" onChange={(e) => setLine(l.key, { variant_unit_id: Number(e.target.value), rate: '' })} style={small}>
                             {l.units.filter((u) => u.sellable || u.role === 'base').map((u) => <option key={u.id} value={u.id}>{u.code}</option>)}
                           </select>
@@ -771,7 +791,7 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   );
                 })}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
-                  {[['product', 'Product'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].filter(([t]) => !lineOff(t)).map(([t, l]) => (
+                  {[['product', 'Product'], ['ingredient', 'Ingredient'], ['service', 'Service'], ['hamper', 'Hamper'], ['charge', 'Charge / discount'], ['custom', 'Custom line']].filter(([t]) => !lineOff(t) && (t !== 'ingredient' || (base === 'purchase_order' && isModuleActive(MODULES.MENUS)))).map(([t, l]) => (
                     <button key={t} type="button" onClick={() => addLine(t)} style={{ ...btnGhost, padding: '5px 12px', fontSize: '0.75rem' }}><Plus size={12} /> {l}</button>
                   ))}
                 </div>

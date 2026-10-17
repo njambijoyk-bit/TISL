@@ -15,7 +15,7 @@ class StockMoveObserver
 {
     /** Menus' kind of movement => the core movement type. A count and a reversal are named by what they did. */
     private const TYPES = ['purchase' => 'purchase', 'opening' => 'opening_stock', 'use' => 'ingredient_use', 'use_reversal' => 'ingredient_use', 'waste' => 'write_off', 'waste_reversal' => 'write_off',
-        'transfer_out' => 'transfer_out', 'transfer_in' => 'transfer_in', 'reversal' => 'reversal'];
+        'transfer_out' => 'transfer_out', 'transfer_in' => 'transfer_in', 'reversal' => 'reversal', 'supplier_return' => 'debit_note'];
 
     public function created(StockMove $m): void
     {

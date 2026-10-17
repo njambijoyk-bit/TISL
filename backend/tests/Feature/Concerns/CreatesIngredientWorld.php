@@ -43,7 +43,7 @@ trait CreatesIngredientWorld
         DB::table('currencies')->insert(['id' => 1, 'code' => 'KES', 'is_base' => true]);
         DB::table('accounting_settings')->insert(['id' => 1, 'edit_window_days' => 30]);
         DB::table('voucher_types')->insert([['id' => 1, 'base_type' => 'purchase', 'stock_effect' => 'in'], ['id' => 2, 'base_type' => 'journal', 'stock_effect' => 'none'], ['id' => 3, 'base_type' => 'sales', 'stock_effect' => 'out'], ['id' => 4, 'base_type' => 'sales_order', 'stock_effect' => 'none'],
-            ['id' => 7, 'base_type' => 'opening_stock', 'stock_effect' => 'in'], ['id' => 8, 'base_type' => 'receipt_note', 'stock_effect' => 'in']]);
+            ['id' => 7, 'base_type' => 'opening_stock', 'stock_effect' => 'in'], ['id' => 8, 'base_type' => 'receipt_note', 'stock_effect' => 'in'], ['id' => 9, 'base_type' => 'debit_note', 'stock_effect' => 'out']]);
         $stock = DB::table('ledger_groups')->insertGetId(['name' => 'Stock-in-hand']);
         $creditors = DB::table('ledger_groups')->insertGetId(['name' => 'Sundry Creditors']);
         $direct = DB::table('ledger_groups')->insertGetId(['name' => 'Direct Expenses']);
@@ -57,7 +57,7 @@ trait CreatesIngredientWorld
         $books->method('create')->willReturnCallback(function (array $d, $by = null) {
             $this->posted[] = $d;
             $sub = collect($d['lines'] ?? [])->sum(fn ($l) => round($l['quantity'] * $l['rate'], 2)) ?: collect($d['entries'] ?? [])->where('side', 'D')->sum('amount');
-            $moves = in_array((int) $d['voucher_type_id'], [1, 7, 8], true);
+            $moves = in_array((int) $d['voucher_type_id'], [1, 7, 8], true) || (int) $d['voucher_type_id'] === 9 && ($d['moves_stock'] ?? true);
             $id = DB::table('vouchers')->insertGetId(['voucher_type_id' => $d['voucher_type_id'], 'voucher_number' => 'V-'.count($this->posted), 'location_id' => $d['location_id'] ?? null, 'party_ledger_id' => $d['party_ledger_id'] ?? null, 'date' => $d['date'] ?? '2026-10-16', 'moves_stock' => $moves,
                 'subtotal' => $sub, 'tax_total' => 0, 'total_amount' => $sub, 'meta' => isset($d['meta']) ? json_encode($d['meta']) : null, 'created_at' => now(), 'updated_at' => now()]);
             foreach (array_values($d['lines'] ?? []) as $i => $l) {
@@ -71,7 +71,9 @@ trait CreatesIngredientWorld
                 DB::table('voucher_items')->insert($row);
             }
             $voucher = Voucher::find($id);
-            app(IngredientVoucherStock::class)->apply($voucher, $by);
+            // a debit note sends back what its lines say (a price correction has moves_stock false) from the lots of the purchase it is against
+            $note = (int) $d['voucher_type_id'] === 9;
+            app(IngredientVoucherStock::class)->apply($voucher, $by, $note ? DB::table('voucher_items')->where('voucher_id', $id)->pluck('base_quantity', 'id')->map(fn ($q) => (float) $q)->all() : null, $note && isset($d['source_voucher_id']) ? [(int) $d['source_voucher_id']] : []);
 
             return $voucher;
         });

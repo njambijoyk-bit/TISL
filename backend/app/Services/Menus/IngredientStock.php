@@ -116,6 +116,52 @@ class IngredientStock
         }
     }
 
+    /**
+     * Goods sent back to the supplier on a debit note: the quantity comes off the lots that the delivery (or the documents of its chain) brought in, first-expiring first. Held, recalled and expired
+     * lots may go back (that is often why they do). Refused, saying how much is left of that delivery, when it is less than what is being sent back.
+     *
+     * @param array<int, int> $voucherIds the vouchers whose lots may be taken from
+     */
+    public function returnToSupplier(IngredientItem $item, int $locationId, float $qty, array $voucherIds, int $noteId, string $date, ?int $by, string $note = ''): void
+    {
+        $lots = $voucherIds ? StockBatch::where('item_id', $item->id)->where('location_id', $locationId)->whereIn('voucher_id', $voucherIds)->where('qty_left', '>', 0)->lockForUpdate()->get()
+            ->sortBy(fn (StockBatch $b) => [$b->expiry_date?->toDateString() ?? '9999-12-31', (int) $b->id])->values() : collect();
+        $have = round((float) $lots->sum('qty_left'), 4);
+        if ($have + self::EPS < $qty) {
+            $name = trim($item->ingredient->name.' '.$item->name);
+            $unit = $item->ingredient->baseUnit?->code;
+            throw new BooksException("Only {$this->fmt($have)} {$unit} of {$name} is left from what that purchase brought in (the rest has been used, wasted or moved), so {$this->fmt($qty)} {$unit} can not go back to the supplier.");
+        }
+        $left = $qty;
+        foreach ($lots as $b) {
+            if ($left <= self::EPS) {
+                break;
+            }
+            $take = round(min((float) $b->qty_left, $left), 4);
+            StockBatch::whereKey($b->id)->update(['qty_left' => DB::raw('qty_left - '.number_format($take, 4, '.', ''))]);
+            StockMove::create([
+                'item_id' => $item->id, 'location_id' => $locationId, 'batch_id' => $b->id, 'kind' => 'supplier_return', 'quantity' => -$take, 'unit_cost' => $b->unit_cost, 'voucher_id' => $noteId,
+                'note' => trim('Sent back to the supplier '.$note), 'moved_on' => $date, 'created_by' => $by,
+            ]);
+            $left = round($left - $take, 4);
+        }
+    }
+
+    /** A debit note was cancelled or is being changed: what it took off the lots goes back on them. Safe to call twice. */
+    public function reverseSupplierReturn(int $noteId, ?int $by): void
+    {
+        $moves = StockMove::where('voucher_id', $noteId)->where('kind', 'supplier_return')->get();
+        foreach ($moves as $m) {
+            if (StockMove::where('voucher_id', $noteId)->where('kind', 'reversal')->where('batch_id', $m->batch_id)->exists()) {
+                continue;   // already taken back
+            }
+            $back = abs((float) $m->quantity);
+            StockBatch::whereKey($m->batch_id)->update(['qty_left' => DB::raw('qty_left + '.number_format($back, 4, '.', ''))]);
+            StockMove::create(['item_id' => $m->item_id, 'location_id' => $m->location_id, 'batch_id' => $m->batch_id, 'kind' => 'reversal', 'quantity' => $back, 'unit_cost' => $m->unit_cost, 'voucher_id' => $noteId,
+                'note' => 'Debit note cancelled', 'moved_on' => today()->toDateString(), 'created_by' => $by]);
+        }
+    }
+
     /** What is on the shelf, in the base unit, for one item at one branch (held and recalled lots do not count). */
     public function onHand(int $itemId, int $locationId): float
     {

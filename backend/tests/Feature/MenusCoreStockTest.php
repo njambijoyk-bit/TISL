@@ -10,6 +10,7 @@ use App\Models\StockCount;
 use App\Models\StockTransfer;
 use App\Models\Location;
 use App\Services\Books\BooksException;
+use App\Services\Books\VoucherService;
 use App\Services\Licensing\LicenseManager;
 use App\Services\Menus\IngredientItemSource;
 use App\Services\Menus\IngredientReceiving;
@@ -108,6 +109,69 @@ class MenusCoreStockTest extends TestCase
         $this->assertEquals(780, $item['opening']['value']);
         $m = app(\App\Services\Stock\StockReportService::class)->monthly(IngredientItemSource::TYPE, $this->exe, ['from' => '2026-01-01', 'to' => '2026-10-31']);
         $this->assertEquals([6000, 2000, 8000], [$m['opening']['qty'], $m['months'][0]['inward']['qty'], $m['closing']['qty']]);
+    }
+
+    // ------------------------------------------------------------ debit notes
+
+    private function debit(\App\Models\Books\Voucher $purchase, int $item, float $packs, bool $moves = true): \App\Models\Books\Voucher
+    {
+        return app(VoucherService::class)->create(['voucher_type_id' => 9, 'date' => '2026-10-12', 'location_id' => self::BRANCH, 'source_voucher_id' => $purchase->id, 'moves_stock' => $moves,
+            'lines' => [['type' => 'ingredient', 'ingredient_item_id' => $item, 'unit' => 'pack', 'quantity' => $packs, 'rate' => 260]]]);
+    }
+
+    public function test_a_debit_note_takes_the_ingredients_off_the_lots_of_the_purchase_and_cancelling_it_puts_them_back(): void
+    {
+        $p = $this->receive($this->exe, 10, 260);   // 20000 g
+        $note = $this->debit($p, $this->exe, 3);    // 6000 g back to the supplier
+        $stock = app(\App\Services\Menus\IngredientStock::class);
+        $this->assertEquals(14000, $stock->onHand($this->exe, self::BRANCH));
+        $m = StockMove::where('voucher_id', $note->id)->firstOrFail();
+        $this->assertSame(['supplier_return', -6000.0, 0.13], [$m->kind, (float) $m->quantity, (float) $m->unit_cost]);
+        $row = StockMovement::where('voucher_id', $note->id)->firstOrFail();
+        $this->assertSame(['debit_note', IngredientItemSource::TYPE], [$row->movement_type, $row->item_type], 'the journal shows it as returned to the supplier');
+
+        app(IngredientReceiving::class)->cancelVoucher($note, 'changed my mind', null);
+        $this->assertEquals(20000, $stock->onHand($this->exe, self::BRANCH));
+        $this->assertSame(0, StockMovement::where('voucher_id', $note->id)->where('reversed', false)->count(), 'its movements leave the journal');
+        app(IngredientReceiving::class)->cancelVoucher($note, 'again', null);   // safe twice
+        $this->assertEquals(20000, $stock->onHand($this->exe, self::BRANCH));
+    }
+
+    public function test_a_debit_note_can_not_send_back_more_than_is_left_of_that_purchase(): void
+    {
+        $p = $this->receive($this->exe, 10, 260);
+        StockBatch::where('voucher_id', $p->id)->update(['qty_left' => 17000]);   // 3 kg went into dishes
+        try {
+            $this->debit($p, $this->exe, 9);   // 18000 g
+            $this->fail('accepted');
+        } catch (BooksException $e) {
+            $this->assertStringContainsString('Only 17000 g', $e->getMessage());
+        }
+        $this->assertEquals(17000, app(\App\Services\Menus\IngredientStock::class)->onHand($this->exe, self::BRANCH));
+        $this->debit($p, $this->exe, 8);   // 16000 g is fine
+        $this->assertEquals(1000, app(\App\Services\Menus\IngredientStock::class)->onHand($this->exe, self::BRANCH));
+    }
+
+    public function test_a_price_correction_on_a_debit_note_moves_no_stock_and_the_purchase_can_not_be_cancelled_under_a_live_note(): void
+    {
+        $p = $this->receive($this->exe, 10, 260);
+        $this->debit($p, $this->exe, 1, false);
+        $this->assertEquals(20000, app(\App\Services\Menus\IngredientStock::class)->onHand($this->exe, self::BRANCH));
+        $this->assertSame(0, StockMove::where('kind', 'supplier_return')->count());
+
+        $this->debit($p, $this->exe, 2);
+        $this->expectException(BooksException::class);
+        $this->expectExceptionMessage('used or written off');
+        app(IngredientReceiving::class)->cancelVoucher($p, 'wrong', null);
+    }
+
+    public function test_a_debit_note_shows_in_the_stock_summary_as_outwards_at_the_lots_cost(): void
+    {
+        $p = $this->receive($this->exe, 10, 260);
+        $this->debit($p, $this->exe, 5);
+        $s = app(\App\Services\Stock\StockReportService::class)->summary(['from' => '2026-01-01', 'to' => '2026-10-31']);
+        $item = collect($s['groups'])->flatMap(fn ($g) => $g['items'])->firstWhere('item_id', $this->exe);
+        $this->assertEquals([20000, 10000, 10000, 1300], [$item['inward']['qty'], $item['outward']['qty'], $item['closing']['qty'], $item['closing']['value']]);
     }
 
     // ------------------------------------------------------------ counts
