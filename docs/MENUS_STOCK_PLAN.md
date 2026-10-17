@@ -78,3 +78,4 @@ The Menus tests that build products today (dishes, counter, kitchen, orders, reo
 ## Next session (agreed with the owner)
 - **Remind the owner about the cooking timer** as soon as they say hello or say they are back.
 - **Dishes and recipes**: ingredients and stock are done (variants, purchases, opening stock, counts, transfers, expiry, debit notes, purchase orders, VAT by purchase account). Next: how dishes and recipes touch the books, what a sold dish posts (sales account and VAT, cost of food, stock used) and how the recipe cost reaches the stock reports.
+- **Soft drinks tracking, ketchup sachets, salt** (the owner will explain what is wanted).
