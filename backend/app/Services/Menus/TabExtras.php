@@ -38,9 +38,10 @@ class TabExtras
                 continue;
             }
             $rows = [];
+            $from = ($d = Dish::find($l->dish_id)) ? app(MenuMoney::class)->dishCurrencyId($d) : null;   // an extra is priced in the dish's currency and sold in the order's (script 213)
             foreach ($this->choices((int) $l->dish_id) as $c) {
                 $left = $c->slot->max_choices === null ? null : max(0, (int) $c->slot->max_choices * (int) ceil((float) $l->quantity) - $this->taken($lines, $l, (int) $c->slot_id));
-                $rows[] = ['side_id' => (int) $c->side_id, 'slot_id' => (int) $c->slot_id, 'name' => (string) $c->side?->name, 'price' => (float) $c->upcharge, 'left' => $left];
+                $rows[] = ['side_id' => (int) $c->side_id, 'slot_id' => (int) $c->slot_id, 'name' => (string) $c->side?->name, 'price' => app(MenuMoney::class)->toOrder((float) $c->upcharge, $from), 'left' => $left];
             }
             if ($rows) {
                 $out[(int) $l->id] = $rows;
@@ -74,8 +75,8 @@ class TabExtras
         if ($this->stock->short([(int) $side->id => $amount * $qty], $loc)) {
             throw new BooksException("{$side->name} has run out.");
         }
-        $price = round((float) $choice->upcharge, 2);
         $dish = Dish::findOrFail($line->dish_id);
+        $price = app(MenuMoney::class)->toOrder((float) $choice->upcharge, app(MenuMoney::class)->dishCurrencyId($dish));
         $pick = ['slot_id' => (int) $choice->slot_id, 'slot' => $choice->slot->name, 'kind' => 'paid_extra', 'side_id' => (int) $side->id, 'side' => $side->name, 'qty' => 1, 'upcharge' => $price, 'amount' => $price, 'parent_line_id' => (int) $line->id];
         $new = ['dish' => $dish, 'name' => $side->name.' (extra)', 'quantity' => $qty, 'base_price' => $price, 'unit_price' => $price, 'options' => [], 'linked' => [], 'note' => 'With '.$line->name,
             'uses' => [['mode' => 'side', 'side_id' => (int) $side->id, 'qty' => 1, 'amount' => $amount, 'serving_id' => $line->serving_id ? (int) $line->serving_id : null, 'extra' => true]],

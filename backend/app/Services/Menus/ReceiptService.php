@@ -58,6 +58,9 @@ class ReceiptService
             foreach ($l->sidesList() as $side) {
                 $out[] = '   - '.$side;
             }
+            if (! empty($l->native_price) && ($nc = \App\Models\Currency::find($l->native_currency_id))) {   // a dish priced in another currency: what it was listed at and the rate of the day
+                $out[] = '   '.$nc->code.' '.$this->money((float) $l->native_price).' at '.rtrim(rtrim(number_format((float) $l->native_rate, 6, '.', ''), '0'), '.');
+            }
             foreach ($l->options ?? [] as $opt) {
                 $delta = (float) ($opt['price_delta'] ?? 0);
                 $out[] = $delta != 0.0 ? $this->pair('   - '.$opt['name'], $this->money($delta * $qty), $width) : '   - '.$opt['name'];
@@ -90,7 +93,8 @@ class ReceiptService
         if ((float) $o->tip > 0) {
             $out[] = $pair('Tip', $this->money((float) $o->tip));
         }
-        $out[] = $pair('TOTAL', $this->money((float) $o->total));
+        $oc = $o->currency_id ? \App\Models\Currency::find($o->currency_id) : null;
+        $out[] = $pair('TOTAL'.($oc && ! $oc->is_base ? ' '.$oc->code : ''), $this->money((float) $o->total));
         $out[] = $rule;
         if ($o->payment === 'paid' && $o->tenders) {
             foreach ($o->tenders as $t) {

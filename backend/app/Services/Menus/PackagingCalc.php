@@ -71,14 +71,12 @@ class PackagingCalc
      */
     public function line(int $id, int $qty, bool $compulsory, bool $wantsCharge, array $receipts, array $from = []): array
     {
-        $to = Currency::getBaseCurrency();   // the order's voucher is written in the base currency
+        $money = app(MenuMoney::class);
+        $to = $money->orderCurrency();   // the order's voucher is written in the Menus currency once script 213 has been run, else the base currency
         $price = $wantsCharge ? $this->prices->priceOf($id) : null;
         $unit = 0.0;
-        if ($price) {   // a price in another currency than the order's is converted; one in the order's currency (or the base, with no currency named) is used as it is
-            $unit = $price['price'];
-            if ($to && $price['currency_id'] && (int) $price['currency_id'] !== (int) $to->id) {
-                $unit = $this->money->convert($price['price'], $this->money->resolveCurrency($price['currency_id']), $to);
-            }
+        if ($price) {   // a price in another currency than the order's is converted at the rate of the day; one in the order's currency (or none named) is used as it is
+            $unit = $money->toOrder((float) $price['price'], $price['currency_id'] ? (int) $price['currency_id'] : null);
         }
         $charged = $price !== null;   // a rule that wants it charged but whose price has since left the list is free
         $receipt = isset($receipts['always']) ? 'always' : (isset($receipts['auto']) ? 'auto' : 'never');

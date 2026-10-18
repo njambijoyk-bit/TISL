@@ -6,7 +6,8 @@ import kioskAPI from '../../../_shared/api/kiosk';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import DishPicker from '../../components/DishPicker';
-import { useBasket, lineTotal, basketItems, needsChoice, shownPrice } from '../../lib/basket';
+import { useBasket, lineTotal, basketItems, needsChoice, shownPrice, priceTag } from '../../lib/basket';
+import ConversionNote from '../../components/ConversionNote';
 import { printReceipt } from '../../lib/receiptPrint';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -174,7 +175,7 @@ export default function KioskPage() {
                     <b style={{ minWidth: 30, textAlign: 'center' }}>{l.quantity}</b>
                     <button type="button" aria-label={`More ${l.name}`} onClick={() => basket.setQuantity(l.key, l.quantity + 1)} style={{ ...huge('#e2e8f0', '#0f172a'), padding: 14 }}><Plus size={26} /></button>
                   </span>
-                  <span style={{ minWidth: 110, textAlign: 'right', fontWeight: 800 }}>{money(lineTotal(l))}</span>
+                  <span style={{ minWidth: 110, textAlign: 'right', fontWeight: 800 }}>{l.currency ? `${l.currency} ` : ''}{money(lineTotal(l))}</span>
                 </li>
               ))}
             </ul>
@@ -185,12 +186,15 @@ export default function KioskPage() {
           </>
         )}
         {quote && (
+          <>
           <dl data-testid="totals" style={{ margin: 0, display: 'grid', gridTemplateColumns: '1fr auto', gap: '4px 16px', fontSize: '1.3rem' }}>
             <dt>Food</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.subtotal)}</dd>
             <dt>Tax</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.tax_total)}</dd>
             {quote.service_charge > 0 && <><dt>Service charge</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.service_charge)}</dd></>}
             <dt style={{ fontSize: '1.8rem', fontWeight: 900 }}>Total</dt><dd style={{ margin: 0, textAlign: 'right', fontSize: '1.8rem', fontWeight: 900 }}>{money(quote.total)}</dd>
           </dl>
+          <ConversionNote quote={quote} style={{ fontSize: '1rem' }} />
+          </>
         )}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c', fontSize: '1.2rem' }}>{problem}</p>}
         {step === 'review' ? (
@@ -240,7 +244,7 @@ export default function KioskPage() {
                     {d.photo && <img src={d.photo} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />}
                     <span style={{ display: 'grid', gap: 6, padding: 16 }}>
                       <strong style={{ fontSize: '1.35rem' }}>{d.name}</strong>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#047857' }}>{d.available ? `${shownPrice(d).from ? 'from ' : ''}${money(shownPrice(d).amount)}` : 'Sold out'}</span>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#047857' }}>{d.available ? `${shownPrice(d).from ? 'from ' : ''}${priceTag(d)}${money(shownPrice(d).amount)}` : 'Sold out'}</span>
                       {d.allergens.length > 0 && <small style={{ color: '#b45309', fontWeight: 700 }}>Contains {d.allergens.map((a) => cfg.menu.allergens[a] ?? a).join(', ')}</small>}
                     </span>
                   </button>

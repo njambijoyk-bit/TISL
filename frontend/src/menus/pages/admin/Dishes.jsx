@@ -66,6 +66,7 @@ function DishModal({ dish, data, onClose, onDone }) {
   const [active, setActive] = useState(dish?.is_active ?? true);
   const [station, setStation] = useState(dish?.station_id ?? '');
   const [chef, setChef] = useState(dish?.chef_id ?? '');
+  const [currency, setCurrency] = useState(dish?.currency_id ?? '');   // the currency the price is in; empty: the Menus currency (script 213)
   const [ledger, setLedger] = useState(null);
   const [allergens, setAllergens] = useState(dish?.allergens_declared ? dish.allergens : null);
   const [tags, setTags] = useState(dish?.tags_declared ? dish.tags : null);
@@ -78,7 +79,7 @@ function DishModal({ dish, data, onClose, onDone }) {
     try {
       const res = await menusAPI.saveDish({
         name, price: Number(price), description: description || null, prep_minutes: prep === '' ? null : Number(prep), lead_hours: lead === '' ? null : Number(lead), sort_order: Number(sort) || 0, is_active: active,
-        ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), ...(data.chefs ? { chef_id: chef === '' ? null : Number(chef) } : {}), allergens, tags,
+        ...(needsLedger ? { sales_ledger_id: ledger } : {}), ...(data.stations ? { station_id: station === '' ? null : Number(station) } : {}), ...(data.chefs ? { chef_id: chef === '' ? null : Number(chef) } : {}), ...(data.currency_ready ? { currency_id: currency === '' ? null : Number(currency) } : {}), allergens, tags,
       }, dish?.id);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the dish')); } finally { setBusy(false); }
@@ -93,6 +94,14 @@ function DishModal({ dish, data, onClose, onDone }) {
             <Field label="Name" htmlFor="dish-name"><TextInput id="dish-name" required maxLength={150} value={name} onChange={(e) => setName(e.target.value)} placeholder="Beef stew" /></Field>
             <Field label="Price (before tax)" htmlFor="dish-price"><NumberInput id="dish-price" required min="0" step="any" value={price} onChange={(e) => setPrice(e.target.value)} /></Field>
           </div>
+          {data.currency_ready && (
+            <Field label="Price currency" htmlFor="dish-currency" hint={`Empty: ${data.order_currency?.code ?? 'the Menus currency'}. A dish in another currency is converted at the rate of the day when it is ordered, and each price is rounded to two decimals as it is converted. Sizes, extras and fees are in the same currency.`}>
+              <SelectInput id="dish-currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                <option value="">{data.order_currency?.code ?? 'The Menus currency'} (the Menus currency)</option>
+                {data.currencies.filter((c) => c.id !== data.order_currency?.id).map((c) => <option key={c.id} value={c.id}>{c.code} {c.name ? `· ${c.name}` : ''}</option>)}
+              </SelectInput>
+            </Field>
+          )}
           {needsLedger && <SalesAccountSelect kind="sales" scope="product" required label="Sales account (it decides the tax)" value={ledger} onChange={setLedger} hint="Set it once for every dish under Menus → Configuration." />}
           <Field label="Description" htmlFor="dish-desc"><TextArea id="dish-desc" rows={3} maxLength={3000} value={description} onChange={(e) => setDescription(e.target.value)} /></Field>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -179,7 +188,7 @@ export default function Dishes() {
                       {d.made_to_order && <Pill>Made to order</Pill>}
                     </div>
                   </td>
-                  <td style={{ ...td, textAlign: 'right' }}>{money(d.price)}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{d.currency_id && data.currencies ? `${data.currencies.find((c) => c.id === d.currency_id)?.code ?? ''} ` : ''}{money(d.price)}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{d.cost == null ? <span style={{ color: colors.textFaint }}>—</span> : <>{money(d.cost)}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{money(d.margin)} · {d.food_cost_pct}% food cost{d.complete ? '' : ' (some costs unknown)'}</div></>}</td>
                   <td style={{ ...td, textAlign: 'right' }} data-testid="available">{d.available == null ? '—' : d.available}</td>
                   <td style={td}>

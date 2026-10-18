@@ -8,7 +8,7 @@ import menusPublicAPI from '../../../_shared/api/menusPublic';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
 import DishPicker from '../../components/DishPicker';
 import OrderCheckout from '../../components/OrderCheckout';
-import { useBasket, needsChoice, shownPrice } from '../../lib/basket';
+import { useBasket, needsChoice, shownPrice, priceTag } from '../../lib/basket';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const chipBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 700, border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line, #e5e7eb)'}`, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)' : 'transparent', color: on ? 'var(--color-primary-600)' : 'var(--text-secondary)' });
@@ -26,13 +26,13 @@ export function DishCard({ d, avoid, data, ordering, onAdd }) {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>{d.name}</h3>
-          {price != null && <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{from && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}>from </small>}{money(price)}{taxNote && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}> + tax</small>}</span>}
+          {price != null && <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{from && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}>from </small>}{priceTag(d)}{money(price)}{taxNote && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}> + tax</small>}</span>}
         </div>
         {d.chef && <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }} data-testid="by-chef">by {d.chef}</p>}
         {d.description && <p style={{ margin: '4px 0 6px', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{d.description}</p>}
         {m && (m.servings.length > 1 || m.audiences.length > 0) && (
           <p data-testid="makeup-summary" style={{ margin: '2px 0 6px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-            {m.servings.length > 1 && m.servings.map((s) => `${s.name} ${money(s.price_incl ?? s.price)}`).join(' · ')}
+            {m.servings.length > 1 && m.servings.map((s) => `${s.name} ${priceTag(d)}${money(s.price_incl ?? s.price)}`).join(' · ')}
             {m.servings.length > 1 && m.audiences.length > 0 && ' · '}
             {m.audiences.length > 0 && `For ${m.audiences.join(', ')}`}
           </p>
@@ -144,7 +144,7 @@ export default function MenuPage() {
       </main>
       {ordering && basket.count > 0 && (
         <button type="button" data-testid="basket-bar" onClick={() => setCheckout(true)} style={{ position: 'fixed', left: '50%', bottom: 18, transform: 'translateX(-50%)', zIndex: 60, display: 'inline-flex', alignItems: 'center', gap: 10, padding: '12px 22px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, color: '#fff', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))', boxShadow: '0 6px 24px rgba(0,0,0,0.25)' }}>
-          <ShoppingBasket size={18} aria-hidden="true" /> Your order · {basket.count} item{basket.count === 1 ? '' : 's'} · {money(basket.subtotal)} + tax
+          <ShoppingBasket size={18} aria-hidden="true" /> Your order · {basket.count} item{basket.count === 1 ? '' : 's'} {basket.mixed ? '' : ` · ${money(basket.subtotal)} + tax`}
         </button>
       )}
       {picking && <DishPicker dish={picking} onClose={() => setPicking(null)} onAdd={(d, o) => { basket.add(d, o); setPicking(null); }} />}

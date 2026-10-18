@@ -11,7 +11,8 @@ import { canViewMenus, canRunFoodTill } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import DishPicker from '../../components/DishPicker';
-import { useBasket, lineTotal, basketItems, needsChoice, shownPrice } from '../../lib/basket';
+import { useBasket, lineTotal, basketItems, needsChoice, shownPrice, priceTag } from '../../lib/basket';
+import ConversionNote from '../../components/ConversionNote';
 import { printReceipt } from '../../lib/receiptPrint';
 import LineMakeup from '../../components/LineMakeup';
 
@@ -262,7 +263,7 @@ export default function MenusTill() {
                       <button key={d.id} type="button" data-dish={d.name} disabled={!canAct || !d.available || !menu.serving_now || d.price == null} onClick={() => add(d)}
                         style={{ ...line, minHeight: 78, padding: 10, borderRadius: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', display: 'grid', alignContent: 'space-between', opacity: d.available && menu.serving_now ? 1 : 0.45 }}>
                         <strong style={{ fontSize: '0.92rem' }}>{d.name}</strong>
-                        <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{d.available ? `${shownPrice(d).from ? 'from ' : ''}${money(d.makeup?.servings?.length ? Math.min(...d.makeup.servings.map((s) => s.price)) : d.price)}` : 'Sold out'}{needsChoice(d) ? ' · choices' : ''}</span>
+                        <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{d.available ? `${shownPrice(d).from ? 'from ' : ''}${priceTag(d)}${money(d.makeup?.servings?.length ? Math.min(...d.makeup.servings.map((s) => s.price)) : d.price)}` : 'Sold out'}{needsChoice(d) ? ' · choices' : ''}</span>
                       </button>
                     ))}
                   </div>
@@ -320,7 +321,7 @@ export default function MenusTill() {
                   {basket.lines.map((l) => (
                     <li key={l.key} style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 4, fontSize: '0.9rem' }}>
                       <span><strong>{l.name}</strong>{l.option_names.length > 0 && <small style={{ color: colors.textMuted }}> · {l.option_names.join(', ')}</small>}{l.note && <small style={{ color: '#b45309' }}> · “{l.note}”</small>}</span>
-                      <span>{money(lineTotal(l))}</span>
+                      <span>{l.currency ? `${l.currency} ` : ''}{money(lineTotal(l))}</span>
                       <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                         <button type="button" aria-label={`Fewer ${l.name}`} onClick={() => basket.setQuantity(l.key, l.quantity - 1)} style={{ ...line, borderRadius: 6, cursor: 'pointer' }}><Minus size={14} /></button>
                         <b>{l.quantity}</b>
@@ -330,7 +331,11 @@ export default function MenusTill() {
                   ))}
                 </ul>
                 {!tab && basket.lines.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.1rem' }}><span>Total</span><span data-testid="total">{quote ? money(quote.total) : `${money(food)} + tax`}</span></div>
+                  <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: '1.1rem' }}><span>Total</span><span data-testid="total">{quote ? money(quote.total) : basket.mixed ? '…' : `${money(food)} + tax`}</span></div>
+                  {quote?.currency?.code && quote.conversions?.length > 0 && <small style={{ color: colors.textMuted }}>Total in {quote.currency.code}</small>}
+                  <ConversionNote quote={quote} />
+                  </>
                 )}
                 {canAct && (
                   <div style={{ display: 'grid', gap: 8 }}>

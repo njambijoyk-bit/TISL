@@ -162,4 +162,24 @@ class MenusPackagingCalcTest extends TestCase
         $c = $this->calc([['dish_id' => $this->meal->id, 'quantity' => 1]])['Container'];
         $this->assertSame([false, 0.0], [$c['charged'], $c['amount']]);
     }
+
+    public function test_a_price_in_another_currency_is_converted_into_the_currency_the_order_is_written_in(): void
+    {
+        $this->app->instance(\App\Services\CurrencyConversionService::class, new \App\Services\CurrencyConversionService());
+        \Illuminate\Support\Facades\Schema::table('currencies', function ($t) { $t->decimal('conversion_rate', 18, 8)->default(1); });
+        DB::table('currencies')->insert(['id' => 2, 'code' => 'USD', 'name' => 'US dollar', 'symbol' => '$', 'is_base' => false, 'is_active' => true, 'conversion_rate' => 130]);
+        app(PackagingPrices::class)->save([['item_id' => $this->box, 'price' => 1, 'currency_id' => 2], ['item_id' => $this->bag, 'price' => 5]]);
+        $this->rules()->save('dish', $this->snack->id, [$this->rule($this->box, ['charged' => true]), $this->rule($this->bag, ['charged' => true])]);
+
+        $in = $this->calc([['dish_id' => $this->snack->id, 'quantity' => 1]]);
+        $this->assertSame([130.0, 5.0], [$in['Container']['unit_price'], $in['Bag']['unit_price']], 'a dollar container on a shilling order, a shilling bag as it is');
+
+        $this->runSqlScripts('213_menus_dish_currency.sql');
+        MenusSettings::save(['currency_id' => 2], null);
+        $same = $this->calc([['dish_id' => $this->snack->id, 'quantity' => 1]]);
+        $this->assertSame([1.0, 5.0], [$same['Container']['unit_price'], $same['Bag']['unit_price']], 'a price with no currency is in the Menus currency, so the bag is now 5 dollars');
+        app(PackagingPrices::class)->save([['item_id' => $this->box, 'price' => 1, 'currency_id' => 2], ['item_id' => $this->bag, 'price' => 5, 'currency_id' => 1]]);
+        $out = $this->calc([['dish_id' => $this->snack->id, 'quantity' => 1]]);
+        $this->assertSame([1.0, 0.04], [$out['Container']['unit_price'], $out['Bag']['unit_price']], 'on a dollar order the container is a dollar and a bag priced at 5 shillings is 4 cents');
+    }
 }

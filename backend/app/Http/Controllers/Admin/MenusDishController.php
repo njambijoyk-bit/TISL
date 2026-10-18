@@ -32,7 +32,8 @@ class MenusDishController extends Controller
             'chefs' => \App\Services\Menus\ChefService::installed() ? \App\Models\Menus\Chef::where('is_active', true)->orderBy('display_name')->get(['id', 'display_name as name']) : null,
             'stations' => \App\Services\Menus\KitchenService::installed() ? \App\Models\Menus\Station::where('is_active', true)->orderBy('sort_order')->orderBy('name')->get(['id', 'name']) : null,
             'branches' => app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderBy('name')->get(['id', 'name']),
-        ]);
+        ] + (\App\Services\Menus\MenuMoney::dishCurrencies() ? ['currency_ready' => true, 'order_currency' => app(\App\Services\Menus\MenuMoney::class)->orderCurrency()->only(['id', 'code', 'symbol']),
+            'currencies' => \App\Models\Currency::where('is_active', true)->orderBy('code')->get(['id', 'code', 'name', 'symbol'])] : ['currency_ready' => false]));
     }
 
     /** Body: name, price, description?, photo?, prep_minutes?, sort_order?, is_active?, allergens? / tags? (omit or null = from the ingredients; a list = declared). */
@@ -40,7 +41,7 @@ class MenusDishController extends Controller
     {
         $d = $request->validate([
             'name' => 'required|string|max:150', 'price' => 'nullable|numeric|min:0', 'description' => 'nullable|string|max:3000', 'photo' => 'nullable|string|max:255', 'prep_minutes' => 'nullable|integer|min:0|max:6000', 'lead_hours' => 'nullable|integer|min:0|max:2000',
-            'sort_order' => 'nullable|integer|min:0|max:9999', 'is_active' => 'nullable|boolean', 'station_id' => 'nullable|integer', 'chef_id' => 'nullable|integer',
+            'sort_order' => 'nullable|integer|min:0|max:9999', 'is_active' => 'nullable|boolean', 'station_id' => 'nullable|integer', 'chef_id' => 'nullable|integer', 'currency_id' => 'nullable|integer',
             'allergens' => 'nullable|array', 'allergens.*' => 'string|max:20', 'tags' => 'nullable|array', 'tags.*' => 'string|max:20',
         ]);
 
@@ -89,7 +90,7 @@ class MenusDishController extends Controller
 
         return [
             'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes, 'lead_hours' => $d->lead_hours ?? null, 'sort_order' => $d->sort_order, 'is_active' => (bool) $d->is_active,
-            'price' => (float) $d->price, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
+            'price' => (float) $d->price, 'currency_id' => $d->currency_id ?? null, 'station_id' => $d->station_id, 'chef_id' => $d->chef_id, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'has_recipe' => (bool) $recipe, 'made_to_order' => (bool) ($recipe && $recipe->made_to_order),
             'allergens' => $profile['allergens'], 'tags' => $profile['tags'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'], 'declared' => $profile['declared'],
             'allergens_declared' => $d->allergens_override !== null, 'tags_declared' => $d->tags_override !== null,

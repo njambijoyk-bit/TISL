@@ -23,6 +23,9 @@ export const shownPrice = (d) => {
   return { amount: p == null ? null : Number(p), from: false };
 };
 
+/** The currency to show beside a dish's price when it is not the one the order is written in ("USD "), else nothing. */
+export const priceTag = (d) => (d?.currency ? `${d.currency.code} ` : '');
+
 /** What a line costs before tax: the dish and its choices, times how many. */
 export const lineTotal = (l) => (Number(l.price) + l.option_delta) * l.quantity;
 
@@ -35,12 +38,14 @@ export function useBasket(storageKey = KEY) {
     const key = lineKey(dish.id, option_ids, note, serving_id, picks, mods);
     setLines((xs) => (xs.some((l) => l.key === key)
       ? xs.map((l) => (l.key === key ? { ...l, quantity: Math.min(50, l.quantity + quantity) } : l))
-      : [...xs, { key, dish_id: dish.id, name: dish.name, price: price ?? dish.price ?? 0, option_delta, option_ids, option_names, note: note.trim(), quantity, ...(serving_id ? { serving_id } : {}), ...(picks ? { picks } : {}), ...(mods?.length ? { mods } : {}) }]));
+      : [...xs, { key, dish_id: dish.id, name: dish.name, price: price ?? dish.price ?? 0, ...(dish.currency ? { currency: dish.currency.code } : {}), option_delta, option_ids, option_names, note: note.trim(), quantity, ...(serving_id ? { serving_id } : {}), ...(picks ? { picks } : {}), ...(mods?.length ? { mods } : {}) }]));
   }, []);
   const setQuantity = useCallback((key, quantity) => setLines((xs) => (quantity <= 0 ? xs.filter((l) => l.key !== key) : xs.map((l) => (l.key === key ? { ...l, quantity: Math.min(50, quantity) } : l)))), []);
   const clear = useCallback(() => setLines([]), []);
   const count = useMemo(() => lines.reduce((n, l) => n + l.quantity, 0), [lines]);
   const subtotal = useMemo(() => lines.reduce((n, l) => n + lineTotal(l), 0), [lines]);
 
-  return { lines, add, setQuantity, clear, count, subtotal };
+  const mixed = useMemo(() => lines.some((l) => l.currency), [lines]);   // dishes in another currency: a sum of the lines would add different money together, so the quote gives the total
+
+  return { lines, add, setQuantity, clear, count, subtotal, mixed };
 }

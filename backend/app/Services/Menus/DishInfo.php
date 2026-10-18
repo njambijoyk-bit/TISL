@@ -85,7 +85,9 @@ class DishInfo
         $c = $recipe ? $this->use->cost($recipe, $locationId) : ['per_portion' => null, 'complete' => false];
         $cost = $c['per_portion'] === null || ! $side ? $c['per_portion'] : round($c['per_portion'] * $sales->perPortion($side), 4);
 
-        return ['price' => $price, 'cost' => $cost, 'margin' => $price !== null && $cost !== null ? round($price - $cost, 4) : null,
-            'food_cost_pct' => $price && $cost !== null ? round($cost / $price * 100, 1) : null, 'complete' => (bool) $c['complete']];
+        $inBase = $price === null ? null : app(MenuMoney::class)->priceInBase($price, $dish);   // what it costs to make is held in the base currency, so the margin is worked out in it
+
+        return ['price' => $price, 'cost' => $cost, 'margin' => $inBase !== null && $cost !== null ? round($inBase - $cost, 4) : null,
+            'food_cost_pct' => $inBase && $cost !== null ? round($cost / $inBase * 100, 1) : null, 'complete' => (bool) $c['complete']];
     }
 }

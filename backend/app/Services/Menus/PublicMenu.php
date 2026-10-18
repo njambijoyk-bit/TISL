@@ -30,7 +30,15 @@ class PublicMenu
             ];
         })->filter(fn ($m) => $m['sections'])->values()->all();
 
-        return ['menus' => $menus, 'audiences' => $this->audiences($menus), 'allergens' => FoodTags::allergens(), 'diets' => DietBadges::LABELS, 'note' => MenusSettings::all()['allergen_note'], 'now' => $now->toIso8601String()];
+        return ['menus' => $menus, 'currency' => app(MenuMoney::class)->orderCurrency()->only(['id', 'code', 'symbol']), 'audiences' => $this->audiences($menus), 'allergens' => FoodTags::allergens(), 'diets' => DietBadges::LABELS, 'note' => MenusSettings::all()['allergen_note'], 'now' => $now->toIso8601String()];
+    }
+
+    /** The currency a dish is shown in when it is not the one the order is written in (script 213): its price is converted at the rate of the day when it is ordered. @return ?array{id: int, code: string, symbol: ?string} */
+    private function currencyOf(Dish $d): ?array
+    {
+        $id = app(MenuMoney::class)->dishCurrencyId($d);
+
+        return $id && ($c = \App\Models\Currency::find($id)) ? ['id' => (int) $c->id, 'code' => $c->code, 'symbol' => $c->symbol] : null;
     }
 
     /** Who the dishes on the menu are for, when any of them says so: [{id, name}], to filter by. @param array<int, array<string, mixed>> $menus @return array<int, array{id: int, name: string}> */
@@ -49,7 +57,7 @@ class PublicMenu
 
         return [
             'id' => $d->id, 'name' => $d->name, 'slug' => $d->slug, 'description' => $d->description, 'photo' => $d->photo, 'prep_minutes' => $d->prep_minutes,
-            'price' => (float) $d->price, 'price_incl' => $this->inclusive($d),
+            'price' => (float) $d->price, 'price_incl' => $this->inclusive($d), 'currency' => $this->currencyOf($d),
             'available' => $portions > 0, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'allergens' => $profile['allergens'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'],
             'options' => $this->options($d), 'chef' => $this->chefName($d), 'makeup' => $this->makeup($d, $location), 'modifiers' => $this->modifiers($d),

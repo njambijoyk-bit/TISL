@@ -73,7 +73,7 @@ class CounterService
             throw new BooksException('Tips are not set up: choose the account they are booked to under Menus → Settings.');
         }
         $rows = array_merge($this->orders->lineRows($lines, $loc), PackagingCheckout::saleRows($packaging));   // the packaging that is charged is a sale like the dishes
-        $base = ['date' => today()->toDateString(), 'location_id' => $loc->id, 'currency_id' => Currency::getBaseCurrency()?->id, 'customer_id' => null, 'channel' => 'admin',
+        $base = ['date' => today()->toDateString(), 'location_id' => $loc->id] + app(MenuMoney::class)->orderVoucher() + ['customer_id' => null, 'channel' => 'admin',
             'narration' => 'Counter'.($label !== '' ? ' — '.$label : ''), 'meta' => ['contact' => ['name' => $label !== '' ? $label : 'Counter'], 'guest' => true, 'menu_order' => true]];
         $food = $this->vouchers->preview($base + ['lines' => $rows], null);
         $rules = $this->rules();
@@ -115,7 +115,7 @@ class CounterService
         $p = $this->price($loc, $lines, (string) ($in['service'] ?? ''), (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in), $pk['packaging']);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'bill' => $p['bill'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
+            'currency' => app(MenuMoney::class)->orderCurrency()->only(['id', 'code', 'symbol']), 'conversions' => app(MenuMoney::class)->notes($lines)] + $pk;
     }
 
     /** What a tab comes to now, with the service charge and the tip asked for. */
@@ -127,7 +127,7 @@ class CounterService
         $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label, $pk['packaging']);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'bill' => $p['bill'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
+            'currency' => app(MenuMoney::class)->orderCurrency()->only(['id', 'code', 'symbol']), 'conversions' => app(MenuMoney::class)->notes($lines)] + $pk;
     }
 
     /** What a kiosk order waiting at the till comes to, with the packaging and condiments the cashier has changed. */
@@ -141,7 +141,7 @@ class CounterService
         $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '', $pk['packaging']);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'bill' => $p['bill'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
+            'currency' => app(MenuMoney::class)->orderCurrency()->only(['id', 'code', 'symbol']), 'conversions' => app(MenuMoney::class)->notes($lines)] + $pk;
     }
 
     /** The packaging list at checkout (the rules' list with the cashier's changes) and the items that may be added or swapped in. @return array{packaging: array, packaging_choices: array} */
@@ -513,7 +513,7 @@ class CounterService
         $next = (int) MenuOrder::whereIn('order_type', ['counter', 'kiosk'])->where('location_id', $loc->id)->where('created_at', '>=', $today)->max('short_no') + 1;
         $o = MenuOrder::create($extra + ['number' => 'MO-'.Str::upper(Str::random(8)), 'track_token' => Str::random(40), 'channel_id' => $channel->id, 'order_type' => $channel->order_type === 'kiosk' ? 'kiosk' : 'counter', 'service' => $service, 'location_id' => $loc->id,
             'name' => $label !== '' ? $label : ($channel->order_type === 'kiosk' ? 'Kiosk' : 'Counter'), 'label' => $label !== '' ? $label : null, 'cashier_id' => $by?->id, 'status' => 'placed', 'payment' => $payment, 'asap' => true, 'fulfil_at' => now(), 'short_no' => $next,
-            'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'], 'currency_id' => Currency::getBaseCurrency()?->id, 'placed_at' => now()]);
+            'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'], 'currency_id' => app(MenuMoney::class)->orderCurrency()->id, 'placed_at' => now()]);
         $o->update(['number' => 'MO-'.str_pad((string) $o->id, 6, '0', STR_PAD_LEFT)]);
 
         return $o;
@@ -525,7 +525,8 @@ class CounterService
             $kept = MenuOrderLine::kept($l);   // the size and the sides it was ordered with (a dish with a make-up)
             MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'name' => $l['name'] ?? $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
                 'options' => MenuOrderLine::optionRows($l['options']), 'note' => $l['note'], 'round' => $round,
-                'uses' => $l['uses'] ?: null, 'linked' => array_map(fn ($d) => $d->id, $l['linked']) ?: null] + $kept);
+                'uses' => $l['uses'] ?: null, 'linked' => array_map(fn ($d) => $d->id, $l['linked']) ?: null] + $kept
+                + (! empty($l['native']) ? ['native_currency_id' => $l['native']['currency_id'], 'native_price' => $l['native']['price'], 'native_rate' => $l['native']['rate']] : []));   // a dish priced in another currency keeps what it was listed at and the rate it was converted at (script 213)
         }
     }
 

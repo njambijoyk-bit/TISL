@@ -56,6 +56,12 @@ class DishService
             $dish->fill(['name' => $name] + $override + (array_key_exists('price', $d) ? ['price' => round((float) $d['price'], 2)] : [])
                 + array_intersect_key($d, array_flip(['description', 'photo', 'prep_minutes', 'sort_order', 'is_active']))
                 + (array_key_exists('lead_hours', $d) && Schema::hasColumn('menus_dishes', 'lead_hours') ? ['lead_hours' => $d['lead_hours'] ?: null] : []));   // (script 143)
+            if (array_key_exists('currency_id', $d) && MenuMoney::dishCurrencies()) {   // the currency the price is in (script 213); empty: the Menus currency
+                if ($d['currency_id'] && ! \App\Models\Currency::whereKey((int) $d['currency_id'])->where('is_active', true)->exists()) {
+                    throw new BooksException('That currency is not available. Choose an active one, or leave it empty for the Menus currency.');
+                }
+                $dish->currency_id = $d['currency_id'] ? (int) $d['currency_id'] : null;
+            }
             if (array_key_exists('station_id', $d) && KitchenService::installed()) {
                 $st = $d['station_id'] ? \App\Models\Menus\Station::find($d['station_id']) : null;
                 if ($d['station_id'] && ! $st) {

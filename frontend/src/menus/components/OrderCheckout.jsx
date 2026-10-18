@@ -7,6 +7,7 @@ import checkoutAPI from '../../_shared/api/checkout';
 import useAuthStore from '../../_shared/store/authStore';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 import { basketItems } from '../lib/basket';
+import ConversionNote from './ConversionNote';
 
 const POLL_MS = 3000;
 const GIVE_UP = 60;
@@ -189,6 +190,7 @@ export default function OrderCheckout({ basket, onClose }) {
           <dt style={{ fontWeight: 800 }}>Total</dt><dd style={{ margin: 0, textAlign: 'right', fontWeight: 800 }}>{money(quote.total, sym)}</dd>
         </dl>
       )}
+      {quote && !problem && <ConversionNote quote={quote} />}
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
         <button type="button" onClick={onClose} style={{ ...field, width: 'auto', cursor: 'pointer', fontWeight: 700 }}>Keep browsing</button>
         <button type="submit" disabled={busy || !quote || Boolean(problem)} style={{ padding: '11px 22px', borderRadius: 10, border: 'none', cursor: busy || !quote ? 'not-allowed' : 'pointer', opacity: busy || !quote || problem ? 0.55 : 1, fontWeight: 800, fontFamily: 'inherit', color: '#fff', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' }}>

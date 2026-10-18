@@ -136,8 +136,21 @@ class MenuOrderService
                 $need[$ld->id] = ($need[$ld->id] ?? 0) + $w['quantity'];
                 $linked[] = $ld;
             }
-            $lines[] = ['dish' => $dish, 'quantity' => $w['quantity'], 'base_price' => (float) $base, 'unit_price' => round($base + $p['price_delta'] + $mod['fee_in_price'], 2), 'options' => array_merge($p['options'], $mod['options']), 'uses' => $uses,
-                'linked' => $linked, 'note' => $w['note']] + $made;
+            $unit = round($base + $p['price_delta'] + $mod['fee_in_price'], 2);
+            $options = array_merge($p['options'], $mod['options']);
+            $native = null;
+            if ($from = app(MenuMoney::class)->dishCurrencyId($dish)) {   // a dish priced in another currency: every amount is converted at today's rate and rounded as it goes (script 213)
+                $money = app(MenuMoney::class);
+                $native = ['currency_id' => $from, 'price' => $unit, 'rate' => $money->rateToOrder($from)];
+                $base = $money->toOrder((float) $base, $from);
+                $unit = $money->toOrder($unit, $from);
+                $options = array_map(fn ($o) => isset($o['price_delta']) ? ['price_delta' => $money->toOrder((float) $o['price_delta'], $from)] + $o : $o, $options);
+                if (isset($made['selection'])) {
+                    $made['selection'] = array_map(fn ($s) => isset($s['upcharge']) ? ['upcharge' => $money->toOrder((float) $s['upcharge'], $from)] + $s : $s, $made['selection']);
+                }
+            }
+            $lines[] = ['dish' => $dish, 'quantity' => $w['quantity'], 'base_price' => (float) $base, 'unit_price' => $unit, 'options' => $options, 'uses' => $uses,
+                'linked' => $linked, 'note' => $w['note'], 'native' => $native] + $made;
         }
         foreach ($need as $id => $n) {
             $have = $this->info->portions($dishes[$id], (int) $location->id);
@@ -327,7 +340,7 @@ class MenuOrderService
             $rows[] = ['type' => 'charge', 'kind' => 'shipping', 'shipping_option_id' => $delivery['option']->id];
         }
 
-        return ['date' => today()->toDateString(), 'location_id' => $loc->id, 'currency_id' => Currency::getBaseCurrency()?->id, 'customer_id' => $customerId, 'channel' => 'storefront', 'lines' => $rows,
+        return ['date' => today()->toDateString(), 'location_id' => $loc->id] + app(MenuMoney::class)->orderVoucher() + ['customer_id' => $customerId, 'channel' => 'storefront', 'lines' => $rows,
             'narration' => ($c->order_type === 'delivery' ? 'Delivery' : 'Pickup').' '.($asap ? 'as soon as possible' : $at->format('D j M H:i')).($notes !== '' ? ' — '.$notes : ''),
             'meta' => ['contact' => $contact, 'guest' => $customerId ? null : true, 'menu_order' => true]];
     }
@@ -345,7 +358,7 @@ class MenuOrderService
         $preview = $this->priced($p);
 
         return ['subtotal' => $preview['subtotal'], 'delivery_fee' => $preview['delivery_fee'], 'tax_total' => $preview['tax_total'], 'total' => $preview['total'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol']), 'at' => $p['at']->toIso8601String(), 'asap' => $p['asap'],
+            'currency' => app(MenuMoney::class)->orderCurrency()->only(['id', 'code', 'symbol']), 'conversions' => app(MenuMoney::class)->notes($p['lines']), 'at' => $p['at']->toIso8601String(), 'asap' => $p['asap'],
             'packaging' => app(PackagingCheckout::class)->resolve($p['lines'], true, null),
             'lines' => array_map(fn ($l) => ['dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'unit_price' => $l['unit_price'], 'amount' => round($l['unit_price'] * $l['quantity'], 2),
                 'options' => array_column($l['options'], 'name'), 'serving' => $l['serving'] ?? null, 'sides' => array_column($l['selection'] ?? [], 'side')], $p['lines'])];

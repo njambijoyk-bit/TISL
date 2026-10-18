@@ -124,7 +124,7 @@ export default function TablePage() {
 
       {ok && basket.count > 0 && (
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, padding: 12, background: 'var(--surface-card, #fff)', borderTop: '1px solid var(--line, #e5e7eb)', display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'space-between', zIndex: 50 }} data-testid="basket-bar">
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 800 }}><ShoppingBasket size={18} aria-hidden="true" /> {basket.count} item{basket.count === 1 ? '' : 's'} · {money(basket.subtotal)} + tax</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontWeight: 800 }}><ShoppingBasket size={18} aria-hidden="true" /> {basket.count} item{basket.count === 1 ? '' : 's'} {basket.mixed ? '' : ` · ${money(basket.subtotal)} + tax`}</span>
           <span style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={basket.clear} style={{ ...field, width: 'auto', cursor: 'pointer', fontWeight: 700 }}>Clear</button>
             <button type="button" disabled={busy} onClick={send} style={{ ...primary, opacity: busy ? 0.6 : 1 }}>Send to the kitchen</button>
