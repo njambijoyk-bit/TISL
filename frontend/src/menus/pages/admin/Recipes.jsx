@@ -32,6 +32,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [order, setOrder] = useState(r?.made_to_order ?? true);
   const [lines, setLines] = useState(r ? r.lines.map(mk) : [mk()]);
   const [steps, setSteps] = useState((r?.steps ?? []).map((s) => ({ key: `s${++key.current}`, body: s.body, minutes: s.minutes ?? '' })));
+  const [times, setTimes] = useState((r?.times ?? []).map((t) => ({ key: `t${++key.current}`, up_to: t.up_to, minutes: t.minutes })));
   const [prep, setPrep] = useState(r?.prep_minutes ?? '');
   const [cook, setCook] = useState(r?.cook_minutes ?? '');
   const [visibility, setVisibility] = useState(r?.visibility ?? 'internal');
@@ -39,6 +40,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [name, setName] = useState(dish.name ?? '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const unitLabel = dish.standalone ? (options.units ?? []).find((u) => String(u.id) === String(yieldUnit))?.code ?? 'portions' : 'portions';
   const ing = (id) => options.ingredients.find((i) => String(i.id) === String(id));
   const patch = (k, p) => setLines((xs) => xs.map((x) => (x.key === k ? { ...x, ...p } : x)));
 
@@ -49,6 +51,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
         yield_qty: Number(yieldQty), ...(dish.standalone ? { yield_unit_id: yieldUnit === '' ? null : Number(yieldUnit) } : {}), made_to_order: order, note: note || null, visibility, prep_minutes: prep === '' ? null : Number(prep), cook_minutes: cook === '' ? null : Number(cook),
         lines: lines.filter((l) => l.ingredient_id).map((l) => ({ ingredient_id: Number(l.ingredient_id), quantity: Number(l.quantity) || 0, unit: l.unit, waste_pct: l.waste_pct === '' ? 0 : Number(l.waste_pct) })),
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
+        ...(options.times_installed ? { times: times.filter((t) => t.up_to !== '' || t.minutes !== '').map((t) => ({ up_to: t.up_to === '' ? 0 : Number(t.up_to), minutes: t.minutes === '' ? 0 : Number(t.minutes) })) } : {}),
       };
       const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
       toast.success(res.message); onDone();
@@ -103,6 +106,26 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             </div>
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setLines((xs) => [...xs, mk()])}><Plus size={12} /> Add an ingredient</button>
           </div>
+
+          {options.times_installed && (
+            <div data-testid="recipe-times">
+              <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 2 }}>Time by batch size</div>
+              <div style={{ fontSize: '0.72rem', color: colors.textFaint, marginBottom: 6 }}>A batch is timed by the smallest row that is big enough. A batch bigger than every row has no estimate.</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {times.map((t, i) => (
+                  <div key={t.key} style={{ display: 'grid', gridTemplateColumns: 'auto 110px auto 100px auto auto', gap: 8, alignItems: 'center', fontSize: '0.82rem' }}>
+                    <span>Up to</span>
+                    <NumberInput aria-label={`Batch size for time ${i + 1}`} min="0" step="any" value={t.up_to} onChange={(e) => setTimes((xs) => xs.map((y) => (y.key === t.key ? { ...y, up_to: e.target.value } : y)))} />
+                    <span>{unitLabel} takes</span>
+                    <NumberInput aria-label={`Minutes for time ${i + 1}`} min="1" max="6000" value={t.minutes} onChange={(e) => setTimes((xs) => xs.map((y) => (y.key === t.key ? { ...y, minutes: e.target.value } : y)))} />
+                    <span>minutes</span>
+                    <button type="button" aria-label="Remove time" style={iconBtn} onClick={() => setTimes((xs) => xs.filter((y) => y.key !== t.key))}><Trash2 size={15} /></button>
+                  </div>
+                ))}
+              </div>
+              <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setTimes((xs) => [...xs, { key: `t${++key.current}`, up_to: '', minutes: '' }])}><Plus size={12} /> Add a time</button>
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 2fr', gap: 10 }}>
             <Field label="Prep (minutes)"><NumberInput aria-label="Prep minutes" min="0" value={prep} onChange={(e) => setPrep(e.target.value)} /></Field>

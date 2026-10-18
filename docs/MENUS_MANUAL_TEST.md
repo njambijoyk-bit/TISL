@@ -41,6 +41,7 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 3. Edit it: the name is filled in, the lines are the ones you saved. Remove it: it goes.
 4. The dishes above are unchanged: their recipes, costs and "can make now" are as before, and selling a dish still uses its ingredients.
 5. (after script 195) Add "Ugali" as a recipe of its own: **One batch makes** 2.5, counted in **Kilogram**; flour 800 g. Save. Expect "makes 2.5 kg", and the cost shown per batch and "per kg". Edit it and choose "portions": it goes back to portions.
+7. (after script 196) On "Ugali" add times: up to 1 kg takes 15 minutes, up to 2 kg takes 20, up to 5 kg takes 40. Save and open it again: the rows are there, smallest first. The same amount twice, a zero or a row with no minutes is refused. (Nothing uses the times yet: the make-a-batch screen in 1.6 will show the estimate.)
 6. The units offered are weights, volumes and pieces only (no metres), and a dish's own recipe has no unit box: it counts portions.
 
 ## 1. Recipes, allergens, dishes and menus (manager)

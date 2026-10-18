@@ -37,6 +37,8 @@ trait CreatesFoodTables
         });
         // script 195: the unit a batch is counted in (the column it adds is read from the script itself)
         $this->runSqlScripts('195_menus_recipe_yield_unit.sql');
+        // script 196: the time by batch size
+        $this->runSqlScripts('196_menus_recipe_times.sql');
         // script 191: the "used up" use and the account a kind is charged to
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->boolean('used_up')->default(false));
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('expense_ledger_id')->nullable());

@@ -12,6 +12,7 @@ use App\Services\Menus\DishProduction;
 use App\Services\Menus\DishRecipes;
 use App\Services\Menus\IngredientKinds;
 use App\Services\Menus\IngredientUse;
+use App\Services\Menus\RecipeTimes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,7 +28,7 @@ class MenusRecipesController extends Controller
     {
         $branches = app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
         $location = $request->integer('location_id') ?: (int) ($branches->first()->id ?? 0);
-        $with = ['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'];
+        $with = array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'], RecipeTimes::installed() ? ['times'] : []);
         $recipes = DishRecipe::with($with)->whereNotNull('dish_id')->get()->keyBy('dish_id');
 
         return response()->json([
@@ -38,7 +39,7 @@ class MenusRecipesController extends Controller
             'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code])->values(),
             'standalone' => DishRecipe::standalone()->with($with)->orderBy('name')->get()->map(fn (DishRecipe $r) => $this->row($r, $location))->values(),
             'units' => \App\Models\UnitOfMeasure::active()->whereIn('dimension', DishRecipes::YIELD_DIMENSIONS)->orderBy('dimension')->orderBy('to_base_factor')->get(['id', 'code', 'name', 'dimension']),
-            'visibility' => DishRecipe::VISIBILITY,
+            'visibility' => DishRecipe::VISIBILITY, 'times_installed' => RecipeTimes::installed(),
         ]);
     }
 
@@ -50,7 +51,7 @@ class MenusRecipesController extends Controller
         return $this->guard(function () use ($d, $dishId) {
             $r = $this->recipes->save(Dish::findOrFail($dishId), $d);
 
-            return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r->load(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit']), null)]);
+            return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r->load(array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'], RecipeTimes::installed() ? ['times'] : [])), null)]);
         });
     }
 
@@ -62,7 +63,7 @@ class MenusRecipesController extends Controller
         return $this->guard(function () use ($d, $id) {
             $r = $this->recipes->saveStandalone($d, $id);
 
-            return response()->json(['message' => "{$r->name} saved.", 'recipe' => $this->row($r->load(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit']), null)], $id === null ? 201 : 200);
+            return response()->json(['message' => "{$r->name} saved.", 'recipe' => $this->row($r->load(array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'], RecipeTimes::installed() ? ['times'] : [])), null)], $id === null ? 201 : 200);
         });
     }
 
@@ -129,6 +130,7 @@ class MenusRecipesController extends Controller
             'yield_qty' => 'required|numeric|gt:0', 'yield_unit_id' => 'nullable|integer', 'made_to_order' => 'nullable|boolean', 'note' => 'nullable|string|max:255', 'visibility' => 'nullable|string|max:12',
             'prep_minutes' => 'nullable|integer|min:0|max:6000', 'cook_minutes' => 'nullable|integer|min:0|max:6000', 'is_active' => 'nullable|boolean',
             'lines' => 'required|array|min:1|max:80', 'lines.*.ingredient_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric|min:0', 'lines.*.unit' => 'nullable|in:base,alt', 'lines.*.waste_pct' => 'nullable|numeric|min:0|max:90',
+            'times' => 'nullable|array|max:'.RecipeTimes::MAX_ROWS, 'times.*.up_to' => 'nullable|numeric|min:0', 'times.*.minutes' => 'nullable|integer|min:0|max:6000',
             'steps' => 'nullable|array|max:60', 'steps.*.body' => 'nullable|string|max:2000', 'steps.*.minutes' => 'nullable|integer|min:0|max:6000',
         ];
     }
@@ -144,6 +146,7 @@ class MenusRecipesController extends Controller
                 'ingredient_id' => (int) $l->ingredient_id, 'name' => $l->ingredient?->name, 'quantity' => (float) $l->quantity, 'unit' => $l->unit, 'waste_pct' => (float) $l->waste_pct,
                 'base_unit' => $l->ingredient?->baseUnit?->code, 'alt_unit' => $l->ingredient?->altUnit?->code,
             ])->values(),
+            'times' => $r->relationLoaded('times') ? $r->times->map(fn ($t) => ['up_to' => (float) $t->up_to_qty, 'minutes' => (int) $t->minutes])->values() : [],
             'steps' => $r->steps->map(fn ($s) => ['body' => $s->body, 'minutes' => $s->minutes])->values(),
             'cost' => $cost, 'portions' => $location && $r->made_to_order && $r->is_active ? $this->use->capacity($r, $location) : null,
         ];

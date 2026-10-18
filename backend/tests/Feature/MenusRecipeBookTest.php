@@ -197,4 +197,77 @@ class MenusRecipeBookTest extends TestCase
         $this->assertStringContainsString('fk_menus_recipes_yield_unit', $sql);
         $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn('menus_recipes', 'yield_unit_id'), 'the test world is built from the script');
     }
+
+    // ------------------------------------------------------------ 1.3 time by batch size
+
+    private function ugali(array $times, ?int $id = null): DishRecipe
+    {
+        return $this->svc()->saveStandalone(['name' => 'Ugali', 'yield_qty' => 2, 'yield_unit_id' => $this->kg, 'lines' => $this->lines(), 'times' => $times], $id);
+    }
+
+    public function test_a_recipe_keeps_its_times_smallest_first_and_the_smallest_big_enough_row_decides(): void
+    {
+        $r = $this->ugali([['up_to' => 2, 'minutes' => 20], ['up_to' => 1, 'minutes' => 15], ['up_to' => 5, 'minutes' => 40]]);
+        $this->assertSame([[1.0, 15], [2.0, 20], [5.0, 40]], $r->times->map(fn ($t) => [(float) $t->up_to_qty, $t->minutes])->all());
+        $t = app(\App\Services\Menus\RecipeTimes::class);
+        $this->assertSame(15, $t->expected($r, 0.5));
+        $this->assertSame(15, $t->expected($r, 1), 'up to 1 kg includes 1 kg');
+        $this->assertSame(20, $t->expected($r, 1.5));
+        $this->assertSame(40, $t->expected($r, 5));
+        $this->assertNull($t->expected($r, 5.5), 'bigger than the biggest row: no estimate');
+    }
+
+    public function test_an_amount_written_in_another_unit_is_converted(): void
+    {
+        $r = $this->ugali([['up_to' => 1, 'minutes' => 15], ['up_to' => 2, 'minutes' => 20]]);
+        $g = \App\Models\UnitOfMeasure::find($this->g);
+        $t = app(\App\Services\Menus\RecipeTimes::class);
+        $this->assertSame(15, $t->expected($r, 800, $g), '800 g is under 1 kg');
+        $this->assertSame(20, $t->expected($r, 1500, $g));
+        $this->fails(fn () => $t->expected($r, 3, \App\Models\UnitOfMeasure::find($this->each)), 'measures the same');
+    }
+
+    public function test_saving_again_replaces_the_times_and_leaving_them_out_keeps_them(): void
+    {
+        $r = $this->ugali([['up_to' => 1, 'minutes' => 15]]);
+        $this->svc()->saveStandalone(['name' => 'Ugali', 'yield_qty' => 2, 'lines' => $this->lines()], $r->id);
+        $this->assertSame(1, $r->times()->count(), 'a save with no times in it leaves them alone');
+        $again = $this->ugali([['up_to' => 3, 'minutes' => 30]], $r->id);
+        $this->assertSame([[3.0, 30]], $again->times->map(fn ($t) => [(float) $t->up_to_qty, $t->minutes])->all(), 'a save with times replaces them');
+        $this->ugali([], $r->id);
+        $this->assertSame(0, $r->times()->count(), 'an empty list clears them');
+    }
+
+    public function test_the_rows_are_checked(): void
+    {
+        $this->fails(fn () => $this->ugali([['up_to' => 0, 'minutes' => 10]]), 'how big a batch');
+        $this->fails(fn () => $this->ugali([['up_to' => 1, 'minutes' => 0]]), 'between 1 and 6000');
+        $this->fails(fn () => $this->ugali([['up_to' => 1, 'minutes' => 10], ['up_to' => 1.0, 'minutes' => 12]]), 'same batch size');
+        $this->fails(fn () => $this->ugali(array_map(fn ($i) => ['up_to' => $i, 'minutes' => 5], range(1, 13))), '12 rows or fewer');
+        $this->assertSame(0, DishRecipe::count());
+        $r = $this->ugali([['up_to' => '', 'minutes' => ''], ['up_to' => 1, 'minutes' => 10]]);
+        $this->assertSame(1, $r->times->count(), 'an empty row is left out');
+    }
+
+    public function test_times_go_with_the_recipe_and_a_dish_recipe_may_have_them_too(): void
+    {
+        $r = $this->ugali([['up_to' => 1, 'minutes' => 15]]);
+        $this->svc()->deleteStandalone($r->id);
+        $this->assertSame(0, DB::table('menus_recipe_times')->count());
+        $dish = $this->dish('Cake');
+        $d = $this->svc()->save($dish, ['yield_qty' => 12, 'made_to_order' => false, 'lines' => $this->lines(), 'times' => [['up_to' => 12, 'minutes' => 60], ['up_to' => 24, 'minutes' => 90]]]);
+        $this->assertSame(90, app(\App\Services\Menus\RecipeTimes::class)->expected($d, 20));
+        $this->svc()->delete($dish);
+        $this->assertSame(0, DB::table('menus_recipe_times')->count());
+    }
+
+    public function test_the_page_returns_the_times(): void
+    {
+        $c = app(\App\Http\Controllers\Admin\MenusRecipesController::class);
+        $body = ['name' => 'Ugali', 'yield_qty' => 2, 'yield_unit_id' => $this->kg, 'lines' => $this->lines(), 'times' => [['up_to' => 1, 'minutes' => 15], ['up_to' => 2, 'minutes' => 20]]];
+        $this->assertSame(201, $c->saveBook(\Illuminate\Http\Request::create('/x', 'POST', $body))->getStatusCode());
+        $page = $c->index(\Illuminate\Http\Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $this->assertTrue($page['times_installed']);
+        $this->assertSame([['up_to' => 1, 'minutes' => 15], ['up_to' => 2, 'minutes' => 20]], array_map(fn ($t) => ['up_to' => (int) $t['up_to'], 'minutes' => $t['minutes']], $page['standalone'][0]['times']));
+    }
 }

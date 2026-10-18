@@ -6,6 +6,7 @@ use App\Models\Menus\Dish;
 use App\Models\Menus\DishRecipe;
 use App\Models\Menus\DishRecipeLine;
 use App\Models\Menus\DishRecipeStep;
+use App\Models\Menus\DishRecipeTime;
 use App\Models\Menus\Ingredient;
 use App\Models\UnitOfMeasure;
 use App\Services\Books\BooksException;
@@ -31,7 +32,7 @@ class DishRecipes
     }
 
     /**
-     * @param array{yield_qty?: float, yield_unit_id?: ?int, made_to_order?: bool, note?: ?string, visibility?: string, prep_minutes?: ?int, cook_minutes?: ?int, is_active?: bool,
+     * @param array{yield_qty?: float, yield_unit_id?: ?int, times?: array<int, array{up_to: mixed, minutes: mixed}>, made_to_order?: bool, note?: ?string, visibility?: string, prep_minutes?: ?int, cook_minutes?: ?int, is_active?: bool,
      *              lines: array<int, array{ingredient_id: int, quantity: float, unit?: string, waste_pct?: float}>, steps?: array<int, array{body: string, minutes?: ?int, image?: ?string}>} $d
      */
     public function save(Dish $dish, array $d): DishRecipe
@@ -80,11 +81,14 @@ class DishRecipes
         DB::transaction(function () use ($r) {
             $r->lines()->delete();
             $r->steps()->delete();
+            if (RecipeTimes::installed()) {
+                $r->times()->delete();
+            }
             $r->delete();
         });
     }
 
-    /** The yield, who may see it and the lines, checked and tidied. @return array{yield: float, unit: ?int, visibility: string, lines: array<int, array<string, mixed>>} */
+    /** The yield, who may see it and the lines, checked and tidied. @return array{yield: float, unit: ?int, times: ?array, visibility: string, lines: array<int, array<string, mixed>>} */
     private function clean(array $d): array
     {
         $yield = round((float) ($d['yield_qty'] ?? 1), 4);
@@ -96,6 +100,13 @@ class DishRecipes
             $yieldUnit = UnitOfMeasure::find((int) $d['yield_unit_id']);
             if (! $yieldUnit || ! $yieldUnit->is_active || ! in_array($yieldUnit->dimension, self::YIELD_DIMENSIONS, true)) {
                 throw new BooksException('Count a batch in a weight, a volume or a number of pieces: choose one of the units offered, or leave it as portions.');
+            }
+        }
+        $times = null;
+        if (array_key_exists('times', $d)) {
+            $times = RecipeTimes::clean((array) $d['times']);
+            if ($times && ! RecipeTimes::installed()) {
+                throw new BooksException('Run database script 196_menus_recipe_times.sql first: until then the time by batch size can not be saved.');
             }
         }
         $visibility = $d['visibility'] ?? 'internal';
@@ -141,10 +152,10 @@ class DishRecipes
             throw new BooksException('Add at least one ingredient.');
         }
 
-        return ['yield' => $yield, 'unit' => $yieldUnit?->id, 'visibility' => $visibility, 'lines' => $lines];
+        return ['yield' => $yield, 'unit' => $yieldUnit?->id, 'times' => $times, 'visibility' => $visibility, 'lines' => $lines];
     }
 
-    /** @param array{yield: float, unit: ?int, visibility: string, lines: array<int, array<string, mixed>>} $c */
+    /** @param array{yield: float, unit: ?int, times: ?array, visibility: string, lines: array<int, array<string, mixed>>} $c */
     private function store(DishRecipe $r, array $d, array $c, ?string $name = null): DishRecipe
     {
         $r->fill([
@@ -161,6 +172,12 @@ class DishRecipes
         foreach ($c['lines'] as $l) {
             DishRecipeLine::create(['recipe_id' => $r->id] + $l);
         }
+        if ($c['times'] !== null && RecipeTimes::installed()) {
+            $r->times()->delete();
+            foreach ($c['times'] as $t) {
+                DishRecipeTime::create(['recipe_id' => $r->id] + $t);
+            }
+        }
         if (array_key_exists('steps', $d)) {
             $r->steps()->delete();
             $n = 0;
@@ -172,7 +189,7 @@ class DishRecipes
             }
         }
 
-        return $r->load('lines', 'steps');
+        return $r->load(array_merge(['lines', 'steps'], RecipeTimes::installed() ? ['times'] : []));
     }
 
     public function delete(Dish $dish): void
@@ -184,6 +201,9 @@ class DishRecipes
         DB::transaction(function () use ($r) {
             $r->lines()->delete();
             $r->steps()->delete();
+            if (RecipeTimes::installed()) {
+                $r->times()->delete();
+            }
             $r->delete();
         });
     }

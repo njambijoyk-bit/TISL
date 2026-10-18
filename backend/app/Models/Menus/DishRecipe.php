@@ -55,6 +55,12 @@ class DishRecipe extends Model
         return $this->hasMany(DishRecipeLine::class, 'recipe_id')->orderBy('position')->orderBy('id');
     }
 
+    /** The time by batch size, smallest first (script 196). */
+    public function times(): HasMany
+    {
+        return $this->hasMany(DishRecipeTime::class, 'recipe_id')->orderBy('up_to_qty');
+    }
+
     public function steps(): HasMany
     {
         return $this->hasMany(DishRecipeStep::class, 'recipe_id')->orderBy('position')->orderBy('id');
