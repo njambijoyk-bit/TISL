@@ -15,6 +15,7 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 import DishGuide from '../../components/DishGuide';
 import DishMakeupBuild from '../../components/DishMakeupBuild';
 import DishMakeupModal from '../../components/DishMakeupModal';
+import DishModifiersModal from '../../components/DishModifiers';
 import DishOptionsModal from '../../components/DishOptionsModal';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
 import { useMenusBranch } from '../../lib/menusBranch';
@@ -188,6 +189,7 @@ export default function Dishes() {
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ dish: d })}>Edit</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ options: d })}>Choices</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ makeup: d })}>Make-up</button>}
+                    {canWrite && <button type="button" style={small} onClick={() => setModal({ modifiers: d })}>Modifiers</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ guide: d })}>Guided</button>}
                     <Link to="/admin/menus/recipes" style={{ ...small, display: 'inline-block', textDecoration: 'none' }}>Recipe</Link>
                     {canWrite && <button type="button" style={small} onClick={() => toggleSoldOut(d)}>{d.sold_out_today ? 'Available again' : 'Sold out today'}</button>}
@@ -202,8 +204,9 @@ export default function Dishes() {
       </div>
       {modal?.options && <DishOptionsModal dish={modal.options} onClose={() => setModal(null)} onDone={done} />}
       {modal?.makeup && <DishMakeupModal dish={modal.makeup} onClose={() => setModal(null)} onDone={done} />}
+      {modal?.modifiers && <DishModifiersModal dish={modal.modifiers} onClose={() => setModal(null)} onDone={() => load()} />}
       {modal?.guide && data && <DishGuide dish={modal.guide} data={data} onClose={() => { setModal(null); load(); }} onDone={done} onChoices={(d) => { setModal({ options: d }); load(); }} />}
-      {modal && !modal.options && !modal.makeup && !modal.guide && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
+      {modal && !modal.options && !modal.makeup && !modal.guide && !modal.modifiers && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }

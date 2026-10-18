@@ -136,6 +136,14 @@ Set up a steak sandwich with the make-up from 0k, each side with a recipe or ing
 4. Without script 205 the ticks are not there and a note says which script to run; recipes save as before.
 5. Nothing changes on an order yet: what a removal or an extra costs comes in 4.2, and choosing them in 4.3.
 
+## 0s. What leaving out or extra costs (after scripts 205 and 206)
+1. Menus, Configuration, *Lists*: policies. Make *Fee 20* (a fixed fee, 20) and *Ten percent* (a percentage, 10). *Free* is the default. Menus, Configuration also has *A fee carries the dish's VAT* (on to begin with).
+2. Menus, Dishes, a burger whose recipe has cheese ticked both ways and onion ticked *leave it out*, then **Modifiers**. It lists *Cheese, leaves it out*, *Cheese, asks for extra*, *Onion, leaves it out*, each on the default policy (no charge). Give the extra cheese *Ten percent*: it says "10% = 50" at a price of 500. Save, close and open it again: as left.
+3. A dish made of sides (Make-up) also lists the ticked ingredients of those sides' recipes, with the side named under *From*. Un-tick an ingredient on the recipe and it leaves the list.
+4. Make another policy the default: items on no policy of their own follow it. A policy a dish uses cannot be deleted or switched off ("prices removals or extras on 1 dish").
+5. The guided screen's *Modifiers* step shows the same list (the make-up is saved when you press Next from *What comes with it*).
+6. Nothing is charged on an order yet: choosing a removal or an extra, and its fee, comes in 4.3.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

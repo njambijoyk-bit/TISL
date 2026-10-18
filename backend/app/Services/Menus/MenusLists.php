@@ -59,6 +59,9 @@ class MenusLists
         }
         if ($type === 'policies') {
             $this->policy($row, $d);
+            if ($row->exists && array_key_exists('is_active', $d) && ! $d['is_active'] && ($n = DishModifiers::usedBy((int) $row->id)) > 0) {
+                throw new BooksException("That policy prices removals or extras on {$n} dish".($n === 1 ? '' : 'es').'. Choose another policy on them before switching it off.');
+            }
         }
 
         return DB::transaction(function () use ($row, $type, $d) {
@@ -91,6 +94,9 @@ class MenusLists
         $row = $model::findOrFail($id);
         if ($type === 'policies' && $row->is_default) {
             throw new BooksException('That is the default policy. Make another one the default first.');
+        }
+        if ($type === 'policies' && ($n = DishModifiers::usedBy($id)) > 0) {
+            throw new BooksException("That policy prices removals or extras on {$n} dish".($n === 1 ? '' : 'es').'. Choose another policy on them first (Menus, Dishes, Modifiers).');
         }
         $row->delete();
     }

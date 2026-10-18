@@ -17,6 +17,7 @@ final class MenusSettings
         'receipt_footer' => '',          // a line printed at the foot of every receipt
         'tip_ledger_id' => null,         // where tips are booked (money held for staff); empty = the books' own Tips Payable account
         'service_charge_ledger_id' => null,
+        'modifier_fees_vatable' => true, // a fee for leaving something out or adding extra is part of the dish's price and carries the dish's own VAT; off: it is kept apart, without VAT
         'sell_through_sides' => false,   // a sold dish takes its stock through its side (the recipe the side is made from) instead of the dish's own recipe; off until it has been tested
         'qr_ordering' => true,           // guests may order from the table's QR code
         'qr_open_by_scan' => false,      // may a scan open an empty table? (off: staff seat the guests first)
@@ -214,7 +215,7 @@ final class MenusSettings
         if (! empty($in['sell_through_sides']) && ! SidesFromDishes::installed()) {
             throw new BooksException('Run database scripts 200_menus_sides.sql and 201_menus_sides_from_dishes.sql first: selling through sides needs them.');
         }
-        foreach (['sell_through_sides', 'qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts', 'rota_claims_need_approval', 'rota_clock_from_rota', 'rota_overtime_needs_approval', 'rota_overtime_staff', 'rota_clock_wifi', 'plans_enabled'] as $key) {
+        foreach (['modifier_fees_vatable', 'sell_through_sides', 'qr_ordering', 'qr_open_by_scan', 'custom_orders', 'rota_swaps_need_approval', 'rota_no_show_alerts', 'rota_claims_need_approval', 'rota_clock_from_rota', 'rota_overtime_needs_approval', 'rota_overtime_staff', 'rota_clock_wifi', 'plans_enabled'] as $key) {
             if (array_key_exists($key, $in)) {
                 $cur[$key] = (bool) $in[$key];
             }

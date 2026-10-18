@@ -8,10 +8,11 @@ import menusAPI from '../../_shared/api/menus';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, colors } from '../../_shared/theme/tokens';
 import useMakeup from '../lib/useMakeup';
+import { ModifiersSection } from './DishModifiers';
 import { AudienceSection, SizesSection, SlotsSection } from './DishMakeupModal';
 
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' };
-const STEPS = ['The dish', 'Sizes', 'What is in it', 'What comes with it', 'Choices', 'Packaging'];
+const STEPS = ['The dish', 'Sizes', 'What is in it', 'What comes with it', 'Modifiers', 'Packaging'];
 const INCLUDED = 'Included';
 
 /** Make a side, with its recipe, while setting up a dish: a name, how it is made, and the amount of each ingredient for one serving. */
@@ -81,6 +82,10 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
 
     return xs.map((s) => (s === has ? { ...s, choices: s.choices.filter((c) => Number(c.side_id) !== Number(id)) } : s)).filter((s) => s.choices.length > 0 || s.name !== INCLUDED);
   });
+  const saveThenNext = async () => {   // the modifiers come from the sides it is made of, so they are saved before that step
+    const res = await m.save();
+    if (res) setStep(4);
+  };
   const finish = async () => {
     const res = await m.save();
     if (res) { toast.success(res.message); onDone(); }
@@ -105,7 +110,11 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
       )}
       {step === 3 && <SlotsSection m={m} />}
       {step === 4 && (
-        <div data-testid="guide-choices" style={{ display: 'grid', gap: 8, fontSize: '0.84rem' }}>
+        <div data-testid="guide-choices" style={{ display: 'grid', gap: 14, fontSize: '0.84rem' }}>
+          <div>
+            <div style={{ fontWeight: 800, marginBottom: 6 }}>Leaving out and extra</div>
+            <ModifiersSection dish={dish} />
+          </div>
           <div>Choices are the older way to let a guest leave something out or add something (no onions, extra cheese), with a price for it. They sit beside the sides above.</div>
           <div><button type="button" style={small} onClick={async () => { const res = await m.save(); if (res) onChoices(dish); }}>Set up choices for {dish.name}</button></div>
           <div style={{ color: colors.textFaint, fontSize: '0.76rem' }}>This saves what you have done so far and opens the choices.</div>
@@ -115,7 +124,7 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
         <button type="button" style={small} onClick={onClose}>Cancel</button>
         {step > 1 && <button type="button" style={small} onClick={() => setStep(step - 1)}>Back</button>}
-        {step < STEPS.length - 1 && <button type="button" style={{ ...btnPrimary, padding: '6px 16px' }} onClick={() => setStep(step + 1)}>Next</button>}
+        {step < STEPS.length - 1 && <button type="button" style={{ ...btnPrimary, padding: '6px 16px' }} disabled={busy} onClick={step === 3 ? saveThenNext : () => setStep(step + 1)}>Next</button>}
         {step === STEPS.length - 1 && <button type="button" style={{ ...btnPrimary, padding: '6px 16px' }} disabled={busy} onClick={finish}>{busy ? 'Saving…' : 'Finish'}</button>}
       </div>
     </FormStack>
