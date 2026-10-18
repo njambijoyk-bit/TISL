@@ -10,6 +10,8 @@ use App\Services\Books\BooksException;
 use App\Services\Menus\DishRecipes;
 use App\Services\Menus\Ingredients;
 use App\Services\Menus\Sides;
+use App\Services\Menus\SidesFromDishes;
+use App\Services\Menus\IngredientUse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -28,7 +30,7 @@ class MenusSidesTest extends TestCase
     {
         parent::setUp();
         $this->createIngredientWorld();
-        $this->runSqlScripts('193_menus_config_foundation.sql', '200_menus_sides.sql');
+        $this->runSqlScripts('193_menus_config_foundation.sql', '200_menus_sides.sql', '201_menus_sides_from_dishes.sql');
         Schema::create('menus_stations', function ($t) { $t->id(); $t->string('name'); $t->unsignedBigInteger('location_id')->nullable(); $t->unsignedSmallInteger('target_minutes')->default(15); $t->boolean('is_default')->default(false); $t->boolean('is_active')->default(true); $t->integer('sort_order')->default(0); $t->timestamps(); });
         $this->jumbo = DB::table('menus_servings')->insertGetId(['name' => 'Jumbo', 'sort_order' => 1, 'is_active' => true]);
         $this->kids = DB::table('menus_servings')->insertGetId(['name' => 'Kids', 'sort_order' => 2, 'is_active' => true]);
@@ -203,5 +205,142 @@ class MenusSidesTest extends TestCase
         $this->fails(fn () => $this->sides()->save(['name' => 'X', 'recipe_id' => $this->ugali->id]), '200_menus_sides');
         app(DishRecipes::class)->deleteStandalone($this->ugali->id);   // nothing can use it, so it can go
         $this->assertSame(0, DishRecipe::count());
+    }
+
+    // ------------------------------------------------------------ 2.3 sides from the dishes' recipes
+
+    private function migrate(): array
+    {
+        return app(SidesFromDishes::class)->run();
+    }
+
+    private function pancakes(): \App\Models\Menus\Dish
+    {
+        $dish = $this->dish('Pancakes', 100);
+        app(DishRecipes::class)->save($dish, ['yield_qty' => 4, 'made_to_order' => false, 'note' => 'Thin ones', 'prep_minutes' => 5, 'cook_minutes' => 10, 'visibility' => 'public',
+            'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 400, 'waste_pct' => 5]], 'steps' => [['body' => 'Mix', 'minutes' => 2], ['body' => 'Fry', 'minutes' => 8]], 'times' => [['up_to' => 4, 'minutes' => 20]]]);
+
+        return $dish;
+    }
+
+    public function test_each_dishs_recipe_is_copied_into_a_recipe_of_its_own_and_a_side_is_made_from_it(): void
+    {
+        $dish = $this->pancakes();
+        $orig = DishRecipe::where('dish_id', $dish->id)->first();
+        $r = $this->migrate();
+        $this->assertSame([1, 1, 0], [$r['recipes'], $r['sides'], $r['already']]);
+        $copy = DishRecipe::where('copied_from_recipe_id', $orig->id)->first();
+        $this->assertNull($copy->dish_id);
+        $this->assertSame(['Pancakes', 4.0, false, 'Thin ones', 'public', 5, 10, null], [$copy->name, (float) $copy->yield_qty, (bool) $copy->made_to_order, $copy->note, $copy->visibility, $copy->prep_minutes, $copy->cook_minutes, $copy->yield_unit_id]);
+        $this->assertSame([[400.0, 5.0]], $copy->lines->map(fn ($l) => [(float) $l->quantity, (float) $l->waste_pct])->all());
+        $this->assertSame(['Mix', 'Fry'], $copy->steps->pluck('body')->all());
+        $this->assertSame([[4.0, 20]], $copy->times->map(fn ($t) => [(float) $t->up_to_qty, $t->minutes])->all());
+        $side = Side::where('from_dish_id', $dish->id)->first();
+        $this->assertSame(['Pancakes', $copy->id, 1.0, true], [$side->name, (int) $side->recipe_id, (float) $side->base_amount, (bool) $side->is_active]);
+        $this->assertSame($dish->id, (int) $orig->fresh()->dish_id, 'the dish keeps its own recipe');
+        $this->assertSame(1, DishRecipe::where('dish_id', $dish->id)->count());
+    }
+
+    public function test_the_copy_needs_exactly_what_the_original_needs(): void
+    {
+        $dish = $this->pancakes();
+        $orig = DishRecipe::where('dish_id', $dish->id)->first();
+        $this->migrate();
+        $copy = DishRecipe::where('copied_from_recipe_id', $orig->id)->first();
+        $use = app(IngredientUse::class);
+        $flour = $this->ing('Maize flour');
+        $this->assertEqualsWithDelta($use->needs($orig, 3)[$flour]['qty'], $use->needs($copy, 3)[$flour]['qty'], 0.000001);
+        $this->assertEqualsWithDelta($use->cost($orig, 1)['per_portion'], $use->cost($copy, 1)['per_portion'] ?? 0, 0.000001);
+    }
+
+    public function test_doing_it_again_copies_nothing_twice_and_fills_only_what_is_missing(): void
+    {
+        $this->pancakes();
+        $this->migrate();
+        $again = $this->migrate();
+        $this->assertSame([0, 0, 1], [$again['recipes'], $again['sides'], $again['already']]);
+        $this->assertSame([1, 1], [DishRecipe::whereNotNull('copied_from_recipe_id')->count(), Side::count()]);
+        Side::query()->delete();
+        $fill = $this->migrate();
+        $this->assertSame([0, 1], [$fill['recipes'], $fill['sides']], 'the side is made again from the copy that is there');
+        $this->assertSame(1, DishRecipe::whereNotNull('copied_from_recipe_id')->count());
+    }
+
+    public function test_names_that_are_taken_are_not_reused(): void
+    {
+        app(DishRecipes::class)->saveStandalone(['name' => 'Pancakes', 'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 1]]]);
+        $this->pancakes();
+        $second = $this->dish('Stew', 100, [['Maize flour', 5]]);
+        $third = $this->dish('Stew', 120, [['Maize flour', 6]]);
+        $this->migrate();
+        $names = Side::orderBy('id')->pluck('name')->all();
+        $this->assertCount(3, array_unique(array_map('mb_strtolower', $names)));
+        $this->assertContains('Pancakes (from the dish)', $names, 'a recipe already called Pancakes');
+        $this->assertContains('Stew', $names);
+        $this->assertContains('Stew (from the dish)', $names, 'two dishes with the same name');
+        $this->assertSame(3, DishRecipe::whereNotNull('copied_from_recipe_id')->count());
+        $this->assertNotNull(Side::where('from_dish_id', $second->id)->first());
+        $this->assertNotNull(Side::where('from_dish_id', $third->id)->first());
+    }
+
+    public function test_a_switched_off_recipe_gives_a_switched_off_side_and_a_dish_without_a_recipe_gives_nothing(): void
+    {
+        $dish = $this->pancakes();
+        DishRecipe::where('dish_id', $dish->id)->update(['is_active' => false]);
+        $this->dish('Plain', 50);
+        $this->migrate();
+        $side = Side::first();
+        $this->assertSame([false, 1], [(bool) $side->is_active, Side::count()]);
+        $this->assertFalse((bool) DishRecipe::where('copied_from_recipe_id', '>', 0)->first()->is_active);
+    }
+
+    public function test_a_recipe_that_uses_a_recipe_is_copied_with_that_line(): void
+    {
+        $base = app(DishRecipes::class)->saveStandalone(['name' => 'Base', 'yield_qty' => 2, 'yield_unit_id' => $this->kg, 'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 600]]]);
+        $dish = $this->dish('Stew dish');
+        app(DishRecipes::class)->save($dish, ['yield_qty' => 4, 'lines' => [['recipe_id' => $base->id, 'quantity' => 1]]]);
+        $this->migrate();
+        $copy = DishRecipe::whereNotNull('copied_from_recipe_id')->first();
+        $this->assertSame($base->id, (int) $copy->lines[0]->sub_recipe_id);
+    }
+
+    public function test_the_preview_says_what_it_would_do_and_changes_nothing(): void
+    {
+        $this->pancakes();
+        $this->dish('Stew', 100, [['Maize flour', 5]]);
+        $p = app(SidesFromDishes::class)->preview();
+        $this->assertSame([true, 2, 0], [$p['ready'], $p['dish_recipes'], $p['copied']]);
+        $this->assertSame(['Pancakes', 'Stew'], array_column($p['pending'], 'name'));
+        $this->assertSame([1, 2], [$p['pending'][0]['lines'], count($p['pending'])]);
+        $this->assertSame([0, 0], [DishRecipe::whereNotNull('copied_from_recipe_id')->count(), Side::count()]);
+        $this->migrate();
+        $after = app(SidesFromDishes::class)->preview();
+        $this->assertSame([2, 2, []], [$after['dish_recipes'], $after['copied'], $after['pending']]);
+    }
+
+    public function test_the_page_shows_what_is_waiting_and_makes_the_sides(): void
+    {
+        $this->pancakes();
+        $c = app(\App\Http\Controllers\Admin\MenusSidesController::class);
+        $this->assertSame([true, 1], [$c->index()->getData(true)['from_dishes']['ready'], $c->index()->getData(true)['from_dishes']['pending']]);
+        $this->assertSame(1, count($c->fromDishes()->getData(true)['pending']));
+        $res = $c->makeFromDishes()->getData(true);
+        $this->assertStringContainsString('1 recipe copied and 1 side made', $res['message']);
+        $this->assertStringContainsString('Nothing to do', $c->makeFromDishes()->getData(true)['message']);
+        $this->assertSame(0, $c->index()->getData(true)['from_dishes']['pending']);
+        $this->assertSame(['Pancakes'], array_column($c->index()->getData(true)['sides'], 'name'));
+    }
+
+    public function test_before_script_201_it_says_which_script(): void
+    {
+        $this->pancakes();
+        Schema::table('menus_sides', fn ($t) => $t->dropColumn('from_dish_id'));
+        $c = app(\App\Http\Controllers\Admin\MenusSidesController::class);
+        $this->assertFalse($c->index()->getData(true)['from_dishes']['ready']);
+        $this->assertFalse($c->fromDishes()->getData(true)['ready']);
+        $res = $c->makeFromDishes();
+        $this->assertSame(422, $res->getStatusCode());
+        $this->assertStringContainsString('201_menus_sides_from_dishes', $res->getData(true)['message']);
+        $this->assertSame(0, DishRecipe::whereNotNull('copied_from_recipe_id')->count());
     }
 }

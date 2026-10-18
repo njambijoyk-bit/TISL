@@ -97,6 +97,35 @@ function SideModal({ side, data, onClose, onDone }) {
   );
 }
 
+function FromDishes({ onClose, onDone }) {
+  const [plan, setPlan] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  useEffect(() => { menusAPI.sidesFromDishes().then(setPlan).catch((e) => setErr(errMsg(e, 'Could not work out what to do'))); }, []);
+  const go = async () => {
+    setBusy(true); setErr(null);
+    try { const res = await menusAPI.makeSidesFromDishes(); toast.success(res.message, { duration: 7000 }); onDone(); } catch (x) { setErr(errMsg(x, 'Could not make the sides')); } finally { setBusy(false); }
+  };
+  return (
+    <Modal title="Make sides from the dishes' recipes" onClose={onClose} width={720}>
+      <FormStack>
+        <FormError message={err} />
+        <p style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>
+          For each dish below, its recipe is copied into a recipe of its own (the same amounts, method and times, counted in portions) and a side of that name is made from the copy, with one portion in a serving.
+          The dish keeps its own recipe, so selling works exactly as it does now. Doing it again copies only what is not done yet.
+        </p>
+        {!plan ? <p style={{ color: colors.textMuted }}>Loading…</p> : !plan.pending.length ? <p style={{ margin: 0 }}>Nothing to do: every dish with a recipe has a side.</p> : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }} data-testid="from-dishes-plan">
+            <thead><tr><th style={th}>Dish</th><th style={th}>Becomes the side</th><th style={th}>Recipe</th></tr></thead>
+            <tbody>{plan.pending.map((p) => <tr key={p.dish_id}><td style={td}>{p.dish}</td><td style={td}><strong>{p.name}</strong></td><td style={td}>{p.lines} line{p.lines === 1 ? '' : 's'}, {p.made_to_order ? 'made to order' : 'made ahead'}</td></tr>)}</tbody>
+          </table>
+        )}
+        <ModalActions onCancel={onClose} submitLabel="Make the sides" busy={busy} disabled={!plan?.pending?.length} onSubmit={go} />
+      </FormStack>
+    </Modal>
+  );
+}
+
 export default function MenusSides() {
   const user = useAuthStore((s) => s.user);
   const canWrite = canManageMenus(user);
@@ -122,6 +151,13 @@ export default function MenusSides() {
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="sides">
         <HubHeader title="Sides" description="What is served: ugali, pilau, kale, a soda. A side is made from a recipe of its own, or is a ready-to-serve ingredient. Each says how much goes in a serving of each size. Dishes are built from sides." />
         {data && !data.ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 200_menus_sides.sql first (and 194 before it): until then sides can not be saved.</p>}
+        {data?.ready && data.from_dishes && !data.from_dishes.ready && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 201_menus_sides_from_dishes.sql to make sides from the dishes you already have.</p>}
+        {canWrite && data?.ready && data.from_dishes?.ready && data.from_dishes.pending > 0 && (
+          <div style={{ ...card, padding: 14, marginBottom: 14, display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }} data-testid="from-dishes-banner">
+            <span style={{ fontSize: '0.84rem' }}><strong>{data.from_dishes.pending}</strong> dish{data.from_dishes.pending === 1 ? ' has' : 'es have'} a recipe but no side yet. Sides can be made from them in one go; nothing about the dishes changes.</span>
+            <button type="button" style={btnPrimary} onClick={() => setModal({ from: true })}>Make sides from the dishes&apos; recipes</button>
+          </div>
+        )}
         {canWrite && data?.ready && <div style={{ marginBottom: 14 }}><button type="button" style={btnPrimary} onClick={() => setModal({ side: null })}>Add a side</button></div>}
         <div style={{ ...card, padding: 0, overflowX: 'auto' }} data-testid="sides-list">
           {loading && !data ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : !data?.sides?.length ? (
@@ -148,7 +184,8 @@ export default function MenusSides() {
           )}
         </div>
       </div>
-      {modal && data && <SideModal side={modal.side} data={data} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {modal && !modal.from && data && <SideModal side={modal.side} data={data} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {modal?.from && <FromDishes onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
     </AdminLayout>
   );
 }

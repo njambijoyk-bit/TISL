@@ -74,6 +74,11 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 4. Menus, Recipes: try to remove or switch off the recipe *Ugali*, or change its unit: refused while the side uses it. Menus, Ingredients: the same for Coke. Remove the side and they are free again.
 5. Nothing in the till or on the dishes changes yet: dishes are built from sides in step 3.
 
+## 0i. Sides from today's dishes (after script 201)
+1. Menus, Sides: a banner says how many dishes have a recipe but no side. Choose **Make sides from the dishes' recipes**: a list shows each dish, the side it becomes and its recipe (lines, made to order or ahead). Nothing is changed until you press **Make the sides**.
+2. After it: Menus, Recipes, *Recipes of their own* has a copy of each dish's recipe (the same lines, method and times, counted in portions, the note says where it came from), and Menus, Sides has a side of that name, 1 portion in a serving. The dishes' own recipes, costs and "can make now" are exactly as before, and a sale still takes the same stock.
+3. Press it again (or reload): "Nothing to do". Remove a side and press again: only that side is made again from the copy that is there. A dish with no recipe gets nothing. A name already used by a recipe, a side or another dish gets "(from the dish)" added.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

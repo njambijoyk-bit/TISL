@@ -16,7 +16,7 @@ class DishRecipe extends Model
 
     protected $table = 'menus_recipes';
 
-    protected $fillable = ['dish_id', 'name', 'yield_qty', 'yield_unit_id', 'made_to_order', 'note', 'visibility', 'prep_minutes', 'cook_minutes', 'is_active'];
+    protected $fillable = ['dish_id', 'copied_from_recipe_id', 'name', 'yield_qty', 'yield_unit_id', 'made_to_order', 'note', 'visibility', 'prep_minutes', 'cook_minutes', 'is_active'];
 
     protected $casts = ['yield_qty' => 'decimal:4', 'made_to_order' => 'boolean', 'is_active' => 'boolean'];
 

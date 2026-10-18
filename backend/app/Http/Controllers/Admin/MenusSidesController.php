@@ -13,6 +13,7 @@ use App\Services\Menus\DishRecipes;
 use App\Services\Menus\IngredientKinds;
 use App\Services\Menus\MenusLists;
 use App\Services\Menus\Sides;
+use App\Services\Menus\SidesFromDishes;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Schema;
 /** Menus → Sides: what is served (ugali, pilau, kale, a soda), what it is made from, and how much of it goes in each serving size. */
 class MenusSidesController extends Controller
 {
-    public function __construct(private Sides $sides)
+    public function __construct(private Sides $sides, private SidesFromDishes $fromDishes)
     {
     }
 
@@ -31,7 +32,7 @@ class MenusSidesController extends Controller
         }
 
         return response()->json([
-            'ready' => true, 'sides' => $this->sides->all(), 'servings_ready' => MenusLists::installed(),
+            'ready' => true, 'sides' => $this->sides->all(), 'servings_ready' => MenusLists::installed(), 'from_dishes' => ['ready' => SidesFromDishes::installed()] + (SidesFromDishes::installed() ? ['pending' => count($this->fromDishes->preview()['pending'])] : ['pending' => 0]),
             'recipes' => DishRecipes::has('name') ? DishRecipe::standalone()->with('yieldUnit')->where('is_active', true)->orderBy('name')->get()->map(fn (DishRecipe $r) => [
                 'id' => (int) $r->id, 'name' => $r->name, 'unit_id' => $r->yield_unit_id ? (int) $r->yield_unit_id : null, 'unit' => $r->yieldUnit?->code ?? 'portions', 'dimension' => $r->yieldUnit?->dimension])->values() : [],
             'ingredients' => Ingredient::with(['baseUnit', 'kind'])->where('is_active', true)->orderBy('name')->get()->filter(fn (Ingredient $i) => ! IngredientKinds::installed() || ! $i->kind_id || $i->kind?->sold_as_is)->map(fn (Ingredient $i) => [
@@ -57,6 +58,22 @@ class MenusSidesController extends Controller
             $s = $this->sides->save($d, $id);
 
             return response()->json(['message' => "{$s->name} saved.", 'side' => $this->sides->row($s)], $id === null ? 201 : 200);
+        });
+    }
+
+    /** What making sides from the dishes' recipes would do now (nothing is changed). */
+    public function fromDishes(): JsonResponse
+    {
+        return response()->json($this->fromDishes->preview());
+    }
+
+    /** Copy each dish's recipe into a recipe of its own and make a side from the copy, for the dishes not done yet. */
+    public function makeFromDishes(): JsonResponse
+    {
+        return $this->guard(function () {
+            $r = $this->fromDishes->run();
+
+            return response()->json(['message' => $r['sides'] === 0 && $r['recipes'] === 0 ? 'Nothing to do: every dish with a recipe already has a side.' : "Done: {$r['recipes']} recipe".($r['recipes'] === 1 ? '' : 's')." copied and {$r['sides']} side".($r['sides'] === 1 ? '' : 's').' made. The dishes keep their own recipes.'] + $r);
         });
     }
 

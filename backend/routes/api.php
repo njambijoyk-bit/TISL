@@ -951,6 +951,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock', [\App\Http\Controllers\Admin\MenusStockController::class, 'index']);   // what is on the shelf, per branch
         Route::get('/stock/receipts', [\App\Http\Controllers\Admin\MenusStockController::class, 'receipts']);
         Route::get('/stock/productions', [\App\Http\Controllers\Admin\MenusRecipesController::class, 'productions']);
+        Route::get('/stock/sides/from-dishes', [\App\Http\Controllers\Admin\MenusSidesController::class, 'fromDishes']);
         Route::get('/stock/sides', [\App\Http\Controllers\Admin\MenusSidesController::class, 'index']);
         Route::get('/stock/prepared', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'index']);
         Route::get('/stock/prepared/preview', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'preview']);
@@ -1102,6 +1103,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/stock/receive/preview', [$sk, 'previewReceive']);
             Route::post('/stock/opening', [$sk, 'opening']);
             Route::post('/stock/productions', [$sr, 'produce']);
+            Route::post('/stock/sides/from-dishes', [\App\Http\Controllers\Admin\MenusSidesController::class, 'makeFromDishes']);
             Route::post('/stock/sides', [\App\Http\Controllers\Admin\MenusSidesController::class, 'save']);
             Route::put('/stock/sides/{id}', [\App\Http\Controllers\Admin\MenusSidesController::class, 'save'])->whereNumber('id');
             Route::delete('/stock/sides/{id}', [\App\Http\Controllers\Admin\MenusSidesController::class, 'destroy'])->whereNumber('id');
