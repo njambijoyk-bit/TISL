@@ -40,6 +40,7 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
   }, [tip, waive, edits]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const due = quote?.total ?? total;
+  const blocked = Boolean(quote?.packaging_waiver?.amount > 0 && !quote.packaging_waiver.allowed);   // taking off a compulsory, priced line needs the permission to waive
   const handed = rows.reduce((n, r) => n + (Number(r.amount) || 0), 0);
   const change = Math.max(0, handed - due);
   const short = Math.max(0, due - handed);
@@ -64,7 +65,7 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
 
   return (
     <Modal title="Take payment" subtitle={`${service === 'dine_in' ? 'Dine in' : 'Take out'}`} onClose={onClose} width={520}
-      footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={{ ...big('transparent', 'inherit'), ...line }} onClick={onClose}>Back</button><button type="button" style={{ ...big('#059669'), opacity: busy || short > 0.004 || !quote ? 0.5 : 1 }} disabled={busy || short > 0.004 || !quote} onClick={go}>{busy ? 'Taking…' : `Take ${money(due)}`}</button></div>}>
+      footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={{ ...big('transparent', 'inherit'), ...line }} onClick={onClose}>Back</button><button type="button" style={{ ...big('#059669'), opacity: busy || short > 0.004 || !quote || blocked ? 0.5 : 1 }} disabled={busy || short > 0.004 || !quote || blocked} onClick={go}>{busy ? 'Taking…' : `Take ${money(due)}`}</button></div>}>
       <div style={{ display: 'grid', gap: 12 }} data-testid="pay">
         {quote && (
           <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 12px' }}>
@@ -102,6 +103,11 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
                 <option value="">Add packaging…</option>
                 {quote.packaging_choices.filter((c) => !quote.packaging.some((x) => x.item_id === c.item_id)).map((c) => <option key={c.item_id} value={c.item_id}>{c.name}{c.price ? ` (${money(c.price)})` : ' (free)'}</option>)}
               </select>
+            )}
+            {quote.packaging_waiver?.amount > 0 && (
+              <p role={quote.packaging_waiver.allowed ? 'status' : 'alert'} data-testid="packaging-waiver" style={{ margin: 0, fontSize: '0.8rem', color: quote.packaging_waiver.allowed ? '#b45309' : '#b91c1c' }}>
+                {quote.packaging_waiver.allowed ? `You are waiving ${money(quote.packaging_waiver.amount)} of packaging that is compulsory (${quote.packaging_waiver.items.join(', ')}). It is logged.` : `${quote.packaging_waiver.items.join(', ')} is compulsory and has a price: only someone who may waive packaging can take it off or reduce it. Put it back, or ask a manager.`}
+              </p>
             )}
             <small style={{ color: '#64748b' }}>Prices come from the packaging price list. The list is kept with the order; charging it on the bill comes with the posting step.</small>
           </div>

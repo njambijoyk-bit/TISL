@@ -178,6 +178,14 @@ With the stew's rule from 0v (container, 2 for each dish, compulsory, charged; f
 4. A tab: its list is worked out when it is paid, from all its rounds together. A per-order rule counts once for the whole tab.
 5. Nothing is charged for packaging yet, and the receipt does not show it: those come with the permission to waive (5.5), the posting (5.6) and the receipt (5.7).
 
+## 0x. Waiving compulsory packaging (after scripts 209 and 210)
+With the container compulsory and charged (15), the foil free, as in 0w. Sign in once as a cashier whose role does not have *Waive or remove takeaway packaging that is compulsory and has a price*, and once as a manager whose role does (the permission is set in the role builder).
+1. Cashier: take out two meals, **Pay**, press − on the container. A red note says the container is compulsory and has a price and that only someone who may waive packaging can reduce it; **Take** is greyed. Put it back and it clears.
+2. The cashier can take the free foil off, add a bag, and add containers (more than the rules asked) without the note.
+3. Manager: the same change shows an amber note ("You are waiving 15.00 ... It is logged") and **Take** works. The sale goes through.
+4. Swapping the container for the cheaper bag, or taking it to 0, is a waiver of the difference (4 x 15 asked, 4 x 5 charged: 40). Whoever waived is kept on the packaging line with the amount.
+5. A line that is priced but optional, or compulsory but free, can be taken off by anyone.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

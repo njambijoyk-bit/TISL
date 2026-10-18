@@ -108,32 +108,34 @@ class CounterService
         return [$channel, $loc, $lines, $dishes];
     }
 
-    public function quote(array $in, ?Carbon $now = null): array
+    public function quote(array $in, ?Carbon $now = null, ?User $by = null): array
     {
         [, $loc, $lines] = $this->prepare($in, $now);
         $p = $this->price($loc, $lines, (string) ($in['service'] ?? ''), (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in));
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $this->packagingFor($lines, (string) ($in['service'] ?? '') !== 'dine_in', $in);
+            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $this->packagingFor($lines, (string) ($in['service'] ?? '') !== 'dine_in', $in, $by);
     }
 
     /** What a tab comes to now, with the service charge and the tip asked for. */
-    public function quoteTab(MenuOrder $o, array $in): array
+    public function quoteTab(MenuOrder $o, array $in, ?User $by = null): array
     {
         $this->assertTab($o);
         $lines = $this->rebuild($o);
         $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $this->packagingFor($lines, (string) $o->service !== 'dine_in', $in);
+            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $this->packagingFor($lines, (string) $o->service !== 'dine_in', $in, $by);
     }
 
     /** The packaging list at checkout (the rules' list with the cashier's changes) and the items that may be added or swapped in. @return array{packaging: array, packaging_choices: array} */
-    private function packagingFor(array $lines, bool $takeaway, array $in): array
+    private function packagingFor(array $lines, bool $takeaway, array $in, ?User $by = null): array
     {
         $co = app(PackagingCheckout::class);
 
-        return ['packaging' => $co->resolve($lines, $takeaway, $in['packaging'] ?? null), 'packaging_choices' => $takeaway ? $co->choices() : []];
+        $list = $co->resolve($lines, $takeaway, $in['packaging'] ?? null);
+
+        return ['packaging' => $list, 'packaging_choices' => $takeaway ? $co->choices() : [], 'packaging_waiver' => $co->waiver($list, $by)];
     }
 
     private function label(array $in): string

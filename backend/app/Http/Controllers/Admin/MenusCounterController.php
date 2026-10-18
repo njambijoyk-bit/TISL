@@ -78,14 +78,14 @@ class MenusCounterController extends Controller
     {
         $d = $request->validate($this->rules());
 
-        return $this->guard(fn () => response()->json($this->counter->quote($d)));
+        return $this->guard(fn () => response()->json($this->counter->quote($d, null, $request->user())));
     }
 
     public function quoteTab(Request $request, int $id): JsonResponse
     {
         $d = $request->validate($this->rules());
 
-        return $this->guard(fn () => response()->json($this->counter->quoteTab(MenuOrder::findOrFail($id), $d)));
+        return $this->guard(fn () => response()->json($this->counter->quoteTab(MenuOrder::findOrFail($id), $d, $request->user())));
     }
 
     public function sell(Request $request): JsonResponse

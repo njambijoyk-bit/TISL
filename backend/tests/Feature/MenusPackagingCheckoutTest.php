@@ -40,7 +40,7 @@ class MenusPackagingCheckoutTest extends TestCase
     {
         parent::setUp();
         $this->createCounterWorld();
-        $this->runSqlScripts('193_menus_config_foundation.sql', '200_menus_sides.sql', '202_menus_dish_makeup.sql', '203_menus_order_lines_selection.sql', '207_menus_packaging_prices.sql', '208_menus_packaging_rules.sql', '209_menus_order_packaging.sql');
+        $this->runSqlScripts('193_menus_config_foundation.sql', '200_menus_sides.sql', '202_menus_dish_makeup.sql', '203_menus_order_lines_selection.sql', '207_menus_packaging_prices.sql', '208_menus_packaging_rules.sql', '209_menus_order_packaging.sql', '210_menus_order_packaging_waived.sql');
         app(IngredientKinds::class)->seedDefaults();
         $packaging = (int) IngredientKind::where('code', 'packaging')->value('id');
         foreach (['Container' => 'box', 'Bag' => 'bag', 'Foil' => 'foil'] as $name => $prop) {
@@ -92,6 +92,23 @@ class MenusPackagingCheckoutTest extends TestCase
     private function calc(array $items, bool $takeaway = true): array
     {
         return array_column(app(PackagingCalc::class)->forLines($this->lines($items), $takeaway), null, 'name');
+    }
+
+    /** Someone who may, or may not, waive packaging (the permission is data: the stand-in answers for the one permission asked about). */
+    private function person(bool $mayWaive): \App\Models\User
+    {
+        $u = new class() extends \App\Models\User {
+            public bool $may = false;
+
+            public function hasPermission(string $permission): bool
+            {
+                return $permission === 'menus.packaging.waive' && $this->may;
+            }
+        };
+        $u->may = $mayWaive;
+        $u->forceFill(['id' => $mayWaive ? 11 : 12]);
+
+        return $u;
     }
 
     private function co(): PackagingCheckout
@@ -181,7 +198,7 @@ class MenusPackagingCheckoutTest extends TestCase
     {
         $this->ruled();
         $o = app(CounterService::class)->sell(['items' => $this->meal(), 'service' => 'take_out', 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]],
-            'packaging' => [['item_id' => $this->box, 'quantity' => 3], ['item_id' => $this->foil, 'quantity' => 0, 'reason' => 'brought their own']]], null, $this->now);
+            'packaging' => [['item_id' => $this->box, 'quantity' => 3], ['item_id' => $this->foil, 'quantity' => 0, 'reason' => 'brought their own']]], $this->person(true), $this->now);
         $rows = OrderPackaging::where('order_id', $o->id)->orderBy('name')->get();
         $this->assertSame([['Container', 3, 4, 'rule', null], ['Foil', 0, 2, 'rule', 'brought their own']], $rows->map(fn ($r) => [$r->name, $r->quantity, $r->asked, $r->source, $r->reason])->all());
         $this->assertSame(['Container', 'Foil'], array_column($this->co()->forOrder($o), 'name'));
@@ -197,7 +214,7 @@ class MenusPackagingCheckoutTest extends TestCase
         $q = app(CounterService::class)->quoteTab($tab, ['packaging' => [['item_id' => $this->foil, 'quantity' => 1]]]);
         $this->assertSame([6, 1], [array_column($q['packaging'], 'quantity', 'item_id')[$this->box], array_column($q['packaging'], 'quantity', 'item_id')[$this->foil]], 'three meals: 2 containers each; the foil changed to 1');
         $this->assertSame([$this->bag, $this->box, $this->foil], array_column($q['packaging_choices'], 'item_id'), 'the items that may be added or swapped in, by name');
-        app(CounterService::class)->settleTab($tab, ['tenders' => [['payment_method_id' => 1, 'amount' => 9000]], 'packaging' => [['item_id' => $this->box, 'quantity' => 5]]]);
+        app(CounterService::class)->settleTab($tab, ['tenders' => [['payment_method_id' => 1, 'amount' => 9000]], 'packaging' => [['item_id' => $this->box, 'quantity' => 5]]], $this->person(true));
         $this->assertSame([5, 3], [(int) OrderPackaging::where('order_id', $tab->id)->where('item_id', $this->box)->value('quantity'), (int) OrderPackaging::where('order_id', $tab->id)->where('item_id', $this->foil)->value('quantity')]);
         $dine = app(CounterService::class)->quote(['items' => $this->meal(), 'service' => 'dine_in'], $this->now);
         $this->assertSame([[], []], [$dine['packaging'], $dine['packaging_choices']]);
@@ -212,5 +229,70 @@ class MenusPackagingCheckoutTest extends TestCase
         $this->fails(fn () => $this->resolve($this->meal(), [['item_id' => $this->box, 'quantity' => 1]]), '209_menus_order_packaging');
         $o = app(CounterService::class)->sell(['items' => $this->meal(), 'service' => 'take_out', 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]]], null, $this->now);
         $this->assertSame([], $this->co()->forOrder($o));
+    }
+
+    // ------------------------------------------------------------ 5.5 waiving
+
+    public function test_taking_off_or_reducing_a_compulsory_priced_line_is_a_waiver_for_the_amount_given_up(): void
+    {
+        $this->ruled();
+        $none = $this->resolve($this->meal(), null);
+        $this->assertSame([0.0, 0.0], [$none[$this->box]['waived'], $none[$this->foil]['waived']]);
+        $fewer = $this->resolve($this->meal(), [['item_id' => $this->box, 'quantity' => 3]]);
+        $this->assertSame(15.0, $fewer[$this->box]['waived'], 'one container of 4 not charged');
+        $off = $this->resolve($this->meal(), [['item_id' => $this->box, 'quantity' => 0, 'reason' => 'own pot']]);
+        $this->assertSame(60.0, $off[$this->box]['waived']);
+        $swapped = $this->resolve($this->meal(), [['item_id' => $this->bag, 'replaces' => $this->box]]);
+        $this->assertSame(40.0, $swapped[$this->bag]['waived'], '4 x 15 asked, 4 x 5 charged: the 40 difference is waived');
+        $more = $this->resolve($this->meal(), [['item_id' => $this->box, 'quantity' => 6], ['item_id' => $this->bag, 'quantity' => 2]]);
+        $this->assertSame([0.0, 0.0], [$more[$this->box]['waived'], $more[$this->bag]['waived']], 'more, or an addition, is never a waiver');
+        $freeOff = $this->resolve($this->meal(), [['item_id' => $this->foil, 'quantity' => 0]]);
+        $this->assertSame(0.0, $freeOff[$this->foil]['waived'], 'a free line can be taken off by anyone');
+    }
+
+    public function test_an_optional_priced_line_and_a_compulsory_free_line_can_be_removed_freely(): void
+    {
+        $this->rules()->save('side', $this->stew->id, [$this->rule($this->bag, ['charged' => true]), $this->rule($this->foil, ['compulsory' => true])]);
+        $r = $this->resolve($this->meal(1), [['item_id' => $this->bag, 'quantity' => 0], ['item_id' => $this->foil, 'quantity' => 0]]);
+        $this->assertSame([0.0, 0.0], [$r[$this->bag]['waived'], $r[$this->foil]['waived']]);
+        $this->assertFalse($r[$this->bag]['needs_waive']);
+        $o = app(CounterService::class)->sell(['items' => $this->meal(1), 'service' => 'take_out', 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]],
+            'packaging' => [['item_id' => $this->bag, 'quantity' => 0], ['item_id' => $this->foil, 'quantity' => 0]]], $this->person(false), $this->now);
+        $this->assertSame(2, OrderPackaging::where('order_id', $o->id)->count());
+    }
+
+    public function test_a_sale_that_waives_needs_the_permission_and_is_refused_without_it_and_nothing_is_kept(): void
+    {
+        $this->ruled();
+        $in = ['items' => $this->meal(), 'service' => 'take_out', 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]], 'packaging' => [['item_id' => $this->box, 'quantity' => 0, 'reason' => 'own pot']]];
+        $this->fails(fn () => app(CounterService::class)->sell($in, $this->person(false), $this->now), 'Only someone who may waive packaging');
+        $this->fails(fn () => app(CounterService::class)->sell($in, null, $this->now), 'Only someone who may waive packaging');
+        $this->assertSame([0, 0], [OrderPackaging::count(), \App\Models\Menus\MenuOrder::count()], 'a refused sale leaves nothing behind');
+        $o = app(CounterService::class)->sell($in, $this->person(true), $this->now);
+        $row = OrderPackaging::where('order_id', $o->id)->where('item_id', $this->box)->first();
+        $this->assertSame([0, 60.0, 11, 'own pot'], [$row->quantity, (float) $row->waived_amount, (int) $row->waived_by, $row->reason], 'logged: how much, and who');
+        $this->assertSame(60.0, array_sum(array_column($this->co()->forOrder($o), 'waived')));
+    }
+
+    public function test_the_quote_says_what_would_be_waived_and_whether_this_person_may(): void
+    {
+        $this->ruled();
+        $in = ['items' => $this->meal(), 'service' => 'take_out', 'packaging' => [['item_id' => $this->box, 'quantity' => 3]]];
+        $q = app(CounterService::class)->quote($in, $this->now, $this->person(false));
+        $this->assertSame([15.0, ['Container'], false], [$q['packaging_waiver']['amount'], $q['packaging_waiver']['items'], $q['packaging_waiver']['allowed']]);
+        $q = app(CounterService::class)->quote($in, $this->now, $this->person(true));
+        $this->assertTrue($q['packaging_waiver']['allowed']);
+        $q = app(CounterService::class)->quote(['items' => $this->meal(), 'service' => 'take_out'], $this->now, $this->person(false));
+        $this->assertSame([0.0, []], [$q['packaging_waiver']['amount'], $q['packaging_waiver']['items']], 'no changes, nothing waived');
+    }
+
+    public function test_before_script_210_the_permission_is_still_asked_and_the_sale_still_saves(): void
+    {
+        $this->ruled();
+        \Illuminate\Support\Facades\Schema::table('menus_order_packaging', function ($t) { $t->dropColumn(['waived_amount', 'waived_by']); });
+        $in = ['items' => $this->meal(), 'service' => 'take_out', 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]], 'packaging' => [['item_id' => $this->box, 'quantity' => 0]]];
+        $this->fails(fn () => app(CounterService::class)->sell($in, $this->person(false), $this->now), 'Only someone who may waive packaging');
+        $o = app(CounterService::class)->sell($in, $this->person(true), $this->now);
+        $this->assertSame(0, (int) OrderPackaging::where('order_id', $o->id)->where('item_id', $this->box)->value('quantity'));
     }
 }

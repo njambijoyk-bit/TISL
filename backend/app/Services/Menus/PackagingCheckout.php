@@ -39,7 +39,7 @@ class PackagingCheckout
     {
         $base = array_column($this->calc->forLines($lines, $takeaway), null, 'item_id');
         foreach ($base as &$b) {
-            $b += ['asked' => $b['quantity'], 'source' => 'rule', 'replaces_item_id' => null, 'reason' => null, 'removed' => false];
+            $b += ['asked' => $b['quantity'], 'source' => 'rule', 'replaces_item_id' => null, 'reason' => null, 'removed' => false, 'waived' => 0.0];
         }
         unset($b);
         $given = array_values(array_filter((array) $given));
@@ -83,7 +83,61 @@ class PackagingCheckout
             }
         }
 
-        return $this->sorted($out);
+        return $this->sorted($this->withWaived($base, $out));
+    }
+
+    /**
+     * A compulsory, priced line that ends with less to pay than the rules asked for (taken off, fewer, or swapped for something cheaper or free) has been waived by the amount of the difference. Adding
+     * more, or changing a line that is free or optional, never counts.
+     *
+     * @param array<int, array<string, mixed>> $base the rules' list by item id
+     * @param array<int, array<string, mixed>> $out the list with the changes, by item id
+     * @return array<int, array<string, mixed>>
+     */
+    private function withWaived(array $base, array $out): array
+    {
+        foreach ($out as $k => $l) {
+            $out[$k]['waived'] = $l['waived'] ?? 0.0;
+        }
+        foreach ($base as $id => $b) {
+            if (! $b['needs_waive']) {
+                continue;
+            }
+            $key = isset($out[$id]) && $out[$id]['source'] === 'rule' ? $id : array_key_first(array_filter($out, fn ($l) => ($l['replaces_item_id'] ?? null) === $id));
+            if ($key !== null && $key !== false) {
+                $out[$key]['waived'] = round(max(0.0, $b['amount'] - $out[$key]['amount']), 2);
+            }
+        }
+
+        return $out;
+    }
+
+    /** May this person waive a compulsory charge for packaging? */
+    public static function mayWaive(?User $by): bool
+    {
+        return (bool) $by?->hasPermission('menus.packaging.waive');
+    }
+
+    /**
+     * What a checkout list waives, and whether this person may: [amount, the names of the lines, allowed].
+     *
+     * @param array<int, array<string, mixed>> $resolved
+     * @return array{amount: float, items: string[], allowed: bool}
+     */
+    public function waiver(array $resolved, ?User $by): array
+    {
+        $lines = array_filter($resolved, fn ($l) => ($l['waived'] ?? 0) > 0);
+
+        return ['amount' => round(array_sum(array_column($lines, 'waived')), 2), 'items' => array_values(array_column($lines, 'name')), 'allowed' => self::mayWaive($by)];
+    }
+
+    /** A sale may not go through with a waived charge unless the person holds the permission to waive packaging. @param array<int, array<string, mixed>> $resolved */
+    public function assertMayWaive(array $resolved, ?User $by): void
+    {
+        $w = $this->waiver($resolved, $by);
+        if ($w['amount'] > 0 && ! $w['allowed']) {
+            throw new BooksException('Only someone who may waive packaging can take off or reduce '.implode(', ', $w['items']).': it is compulsory and has a price. Ask a manager.');
+        }
     }
 
     /** @param array<int, array<string, mixed>> $lines @return array<int, array<string, mixed>> */
@@ -120,11 +174,14 @@ class PackagingCheckout
         if (! self::installed()) {
             return;
         }
-        DB::transaction(function () use ($o, $resolved, $by) {
+        $this->assertMayWaive($resolved, $by);
+        $logs = Schema::hasColumn('menus_order_packaging', 'waived_amount');   // script 210
+        DB::transaction(function () use ($o, $resolved, $by, $logs) {
             OrderPackaging::where('order_id', $o->id)->delete();
             foreach ($resolved as $l) {
                 OrderPackaging::create(['order_id' => $o->id, 'item_id' => $l['item_id'], 'name' => $l['name'], 'quantity' => $l['quantity'], 'asked' => $l['asked'], 'unit_price' => $l['unit_price'], 'amount' => $l['amount'],
-                    'charged' => $l['charged'], 'compulsory' => $l['compulsory'], 'receipt' => $l['receipt'], 'source' => $l['source'], 'replaces_item_id' => $l['replaces_item_id'], 'reason' => $l['reason'], 'created_by' => $by?->id]);
+                    'charged' => $l['charged'], 'compulsory' => $l['compulsory'], 'receipt' => $l['receipt'], 'source' => $l['source'], 'replaces_item_id' => $l['replaces_item_id'], 'reason' => $l['reason'], 'created_by' => $by?->id]
+                    + ($logs ? ['waived_amount' => $l['waived'] ?? 0, 'waived_by' => ($l['waived'] ?? 0) > 0 ? $by?->id : null] : []));
             }
         });
     }
@@ -134,6 +191,7 @@ class PackagingCheckout
     {
         return self::installed() ? OrderPackaging::where('order_id', $o->id)->orderBy('name')->get()->map(fn (OrderPackaging $r) => [
             'item_id' => (int) $r->item_id, 'name' => $r->name, 'quantity' => (int) $r->quantity, 'asked' => (int) $r->asked, 'unit_price' => (float) $r->unit_price, 'amount' => (float) $r->amount, 'charged' => (bool) $r->charged,
-            'compulsory' => (bool) $r->compulsory, 'receipt' => $r->receipt, 'source' => $r->source, 'reason' => $r->reason, 'removed' => (int) $r->quantity === 0])->all() : [];
+            'compulsory' => (bool) $r->compulsory, 'receipt' => $r->receipt, 'source' => $r->source, 'reason' => $r->reason, 'removed' => (int) $r->quantity === 0,
+            'waived' => (float) ($r->waived_amount ?? 0), 'waived_by' => $r->waived_by ? (int) $r->waived_by : null])->all() : [];
     }
 }
