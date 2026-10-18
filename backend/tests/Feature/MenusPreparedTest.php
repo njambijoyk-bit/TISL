@@ -4,12 +4,16 @@ namespace Tests\Feature;
 
 use App\Models\Books\Voucher;
 use App\Models\Menus\DishRecipe;
+use App\Models\Menus\PrepCount;
 use App\Models\Menus\PrepLot;
 use App\Models\Menus\PrepMove;
 use App\Models\Menus\PrepRun;
 use App\Models\Menus\StockBatch;
 use App\Models\Menus\StockMove;
 use App\Models\Menus\StockUse;
+use App\Models\Menus\Waste;
+use App\Services\Menus\PrepCounts;
+use App\Services\Menus\WasteService;
 use App\Services\Books\BooksException;
 use App\Services\Menus\DishRecipes;
 use App\Services\Menus\PrepProduction;
@@ -29,9 +33,10 @@ class MenusPreparedTest extends TestCase
     {
         parent::setUp();
         $this->createIngredientWorld();
-        $this->runSqlScripts('198_menus_prepared_food.sql');
+        $this->runSqlScripts('193_menus_config_foundation.sql', '198_menus_prepared_food.sql', '199_menus_prepared_waste_counts.sql');
         $this->prepared = DB::table('ledgers')->insertGetId(['name' => 'Prepared Food Inventory', 'group_id' => DB::table('ledger_groups')->where('name', 'Stock-in-hand')->value('id')]);
         Schema::create('menus_chefs', function ($t) { $t->id(); $t->unsignedBigInteger('user_id')->default(0); $t->string('display_name'); $t->boolean('is_active')->default(true); $t->timestamps(); });
+        Schema::create('users', function ($t) { $t->id(); $t->string('name')->nullable(); });
         $this->pantry('Maize flour', 10000, 0.1);
     }
 
@@ -246,5 +251,244 @@ class MenusPreparedTest extends TestCase
         $page = app(\App\Http\Controllers\Admin\MenusPreparedController::class)->index(Request::create('/x', 'GET'))->getData(true);
         $this->assertFalse($page['ready']);
         $this->fails(fn () => $this->prep()->run($this->ugali(), 1, 1), '198_menus_prepared_food');
+    }
+
+    // ------------------------------------------------------------ 1.8 servings cut
+
+    private function serving(string $name, bool $active = true): int
+    {
+        return (int) DB::table('menus_servings')->insertGetId(['name' => $name, 'sort_order' => 1, 'is_active' => $active, 'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    public function test_a_batch_keeps_what_it_was_cut_into_with_the_servings_names(): void
+    {
+        $jumbo = $this->serving('Jumbo');
+        $kids = $this->serving('Kids');
+        $run = $this->prep()->run($this->ugali(), 1, 2.0, ['servings' => [['serving_id' => $jumbo, 'count' => 2], ['serving_id' => $kids, 'count' => '1']]]);
+        $this->assertSame([['serving_id' => $jumbo, 'name' => 'Jumbo', 'count' => 2], ['serving_id' => $kids, 'name' => 'Kids', 'count' => 1]], $run->fresh()->servings_cut);
+        $this->assertSame('2 Jumbo, 1 Kids', $run->fresh()->servingsLabel());
+        DB::table('menus_servings')->where('id', $jumbo)->update(['name' => 'Big']);
+        $this->assertSame('2 Jumbo, 1 Kids', $run->fresh()->servingsLabel(), 'a later rename does not change what was written down');
+        $none = $this->prep()->run($this->ugali(['name' => 'Ugali 2']), 1, 2.0, ['servings' => [['serving_id' => '', 'count' => '']]]);
+        $this->assertNull($none->fresh()->servingsLabel(), 'an empty row is nothing noted');
+    }
+
+    public function test_the_servings_are_checked_and_a_refused_batch_makes_nothing(): void
+    {
+        $jumbo = $this->serving('Jumbo');
+        $off = $this->serving('Old size', false);
+        $r = $this->ugali();
+        $this->fails(fn () => $this->prep()->run($r, 1, 2.0, ['servings' => [['serving_id' => 999, 'count' => 1]]]), 'servings on your list');
+        $this->fails(fn () => $this->prep()->run($r, 1, 2.0, ['servings' => [['serving_id' => $off, 'count' => 1]]]), 'servings on your list');
+        $this->fails(fn () => $this->prep()->run($r, 1, 2.0, ['servings' => [['serving_id' => $jumbo, 'count' => 0]]]), 'whole number');
+        $this->fails(fn () => $this->prep()->run($r, 1, 2.0, ['servings' => [['serving_id' => $jumbo, 'count' => 1.5]]]), 'whole number');
+        $this->fails(fn () => $this->prep()->run($r, 1, 2.0, ['servings' => [['serving_id' => $jumbo, 'count' => 1], ['serving_id' => $jumbo, 'count' => 2]]]), 'listed twice');
+        $this->assertSame([0, 0], [PrepRun::count(), count($this->posted)]);
+    }
+
+    public function test_before_script_199_a_batch_still_saves_and_servings_say_which_script(): void
+    {
+        Schema::table('menus_prep_runs', fn ($t) => $t->dropColumn('servings_cut'));
+        $jumbo = $this->serving('Jumbo');
+        $run = $this->prep()->run($this->ugali(), 1, 2.0);
+        $this->assertSame(1, PrepRun::count());
+        $this->assertNull($run->servingsLabel());
+        $this->fails(fn () => $this->prep()->run($this->ugali(['name' => 'Ugali 2']), 1, 2.0, ['servings' => [['serving_id' => $jumbo, 'count' => 1]]]), '199_menus_prepared_waste_counts');
+    }
+
+    // ------------------------------------------------------------ 1.9 waste
+
+    private function waste(): WasteService
+    {
+        return app(WasteService::class);
+    }
+
+    public function test_prepared_food_thrown_away_comes_off_the_batch_and_is_booked_to_waste(): void
+    {
+        $r = $this->ugali();
+        $this->prep()->run($r, 1, 2.0);
+        $this->posted = [];
+        $w = $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 0.5, 'kind' => 'spoilage', 'note' => 'Left out overnight', 'date' => '2026-10-18']);
+        $this->assertSame(1.5, (float) PrepLot::first()->qty_left);
+        $this->assertEqualsWithDelta(20.0, (float) $w->cost, 0.001, '0.5 kg at 40 a kg');
+        $this->assertSame($r->id, (int) $w->recipe_id);
+        $this->assertSame(['waste', -0.5], [PrepMove::where('kind', 'waste')->first()->kind, (float) PrepMove::where('kind', 'waste')->first()->quantity]);
+        $entries = collect($this->posted[0]['entries']);
+        $waste = (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');
+        $this->assertEqualsWithDelta(20.0, $entries->where('ledger_id', $waste)->where('side', 'D')->sum('amount'), 0.001, 'Dr Food Waste Expense');
+        $this->assertEqualsWithDelta(20.0, $entries->where('ledger_id', $this->prepared)->where('side', 'C')->sum('amount'), 0.001, 'Cr Prepared Food Inventory');
+        $this->assertStringContainsString('Ugali', $this->posted[0]['narration']);
+    }
+
+    public function test_waste_takes_the_soonest_expiring_batch_first_or_the_one_named(): void
+    {
+        $r = $this->ugali();
+        $late = $this->prep()->run($r, 1, 2.0, ['date' => '2026-10-17', 'expiry_date' => '2026-10-25']);
+        $soon = $this->prep()->run($r, 1, 2.0, ['date' => '2026-10-18', 'expiry_date' => '2026-10-19']);
+        $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 2.5, 'kind' => 'spoilage']);
+        $this->assertSame([1.5, 0.0], [(float) PrepLot::whereKey($late->lot_id)->value('qty_left'), (float) PrepLot::whereKey($soon->lot_id)->value('qty_left')], 'the one expiring sooner went first, then part of the other');
+        $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 0.5, 'kind' => 'plate', 'batch_id' => $late->lot_id]);
+        $this->assertSame(1.0, (float) PrepLot::whereKey($late->lot_id)->value('qty_left'));
+        $this->fails(fn () => $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 1.5, 'kind' => 'plate', 'batch_id' => $soon->lot_id]), 'is on the shelf here');
+    }
+
+    public function test_the_waste_is_checked(): void
+    {
+        $r = $this->ugali();
+        $this->prep()->run($r, 1, 2.0);
+        $dish = $this->dish('Pancakes', 100, [['Maize flour', 5]]);
+        $this->fails(fn () => $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 3, 'kind' => 'spoilage']), 'Only 2 kg of Ugali is on the shelf here, not 3');
+        $this->fails(fn () => $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 1, 'kind' => 'because']), 'why it was wasted');
+        $this->fails(fn () => $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 0, 'kind' => 'spoilage']), 'how much');
+        $this->fails(fn () => $this->waste()->record(['recipe_id' => DishRecipe::where('dish_id', $dish->id)->value('id'), 'location_id' => 1, 'quantity' => 1, 'kind' => 'spoilage']), "dish's recipe");
+        $this->fails(fn () => $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 1, 'kind' => 'spoilage', 'date' => '2999-01-01']), 'not come yet');
+        $this->assertSame(2.0, (float) PrepLot::first()->qty_left, 'nothing was taken');
+        $this->assertSame(0, Waste::count());
+    }
+
+    public function test_taking_a_prepared_waste_entry_back_restores_the_batch_and_cancels_the_journal(): void
+    {
+        $r = $this->ugali();
+        $run = $this->prep()->run($r, 1, 2.0);
+        $w = $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 0.75, 'kind' => 'over_prep']);
+        $this->assertSame(1.25, (float) PrepLot::first()->qty_left);
+        $this->fails(fn () => $this->prep()->cancel($run->fresh()), 'already been used');
+        $this->waste()->void($w);
+        $this->assertSame(2.0, (float) PrepLot::first()->qty_left);
+        $this->assertSame(['production', 'waste', 'waste_reversal'], PrepMove::orderBy('id')->pluck('kind')->all());
+        $this->assertCount(1, $this->cancelled, 'the waste journal is cancelled');
+        $this->fails(fn () => $this->waste()->void($w->fresh()), 'already taken back');
+        $this->prep()->cancel($run->fresh());   // whole again, so it can be undone
+        $this->assertSame('cancelled', $run->fresh()->status);
+    }
+
+    public function test_the_waste_log_and_report_show_prepared_food_by_name_and_unit(): void
+    {
+        $r = $this->ugali();
+        $this->prep()->run($r, 1, 2.0);
+        $this->waste()->record(['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 0.5, 'kind' => 'spoilage']);
+        $recent = $this->waste()->recent(1)[0];
+        $this->assertSame(['Ugali', 'kg', 0.5], [$recent['item'], $recent['unit'], $recent['quantity']]);
+        $report = $this->waste()->report('2026-01-01', '2999-12-31', 1);
+        $this->assertSame(['Ugali', 'kg'], [$report['by_item'][0]['name'], $report['by_item'][0]['unit']]);
+        $this->assertEqualsWithDelta(20.0, $report['total'], 0.001);
+    }
+
+    // ------------------------------------------------------------ 1.9 counts
+
+    private function counts(): PrepCounts
+    {
+        return app(PrepCounts::class);
+    }
+
+    private function entries(int $i): \Illuminate\Support\Collection
+    {
+        return collect($this->posted[$i]['entries']);
+    }
+
+    public function test_a_count_that_finds_less_takes_it_off_the_oldest_batches_and_books_the_loss(): void
+    {
+        $r = $this->ugali();
+        $old = $this->prep()->run($r, 1, 2.0, ['date' => '2026-10-16', 'expiry_date' => '2026-10-18']);
+        $new = $this->prep()->run($r, 1, 2.0, ['date' => '2026-10-17', 'expiry_date' => '2026-10-25']);
+        $this->posted = [];
+        $c = $this->counts()->record(1, [['recipe_id' => $r->id, 'counted' => 2.5]], ['date' => '2026-10-18', 'note' => 'Closing']);
+        $this->assertSame('PC-000001', $c->number);
+        $line = $c->lines[0];
+        $this->assertSame([4.0, 2.5, -1.5], [(float) $line->expected, (float) $line->counted, (float) $line->variance]);
+        $this->assertEqualsWithDelta(-60.0, (float) $line->value_change, 0.001, '1.5 kg lost at 40');
+        $this->assertSame([0.5, 2.0], [(float) PrepLot::whereKey($old->lot_id)->value('qty_left'), (float) PrepLot::whereKey($new->lot_id)->value('qty_left')], 'the lot that expires first is short');
+        $this->assertSame('count', PrepMove::where('kind', 'count')->first()->kind);
+        $waste = (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');
+        $this->assertEqualsWithDelta(60.0, $this->entries(0)->where('ledger_id', $waste)->where('side', 'D')->sum('amount'), 0.001, 'Dr Food Waste Expense');
+        $this->assertEqualsWithDelta(60.0, $this->entries(0)->where('ledger_id', $this->prepared)->where('side', 'C')->sum('amount'), 0.001, 'Cr Prepared Food Inventory');
+        $this->assertSame([-60.0, true, 1], [(float) $c->value_change, $c->journal_id !== null, count($this->posted)]);
+    }
+
+    public function test_a_count_that_finds_more_puts_it_on_the_shelf_as_a_batch_of_its_own(): void
+    {
+        $r = $this->ugali();
+        $this->prep()->run($r, 1, 2.0);
+        $this->posted = [];
+        $c = $this->counts()->record(1, [['recipe_id' => $r->id, 'counted' => 2.5]]);
+        $this->assertSame([2.0, 2.5, 0.5], [(float) $c->lines[0]->expected, (float) $c->lines[0]->counted, (float) $c->lines[0]->variance]);
+        $found = PrepLot::orderByDesc('id')->first();
+        $this->assertSame([0.5, 0.5, 40.0, null], [(float) $found->qty_in, (float) $found->qty_left, (float) $found->unit_cost, $found->run_id], 'costed at what the shelf already cost: 40 a kg');
+        $this->assertSame($c->number, $found->lot_no);
+        $this->assertEqualsWithDelta(20.0, (float) $c->value_change, 0.001);
+        $waste = (int) DB::table('ledgers')->where('name', 'Food Waste Expense')->value('id');
+        $this->assertEqualsWithDelta(20.0, $this->entries(0)->where('ledger_id', $this->prepared)->where('side', 'D')->sum('amount'), 0.001, 'Dr Prepared Food Inventory');
+        $this->assertEqualsWithDelta(20.0, $this->entries(0)->where('ledger_id', $waste)->where('side', 'C')->sum('amount'), 0.001, 'Cr Food Waste Expense');
+        $this->assertEqualsWithDelta(2.5, $this->counts()->expected($r->id, 1), 0.0001);
+    }
+
+    public function test_one_journal_books_the_net_of_several_recipes_and_no_difference_books_nothing(): void
+    {
+        $a = $this->ugali();
+        $b = $this->recipes()->saveStandalone(['name' => 'Rice', 'yield_qty' => 2, 'yield_unit_id' => $this->kg, 'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 400]]]);
+        $this->prep()->run($a, 1, 2.0);   // 40 a kg
+        $this->prep()->run($b, 1, 2.0);   // 20 a kg
+        $this->posted = [];
+        $c = $this->counts()->record(1, [['recipe_id' => $a->id, 'counted' => 1.0], ['recipe_id' => $b->id, 'counted' => 3.0]]);
+        $this->assertEqualsWithDelta(-40 + 20, (float) $c->value_change, 0.001, 'lost 40, found 20: net 20 lost');
+        $this->assertCount(1, $this->posted, 'one journal for the whole count');
+        $same = $this->counts()->record(1, [['recipe_id' => $a->id, 'counted' => 1.0], ['recipe_id' => $b->id, 'counted' => 3.0]]);
+        $this->assertSame([0.0, null, 1], [(float) $same->value_change, $same->journal_id, count($this->posted)], 'counting what is there books nothing');
+        $this->assertSame([0.0, 0.0], [(float) $same->lines[0]->variance, (float) $same->lines[1]->variance]);
+    }
+
+    public function test_a_recipe_never_made_that_is_found_is_costed_at_nothing_and_books_nothing(): void
+    {
+        $r = $this->ugali();
+        $c = $this->counts()->record(1, [['recipe_id' => $r->id, 'counted' => 1.0]]);
+        $this->assertSame([0.0, 1.0], [(float) $c->lines[0]->expected, (float) PrepLot::first()->qty_left]);
+        $this->assertSame([0.0, null, 0], [(float) $c->value_change, $c->journal_id, count($this->posted)]);
+    }
+
+    public function test_the_count_is_checked_and_a_refused_count_changes_nothing(): void
+    {
+        $r = $this->ugali();
+        $this->prep()->run($r, 1, 2.0);
+        $dish = $this->dish('Pancakes', 100, [['Maize flour', 5]]);
+        $this->posted = [];
+        $this->fails(fn () => $this->counts()->record(99, [['recipe_id' => $r->id, 'counted' => 1]]), 'Choose the branch');
+        $this->fails(fn () => $this->counts()->record(1, []), 'at least one recipe');
+        $this->fails(fn () => $this->counts()->record(1, [['recipe_id' => $r->id, 'counted' => '']]), 'at least one recipe');
+        $this->fails(fn () => $this->counts()->record(1, [['recipe_id' => $r->id, 'counted' => -1]]), 'less than nothing');
+        $this->fails(fn () => $this->counts()->record(1, [['recipe_id' => $r->id, 'counted' => 1], ['recipe_id' => $r->id, 'counted' => 2]]), 'counted twice');
+        $this->fails(fn () => $this->counts()->record(1, [['recipe_id' => DishRecipe::where('dish_id', $dish->id)->value('id'), 'counted' => 1]]), 'recipe of its own');
+        $this->fails(fn () => $this->counts()->record(1, [['recipe_id' => $r->id, 'counted' => 1]], ['date' => '2999-01-01']), 'not come yet');
+        $this->assertSame([2.0, 0, 0], [(float) PrepLot::first()->qty_left, PrepCount::count(), count($this->posted)]);
+    }
+
+    public function test_the_page_offers_servings_waste_reasons_and_counts_and_takes_waste_and_counts(): void
+    {
+        $jumbo = $this->serving('Jumbo');
+        $r = $this->ugali();
+        $c = app(\App\Http\Controllers\Admin\MenusPreparedController::class);
+        $res = $c->run(Request::create('/x', 'POST', ['recipe_id' => $r->id, 'location_id' => 1, 'qty' => 2, 'servings' => [['serving_id' => $jumbo, 'count' => 3]]]));
+        $this->assertSame(201, $res->getStatusCode());
+        $this->assertSame(201, $c->waste(Request::create('/x', 'POST', ['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 0.5, 'kind' => 'spoilage']))->getStatusCode());
+        $this->assertSame(422, $c->waste(Request::create('/x', 'POST', ['recipe_id' => $r->id, 'location_id' => 1, 'quantity' => 9, 'kind' => 'spoilage']))->getStatusCode());
+        $this->assertSame(201, $c->count(Request::create('/x', 'POST', ['location_id' => 1, 'lines' => [['recipe_id' => $r->id, 'counted' => 1]]]))->getStatusCode());
+        $this->assertSame(422, $c->count(Request::create('/x', 'POST', ['location_id' => 1, 'lines' => [['recipe_id' => $r->id, 'counted' => '']]]))->getStatusCode());
+        $page = $c->index(Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $this->assertSame([['id' => $jumbo, 'name' => 'Jumbo']], $page['servings']);
+        $this->assertSame('3 Jumbo', $page['runs'][0]['servings']);
+        $this->assertArrayHasKey('spoilage', $page['waste_kinds']);
+        $this->assertSame([true, true], [$page['counts_ready'], $page['waste_ready']]);
+        // 2 kg made, 0.5 kg wasted, so 1.5 on the shelf; counting 1 kg finds 0.5 kg short at 40 a kg
+        $this->assertSame(['PC-000001', -20.0, 1, 1], [$page['counts'][0]['number'], (float) $page['counts'][0]['value_change'], $page['counts'][0]['recipes'], $page['counts'][0]['short']]);
+        $this->assertEqualsWithDelta(1.0, collect($page['recipes'])->firstWhere('name', 'Ugali')['on_shelf'], 0.0001);
+    }
+
+    public function test_a_recipe_switched_off_with_stock_still_shows_so_it_can_be_counted_or_written_off(): void
+    {
+        $r = $this->ugali();
+        $this->prep()->run($r, 1, 2.0);
+        DishRecipe::whereKey($r->id)->update(['is_active' => false]);
+        $page = app(\App\Http\Controllers\Admin\MenusPreparedController::class)->index(Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $row = collect($page['recipes'])->firstWhere('name', 'Ugali');
+        $this->assertSame([false, 2.0], [$row['active'], (float) $row['on_shelf']]);
     }
 }

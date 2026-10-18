@@ -8,6 +8,8 @@ use App\Models\Menus\DishBatch;
 use App\Models\Menus\DishMove;
 use App\Models\Menus\DishRecipe;
 use App\Models\Menus\IngredientItem;
+use App\Models\Menus\PrepLot;
+use App\Models\Menus\PrepMove;
 use App\Models\Menus\StockBatch;
 use App\Models\Menus\StockMove;
 use App\Models\Menus\StockUse;
@@ -20,8 +22,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * The waste log: what was thrown away or eaten by staff, with a reason. What is wasted is an ingredient variant (Exe 2 kg), or a dish: a dish made to order writes off the
- * ingredients it is made of, a dish made ahead writes off its own portions. Stock leaves first-expiring first, expired and held lots included (spoilage is often exactly that),
+ * The waste log: what was thrown away or eaten by staff, with a reason. What is wasted is an ingredient variant (Exe 2 kg), prepared food (a recipe of its own, from its batches: Dr Food Waste Expense,
+ * Cr Prepared Food Inventory), or a dish: a dish made to order writes off the ingredients it is made of, a dish made ahead writes off its own portions. Stock leaves first-expiring first, expired and held lots included (spoilage is often exactly that),
  * at the cost of the lots, and the books get one journal: Dr Food Waste Expense, Cr Food Ingredients Inventory. Taking an entry back puts every lot's quantity back and cancels the journal.
  */
 class WasteService
@@ -44,7 +46,7 @@ class WasteService
     }
 
     /**
-     * @param array{location_id?: int, item_id?: ?int, batch_id?: ?int, dish_id?: ?int, quantity: float, unit?: string, kind: string, note?: ?string, date?: ?string} $in `unit` (pack, alt or base) is for ingredient variants; a dish is counted in portions
+     * @param array{location_id?: int, item_id?: ?int, batch_id?: ?int, dish_id?: ?int, recipe_id?: ?int, quantity: float, unit?: string, kind: string, note?: ?string, date?: ?string} $in `unit` (pack, alt or base) is for ingredient variants; a dish is counted in portions and prepared food in its recipe's own unit (`batch_id` then names one of its batches)
      */
     public function record(array $in, ?User $by = null): Waste
     {
@@ -62,8 +64,15 @@ class WasteService
         }
         $item = ! empty($in['item_id']) ? IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->find((int) $in['item_id']) : null;
         $dish = ! $item && ! empty($in['dish_id']) ? Dish::find((int) $in['dish_id']) : null;
-        if (! $item && ! $dish) {
+        $recipe = ! $item && ! $dish && ! empty($in['recipe_id']) ? DishRecipe::with('yieldUnit')->find((int) $in['recipe_id']) : null;
+        if (! $item && ! $dish && ! $recipe) {
             throw new BooksException('Choose what was wasted.');
+        }
+        if ($recipe && (! Schema::hasColumn('menus_waste', 'recipe_id') || ! PrepProduction::installed())) {
+            throw new BooksException('Run database script 199_menus_prepared_waste_counts.sql first: until then prepared food can not be written off.');
+        }
+        if ($recipe && $recipe->dish_id) {
+            throw new BooksException("{$recipe->title()} is a dish's recipe: a dish made ahead is written off as the dish.");
         }
         $note = mb_substr(trim((string) ($in['note'] ?? '')), 0, 200) ?: null;
         $date = ! empty($in['date']) ? Carbon::parse($in['date'])->toDateString() : today()->toDateString();
@@ -75,18 +84,28 @@ class WasteService
 
         $onlyLot = ! empty($in['batch_id']) ? (int) $in['batch_id'] : null;   // an expiring lot is thrown away as that lot
 
-        return DB::transaction(function () use ($item, $dish, $base, $loc, $kind, $note, $date, $reason, $by, $onlyLot) {
-            $w = Waste::create(['location_id' => $loc, 'item_id' => $item?->id, 'dish_id' => $dish?->id, 'quantity' => $base, 'cost' => 0, 'kind' => $kind, 'note' => $note, 'user_id' => $by?->id, 'wasted_on' => $date]);
+        return DB::transaction(function () use ($item, $dish, $recipe, $base, $loc, $kind, $note, $date, $reason, $by, $onlyLot) {
+            $w = Waste::create(['location_id' => $loc, 'item_id' => $item?->id, 'dish_id' => $dish?->id, 'quantity' => $base, 'cost' => 0, 'kind' => $kind, 'note' => $note, 'user_id' => $by?->id, 'wasted_on' => $date]
+                + ($recipe ? ['recipe_id' => $recipe->id] : []));
             $useId = null;
             if ($item) {
                 $cost = $this->writeOffItem($item, $loc, $base, $w, $date, $by, $onlyLot);
                 $byKind = [(int) ($item->ingredient->kind_id ?? 0) => $cost];
-            } else {
+            } elseif ($dish) {
                 [$cost, $useId, $byKind] = $this->writeOffDish($dish, $loc, $base, $w, $date, $by);
+            } else {
+                $cost = $this->writeOffRecipe($recipe, $loc, $base, $w, $date, $by, $onlyLot);
+                $byKind = [];
             }
             $cost = round($cost, 2);
-            // waste is Food Waste Expense; what comes off the shelf is taken from the account each kind's stock is carried on
-            $journal = $cost > 0 ? $this->use->bookKinds($byKind, 'waste', 'Waste: '.($item ? trim($item->ingredient->name.' '.$item->name) : $dish->name).' ('.$reason.')', $loc, Carbon::parse($date), $by) : null;
+            $what = $item ? trim($item->ingredient->name.' '.$item->name) : ($dish ? $dish->name : $recipe->title());
+            // waste is Food Waste Expense; what comes off the shelf is taken from the account each kind's stock is carried on (prepared food: Prepared Food Inventory)
+            $journal = null;
+            if ($cost > 0) {
+                $journal = $recipe
+                    ? $this->use->book(FoodLedgers::waste(), FoodLedgers::prepared(), $cost, "Waste: {$what} ({$reason})", $loc, Carbon::parse($date), $by)
+                    : $this->use->bookKinds($byKind, 'waste', "Waste: {$what} ({$reason})", $loc, Carbon::parse($date), $by);
+            }
             if ($journal && $useId) {
                 StockUse::whereKey($useId)->update(['journal_id' => $journal->id]);
             }
@@ -159,6 +178,37 @@ class WasteService
         return [$cost, null, [0 => $cost]];
     }
 
+    /** Prepared food thrown away: the batches it comes from, first-expiring first (expired and held ones included). @return float what it cost */
+    private function writeOffRecipe(DishRecipe $recipe, int $loc, float $qty, Waste $w, string $date, ?User $by, ?int $onlyLot = null): float
+    {
+        $lots = PrepLot::where('recipe_id', $recipe->id)->where('location_id', $loc)->where('qty_left', '>', 0)->when($onlyLot, fn ($q) => $q->whereKey($onlyLot))->lockForUpdate()->get()
+            ->sortBy(fn (PrepLot $b) => [$b->expiry_date?->toDateString() ?? '9999-12-31', (int) $b->id])->values();
+        $held = round((float) $lots->sum('qty_left'), 4);
+        if ($held + self::EPS < $qty) {
+            throw new BooksException("Only {$this->fmt($held)} {$this->unitOf($recipe)} of {$recipe->title()} is on the shelf here, not {$this->fmt($qty)}.");
+        }
+        $left = $qty;
+        $cost = 0.0;
+        foreach ($lots as $b) {
+            if ($left <= self::EPS) {
+                break;
+            }
+            $take = round(min((float) $b->qty_left, $left), 4);
+            PrepLot::whereKey($b->id)->update(['qty_left' => DB::raw('qty_left - '.number_format($take, 4, '.', ''))]);
+            PrepMove::create(['recipe_id' => $recipe->id, 'location_id' => $loc, 'lot_id' => $b->id, 'kind' => 'waste', 'quantity' => -$take, 'unit_cost' => $b->unit_cost, 'ref_type' => 'waste', 'ref_id' => $w->id,
+                'note' => Waste::KINDS[$w->kind], 'moved_on' => $date, 'created_by' => $by?->id]);
+            $cost += $take * (float) $b->unit_cost;
+            $left = round($left - $take, 4);
+        }
+
+        return $cost;
+    }
+
+    private function unitOf(DishRecipe $recipe): string
+    {
+        return $recipe->yieldUnit?->code ?? 'portions';
+    }
+
     /** A mistake: the stock goes back to the lots it came from and the journal is cancelled. */
     public function void(Waste $w, ?User $by = null): Waste
     {
@@ -177,6 +227,14 @@ class WasteService
                 DishBatch::whereKey($m->batch_id)->update(['qty_left' => DB::raw('qty_left + '.number_format($q, 4, '.', ''))]);
                 DishMove::create(['dish_id' => $m->dish_id, 'location_id' => $m->location_id, 'batch_id' => $m->batch_id, 'kind' => 'waste_reversal', 'quantity' => $q, 'unit_cost' => $m->unit_cost,
                     'ref_type' => 'waste', 'ref_id' => $w->id, 'note' => 'Waste entry taken back', 'moved_on' => today()->toDateString(), 'created_by' => $by?->id]);
+            }
+            if (PrepProduction::installed()) {
+                foreach (PrepMove::where('ref_type', 'waste')->where('ref_id', $w->id)->where('kind', 'waste')->get() as $m) {
+                    $q = abs((float) $m->quantity);
+                    PrepLot::whereKey($m->lot_id)->update(['qty_left' => DB::raw('qty_left + '.number_format($q, 4, '.', ''))]);
+                    PrepMove::create(['recipe_id' => $m->recipe_id, 'location_id' => $m->location_id, 'lot_id' => $m->lot_id, 'kind' => 'waste_reversal', 'quantity' => $q, 'unit_cost' => $m->unit_cost,
+                        'ref_type' => 'waste', 'ref_id' => $w->id, 'note' => 'Waste entry taken back', 'moved_on' => today()->toDateString(), 'created_by' => $by?->id]);
+                }
             }
             $this->use->reverse('waste', $w->id, $by, 'Waste entry taken back');
             foreach ((array) $w->voucher_ids as $id) {
@@ -198,7 +256,7 @@ class WasteService
         $names = $this->names($rows);
         $total = round((float) $rows->sum('cost'), 2);
         $sales = $this->foodSales($from, $to, $location);
-        $key = fn (Waste $w) => $w->item_id ? 'item:'.$w->item_id : 'dish:'.$w->dish_id;
+        $key = fn (Waste $w) => $this->keyOf($w);
 
         return ['from' => $from, 'to' => $to, 'total' => $total, 'entries' => $rows->count(), 'sales' => $sales, 'percent_of_sales' => $sales > 0 ? round($total / $sales * 100, 2) : null,
             'by_kind' => collect(Waste::KINDS)->map(fn ($label, $k) => ['kind' => $k, 'label' => $label, 'cost' => round((float) $rows->where('kind', $k)->sum('cost'), 2), 'entries' => $rows->where('kind', $k)->count()])->values()->all(),
@@ -215,14 +273,19 @@ class WasteService
         $users = DB::table('users')->whereIn('id', $rows->pluck('user_id')->filter())->pluck('name', 'id');
 
         return $rows->map(function (Waste $w) use ($names, $users) {
-            $n = $names[$w->item_id ? 'item:'.$w->item_id : 'dish:'.$w->dish_id] ?? ['name' => 'item', 'unit' => ''];
+            $n = $names[$this->keyOf($w)] ?? ['name' => 'item', 'unit' => ''];
 
             return ['id' => $w->id, 'date' => $w->wasted_on->toDateString(), 'item' => $n['name'], 'unit' => $n['unit'], 'quantity' => (float) $w->quantity, 'cost' => (float) $w->cost,
                 'kind' => $w->kind, 'kind_label' => Waste::KINDS[$w->kind] ?? $w->kind, 'note' => $w->note, 'by' => $users[$w->user_id] ?? null, 'voided' => (bool) $w->voided_at];
         })->all();
     }
 
-    /** @return array<string, array{name: string, unit: string}> keyed 'item:ID' / 'dish:ID' */
+    private function keyOf(Waste $w): string
+    {
+        return $w->item_id ? 'item:'.$w->item_id : ($w->dish_id ? 'dish:'.$w->dish_id : 'recipe:'.($w->recipe_id ?? 0));
+    }
+
+    /** @return array<string, array{name: string, unit: string}> keyed 'item:ID' / 'dish:ID' / 'recipe:ID' */
     private function names($rows): array
     {
         $out = [];
@@ -232,6 +295,11 @@ class WasteService
         }
         foreach (Dish::whereIn('id', $rows->pluck('dish_id')->filter())->pluck('name', 'id') as $id => $name) {
             $out['dish:'.$id] = ['name' => $name, 'unit' => 'portions'];
+        }
+        if ($ids = $rows->pluck('recipe_id')->filter()->all()) {
+            foreach (DishRecipe::with('yieldUnit')->whereIn('id', $ids)->get() as $r) {
+                $out['recipe:'.$r->id] = ['name' => $r->title(), 'unit' => $this->unitOf($r)];
+            }
         }
 
         return $out;

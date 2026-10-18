@@ -9,6 +9,7 @@ use App\Models\Menus\PrepLot;
 use App\Models\Menus\PrepMove;
 use App\Models\Menus\PrepRun;
 use App\Models\Menus\PrepRunInput;
+use App\Models\Menus\Serving;
 use App\Models\Menus\StockMove;
 use App\Models\Menus\StockUse;
 use App\Models\UnitOfMeasure;
@@ -76,7 +77,7 @@ class PrepProduction
      * Make a batch.
      *
      * @param array{qty?: mixed, unit_id?: ?int, date?: ?string, expiry_date?: ?string, chef_id?: ?int, started_at?: ?string, finished_at?: ?string, note?: ?string, client_key?: ?string,
-     *              inputs?: array<int, array{ingredient_id: int, qty: mixed}>} $o `qty` is the batch size (in `unit_id`, else the recipe's own unit); `output_qty` what really came out (default: the batch size)
+     *              servings?: array<int, array{serving_id: int, count: int}>, inputs?: array<int, array{ingredient_id: int, qty: mixed}>} $o `qty` is the batch size (in `unit_id`, else the recipe's own unit); `output_qty` what really came out (default: the batch size)
      */
     public function run(DishRecipe $recipe, int $locationId, float $planned, array $o = [], ?User $by = null): PrepRun
     {
@@ -109,16 +110,17 @@ class PrepProduction
         if ($expiry && $expiry->lt($on)) {
             throw new BooksException('The use-by date is before the day the batch was made.');
         }
+        $cut = $this->servingsCut((array) ($o['servings'] ?? []));
         $started = ! empty($o['started_at']) ? Carbon::parse($o['started_at']) : null;
         $finished = ! empty($o['finished_at']) ? Carbon::parse($o['finished_at']) : null;
         if ($started && $finished && $finished->lt($started)) {
             throw new BooksException('The batch finished before it started: check the two times.');
         }
 
-        return DB::transaction(function () use ($recipe, $locationId, $planned, $output, $o, $by, $on, $expiry, $started, $finished) {
+        return DB::transaction(function () use ($recipe, $locationId, $planned, $output, $o, $by, $on, $expiry, $started, $finished, $cut) {
             $run = PrepRun::create(['number' => 'TMP'.uniqid(), 'recipe_id' => $recipe->id, 'location_id' => $locationId, 'chef_id' => $o['chef_id'] ?? null, 'status' => 'posted', 'planned_qty' => $planned, 'qty' => $output,
                 'unit_id' => $recipe->yield_unit_id, 'expected_minutes' => $this->times->expected($recipe, $planned), 'started_at' => $started, 'finished_at' => $finished, 'client_key' => ($o['client_key'] ?? null) ?: null,
-                'note' => isset($o['note']) && trim((string) $o['note']) !== '' ? mb_substr(trim((string) $o['note']), 0, 255) : null, 'made_on' => $on->toDateString(), 'created_by' => $by?->id]);
+                'note' => isset($o['note']) && trim((string) $o['note']) !== '' ? mb_substr(trim((string) $o['note']), 0, 255) : null, 'made_on' => $on->toDateString(), 'created_by' => $by?->id] + ($cut !== null ? ['servings_cut' => $cut] : []));
             $run->update(['number' => 'PB-'.str_pad((string) $run->id, 6, '0', STR_PAD_LEFT)]);
 
             [$expected, $actual] = $this->inputsFor($recipe, $planned, (array) ($o['inputs'] ?? []));
@@ -162,6 +164,43 @@ class PrepProduction
 
             return $run->fresh();
         });
+    }
+
+    /**
+     * What a batch was cut into: [{serving_id, count}] checked against the servings list, kept with the serving's name as it was.
+     *
+     * @param array<int, array{serving_id?: mixed, count?: mixed}> $rows
+     * @return ?array<int, array{serving_id: int, name: string, count: int}> null when nothing was noted
+     */
+    private function servingsCut(array $rows): ?array
+    {
+        $rows = array_values(array_filter($rows, fn ($r) => ! empty($r['serving_id']) || ! empty($r['count'])));
+        if (! $rows) {
+            return null;
+        }
+        if (! MenusLists::installed() || ! Schema::hasColumn('menus_prep_runs', 'servings_cut')) {
+            throw new BooksException('Run database script 199_menus_prepared_waste_counts.sql (and 193) first: until then the servings a batch was cut into can not be kept.');
+        }
+        $out = [];
+        $seen = [];
+        foreach ($rows as $i => $r) {
+            $n = $i + 1;
+            $serving = Serving::find((int) ($r['serving_id'] ?? 0));
+            if (! $serving || ! $serving->is_active) {
+                throw new BooksException("Servings row {$n}: choose one of the servings on your list (Menus, Configuration).");
+            }
+            $count = (float) ($r['count'] ?? 0);
+            if ($count < 1 || floor($count) !== $count) {
+                throw new BooksException("Servings row {$n}: say how many {$serving->name} servings, as a whole number.");
+            }
+            if (isset($seen[$serving->id])) {
+                throw new BooksException("{$serving->name} is listed twice: add the numbers together.");
+            }
+            $seen[$serving->id] = true;
+            $out[] = ['serving_id' => (int) $serving->id, 'name' => $serving->name, 'count' => (int) $count];
+        }
+
+        return $out;
     }
 
     /** Only a recipe of its own, switched on, with something in it, is made in a batch here. */

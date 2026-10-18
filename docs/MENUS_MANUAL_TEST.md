@@ -56,6 +56,12 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 8. Undo the batch: the ingredients are back and the journal is cancelled. A batch that has been used can not be undone, and its recipe's unit can not change.
 9. A chef without `menus.manage` sees the page but not Make a batch or Undo.
 
+## 0f. Servings cut, prepared waste and counts (after script 199)
+1. Menus, Configuration: have servings (Jumbo, Medium, Kids). Menus, Prepared food, Make a batch: under *What it was cut into* add 2 Jumbo, 2 Medium, 1 Kids. Expect it under the batch as "Cut into 2 Jumbo, 2 Medium, 1 Kids". A serving not on the list, zero, a fraction or the same serving twice is refused.
+2. On the shelf, **Write off** on Ugali: 0.5 kg, why Spoilage. Expect: the shelf is 0.5 kg lower; Books: **Dr Food Waste Expense, Cr Prepared Food Inventory** for 0.5 kg at the batch cost; the entry in Menus, Operations, the waste log and report, named Ugali in kg. Taking the entry back (in the waste log) puts the batch back and cancels the journal. More than the shelf holds is refused. Choosing a batch writes off from that one; otherwise the oldest use-by goes first.
+3. **Count the shelf**: enter 1 kg for Ugali when the system says 1.5. Expect the difference shown in red, the count in *Counts*, the shelf at 1 kg, and one journal Dr Food Waste Expense, Cr Prepared Food Inventory for 0.5 kg. Count 2 kg when it says 1.5: a "found" batch of 0.5 kg appears on the shelf, and the journal goes the other way. Counting exactly what is there books nothing. Leave a recipe empty to skip it.
+4. A batch that has been written off or counted short can no longer be undone.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

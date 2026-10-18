@@ -12,10 +12,10 @@ class PrepRun extends Model
     protected $table = 'menus_prep_runs';
 
     protected $fillable = ['number', 'recipe_id', 'location_id', 'chef_id', 'status', 'planned_qty', 'qty', 'unit_id', 'expected_minutes', 'started_at', 'finished_at', 'cost', 'unit_cost',
-        'lot_id', 'use_id', 'client_key', 'note', 'made_on', 'created_by', 'cancelled_at'];
+        'lot_id', 'use_id', 'client_key', 'note', 'servings_cut', 'made_on', 'created_by', 'cancelled_at'];
 
     protected $casts = ['made_on' => 'date', 'started_at' => 'datetime', 'finished_at' => 'datetime', 'cancelled_at' => 'datetime', 'planned_qty' => 'decimal:4', 'qty' => 'decimal:4',
-        'cost' => 'decimal:2', 'unit_cost' => 'decimal:6', 'expected_minutes' => 'integer'];
+        'cost' => 'decimal:2', 'unit_cost' => 'decimal:6', 'expected_minutes' => 'integer', 'servings_cut' => 'array'];
 
     public function recipe(): BelongsTo
     {
@@ -30,6 +30,14 @@ class PrepRun extends Model
     public function inputs(): HasMany
     {
         return $this->hasMany(PrepRunInput::class, 'run_id')->orderBy('id');
+    }
+
+    /** What the batch was cut into, in words: "2 Jumbo, 1 Kids". */
+    public function servingsLabel(): ?string
+    {
+        $cut = (array) $this->servings_cut;
+
+        return $cut ? implode(', ', array_map(fn ($c) => ($c['count'] ?? 0).' '.($c['name'] ?? ''), $cut)) : null;
     }
 
     /** How long it took, in minutes, when both times were noted. */

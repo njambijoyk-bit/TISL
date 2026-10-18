@@ -1100,6 +1100,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/stock/opening', [$sk, 'opening']);
             Route::post('/stock/productions', [$sr, 'produce']);
             Route::post('/stock/prepared/runs', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'run']);
+            Route::post('/stock/prepared/waste', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'waste']);
+            Route::post('/stock/prepared/counts', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'count']);
             Route::post('/stock/prepared/runs/{id}/cancel', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'cancel'])->whereNumber('id');
             Route::post('/stock/productions/{id}/cancel', [$sr, 'cancelRun'])->whereNumber('id');
             $ml = \App\Http\Controllers\Admin\MenusListsController::class;
