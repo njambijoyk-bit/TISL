@@ -62,6 +62,22 @@ class MenusSidesController extends Controller
         });
     }
 
+    /** A side and its recipe in one go, for the guided dish screen. Body: name, yield_qty?, made_to_order?, lines[{ingredient_id, quantity, unit?, waste_pct?}], base_amount?, station_id?. */
+    public function quick(Request $request, \App\Services\Menus\SideWithRecipe $make): JsonResponse
+    {
+        $d = $request->validate([
+            'name' => 'required|string|max:80', 'yield_qty' => 'nullable|numeric|min:0.0001', 'made_to_order' => 'nullable|boolean', 'base_amount' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'note' => 'nullable|string|max:255',
+            'lines' => 'required|array|min:1|max:60', 'lines.*.ingredient_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric|min:0', 'lines.*.unit' => 'nullable|string|in:base,alt', 'lines.*.waste_pct' => 'nullable|numeric|min:0|max:90',
+        ]);
+        ksort($d['lines']);
+
+        return $this->guard(function () use ($d, $make) {
+            $r = $make->make($d);
+
+            return response()->json(['message' => "{$r['side']->name} made, with its recipe.", 'side' => $this->sides->row($r['side'])], 201);
+        });
+    }
+
     /** Is it safe to switch on selling through sides: copies that differ from their dishes' recipes, dishes without a side, stock on the old shelf. */
     public function readiness(SidesReadiness $readiness): JsonResponse
     {

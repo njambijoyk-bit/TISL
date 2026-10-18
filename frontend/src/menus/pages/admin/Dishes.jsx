@@ -12,6 +12,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import DishGuide from '../../components/DishGuide';
 import DishMakeupBuild from '../../components/DishMakeupBuild';
 import DishMakeupModal from '../../components/DishMakeupModal';
 import DishOptionsModal from '../../components/DishOptionsModal';
@@ -150,7 +151,12 @@ export default function Dishes() {
               {(data?.branches ?? []).map((b) => <option key={b.id} value={b.id}>Available at {b.name}</option>)}
             </SelectInput>
           </div>
-          {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ dish: null })} disabled={!data?.settings_ready}><Plus size={14} /> New dish</button>}
+          {canWrite && (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" style={btnGhost} onClick={() => setModal({ guide: {} })} disabled={!data?.settings_ready}>New dish, guided</button>
+              <button type="button" style={btnPrimary} onClick={() => setModal({ dish: null })} disabled={!data?.settings_ready}><Plus size={14} /> New dish</button>
+            </div>
+          )}
         </div>
 
         {canWrite && <DishMakeupBuild onDone={load} />}
@@ -182,6 +188,7 @@ export default function Dishes() {
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ dish: d })}>Edit</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ options: d })}>Choices</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ makeup: d })}>Make-up</button>}
+                    {canWrite && <button type="button" style={small} onClick={() => setModal({ guide: d })}>Guided</button>}
                     <Link to="/admin/menus/recipes" style={{ ...small, display: 'inline-block', textDecoration: 'none' }}>Recipe</Link>
                     {canWrite && <button type="button" style={small} onClick={() => toggleSoldOut(d)}>{d.sold_out_today ? 'Available again' : 'Sold out today'}</button>}
                     {canWrite && <button type="button" style={small} onClick={() => remove(d)}>Delete</button>}
@@ -195,7 +202,8 @@ export default function Dishes() {
       </div>
       {modal?.options && <DishOptionsModal dish={modal.options} onClose={() => setModal(null)} onDone={done} />}
       {modal?.makeup && <DishMakeupModal dish={modal.makeup} onClose={() => setModal(null)} onDone={done} />}
-      {modal && !modal.options && !modal.makeup && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
+      {modal?.guide && data && <DishGuide dish={modal.guide} data={data} onClose={() => { setModal(null); load(); }} onDone={done} onChoices={(d) => { setModal({ options: d }); load(); }} />}
+      {modal && !modal.options && !modal.makeup && !modal.guide && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }

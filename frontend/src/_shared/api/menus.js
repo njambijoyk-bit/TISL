@@ -44,6 +44,7 @@ export const menusAPI = {
   sidesReadiness: async () => (await api.get('/admin/menus/stock/sides/readiness')).data,
   sidesFromDishes: async () => (await api.get('/admin/menus/stock/sides/from-dishes')).data,
   makeSidesFromDishes: async () => (await api.post('/admin/menus/stock/sides/from-dishes')).data,
+  quickSide: async (payload) => (await api.post('/admin/menus/stock/sides/quick', payload)).data,
   removeSide: async (id) => (await api.delete(`/admin/menus/stock/sides/${id}`)).data,
   preparedFood: async (params) => (await api.get('/admin/menus/stock/prepared', { params })).data,
   preparedPreview: async (params) => (await api.get('/admin/menus/stock/prepared/preview', { params })).data,

@@ -1110,6 +1110,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/stock/opening', [$sk, 'opening']);
             Route::post('/stock/productions', [$sr, 'produce']);
             Route::post('/stock/sides/from-dishes', [\App\Http\Controllers\Admin\MenusSidesController::class, 'makeFromDishes']);
+            Route::post('/stock/sides/quick', [\App\Http\Controllers\Admin\MenusSidesController::class, 'quick']);
             Route::post('/stock/sides', [\App\Http\Controllers\Admin\MenusSidesController::class, 'save']);
             Route::put('/stock/sides/{id}', [\App\Http\Controllers\Admin\MenusSidesController::class, 'save'])->whereNumber('id');
             Route::delete('/stock/sides/{id}', [\App\Http\Controllers\Admin\MenusSidesController::class, 'destroy'])->whereNumber('id');

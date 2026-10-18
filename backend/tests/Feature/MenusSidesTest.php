@@ -343,4 +343,19 @@ class MenusSidesTest extends TestCase
         $this->assertStringContainsString('201_menus_sides_from_dishes', $res->getData(true)['message']);
         $this->assertSame(0, DishRecipe::whereNotNull('copied_from_recipe_id')->count());
     }
+
+    public function test_a_side_and_its_recipe_are_made_together_or_not_at_all(): void
+    {
+        $make = app(\App\Services\Menus\SideWithRecipe::class);
+        $this->fails(fn () => $make->make(['name' => ' ', 'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 10]]]), 'Give the side a name');
+        $this->fails(fn () => $make->make(['name' => 'Wet fry', 'lines' => []]), 'at least one ingredient');
+        $this->fails(fn () => $make->make(['name' => 'Wet fry', 'lines' => [['ingredient_id' => 99999, 'quantity' => 10]]]), 'ingredient');
+        $this->assertSame(0, Side::where('name', 'Wet fry')->count());
+        $this->assertSame(0, DishRecipe::where('name', 'Wet fry')->count(), 'a recipe that failed is not left behind');
+        $r = $make->make(['name' => 'Wet fry', 'yield_qty' => 2, 'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 100]]]);
+        $this->assertSame(['Wet fry', true, (int) $r['recipe']->id], [$r['side']->name, (bool) $r['recipe']->made_to_order, (int) $r['side']->recipe_id]);
+        $this->assertSame(2.0, (float) $r['recipe']->yield_qty);
+        $this->fails(fn () => $make->make(['name' => 'Wet fry', 'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 1]]]), 'already a recipe called');
+        $this->assertSame(1, Side::where('name', 'Wet fry')->count());
+    }
 }
