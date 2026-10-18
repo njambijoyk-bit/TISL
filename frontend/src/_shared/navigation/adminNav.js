@@ -4,7 +4,7 @@ import {
   Users, Star, TicketPercent, Landmark, Receipt, BarChart2,
   LifeBuoy, IdCardLanyard, Newspaper, Bot, ClipboardList, GraduationCap,
   Truck, Megaphone, Pin, Boxes, AlertTriangle, Settings, Bug, FolderCode, FolderCog, UtensilsCrossed, Salad, Settings2, LayoutList,
-  Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, ClipboardCheck, LibraryBig, BookMarked,
+  Coins, Armchair, BellRing, Soup, CakeSlice, ChefHat, CookingPot, ClipboardCheck, LibraryBig, BookMarked,
   GitBranch, Warehouse, Layers, IdCard, ScanLine, LayoutGrid, Palette, BookOpen, Banknote, ListTree, TrendingUp, UserCircle, Building2, QrCode, CalendarDays,
   ShieldAlert,
 } from 'lucide-react';
@@ -49,6 +49,7 @@ export const MENUS_TABS = [
   { title: 'Ingredients & Supplies', key: 'I', path: '/admin/menus/ingredients', icon: Salad, color: '#22c55e', perm: 'menus.view' },
   { title: 'Stock', key: 'S', path: '/admin/menus/stock', icon: Warehouse, color: '#0ea5e9', perm: 'menus.view' },
   { title: 'Recipes', key: 'E', path: '/admin/menus/recipes', icon: ClipboardList, color: '#f59e0b', perm: 'menus.view' },
+  { title: 'Prepared food', key: 'B', path: '/admin/menus/prepared', icon: CookingPot, color: '#d97706', perm: 'menus.view' },
   { title: 'Allergens', key: 'A', path: '/admin/menus/allergens', icon: ShieldAlert, color: '#dc2626', perm: 'menus.view' },
   { title: 'Configuration', path: '/admin/menus/settings', icon: Settings2, color: '#64748b', perm: 'menus.view' },
 ];
@@ -255,6 +256,7 @@ export const ADMIN_NAV = [
       {
         id: 'recipes', title: 'Recipes', icon: ClipboardList, color: '#f59e0b', path: '/admin/menus/recipes', perm: 'menus.view', keywords: 'recipe ingredients manufacture production made to order dish',
       },
+      { id: 'prepared', title: 'Prepared food', icon: CookingPot, color: '#d97706', path: '/admin/menus/prepared', perm: 'menus.view', keywords: 'prepared food batch make cook ahead ugali stew base lot shelf use-by chef production' },
       { id: 'allergens', title: 'Allergens', icon: ShieldAlert, color: '#dc2626', path: '/admin/menus/allergens', perm: 'menus.view', keywords: 'allergens what it is diet vegetarian vegan halal gluten dairy nut free tags' },
     ],
   },

@@ -39,6 +39,13 @@ trait CreatesFoodTables
         $this->runSqlScripts('195_menus_recipe_yield_unit.sql');
         // script 196: the time by batch size
         $this->runSqlScripts('196_menus_recipe_times.sql');
+        // script 197: a line may be another recipe (the empty table is made again with ingredient_id that may be empty; the column it adds is read from the script)
+        Schema::drop('menus_recipe_lines');
+        Schema::create('menus_recipe_lines', function ($t) {
+            $t->id(); $t->unsignedBigInteger('recipe_id'); $t->unsignedBigInteger('ingredient_id')->nullable(); $t->decimal('quantity', 18, 4); $t->string('unit', 4)->default('base'); $t->decimal('waste_pct', 5, 2)->default(0);
+            $t->unsignedSmallInteger('position')->default(1); $t->timestamps();
+        });
+        $this->runSqlScripts('197_menus_recipes_in_recipes.sql');
         // script 191: the "used up" use and the account a kind is charged to
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->boolean('used_up')->default(false));
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('expense_ledger_id')->nullable());

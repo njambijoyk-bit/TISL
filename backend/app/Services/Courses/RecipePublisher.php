@@ -49,13 +49,16 @@ class RecipePublisher
     public function render(DishRecipe $r): array
     {
         $title = (string) ($r->name ?: (DB::table('menus_dishes')->where('id', $r->dish_id)->value('name') ?? 'Recipe'));
-        $items = DB::table('menus_recipe_lines as l')->join('menus_ingredients as i', 'i.id', '=', 'l.ingredient_id')->where('l.recipe_id', $r->id)->orderBy('l.position')->orderBy('l.id')
-            ->get(['l.quantity', 'l.unit', 'i.name', 'i.base_unit_id', 'i.alt_unit_id']);
-        $units = DB::table('units_of_measure')->whereIn('id', $items->pluck('base_unit_id')->merge($items->pluck('alt_unit_id'))->filter())->pluck('name', 'id');
+        $r->loadMissing('lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'lines.subRecipe.yieldUnit');
         $lines = [];
-        foreach ($items as $i) {
-            $unit = $units[$i->unit === 'alt' ? $i->alt_unit_id : $i->base_unit_id] ?? '';
-            $lines[] = '- '.$this->num((float) $i->quantity).' '.$unit.' '.$i->name;
+        foreach ($r->lines as $l) {
+            if ($l->sub_recipe_id) {   // another recipe of the kitchen's, written by its own name
+                $lines[] = '- '.$this->num((float) $l->quantity).' '.($l->subRecipe?->yieldUnit?->name ?? 'portions').' '.($l->subRecipe?->title() ?? 'a recipe');
+
+                continue;
+            }
+            $unit = ($l->unit === 'alt' ? $l->ingredient?->altUnit : $l->ingredient?->baseUnit)?->name ?? '';
+            $lines[] = '- '.$this->num((float) $l->quantity).' '.$unit.' '.($l->ingredient?->name ?? 'an ingredient');
         }
         $steps = DB::table('menus_recipe_steps')->where('recipe_id', $r->id)->orderBy('position')->orderBy('id')->get();
         $out = [];

@@ -19,6 +19,9 @@ class DishRecipes
     /** What a batch may be counted in (the units table's dimensions). */
     public const YIELD_DIMENSIONS = ['mass', 'volume', 'count'];
 
+    /** How many levels of recipes may be nested (a recipe in a recipe in a recipe...). */
+    public const MAX_DEPTH = 4;
+
     private static ?bool $installed = null;
 
     /** @var array<string, bool> */
@@ -79,9 +82,27 @@ class DishRecipes
         if (DishRecipe::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->when($id, fn ($q) => $q->where('id', '!=', $id))->exists()) {
             throw new BooksException("There is already a recipe called {$name}.");
         }
-        $c = $this->clean($d);
+        $c = $this->clean($d, $row);
+        if ($row->exists && array_key_exists('is_active', $d) && ! $d['is_active'] && ($by = $this->usedBy((int) $row->id))) {
+            throw new BooksException("{$name} is used in ".implode(', ', array_slice($by, 0, 3)).'. Take it out there before switching it off.');
+        }
+        if ($row->exists && self::has('yield_unit_id') && (int) $row->yield_unit_id !== (int) $c['unit'] && self::madeInBatches((int) $row->id)) {
+            throw new BooksException("{$name} has been made in a batch, so the unit it is counted in can not change.");
+        }
 
         return DB::transaction(fn () => $this->store($row, $d, $c, $name));
+    }
+
+    /** Has this recipe been made in a batch (a dish batch or a prepared one)? */
+    public static function madeInBatches(int $recipeId): bool
+    {
+        foreach (['menus_productions', 'menus_prep_runs'] as $table) {
+            if (Schema::hasTable($table) && DB::table($table)->where('recipe_id', $recipeId)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Remove a recipe of its own. A dish's recipe goes with delete(). */
@@ -91,7 +112,10 @@ class DishRecipes
         if ($r->dish_id) {
             throw new BooksException("That is the recipe of {$r->title()}: remove it from the dish's row.");
         }
-        if (Schema::hasTable('menus_productions') && DB::table('menus_productions')->where('recipe_id', $r->id)->exists()) {
+        if ($by = $this->usedBy((int) $r->id)) {
+            throw new BooksException("{$r->title()} is used in ".implode(', ', array_slice($by, 0, 3)).(count($by) > 3 ? ' and more' : '').'. Take it out there first.');
+        }
+        if (self::madeInBatches((int) $r->id)) {
             throw new BooksException("{$r->title()} has been made in a batch, so it can not be removed. Switch it off instead.");
         }
         DB::transaction(function () use ($r) {
@@ -105,7 +129,7 @@ class DishRecipes
     }
 
     /** The yield, who may see it and the lines, checked and tidied. @return array{yield: float, unit: ?int, times: ?array, visibility: string, lines: array<int, array<string, mixed>>} */
-    private function clean(array $d): array
+    private function clean(array $d, ?DishRecipe $self = null): array
     {
         $yield = round((float) ($d['yield_qty'] ?? 1), 4);
         if ($yield <= 0) {
@@ -140,9 +164,13 @@ class DishRecipes
             if ($qty <= 0) {
                 continue;   // an empty line is just left out
             }
+            if (empty($l['ingredient_id']) && ! empty($l['recipe_id'])) {
+                $lines[] = $this->subLine($row, (int) $l['recipe_id'], $qty, round((float) ($l['waste_pct'] ?? 0), 2), $self, $seen, count($lines) + 1);
+                continue;
+            }
             $ing = Ingredient::with('baseUnit', 'altUnit')->find((int) ($l['ingredient_id'] ?? 0));
             if (! $ing) {
-                throw new BooksException("Line {$row}: choose an ingredient.");
+                throw new BooksException("Line {$row}: choose an ingredient or a recipe.");
             }
             if (! $ing->is_active) {
                 throw new BooksException("Line {$row}: {$ing->name} is switched off.");
@@ -172,6 +200,93 @@ class DishRecipes
         }
 
         return ['yield' => $yield, 'unit' => $yieldUnit?->id, 'times' => $times, 'visibility' => $visibility, 'lines' => $lines];
+    }
+
+    /** What a recipe line that is another recipe looks like once it is checked. @param array<string, bool> $seen */
+    private function subLine(int $row, int $recipeId, float $qty, float $waste, ?DishRecipe $self, array &$seen, int $position): array
+    {
+        if (! self::hasSubLines()) {
+            throw new BooksException('Run database script 197_menus_recipes_in_recipes.sql first: until then a recipe can only be made of ingredients.');
+        }
+        $sub = DishRecipe::with('yieldUnit')->find($recipeId);
+        if (! $sub) {
+            throw new BooksException("Line {$row}: choose a recipe.");
+        }
+        $name = $sub->title();
+        if ($sub->dish_id) {
+            throw new BooksException("Line {$row}: {$name} is a dish's recipe. Only a recipe of its own can go inside another recipe.");
+        }
+        if (! $sub->is_active) {
+            throw new BooksException("Line {$row}: the recipe {$name} is switched off.");
+        }
+        if ($self?->exists && ((int) $sub->id === (int) $self->id || in_array((int) $self->id, $this->usesAll((int) $sub->id), true))) {
+            throw new BooksException("Line {$row}: {$name} already uses {$self->title()}, so {$self->title()} can not use {$name}: it would go round in a circle.");
+        }
+        if (1 + $this->depth((int) $sub->id) > self::MAX_DEPTH) {
+            throw new BooksException("Line {$row}: {$name} is already made of recipes nested ".self::MAX_DEPTH.' deep. Keep recipes to '.self::MAX_DEPTH.' levels.');
+        }
+        if (isset($seen['r'.$sub->id])) {
+            throw new BooksException("{$name} is listed twice: add the amounts together.");
+        }
+        $seen['r'.$sub->id] = true;
+        if ($waste < 0 || $waste > 90) {
+            throw new BooksException("Line {$row}: waste must be between 0 and 90 percent.");
+        }
+
+        return ['ingredient_id' => null, 'sub_recipe_id' => $sub->id, 'quantity' => $qty, 'unit' => 'base', 'waste_pct' => $waste, 'position' => $position];
+    }
+
+    /** Has script 197 been run? */
+    public static function hasSubLines(): bool
+    {
+        if (app()->runningUnitTests()) {
+            return Schema::hasColumn('menus_recipe_lines', 'sub_recipe_id');
+        }
+
+        return self::$columns['@sub_lines'] ??= Schema::hasColumn('menus_recipe_lines', 'sub_recipe_id');
+    }
+
+    /** Every recipe a recipe uses, directly or through others. @return int[] */
+    public function usesAll(int $recipeId): array
+    {
+        if (! self::hasSubLines()) {
+            return [];
+        }
+        $seen = [];
+        $todo = [$recipeId];
+        while ($todo) {
+            $next = DishRecipeLine::whereIn('recipe_id', $todo)->whereNotNull('sub_recipe_id')->pluck('sub_recipe_id')->map(fn ($i) => (int) $i)->unique()->all();
+            $todo = array_values(array_diff($next, $seen));
+            $seen = array_merge($seen, $todo);
+        }
+
+        return $seen;
+    }
+
+    /** The recipes that use this one directly: id => name. @return array<int, string> */
+    public function usedBy(int $recipeId): array
+    {
+        if (! self::hasSubLines()) {
+            return [];
+        }
+        $ids = DishRecipeLine::where('sub_recipe_id', $recipeId)->pluck('recipe_id')->unique();
+
+        return DishRecipe::with('dish')->whereIn('id', $ids)->get()->mapWithKeys(fn (DishRecipe $r) => [(int) $r->id => $r->title()])->all();
+    }
+
+    /** How many levels of recipes a recipe is made of (0: only ingredients). */
+    private function depth(int $recipeId, int $guard = 0): int
+    {
+        if (! self::hasSubLines() || $guard > self::MAX_DEPTH + 2) {
+            return 0;
+        }
+        $subs = DishRecipeLine::where('recipe_id', $recipeId)->whereNotNull('sub_recipe_id')->pluck('sub_recipe_id');
+        $max = 0;
+        foreach ($subs as $id) {
+            $max = max($max, 1 + $this->depth((int) $id, $guard + 1));
+        }
+
+        return $max;
     }
 
     /** @param array{yield: float, unit: ?int, times: ?array, visibility: string, lines: array<int, array<string, mixed>>} $c */

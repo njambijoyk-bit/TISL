@@ -45,6 +45,17 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 7. (after script 196) On "Ugali" add times: up to 1 kg takes 15 minutes, up to 2 kg takes 20, up to 5 kg takes 40. Save and open it again: the rows are there, smallest first. The same amount twice, a zero or a row with no minutes is refused. (Nothing uses the times yet: the make-a-batch screen in 1.6 will show the estimate.)
 6. The units offered are weights, volumes and pieces only (no metres), and a dish's own recipe has no unit box: it counts portions.
 
+## 0e. Recipes in recipes and prepared food (after scripts 197 and 198)
+1. Menus, Recipes, Recipes of their own: add **Tomato and onion base** (2 kg a batch: onions 400 g, tomatoes 600 g). Add **Stew** (4 portions): one line is the recipe *Tomato and onion base*, 1 kg; another is beef 800 g. Expect the stew to list "2 lines", and the amount unit of the recipe line to read kg.
+2. Open the base and try to add the stew to it: refused ("it would go round in a circle"). Try to remove or switch off the base: refused ("used in Stew"). A dish's own recipe can use the base too; a dish's recipe can not be used inside another recipe.
+3. Menus, Dishes: a dish whose recipe uses a recipe shows the allergens of the ingredients inside it.
+4. Menus, **Prepared food** (also in the Menus tabs): choose Make a batch, recipe Ugali, size 1.5 kg. Expect the table of what it takes (recipe says, really used, on the shelf, cost) and "expected N minutes" from the time rows.
+5. Change "really used" for the flour and what came out, choose a chef, set the start and finish, Make the batch. Expect: the batch in *Batches made* with the planned and made amounts, the expected and took minutes, the cost; the lot in *On the shelf*; the flour reduced in Menus, Stock by what you entered.
+6. Books: a journal **Dr Prepared Food Inventory, Cr Food Ingredients Inventory** (or the kind's own stock accounts) for the cost, in the Menus currency.
+7. Press Make the batch twice quickly: one batch. Try a batch bigger than the shelf: refused, nothing used.
+8. Undo the batch: the ingredients are back and the journal is cancelled. A batch that has been used can not be undone, and its recipe's unit can not change.
+9. A chef without `menus.manage` sees the page but not Make a batch or Undo.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

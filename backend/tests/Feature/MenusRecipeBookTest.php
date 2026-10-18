@@ -7,6 +7,7 @@ use App\Services\Books\BooksException;
 use App\Services\Courses\RecipePublisher;
 use App\Services\Menus\DishRecipes;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Tests\TestCase;
 
 /** Menus recipes that stand on their own (script 194): a name instead of a dish, the same checks as a dish's recipe, and the dishes' recipes left exactly as they were. */
@@ -297,5 +298,176 @@ class MenusRecipeBookTest extends TestCase
         $page = app(\App\Http\Controllers\Admin\MenusRecipesController::class)->index(\Illuminate\Http\Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
         $this->assertSame([true, false], [$page['own_installed'], $page['units_installed']]);
         $this->assertSame(['Base'], array_column($page['standalone'], 'name'));
+    }
+
+    // ------------------------------------------------------------ 1.4 recipes inside recipes
+
+    private function ing(string $name): int
+    {
+        return (int) DB::table('menus_ingredients')->where('name', $name)->value('id');
+    }
+
+    private function base(array $lines = null, float $yield = 2, string $name = 'Tomato base'): DishRecipe
+    {
+        return $this->svc()->saveStandalone(['name' => $name, 'yield_qty' => $yield, 'yield_unit_id' => $this->kg, 'lines' => $lines ?? [['ingredient_id' => $this->ing('Onions'), 'quantity' => 400], ['ingredient_id' => $this->ing('Tomatoes'), 'quantity' => 600]]]);
+    }
+
+    private function stew(DishRecipe $base, float $baseQty = 1, float $waste = 0, ?int $id = null): DishRecipe
+    {
+        $this->pantry('Beef');
+
+        return $this->svc()->saveStandalone(['name' => 'Stew', 'yield_qty' => 4, 'lines' => [['recipe_id' => $base->id, 'quantity' => $baseQty, 'waste_pct' => $waste], ['ingredient_id' => $this->ing('Beef'), 'quantity' => 800]]], $id);
+    }
+
+    public function test_a_line_can_be_another_recipe_and_what_it_takes_is_worked_out_through_it(): void
+    {
+        $stew = $this->stew($this->base());
+        $this->assertSame([null, $this->ing('Beef')], $stew->lines->pluck('ingredient_id')->map(fn ($i) => $i ? (int) $i : null)->all());
+        $this->assertSame('base', $stew->lines[0]->unit);
+        $use = app(\App\Services\Menus\IngredientUse::class);
+        $need = fn ($recipe, $n) => array_map(fn ($r) => round($r['qty'], 3), $use->needs($recipe, $n));
+        // 4 portions of stew take 1 kg of the base (a 2 kg batch is 400 g onions + 600 g tomatoes), so half a batch: 200 and 300
+        $this->assertSame([$this->ing('Onions') => 200.0, $this->ing('Tomatoes') => 300.0, $this->ing('Beef') => 800.0], $need($stew, 4));
+        $this->assertSame([$this->ing('Onions') => 100.0, $this->ing('Tomatoes') => 150.0, $this->ing('Beef') => 400.0], $need($stew, 2), 'two portions take half of everything');
+    }
+
+    public function test_waste_on_a_recipe_line_takes_more_of_it(): void
+    {
+        $stew = $this->stew($this->base(), 1, 20);
+        $need = app(\App\Services\Menus\IngredientUse::class)->needs($stew, 4);
+        $this->assertEqualsWithDelta(250.0, $need[$this->ing('Onions')]['qty'], 0.001, '1 kg of base with 20% lost is 1.25 kg: onions 250');
+    }
+
+    public function test_recipes_nest_and_an_ingredient_in_two_places_is_added_up(): void
+    {
+        $base = $this->base();
+        $sauce = $this->svc()->saveStandalone(['name' => 'Sauce', 'yield_qty' => 1, 'lines' => [['recipe_id' => $base->id, 'quantity' => 1], ['ingredient_id' => $this->ing('Onions'), 'quantity' => 100]]]);
+        $stew = $this->svc()->saveStandalone(['name' => 'Stew', 'yield_qty' => 1, 'lines' => [['recipe_id' => $sauce->id, 'quantity' => 2]]]);
+        $need = app(\App\Services\Menus\IngredientUse::class)->needs($stew, 1);
+        $this->assertEqualsWithDelta(2 * (200 + 100), $need[$this->ing('Onions')]['qty'], 0.001);
+        $this->assertEqualsWithDelta(2 * 300, $need[$this->ing('Tomatoes')]['qty'], 0.001);
+    }
+
+    public function test_a_circle_is_refused_whichever_way_round_it_is_closed(): void
+    {
+        $a = $this->base(null, 2, 'A');
+        $b = $this->svc()->saveStandalone(['name' => 'B', 'lines' => [['recipe_id' => $a->id, 'quantity' => 1]]]);
+        $c = $this->svc()->saveStandalone(['name' => 'C', 'lines' => [['recipe_id' => $b->id, 'quantity' => 1]]]);
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'A', 'lines' => [['recipe_id' => $a->id, 'quantity' => 1]]], $a->id), 'circle');
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'A', 'lines' => [['recipe_id' => $c->id, 'quantity' => 1]]], $a->id), 'already uses A');
+        $this->assertCount(2, $a->fresh()->lines, 'the refused change left it alone');
+    }
+
+    public function test_only_a_switched_on_recipe_of_its_own_can_go_inside_another_and_only_once(): void
+    {
+        $dish = $this->dish('Pancakes', 100, [['Onions', 1]]);
+        $dishRecipe = DishRecipe::where('dish_id', $dish->id)->first();
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'X', 'lines' => [['recipe_id' => $dishRecipe->id, 'quantity' => 1]]]), "dish's recipe");
+        $off = $this->svc()->saveStandalone(['name' => 'Off', 'is_active' => false, 'lines' => $this->lines()]);
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'X', 'lines' => [['recipe_id' => $off->id, 'quantity' => 1]]]), 'switched off');
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'X', 'lines' => [['recipe_id' => 99999, 'quantity' => 1]]]), 'choose a recipe');
+        $base = $this->base();
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'X', 'lines' => [['recipe_id' => $base->id, 'quantity' => 1], ['recipe_id' => $base->id, 'quantity' => 2]]]), 'listed twice');
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'X', 'lines' => [['recipe_id' => $base->id, 'quantity' => 1, 'waste_pct' => 95]]]), 'between 0 and 90');
+        $this->assertSame(0, DishRecipe::where('name', 'X')->count());
+    }
+
+    public function test_a_dishs_recipe_may_use_a_recipe_of_its_own(): void
+    {
+        $base = $this->base();
+        $dish = $this->dish('Stew dish');
+        $r = $this->svc()->save($dish, ['yield_qty' => 4, 'lines' => [['recipe_id' => $base->id, 'quantity' => 1], ['ingredient_id' => $this->ing('Onions'), 'quantity' => 50]]]);
+        $this->assertSame($base->id, (int) $r->lines[0]->sub_recipe_id);
+        $this->assertEqualsWithDelta(250.0, app(\App\Services\Menus\IngredientUse::class)->needs($r, 4)[$this->ing('Onions')]['qty'], 0.001);
+    }
+
+    public function test_nesting_is_held_to_four_levels(): void
+    {
+        $prev = $this->base(null, 2, 'L0');
+        foreach ([1, 2, 3, 4] as $i) {
+            $prev = $this->svc()->saveStandalone(['name' => "L{$i}", 'lines' => [['recipe_id' => $prev->id, 'quantity' => 1]]]);
+        }
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'L5', 'lines' => [['recipe_id' => $prev->id, 'quantity' => 1]]]), '4 levels');
+    }
+
+    public function test_a_recipe_that_is_used_can_not_be_removed_or_switched_off(): void
+    {
+        $base = $this->base();
+        $this->stew($base);
+        $this->fails(fn () => $this->svc()->deleteStandalone($base->id), 'used in Stew');
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'Tomato base', 'is_active' => false, 'lines' => $this->lines()], $base->id), 'switching it off');
+        $stew = DishRecipe::where('name', 'Stew')->first();
+        $this->svc()->deleteStandalone($stew->id);
+        $this->svc()->deleteStandalone($base->id);
+        $this->assertSame(0, DishRecipe::count());
+    }
+
+    public function test_a_switched_off_recipe_stops_what_uses_it_being_made_with_a_clear_message(): void
+    {
+        $base = $this->base();
+        $stew = $this->stew($base);
+        DishRecipe::whereKey($base->id)->update(['is_active' => false]);
+        $this->fails(fn () => app(\App\Services\Menus\IngredientUse::class)->needs($stew->fresh(), 4), 'switched off');
+    }
+
+    public function test_a_circle_in_old_data_stops_with_a_message_instead_of_running_forever(): void
+    {
+        $a = $this->base(null, 2, 'A');
+        $b = $this->svc()->saveStandalone(['name' => 'B', 'lines' => [['recipe_id' => $a->id, 'quantity' => 1]]]);
+        DB::table('menus_recipe_lines')->insert(['recipe_id' => $a->id, 'ingredient_id' => null, 'sub_recipe_id' => $b->id, 'quantity' => 1, 'unit' => 'base', 'waste_pct' => 0, 'position' => 9]);
+        $this->fails(fn () => app(\App\Services\Menus\IngredientUse::class)->needs($a->fresh(), 1), 'round in a circle');
+    }
+
+    public function test_what_a_dish_contains_includes_the_ingredients_inside_its_recipes(): void
+    {
+        $this->makeIngredient('Flour', $this->g, null, [['name' => 'Flour']], 'preferred', ['allergens' => ['wheat']]);
+        $dough = $this->svc()->saveStandalone(['name' => 'Dough', 'lines' => [['ingredient_id' => $this->ing('Flour'), 'quantity' => 500]]]);
+        $dish = $this->dish('Bread roll');
+        $this->svc()->save($dish, ['yield_qty' => 1, 'lines' => [['recipe_id' => $dough->id, 'quantity' => 1], ['ingredient_id' => $this->ing('Onions'), 'quantity' => 5]]]);
+        $this->assertSame(['wheat'], app(\App\Services\Menus\DishInfo::class)->profile($dish->fresh())['allergens']);
+    }
+
+    public function test_a_course_copy_names_the_recipes_it_uses(): void
+    {
+        $stew = $this->stew($this->base(), 1);
+        $stew->update(['visibility' => 'public']);
+        $body = app(RecipePublisher::class)->render($stew->fresh())['body'];
+        $this->assertStringContainsString('- 1 Kilogram Tomato base', $body);
+        $this->assertStringContainsString('800 Gram Beef', $body);
+    }
+
+    public function test_the_page_lists_recipe_lines_and_offers_recipes_to_use(): void
+    {
+        $base = $this->base();
+        $c = app(\App\Http\Controllers\Admin\MenusRecipesController::class);
+        $body = ['name' => 'Stew', 'yield_qty' => 4, 'lines' => [['recipe_id' => $base->id, 'quantity' => 1], ['ingredient_id' => $this->ing('Onions'), 'quantity' => 5]]];
+        $this->assertSame(201, $c->saveBook(\Illuminate\Http\Request::create('/x', 'POST', $body))->getStatusCode());
+        $page = $c->index(\Illuminate\Http\Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $stew = collect($page['standalone'])->firstWhere('name', 'Stew');
+        $this->assertSame([$base->id, null], array_column($stew['lines'], 'recipe_id'));
+        $this->assertSame(['Tomato base', 'Onions'], array_column($stew['lines'], 'name'));
+        $this->assertSame('kg', $stew['lines'][0]['base_unit']);
+        $this->assertSame(['Stew', 'Tomato base'], array_column($page['recipes'], 'name'), 'both can be used inside another');
+        $this->assertTrue($page['sub_installed']);
+    }
+
+    public function test_before_script_197_a_recipe_line_says_which_script_and_ingredient_lines_still_save(): void
+    {
+        $base = $this->base();
+        DB::statement('DROP TABLE menus_recipe_lines');
+        Schema::create('menus_recipe_lines', function ($t) { $t->id(); $t->unsignedBigInteger('recipe_id'); $t->unsignedBigInteger('ingredient_id'); $t->decimal('quantity', 18, 4); $t->string('unit', 4)->default('base'); $t->decimal('waste_pct', 5, 2)->default(0); $t->unsignedSmallInteger('position')->default(1); $t->timestamps(); });
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'Stew', 'lines' => [['recipe_id' => $base->id, 'quantity' => 1]]]), '197_menus_recipes_in_recipes');
+        $ok = $this->svc()->saveStandalone(['name' => 'Plain', 'lines' => $this->lines()]);
+        $this->assertCount(2, $ok->lines);
+        $page = app(\App\Http\Controllers\Admin\MenusRecipesController::class)->index(\Illuminate\Http\Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $this->assertFalse($page['sub_installed']);
+        $this->assertSame([], $page['recipes']);
+    }
+
+    public function test_script_197_text(): void
+    {
+        $sql = file_get_contents(base_path('database/sql/197_menus_recipes_in_recipes.sql'));
+        $this->assertStringContainsString('ALTER TABLE menus_recipe_lines MODIFY ingredient_id BIGINT UNSIGNED NULL;', $sql);
+        $this->assertStringContainsString('ADD COLUMN sub_recipe_id BIGINT UNSIGNED NULL', $sql);
     }
 }

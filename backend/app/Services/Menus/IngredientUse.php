@@ -39,13 +39,27 @@ class IngredientUse
      * @param array<int, array{mode?: string, ingredient_id?: ?int, quantity?: ?float, unit?: ?string}> $uses
      * @return array<int, array{ingredient: Ingredient, qty: float}> keyed by ingredient id
      */
-    public function needs(DishRecipe $r, float $portions, array $uses = []): array
+    public function needs(DishRecipe $r, float $portions, array $uses = [], int $depth = 0): array
     {
-        $r->loadMissing('lines.ingredient.baseUnit', 'lines.ingredient.altUnit');
+        if ($depth > 8) {
+            throw new BooksException('Recipes are nested too deeply, or go round in a circle. Fix the recipes first.');
+        }
+        $r->loadMissing('lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'lines.subRecipe');
         $factor = $portions / max((float) $r->yield_qty, self::EPS);
         $left = array_map('intval', array_column(array_filter($uses, fn ($u) => ($u['mode'] ?? '') === 'remove' && ! empty($u['ingredient_id'])), 'ingredient_id'));
         $out = [];
         foreach ($r->lines as $l) {
+            if ($l->sub_recipe_id) {   // another recipe: what it takes for the amount this line asks for (the customer's choices only change the top recipe)
+                $sub = $l->subRecipe ?? throw new BooksException('A recipe this recipe uses has been removed. Fix the recipe first.');
+                if (! $sub->is_active) {
+                    throw new BooksException("The recipe {$sub->title()} is switched off, so {$r->title()} can not be made until it is switched on or taken out.");
+                }
+                foreach ($this->needs($sub, (float) $l->quantity * $factor / (1 - (float) $l->waste_pct / 100), [], $depth + 1) as $id => $row) {
+                    $out[$id] = ['ingredient' => $row['ingredient'], 'qty' => round(($out[$id]['qty'] ?? 0) + $row['qty'], 6)];
+                }
+
+                continue;
+            }
             $ing = $l->ingredient;
             if (! $ing) {
                 throw new BooksException('An ingredient of this recipe has been removed. Fix the recipe first.');
@@ -68,6 +82,29 @@ class IngredientUse
         }
 
         return $out;
+    }
+
+    /**
+     * Every ingredient a recipe is made of, the ones inside the recipes it uses included (for what a dish contains).
+     *
+     * @return \Illuminate\Support\Collection<int, Ingredient>
+     */
+    public function ingredientsOf(DishRecipe $r, array $seen = []): \Illuminate\Support\Collection
+    {
+        $seen[] = (int) $r->id;
+        $r->loadMissing('lines.ingredient', 'lines.subRecipe');
+        $out = collect();
+        foreach ($r->lines as $l) {
+            if ($l->sub_recipe_id) {
+                if ($l->subRecipe && ! in_array((int) $l->subRecipe->id, $seen, true)) {
+                    $out = $out->merge($this->ingredientsOf($l->subRecipe, $seen));
+                }
+            } elseif ($l->ingredient) {
+                $out->push($l->ingredient);
+            }
+        }
+
+        return $out->unique('id')->values();
     }
 
     /** The batches an ingredient may be taken from at a branch, in the order its pick rule takes them. @return \Illuminate\Support\Collection<int, StockBatch> */
@@ -180,7 +217,7 @@ class IngredientUse
      * Use the stock for `$portions` of the dish: batches go down, each movement is recorded, and the cost is booked. All or nothing.
      *
      * @param array{type: string, id: int} $ref what it was for (a voucher, a production run...)
-     * @param array{date?: ?string, post?: bool, narration?: ?string, uses?: array} $o `uses`: what the customer's choices change (see needs()); `post` false leaves the booking to the caller
+     * @param array{date?: ?string, post?: bool, narration?: ?string, uses?: array, needs?: array} $o `uses`: what the customer's choices change (see needs()); `needs`: what was really used, in the shape needs() gives, instead of what the recipe says; `post` false leaves the booking to the caller
      * @return array{use_id: int, cost: float, journal_id: ?int}
      */
     public function consume(DishRecipe $r, float $portions, int $locationId, array $ref, ?User $by, array $o = []): array
@@ -195,7 +232,7 @@ class IngredientUse
             $use = StockUse::create(['ref_type' => $ref['type'], 'ref_id' => $ref['id'], 'dish_id' => $r->dish_id, 'recipe_id' => $r->id, 'location_id' => $locationId, 'portions' => $portions, 'cost' => 0, 'status' => 'posted', 'created_by' => $by?->id]);
             $total = 0.0;
             $byKind = [];   // what it cost, by the kind of ingredient (0: none), for the books
-            foreach ($this->needs($r, $portions, $o['uses'] ?? []) as $row) {
+            foreach ($o['needs'] ?? $this->needs($r, $portions, $o['uses'] ?? []) as $row) {
                 $kindId = (int) ($row['ingredient']->kind_id ?? 0);
                 foreach ($this->allocate($row['ingredient'], $row['qty'], $locationId, $on, true) as $a) {
                     /** @var StockBatch $b */

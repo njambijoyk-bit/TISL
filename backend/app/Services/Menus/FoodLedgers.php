@@ -45,7 +45,7 @@ final class FoodLedgers
     }
 
     /**
-     * Journal lines for amounts keyed by kind id (0 for no kind): the debit is the cost account of each kind (`cost`), Food Waste Expense (`waste`) or the loss account of each kind (`loss`),
+     * Journal lines for amounts keyed by kind id (0 for no kind): the debit is the cost account of each kind (`cost`), Food Waste Expense (`waste`), the loss account of each kind (`loss`) or Prepared Food Inventory (`prepared`: food cooked ahead),
      * the credit is the account the kind's stock is carried on. Lines on the same account are added up.
      *
      * @param array<int, float> $byKind
@@ -61,7 +61,7 @@ final class FoodLedgers
                 continue;
             }
             $kind = $kindId ? IngredientKind::find((int) $kindId) : null;
-            $dr = match ($debit) { 'waste' => self::waste(), 'loss' => self::loss($kind), default => self::cost($kind) };
+            $dr = match ($debit) { 'waste' => self::waste(), 'loss' => self::loss($kind), 'prepared' => self::prepared(), default => self::cost($kind) };
             foreach ([[$dr, 'D'], [self::inventory($kind), 'C']] as [$ledger, $side]) {
                 $key = $ledger.$side;
                 $lines[$key] = ['ledger_id' => $ledger, 'side' => $side, 'amount' => round(($lines[$key]['amount'] ?? 0.0) + $amount, 2)];

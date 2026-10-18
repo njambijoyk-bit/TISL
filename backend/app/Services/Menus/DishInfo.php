@@ -35,9 +35,9 @@ class DishInfo
     private function ingredients(DishRecipe $r): array
     {
         $out = ['allergens' => [], 'tags' => [], 'unknown' => 0];
-        foreach ($r->lines as $l) {
-            $out['allergens'] = array_merge($out['allergens'], $l->ingredient?->allergens ?? []);
-            $out['tags'] = array_merge($out['tags'], $l->ingredient?->tags ?? []);
+        foreach ($this->use->ingredientsOf($r) as $ing) {   // the ingredients inside the recipes it uses count too
+            $out['allergens'] = array_merge($out['allergens'], $ing->allergens ?? []);
+            $out['tags'] = array_merge($out['tags'], $ing->tags ?? []);
         }
 
         return $out;
