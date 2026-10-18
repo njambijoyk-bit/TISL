@@ -210,6 +210,12 @@ With three rules on the stew: the container (charged, receipt *Never*), the foil
 4. Menus, Stock: the ketchup is down by 9 (what was given, not the 6 allowed) and the mayonnaise by 3, in the one journal "Packaging and condiments used for INV-…". Cancel the sale in the books: they come back.
 5. Two dishes with the same condiment add their allowances. Only a condiment of a dish on the order can be given. Deleting a dish takes its allowance.
 
+## 0ab. Why packaging was left off (after script 209)
+1. At the till take away a few orders with the container and the free foil: take the foil off with the reason "Brought their own" (once typed with a capital and extra spaces), reduce the containers on another, swap the container for the bag on another, and leave one untouched.
+2. Menus, Operations, **Packaging**: the totals say how many orders, how much was asked for and given, how much was left off, how many lines were changed and swapped. Change the dates or the branch and it follows. Cancel an order and it drops out.
+3. *By item*: the foil asked for, given, left off and on how many orders it was changed; a swap shows as "Container swapped for Bag". *Why it was left off*: "brought their own" counts both orders as one reason; a cut with no reason is "No reason given". *Latest changes* names the order, the reason and, for a waiver, how much and who.
+4. Without scripts 207 to 209 the tab says which to run.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

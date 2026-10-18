@@ -985,6 +985,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/operations/prep', [$op, 'prep']);
         Route::get('/operations/reorder', [$op, 'suggest']);
         Route::get('/operations/waste', [$op, 'wasteIndex']);
+        Route::get('/operations/packaging', [$op, 'packaging']);
         $pl = \App\Http\Controllers\Admin\MenusPlanController::class;
         Route::get('/plans', [$pl, 'index']);
         Route::get('/plans/subscribers', [$pl, 'subscribers']);

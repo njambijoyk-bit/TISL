@@ -41,6 +41,17 @@ class MenusOperationsController extends Controller
         return app(\App\Services\Menus\MenuBranches::class)->narrow(Location::query()->active())->ordered()->get(['id', 'name']);
     }
 
+    /** Why packaging was left off, for a branch and a period (default: the last 30 days). */
+    public function packaging(Request $request): JsonResponse
+    {
+        $d = $request->validate(['from' => 'nullable|date', 'to' => 'nullable|date']);
+        $loc = $this->location($request);
+        $to = Carbon::parse($d['to'] ?? today()->toDateString())->toDateString();
+        $from = Carbon::parse($d['from'] ?? today()->subDays(30)->toDateString())->toDateString();
+
+        return response()->json(app(\App\Services\Menus\PackagingReport::class)->build($loc, min($from, $to), max($from, $to)) + ['location_id' => $loc, 'branches' => $this->branches()]);
+    }
+
     public function prep(Request $request): JsonResponse
     {
         $d = $request->validate(['date' => 'nullable|date', 'weeks' => 'nullable|integer|min:1|max:12', 'buffer' => 'nullable|integer|min:0|max:100']);

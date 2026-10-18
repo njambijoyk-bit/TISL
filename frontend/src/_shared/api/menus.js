@@ -40,6 +40,7 @@ export const menusAPI = {
   dishMakeupBuild: async () => (await api.get('/admin/menus/dishes/makeup/build')).data,
   buildDishMakeups: async () => (await api.post('/admin/menus/dishes/makeup/build')).data,
   dishMakeup: async (id) => (await api.get(`/admin/menus/dishes/${id}/makeup`)).data,
+  packagingReport: async (params) => (await api.get('/admin/menus/operations/packaging', { params })).data,
   dishCondiments: async (id) => (await api.get(`/admin/menus/dishes/${id}/condiments`)).data,
   saveDishCondiments: async (id, allowance) => (await api.put(`/admin/menus/dishes/${id}/condiments`, { allowance })).data,
   packagingRules: async (owner, id) => (await api.get(`/admin/menus/packaging/rules/${owner}/${id}`)).data,

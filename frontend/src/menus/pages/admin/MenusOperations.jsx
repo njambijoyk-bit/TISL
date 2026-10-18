@@ -199,7 +199,64 @@ function Buy({ branch, canAct }) {
   );
 }
 
-/** Menus → Operations: tomorrow's prep list, the waste log and what to buy. */
+const isoDay = (d) => d.toISOString().slice(0, 10);
+
+/** Why packaging was left off: what the rules asked for against what orders ended with, by item and by the reason the cashier gave. */
+function PackagingReport({ branch }) {
+  const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 30); return isoDay(d); });
+  const [to, setTo] = useState(() => isoDay(new Date()));
+  const [data, setData] = useState(null);
+  useEffect(() => { setData(null); menusAPI.packagingReport({ from, to, ...(branch ? { location_id: branch } : {}) }).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the packaging report'))); }, [from, to, branch]);
+
+  const t = data?.totals;
+
+  return (
+    <section data-testid="packaging-report" style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'end' }}>
+        <label style={{ display: 'grid', gap: 4, fontSize: '0.74rem', fontWeight: 700 }}>From<input type="date" aria-label="From" value={from} max={to} onChange={(e) => setFrom(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${colors.tint(0.2)}` }} /></label>
+        <label style={{ display: 'grid', gap: 4, fontSize: '0.74rem', fontWeight: 700 }}>To<input type="date" aria-label="To" value={to} min={from} onChange={(e) => setTo(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${colors.tint(0.2)}` }} /></label>
+      </div>
+      {!data && <p style={{ color: colors.textMuted }}>Loading…</p>}
+      {data && !data.ready && <p role="status" style={{ color: colors.textMuted }}>Run database scripts 207 to 209 first: until then packaging is not kept with orders.</p>}
+      {data?.ready && t.orders === 0 && <p style={{ color: colors.textMuted }}>No order with packaging in this period.</p>}
+      {data?.ready && t.orders > 0 && (
+        <>
+          <dl data-testid="packaging-totals" style={{ margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
+            {[['Orders', t.orders], ['Asked for', t.asked], ['Given', t.given], ['Left off', t.left_off], ['Lines changed', t.lines_changed], ['Swapped', t.swapped], ['Waived', num(t.waived)]].map(([k, v]) => (
+              <div key={k} style={{ ...card, padding: 12 }}><dt style={{ fontSize: '0.7rem', color: colors.textFaint, textTransform: 'uppercase' }}>{k}</dt><dd style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>{v}</dd></div>
+            ))}
+          </dl>
+          <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={{ textAlign: 'left', padding: '8px 10px', fontSize: '0.68rem', color: colors.textFaint }}>Item</th><th style={{ textAlign: 'right', padding: '8px 10px', fontSize: '0.68rem', color: colors.textFaint }}>Asked</th><th style={{ textAlign: 'right', padding: '8px 10px', fontSize: '0.68rem', color: colors.textFaint }}>Given</th><th style={{ textAlign: 'right', padding: '8px 10px', fontSize: '0.68rem', color: colors.textFaint }}>Left off</th><th style={{ textAlign: 'right', padding: '8px 10px', fontSize: '0.68rem', color: colors.textFaint }}>Orders changed</th></tr></thead>
+              <tbody>{data.by_item.map((i) => (
+                <tr key={i.name} data-testid="packaging-item"><td style={{ padding: '8px 10px', fontSize: '0.82rem', borderTop: `1px solid ${colors.tint(0.06)}` }}><strong>{i.name}</strong></td>{[i.asked, i.given, i.left_off, i.times_changed].map((v, k) => <td key={k} style={{ padding: '8px 10px', fontSize: '0.82rem', textAlign: 'right', borderTop: `1px solid ${colors.tint(0.06)}` }}>{v}</td>)}</tr>
+              ))}</tbody>
+            </table>
+          </div>
+          {data.by_reason.length > 0 && (
+            <div style={{ ...card, padding: 14 }} data-testid="packaging-reasons">
+              <h3 style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: 800 }}>Why it was left off</h3>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 4, fontSize: '0.84rem' }}>
+                {data.by_reason.map((r) => <li key={r.reason ?? 'none'}><strong>{r.reason ? r.reason : 'No reason given'}</strong>: {r.times} time{r.times === 1 ? '' : 's'}, {r.units} left off</li>)}
+              </ul>
+            </div>
+          )}
+          {data.latest.length > 0 && (
+            <div style={{ ...card, padding: 14 }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: 800 }}>Latest changes</h3>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 4, fontSize: '0.8rem' }}>
+                {data.latest.map((l, i) => <li key={i}>{l.order} · {l.item}: asked {l.asked}, given {l.given}{l.source === 'swapped' ? ' (swapped)' : ''}{l.source === 'added' ? ' (added)' : ''}{l.reason ? ` · "${l.reason}"` : ''}{l.waived > 0 ? ` · waived ${num(l.waived)}${l.by ? ` by ${l.by}` : ''}` : ''}</li>)}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
+/** Menus → Operations: tomorrow's prep list, the waste log, what to buy and why packaging was left off. */
 export default function MenusOperations() {
   const user = useAuthStore((s) => s.user);
   const canAct = canManageMenus(user);
@@ -216,13 +273,14 @@ export default function MenusOperations() {
         <HubHeader title="Operations" description="What to make tomorrow, what was wasted, and what to buy." />
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }} className="no-print">
           <div role="tablist" aria-label="Operations" style={{ display: 'flex', gap: 8 }}>
-            {[['prep', 'Prep list'], ['waste', 'Waste'], ['buy', 'What to buy']].map(([k, n]) => <button key={k} type="button" role="tab" aria-selected={which === k} onClick={() => setWhich(k)} style={tab(which === k)}>{n}</button>)}
+            {[['prep', 'Prep list'], ['waste', 'Waste'], ['buy', 'What to buy'], ['packaging', 'Packaging']].map(([k, n]) => <button key={k} type="button" role="tab" aria-selected={which === k} onClick={() => setWhich(k)} style={tab(which === k)}>{n}</button>)}
           </div>
           {branches.length > 1 && <SelectInput aria-label="Branch" value={branch} onChange={(e) => setBranch(e.target.value)} style={{ width: 'auto' }}>{branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</SelectInput>}
         </div>
         {which === 'prep' && <Prep branch={branch} />}
         {which === 'waste' && <Waste branch={branch} canAct={canAct} />}
         {which === 'buy' && <Buy branch={branch} canAct={canAct} />}
+        {which === 'packaging' && <PackagingReport branch={branch} />}
       </div>
     </AdminLayout>
   );
