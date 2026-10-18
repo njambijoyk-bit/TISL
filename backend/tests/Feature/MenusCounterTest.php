@@ -124,7 +124,8 @@ class MenusCounterTest extends TestCase
         $q = $this->counter()->quote($this->in([$d], ['tip' => 100]), $this->now);
         $this->assertSame([100.0, 1260.0], [$q['tip'], $q['total']]);
         $o = $this->counter()->sell($this->in([$d], ['tip' => 100]), null, $this->now);
-        $tip = collect($this->placed[0]['lines'])->firstWhere('description', 'Tip');
+        $tip = collect($this->placed[0]['lines'])->firstWhere('ledger_id', 80);
+        $this->assertStringStartsWith('Tip, MO-', $tip['description'], 'the line says whose tip it is');
         $this->assertSame([80, 100.0, 'charge'], [$tip['ledger_id'], $tip['amount'], $tip['type']]);
         $this->assertSame([100.0, 1260.0], [(float) $o->tip, (float) $o->total]);
     }
@@ -145,6 +146,33 @@ class MenusCounterTest extends TestCase
         $this->assertSame([100.0, 1260.0, 1300.0, 40.0], [(float) $o->tip, (float) $o->total, (float) $o->tendered, (float) $o->change_due]);
         $o2 = $this->counter()->sell($this->in([$d], ['tenders' => [['payment_method_id' => 1, 'amount' => 1300]]]), null, $this->now);
         $this->assertSame([0.0, 140.0], [(float) $o2->tip, (float) $o2->change_due], 'no tip typed: the whole of the change comes back');
+    }
+
+    public function test_a_tip_waits_in_the_tips_box_once_the_order_is_paid(): void
+    {
+        $d = $this->dish();
+        $this->settings(['tip_ledger_id' => 80]);
+
+        $none = $this->counter()->sell($this->in([$d], ['tip' => 100]), null, $this->now);
+        $this->assertFalse(\App\Models\Menus\Tip::installed(), 'without script 212 the tip is only the line it was');
+        $this->assertNotNull($none->fresh()->sale_id);
+
+        $this->runSqlScripts('212_menus_tips.sql');
+        $o = $this->counter()->sell($this->in([$d], ['tip' => 100, 'label' => 'Window', 'tenders' => [['payment_method_id' => 1, 'amount' => 1300]]]), null, $this->now);
+        $tip = \App\Models\Menus\Tip::where('order_id', $o->id)->first();
+        $this->assertSame(['pending', '100.00', 80, 'Window', $o->short_no, $o->voucher_id], [$tip->status, (string) $tip->amount, (int) $tip->ledger_id, $tip->customer_name, (int) $tip->short_no, (int) $tip->voucher_id]);
+        $line = collect($this->placed[count($this->placed) - 1]['lines'])->firstWhere('ledger_id', 80);
+        $this->assertSame("Tip, {$o->number}, Window", $line['description'], 'the books line names the order and the customer');
+
+        $this->counter()->sell($this->in([$d], ['tenders' => [['payment_method_id' => 1, 'amount' => 1300]]]), null, $this->now);
+        $this->assertSame(1, \App\Models\Menus\Tip::count(), 'no tip, no row');
+
+        app(\App\Services\Menus\Tips::class)->record($o->fresh());
+        $this->assertSame(1, \App\Models\Menus\Tip::where('order_id', $o->id)->count(), 'recording twice makes one row');
+
+        $tab = $this->counter()->openTab($this->in([$d], ['service' => 'dine_in', 'label' => 'Table 4']), null, $this->now);
+        $this->counter()->settleTab($tab, ['tip' => 50, 'tenders' => [['payment_method_id' => 1, 'amount' => 3000]]], null);
+        $this->assertSame(['50.00', 'Table 4'], [(string) \App\Models\Menus\Tip::where('order_id', $tab->id)->value('amount'), \App\Models\Menus\Tip::where('order_id', $tab->id)->value('customer_name')], 'a tab paid at the end puts its tip in the box too');
     }
 
     // ------------------------------------------------------------ selling

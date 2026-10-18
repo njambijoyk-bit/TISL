@@ -402,6 +402,8 @@ class CounterService
         }
         $p = $this->price(Location::findOrFail($o->location_id), $this->rebuild($o), (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label);
 
+        $p = $this->tipNarrated($o, $p);
+
         return DB::transaction(function () use ($o, $method, $phone, $p) {
             $voucher = $this->vouchers->placeOrder($p['payload'], null);
             $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menu_order_id' => $o->id])]);
@@ -437,6 +439,7 @@ class CounterService
     {
         $method = $o->payment_method_id ? PaymentMethod::find($o->payment_method_id) : null;
         $o->update(['tendered' => $o->total, 'change_due' => 0, 'tenders' => [['method' => $method?->name ?? 'M-Pesa', 'amount' => (float) $o->total, 'reference' => null]], 'settled_at' => now()]);
+        app(Tips::class)->record($o->fresh());   // the tip of a tab paid by phone waits in the tips box
         $this->closeTab($o);
     }
 
@@ -546,9 +549,22 @@ class CounterService
         $o->update(['subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown']]);
     }
 
+    /** The tip line of the sale says whose tip it is (the order, the customer, the kiosk, who served). */
+    private function tipNarrated(MenuOrder $o, array $p): array
+    {
+        if (! collect($p['payload']['lines'])->contains(fn ($l) => ($l['description'] ?? '') === 'Tip')) {
+            return $p;
+        }
+        $say = app(Tips::class)->narration($o);
+        $p['payload']['lines'] = array_map(fn ($l) => ($l['description'] ?? '') === 'Tip' ? ['description' => $say] + $l : $l, $p['payload']['lines']);
+
+        return $p;
+    }
+
     /** The sale goes into the books and the order records how it was paid. */
     public function book(MenuOrder $o, array $p, array $paid, ?User $by): void
     {
+        $p = $this->tipNarrated($o, $p);
         $voucher = $this->vouchers->placeOrder($p['payload'], $by);
         $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menu_order_id' => $o->id])]);
         $sale = $this->checkout->settle($voucher, $paid['tenders'], $by);
@@ -556,6 +572,7 @@ class CounterService
             'tax_breakdown' => $p['tax_breakdown'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tendered' => $paid['tendered'], 'change_due' => $paid['change'], 'tenders' => $paid['record'],
             'payment_method_id' => $paid['tenders'][0]['payment_method_id'] ?? null, 'settled_at' => now()]);
         app(PackagingStock::class)->apply($o->fresh(), $sale, $by);   // the packaging that went out comes off the shelf
+        app(Tips::class)->record($o->fresh(), $by);   // and the tip waits in the tips box
     }
 
     public function fire(MenuOrder $o): void
