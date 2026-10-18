@@ -129,6 +129,24 @@ class MenusCounterTest extends TestCase
         $this->assertSame([100.0, 1260.0], [(float) $o->tip, (float) $o->total]);
     }
 
+    public function test_the_tip_box_is_apart_from_the_bill_and_cannot_be_more_than_what_is_left_of_the_money(): void
+    {
+        $d = $this->dish();
+        $this->settings(['tip_ledger_id' => 80]);
+        $q = $this->counter()->quote($this->in([$d], ['tip' => 100]), $this->now);
+        $this->assertSame([1160.0, 100.0, 1260.0], [$q['bill'], $q['tip'], $q['total']], 'the bill is what is owed without the tip');
+        $this->assertSame(1160.0, $this->counter()->quote($this->in([$d]), $this->now)['bill']);
+
+        $this->fails(fn () => $this->counter()->sell($this->in([$d], ['tip' => 100, 'tenders' => [['payment_method_id' => 1, 'amount' => 1200]]]), null, $this->now), 'tip can be 40.00 at most');
+        $this->fails(fn () => $this->counter()->sell($this->in([$d], ['tip' => 100, 'tenders' => [['payment_method_id' => 1, 'amount' => 1000]]]), null, $this->now), 'short by');
+        $this->assertSame(0, \App\Models\Menus\MenuOrder::count(), 'nothing was sold by the refusals');
+
+        $o = $this->counter()->sell($this->in([$d], ['tip' => 100, 'tenders' => [['payment_method_id' => 1, 'amount' => 1300]]]), null, $this->now);
+        $this->assertSame([100.0, 1260.0, 1300.0, 40.0], [(float) $o->tip, (float) $o->total, (float) $o->tendered, (float) $o->change_due]);
+        $o2 = $this->counter()->sell($this->in([$d], ['tenders' => [['payment_method_id' => 1, 'amount' => 1300]]]), null, $this->now);
+        $this->assertSame([0.0, 140.0], [(float) $o2->tip, (float) $o2->change_due], 'no tip typed: the whole of the change comes back');
+    }
+
     // ------------------------------------------------------------ selling
 
     public function test_a_sale_paid_in_cash_gives_change_and_goes_to_the_kitchen(): void

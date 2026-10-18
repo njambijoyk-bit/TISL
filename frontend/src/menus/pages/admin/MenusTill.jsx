@@ -41,7 +41,9 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
   }, [tip, waive, edits, given]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const condimentList = Object.entries(given).map(([id, n]) => ({ ingredient_id: Number(id), given: n }));
+  const tipNum = Math.max(0, Number(tip) || 0);
   const due = quote?.total ?? total;
+  const bill = quote?.bill ?? Math.max(0, due - tipNum);   // what is owed before the tip
   const blocked = Boolean(quote?.packaging_waiver?.amount > 0 && !quote.packaging_waiver.allowed);   // taking off a compulsory, priced line needs the permission to waive
   const handed = rows.reduce((n, r) => n + (Number(r.amount) || 0), 0);
   const change = Math.max(0, handed - due);
@@ -74,6 +76,7 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
             <dt>Food</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.subtotal)}</dd>
             <dt>Tax</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.tax_total)}</dd>
             {quote.service_charge > 0 && <><dt>Service charge</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.service_charge)}</dd></>}
+            {quote.tip > 0 && <><dt>Bill</dt><dd style={{ margin: 0, textAlign: 'right' }} data-testid="bill">{money(quote.bill)}</dd></>}
             {quote.tip > 0 && <><dt>Tip</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.tip)}</dd></>}
             <dt style={{ fontSize: '1.2rem', fontWeight: 900 }}>Total</dt><dd style={{ margin: 0, textAlign: 'right', fontSize: '1.2rem', fontWeight: 900 }} data-testid="due">{money(quote.total)}</dd>
           </dl>
@@ -130,7 +133,18 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
         )}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}
         {rules.service_charge_on && service === 'dine_in' && <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={waive} onChange={(e) => setWaive(e.target.checked)} /> Waive the {rules.service_charge_pct}% service charge</label>}
-        {rules.tips_on && <label style={{ display: 'grid', gap: 4, fontSize: '0.8rem', fontWeight: 700 }}>Tip<input type="number" min="0" step="any" inputMode="decimal" value={tip} onChange={(e) => setTip(e.target.value)} style={{ padding: 10, borderRadius: 8, ...line }} /></label>}
+        {rules.tips_on && (
+          <div data-testid="tip-box" style={{ display: 'grid', gap: 6, borderTop: '1px solid var(--line, #cbd5e1)', paddingTop: 8 }}>
+            <label style={{ display: 'grid', gap: 4, fontSize: '0.8rem', fontWeight: 700 }}>Tip (kept apart from the bill)
+              <input aria-label="Tip" type="number" min="0" step="any" inputMode="decimal" value={tip} onChange={(e) => setTip(e.target.value)} style={{ padding: 10, borderRadius: 8, ...line }} />
+            </label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" disabled={handed - bill <= 0.004} onClick={() => setTip(String(Math.max(0, handed - bill).toFixed(2)))} style={{ ...big('transparent', 'inherit'), ...line, padding: '6px 10px', fontSize: '0.8rem', opacity: handed - bill <= 0.004 ? 0.5 : 1 }}>Tip the rest of what was handed over</button>
+              {tipNum > 0 && <button type="button" onClick={() => setTip('')} style={{ ...big('transparent', 'inherit'), ...line, padding: '6px 10px', fontSize: '0.8rem' }}>No tip</button>}
+            </div>
+            {tipNum > 0 && handed > 0.004 && handed + 0.004 >= bill && handed + 0.004 < bill + tipNum && <small role="alert" data-testid="tip-too-big" style={{ color: '#b91c1c' }}>The tip can be at most {money(handed - bill)}: that is what is left of the {money(handed)} handed over once the {money(bill)} bill is paid.</small>}
+          </div>
+        )}
         {rows.map((r, i) => (
           <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 8 }}>
             <select aria-label={`Paid by ${i + 1}`} value={r.payment_method_id} onChange={(e) => set(i, { payment_method_id: e.target.value })} style={{ padding: 10, borderRadius: 8, ...line }}>{data.payment_methods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}</select>

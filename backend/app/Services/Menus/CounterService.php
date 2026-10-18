@@ -87,7 +87,7 @@ class CounterService
         $pre = ($svc > 0 || $tip > 0) ? $this->vouchers->preview($base + ['lines' => $rows], null) : $food;
 
         return ['payload' => $base + ['lines' => $rows], 'subtotal' => round((float) $food['subtotal'], 2), 'service_charge' => $svc, 'tip' => round($tip, 2), 'tax_total' => (float) $pre['tax_total'],
-            'total' => (float) $pre['total'], 'tax_breakdown' => $pre['tax_breakdown'] ?? null];
+            'total' => (float) $pre['total'], 'bill' => round((float) $pre['total'] - $tip, 2), 'tax_breakdown' => $pre['tax_breakdown'] ?? null];
     }
 
     private function service(string $s): void
@@ -114,7 +114,7 @@ class CounterService
         $pk = $this->packagingFor($lines, (string) ($in['service'] ?? '') !== 'dine_in', $in, $by);
         $p = $this->price($loc, $lines, (string) ($in['service'] ?? ''), (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in), $pk['packaging']);
 
-        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
+        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'bill' => $p['bill'], 'tax_breakdown' => $p['tax_breakdown'],
             'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
     }
 
@@ -126,7 +126,7 @@ class CounterService
         $pk = $this->packagingFor($lines, (string) $o->service !== 'dine_in', $in, $by);
         $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label, $pk['packaging']);
 
-        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
+        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'bill' => $p['bill'], 'tax_breakdown' => $p['tax_breakdown'],
             'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
     }
 
@@ -140,7 +140,7 @@ class CounterService
         $pk = $this->packagingFor($lines, (string) $o->service !== 'dine_in', $in, $by);
         $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '', $pk['packaging']);
 
-        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
+        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'bill' => $p['bill'], 'tax_breakdown' => $p['tax_breakdown'],
             'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
     }
 
@@ -166,8 +166,14 @@ class CounterService
      *
      * @return array{tenders: array, tendered: float, change: float, record: array}
      */
-    public function tenders(array $given, float $total): array
+    public function tenders(array $given, float $total, float $tip = 0.0): array
     {
+        $handed = round(array_sum(array_map(fn ($t) => max(0.0, (float) ($t['amount'] ?? 0)), $given)), 2);
+        $bill = round($total - $tip, 2);
+        if ($tip > 0 && $handed + 0.004 >= $bill && $handed + 0.004 < $total) {   // the bill is covered, the tip is not: say so, rather than "short by"
+            throw new BooksException('The tip is more than what is left of the money handed over after the bill: the bill is '.number_format($bill, 2).' and '.number_format($handed, 2).' was handed over, so the tip can be '.number_format(max(0, $handed - $bill), 2).' at most.');
+        }
+
         return app(\App\Services\Books\TenderCheck::class)->check($given, $total);
     }
 
@@ -185,7 +191,7 @@ class CounterService
         $pack = app(PackagingCheckout::class)->resolve($lines, $service !== 'dine_in', $in['packaging'] ?? null);
         $cond = app(Condiments::class)->resolve($lines, $in['condiments'] ?? null);
         $p = $this->price($loc, $lines, $service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in), $pack);
-        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
+        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total'], $p['tip']);
 
         $order = DB::transaction(function () use ($channel, $loc, $lines, $service, $p, $paid, $by, $in, $pack, $cond) {
             $order = $this->create($channel, $loc, $service, $by, $this->label($in), 'paid', $p);
@@ -278,7 +284,7 @@ class CounterService
         $pack = app(PackagingCheckout::class)->resolve($lines, (string) $o->service !== 'dine_in', $in['packaging'] ?? null);
         $cond = app(Condiments::class)->resolve($lines, $in['condiments'] ?? null);
         $p = $this->price($loc, $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label, $pack);
-        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
+        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total'], $p['tip']);
         DB::transaction(function () use ($o, $p, $paid, $by, $pack, $cond) {
             app(PackagingCheckout::class)->store($o, $pack, $by);
             app(Condiments::class)->store($o, $cond, $by);
@@ -460,7 +466,7 @@ class CounterService
         $pack = app(PackagingCheckout::class)->resolve($lines, (string) $o->service !== 'dine_in', $in['packaging'] ?? null);
         $cond = app(Condiments::class)->resolve($lines, $in['condiments'] ?? null);
         $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '', $pack);
-        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
+        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total'], $p['tip']);
         DB::transaction(function () use ($o, $p, $paid, $by, $pack, $cond) {
             app(PackagingCheckout::class)->store($o, $pack, $by);
             app(Condiments::class)->store($o, $cond, $by);
