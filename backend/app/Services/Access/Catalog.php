@@ -11,13 +11,14 @@ namespace App\Services\Access;
  */
 class Catalog
 {
-    public const VERSION = 16;
+    public const VERSION = 17;
 
     /** The key of the owner role: the one role that holds every permission, including ones added later. It cannot be changed or deleted. */
     public const OWNER = 'super_admin';
 
     /** Permissions added after version 1, by the version that added them. The seeder gives a new permission to the built-in roles that hold it by default once, and never again (an admin may take it back). */
     public const ADDED = [
+        17 => ['menus.configure', 'menus.tips.view', 'menus.tips.issue', 'menus.tips.issue_self', 'menus.tips.reverse', 'menus.packaging.waive'],
         16 => ['units.view', 'units.manage'],
         15 => ['menus.till'],
         14 => ['pos.view', 'pos.sell', 'pos.invoice', 'pos.order', 'pos.return', 'pos.discount', 'pos.void', 'pos.reprint', 'pos.shift', 'pos.supervise', 'pos.manage'],
@@ -130,6 +131,12 @@ class Catalog
         'menus.view'        => ['menus', 'Menus', 'See recipes and production', false],
         'menus.manage'      => ['menus', 'Menus', 'Make recipes and record production', true],
         'menus.till'        => ['menus', 'Menus', 'Run the food till, the floor and handing orders over, without recipes, costs or setup (for a cashier or waiter)', true],
+        'menus.configure'   => ['menus', 'Menus', 'Change the Menus configuration: the currency, the accounts, the tips rules, packaging, stations, kiosks and channels', true],
+        'menus.tips.view'   => ['menus', 'Menus', 'See the tips, today\'s and the ones waiting to be handed over', false],
+        'menus.tips.issue'  => ['menus', 'Menus', 'Hand tips over to other people (the money is paid out of the till and booked)', true],
+        'menus.tips.issue_self' => ['menus', 'Menus', 'Hand one\'s own tip over to oneself (a narration is asked)', true],
+        'menus.tips.reverse' => ['menus', 'Menus', 'Undo a tip that was handed over by mistake', true],
+        'menus.packaging.waive' => ['menus', 'Menus', 'Waive or remove takeaway packaging that is compulsory and has a price', true],
         'courses.view'      => ['courses', 'Courses', 'See the courses, recipes, notes and live classes', false],
         'courses.manage'    => ['courses', 'Courses', 'Make and change courses, recipes, notes and live classes, and set them up', true],
         'courses.teach'     => ['courses', 'Courses', 'Change the courses one teaches', false],
@@ -310,13 +317,13 @@ class Catalog
             'senior_accountant' => ['name' => 'Senior accountant', 'kind' => 'staff', 'min_clearance' => 4, 'scope_type' => 'global', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Sees every branch for the books. Posts and reviews. Cannot change security, roles or the modules.', 'modules' => ['*'],
                 'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'books.review', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage', 'credit.act',
-                    'campaigns.build', 'catalogue.pricelists', 'menus.view', 'menus.manage', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
+                    'campaigns.build', 'catalogue.pricelists', 'menus.view', 'menus.manage', 'menus.configure', 'menus.tips.view', 'menus.tips.reverse', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
                     'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
                     'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage', 'imports.view']),
                 'approvals' => ['journal.approve' => null, 'purchase.approve' => null, 'refund.approve' => null], 'sort' => 30],
             'manager' => ['name' => 'Manager', 'kind' => 'staff', 'min_clearance' => 3, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Manages a branch: the default one plus any granted.', 'modules' => ['*'],
-                'permissions' => array_merge(self::STAFF, ['books.view', 'stock.view', 'inventory.view', 'vendors.view', 'menus.view', 'menus.till', 'campaigns.build', 'campaigns.publish', 'catalogue.pricelists',
+                'permissions' => array_merge(self::STAFF, ['books.view', 'stock.view', 'inventory.view', 'vendors.view', 'menus.view', 'menus.till', 'menus.tips.view', 'menus.tips.issue', 'menus.tips.reverse', 'menus.packaging.waive', 'campaigns.build', 'campaigns.publish', 'catalogue.pricelists',
                     'pos.view', 'pos.sell', 'pos.invoice', 'pos.order', 'pos.return', 'pos.discount', 'pos.void', 'pos.reprint', 'pos.shift', 'pos.supervise', 'pos.manage',
                     'catalogue.delete', 'credit.act', 'delivery.manage', 'tax.view', 'inventory.accounting', 'inventory.manage', 'catalogue.settings', 'promos.manage', 'projects.use',
                     'analytics.view', 'insight.mimi', 'resources.manage', 'quotes.write', 'calendar.team', 'hr.view', 'hr.team', 'stock.override_expiry', 'stock.expiry_alerts', 'loyalty.grant',
@@ -325,7 +332,7 @@ class Catalog
             'finance' => ['name' => 'Finance', 'kind' => 'staff', 'min_clearance' => 3, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => null, 'acts_as' => [],
                 'description' => 'Does the finance work of the branches assigned or granted.', 'modules' => ['*'],
                 'permissions' => array_merge(self::STAFF, ['books.view', 'books.post', 'payroll.run', 'stock.view', 'stock.manage', 'inventory.view', 'vendors.view', 'vendors.manage',
-                    'menus.view', 'menus.manage', 'campaigns.build', 'catalogue.pricelists', 'credit.act', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
+                    'menus.view', 'menus.manage', 'menus.configure', 'menus.tips.view', 'menus.tips.reverse', 'campaigns.build', 'catalogue.pricelists', 'credit.act', 'tax.view', 'tax.manage', 'currency.manage', 'currency.base', 'inventory.accounting',
                     'promos.manage', 'projects.use', 'analytics.view', 'books.writeoff', 'books.bounce', 'books.pettycash', 'quotes.write', 'verification.manage', 'hr.view', 'loyalty.grant',
                     'loyalty.deduct', 'loyalty.export', 'catalogue.publish', 'engagement.view', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'catalogue.edit', 'tickets.manage', 'costcentres.view', 'costcentres.manage', 'imports.view']),
                 'approvals' => [], 'sort' => 50],
@@ -334,7 +341,7 @@ class Catalog
             'sales_rep' => ['name' => 'Sales representative', 'kind' => 'staff', 'min_clearance' => 2, 'scope_type' => 'assigned', 'data_scope' => 'assigned', 'module' => null, 'acts_as' => [],
                 'description' => 'Works with the customers assigned to them.', 'modules' => ['*'], 'permissions' => array_merge(self::STAFF, ['campaigns.build', 'catalogue.pricelists', 'quotes.write', 'loyalty.grant', 'customers.represent', 'projects.manage', 'projects.use', 'engagement.view', 'users.manage', 'customers.view', 'customers.manage', 'credit.view', 'quotes.view', 'catalogue.view', 'tickets.manage', 'bookings.manage']), 'approvals' => [], 'sort' => 70],
             'cashier' => ['name' => 'Cashier', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'own', 'module' => null, 'acts_as' => [],
-                'description' => 'Takes payments at a branch: sells at the point of sale from a station, invoices, takes orders and starts returns (a supervisor\'s PIN completes them).', 'modules' => ['*'], 'permissions' => ['admin.access', 'customers.view', 'catalogue.view', 'bookings.manage', 'pos.view', 'pos.sell', 'pos.invoice', 'pos.order', 'pos.return', 'pos.discount', 'pos.void', 'pos.reprint', 'pos.shift', 'menus.till'], 'approvals' => [], 'sort' => 80],
+                'description' => 'Takes payments at a branch: sells at the point of sale from a station, invoices, takes orders and starts returns (a supervisor\'s PIN completes them).', 'modules' => ['*'], 'permissions' => ['admin.access', 'customers.view', 'catalogue.view', 'bookings.manage', 'pos.view', 'pos.sell', 'pos.invoice', 'pos.order', 'pos.return', 'pos.discount', 'pos.void', 'pos.reprint', 'pos.shift', 'menus.till', 'menus.tips.view', 'menus.tips.issue'], 'approvals' => [], 'sort' => 80],
             'chef' => ['name' => 'Chef', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'all', 'module' => 'menus', 'acts_as' => [],
                 'description' => 'Works with recipes and production in the kitchen.', 'modules' => ['menus'], 'permissions' => ['admin.access', 'menus.view', 'menus.manage'], 'approvals' => [], 'sort' => 90],
             'driver' => ['name' => 'Driver', 'kind' => 'staff', 'min_clearance' => 1, 'scope_type' => 'assigned', 'data_scope' => 'own', 'module' => 'extras', 'acts_as' => [],

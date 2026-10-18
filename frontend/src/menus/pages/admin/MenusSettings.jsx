@@ -7,7 +7,7 @@ import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountS
 import menusAPI from '../../../_shared/api/menus';
 import currencyAPI from '../../../_shared/api/currency';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
+import { canViewMenus, canConfigureMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import LedgerSelect from '../../components/LedgerSelect';
@@ -19,7 +19,7 @@ import ClockPlacesCard from '../../components/ClockPlacesCard';
 /** Menus → Configuration: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
   const user = useAuthStore((s) => s.user);
-  const canEdit = canManageMenus(user);
+  const canEdit = canConfigureMenus(user);
   const [s, setS] = useState(null);
   const [ready, setReady] = useState(true);
   const [busy, setBusy] = useState(false);

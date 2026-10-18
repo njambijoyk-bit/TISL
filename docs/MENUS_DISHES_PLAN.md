@@ -67,13 +67,25 @@ Stock leaves ingredients when the batch is made, and leaves prepared stock when 
 
 ## 8. Currency
 - **Built:** Menus configuration has a **Currency** (empty: the system's base currency). Ingredient purchases and opening stock default to it, and so do the kitchen's journals (use, waste, count, short transfers): costs are held in the base currency, so each journal converts at the rate of its date and the books convert back at the same rate. With no Menus currency nothing changes. Prices typed on the Receive stock popup and the Opening stock sheet are in the Menus currency (shown there). The Core Purchases form keeps its own currency box (default base).
-- **To build with dishes:** a dish has a **currency** (default the Menus currency, else base; may be overridden); packaging price list rows have their own. An order is written in the Menus currency: each line is converted at the rate of the date (a dish in yen and a bag in shillings on a shilling menu); the customer browsing sees each dish in its own currency. Open: does the customer pay in the Menus currency only, and how is rounding shown on a mixed order?
+- **To build with dishes:** a dish has a **currency** (default the Menus currency, else base; may be overridden); packaging price list rows have their own. An order is written in the Menus currency: each line is converted at the rate of the date (a dish in yen and a bag in shillings on a shilling menu); the customer browsing sees each dish in its own currency. The customer pays in the voucher's currency, which is the Menus currency. Open: how is rounding shown on a mixed order?
 - Known limit: with a Menus currency other than the base, inventory is valued in base at each purchase's rate, so an exchange difference on stock is not separated out. Fine for now.
 
 ## 9. QR codes (the core Codes engine; today it codes products, packs, assets and stock batches)
 Add: **dishes** (the public page or ordering), **recipes** (the kitchen card or the course copy), **prepared batches and ingredient lots** (a label: batch no, chef, cooked time, use-by), and **kitchen stock variants** (a code for each, so a scanner on a Coke crate or bottle adds it to a receive, a count or an order; a supplier's barcode can be stored as the variant's code).
 
+## 9b. Permissions (built; version 17 of the catalogue; run `php artisan access:seed`)
+| Permission | Lets a person | Held by default |
+|---|---|---|
+| `menus.configure` | Change the Menus configuration: currency, accounts, tips rules, packaging, stations, kiosks, channels (the settings, kiosk, station and channel changes ask for it; it was `menus.manage`) | admin, finance, senior accountant |
+| `menus.tips.view` | See the tips, today's and pending | admin, manager, cashier, finance, senior accountant |
+| `menus.tips.issue` | Hand tips over to other people | admin, manager, cashier |
+| `menus.tips.issue_self` | Hand one's own tip over to oneself (a narration is asked) | admin |
+| `menus.tips.reverse` | Undo a tip handed over by mistake | admin, manager, finance, senior accountant |
+| `menus.packaging.waive` | Waive or remove packaging that is compulsory and has a price | admin, manager |
+`menus.view`, `menus.manage` (recipes, dishes, production) and `menus.till` are as before. A chef holds `menus.view` and `menus.manage` only, so a chef no longer changes the Menus configuration unless a role is given `menus.configure`.
+
 ## 10. Build order (each step tested and pushed)
+0. Foundation: the permissions above (done), then the Menus configuration (the settings the steps below read: Prepared Food Inventory account, tips payable account and issue window, packaging kind and sales account, default removal policy and the named policies, servings, audience).
 1. Recipes can use recipes; batch yield unit; production record (chef, times, actual inputs and output, servings cut); prepared stock; Prepared Food Inventory account and its journals; the daily reconciliation report.
 2. Servings table; sides (with amounts per serving, station, packaging); today's recipes migrate: each dish's recipe becomes a recipe, a side of the same name and a dish with one slot.
 3. Dishes made of slots (fixed, choose one, choose any, free and paid extras), servings and prices per serving, audience; "Choose a side" set meals become choose-one slots; the guided dish flow.
@@ -86,5 +98,5 @@ Add: **dishes** (the public page or ordering), **recipes** (the kitchen card or 
 
 ## 11. Still to settle
 - Whether pending tips expire, and what happens to the money.
-- How the customer pays on a mixed-currency order, and how rounding is shown.
+- How rounding is shown on a mixed-currency order (the customer pays in the voucher's currency, the Menus currency).
 - Who may name the packaging kind and the tips setting (Menus configuration permission, as the other settings).

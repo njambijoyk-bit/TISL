@@ -18,6 +18,11 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 - [ ] Two test people: one **manager** (menus.view and menus.manage) and one **cashier or waiter** (menus.till only, no menus.manage). Sign in as each in a different browser.
 - [ ] A branch exists and is set to sell to customers. Payment methods exist: Cash, and M-Pesa if you want to try the kiosk.
 
+## 0a. Menus permissions (after `php artisan access:seed`)
+1. Settings, Roles: under **Menus** the list now has: Change the Menus configuration; See the tips; Hand tips over to other people; Hand one's own tip over to oneself; Undo a tip handed over by mistake; Waive or remove compulsory packaging that has a price.
+2. Sign in as a **chef** (menus.view and menus.manage only). Expect: Menus, Configuration opens but its fields are read-only, and saving is refused. Give the role "Change the Menus configuration": the fields work.
+3. The cashier role holds See the tips and Hand tips over to other people; the manager also holds Undo a tip and Waive packaging.
+
 ## 0b. Menus currency (after the Currency setting)
 1. Menus, Configuration: the **Currency** list offers the active currencies, and empty means the system's base currency. Pick a foreign one with a rate set under Currencies. Expect: Menus, Stock, Receive stock says "prices in" that currency, and so does the Opening stock sheet.
 2. Receive a delivery and record some waste. Expect: the purchase voucher and the waste journal are in that currency at the rate of their date; the Books amounts in the base currency are what the lots cost. Set it back to empty and everything is in the base currency again.
