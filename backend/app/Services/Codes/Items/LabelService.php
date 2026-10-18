@@ -53,7 +53,8 @@ final class LabelService
             }
             try {
                 $kind = $this->kind($it['type'], $item['code'], $o['kind'] ?? null, $defaults);
-                $svg = CodeFactory::make($kind, $item['code'], ['text' => $show['code_text'], 'level' => 'M'])->svg(['unit' => 2, 'height' => 60, 'fontSize' => 11, 'text' => (bool) $show['code_text']]);
+                $twoD = (bool) (CodeFactory::KINDS[$kind][1] ?? false);
+                $svg = CodeFactory::make($kind, $twoD && ! empty($item['payload']) ? $item['payload'] : $item['code'], ['text' => $show['code_text'], 'level' => 'M'])->svg(['unit' => 2, 'height' => 60, 'fontSize' => 11, 'text' => (bool) $show['code_text']]);
             } catch (CodeException $e) {
                 $skipped[] = ['type' => $it['type'], 'id' => (int) $it['id'], 'label' => $item['label'], 'reason' => $e->getMessage()];
                 $total -= $copies;
@@ -70,10 +71,13 @@ final class LabelService
             if ($show['price'] && $item['price'] !== null) {
                 $lines[] = ['role' => 'price', 'text' => trim(($item['currency'] ? $item['currency'] . ' ' : '') . number_format($item['price'], 2))];
             }
-            if ($show['batch'] && ($item['batch_no'] || $item['expiry'])) {
-                $lines[] = ['role' => 'batch', 'text' => trim(($item['batch_no'] ? 'Batch ' . $item['batch_no'] : '') . ($item['expiry'] ? ' · exp ' . $item['expiry'] : ''), ' ·')];
+            if (($o['made'] ?? true) && ! empty($item['made'])) {   // when it was made or came in, and by whom (a kitchen batch or lot)
+                $lines[] = ['role' => 'made', 'text' => $item['made']];
             }
-            $labels[] = ['type' => $it['type'], 'id' => (int) $item['id'], 'copies' => $copies, 'code' => $item['code'], 'kind' => $kind, 'lines' => $lines, 'svg' => $svg, 'two_d' => CodeFactory::KINDS[$kind][1]];
+            if ($show['batch'] && ($item['batch_no'] || $item['expiry'])) {
+                $lines[] = ['role' => 'batch', 'text' => trim(($item['batch_no'] ? 'Batch ' . $item['batch_no'] : '') . ($item['expiry'] ? ' · ' . ($item['expiry_label'] ?? 'exp') . ' ' . $item['expiry'] : ''), ' ·')];
+            }
+            $labels[] = ['type' => $it['type'], 'id' => (int) $item['id'], 'copies' => $copies, 'code' => $item['code'], 'encodes' => $twoD && ! empty($item['payload']) ? $item['payload'] : $item['code'], 'kind' => $kind, 'lines' => $lines, 'svg' => $svg, 'two_d' => CodeFactory::KINDS[$kind][1]];
         }
         if ($log && $labels && Schema::hasTable('code_prints')) {
             DB::table('code_prints')->insert(['user_id' => $by, 'template' => $o['template'] ?? null, 'size' => $o['size'] ?? $defaults['label']['size'], 'label_count' => $total,

@@ -125,7 +125,7 @@ class MenusPreparedController extends Controller
                 return $r;
             });
 
-            return response()->json(['message' => "Made. {$r->number} is on the shelf and the ingredients are used.", 'id' => $r->id, 'number' => $r->number, 'cost' => (float) $r->cost], 201);
+            return response()->json(['message' => "Made. {$r->number} is on the shelf and the ingredients are used.", 'id' => $r->id, 'number' => $r->number, 'cost' => (float) $r->cost, 'lot_id' => $r->lot_id ? (int) $r->lot_id : null], 201);
         });
     }
 

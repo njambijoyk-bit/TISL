@@ -86,13 +86,15 @@ final class MenusCodeItems
         return match ($type) {
             'dish' => DB::table('menus_dishes as d')
                 ->when(Schema::hasColumn('menus_dishes', 'currency_id') && Schema::hasTable('currencies'), fn ($q) => $q->leftJoin('currencies as c', 'c.id', '=', 'd.currency_id')->addSelect('c.code as currency'), fn ($q) => $q->addSelect(DB::raw('NULL as currency')))
-                ->addSelect('d.id', 'd.name as product', 'd.price'),
+                ->addSelect('d.id', 'd.name as product', 'd.price', 'd.slug'),
             'recipe' => DB::table('menus_recipes as r')->leftJoin('menus_dishes as d', 'd.id', '=', 'r.dish_id')
                 ->addSelect('r.id', DB::raw((Schema::hasColumn('menus_recipes', 'name') ? 'COALESCE(r.name, d.name)' : 'd.name').' as product'), 'r.dish_id'),
             'prep_lot' => DB::table('menus_prep_lots as l')->leftJoin('menus_recipes as r', 'r.id', '=', 'l.recipe_id')->leftJoin('menus_dishes as d', 'd.id', '=', 'r.dish_id')
-                ->select('l.id', DB::raw((Schema::hasColumn('menus_recipes', 'name') ? 'COALESCE(r.name, d.name)' : 'd.name').' as product'), 'l.lot_no as batch_no', 'l.expiry_date', 'l.made_on'),
+                ->when(Schema::hasTable('menus_prep_runs') && Schema::hasTable('menus_chefs'), fn ($q) => $q->leftJoin('menus_prep_runs as run', 'run.id', '=', 'l.run_id')->leftJoin('menus_chefs as ch', 'ch.id', '=', 'run.chef_id')
+                    ->addSelect('ch.display_name as chef', DB::raw('COALESCE(run.finished_at, run.started_at, l.created_at) as cooked_at')), fn ($q) => $q->addSelect(DB::raw('NULL as chef'), 'l.created_at as cooked_at'))
+                ->addSelect('l.id', DB::raw((Schema::hasColumn('menus_recipes', 'name') ? 'COALESCE(r.name, d.name)' : 'd.name').' as product'), 'l.lot_no as batch_no', 'l.expiry_date', 'l.made_on'),
             'stock_lot' => DB::table('menus_stock_batches as b')->join('menus_ingredient_items as i', 'i.id', '=', 'b.item_id')->join('menus_ingredients as g', 'g.id', '=', 'i.ingredient_id')
-                ->select('b.id', 'g.name as product', 'i.name as variant', 'b.batch_no', 'b.expiry_date', 'b.received_on as made_on'),
+                ->select('b.id', 'g.name as product', 'i.name as variant', 'b.batch_no', 'b.expiry_date', 'b.received_on as made_on', 'b.received_on as cooked_at'),
             'kitchen_item' => DB::table('menus_ingredient_items as i')->join('menus_ingredients as g', 'g.id', '=', 'i.ingredient_id')
                 ->select('i.id', 'g.name as product', 'i.name as variant', 'i.code', 'i.ingredient_id'),
         };
@@ -120,11 +122,62 @@ final class MenusCodeItems
             'stock_lot' => implode(' · ', array_filter([$name, 'lot '.($r->batch_no ?: '#'.$r->id), $r->expiry_date ? 'expires '.substr((string) $r->expiry_date, 0, 10) : null])),
             default => $name,
         };
+        $made = match ($type) {
+            'prep_lot' => self::made('Made', $r->cooked_at ?? null, $r->chef ?? null, true),
+            'stock_lot' => self::made('Received', $r->made_on ?? null, null, false),
+            default => null,
+        };
         $code = isset(self::DERIVED[$type]) ? self::derived($type, (int) $r->id) : ($r->code !== null && $r->code !== '' ? (string) $r->code : null);
 
         return ['type' => $type, 'id' => (int) $r->id, 'variant_id' => null, 'product_id' => null, 'pack_units' => null, 'label' => $label, 'sku' => null, 'code' => $code, 'derived' => isset(self::DERIVED[$type]),
             'price' => isset($r->price) && $r->price !== null ? (float) $r->price : null, 'currency' => $r->currency ?? null,
             'batch_no' => $r->batch_no ?? null, 'expiry' => isset($r->expiry_date) && $r->expiry_date ? substr((string) $r->expiry_date, 0, 10) : null, 'name' => $name,
-            'ingredient_id' => isset($r->ingredient_id) ? (int) $r->ingredient_id : null, 'dish_id' => isset($r->dish_id) && $r->dish_id ? (int) $r->dish_id : null];
+            'ingredient_id' => isset($r->ingredient_id) ? (int) $r->ingredient_id : null, 'dish_id' => isset($r->dish_id) && $r->dish_id ? (int) $r->dish_id : null,
+            'payload' => self::link($type, $r), 'made' => $made, 'expiry_label' => in_array($type, ['prep_lot', 'stock_lot'], true) ? 'use by' : null];
+    }
+
+    /** "Made 17 Oct 14:30, Chef Wanjiru": when it was made and by whom, for the label of a batch. */
+    private static function made(string $word, $at, ?string $chef, bool $withTime): ?string
+    {
+        if (! $at) {
+            return $chef ? $word.' by '.$chef : null;
+        }
+        $d = \Illuminate\Support\Carbon::parse($at);
+
+        return $word.' '.$d->format('j M').($withTime && $d->format('H:i') !== '00:00' ? ' '.$d->format('H:i') : '').($chef ? ', '.$chef : '');
+    }
+
+    private static function base(): string
+    {
+        return rtrim((string) config('app.frontend_url'), '/');
+    }
+
+    /** What the QR of a dish or a recipe holds (9.2): a page to open. The dish's page is the public menu at that dish; the recipe's is the kitchen card, for staff who are signed in. Null for the rest. */
+    public static function link(string $type, object $r): ?string
+    {
+        return match ($type) {
+            'dish' => ! empty($r->slug) ? self::base().'/menu?dish='.rawurlencode((string) $r->slug) : null,
+            'recipe' => self::base().'/admin/menus/recipes?card='.(int) $r->id,
+            default => null,
+        };
+    }
+
+    /** A scan of the QR itself is a link, not a code: read the dish or recipe out of it. @return ?array{0: string, 1: int} */
+    public static function fromLink(string $text): ?array
+    {
+        if (! preg_match('#^https?://#i', $text)) {
+            return null;
+        }
+        if (preg_match('/[?&]dish=([^&#]+)/', $text, $m) && Schema::hasTable('menus_dishes')) {
+            $v = rawurldecode($m[1]);
+            $id = DB::table('menus_dishes')->where('slug', $v)->value('id');
+
+            return $id ? ['dish', (int) $id] : null;
+        }
+        if (preg_match('#/admin/menus/recipes\?card=(\d+)#', $text, $m)) {
+            return ['recipe', (int) $m[1]];
+        }
+
+        return null;
     }
 }

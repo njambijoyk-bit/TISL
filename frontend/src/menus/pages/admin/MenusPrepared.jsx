@@ -3,10 +3,11 @@ import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
 import Modal from '../../../core/components/admin/ui/Modal';
+import LabelPrint from '../../components/LabelPrint';
 import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { useMenusBranch } from '../../lib/menusBranch';
@@ -137,7 +138,7 @@ function MakeBatch({ data, location, initial = null, onClose, onDone }) {
         started_at: started || null, finished_at: finished || null, note: note || null, client_key: key.current, inputs, ...(initial?.id ? { timer_id: initial.id } : {}),
         servings: cut.filter((c) => c.serving_id && Number(c.count) > 0).map((c) => ({ serving_id: Number(c.serving_id), count: Number(c.count) })),
       });
-      toast.success(res.message); onDone();
+      toast.success(res.message); onDone(res.lot_id);
     } catch (x) { setErr(errMsg(x, 'Could not make the batch')); } finally { setBusy(false); }
   };
 
@@ -305,6 +306,8 @@ export default function MenusPrepared() {
   const [loc, setLoc] = useMenusBranch(data?.branches);
   const [modal, setModal] = useState(null);
   const [timers, setTimers] = useState([]);
+  const [labels, setLabels] = useState(null);   // lots to print labels for
+  const canPrint = hasPermission(user, 'codes.print');
   const [loading, setLoading] = useState(true);
   const first = useRef(true);
 
@@ -366,7 +369,7 @@ export default function MenusPrepared() {
                   <td style={td}><strong>{r.name}</strong></td>
                   <td style={{ ...td, textAlign: 'right' }}>{num(r.on_shelf, 3)} {r.unit}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{num(r.value)}</td>
-                  <td style={td}>{r.lots.map((l) => <div key={l.id}>{l.lot_no} · {num(l.qty_left, 3)} {r.unit} left · made {l.made_on}{l.expiry_date ? ` · use by ${l.expiry_date}` : ''}</div>)}</td>
+                  <td style={td}>{r.lots.map((l) => <div key={l.id}>{l.lot_no} · {num(l.qty_left, 3)} {r.unit} left · made {l.made_on}{l.expiry_date ? ` · use by ${l.expiry_date}` : ''}{canPrint && <button type="button" aria-label={`Print the label for ${l.lot_no}`} style={{ ...small, marginLeft: 8 }} onClick={() => setLabels([{ type: 'prep_lot', id: l.id, label: `${r.name} · ${l.lot_no}` }])}>Label</button>}</div>)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>{canWrite && data.waste_ready && <button type="button" style={small} onClick={() => setModal({ kind: 'waste', recipe: r })}>Write off</button>}</td>
                 </tr>
               ))}</tbody>
@@ -418,8 +421,9 @@ export default function MenusPrepared() {
         )}
         {data?.ready && <PreparedReports location={loc || String(data.location_id)} recipes={data.recipes} />}
       </div>
-      {modal?.kind === 'make' && data && <MakeBatch data={data} location={loc || String(data.location_id)} initial={modal.timer ?? null} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {modal?.kind === 'make' && data && <MakeBatch data={data} location={loc || String(data.location_id)} initial={modal.timer ?? null} onClose={() => setModal(null)} onDone={(lotId) => { setModal(null); load(); if (lotId && canPrint) toast((t) => (<span>The batch is on the shelf. <button type="button" onClick={() => { toast.dismiss(t.id); setLabels([{ type: 'prep_lot', id: lotId, label: 'The batch you made' }]); }} style={{ fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}>Print its label</button></span>), { duration: 12000 }); }} />}
       {modal?.kind === 'timer' && data && <StartTimer data={data} location={loc || String(data.location_id)} onClose={() => setModal(null)} onDone={(list) => { setModal(null); setTimers(list); }} />}
+      {labels && <LabelPrint items={labels} onClose={() => setLabels(null)} />}
       {modal?.kind === 'waste' && data && <WriteOff data={data} location={loc || String(data.location_id)} recipe={modal.recipe} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
       {modal?.kind === 'count' && data && <CountShelf data={data} location={loc || String(data.location_id)} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
     </AdminLayout>

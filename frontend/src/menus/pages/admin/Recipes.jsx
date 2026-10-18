@@ -7,7 +7,9 @@ import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/lib/roles';
+import { useSearchParams } from 'react-router-dom';
+import LabelPrint from '../../components/LabelPrint';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import { useMenusBranch } from '../../lib/menusBranch';
@@ -177,6 +179,38 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   );
 }
 
+const esc = (t) => String(t ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+/** The kitchen card of a recipe (the page its QR opens): what goes in, in what amount, the steps and the times. Read only, and printable. */
+function KitchenCard({ title, recipe, onClose, onLabel }) {
+  const unitOf = (l) => (l.unit === 'alt' ? l.alt_unit : l.base_unit);
+  const print = () => {
+    const w = window.open('', '_blank', 'width=720,height=900');
+    if (!w) { toast.error('Allow pop-ups to print the card.'); return; }
+    w.document.write(`<!doctype html><title>${esc(title)}</title><style>body{font-family:system-ui,sans-serif;margin:24px;color:#0f172a}h1{margin:0 0 4px}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #cbd5e1;padding:5px 8px;text-align:left}ol{padding-left:20px}li{margin:6px 0}small{color:#475569}</style>
+      <h1>${esc(title)}</h1><p><small>${esc(recipe.yield_label ? `Makes ${recipe.yield_label}` : '')}${recipe.made_to_order ? ', made to order' : ', made ahead'}${recipe.prep_minutes ? `, prep ${recipe.prep_minutes} min` : ''}${recipe.cook_minutes ? `, cook ${recipe.cook_minutes} min` : ''}</small></p>
+      <h2>Ingredients</h2><table>${recipe.lines.map((l) => `<tr><td>${esc(l.name)}</td><td>${esc(num(l.quantity, 3))} ${esc(unitOf(l) ?? '')}</td></tr>`).join('')}</table>
+      ${recipe.steps.length ? `<h2>Method</h2><ol>${recipe.steps.map((s) => `<li>${esc(s.body)}${s.minutes ? ` <small>(${s.minutes} min)</small>` : ''}</li>`).join('')}</ol>` : ''}
+      ${recipe.times?.length ? `<h2>Time by batch size</h2><table>${recipe.times.map((t) => `<tr><td>up to ${esc(num(t.up_to, 3))}</td><td>${t.minutes} min</td></tr>`).join('')}</table>` : ''}`);
+    w.document.close(); w.focus(); w.print();
+  };
+
+  return (
+    <Modal title={`Kitchen card: ${title}`} subtitle={`${recipe.yield_label ? `Makes ${recipe.yield_label}` : ''}${recipe.made_to_order ? ' · made to order' : ' · made ahead'}`} onClose={onClose} width={640}
+      footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>{onLabel && <button type="button" style={btnGhost} onClick={onLabel}>Print the QR label</button>}<button type="button" style={btnGhost} onClick={print}>Print the card</button><button type="button" style={btnGhost} onClick={onClose}>Close</button></div>}>
+      <div data-testid="kitchen-card" style={{ display: 'grid', gap: 12, fontSize: '0.88rem' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr><th style={th}>Ingredient</th><th style={{ ...th, textAlign: 'right' }}>Amount</th></tr></thead>
+          <tbody>{recipe.lines.map((l, i) => <tr key={i}><td style={td}>{l.name}</td><td style={{ ...td, textAlign: 'right' }}>{num(l.quantity, 3)} {unitOf(l)}</td></tr>)}</tbody>
+        </table>
+        {recipe.steps.length > 0 && <ol style={{ margin: 0, paddingLeft: 20, display: 'grid', gap: 6 }}>{recipe.steps.map((s, i) => <li key={i}>{s.body}{s.minutes ? <small style={{ color: colors.textMuted }}> ({s.minutes} min)</small> : null}</li>)}</ol>}
+        {(recipe.prep_minutes || recipe.cook_minutes) && <p style={{ margin: 0, color: colors.textMuted }}>{recipe.prep_minutes ? `Prep ${recipe.prep_minutes} min. ` : ''}{recipe.cook_minutes ? `Cook ${recipe.cook_minutes} min.` : ''}</p>}
+        {recipe.times?.length > 0 && <p style={{ margin: 0, color: colors.textMuted }}>By batch size: {recipe.times.map((t) => `up to ${num(t.up_to, 3)} takes ${t.minutes} min`).join(', ')}.</p>}
+      </div>
+    </Modal>
+  );
+}
+
 export default function Recipes() {
   const user = useAuthStore((s) => s.user);
   const canWrite = canManageMenus(user);
@@ -185,6 +219,9 @@ export default function Recipes() {
   const [modal, setModal] = useState(null);
   const [loading, setLoading] = useState(true);
   const first = useRef(true);
+  const [params, setParams] = useSearchParams();
+  const [labels, setLabels] = useState(null);
+  const canPrint = hasPermission(user, 'codes.print');
 
   const load = useCallback(() => {
     setLoading(true);
@@ -195,6 +232,11 @@ export default function Recipes() {
   }, [loc, setLoc]);
   useEffect(() => { load(); }, [load]);
   const done = () => { setModal(null); load(); };
+  // the QR of a recipe opens its kitchen card: ?card=<recipe id>
+  const cards = [...(data?.dishes ?? []).filter((d) => d.recipe).map((d) => ({ title: d.name, recipe: d.recipe })), ...(data?.standalone ?? []).map((r) => ({ title: r.name, recipe: r }))];
+  const cardOf = (id) => cards.find((c) => String(c.recipe.id) === String(id));
+  const opened = params.get('card') ? cardOf(params.get('card')) : null;
+  const closeCard = () => { const p = new URLSearchParams(params); p.delete('card'); setParams(p, { replace: true }); };
   const remove = async (d) => {
     if (!window.confirm(`Remove the recipe of ${d.name}?`)) return;
     try { const res = await menusAPI.removeStockRecipe(d.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not remove')); }
@@ -228,6 +270,7 @@ export default function Recipes() {
                   <td style={{ ...td, textAlign: 'right' }}>{d.recipe?.cost ? <>{num(d.recipe.cost.per_portion)}{!d.recipe.cost.complete && <span title="Some ingredient has never been bought, so its cost is not in this figure" style={{ color: colors.warning }}> *</span>}</> : '—'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{d.recipe?.portions == null ? '—' : num(Math.floor(d.recipe.portions), 0)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                    {d.recipe && <button type="button" style={small} onClick={() => setParams({ card: d.recipe.id })}>Kitchen card</button>}
                     {canWrite && data.installed && <button type="button" style={small} onClick={() => setModal({ dish: d })}>{d.recipe ? 'Edit recipe' : 'Write recipe'}</button>}
                     {canWrite && d.recipe && <button type="button" style={small} onClick={() => remove(d)}>Remove</button>}
                   </td>
@@ -258,6 +301,7 @@ export default function Recipes() {
                   <td style={{ ...td, textAlign: 'right' }}>{r.cost?.per_portion != null ? <>{num(r.cost.per_portion * r.yield_qty)}{!r.cost.complete && <span title="Some ingredient has never been bought, so its cost is not in this figure" style={{ color: colors.warning }}> *</span>}</> : '—'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{r.cost?.per_portion != null ? `${num(r.cost.per_portion)} per ${r.yield_unit ?? 'portion'}` : '—'}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                    <button type="button" style={small} onClick={() => setParams({ card: r.id })}>Kitchen card</button>
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ dish: { id: r.id, standalone: true, name: r.name, recipe: r } })}>Edit recipe</button>}
                     {canWrite && <button type="button" style={small} onClick={() => removeOwn(r)}>Remove</button>}
                   </td>
@@ -267,6 +311,8 @@ export default function Recipes() {
           )}
         </div>
       </div>
+      {opened && <KitchenCard title={opened.title} recipe={opened.recipe} onClose={closeCard} onLabel={canPrint ? () => setLabels([{ type: 'recipe', id: opened.recipe.id, label: opened.title }]) : null} />}
+      {labels && <LabelPrint items={labels} onClose={() => setLabels(null)} />}
       {modal && data && <RecipeModal dish={modal.dish} options={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );

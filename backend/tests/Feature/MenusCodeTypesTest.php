@@ -192,7 +192,67 @@ class MenusCodeTypesTest extends TestCase
         $this->assertContains('price', array_column($dish['lines'], 'role'));
         $prep = $out['labels'][1];
         $this->assertSame('code128', $prep['kind']);
-        $this->assertStringContainsString('exp 2026-10-20', collect($prep['lines'])->firstWhere('role', 'batch')['text']);
+        $this->assertStringContainsString('use by 2026-10-20', collect($prep['lines'])->firstWhere('role', 'batch')['text']);
         $this->assertNotNull($d);
+    }
+
+    // ------------------------------------------------------------ 9.2 dishes and recipes: what the QR holds
+
+    public function test_the_qr_of_a_dish_opens_its_place_on_the_public_menu_and_scanning_it_finds_the_dish(): void
+    {
+        config(['app.frontend_url' => 'https://food.example.com/']);
+        $d = $this->dish('Pancakes', 120);
+        $url = 'https://food.example.com/menu?dish='.$d->slug;
+        $this->assertSame($url, $this->items->find('dish', $d->id)['payload']);
+
+        $label = app(LabelService::class)->build([['type' => 'dish', 'id' => $d->id]], [], null)['labels'][0];
+        $this->assertSame(['qr', $url], [$label['kind'], $label['encodes']], 'the picture holds the link, the text under it the code');
+        $this->assertSame(\App\Services\Codes\CodeFactory::make('qr', $url, ['text' => true, 'level' => 'M'])->svg(['unit' => 2, 'height' => 60, 'fontSize' => 11, 'text' => true]), $label['svg'], 'the picture really is the link');
+        $this->assertSame('dish', $this->items->lookup($url)[0]['type'], 'a scan of the QR gives a link: it finds the dish');
+        $this->assertSame('dish', $this->items->lookup($url.'&utm=x')[0]['type']);
+        $this->assertSame([], $this->items->lookup('https://food.example.com/menu?dish=no-such-dish'));
+
+        $linear = app(LabelService::class)->build([['type' => 'dish', 'id' => $d->id]], ['kind' => 'code128'], null)['labels'][0];
+        $this->assertSame($this->items->find('dish', $d->id)['code'], $linear['encodes'], 'a barcode can not hold a link: it holds the code');
+    }
+
+    public function test_the_qr_of_a_recipe_opens_its_kitchen_card_for_staff(): void
+    {
+        config(['app.frontend_url' => 'https://food.example.com']);
+        $own = $this->ugali();
+        $url = 'https://food.example.com/admin/menus/recipes?card='.$own->id;
+        $this->assertSame($url, $this->items->find('recipe', $own->id)['payload']);
+        $hit = $this->items->lookup($url);
+        $this->assertSame(['recipe', $own->id], [$hit[0]['type'], $hit[0]['id']]);
+        $this->assertSame($url, app(LabelService::class)->build([['type' => 'recipe', 'id' => $own->id]], [], null)['labels'][0]['encodes']);
+        $this->assertNull($this->items->find('prep_lot', 999), 'only dishes and recipes carry a link');
+    }
+
+    // ------------------------------------------------------------ 9.3 batch and lot labels
+
+    public function test_a_prepared_batch_label_says_what_it_is_the_batch_number_who_made_it_when_and_the_use_by(): void
+    {
+        DB::table('menus_chefs')->insert(['id' => 1, 'user_id' => 1, 'display_name' => 'Chef Wanjiru', 'is_active' => true]);
+        app(PrepProduction::class)->run($this->ugali(), 1, 2.0, ['date' => '2026-10-17', 'expiry_date' => '2026-10-20', 'chef_id' => 1, 'started_at' => '2026-10-17 13:50', 'finished_at' => '2026-10-17 14:30']);
+        $lot = \App\Models\Menus\PrepLot::first();
+
+        $label = app(LabelService::class)->build([['type' => 'prep_lot', 'id' => $lot->id]], [], null)['labels'][0];
+        $lines = array_column($label['lines'], 'text', 'role');
+        $this->assertSame('Ugali', $lines['name']);
+        $this->assertSame('Made 17 Oct 14:30, Chef Wanjiru', $lines['made']);
+        $this->assertStringContainsString('use by 2026-10-20', $lines['batch']);
+        $this->assertStringContainsString('Batch '.$lot->lot_no, $lines['batch']);
+        $this->assertSame($this->items->find('prep_lot', $lot->id)['code'], $label['encodes']);
+        $this->assertArrayNotHasKey('made', array_column(app(LabelService::class)->build([['type' => 'prep_lot', 'id' => $lot->id]], ['made' => false], null)['labels'][0]['lines'], 'text', 'role'));
+    }
+
+    public function test_a_batch_made_with_no_chef_still_says_when_and_a_lot_that_came_in_says_when_it_was_received(): void
+    {
+        app(PrepProduction::class)->run($this->ugali(), 1, 2.0, ['date' => '2026-10-17', 'started_at' => '2026-10-17 09:00', 'finished_at' => '2026-10-17 09:40']);
+        $prep = app(LabelService::class)->build([['type' => 'prep_lot', 'id' => \App\Models\Menus\PrepLot::first()->id]], [], null)['labels'][0];
+        $this->assertSame('Made 17 Oct 09:40', collect($prep['lines'])->firstWhere('role', 'made')['text']);
+
+        $lot = app(LabelService::class)->build([['type' => 'stock_lot', 'id' => \App\Models\Menus\StockBatch::first()->id]], [], null)['labels'][0];
+        $this->assertStringStartsWith('Received ', collect($lot['lines'])->firstWhere('role', 'made')['text']);
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { ShoppingBasket } from 'lucide-react';
 import Header from '../../../_shared/components/layout/Header';
@@ -13,7 +13,7 @@ import { useBasket, needsChoice, shownPrice, priceTag } from '../../lib/basket';
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const chipBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 700, border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line, #e5e7eb)'}`, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)' : 'transparent', color: on ? 'var(--color-primary-600)' : 'var(--text-secondary)' });
 
-export function DishCard({ d, avoid, data, ordering, onAdd }) {
+export function DishCard({ d, avoid, data, ordering, onAdd, flash = false }) {
   const hit = d.allergens.filter((a) => avoid.includes(a));
   const unsure = avoid.length > 0 && !d.info_complete;
   const { amount: price, from } = shownPrice(d);
@@ -21,7 +21,7 @@ export function DishCard({ d, avoid, data, ordering, onAdd }) {
   const taxNote = (m?.servings?.length ? m.servings[0].price_incl : d.price_incl) == null;
 
   return (
-    <article data-dish={d.name} style={{ display: 'grid', gridTemplateColumns: d.photo ? '96px 1fr' : '1fr', gap: 14, padding: 14, borderRadius: 14, border: '1px solid var(--line, #e5e7eb)', background: 'var(--surface-card, #fff)', opacity: d.available ? 1 : 0.65 }}>
+    <article id={d.slug ? `dish-${d.slug}` : undefined} data-dish={d.name} data-flash={flash ? 'yes' : undefined} style={{ ...(flash ? { outline: '3px solid var(--color-primary-500)', outlineOffset: 3 } : {}), display: 'grid', gridTemplateColumns: d.photo ? '96px 1fr' : '1fr', gap: 14, padding: 14, borderRadius: 14, border: '1px solid var(--line, #e5e7eb)', background: 'var(--surface-card, #fff)', opacity: d.available ? 1 : 0.65 }}>
       {d.photo && <img src={d.photo} alt="" loading="lazy" style={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 10 }} />}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
@@ -88,11 +88,24 @@ export default function MenuPage() {
   const [ordering, setOrdering] = useState(false);   // is any way to order switched on?
   const [picking, setPicking] = useState(null);
   const [checkout, setCheckout] = useState(false);
+  const wanted = useSearchParams()[0].get('dish');   // the QR of a dish opens the menu at that dish
+  const [flash, setFlash] = useState(null);
+  const [missing, setMissing] = useState(false);
 
   useEffect(() => { menusPublicAPI.channels().then((r) => setOrdering(r.channels.length > 0)).catch(() => setOrdering(false)); }, []);
   const addDish = (d) => (needsChoice(d) ? setPicking(d) : basket.add(d));
-  useEffect(() => { menusPublicAPI.get().then((r) => { setData(r); setCurrent((c) => c ?? (r.menus.find((m) => m.serving_now) ?? r.menus[0])?.id ?? null); }).catch(() => setError(true)); }, []);
+  useEffect(() => { menusPublicAPI.get().then((r) => { setData(r); const has = wanted ? r.menus.find((m) => m.sections.some((s) => s.dishes.some((d) => d.slug === wanted))) : null; setMissing(Boolean(wanted) && !has); setCurrent((c) => c ?? (has ?? r.menus.find((m) => m.serving_now) ?? r.menus[0])?.id ?? null); }).catch(() => setError(true)); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const menu = data?.menus.find((m) => m.id === current);
+  useEffect(() => {
+    if (!wanted || !data || !menu) return undefined;
+    const el = document.getElementById(`dish-${wanted}`);
+    if (!el) return undefined;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setFlash(wanted);
+    const t = setTimeout(() => setFlash(null), 6000);
+
+    return () => clearTimeout(t);
+  }, [wanted, data, menu]);
   const sections = useMemo(() => (menu?.sections ?? []).map((s) => ({ ...s, dishes: s.dishes.filter((d) => (!diet || d.diets.includes(diet)) && !d.allergens.some((a) => avoid.includes(a)) && (!audience || !d.makeup?.audience_ids?.length || d.makeup.audience_ids.includes(audience))) })).filter((s) => s.dishes.length), [menu, diet, avoid, audience]);
   const hidden = menu ? menu.sections.reduce((n, s) => n + s.dishes.length, 0) - sections.reduce((n, s) => n + s.dishes.length, 0) : 0;
 
@@ -128,13 +141,14 @@ export default function MenuPage() {
               <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>Avoid</span>
               {Object.entries(data.allergens).map(([k, name]) => <button key={k} type="button" aria-pressed={avoid.includes(k)} onClick={() => setAvoid((xs) => (xs.includes(k) ? xs.filter((x) => x !== k) : [...xs, k]))} style={chipBtn(avoid.includes(k))}>{name}</button>)}
             </div>
+            {missing && <p role="status" data-testid="dish-missing" style={{ fontSize: '0.85rem', color: '#b45309' }}>The dish you scanned is not on the menu right now.</p>}
             {hidden > 0 && <p role="status" data-testid="hidden-count" style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{hidden} dish{hidden === 1 ? '' : 'es'} hidden by your choices.</p>}
 
             {sections.map((s) => (
               <section key={s.id} style={{ marginBottom: 26 }}>
                 <h2 style={{ margin: '0 0 4px', fontSize: '1.15rem', fontWeight: 800 }}>{s.name}</h2>
                 {s.description && <p style={{ margin: '0 0 10px', fontSize: '0.84rem', color: 'var(--text-secondary)' }}>{s.description}</p>}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 12 }}>{s.dishes.map((d) => <DishCard key={d.id} d={d} avoid={avoid} data={data} ordering={ordering} onAdd={addDish} />)}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 12 }}>{s.dishes.map((d) => <DishCard key={d.id} d={d} avoid={avoid} data={data} ordering={ordering} onAdd={addDish} flash={flash === d.slug} />)}</div>
               </section>
             ))}
             {menu && sections.length === 0 && <p style={{ color: 'var(--text-tertiary)' }}>Nothing here matches your choices.</p>}

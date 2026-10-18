@@ -9,7 +9,8 @@ import { CheckboxRow, Field, FormError, FormStack, ModalActions, NumberInput, Se
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import menusAPI from '../../../_shared/api/menus';
 import useAuthStore from '../../../_shared/store/authStore';
-import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
+import { canViewMenus, canManageMenus, hasPermission } from '../../../_shared/lib/roles';
+import LabelPrint from '../../components/LabelPrint';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import DishGuide from '../../components/DishGuide';
@@ -131,6 +132,7 @@ export default function Dishes() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
+  const [labels, setLabels] = useState(null);
   const [loc, setLoc] = useMenusBranch(data?.branches);
 
   const load = useCallback(() => {
@@ -202,6 +204,7 @@ export default function Dishes() {
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ modifiers: d })}>Modifiers</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ packaging: d })}>Packaging</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ guide: d })}>Guided</button>}
+                    {hasPermission(user, 'codes.print') && <button type="button" style={small} aria-label={`Print the QR label for ${d.name}`} onClick={() => setLabels([{ type: 'dish', id: d.id, label: d.name }])}>QR</button>}
                     <Link to="/admin/menus/recipes" style={{ ...small, display: 'inline-block', textDecoration: 'none' }}>Recipe</Link>
                     {canWrite && <button type="button" style={small} onClick={() => toggleSoldOut(d)}>{d.sold_out_today ? 'Available again' : 'Sold out today'}</button>}
                     {canWrite && <button type="button" style={small} onClick={() => remove(d)}>Delete</button>}
@@ -218,6 +221,7 @@ export default function Dishes() {
       {modal?.packaging && <DishPackagingModal dish={modal.packaging} onClose={() => setModal(null)} />}
       {modal?.modifiers && <DishModifiersModal dish={modal.modifiers} onClose={() => setModal(null)} onDone={() => load()} />}
       {modal?.guide && data && <DishGuide dish={modal.guide} data={data} onClose={() => { setModal(null); load(); }} onDone={done} onChoices={(d) => { setModal({ options: d }); load(); }} />}
+      {labels && <LabelPrint items={labels} onClose={() => setLabels(null)} />}
       {modal && !modal.options && !modal.makeup && !modal.guide && !modal.modifiers && !modal.packaging && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );

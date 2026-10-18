@@ -71,11 +71,11 @@ class CodesAdminController extends Controller
     {
         $d = $request->validate([
             'items' => 'required|array|min:1|max:500', 'items.*.type' => 'required|in:variant,pack,asset,batch,dish,recipe,prep_lot,stock_lot,kitchen_item', 'items.*.id' => 'required|integer', 'items.*.copies' => 'nullable|integer|min:1|max:500',
-            'kind' => 'nullable|string|max:12', 'name' => 'nullable|boolean', 'sku' => 'nullable|boolean', 'price' => 'nullable|boolean', 'code_text' => 'nullable|boolean', 'batch' => 'nullable|boolean',
+            'kind' => 'nullable|string|max:12', 'name' => 'nullable|boolean', 'sku' => 'nullable|boolean', 'price' => 'nullable|boolean', 'code_text' => 'nullable|boolean', 'batch' => 'nullable|boolean', 'made' => 'nullable|boolean',
             'size' => 'nullable|string|max:40', 'template' => 'nullable|string|max:40', 'log' => 'nullable|boolean', 'preview' => 'nullable|boolean',
         ]);
         $o = array_filter(['kind' => $d['kind'] ?? null, 'size' => $d['size'] ?? null, 'template' => $d['template'] ?? null], fn ($v) => $v !== null);
-        foreach (['name', 'sku', 'price', 'code_text', 'batch'] as $k) {
+        foreach (['name', 'sku', 'price', 'code_text', 'batch', 'made'] as $k) {
             if ($request->has($k)) {
                 $o[$k] = $request->boolean($k);
             }

@@ -315,6 +315,9 @@ final class CodeCatalogue
                 $found[$key] = $item + ['retired' => $retired];
             }
         };
+        if (($link = MenusCodeItems::fromLink($code)) && MenusCodeItems::ready($link[0])) {   // the QR of a dish or a recipe holds a link
+            $add($link[0], $link[1]);
+        }
         foreach ($tries as $t) {
             foreach (DB::table('product_variants')->whereNull('deleted_at')->where('barcode', $t)->pluck('id') as $id) {
                 $add('variant', $id);
