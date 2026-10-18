@@ -3,6 +3,7 @@
 namespace App\Services\Menus;
 
 use App\Models\Books\PaymentMethod;
+use App\Models\Books\Voucher;
 use App\Models\Location;
 use App\Models\Menus\Kiosk;
 use App\Models\Menus\MenuOrder;
@@ -10,6 +11,7 @@ use App\Models\Menus\Tip;
 use App\Models\Menus\TipEvent;
 use App\Models\User;
 use App\Services\Books\BooksException;
+use App\Services\Books\VoucherService;
 use App\Services\Notify\Staff;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -88,6 +90,7 @@ class Tips
 
         return [
             'ready' => true, 'window' => ['open' => MenusSettings::tipsMayBeIssued($now), 'words' => self::windowWords()],
+            'me' => $by ? ['id' => $by->id, 'name' => $by->name] : null,
             'can' => ['issue' => (bool) $by?->hasPermission('menus.tips.issue'), 'issue_self' => (bool) $by?->hasPermission('menus.tips.issue_self'), 'reverse' => (bool) $by?->hasPermission('menus.tips.reverse')],
             'pending' => $pending->map($row)->values()->all(), 'today' => $today->map($row)->values()->all(),
             'totals' => ['pending' => round((float) $pending->sum('amount'), 2), 'taken_today' => round((float) $today->where('created_at', '>=', $start)->sum('amount'), 2), 'issued_today' => round((float) $today->where('status', Tip::ISSUED)->sum('amount'), 2)],
@@ -110,7 +113,7 @@ class Tips
         if (! Tip::installed()) {
             throw new BooksException('Run database script 212_menus_tips.sql to use the tips box.');
         }
-        if (! $by->hasPermission('menus.tips.issue')) {
+        if (! $by->hasPermission('menus.tips.issue') && ! $by->hasPermission('menus.tips.issue_self')) {
             throw new BooksException('You may not hand tips over.');
         }
         $now ??= Carbon::now((string) config('app.timezone', 'Africa/Nairobi'));
@@ -125,14 +128,21 @@ class Tips
         if (! $toUser && $toName === '') {
             throw new BooksException('Say who the tip is handed to.');
         }
-        if ($toUser && $toUser->id === $by->id) {
-            throw new BooksException('A tip is not handed to the person handing it over here: that comes with its own permission and a narration.');
+        $note = trim((string) ($in['narration'] ?? ''));
+        if ($toUser && $toUser->id === $by->id) {   // one's own tip has its own permission, and says why
+            if (! $by->hasPermission('menus.tips.issue_self')) {
+                throw new BooksException('You may not hand a tip over to yourself: ask someone who may.');
+            }
+            if ($note === '') {
+                throw new BooksException('Say why in the narration: a tip handed to the person handing it over always carries one.');
+            }
+        } elseif (! $by->hasPermission('menus.tips.issue')) {
+            throw new BooksException('You may hand over your own tip only: choose yourself.');
         }
         $from = (int) ($in['from_ledger_id'] ?? 0);
         if (! in_array($from, array_column($this->sources(), 'ledger_id'), true)) {
             throw new BooksException('Choose the cash or bank account the tip is paid out of.');
         }
-        $note = trim((string) ($in['narration'] ?? ''));
         if (mb_strlen($note) > 300) {
             throw new BooksException('The narration is too long (300 letters at most).');
         }
@@ -154,6 +164,48 @@ class Tips
                 'issued_from_ledger_id' => $from, 'issue_voucher_id' => $journal->id, 'issue_narration' => $note !== '' ? $note : null]);
             TipEvent::create(['tip_id' => $tip->id, 'kind' => TipEvent::ISSUED, 'amount' => $tip->amount, 'voucher_id' => $journal->id, 'to_user_id' => $toUser?->id, 'to_name' => $toUser ? null : $toName,
                 'narration' => $narration, 'done_by' => $by->id, 'done_at' => $now]);
+
+            return ['tip' => $tip->fresh(), 'already' => false];
+        });
+    }
+
+    // ── undoing a hand-over (6.7) ────────────────────────────────────────
+
+    /**
+     * A tip handed over by mistake: the journal that paid it out is cancelled, the tip goes back to waiting and the history keeps who undid it and why. A reason is always asked. A retry that finds the tip
+     * already waiting again changes nothing. It can then be handed over again, correctly.
+     *
+     * @return array{tip: Tip, already: bool}
+     */
+    public function reverse(int $tipId, string $reason, User $by, ?Carbon $now = null): array
+    {
+        if (! Tip::installed()) {
+            throw new BooksException('Run database script 212_menus_tips.sql to use the tips box.');
+        }
+        if (! $by->hasPermission('menus.tips.reverse')) {
+            throw new BooksException('You may not undo a tip that was handed over.');
+        }
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new BooksException('Say why the tip is being taken back: the reason is kept.');
+        }
+        if (mb_strlen($reason) > 300) {
+            throw new BooksException('The reason is too long (300 letters at most).');
+        }
+        $now ??= Carbon::now((string) config('app.timezone', 'Africa/Nairobi'));
+
+        return DB::transaction(function () use ($tipId, $reason, $by, $now) {
+            $tip = Tip::whereKey($tipId)->lockForUpdate()->first() ?? throw new BooksException('That tip could not be found.');
+            if ($tip->status !== Tip::ISSUED) {
+                return ['tip' => $tip, 'already' => true];
+            }
+            $journal = $tip->issue_voucher_id ? Voucher::find($tip->issue_voucher_id) : null;
+            if ($journal && $journal->status !== Voucher::CANCELLED) {
+                app(VoucherService::class)->cancel($journal, 'Tip handed over by mistake: '.$reason, $by);
+            }
+            TipEvent::create(['tip_id' => $tip->id, 'kind' => TipEvent::REVERSED, 'amount' => $tip->amount, 'voucher_id' => $tip->issue_voucher_id, 'to_user_id' => $tip->issued_to, 'to_name' => $tip->issued_to_name,
+                'narration' => $reason, 'done_by' => $by->id, 'done_at' => $now]);
+            $tip->update(['status' => Tip::PENDING, 'issued_at' => null, 'issued_by' => null, 'issued_to' => null, 'issued_to_name' => null, 'issued_from_ledger_id' => null, 'issue_voucher_id' => null, 'issue_narration' => null]);
 
             return ['tip' => $tip->fresh(), 'already' => false];
         });

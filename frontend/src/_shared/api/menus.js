@@ -116,6 +116,7 @@ export const menusAPI = {
   removeKiosk: async (id) => (await api.delete(`/admin/menus/kiosks/${id}`)).data,
   tips: async () => (await api.get('/admin/menus/tips')).data,
   issueTip: async (id, payload) => (await api.post(`/admin/menus/tips/${id}/issue`, payload)).data,
+  reverseTip: async (id, payload) => (await api.post(`/admin/menus/tips/${id}/reverse`, payload)).data,
   quoteKiosk: async (id, payload) => (await api.post(`/admin/menus/till/kiosk/${id}/quote`, payload)).data,
   settleKiosk: async (id, payload) => (await api.post(`/admin/menus/till/kiosk/${id}/settle`, payload)).data,
   chefs: async () => (await api.get('/admin/menus/chefs')).data,

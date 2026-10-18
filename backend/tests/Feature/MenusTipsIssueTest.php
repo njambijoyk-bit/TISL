@@ -7,6 +7,7 @@ use App\Models\Menus\Tip;
 use App\Models\Menus\TipEvent;
 use App\Models\User;
 use App\Services\Books\BooksException;
+use App\Services\Books\VoucherService;
 use App\Services\Menus\IngredientUse;
 use App\Services\Menus\MenusSettings;
 use App\Services\Menus\Tips;
@@ -26,6 +27,9 @@ class MenusTipsIssueTest extends TestCase
 
     private bool $journalFails = false;
 
+    /** @var array<int, array{0: int, 1: ?string}> the journals that were cancelled, with the reason given */
+    private array $cancelled = [];
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,16 +41,26 @@ class MenusTipsIssueTest extends TestCase
         MenusSettings::save(['tip_ledger_id' => 80], null);
         $this->journals = [];
         $this->journalFails = false;
+        $this->cancelled = [];
         $use = $this->createMock(IngredientUse::class);
         $use->method('book')->willReturnCallback(function (int $debit, int $credit, float $amount, string $narration, int $loc, Carbon $on, ?User $by) {
             if ($this->journalFails) {
                 throw new BooksException('The books are closed for that date.');
             }
             $this->journals[] = compact('debit', 'credit', 'amount', 'narration', 'loc');
+            DB::table('vouchers')->insert(['id' => 500 + count($this->journals), 'status' => 'posted']);
 
-            return (new Voucher())->forceFill(['id' => 500 + count($this->journals)]);
+            return Voucher::find(500 + count($this->journals));
         });
         $this->app->instance(IngredientUse::class, $use);
+        $vouchers = $this->createMock(VoucherService::class);
+        $vouchers->method('cancel')->willReturnCallback(function (Voucher $v, ?string $reason, ?User $by) {
+            $this->cancelled[] = [(int) $v->id, $reason];
+            DB::table('vouchers')->where('id', $v->id)->update(['status' => 'cancelled']);
+
+            return $v;
+        });
+        $this->app->instance(VoucherService::class, $vouchers);
         $this->app->instance(Staff::class, new class() extends Staff {
             public function holding(string $permission): \Illuminate\Support\Collection
             {
@@ -223,8 +237,82 @@ class MenusTipsIssueTest extends TestCase
         $this->fails(fn () => app(Tips::class)->issue($t->id, ['from_ledger_id' => 11], $this->manager(), $this->noon()), 'who the tip is handed to');
         $this->fails(fn () => app(Tips::class)->issue($t->id, ['to_user_id' => 999, 'from_ledger_id' => 11], $this->manager(), $this->noon()), 'could not be found');
         $this->fails(fn () => app(Tips::class)->issue($t->id, $this->in(['from_ledger_id' => 80]), $this->manager(), $this->noon()), 'cash or bank account');
-        $this->fails(fn () => app(Tips::class)->issue($t->id, $this->in(['to_user_id' => 5]), $this->manager(), $this->noon()), 'not handed to the person handing it over');
+        $this->fails(fn () => app(Tips::class)->issue($t->id, $this->in(['to_user_id' => 5]), $this->manager(), $this->noon()), 'may not hand a tip over to yourself');
         $this->fails(fn () => app(Tips::class)->issue(9999, $this->in(), $this->manager(), $this->noon()), 'could not be found');
         $this->assertSame([0, 'pending', 0], [count($this->journals), $t->fresh()->status, TipEvent::count()]);
+    }
+
+    // ------------------------------------------------------------ one's own tip (6.6)
+
+    private function ownerOfTips(): User
+    {
+        return $this->person(5, ['menus.tips.view', 'menus.tips.issue', 'menus.tips.issue_self']);
+    }
+
+    public function test_handing_a_tip_to_oneself_needs_its_own_permission_and_a_narration(): void
+    {
+        $t = $this->tip(150);
+        $self = $this->in(['to_user_id' => 5]);
+        $this->fails(fn () => app(Tips::class)->issue($t->id, $self + ['narration' => 'My tip'], $this->manager(), $this->noon()), 'may not hand a tip over to yourself');
+        $this->fails(fn () => app(Tips::class)->issue($t->id, $self, $this->ownerOfTips(), $this->noon()), 'Say why in the narration');
+        $this->fails(fn () => app(Tips::class)->issue($t->id, $self + ['narration' => '   '], $this->ownerOfTips(), $this->noon()), 'Say why in the narration');
+        $this->assertSame([0, 'pending'], [count($this->journals), $t->fresh()->status]);
+
+        $r = app(Tips::class)->issue($t->id, $self + ['narration' => 'Tip from table 4 meant for me'], $this->ownerOfTips(), $this->noon());
+        $this->assertSame(['issued', 5, 5, 'Tip from table 4 meant for me'], [$r['tip']->status, (int) $r['tip']->issued_by, (int) $r['tip']->issued_to, $this->journals[0]['narration']]);
+    }
+
+    public function test_someone_who_may_only_hand_over_their_own_tip_cannot_hand_one_to_others(): void
+    {
+        $only = $this->person(5, ['menus.tips.view', 'menus.tips.issue_self']);
+        $t = $this->tip();
+        $this->fails(fn () => app(Tips::class)->issue($t->id, $this->in(['to_user_id' => 4, 'narration' => 'x']), $only, $this->noon()), 'your own tip only');
+        $this->fails(fn () => app(Tips::class)->issue($t->id, $this->in(['to_name' => 'Kitchen', 'to_user_id' => null, 'narration' => 'x']), $only, $this->noon()), 'your own tip only');
+        app(Tips::class)->issue($t->id, $this->in(['to_user_id' => 5, 'narration' => 'Mine']), $only, $this->noon());
+        $this->assertSame('issued', $t->fresh()->status);
+        $this->assertSame([true, true], [app(Tips::class)->screen($only)['can']['issue_self'], app(Tips::class)->screen($only)['me']['id'] === 5]);
+    }
+
+    // ------------------------------------------------------------ undoing (6.7)
+
+    private function reverser(): User
+    {
+        return $this->person(6, ['menus.tips.view', 'menus.tips.reverse']);
+    }
+
+    public function test_a_tip_handed_over_by_mistake_is_taken_back_and_waits_again(): void
+    {
+        $t = $this->tip(200);
+        app(Tips::class)->issue($t->id, $this->in(), $this->manager(), $this->noon());
+
+        $r = app(Tips::class)->reverse($t->id, 'Wrong person', $this->reverser(), $this->noon());
+        $this->assertFalse($r['already']);
+        $this->assertSame([[501, 'Tip handed over by mistake: Wrong person']], $this->cancelled, 'the journal that paid it out is cancelled');
+        $tip = $t->fresh();
+        $this->assertSame(['pending', null, null, null, null], [$tip->status, $tip->issued_by, $tip->issued_to, $tip->issue_voucher_id, $tip->issue_narration]);
+        $this->assertSame(['issued', 'reversed'], TipEvent::where('tip_id', $t->id)->orderBy('id')->pluck('kind')->all(), 'the history keeps both');
+        $e = TipEvent::where('tip_id', $t->id)->where('kind', 'reversed')->first();
+        $this->assertSame(['Wrong person', 6, 501], [$e->narration, (int) $e->done_by, (int) $e->voucher_id]);
+
+        $again = app(Tips::class)->issue($t->id, $this->in(['to_user_id' => 3]), $this->manager(), $this->noon());
+        $this->assertSame([false, 'issued', 3, 502], [$again['already'], $again['tip']->status, (int) $again['tip']->issued_to, (int) $again['tip']->issue_voucher_id], 'and it can be handed over again, correctly');
+    }
+
+    public function test_undoing_needs_the_permission_and_a_reason_and_a_tip_that_was_handed_over(): void
+    {
+        $t = $this->tip();
+        app(Tips::class)->issue($t->id, $this->in(), $this->manager(), $this->noon());
+        $this->fails(fn () => app(Tips::class)->reverse($t->id, 'Oops', $this->manager(), $this->noon()), 'may not undo');
+        $this->fails(fn () => app(Tips::class)->reverse($t->id, '  ', $this->reverser(), $this->noon()), 'Say why');
+        $this->fails(fn () => app(Tips::class)->reverse(9999, 'Oops', $this->reverser(), $this->noon()), 'could not be found');
+        $this->assertSame(['issued', []], [$t->fresh()->status, $this->cancelled]);
+
+        $waiting = $this->tip();
+        $r = app(Tips::class)->reverse($waiting->id, 'Nothing to undo', $this->reverser(), $this->noon());
+        $this->assertSame([true, []], [$r['already'], $this->cancelled], 'a tip that is not handed over is left as it is');
+
+        app(Tips::class)->reverse($t->id, 'Oops', $this->reverser(), $this->noon());
+        $twice = app(Tips::class)->reverse($t->id, 'Oops', $this->reverser(), $this->noon());
+        $this->assertSame([true, 1], [$twice['already'], count($this->cancelled)], 'a retry cancels nothing twice');
     }
 }

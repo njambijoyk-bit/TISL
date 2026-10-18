@@ -18,12 +18,15 @@ const td = { padding: '7px 8px', borderTop: '1px solid var(--line, #e5e7eb)', fo
 
 /** Hand one tip over: who gets it, which cash or bank account it is paid out of, and a narration if there is something to say. */
 function IssueModal({ tip, data, onClose, onDone }) {
-  const [to, setTo] = useState('');   // a user id, or 'other' for someone who is not on the list
+  const mine = data.can.issue_self && data.me ? String(data.me.id) : null;
+  const others = data.can.issue;
+  const [to, setTo] = useState(!others && mine ? mine : '');   // a user id, or 'other' for someone who is not on the list
   const [name, setName] = useState('');
   const [from, setFrom] = useState(String(data.sources[0]?.ledger_id ?? ''));
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
-  const ready = (to && to !== 'other') || (to === 'other' && name.trim() !== '');
+  const own = mine !== null && to === mine;   // one's own tip always says why
+  const ready = ((to && to !== 'other') || (to === 'other' && name.trim() !== '')) && (!own || note.trim() !== '');
 
   const go = async () => {
     setBusy(true);
@@ -41,8 +44,9 @@ function IssueModal({ tip, data, onClose, onDone }) {
         <Field label="Handed to" htmlFor="tip-to">
           <SelectInput id="tip-to" value={to} onChange={(e) => setTo(e.target.value)}>
             <option value="">Choose a person</option>
-            {data.recipients.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            <option value="other">Someone else (type the name)</option>
+            {others && data.recipients.filter((r) => String(r.id) !== mine).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+            {mine && <option value={mine}>Myself ({data.me.name})</option>}
+            {others && <option value="other">Someone else (type the name)</option>}
           </SelectInput>
         </Field>
         {to === 'other' && <Field label="Name" htmlFor="tip-name"><TextInput id="tip-name" maxLength={160} value={name} onChange={(e) => setName(e.target.value)} /></Field>}
@@ -52,13 +56,38 @@ function IssueModal({ tip, data, onClose, onDone }) {
             {data.sources.map((s) => <option key={s.ledger_id} value={s.ledger_id}>{s.name}</option>)}
           </SelectInput>
         </Field>
-        <Field label="Narration (optional)" htmlFor="tip-note"><TextInput id="tip-note" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        <Field label={own ? 'Narration (required: say why it is yours)' : 'Narration (optional)'} htmlFor="tip-note"><TextInput id="tip-note" maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
       </div>
     </Modal>
   );
 }
 
-function Rows({ rows, data, onIssue, pending }) {
+/** A tip handed over by mistake: the payout is cancelled and the tip waits again. The reason is always asked and kept. */
+function ReverseModal({ tip, onClose, onDone }) {
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const go = async () => {
+    setBusy(true);
+    try {
+      const r = await menusAPI.reverseTip(tip.id, { reason: reason.trim() });
+      toast.success(r.message);
+      onDone(r);
+    } catch (e) { toast.error(errMsg(e, 'Could not take the tip back'), { duration: 8000 }); } finally { setBusy(false); }
+  };
+
+  return (
+    <Modal title="Take the tip back" subtitle={`${money(tip.amount)} handed to ${tip.issued_to ?? 'someone'}`} onClose={onClose} width={460}
+      footer={<div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}><button type="button" style={btnGhost} onClick={onClose}>Back</button><button type="button" style={{ ...btnPrimary, opacity: busy || !reason.trim() ? 0.5 : 1 }} disabled={busy || !reason.trim()} onClick={go}>{busy ? 'Taking back…' : 'Take it back'}</button></div>}>
+      <div style={{ display: 'grid', gap: 12 }} data-testid="reverse-tip">
+        <p style={{ margin: 0, fontSize: '0.85rem' }}>The payout is cancelled in the books and the tip goes back to Pending, where it can be handed over again. This is logged with your name.</p>
+        <Field label="Why was it handed over by mistake?" htmlFor="tip-reason"><TextInput id="tip-reason" maxLength={300} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      </div>
+    </Modal>
+  );
+}
+
+function Rows({ rows, data, onIssue, onReverse, pending }) {
   if (rows.length === 0) return <p style={{ margin: 0, padding: 14, color: colors.textMuted }}>{pending ? 'No tips are waiting.' : 'No tips today.'}</p>;
   return (
     <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
@@ -74,8 +103,9 @@ function Rows({ rows, data, onIssue, pending }) {
               <td style={td}>{t.served_by}</td>
               <td style={{ ...td, textAlign: 'right', fontWeight: 800 }}>{money(t.amount)}</td>
               <td style={td}>
-                {t.status === 'pending' && data.can.issue && <button type="button" disabled={!data.window.open} title={data.window.open ? '' : 'The window for handing tips out is closed'} onClick={() => onIssue(t)} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.8rem', opacity: data.window.open ? 1 : 0.5 }}>Issue</button>}
+                {t.status === 'pending' && (data.can.issue || data.can.issue_self) && <button type="button" disabled={!data.window.open} title={data.window.open ? '' : 'The window for handing tips out is closed'} onClick={() => onIssue(t)} style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.8rem', opacity: data.window.open ? 1 : 0.5 }}>Issue</button>}
                 {t.status === 'issued' && <span>{t.issued_to}{t.issued_by ? `, by ${t.issued_by}` : ''}{t.issued_at ? `, ${when(t.issued_at)}` : ''}{t.narration ? `. ${t.narration}` : ''}</span>}
+                {t.status === 'issued' && data.can.reverse && <button type="button" onClick={() => onReverse(t)} style={{ ...btnGhost, padding: '4px 10px', fontSize: '0.78rem', marginLeft: 8 }}>Take back</button>}
               </td>
             </tr>
           ))}
@@ -90,6 +120,7 @@ export default function MenusTips() {
   const [data, setData] = useState(null);
   const [view, setView] = useState('pending');
   const [issuing, setIssuing] = useState(null);
+  const [reversing, setReversing] = useState(null);
   const load = useCallback(() => menusAPI.tips().then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the tips'))), []);
   useEffect(() => { load(); }, [load]);
 
@@ -112,9 +143,10 @@ export default function MenusTips() {
               <button type="button" role="tab" aria-selected={view === 'pending'} style={tab(view === 'pending')} onClick={() => setView('pending')}>Pending · {data.pending.length}</button>
               <button type="button" role="tab" aria-selected={view === 'today'} style={tab(view === 'today')} onClick={() => setView('today')}>Today · {data.today.length}</button>
             </div>
-            <Rows rows={view === 'pending' ? data.pending : data.today} data={data} pending={view === 'pending'} onIssue={setIssuing} />
+            <Rows rows={view === 'pending' ? data.pending : data.today} data={data} pending={view === 'pending'} onIssue={setIssuing} onReverse={setReversing} />
           </>
         )}
+        {reversing && data && <ReverseModal tip={reversing} onClose={() => setReversing(null)} onDone={(r) => { setReversing(null); setData(r); }} />}
         {issuing && data && <IssueModal tip={issuing} data={data} onClose={() => setIssuing(null)} onDone={(r) => { setIssuing(null); setData(r); }} />}
       </div>
     </AdminLayout>

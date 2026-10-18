@@ -31,4 +31,16 @@ class MenusTipsController extends Controller
 
         return response()->json(['message' => $r['already'] ? 'That tip was already handed over.' : 'Tip handed over.', 'already' => $r['already']] + $this->tips->screen($request->user()));
     }
+
+    public function reverse(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['reason' => 'required|string|max:300']);
+        try {
+            $r = $this->tips->reverse($id, $d['reason'], $request->user());
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json(['message' => $r['already'] ? 'That tip is already waiting again.' : 'Taken back: the tip is waiting to be handed over again.', 'already' => $r['already']] + $this->tips->screen($request->user()));
+    }
 }
