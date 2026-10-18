@@ -99,6 +99,9 @@ The rules and the order line behind the sections below. What can be checked with
 1. After running script 203, the order lines table has the size and picks columns; orders as they are today are unchanged (a line with no make-up has none).
 2. The backend tests (`MenusDishSelectionTest`) show the rules: a steak sandwich in Jumbo (650) or Kids (350), choose-one protein (wet fry +50), choose-any greens (fewest 1, most 2, spinach +20), free sauces up to 2, paid eggs up to 3 (40 each); and that selling a dish whose line carries side rows takes exactly the same ingredients as before.
 
+## 0m-. The Menus tab row
+The tabs run in four groups with a small label between them: Selling (Till T, Floor F, Orders O, Meal plans M, Cakes & catering C); Back of house (Kitchen K, Operations P, Chefs H, Rota R); Build the menu, from raw to plate (Ingredients & Supplies I, Stock W, Recipes E, Prepared food B, Sides S, Dishes D, Menus N, Allergens A); and Setup (Configuration, F12). Press G, then the letter, to go to a page. Stock moved from S to W and Sides took S; Prepared food is B.
+
 ## 0m. Stock follows the sides (after scripts 200, 202, 203; sides made from recipes of their own)
 Set up a steak sandwich with the make-up from 0k, each side with a recipe or ingredient and some stock on the shelf.
 1. Sell one in Jumbo with the sides chosen to begin with (till, then the Stock page). Only the sides' ingredients come off the shelf (the bread's, the choma's, the kale's), in the amounts for that size; the dish's own recipe, if it still has one, is not taken as well. Sell one in Kids: the choma amount is smaller.
