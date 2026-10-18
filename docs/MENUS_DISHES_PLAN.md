@@ -63,7 +63,7 @@ Stock leaves ingredients when the batch is made, and leaves prepared stock when 
 - **Tips screen** (Today, Pending): **Issue** a tip when the money is handed over: Dr tips payable, Cr cash or bank, with an optional narration (required when issuing your own). Permissions (data in the catalogue): view tips; issue tips to others; issue my own tip.
 - **When tips may be issued** (setting): anytime, every day between two times, chosen days between two times, or never (held).
 - **No double journal**: Issue locks the tip row, checks it is still pending, and in one transaction posts the journal, stores its id on the tip and marks it issued. A failed journal leaves nothing saved; a retry after a timeout finds it issued and returns the same journal. A wrong issue is undone by reversing that journal (its own permission, logged).
-- Today a tip is typed as a line before payment; this replaces it. Still to settle: whether pending tips ever expire.
+- Today a tip is typed as a line before payment; this replaces it. Settled: tips never expire; they wait in the tips box until handed out, and the window only limits when a person may hand them out.
 
 ## 8. Currency
 - **Built:** Menus configuration has a **Currency** (empty: the system's base currency). Ingredient purchases and opening stock default to it, and so do the kitchen's journals (use, waste, count, short transfers): costs are held in the base currency, so each journal converts at the rate of its date and the books convert back at the same rate. With no Menus currency nothing changes. Prices typed on the Receive stock popup and the Opening stock sheet are in the Menus currency (shown there). The Core Purchases form keeps its own currency box (default base).
