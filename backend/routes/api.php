@@ -922,6 +922,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware(['module:menus', 'permission:menus.tips.view'])->prefix('admin/menus')->group(function () {
         $tp = \App\Http\Controllers\Admin\MenusTipsController::class;
         Route::get('/tips', [$tp, 'show']);
+        Route::get('/tips/report', [$tp, 'report']);
         Route::post('/tips/{id}/issue', [$tp, 'issue'])->whereNumber('id')->middleware('permission:menus.tips.issue,menus.tips.issue_self');   // handing it over to someone else or to oneself is checked again in the service, with the window
         Route::post('/tips/{id}/reverse', [$tp, 'reverse'])->whereNumber('id')->middleware('permission:menus.tips.reverse');
     });

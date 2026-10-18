@@ -115,6 +115,7 @@ export const menusAPI = {
   renewKiosk: async (id) => (await api.post(`/admin/menus/kiosks/${id}/renew`)).data,
   removeKiosk: async (id) => (await api.delete(`/admin/menus/kiosks/${id}`)).data,
   tips: async () => (await api.get('/admin/menus/tips')).data,
+  tipsReport: async (params) => (await api.get('/admin/menus/tips/report', { params })).data,
   issueTip: async (id, payload) => (await api.post(`/admin/menus/tips/${id}/issue`, payload)).data,
   reverseTip: async (id, payload) => (await api.post(`/admin/menus/tips/${id}/reverse`, payload)).data,
   quoteKiosk: async (id, payload) => (await api.post(`/admin/menus/till/kiosk/${id}/quote`, payload)).data,

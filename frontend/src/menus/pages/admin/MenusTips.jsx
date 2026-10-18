@@ -115,6 +115,56 @@ function Rows({ rows, data, onIssue, onReverse, pending }) {
   );
 }
 
+const isoDay = (d) => d.toISOString().slice(0, 10);
+
+function Table({ title, head, rows }) {
+  return (
+    <section style={{ ...card, padding: 14 }} aria-label={title}>
+      <h2 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 800 }}>{title}</h2>
+      {rows.length === 0 ? <p style={{ margin: 0, color: colors.textMuted }}>Nothing in this period.</p> : (
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>{head.map((h, i) => <th key={h} style={{ ...th, textAlign: i === 0 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
+            <tbody>{rows.map((r, n) => <tr key={n}>{r.map((c, i) => <td key={i} style={{ ...td, textAlign: i === 0 ? 'left' : 'right' }}>{c}</td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** What was taken, handed over and is waiting in a period, by day, by who served and by who received, and every hand-over and take-back. */
+function TipsReport() {
+  const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 30); return isoDay(d); });
+  const [to, setTo] = useState(() => isoDay(new Date()));
+  const [data, setData] = useState(null);
+  useEffect(() => { setData(null); menusAPI.tipsReport({ from, to }).then(setData).catch((e) => toast.error(errMsg(e, 'Could not load the tips report'))); }, [from, to]);
+  const t = data?.totals;
+
+  return (
+    <section data-testid="tips-report" style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <label style={{ display: 'grid', gap: 4, fontSize: '0.74rem', fontWeight: 700 }}>From<input type="date" aria-label="From" value={from} max={to} onChange={(e) => setFrom(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--line, #cbd5e1)', fontFamily: 'inherit' }} /></label>
+        <label style={{ display: 'grid', gap: 4, fontSize: '0.74rem', fontWeight: 700 }}>To<input type="date" aria-label="To" value={to} min={from} onChange={(e) => setTo(e.target.value)} style={{ padding: '8px 10px', borderRadius: 8, border: '1.5px solid var(--line, #cbd5e1)', fontFamily: 'inherit' }} /></label>
+      </div>
+      {!data && <p style={{ color: colors.textMuted }}>Loading…</p>}
+      {data?.ready && (
+        <>
+          <dl data-testid="tips-report-totals" style={{ margin: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 10 }}>
+            {[['Taken', `${money(t.taken)} (${t.tips})`], ['Handed over', `${money(t.handed_over)} (${t.handed_over_tips})`], ['Waiting now', `${money(t.waiting)} (${t.waiting_tips})`], ['Oldest waiting', t.oldest_waiting_days === null ? 'None' : `${t.oldest_waiting_days} days`], ['Taken back', `${money(t.taken_back)} (${t.taken_back_times})`]].map(([k, v]) => (
+              <div key={k} style={{ ...card, padding: 12 }}><dt style={{ fontSize: '0.7rem', color: colors.textFaint, textTransform: 'uppercase' }}>{k}</dt><dd style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800 }}>{v}</dd></div>
+            ))}
+          </dl>
+          <Table title="By day" head={['Day', 'Tips taken', 'Taken', 'Handed over']} rows={data.by_day.map((d) => [d.date, d.tips, money(d.taken), money(d.handed_over)])} />
+          <Table title="By who served" head={['Served by', 'Tips', 'Amount']} rows={data.by_server.map((r) => [r.name, r.tips, money(r.amount)])} />
+          <Table title="Handed over to" head={['Person', 'Tips', 'Amount']} rows={data.by_recipient.map((r) => [r.name, r.tips, money(r.amount)])} />
+          <Table title="Hand-overs and take-backs" head={['When', 'What', 'Amount', 'To', 'By', 'Note']} rows={data.history.map((h) => [when(h.at), h.kind === 'issued' ? 'Handed over' : 'Taken back', money(h.amount), h.to ?? '', h.by ?? '', h.note ?? ''])} />
+        </>
+      )}
+    </section>
+  );
+}
+
 export default function MenusTips() {
   const user = useAuthStore((s) => s.user);
   const [data, setData] = useState(null);
@@ -142,8 +192,9 @@ export default function MenusTips() {
             <div role="tablist" aria-label="Tips" style={{ display: 'flex', gap: 8 }}>
               <button type="button" role="tab" aria-selected={view === 'pending'} style={tab(view === 'pending')} onClick={() => setView('pending')}>Pending · {data.pending.length}</button>
               <button type="button" role="tab" aria-selected={view === 'today'} style={tab(view === 'today')} onClick={() => setView('today')}>Today · {data.today.length}</button>
+              <button type="button" role="tab" aria-selected={view === 'report'} style={tab(view === 'report')} onClick={() => setView('report')}>Report</button>
             </div>
-            <Rows rows={view === 'pending' ? data.pending : data.today} data={data} pending={view === 'pending'} onIssue={setIssuing} onReverse={setReversing} />
+            {view === 'report' ? <TipsReport /> : <Rows rows={view === 'pending' ? data.pending : data.today} data={data} pending={view === 'pending'} onIssue={setIssuing} onReverse={setReversing} />}
           </>
         )}
         {reversing && data && <ReverseModal tip={reversing} onClose={() => setReversing(null)} onDone={(r) => { setReversing(null); setData(r); }} />}
