@@ -11,5 +11,11 @@ class MenuOrderLine extends Model
 
     protected $guarded = [];
 
-    protected $casts = ['quantity' => 'decimal:2', 'base_price' => 'decimal:2', 'unit_price' => 'decimal:2', 'options' => 'array', 'uses' => 'array', 'linked' => 'array', 'round' => 'integer'];
+    /** Has script 203 been run: can a line keep the size and the sides it was ordered with? */
+    public static function keepsSelection(): bool
+    {
+        return \Illuminate\Support\Facades\Schema::hasColumn('menus_order_lines', 'selection');
+    }
+
+    protected $casts = ['quantity' => 'decimal:2', 'base_price' => 'decimal:2', 'unit_price' => 'decimal:2', 'options' => 'array', 'uses' => 'array', 'linked' => 'array', 'selection' => 'array', 'round' => 'integer'];
 }

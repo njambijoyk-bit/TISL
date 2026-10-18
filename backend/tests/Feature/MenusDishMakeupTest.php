@@ -150,6 +150,12 @@ class MenusDishMakeupTest extends TestCase
         $this->fails(fn () => $this->makeup()->save($this->steak, $many), 'at most');
     }
 
+    public function test_an_extras_most_counts_servings_so_it_is_not_held_to_the_number_of_sides(): void
+    {
+        $m = $this->makeup()->save($this->steak, ['slots' => [['name' => 'Extras', 'kind' => 'paid_extra', 'max' => 3, 'choices' => [['side_id' => $this->side['Egg'], 'upcharge' => 40]]]]]);
+        $this->assertSame(3, $m['slots'][0]['max'], 'three eggs may be taken though there is one side');
+    }
+
     public function test_a_choose_any_slot_keeps_its_limits_and_a_larger_most_is_held_to_the_sides_there_are(): void
     {
         $m = $this->makeup()->save($this->steak, ['slots' => [['name' => 'Greens', 'kind' => 'choose_any', 'min' => 1, 'max' => 9, 'choices' => [['side_id' => $this->side['Bread'], 'upcharge' => 20], ['side_id' => $this->side['Choma'], 'is_default' => true]]]]]);

@@ -94,6 +94,11 @@ Do this on test dishes first. The switch is Menus, Configuration, *Selling throu
 4. Menus, Sides: a side that is in a dish's make-up can not be removed or switched off ("take it out there first"). Deleting a dish that was never sold takes its make-up with it.
 5. Nothing in the till changes yet: the till and the online menu still use the dish's own price and Choices. The make-up is what step 3's ordering reads.
 
+## 0l. Dish picks and the order line (after script 203): no screen yet
+The rules and the order line are in place, but nothing in the till or online takes the picks until step 3.7, so there is nothing to click yet. What can be checked now:
+1. After running script 203, the order lines table has the size and picks columns; orders as they are today are unchanged (a line with no make-up has none).
+2. The backend tests (`MenusDishSelectionTest`) show the rules: a steak sandwich in Jumbo (650) or Kids (350), choose-one protein (wet fry +50), choose-any greens (fewest 1, most 2, spinach +20), free sauces up to 2, paid eggs up to 3 (40 each); and that selling a dish whose line carries side rows takes exactly the same ingredients as before.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

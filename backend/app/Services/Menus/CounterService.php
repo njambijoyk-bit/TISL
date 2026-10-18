@@ -471,9 +471,16 @@ class CounterService
     public function addLines(MenuOrder $o, array $lines, int $round): void
     {
         foreach ($lines as $l) {
+            $kept = [];
+            if (! empty($l['serving_id']) || ! empty($l['selection'])) {   // the size and the sides it was ordered with (a dish with a make-up)
+                if (! MenuOrderLine::keepsSelection()) {
+                    throw new BooksException('Run database script 203_menus_order_lines_selection.sql first: until then an order can not keep the size and sides picked.');
+                }
+                $kept = ['serving_id' => $l['serving_id'] ?? null, 'serving' => $l['serving'] ?? null, 'selection' => $l['selection'] ?? null];
+            }
             MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
                 'options' => array_map(fn ($x) => ['id' => $x['id'], 'group' => $x['group'], 'name' => $x['name'], 'price_delta' => $x['price_delta']], $l['options']), 'note' => $l['note'], 'round' => $round,
-                'uses' => $l['uses'] ?: null, 'linked' => array_map(fn ($d) => $d->id, $l['linked']) ?: null]);
+                'uses' => $l['uses'] ?: null, 'linked' => array_map(fn ($d) => $d->id, $l['linked']) ?: null] + $kept);
         }
     }
 
@@ -484,7 +491,8 @@ class CounterService
         foreach ($o->lines()->get() as $l) {
             $dish = Dish::find($l->dish_id) ?? throw new BooksException("{$l->name} is not on the menu any more: ask a manager.");
             $out[] = ['dish' => $dish, 'quantity' => (float) $l->quantity, 'base_price' => (float) $l->base_price, 'unit_price' => (float) $l->unit_price, 'options' => $l->options ?? [], 'uses' => $l->uses ?? [],
-                'linked' => array_values(array_filter(array_map(fn ($id) => Dish::find($id), $l->linked ?? []))), 'note' => $l->note];
+                'linked' => array_values(array_filter(array_map(fn ($id) => Dish::find($id), $l->linked ?? []))), 'note' => $l->note,
+                'serving_id' => $l->serving_id ?? null, 'serving' => $l->serving ?? null, 'selection' => $l->selection ?? null];
         }
 
         return $out;

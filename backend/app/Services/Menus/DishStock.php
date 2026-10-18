@@ -113,7 +113,7 @@ class DishStock
         $this->use->reverse('voucher', (int) $v->id, $by, $reason ?: 'The sale it was for was cancelled or changed');
     }
 
-    /** @param mixed $raw the choices kept on a line @return array<int, array{mode: string, ingredient_id: ?int, quantity: ?float, unit: string}> */
+    /** What the customer's choices change in the recipe (rows with an ingredient). The sides picked travel in the same list as rows of their own and are read with DishSelection::sidesIn(). @param mixed $raw the choices kept on a line @return array<int, array{mode: string, ingredient_id: ?int, quantity: ?float, unit: string}> */
     private function choices(mixed $raw): array
     {
         $rows = is_string($raw) ? (json_decode($raw, true) ?: []) : (array) $raw;

@@ -251,8 +251,8 @@ class DishMakeup
         if ($min > $count || ($max !== null && $min > $max)) {
             throw new BooksException("{$slot}: the fewest to choose can not be more than the most, or than the sides there are.");
         }
-        if ($max !== null && $max > $count) {
-            $max = $count;
+        if ($kind === 'choose_any' && $max !== null && $max > $count) {
+            $max = $count;   // (an extra can be taken more than once, so its most is not held to the sides there are)
         }
         if ($max !== null && $defaults > $max) {
             throw new BooksException("{$slot}: more sides are chosen to begin with than may be chosen.");
