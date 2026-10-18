@@ -2,6 +2,8 @@
 
 Do the parts in this order: each one needs the one before it. Tick a box only when it did what the "expect" line says. Write down anything that made you stop and think, even if it worked: that is exactly what the automated tests cannot see.
 
+**Where the newer parts are (Steps 1 to 5).** Sections 0c to 0l: recipes, prepared food, sides and the dish make-up. 0m to 0q: stock following sides, ordering with sizes and picks, tickets, paid extras, the guided dish screen. 0r to 0t: what a customer may leave out or add. 0u to 0ab: packaging (prices, rules, the list at the till, waiving, the bill and the shelf, the receipt and packers' ticket, free condiments, the report). The scripts are listed in docs/MENUS_DISHES_PLAN.md under section 6; run them in numerical order.
+
 **What to watch for the whole way (the human checks)**
 - Did you ever not know what to press next, or what a word meant (pack, base unit, variant, station, expo, 86)?
 - After pressing something, did the screen tell you it worked, quickly? Any press that seemed to do nothing?
