@@ -160,6 +160,16 @@ Set up the burger of 0s: *Ten percent* on the extra cheese, *Fee 20* on leaving 
 4. Move the bag to another kind (Ingredients & Supplies): its row stays but is greyed out and can not be edited. Choose another packaging kind in Configuration: the container greys out too, and the items of that kind are listed. Choose Packaging again: the prices are back, as they were.
 5. Without script 207 the card says which script to run. Nothing on an order changes yet: what packaging goes with what comes in 5.2.
 
+## 0v. Packaging rules (after scripts 207 and 208)
+With the container (priced 15) and the bag (priced 5) from 0u, and a foil sheet of the packaging kind with no price.
+1. Menus, Sides, Edit the stew: under *Packaging* add the container, count 2, *For each dish*, compulsory, charged, receipt *When charged*. Add the foil: it can only be free (the *Charged* box is greyed, with a note). Save, reload: as left.
+2. Menus, Dishes, a meal, **Packaging**: add the bag, count 1, *Once for the order*. Add a container with count 1 too: this is the dish's own rule, and it replaces what the sides say about the container for this dish.
+3. A count of 0 or 100, the same item twice, an item of another kind, or charging an item that is not on the price list is refused with a message, and nothing is changed.
+4. Move the bag to another kind: its rule shows in a note, "kept but not used", and is not offered for editing. Moving it back brings it back.
+5. Delete a side or a dish that has rules: its rules go with it. An item that is on the price list or in a rule cannot be deleted from Ingredients ("take it out there first").
+6. The guided screen's last step is *Packaging* and shows the same rules for the dish.
+7. Nothing is added to an order yet: the checkout list comes in 5.3 and 5.4.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

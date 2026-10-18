@@ -962,6 +962,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/food-tags', [\App\Http\Controllers\Admin\MenusFoodTagsController::class, 'index']);
         Route::get('/lists', [\App\Http\Controllers\Admin\MenusListsController::class, 'index']);
         Route::get('/packaging/prices', [\App\Http\Controllers\Admin\MenusPackagingController::class, 'index']);
+        Route::get('/packaging/rules/{owner}/{id}', [\App\Http\Controllers\Admin\MenusPackagingController::class, 'rules'])->where('owner', 'side|dish')->whereNumber('id');
         Route::get('/stock/ingredient-kinds', [\App\Http\Controllers\Admin\MenusIngredientKindsController::class, 'index']);
         Route::get('/stock/expiring', [\App\Http\Controllers\Admin\MenusStockController::class, 'expiring']);
         Route::get('/stock/counts', [\App\Http\Controllers\Admin\MenusStockController::class, 'counts']);
@@ -1091,6 +1092,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/dishes/{id}/options', [$mc, 'saveOptions'])->whereNumber('id');
             Route::post('/dishes/makeup/build', [\App\Http\Controllers\Admin\MenusDishMakeupController::class, 'buildRun']);
             Route::put('/dishes/{id}/makeup', [\App\Http\Controllers\Admin\MenusDishMakeupController::class, 'update'])->whereNumber('id');
+            Route::put('/packaging/rules/{owner}/{id}', [\App\Http\Controllers\Admin\MenusPackagingController::class, 'saveRules'])->where('owner', 'side|dish')->whereNumber('id');
             Route::put('/dishes/{id}/modifiers', [\App\Http\Controllers\Admin\MenusDishModifiersController::class, 'update'])->whereNumber('id');
             Route::post('/dishes', [$dc, 'save']);
             Route::put('/dishes/{id}', [$dc, 'save'])->whereNumber('id');

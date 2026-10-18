@@ -9,6 +9,7 @@ import { errMsg } from '../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, colors } from '../../_shared/theme/tokens';
 import useMakeup from '../lib/useMakeup';
 import { ModifiersSection } from './DishModifiers';
+import { PackagingRulesSection } from './PackagingRules';
 import { AudienceSection, SizesSection, SlotsSection } from './DishMakeupModal';
 
 const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem' };
@@ -120,7 +121,7 @@ function Steps({ dish, step, setStep, onClose, onDone, onChoices }) {
           <div style={{ color: colors.textFaint, fontSize: '0.76rem' }}>This saves what you have done so far and opens the choices.</div>
         </div>
       )}
-      {step === 5 && <p data-testid="guide-packaging" style={{ margin: 0, fontSize: '0.84rem', color: colors.textMuted }}>Packaging for take out and delivery is set up in a later step. Nothing to do here yet.</p>}
+      {step === 5 && <div data-testid="guide-packaging"><PackagingRulesSection owner="dish" id={dish.id} name={dish.name} /></div>}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
         <button type="button" style={small} onClick={onClose}>Cancel</button>
         {step > 1 && <button type="button" style={small} onClick={() => setStep(step - 1)}>Back</button>}

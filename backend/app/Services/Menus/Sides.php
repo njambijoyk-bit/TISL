@@ -192,6 +192,7 @@ class Sides
             throw new BooksException("{$side->name} is in the make-up of ".implode(', ', array_slice($dishes, 0, 3)).(count($dishes) > 3 ? ' and more' : '').'. Take it out there first.');
         }
         DB::transaction(function () use ($side) {
+            PackagingRules::forget('side', (int) $side->id);
             $side->amounts()->delete();
             $side->delete();
         });

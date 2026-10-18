@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader';
+import { PackagingRulesSection } from '../../components/PackagingRules';
 import Modal from '../../../core/components/admin/ui/Modal';
 import { Field, FormError, FormStack, ModalActions, NumberInput, SelectInput, TextInput } from '../../../core/components/admin/ui/Form';
 import menusAPI from '../../../_shared/api/menus';
@@ -90,6 +91,12 @@ function SideModal({ side, data, onClose, onDone }) {
             <Field label="Note (optional)" htmlFor="sd-note"><TextInput id="sd-note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
           </div>
           <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.86rem' }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> On</label>
+ {side?.id && (
+            <fieldset style={{ border: `1px solid ${colors.tint(0.12)}`, borderRadius: 10, padding: 12, margin: 0 }}>
+              <legend style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, padding: '0 6px' }}>Packaging</legend>
+              <PackagingRulesSection owner="side" id={side.id} name={side.name} />
+            </fieldset>
+          )}
           <ModalActions onCancel={onClose} submitLabel="Save side" busy={busy} disabled={!name.trim() || !source} />
         </FormStack>
       </form>

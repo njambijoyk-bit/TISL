@@ -94,6 +94,7 @@ class DishService
             throw new BooksException("{$dish->name} has been sold or made, so it can not be deleted. Switch it off instead and it disappears from the menus; the history stays.");
         }
         DB::transaction(function () use ($dish) {
+            PackagingRules::forget('dish', (int) $dish->id);
             if (DishRecipes::installed()) {
                 app(DishRecipes::class)->delete($dish);
             }

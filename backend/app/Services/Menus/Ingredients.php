@@ -204,6 +204,9 @@ class Ingredients
     /** Stock and purchases arrive in the next step; a variant that has been bought or counted can then not be deleted, only switched off. */
     private function assertCanRemove(IngredientItem $item): void
     {
+        if (PackagingRules::usedBy((int) $item->id) > 0 || (\Illuminate\Support\Facades\Schema::hasTable('menus_packaging_prices') && DB::table('menus_packaging_prices')->where('item_id', $item->id)->exists())) {
+            throw new BooksException("{$item->name} is on the packaging price list or in a packaging rule, so it cannot be deleted. Take it out there first, or switch it off.");
+        }
         foreach (['menus_stock_batches', 'menus_stock_moves'] as $table) {
             if (\Illuminate\Support\Facades\Schema::hasTable($table) && DB::table($table)->where('item_id', $item->id)->exists()) {
                 throw new BooksException("{$item->name} has stock history, so it cannot be deleted. Switch it off instead.");

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Books\BooksException;
 use App\Services\Menus\PackagingPrices;
+use App\Services\Menus\PackagingRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -18,6 +19,30 @@ class MenusPackagingController extends Controller
     public function index(): JsonResponse
     {
         return response()->json($this->prices->all());
+    }
+
+    /** The packaging rules of a side or a dish, and the items they can use. */
+    public function rules(string $owner, int $id): JsonResponse
+    {
+        try {
+            return response()->json(app(PackagingRules::class)->show($owner, $id));
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** Body: rules[{item_id, scope, quantity, compulsory, charged, receipt}]. What is sent replaces the rules for items of the packaging kind. */
+    public function saveRules(Request $request, string $owner, int $id): JsonResponse
+    {
+        $d = $request->validate(['rules' => 'present|array|max:60', 'rules.*.item_id' => 'required|integer', 'rules.*.scope' => 'nullable|string|max:9', 'rules.*.quantity' => 'nullable|integer', 'rules.*.compulsory' => 'nullable|boolean',
+            'rules.*.charged' => 'nullable|boolean', 'rules.*.receipt' => 'nullable|string|max:6']);
+        ksort($d['rules']);
+
+        try {
+            return response()->json(['message' => 'Packaging rules saved.'] + app(PackagingRules::class)->save($owner, $id, $d['rules']));
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
     }
 
     /** Body: prices[{item_id, price?, currency_id?, ledger_id?, is_active?}]. An empty price takes the item off the list. */
