@@ -6,10 +6,13 @@ import { Field, TextInput, SelectInput, CheckboxRow, FormGrid } from '../ui/Form
 import { SIZES } from '../../../lib/codes/labelSheet';
 import { btnPrimary, card, colors } from '../../../../_shared/theme/tokens';
 
+import useModuleStore from '../../../../_shared/store/moduleStore';
 const TYPES = { variant: 'Products', pack: 'Packs and cartons', asset: 'Assets', batch: 'Stock batches' };
+const MENUS_TYPES = { dish: 'Dishes', recipe: 'Recipes', prep_lot: 'Prepared batches', stock_lot: 'Ingredient lots', kitchen_item: 'Kitchen stock items' };
 
 /** Settings → Codes, on the Codes page: what internal codes look like and the label defaults. */
 export default function CodesSettingsTab({ kinds, can }) {
+  const menusOn = useModuleStore((st) => st.active.includes('menus'));
   const [s, setS] = useState(null);
   const [ready, setReady] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -31,7 +34,7 @@ export default function CodesSettingsTab({ kinds, can }) {
           <TextInput aria-label="Internal code prefix" value={s.internal_prefix} maxLength={2} inputMode="numeric" onChange={(e) => setS((x) => ({ ...x, internal_prefix: e.target.value }))} style={{ maxWidth: 100 }} />
         </Field>
         <FormGrid min={220}>
-          {Object.entries(TYPES).map(([t, name]) => (
+          {Object.entries(menusOn ? { ...TYPES, ...MENUS_TYPES } : TYPES).map(([t, name]) => (
             <Field key={t} label={`Kind of code for ${name.toLowerCase()}`}>
               <SelectInput aria-label={`Kind of code for ${name}`} value={s.kinds[t]} onChange={(e) => setS((x) => ({ ...x, kinds: { ...x.kinds, [t]: e.target.value } }))}>
                 <option value="auto">Automatic (a real barcode keeps its retail code)</option>

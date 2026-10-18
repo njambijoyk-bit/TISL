@@ -31,7 +31,7 @@ class CodesAdminController extends Controller
     /** GET /admin/codes/items?type=variant&q=&missing=1&page= */
     public function items(Request $request): JsonResponse
     {
-        $d = $request->validate(['type' => 'required|in:variant,pack,asset,batch', 'q' => 'nullable|string|max:100', 'missing' => 'nullable|boolean', 'page' => 'nullable|integer|min:1', 'per_page' => 'nullable|integer|min:1|max:100']);
+        $d = $request->validate(['type' => 'required|in:variant,pack,asset,batch,dish,recipe,prep_lot,stock_lot,kitchen_item', 'q' => 'nullable|string|max:100', 'missing' => 'nullable|boolean', 'page' => 'nullable|integer|min:1', 'per_page' => 'nullable|integer|min:1|max:100']);
 
         return $this->guard(fn () => response()->json($this->items->list($d['type'], ['q' => $d['q'] ?? null, 'missing' => $request->boolean('missing'), 'page' => $d['page'] ?? 1, 'per_page' => $d['per_page'] ?? 25])
             + ['ready' => Schema::hasTable('code_sequences'), 'packs_ready' => CodeCatalogue::packsReady()]));
@@ -40,7 +40,7 @@ class CodesAdminController extends Controller
     /** POST /admin/codes/assign {items: [{type, id}]}: give a code to each that has none. */
     public function assign(Request $request): JsonResponse
     {
-        $d = $request->validate(['items' => 'required|array|min:1|max:500', 'items.*.type' => 'required|in:variant,pack,asset,batch', 'items.*.id' => 'required|integer']);
+        $d = $request->validate(['items' => 'required|array|min:1|max:500', 'items.*.type' => 'required|in:variant,pack,asset,batch,dish,recipe,prep_lot,stock_lot,kitchen_item', 'items.*.id' => 'required|integer']);
 
         return $this->guard(fn () => response()->json($this->items->assign($d['items'], $request->user()?->id)));
     }
@@ -48,7 +48,7 @@ class CodesAdminController extends Controller
     /** PUT /admin/codes/item {type, id, code, reason?}: set or replace one item's code by hand (the old code stays findable). */
     public function setCode(Request $request): JsonResponse
     {
-        $d = $request->validate(['type' => 'required|in:variant,pack,asset,batch', 'id' => 'required|integer', 'code' => 'required|string|max:64', 'reason' => 'nullable|string|max:200']);
+        $d = $request->validate(['type' => 'required|in:variant,pack,asset,batch,dish,recipe,prep_lot,stock_lot,kitchen_item', 'id' => 'required|integer', 'code' => 'required|string|max:64', 'reason' => 'nullable|string|max:200']);
 
         return $this->guard(function () use ($d, $request) {
             $this->items->setCode($d['type'], (int) $d['id'], $d['code'], $request->user()?->id, $d['reason'] ?? null);
@@ -70,7 +70,7 @@ class CodesAdminController extends Controller
     public function labels(Request $request): JsonResponse
     {
         $d = $request->validate([
-            'items' => 'required|array|min:1|max:500', 'items.*.type' => 'required|in:variant,pack,asset,batch', 'items.*.id' => 'required|integer', 'items.*.copies' => 'nullable|integer|min:1|max:500',
+            'items' => 'required|array|min:1|max:500', 'items.*.type' => 'required|in:variant,pack,asset,batch,dish,recipe,prep_lot,stock_lot,kitchen_item', 'items.*.id' => 'required|integer', 'items.*.copies' => 'nullable|integer|min:1|max:500',
             'kind' => 'nullable|string|max:12', 'name' => 'nullable|boolean', 'sku' => 'nullable|boolean', 'price' => 'nullable|boolean', 'code_text' => 'nullable|boolean', 'batch' => 'nullable|boolean',
             'size' => 'nullable|string|max:40', 'template' => 'nullable|string|max:40', 'log' => 'nullable|boolean', 'preview' => 'nullable|boolean',
         ]);

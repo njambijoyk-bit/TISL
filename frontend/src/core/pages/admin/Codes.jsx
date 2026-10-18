@@ -9,6 +9,7 @@ import SimpleTable from '../../components/admin/ui/SimpleTable';
 import codesAPI from '../../../_shared/api/codes';
 import useAuthStore from '../../../_shared/store/authStore';
 import { hasPermission } from '../../../_shared/lib/roles';
+import useModuleStore from '../../../_shared/store/moduleStore';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import CodeScanner from '../../components/admin/codes/CodeScanner';
 import LabelDialog from '../../components/admin/codes/LabelDialog';
@@ -18,7 +19,12 @@ import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/token
 const TYPES = [
   { id: 'variant', label: 'Products' }, { id: 'pack', label: 'Packs and cartons' }, { id: 'asset', label: 'Assets' }, { id: 'batch', label: 'Stock batches' },
 ];
-const TABS = [...TYPES, { id: 'prints', label: 'Print log' }, { id: 'settings', label: 'Configuration' }];
+/** What the kitchen can put a code on: shown while Menus is on. */
+const MENUS_TYPES = [
+  { id: 'dish', label: 'Dishes' }, { id: 'recipe', label: 'Recipes' }, { id: 'prep_lot', label: 'Prepared batches' }, { id: 'stock_lot', label: 'Ingredient lots' }, { id: 'kitchen_item', label: 'Kitchen stock' },
+];
+const NAMES = { variant: 'Product', pack: 'Pack', asset: 'Asset', batch: 'Batch', dish: 'Dish', recipe: 'Recipe', prep_lot: 'Prepared batch', stock_lot: 'Ingredient lot', kitchen_item: 'Kitchen stock item' };
+const TAIL = [{ id: 'prints', label: 'Print log' }, { id: 'settings', label: 'Configuration' }];
 const when = (s) => (s ? String(s).replace('T', ' ').slice(0, 16) : '');
 const input = { padding: '8px 10px', borderRadius: 10, border: '1.5px solid var(--line, #d1d5db)', background: 'var(--surface-input, #fff)', color: 'inherit', fontFamily: 'inherit', fontSize: '0.85rem' };
 
@@ -29,8 +35,11 @@ const input = { padding: '8px 10px', borderRadius: 10, border: '1.5px solid var(
 export default function Codes() {
   const [params, setParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
+  const menusOn = useModuleStore((s) => s.active.includes('menus'));
+  const types = useMemo(() => (menusOn ? [...TYPES, ...MENUS_TYPES] : TYPES), [menusOn]);
+  const tabs = useMemo(() => [...types, ...TAIL], [types]);
   const can = { manage: hasPermission(user, 'codes.manage'), print: hasPermission(user, 'codes.print') };
-  const [tab, setTab] = useState(TABS.some((t) => t.id === params.get('tab')) ? params.get('tab') : 'variant');
+  const [tab, setTab] = useState([...TYPES, ...MENUS_TYPES, ...TAIL].some((t) => t.id === params.get('tab')) ? params.get('tab') : 'variant');
   const [q, setQ] = useState('');
   const [missing, setMissing] = useState(false);
   const [page, setPage] = useState(1);
@@ -49,7 +58,7 @@ export default function Codes() {
     codesAPI.settings().then((r) => setDefaults(r.settings.label)).catch(() => {});
   }, []);
 
-  const isType = TYPES.some((t) => t.id === tab);
+  const isType = types.some((t) => t.id === tab);
   const load = useCallback(() => {
     if (!isType) return Promise.resolve();
     setLoading(true);
@@ -143,7 +152,7 @@ export default function Codes() {
             <div role="status" style={{ fontSize: '0.84rem' }}>
               {found.found ? found.matches.map((m) => (
                 <div key={`${m.type}:${m.id}`} style={{ padding: '6px 0', borderTop: `1px solid ${colors.tint(0.06)}` }}>
-                  <strong>{m.label}</strong> <span style={{ color: colors.textMuted }}>· {({ variant: 'Product', pack: 'Pack', asset: 'Asset', batch: 'Batch' })[m.type]}{m.sku ? ` · ${m.sku}` : ''}</span>
+                  <strong>{m.label}</strong> <span style={{ color: colors.textMuted }}>· {NAMES[m.type] ?? m.type}{m.sku ? ` · ${m.sku}` : ''}</span>
                   {m.retired && <span style={{ color: colors.danger }}> · an old code, this item has a new one: {m.code}</span>}
                 </div>
               )) : <span style={{ color: colors.danger }}>Nothing has the code {found.code}.</span>}
@@ -152,7 +161,7 @@ export default function Codes() {
           )}
         </div>
 
-        <Tabs tabs={TABS} active={tab} onChange={(id) => { setTab(id); setPage(1); setPicked({}); setParams({ tab: id }, { replace: true }); }} />
+        <Tabs tabs={tabs} active={tab} onChange={(id) => { setTab(id); setPage(1); setPicked({}); setParams({ tab: id }, { replace: true }); }} />
         {body()}
       </div>
 

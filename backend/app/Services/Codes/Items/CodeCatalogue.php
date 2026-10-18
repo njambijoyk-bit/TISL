@@ -21,10 +21,10 @@ final class CodeCatalogue
         'pack' => 'Pack or carton',
         'asset' => 'Asset',
         'batch' => 'Stock batch',
-    ];
+    ] + MenusCodeItems::TYPES;   // the kitchen's (offered only while Menus is on: MenusCodeItems::offered())
 
     /** where each type keeps its code: table, column */
-    private const STORE = ['variant' => ['product_variants', 'barcode'], 'pack' => ['product_variant_units', 'barcode'], 'asset' => ['inventory_instances', 'barcode']];
+    private const STORE = ['variant' => ['product_variants', 'barcode'], 'pack' => ['product_variant_units', 'barcode'], 'asset' => ['inventory_instances', 'barcode'], 'kitchen_item' => ['menus_ingredient_items', 'code']];
 
     public static function packsReady(): bool
     {
@@ -54,14 +54,14 @@ final class CodeCatalogue
                 ->select('i.id', 'it.name as product', 'i.asset_tag as sku', 'i.serial_number', 'i.barcode as code'),
             'batch' => DB::table('stock_batches as b')->join('product_variants as v', 'v.id', '=', 'b.variant_id')->join('products as p', 'p.id', '=', 'v.product_id')
                 ->select('b.id', 'v.id as variant_id', 'p.id as product_id', 'p.name as product', 'v.name as variant', 'v.sku', 'b.batch_no', 'b.expiry_date'),
-            default => throw new CodeException("There is no \"{$type}\" kind of item."),
+            default => MenusCodeItems::ready($type) ? MenusCodeItems::query($type) : throw new CodeException("There is no \"{$type}\" kind of item."),
         };
     }
 
     /** @param array{q?: ?string, missing?: bool, page?: int, per_page?: int} $f @return array{data: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int} */
     public function list(string $type, array $f = []): array
     {
-        if ($type === 'pack' && ! self::packsReady()) {
+        if (($type === 'pack' && ! self::packsReady()) || (MenusCodeItems::is($type) && ! MenusCodeItems::ready($type))) {
             return ['data' => [], 'total' => 0, 'page' => 1, 'per_page' => 25, 'last_page' => 1];
         }
         $q = $this->query($type);
@@ -73,6 +73,7 @@ final class CodeCatalogue
                     'pack' => $w->where('p.name', 'like', $like)->orWhere('v.name', 'like', $like)->orWhere('v.sku', 'like', $like)->orWhere('u.barcode', 'like', $like),
                     'asset' => $w->where('it.name', 'like', $like)->orWhere('i.asset_tag', 'like', $like)->orWhere('i.serial_number', 'like', $like)->orWhere('i.barcode', 'like', $like),
                     'batch' => $w->where('p.name', 'like', $like)->orWhere('v.name', 'like', $like)->orWhere('b.batch_no', 'like', $like)->orWhere('v.sku', 'like', $like),
+                    default => MenusCodeItems::search($type, $w, $like),
                 };
                 if ($type === 'batch' && preg_match('/^LOT0*(\d+)$/i', $s, $m)) {
                     $w->orWhere('b.id', (int) $m[1]);
@@ -80,13 +81,13 @@ final class CodeCatalogue
             });
         }
         if (! empty($f['missing']) && isset(self::STORE[$type])) {
-            $col = ['variant' => 'v.barcode', 'pack' => 'u.barcode', 'asset' => 'i.barcode'][$type];
+            $col = ['variant' => 'v.barcode', 'pack' => 'u.barcode', 'asset' => 'i.barcode', 'kitchen_item' => 'i.code'][$type];
             $q->where(fn ($w) => $w->whereNull($col)->orWhere($col, ''));
         }
         $total = (clone $q)->count();
         $per = max(1, min(100, (int) ($f['per_page'] ?? 25)));
         $page = max(1, (int) ($f['page'] ?? 1));
-        $rows = $q->orderBy($type === 'asset' ? 'i.id' : ($type === 'pack' ? 'u.id' : ($type === 'batch' ? 'b.id' : 'v.id')), 'desc')->forPage($page, $per)->get();
+        $rows = $q->orderBy(MenusCodeItems::is($type) ? MenusCodeItems::key($type) : ($type === 'asset' ? 'i.id' : ($type === 'pack' ? 'u.id' : ($type === 'batch' ? 'b.id' : 'v.id'))), 'desc')->forPage($page, $per)->get();
 
         return ['data' => $rows->map(fn ($r) => $this->shape($type, $r))->all(), 'total' => $total, 'page' => $page, 'per_page' => $per, 'last_page' => max(1, (int) ceil($total / $per))];
     }
@@ -94,10 +95,10 @@ final class CodeCatalogue
     /** @return array<string, mixed>|null */
     public function find(string $type, int $id): ?array
     {
-        if ($type === 'pack' && ! self::packsReady()) {
+        if (($type === 'pack' && ! self::packsReady()) || (MenusCodeItems::is($type) && ! MenusCodeItems::ready($type))) {
             return null;
         }
-        $key = ['variant' => 'v.id', 'pack' => 'u.id', 'asset' => 'i.id', 'batch' => 'b.id'][$type] ?? throw new CodeException("There is no \"{$type}\" kind of item.");
+        $key = ['variant' => 'v.id', 'pack' => 'u.id', 'asset' => 'i.id', 'batch' => 'b.id'][$type] ?? (MenusCodeItems::is($type) ? MenusCodeItems::key($type) : throw new CodeException("There is no \"{$type}\" kind of item."));
         $r = $this->query($type)->where($key, $id)->first();
 
         return $r ? $this->shape($type, $r) : null;
@@ -106,6 +107,9 @@ final class CodeCatalogue
     /** @return array<string, mixed> */
     private function shape(string $type, object $r): array
     {
+        if (MenusCodeItems::is($type)) {
+            return MenusCodeItems::shape($type, $r);
+        }
         $label = match ($type) {
             'variant' => self::join([$r->product, $this->variantName($r)]),
             'pack' => self::join([$r->product, $this->variantName($r), ($r->unit ?? 'pack') . ($r->contains_qty ? ' × ' . rtrim(rtrim((string) $r->contains_qty, '0'), '.') : '')]),
@@ -142,7 +146,7 @@ final class CodeCatalogue
     public function taken(string $code, ?string $exceptType = null, ?int $exceptId = null): bool
     {
         foreach (self::STORE as $type => [$table, $col]) {
-            if ($type === 'pack' && ! self::packsReady()) {
+            if (($type === 'pack' && ! self::packsReady()) || ($type === 'kitchen_item' && ! MenusCodeItems::ready($type))) {
                 continue;
             }
             $q = DB::table($table)->where($col, $code);
@@ -155,6 +159,9 @@ final class CodeCatalogue
         }
         if (preg_match('/^LOT\d{8}$/', $code)) {
             return $exceptType !== 'batch';   // that shape is reserved for batches
+        }
+        if ($made = MenusCodeItems::parse($code)) {
+            return $exceptType !== $made[0];   // and these for the kitchen's dishes, recipes and lots
         }
         if (Schema::hasTable('code_aliases')) {
             $q = DB::table('code_aliases')->where('code', $code);
@@ -190,7 +197,7 @@ final class CodeCatalogue
     public function setCode(string $type, int $id, string $code, ?int $by, ?string $reason = null): void
     {
         if (! isset(self::STORE[$type])) {
-            throw new CodeException($type === 'batch' ? 'A batch code is made from its number and can not be changed.' : "There is no \"{$type}\" kind of item.");
+            throw new CodeException($type === 'batch' || isset(MenusCodeItems::DERIVED[$type]) ? 'This code is made from the number and can not be changed.' : "There is no \"{$type}\" kind of item.");
         }
         $item = $this->find($type, $id) ?? throw new CodeException('That item was not found.');
         $code = trim($code);
@@ -217,8 +224,8 @@ final class CodeCatalogue
         if ($item['code'] !== null) {
             throw new CodeException('This item already has a code.');
         }
-        if ($type === 'asset') {
-            $code = 'AST' . str_pad((string) $id, 8, '0', STR_PAD_LEFT);
+        if ($type === 'asset' || $type === 'kitchen_item') {
+            $code = ($type === 'asset' ? 'AST' : 'KIT') . str_pad((string) $id, 8, '0', STR_PAD_LEFT);
         } else {
             $prefix = (string) CodeSettings::all()['internal_prefix'];
             do {
@@ -322,6 +329,14 @@ final class CodeCatalogue
             }
             if (preg_match('/^LOT(\d{8})$/i', $t, $m)) {
                 $add('batch', (int) $m[1]);
+            }
+            if (($made = MenusCodeItems::parse($t)) && MenusCodeItems::ready($made[0])) {
+                $add($made[0], $made[1]);
+            }
+            if (MenusCodeItems::ready('kitchen_item')) {
+                foreach (DB::table('menus_ingredient_items')->where('code', $t)->pluck('id') as $id) {
+                    $add('kitchen_item', $id);
+                }
             }
         }
         if (! $found) {

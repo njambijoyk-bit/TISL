@@ -10,7 +10,7 @@ final class CodeSettings
 {
     public const DEFAULTS = [
         'internal_prefix' => '29',          // internal retail codes are EAN-13s starting with 20-29 (the range GS1 keeps for stores' own use)
-        'kinds' => ['variant' => 'auto', 'pack' => 'auto', 'asset' => 'code128', 'batch' => 'code128'],   // auto = a real GTIN keeps its retail code, anything else is Code 128
+        'kinds' => ['variant' => 'auto', 'pack' => 'auto', 'asset' => 'code128', 'batch' => 'code128', 'dish' => 'qr', 'recipe' => 'qr', 'prep_lot' => 'code128', 'stock_lot' => 'code128', 'kitchen_item' => 'auto'],   // auto = a real GTIN keeps its retail code, anything else is Code 128
         'label' => ['name' => true, 'sku' => true, 'price' => false, 'code_text' => true, 'batch' => true, 'size' => 'a4-24'],
     ];
 
