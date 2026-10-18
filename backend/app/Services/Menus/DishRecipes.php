@@ -21,6 +21,19 @@ class DishRecipes
 
     private static ?bool $installed = null;
 
+    /** @var array<string, bool> */
+    private static array $columns = [];
+
+    /** Is a column the later scripts add there yet? (`name` is script 194's, `yield_unit_id` is 195's.) */
+    public static function has(string $column): bool
+    {
+        if (app()->runningUnitTests()) {
+            return Schema::hasColumn('menus_recipes', $column);
+        }
+
+        return self::$columns[$column] ??= Schema::hasColumn('menus_recipes', $column);
+    }
+
     /** Has script 183 been run? Until it has, dishes keep using the older recipes. */
     public static function installed(): bool
     {
@@ -52,6 +65,9 @@ class DishRecipes
      */
     public function saveStandalone(array $d, ?int $id = null): DishRecipe
     {
+        if (! self::has('name')) {
+            throw new BooksException('Run database script 194_menus_recipes_stand_alone.sql first: until then a recipe can only belong to a dish.');
+        }
         $name = mb_substr(trim((string) ($d['name'] ?? '')), 0, 120);
         if ($name === '') {
             throw new BooksException('Give the recipe a name.');
@@ -97,6 +113,9 @@ class DishRecipes
         }
         $yieldUnit = null;
         if (! empty($d['yield_unit_id'])) {
+            if (! self::has('yield_unit_id')) {
+                throw new BooksException('Run database script 195_menus_recipe_yield_unit.sql first: until then a batch is counted in portions only.');
+            }
             $yieldUnit = UnitOfMeasure::find((int) $d['yield_unit_id']);
             if (! $yieldUnit || ! $yieldUnit->is_active || ! in_array($yieldUnit->dimension, self::YIELD_DIMENSIONS, true)) {
                 throw new BooksException('Count a batch in a weight, a volume or a number of pieces: choose one of the units offered, or leave it as portions.');
@@ -159,13 +178,16 @@ class DishRecipes
     private function store(DishRecipe $r, array $d, array $c, ?string $name = null): DishRecipe
     {
         $r->fill([
-            'yield_qty' => $c['yield'], 'yield_unit_id' => $c['unit'], 'made_to_order' => (bool) ($d['made_to_order'] ?? true), 'visibility' => $c['visibility'], 'is_active' => (bool) ($d['is_active'] ?? true),
+            'yield_qty' => $c['yield'], 'made_to_order' => (bool) ($d['made_to_order'] ?? true), 'visibility' => $c['visibility'], 'is_active' => (bool) ($d['is_active'] ?? true),
             'note' => isset($d['note']) && trim((string) $d['note']) !== '' ? mb_substr(trim((string) $d['note']), 0, 255) : null,
             'prep_minutes' => isset($d['prep_minutes']) && $d['prep_minutes'] !== '' ? max(0, (int) $d['prep_minutes']) : null,
             'cook_minutes' => isset($d['cook_minutes']) && $d['cook_minutes'] !== '' ? max(0, (int) $d['cook_minutes']) : null,
         ]);
         if ($name !== null) {
             $r->name = $name;
+        }
+        if (self::has('yield_unit_id')) {
+            $r->yield_unit_id = $c['unit'];
         }
         $r->save();
         $r->lines()->delete();

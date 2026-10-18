@@ -270,4 +270,32 @@ class MenusRecipeBookTest extends TestCase
         $this->assertTrue($page['times_installed']);
         $this->assertSame([['up_to' => 1, 'minutes' => 15], ['up_to' => 2, 'minutes' => 20]], array_map(fn ($t) => ['up_to' => (int) $t['up_to'], 'minutes' => $t['minutes']], $page['standalone'][0]['times']));
     }
+
+    // ------------------------------------------------------------ before the scripts are run
+
+    public function test_dish_recipes_keep_saving_and_the_page_loads_before_script_194_is_run(): void
+    {
+        \Illuminate\Support\Facades\Schema::drop('menus_recipes');
+        $this->runSqlScripts('183_menus_recipes_own.sql');
+        $dish = $this->dish('Pancakes');
+        $this->svc()->save($dish, ['yield_qty' => 4, 'lines' => $this->lines()]);
+        $this->assertSame(4.0, (float) DishRecipe::where('dish_id', $dish->id)->first()->yield_qty);
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'Base', 'lines' => $this->lines()]), '194_menus_recipes_stand_alone');
+        $page = app(\App\Http\Controllers\Admin\MenusRecipesController::class)->index(\Illuminate\Http\Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $this->assertSame([[], false, false], [$page['standalone'], $page['own_installed'], $page['units_installed']]);
+        $this->assertCount(1, array_filter($page['dishes'], fn ($d) => $d['recipe']), 'the dish recipe is still listed');
+    }
+
+    public function test_dish_recipes_keep_saving_before_script_195_is_run_and_a_unit_says_which_script(): void
+    {
+        \Illuminate\Support\Facades\Schema::table('menus_recipes', fn ($t) => $t->dropColumn('yield_unit_id'));
+        $dish = $this->dish('Pancakes');
+        $this->svc()->save($dish, ['yield_qty' => 3, 'lines' => $this->lines()]);
+        $this->assertSame(3.0, (float) DishRecipe::where('dish_id', $dish->id)->first()->yield_qty);
+        $this->svc()->saveStandalone(['name' => 'Base', 'lines' => $this->lines()]);
+        $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'Ugali', 'yield_unit_id' => $this->kg, 'lines' => $this->lines()]), '195_menus_recipe_yield_unit');
+        $page = app(\App\Http\Controllers\Admin\MenusRecipesController::class)->index(\Illuminate\Http\Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $this->assertSame([true, false], [$page['own_installed'], $page['units_installed']]);
+        $this->assertSame(['Base'], array_column($page['standalone'], 'name'));
+    }
 }

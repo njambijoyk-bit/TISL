@@ -35,7 +35,8 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 5. Policies: Free is there and is the default (its default box is greyed). Add "Removal fee 10%" as a percentage; tick The default on it: Free loses the default. The default cannot be removed or switched off.
 6. Sign in as a chef: every field and button is read-only.
 
-## 0d. Recipes of their own (after script 194)
+## 0d. Recipes of their own (after script 194; unit after 195; times after 196)
+0. Where things are: Menus, Recipes. The **yield unit** and the **time by batch size** are inside a recipe's form (Add a recipe, or Edit recipe, under *Recipes of their own*). The unit box is only on recipes of their own; the times are on every recipe's form. A script not yet run shows a "run script N" notice in its place, and dish recipes keep saving meanwhile.
 1. Menus, Recipes: below the dishes there is **Recipes of their own**. Add a recipe called "Tomato and onion base" with two ingredients and a method; save. Expect it in the list with its cost of a batch.
 2. Add another with the same name in capitals. Expect: "There is already a recipe called ...".
 3. Edit it: the name is filled in, the lines are the ones you saved. Remove it: it goes.

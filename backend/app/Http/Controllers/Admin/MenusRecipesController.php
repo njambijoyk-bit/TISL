@@ -28,7 +28,7 @@ class MenusRecipesController extends Controller
     {
         $branches = app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
         $location = $request->integer('location_id') ?: (int) ($branches->first()->id ?? 0);
-        $with = array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'], RecipeTimes::installed() ? ['times'] : []);
+        $with = array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps'], DishRecipes::has('yield_unit_id') ? ['yieldUnit'] : [], RecipeTimes::installed() ? ['times'] : []);
         $recipes = DishRecipe::with($with)->whereNotNull('dish_id')->get()->keyBy('dish_id');
 
         return response()->json([
@@ -37,9 +37,9 @@ class MenusRecipesController extends Controller
                 'id' => $d->id, 'name' => $d->name, 'is_active' => (bool) $d->is_active, 'recipe' => ($r = $recipes->get($d->id)) ? $this->row($r, $location) : null,
             ])->values(),
             'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code])->values(),
-            'standalone' => DishRecipe::standalone()->with($with)->orderBy('name')->get()->map(fn (DishRecipe $r) => $this->row($r, $location))->values(),
+            'standalone' => DishRecipes::has('name') ? DishRecipe::standalone()->with($with)->orderBy('name')->get()->map(fn (DishRecipe $r) => $this->row($r, $location))->values() : [],
             'units' => \App\Models\UnitOfMeasure::active()->whereIn('dimension', DishRecipes::YIELD_DIMENSIONS)->orderBy('dimension')->orderBy('to_base_factor')->get(['id', 'code', 'name', 'dimension']),
-            'visibility' => DishRecipe::VISIBILITY, 'times_installed' => RecipeTimes::installed(),
+            'visibility' => DishRecipe::VISIBILITY, 'times_installed' => RecipeTimes::installed(), 'own_installed' => DishRecipes::has('name'), 'units_installed' => DishRecipes::has('yield_unit_id'),
         ]);
     }
 
@@ -51,7 +51,7 @@ class MenusRecipesController extends Controller
         return $this->guard(function () use ($d, $dishId) {
             $r = $this->recipes->save(Dish::findOrFail($dishId), $d);
 
-            return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r->load(array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'], RecipeTimes::installed() ? ['times'] : [])), null)]);
+            return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r->load(array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps'], DishRecipes::has('yield_unit_id') ? ['yieldUnit'] : [], RecipeTimes::installed() ? ['times'] : [])), null)]);
         });
     }
 
@@ -63,7 +63,7 @@ class MenusRecipesController extends Controller
         return $this->guard(function () use ($d, $id) {
             $r = $this->recipes->saveStandalone($d, $id);
 
-            return response()->json(['message' => "{$r->name} saved.", 'recipe' => $this->row($r->load(array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'], RecipeTimes::installed() ? ['times'] : [])), null)], $id === null ? 201 : 200);
+            return response()->json(['message' => "{$r->name} saved.", 'recipe' => $this->row($r->load(array_merge(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps'], DishRecipes::has('yield_unit_id') ? ['yieldUnit'] : [], RecipeTimes::installed() ? ['times'] : [])), null)], $id === null ? 201 : 200);
         });
     }
 

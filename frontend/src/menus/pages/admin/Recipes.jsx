@@ -66,10 +66,10 @@ function RecipeModal({ dish, options, onClose, onDone }) {
           {dish.standalone && <Field label="Name of the recipe" htmlFor="rc-name" hint="A recipe of its own is not a dish: a tomato and onion base, a marinade. Dishes can be made from it later."><TextInput id="rc-name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} /></Field>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
             {dish.standalone ? (
-              <Field label="One batch makes" htmlFor="rc-yield" hint="The amounts below are for this much.">
+              <Field label="One batch makes" htmlFor="rc-yield" hint={options.units_installed ? 'The amounts below are for this much. Count it in portions, or in a weight, volume or pieces.' : 'Run database script 195_menus_recipe_yield_unit.sql to count a batch in kilograms, litres or pieces. Until then it is portions.'}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} />
-                  <SelectInput aria-label="Counted in" value={yieldUnit} onChange={(e) => setYieldUnit(e.target.value)}>
+                  <SelectInput aria-label="Counted in" value={yieldUnit} disabled={!options.units_installed} onChange={(e) => setYieldUnit(e.target.value)}>
                     <option value="">portions</option>
                     {['mass', 'volume', 'count'].map((dim) => (options.units ?? []).some((u) => u.dimension === dim) && (
                       <optgroup key={dim} label={{ mass: 'Weight', volume: 'Volume', count: 'Pieces' }[dim]}>{options.units.filter((u) => u.dimension === dim).map((u) => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}</optgroup>
@@ -78,7 +78,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                 </div>
               </Field>
             ) : (
-              <Field label="One batch makes (portions)" htmlFor="rc-yield" hint="The amounts below are for this many portions."><NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} /></Field>
+              <Field label="One batch makes (portions)" htmlFor="rc-yield" hint="The amounts below are for this many portions. A dish's recipe counts portions; to count a batch in kilograms or litres, add a recipe of its own on the Recipes page."><NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} /></Field>
             )}
             <Field label="How it is made" htmlFor="rc-how">
               <SelectInput id="rc-how" value={order ? 'order' : 'ahead'} onChange={(e) => setOrder(e.target.value === 'order')}>
@@ -107,7 +107,9 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setLines((xs) => [...xs, mk()])}><Plus size={12} /> Add an ingredient</button>
           </div>
 
-          {options.times_installed && (
+          {!options.times_installed ? (
+            <p role="status" data-testid="recipe-times-missing" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Time by batch size: run database script 196_menus_recipe_times.sql to add it here.</p>
+          ) : (
             <div data-testid="recipe-times">
               <div style={{ fontSize: '0.74rem', fontWeight: 700, color: colors.textMuted, marginBottom: 2 }}>Time by batch size</div>
               <div style={{ fontSize: '0.72rem', color: colors.textFaint, marginBottom: 6 }}>A batch is timed by the smallest row that is big enough. A batch bigger than every row has no estimate.</div>
@@ -190,6 +192,7 @@ export default function Recipes() {
     <AdminLayout>
       <div style={{ padding: '32px 24px', maxWidth: 1100, margin: '0 auto' }} data-testid="recipes">
         <HubHeader title="Recipes" description="What each dish is made of, in ingredients. It shows what a portion costs from the stock on the shelf and how many portions could be made now." />
+        {data?.installed && <p style={{ fontSize: '0.78rem', color: colors.textMuted, margin: '0 0 14px' }}>The <strong>yield unit</strong> (kilograms, litres, pieces) and the <strong>time by batch size</strong> are set inside a recipe: choose Edit recipe on a recipe, or Add a recipe under Recipes of their own below. A dish&apos;s own recipe counts portions.</p>}
         {data && !data.installed && <p role="status" style={{ ...card, padding: 14, fontSize: '0.82rem', marginBottom: 14 }}>Run database script 183_menus_recipes_own.sql first: until then recipes can not be saved.</p>}
         <div style={{ minWidth: 200, maxWidth: 260, margin: '0 0 14px' }}>
           <SelectInput aria-label="Branch" value={loc} onChange={(e) => setLoc(e.target.value)}>{(data?.branches ?? []).map((b) => <option key={b.id} value={b.id}>At {b.name}</option>)}</SelectInput>
@@ -220,11 +223,13 @@ export default function Recipes() {
             <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Recipes of their own</h2>
             <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: colors.textMuted }}>A base, sauce or marinade that is not a dish. Dishes will be able to use these later.</p>
           </div>
-          {canWrite && data?.installed && <button type="button" style={small} onClick={() => setModal({ dish: { standalone: true, name: '', recipe: null } })}><Plus size={12} /> Add a recipe</button>}
+          {canWrite && data?.installed && data.own_installed && <button type="button" style={small} onClick={() => setModal({ dish: { standalone: true, name: '', recipe: null } })}><Plus size={12} /> Add a recipe</button>}
         </div>
         <div style={{ ...card, padding: 0, overflowX: 'auto' }} data-testid="own-recipes">
-          {!data?.standalone?.length ? (
-            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>None yet.</p>
+          {data && !data.own_installed ? (
+            <p role="status" style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>Run database script 194_menus_recipes_stand_alone.sql to add recipes of their own.</p>
+          ) : !data?.standalone?.length ? (
+            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>None yet. Use Add a recipe: that is where a batch is counted in kilograms or litres.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr><th style={th}>Recipe</th><th style={th}>Made</th><th style={{ ...th, textAlign: 'right' }}>Cost of a batch</th><th style={{ ...th, textAlign: 'right' }}>Cost of each</th><th style={th} /></tr></thead>
