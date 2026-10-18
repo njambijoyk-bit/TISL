@@ -153,6 +153,13 @@ Set up the burger of 0s: *Ten percent* on the extra cheese, *Fee 20* on leaving 
 5. Order more extra cheese than the shelf holds (the recipe's need plus the extras): the order is refused with "There is not enough Cheese left for the extra".
 6. The tab: a tab keeps the choices and fees; adding to it, splitting it and paying it all give the same totals.
 
+## 0u. Packaging prices (after script 207)
+1. Menus, Ingredients & Supplies: make two items of the kind *Packaging* (a container and a bag, counted *each*) and one of another kind (soap). Menus, Configuration: choose *Packaging* as the packaging kind and save.
+2. Further down the page, *Packaging prices* lists the container and the bag, not the soap. Give the container 15 and the bag 5.5 (one unit each, not a pack), leave the currency on Menus and the account on the dishes' account. Save, reload: as left. Empty the bag's price and save: it is off the list.
+3. Choose a currency or a sales account for one row, save: it is kept. A price of 0 or below, or an account that carries no tax setup, is refused with a message, and nothing is changed.
+4. Move the bag to another kind (Ingredients & Supplies): its row stays but is greyed out and can not be edited. Choose another packaging kind in Configuration: the container greys out too, and the items of that kind are listed. Choose Packaging again: the prices are back, as they were.
+5. Without script 207 the card says which script to run. Nothing on an order changes yet: what packaging goes with what comes in 5.2.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

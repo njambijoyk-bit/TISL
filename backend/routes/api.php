@@ -961,6 +961,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock/prepared/chefs', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'chefs']);
         Route::get('/food-tags', [\App\Http\Controllers\Admin\MenusFoodTagsController::class, 'index']);
         Route::get('/lists', [\App\Http\Controllers\Admin\MenusListsController::class, 'index']);
+        Route::get('/packaging/prices', [\App\Http\Controllers\Admin\MenusPackagingController::class, 'index']);
         Route::get('/stock/ingredient-kinds', [\App\Http\Controllers\Admin\MenusIngredientKindsController::class, 'index']);
         Route::get('/stock/expiring', [\App\Http\Controllers\Admin\MenusStockController::class, 'expiring']);
         Route::get('/stock/counts', [\App\Http\Controllers\Admin\MenusStockController::class, 'counts']);
@@ -1121,6 +1122,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/stock/prepared/counts', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'count']);
             Route::post('/stock/prepared/runs/{id}/cancel', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'cancel'])->whereNumber('id');
             Route::post('/stock/productions/{id}/cancel', [$sr, 'cancelRun'])->whereNumber('id');
+            Route::put('/packaging/prices', [\App\Http\Controllers\Admin\MenusPackagingController::class, 'save'])->middleware('permission:menus.configure');
             $ml = \App\Http\Controllers\Admin\MenusListsController::class;
             Route::post('/lists/{type}', [$ml, 'save'])->where('type', 'servings|audiences|policies')->middleware('permission:menus.configure');
             Route::put('/lists/{type}/{id}', [$ml, 'save'])->where('type', 'servings|audiences|policies')->whereNumber('id')->middleware('permission:menus.configure');

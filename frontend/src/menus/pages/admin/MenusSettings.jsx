@@ -16,6 +16,7 @@ import StationsCard from '../../components/StationsCard';
 import KiosksCard from '../../components/KiosksCard';
 import ClockPlacesCard from '../../components/ClockPlacesCard';
 import ListsCard from '../../components/ListsCard';
+import PackagingPricesCard from '../../components/PackagingPricesCard';
 
 /** Menus → Configuration: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
@@ -226,6 +227,7 @@ export default function MenusSettings() {
           </div>
         )}
         {s && <ListsCard canEdit={canEdit} />}
+        {s && <PackagingPricesCard canEdit={canEdit} />}
         {s && <ChannelsCard canEdit={canEdit} />}
         {s && <StationsCard canEdit={canEdit} />}
         {s && <KiosksCard canEdit={canEdit} />}
