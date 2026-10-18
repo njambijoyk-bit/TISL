@@ -6,13 +6,11 @@ use App\Models\Menus\Dish;
 use App\Models\Menus\MenuOrder;
 use App\Models\Menus\MenuOrderLine;
 use App\Models\Menus\Side;
-use App\Models\Menus\StockBatch;
 use App\Services\Books\BooksException;
 use App\Services\Menus\CounterService;
 use App\Services\Menus\DishMakeup;
 use App\Services\Menus\DishRecipes;
 use App\Services\Menus\DishSelection;
-use App\Services\Menus\DishStock;
 use App\Services\Menus\Sides;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -238,16 +236,6 @@ class MenusDishSelectionTest extends TestCase
         $svc->addLines($o, [['dish' => $this->steak, 'quantity' => 1, 'base_price' => 500, 'unit_price' => 500, 'options' => [], 'uses' => [], 'linked' => [], 'note' => null]], 1);
         $this->assertSame(1, MenuOrderLine::count());
         $this->assertNull($svc->rebuild($o)[0]['serving_id']);
-    }
-
-    public function test_the_sides_in_a_lines_uses_do_not_disturb_what_the_stock_takes(): void
-    {
-        $d = $this->dish('Pizza');
-        app(DishRecipes::class)->save($d, ['yield_qty' => 1, 'lines' => [['ingredient_id' => (int) DB::table('menus_ingredients')->where('name', 'Flour')->value('id'), 'quantity' => 200]]]);
-        $r = $this->sel()->resolve($this->steak, $this->jumbo);
-        $v = $this->sale([['dish' => $d, 'qty' => 2, 'uses' => array_merge($r['uses'], [['mode' => 'add', 'ingredient_id' => (int) DB::table('menus_ingredients')->where('name', 'Flour')->value('id'), 'quantity' => 50, 'unit' => 'base']])]]);
-        app(DishStock::class)->apply($v, null);
-        $this->assertEqualsWithDelta(2 * 250, 100000 - (float) StockBatch::sum('qty_left'), 0.001, 'the extra flour counts, the side rows are not read as ingredients');
     }
 
     public function test_a_dish_has_a_makeup_to_follow_when_it_has_slots_or_sizes(): void

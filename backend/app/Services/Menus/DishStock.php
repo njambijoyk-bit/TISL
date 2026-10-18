@@ -55,51 +55,112 @@ class DishStock
         $loc = (int) ($v->location_id ?: \App\Models\Location::default()?->id);
         $date = $v->date instanceof Carbon ? $v->date->toDateString() : (string) $v->date;
         $sales = app(SideSales::class);
-        $uses = [];
-        $total = 0.0;
-        $byKind = [];
-        $prepUses = [];
-        $prepTotal = 0.0;
+        $acc = ['uses' => [], 'total' => 0.0, 'byKind' => [], 'prepUses' => [], 'prepTotal' => 0.0];
+        // what a use cost, kept for the journal: ingredients by the kind they are carried on, prepared food on its own
+        $addIng = function (array $r) use (&$acc): void {
+            $acc['uses'][] = $r['use_id'];
+            $acc['total'] += $r['cost'];
+            foreach (($r['by_kind'] ?? [0 => $r['cost']]) as $kindId => $cost) {
+                $acc['byKind'][$kindId] = ($acc['byKind'][$kindId] ?? 0.0) + $cost;
+            }
+        };
+        $addPrep = function (array $r) use (&$acc): void {
+            $acc['prepUses'][] = $r['use_id'];
+            $acc['prepTotal'] += $r['cost'];
+        };
         foreach ($items as $it) {
             $dish = Dish::find($it->dish_id);
+            $qty = (float) $it->quantity;
+            $ref = ['type' => 'voucher', 'id' => (int) $v->id];
+            $picked = $dish && $qty > 0 ? DishSelection::sidesIn($it->menu_uses) : [];
+            if ($picked) {   // ordered with a make-up: the stock follows the sides that were picked
+                $this->sellSides($dish, $it, $picked, $qty, $loc, $ref, $by, $date, $addIng, $addPrep);
+
+                continue;
+            }
             $side = $dish ? $sales->sideFor($dish) : null;   // switched on and the dish has a side: its stock goes through the side's recipe
             $recipe = $side?->recipe ?? ($dish ? DishRecipe::where('dish_id', $dish->id)->where('is_active', true)->first() : null);
-            $qty = (float) $it->quantity;
             if (! $recipe || $qty <= 0) {
                 continue;   // nothing is written about what it is made of, so nothing is taken
             }
-            $ref = ['type' => 'voucher', 'id' => (int) $v->id];
             $amount = $side ? round($qty * $sales->perPortion($side), 6) : $qty;
             if ($recipe->made_to_order) {
                 $r = $this->use->consume($recipe, $amount, $loc, $ref, $by, ['date' => $date, 'post' => false, 'uses' => $this->choices($it->menu_uses)]);
                 if ($side) {
                     StockUse::whereKey($r['use_id'])->update(['dish_id' => $dish->id]);
                 }
+                $addIng($r);
             } elseif ($side) {
-                $r = $this->sellPrepared($dish, $side, $amount, $loc, $ref, $by, $date);
-                $prepUses[] = $r['use_id'];
-                $prepTotal += $r['cost'];
+                $addPrep($this->sellPrepared($dish, $side, $amount, $loc, $ref, $by, $date, null, $sales->perPortion($side)));
+            } else {
+                $addIng($this->sellAhead($dish, $recipe, $qty, $loc, $ref, $by, $date));
+            }
+        }
+        $total = round($acc['total'], 2);
+        if ($acc['uses'] && $total > 0) {
+            $journal = $this->use->bookKinds($acc['byKind'], 'cost', "Food used for {$v->voucher_number}", $loc, Carbon::parse($date), $by);
+            StockUse::whereIn('id', $acc['uses'])->update(['journal_id' => $journal->id]);
+        }
+        $prepTotal = round($acc['prepTotal'], 2);
+        if ($acc['prepUses'] && $prepTotal > 0) {   // prepared food sold: Dr Food Cost of Sales, Cr Prepared Food Inventory
+            $journal = $this->use->book(FoodLedgers::cost(), FoodLedgers::prepared(), $prepTotal, "Prepared food used for {$v->voucher_number}", $loc, Carbon::parse($date), $by);
+            StockUse::whereIn('id', $acc['prepUses'])->update(['journal_id' => $journal->id]);
+        }
+    }
+
+    /**
+     * A dish line ordered with a make-up: each side picked is taken from its own source. A side made from a recipe takes that recipe's ingredients (made to order, what the customer left
+     * out is left out) or the prepared food on the shelf; a ready-to-serve side takes its ingredient from the shelf. What the customer asked to add (extra cheese) is taken once.
+     *
+     * @param array<int, array{side_id: int, qty: float, amount: float, serving_id: ?int}> $picked
+     */
+    private function sellSides(Dish $dish, $it, array $picked, float $qty, int $loc, array $ref, ?User $by, string $date, \Closure $addIng, \Closure $addPrep): void
+    {
+        $choices = $this->choices($it->menu_uses);
+        $removes = array_values(array_filter($choices, fn ($c) => $c['mode'] === 'remove'));
+        $adds = array_values(array_filter($choices, fn ($c) => $c['mode'] === 'add'));
+        foreach ($picked as $row) {
+            $side = \App\Models\Menus\Side::with('recipe', 'ingredient.baseUnit', 'ingredient.altUnit')->find($row['side_id']) ?? throw new BooksException("A side of {$dish->name} has been removed: ask a manager.");
+            $amount = round($row['amount'] * $qty, 6);
+            if ($amount <= 0) {
+                continue;
+            }
+            if ($side->recipe_id) {
+                $recipe = $side->recipe ?? throw new BooksException("The recipe of {$side->name} has been removed: ask a manager.");
+                if ($recipe->made_to_order) {
+                    $r = $this->use->consume($recipe, $amount, $loc, $ref, $by, ['date' => $date, 'post' => false, 'uses' => $removes]);
+                    StockUse::whereKey($r['use_id'])->update(['dish_id' => $dish->id]);
+                    $addIng($r);
+                } else {
+                    $addPrep($this->sellPrepared($dish, $side, $amount, $loc, $ref, $by, $date, $side->name));
+                }
 
                 continue;
-            } else {
-                $r = $this->sellAhead($dish, $recipe, $qty, $loc, $ref, $by, $date);
             }
-            $uses[] = $r['use_id'];
-            $total += $r['cost'];
-            foreach (($r['by_kind'] ?? [0 => $r['cost']]) as $kindId => $cost) {
-                $byKind[$kindId] = ($byKind[$kindId] ?? 0.0) + $cost;
+            $ing = $side->ingredient ?? throw new BooksException("The ingredient of {$side->name} has been removed: ask a manager.");
+            $addIng($this->takeIngredients([$ing->id => ['ingredient' => $ing, 'qty' => $amount]], $dish, $loc, $ref, $by, $date));
+        }
+        if ($adds) {
+            $needs = [];
+            foreach ($adds as $a) {
+                $ing = \App\Models\Menus\Ingredient::with('baseUnit', 'altUnit')->find($a['ingredient_id']);
+                if ($ing && (float) $a['quantity'] > 0) {
+                    $needs[$ing->id] = ['ingredient' => $ing, 'qty' => round(($needs[$ing->id]['qty'] ?? 0) + $ing->toBase((float) $a['quantity'], (string) $a['unit']) * $qty, 6)];
+                }
+            }
+            if ($needs) {
+                $addIng($this->takeIngredients($needs, $dish, $loc, $ref, $by, $date));
             }
         }
-        $total = round($total, 2);
-        if ($uses && $total > 0) {
-            $journal = $this->use->bookKinds($byKind, 'cost', "Food used for {$v->voucher_number}", $loc, Carbon::parse($date), $by);
-            StockUse::whereIn('id', $uses)->update(['journal_id' => $journal->id]);
-        }
-        $prepTotal = round($prepTotal, 2);
-        if ($prepUses && $prepTotal > 0) {   // prepared food sold: Dr Food Cost of Sales, Cr Prepared Food Inventory
-            $journal = $this->use->book(FoodLedgers::cost(), FoodLedgers::prepared(), $prepTotal, "Prepared food used for {$v->voucher_number}", $loc, Carbon::parse($date), $by);
-            StockUse::whereIn('id', $prepUses)->update(['journal_id' => $journal->id]);
-        }
+    }
+
+    /** Take exact amounts of ingredients off the shelf (no recipe behind it) and keep the record of it against the dish. @param array<int, array{ingredient: \App\Models\Menus\Ingredient, qty: float}> $needs */
+    private function takeIngredients(array $needs, Dish $dish, int $loc, array $ref, ?User $by, string $date): array
+    {
+        $r = $this->use->consume(new DishRecipe(), 1.0, $loc, $ref, $by, ['date' => $date, 'post' => false, 'needs' => $needs]);
+        StockUse::whereKey($r['use_id'])->update(['dish_id' => $dish->id]);
+
+        return $r;
     }
 
     /** The voucher is being changed or cancelled: take back what it used (the books apply it again afterwards if it is only changed). */
@@ -184,7 +245,7 @@ class DishStock
      *
      * @return array{use_id: int, cost: float}
      */
-    private function sellPrepared(Dish $dish, \App\Models\Menus\Side $side, float $amount, int $loc, array $ref, ?User $by, string $date): array
+    private function sellPrepared(Dish $dish, \App\Models\Menus\Side $side, float $amount, int $loc, array $ref, ?User $by, string $date, ?string $label = null, float $per = 1.0): array
     {
         $sales = app(SideSales::class);
         $left = round($amount, 4);
@@ -199,9 +260,7 @@ class DishStock
             }
         }
         if ($left > self::EPS) {
-            $per = $sales->perPortion($side);
-
-            throw new BooksException("Not enough {$dish->name} prepared: need {$this->fmt($amount / $per)}, have {$this->fmt($have / $per)}. Make a batch on the Prepared food page first.");
+            throw new BooksException('Not enough '.($label ?? $dish->name)." prepared: need {$this->fmt($amount / $per)}, have {$this->fmt($have / $per)}. Make a batch on the Prepared food page first.");
         }
         $use = StockUse::create(['ref_type' => $ref['type'], 'ref_id' => $ref['id'], 'dish_id' => $dish->id, 'recipe_id' => $side->recipe_id, 'location_id' => $loc, 'portions' => $amount, 'cost' => 0, 'status' => 'posted', 'created_by' => $by?->id]);
         $cost = 0.0;

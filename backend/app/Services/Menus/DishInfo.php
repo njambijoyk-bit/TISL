@@ -4,6 +4,7 @@ namespace App\Services\Menus;
 
 use App\Models\Menus\Dish;
 use App\Models\Menus\DishRecipe;
+use App\Models\Menus\DishSlot;
 
 /** What can be said about a dish from its recipe: allergens and diets (inherited from the ingredients), whether it can be made now, and what it costs. */
 class DishInfo
@@ -51,6 +52,9 @@ class DishInfo
     {
         if (! $dish->is_active || ($dish->sold_out_on && $dish->sold_out_on->isToday())) {
             return 0.0;
+        }
+        if (DishSelection::applies($dish) && DishSlot::where('dish_id', $dish->id)->exists()) {   // it is put together from sides: as many as the sides on the shelf allow
+            return app(SideStock::class)->portions($dish, $locationId);
         }
         $dish->loadMissing('menuRecipe');
         $sales = app(SideSales::class);
