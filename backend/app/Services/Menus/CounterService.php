@@ -137,7 +137,7 @@ class CounterService
 
         $list = $co->resolve($lines, $takeaway, $in['packaging'] ?? null);
 
-        return ['packaging' => $list, 'packaging_choices' => $takeaway ? $co->choices() : [], 'packaging_waiver' => $co->waiver($list, $by)];
+        return ['packaging' => $list, 'packaging_choices' => $takeaway ? $co->choices() : [], 'packaging_waiver' => $co->waiver($list, $by), 'condiments' => app(Condiments::class)->resolve($lines, $in['condiments'] ?? null)];
     }
 
     private function label(array $in): string
@@ -169,13 +169,15 @@ class CounterService
         [$channel, $loc, $lines] = $this->prepare($in, $now);
         $service = (string) ($in['service'] ?? '');
         $pack = app(PackagingCheckout::class)->resolve($lines, $service !== 'dine_in', $in['packaging'] ?? null);
+        $cond = app(Condiments::class)->resolve($lines, $in['condiments'] ?? null);
         $p = $this->price($loc, $lines, $service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in), $pack);
         $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
 
-        $order = DB::transaction(function () use ($channel, $loc, $lines, $service, $p, $paid, $by, $in, $pack) {
+        $order = DB::transaction(function () use ($channel, $loc, $lines, $service, $p, $paid, $by, $in, $pack, $cond) {
             $order = $this->create($channel, $loc, $service, $by, $this->label($in), 'paid', $p);
             $this->addLines($order, $lines, 1);
             app(PackagingCheckout::class)->store($order, $pack, $by);
+            app(Condiments::class)->store($order, $cond, $by);
             $this->book($order, $p, $paid, $by);
 
             return $order;
@@ -260,10 +262,12 @@ class CounterService
         $loc = Location::findOrFail($o->location_id);
         $lines = $this->rebuild($o);
         $pack = app(PackagingCheckout::class)->resolve($lines, (string) $o->service !== 'dine_in', $in['packaging'] ?? null);
+        $cond = app(Condiments::class)->resolve($lines, $in['condiments'] ?? null);
         $p = $this->price($loc, $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label, $pack);
         $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
-        DB::transaction(function () use ($o, $p, $paid, $by, $pack) {
+        DB::transaction(function () use ($o, $p, $paid, $by, $pack, $cond) {
             app(PackagingCheckout::class)->store($o, $pack, $by);
+            app(Condiments::class)->store($o, $cond, $by);
             $this->book($o, $p, $paid, $by);
             $this->closeTab($o);
         });
@@ -440,10 +444,12 @@ class CounterService
         }
         $lines = $this->rebuild($o);
         $pack = app(PackagingCheckout::class)->resolve($lines, (string) $o->service !== 'dine_in', $in['packaging'] ?? null);
+        $cond = app(Condiments::class)->resolve($lines, $in['condiments'] ?? null);
         $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '', $pack);
         $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
-        DB::transaction(function () use ($o, $p, $paid, $by, $pack) {
+        DB::transaction(function () use ($o, $p, $paid, $by, $pack, $cond) {
             app(PackagingCheckout::class)->store($o, $pack, $by);
+            app(Condiments::class)->store($o, $cond, $by);
             $this->book($o, $p, $paid, $by);
         });
         $this->fire($o);

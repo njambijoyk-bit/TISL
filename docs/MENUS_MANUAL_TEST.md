@@ -203,6 +203,13 @@ With three rules on the stew: the container (charged, receipt *Never*), the foil
 3. Set the container's receipt to *Auto* and pay again: the receipt now has "4 Packaging: Container 60.00", and the lines add up to the subtotal.
 4. Take the foil off at the till: it is not on the PACK line. Open a tab for a take-out meal: the ticket shows what the rules ask for already; a tab ordered in two rounds shows it on the first ticket only. Dining in shows no PACK line.
 
+## 0aa. Free condiments (after script 211)
+1. Menus, Dishes, the fries, **Packaging**: under *Free condiments* add Ketchup, count 2, and Mayonnaise, count 1 (any ingredient can be named, counted in its own unit). Save, reload: as left. A count of 0 or 100, the same item twice, or a switched-off ingredient is refused with a message.
+2. Till: sell three fries, **Pay**. *Free condiments* lists Ketchup 6 allowed and Mayonnaise 3 allowed, each with − and +, whether dining in or taking out. Give 9 ketchup: a note says "9 Ketchup given, 6 allowed. It is allowed; it is only a warning." and you can still take the payment.
+3. After the sale the order keeps both numbers. The kitchen ticket has a green line "GIVE: 9 × Ketchup, 3 × Mayonnaise" (what was given), the Orders board says "Give: ...", and the printed ticket has it too. A tab shows the allowance until it is paid, then what was given.
+4. Menus, Stock: the ketchup is down by 9 (what was given, not the 6 allowed) and the mayonnaise by 3, in the one journal "Packaging and condiments used for INV-…". Cancel the sale in the books: they come back.
+5. Two dishes with the same condiment add their allowances. Only a condiment of a dish on the order can be given. Deleting a dish takes its allowance.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

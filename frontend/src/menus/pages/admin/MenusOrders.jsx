@@ -74,6 +74,7 @@ export default function MenusOrders() {
           {o.lines.map((l, i) => <li key={i}><strong>{l.quantity} ×</strong> {l.name}{l.options.length > 0 && <em style={{ color: colors.textMuted }}> — {l.options.join(', ')}</em>}{l.note && <em style={{ color: '#b45309' }}> — “{l.note}”</em>}<LineMakeup line={l} color={colors.textMuted} /></li>)}
         </ul>
         {(o.packaging ?? []).length > 0 && <p data-testid="order-packaging" style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Pack: {o.packaging.map((p) => `${p.quantity} × ${p.name}`).join(', ')}</p>}
+        {(o.condiments ?? []).length > 0 && <p data-testid="order-condiments" style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Give: {o.condiments.map((c) => `${c.quantity} × ${c.name}`).join(', ')}</p>}
         {o.notes && <p style={{ margin: 0, fontSize: '0.8rem', color: '#b45309' }}>Note: {o.notes}</p>}
         {o.delivery_address && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>To: {o.delivery_address}</p>}
         <div><Pill tone={tone}>{text}</Pill> <span style={{ fontWeight: 800, fontSize: '0.88rem' }}>{money(o.total)}</span> {o.refund_due && <Pill tone="danger">Refund due</Pill>}</div>

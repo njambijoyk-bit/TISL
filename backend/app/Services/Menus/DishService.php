@@ -95,6 +95,7 @@ class DishService
         }
         DB::transaction(function () use ($dish) {
             PackagingRules::forget('dish', (int) $dish->id);
+            Condiments::forget((int) $dish->id);
             if (DishRecipes::installed()) {
                 app(DishRecipes::class)->delete($dish);
             }

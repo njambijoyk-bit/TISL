@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Books\BooksException;
+use App\Services\Menus\Condiments;
 use App\Services\Menus\PackagingPrices;
 use App\Services\Menus\PackagingRules;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +41,25 @@ class MenusPackagingController extends Controller
 
         try {
             return response()->json(['message' => 'Packaging rules saved.'] + app(PackagingRules::class)->save($owner, $id, $d['rules']));
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+    }
+
+    /** The free condiments that go with each sale of a dish, and the ingredients that can be named. */
+    public function condiments(int $id): JsonResponse
+    {
+        return response()->json(app(Condiments::class)->show(\App\Models\Menus\Dish::findOrFail($id)));
+    }
+
+    /** Body: allowance[{ingredient_id, quantity}], replacing what was there. */
+    public function saveCondiments(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['allowance' => 'present|array|max:40', 'allowance.*.ingredient_id' => 'required|integer', 'allowance.*.quantity' => 'required|integer|min:1|max:'.Condiments::MAX]);
+        ksort($d['allowance']);
+
+        try {
+            return response()->json(['message' => 'Free condiments saved.'] + app(Condiments::class)->save(\App\Models\Menus\Dish::findOrFail($id), $d['allowance']));
         } catch (BooksException $e) {
             return response()->json(['message' => $e->getMessage()], 422);
         }

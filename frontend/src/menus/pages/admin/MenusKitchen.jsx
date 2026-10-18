@@ -45,6 +45,11 @@ function Ticket({ t, stationName, canAct, onAct, minutes }) {
           PACK: {t.packaging.map((p) => `${p.quantity} × ${p.name}`).join(', ')}
         </div>
       )}
+      {(t.condiments ?? []).length > 0 && (
+        <div data-testid="give-list" style={{ margin: '0 12px 8px', padding: '6px 10px', borderRadius: 8, background: '#14532d', fontWeight: 800 }}>
+          GIVE: {t.condiments.map((c) => `${c.quantity} × ${c.name}`).join(', ')}
+        </div>
+      )}
       {t.notes && <div style={{ margin: '0 12px 8px', padding: '6px 10px', borderRadius: 8, background: '#7c2d12', fontWeight: 800 }}>NOTE: {t.notes}</div>}
       <footer style={{ padding: '8px 12px 12px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {canAct && t.status === 'new' && <button type="button" style={btn('#d97706')} onClick={() => onAct(t, 'start')}>Start</button>}

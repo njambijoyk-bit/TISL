@@ -29,16 +29,18 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
   const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState(null);
+  const [given, setGiven] = useState({});   // free condiments actually given, where the cashier changed the count: ingredient id -> count
   const [edits, setEdits] = useState([]);   // the cashier's changes to the packaging list: [{ item_id, quantity?, reason?, replaces? }]
 
   useEffect(() => {
     let live = true;
     const t = setTimeout(() => {
-      askQuote({ tip: Number(tip) || 0, waive_service: waive, ...(edits.length ? { packaging: edits } : {}) }).then((q) => { if (live) { setQuote(q); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'Could not price this')); } });
+      askQuote({ tip: Number(tip) || 0, waive_service: waive, ...(edits.length ? { packaging: edits } : {}), ...(Object.keys(given).length ? { condiments: condimentList } : {}) }).then((q) => { if (live) { setQuote(q); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'Could not price this')); } });
     }, 250);
     return () => { live = false; clearTimeout(t); };
-  }, [tip, waive, edits]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tip, waive, edits, given]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  const condimentList = Object.entries(given).map(([id, n]) => ({ ingredient_id: Number(id), given: n }));
   const due = quote?.total ?? total;
   const blocked = Boolean(quote?.packaging_waiver?.amount > 0 && !quote.packaging_waiver.allowed);   // taking off a compulsory, priced line needs the permission to waive
   const handed = rows.reduce((n, r) => n + (Number(r.amount) || 0), 0);
@@ -59,7 +61,7 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
   const go = async () => {
     setBusy(true);
     try {
-      await onPay({ tip: Number(tip) || 0, waive_service: waive, ...(edits.length ? { packaging: edits } : {}), tenders: rows.filter((r) => Number(r.amount) > 0).map((r) => ({ payment_method_id: Number(r.payment_method_id), amount: Number(r.amount), reference: r.reference || undefined })) });
+      await onPay({ tip: Number(tip) || 0, waive_service: waive, ...(edits.length ? { packaging: edits } : {}), ...(condimentList.length ? { condiments: condimentList } : {}), tenders: rows.filter((r) => Number(r.amount) > 0).map((r) => ({ payment_method_id: Number(r.payment_method_id), amount: Number(r.amount), reference: r.reference || undefined })) });
     } catch (e) { toast.error(errMsg(e, 'Could not take the payment'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
@@ -110,6 +112,20 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
               </p>
             )}
             <small style={{ color: '#64748b' }}>Prices come from the packaging price list. What is charged is part of the bill, and every item goes off the shelf when it is paid.</small>
+          </div>
+        )}
+        {quote?.condiments?.length > 0 && (
+          <div data-testid="condiment-list" style={{ display: 'grid', gap: 6, borderTop: '1px solid var(--line, #cbd5e1)', paddingTop: 8 }}>
+            <strong style={{ fontSize: '0.85rem' }}>Free condiments</strong>
+            {quote.condiments.map((c) => (
+              <div key={c.ingredient_id} data-testid="condiment-line" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ flex: 1, minWidth: 120 }}>{c.name}<small style={{ color: '#64748b' }}> {c.allowed} allowed</small></span>
+                <button type="button" aria-label={`Fewer ${c.name}`} disabled={c.given < 1} onClick={() => setGiven((g) => ({ ...g, [c.ingredient_id]: c.given - 1 }))} style={{ ...line, width: 32, height: 32, borderRadius: 8, cursor: 'pointer' }}>−</button>
+                <strong aria-label={`${c.name} given`} style={{ minWidth: 22, textAlign: 'center' }}>{c.given}</strong>
+                <button type="button" aria-label={`More ${c.name}`} onClick={() => setGiven((g) => ({ ...g, [c.ingredient_id]: c.given + 1 }))} style={{ ...line, width: 32, height: 32, borderRadius: 8, cursor: 'pointer' }}>+</button>
+                {c.warning && <small role="status" style={{ flexBasis: '100%', color: '#b45309' }}>{c.warning} It is allowed; it is only a warning.</small>}
+              </div>
+            ))}
           </div>
         )}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}

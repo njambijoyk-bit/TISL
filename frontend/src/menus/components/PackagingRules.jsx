@@ -80,11 +80,59 @@ export function PackagingRulesSection({ owner, id, name, canEdit = true, onSaved
   );
 }
 
+/** The free condiments that go with each sale of a dish (fries: 2 ketchup, 1 mayonnaise). At checkout the cashier says what was actually given; a different count only warns. */
+export function CondimentsSection({ dish, canEdit = true }) {
+  const [data, setData] = useState(null);
+  const [rows, setRows] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    menusAPI.dishCondiments(dish.id).then((d) => { setData(d); setRows(d.allowance); }).catch((e) => setErr(errMsg(e, 'Could not load the free condiments')));
+  }, [dish.id]);
+
+  const save = async () => {
+    setBusy(true); setErr(null);
+    try {
+      const res = await menusAPI.saveDishCondiments(dish.id, rows.map((r) => ({ ingredient_id: r.ingredient_id, quantity: Number(r.quantity) || 1 })));
+      setData(res); setRows(res.allowance); toast.success(res.message);
+    } catch (x) { setErr(errMsg(x, 'Could not save the free condiments')); } finally { setBusy(false); }
+  };
+
+  if (!data) return <p role="status" style={{ margin: 0 }}>{err ?? 'Loading…'}</p>;
+  if (!data.ready) return <p role="status" style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>Run database script 211_menus_condiments.sql first: until then free condiments can not be set.</p>;
+  const free = data.items.filter((i) => !rows.some((r) => r.ingredient_id === i.ingredient_id));
+
+  return (
+    <div data-testid="condiments" style={{ display: 'grid', gap: 8 }}>
+      <FormError message={err} />
+      <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>What goes free with each {dish.name} sold, counted in the ingredient&apos;s own unit (a sachet is one each). The payment box shows the allowance of the whole order; giving a different count shows a warning, it never blocks. Stock follows what is actually given.</p>
+      {rows.map((r, i) => (
+        <div key={r.ingredient_id} data-testid="condiment-row" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <strong style={{ flex: 1 }}>{r.name}</strong>
+          <NumberInput aria-label={`Count of ${r.name}`} min="1" max="99" value={r.quantity} disabled={!canEdit} onChange={(e) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, quantity: e.target.value } : x)))} style={{ width: 80 }} />
+          <span style={{ fontSize: '0.74rem', color: colors.textFaint }}>{r.unit ?? ''}</span>
+          {canEdit && <button type="button" aria-label={`Remove ${r.name}`} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textFaint }} onClick={() => setRows((xs) => xs.filter((_, j) => j !== i))}><Trash2 size={14} /></button>}
+        </div>
+      ))}
+      {canEdit && free.length > 0 && (
+        <SelectInput aria-label="Add a free condiment" value="" onChange={(e) => { const it = data.items.find((x) => String(x.ingredient_id) === e.target.value); if (it) setRows((xs) => [...xs, { ingredient_id: it.ingredient_id, name: it.name, unit: it.unit, quantity: 1 }]); }}>
+          <option value="">Add a free condiment…</option>
+          {free.map((i) => <option key={i.ingredient_id} value={i.ingredient_id}>{i.name}</option>)}
+        </SelectInput>
+      )}
+      {canEdit && (rows.length > 0 || data.allowance.length > 0) && <div><button type="button" style={{ ...btnPrimary, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save free condiments'}</button></div>}
+    </div>
+  );
+}
+
 /** Menus → Dishes → Packaging. */
 export default function DishPackagingModal({ dish, onClose }) {
   return (
     <Modal title={`Packaging: ${dish.name}`} onClose={onClose} width={900}>
       <PackagingRulesSection owner="dish" id={dish.id} name={dish.name} />
+      <h3 style={{ margin: '18px 0 6px', fontSize: '0.9rem', fontWeight: 800 }}>Free condiments</h3>
+      <CondimentsSection dish={dish} />
       <button type="button" style={{ ...small, marginTop: 12 }} onClick={onClose}>Close</button>
     </Modal>
   );

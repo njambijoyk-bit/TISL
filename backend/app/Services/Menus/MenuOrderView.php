@@ -20,7 +20,7 @@ class MenuOrderView
     {
         $o->loadMissing('lines', 'channel');
 
-        return $this->base($o) + ['packaging' => app(PackagingCheckout::class)->forPackers($o)] + [
+        return $this->base($o) + ['packaging' => app(PackagingCheckout::class)->forPackers($o), 'condiments' => app(Condiments::class)->forPackers($o)] + [
             'id' => $o->id, 'phone' => $o->phone, 'email' => $o->email, 'channel' => $o->channel?->name, 'payment_method_id' => $o->payment_method_id, 'location_id' => $o->location_id,
             'next' => $o->payment === 'pending' ? [] : array_values(array_filter(MenuOrderService::NEXT[$o->status] ?? [], fn ($s) => ! ($s === 'out' && $o->order_type !== 'delivery')
                 && ! ($s === 'completed' && ($o->payment === 'later' || ($o->order_type === 'delivery' && $o->status === 'ready'))))),

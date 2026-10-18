@@ -397,6 +397,7 @@ class MenuOrderService
             ]);
             $order->update(['number' => 'MO-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
             app(PackagingCheckout::class)->store($order, app(PackagingCheckout::class)->resolve($p['lines'], true, null), $user);
+            app(Condiments::class)->store($order, app(Condiments::class)->resolve($p['lines'], null), $user);
             foreach ($p['lines'] as $l) {
                 MenuOrderLine::create(['order_id' => $order->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'],
                     'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'], 'options' => MenuOrderLine::optionRows($l['options']), 'note' => $l['note']] + MenuOrderLine::kept($l));

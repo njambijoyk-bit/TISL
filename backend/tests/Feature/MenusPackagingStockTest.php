@@ -30,7 +30,7 @@ class MenusPackagingStockTest extends TestCase
         $this->createIngredientWorld();
         Schema::create('menus_settings', function ($t) { $t->unsignedTinyInteger('id')->primary(); $t->json('settings')->nullable(); $t->unsignedBigInteger('updated_by')->nullable(); $t->timestamps(); });
         Schema::table('accounting_settings', function ($t) { $t->unsignedBigInteger('tips_payable_ledger_id')->nullable(); $t->unsignedBigInteger('default_sales_ledger_id')->nullable(); });
-        $this->runSqlScripts('193_menus_config_foundation.sql', '207_menus_packaging_prices.sql', '208_menus_packaging_rules.sql', '209_menus_order_packaging.sql', '210_menus_order_packaging_waived.sql');
+        $this->runSqlScripts('193_menus_config_foundation.sql', '207_menus_packaging_prices.sql', '208_menus_packaging_rules.sql', '209_menus_order_packaging.sql', '210_menus_order_packaging_waived.sql', '211_menus_condiments.sql');
         app(IngredientKinds::class)->seedDefaults();
         $packaging = (int) IngredientKind::where('code', 'packaging')->value('id');
         $this->supplies = DB::table('ledgers')->insertGetId(['name' => 'Kitchen Supplies Used', 'group_id' => DB::table('ledger_groups')->where('name', 'Direct Expenses')->value('id') ?: 1]);
@@ -96,5 +96,30 @@ class MenusPackagingStockTest extends TestCase
         app(DishStock::class)->undo($sale, null);
         $this->assertSame([10.0, 10.0], [$this->left('Container'), $this->left('Foil')]);
         $this->assertCount(1, $this->cancelled);
+    }
+
+    public function test_the_condiments_given_come_off_the_shelf_not_the_ones_allowed(): void
+    {
+        $this->makeIngredient('Ketchup', $this->each, null, [['name' => 'Ketchup']], 'preferred', ['kind_id' => (int) IngredientKind::where('code', 'packaging')->value('id')]);
+        $this->shelve('Ketchup', 20, 0.5);
+        [$o, $sale] = $this->order([$this->box => [1, true]]);
+        $ketchup = (int) DB::table('menus_ingredients')->where('name', 'Ketchup')->value('id');
+        \App\Models\Menus\OrderCondiment::create(['order_id' => 5, 'ingredient_id' => $ketchup, 'name' => 'Ketchup', 'allowed' => 6, 'given' => 9]);
+        app(PackagingStock::class)->apply($o, $sale, null);
+        $this->assertSame([11.0, 9.0], [$this->left('Ketchup'), $this->left('Container')], '9 given, though 6 were allowed');
+        $this->assertCount(1, $this->posted, 'one journal for the packaging and the condiments');
+        $this->assertEqualsWithDelta(5.0 + 4.5, array_sum(array_map(fn ($e) => $e['side'] === 'D' ? $e['amount'] : 0, $this->posted[0]['entries'])), 0.001);
+        $this->assertSame(2, StockUse::where('ref_type', 'voucher')->where('ref_id', $sale->id)->count());
+    }
+
+    public function test_an_order_with_only_condiments_and_no_packaging_still_takes_them(): void
+    {
+        $this->makeIngredient('Mayo', $this->each, null, [['name' => 'Mayo']], 'preferred', []);
+        $this->shelve('Mayo', 5, 1.0);
+        $o = (new MenuOrder())->forceFill(['id' => 6, 'location_id' => 1, 'number' => 'MO-6']);
+        \App\Models\Menus\OrderCondiment::create(['order_id' => 6, 'ingredient_id' => (int) DB::table('menus_ingredients')->where('name', 'Mayo')->value('id'), 'name' => 'Mayo', 'allowed' => 3, 'given' => 3]);
+        $sale = Voucher::find(DB::table('vouchers')->insertGetId(['voucher_type_id' => 3, 'voucher_number' => 'INV-10', 'status' => 'posted', 'location_id' => 1, 'date' => '2026-10-16', 'moves_stock' => true, 'created_at' => now(), 'updated_at' => now()]));
+        app(PackagingStock::class)->apply($o, $sale, null);
+        $this->assertSame(2.0, $this->left('Mayo'));
     }
 }

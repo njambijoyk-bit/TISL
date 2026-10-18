@@ -6,6 +6,7 @@ use App\Models\Books\Voucher;
 use App\Models\Menus\DishRecipe;
 use App\Models\Menus\IngredientItem;
 use App\Models\Menus\MenuOrder;
+use App\Models\Menus\OrderCondiment;
 use App\Models\Menus\OrderPackaging;
 use App\Models\Menus\StockUse;
 use App\Models\User;
@@ -26,11 +27,12 @@ class PackagingStock
 
     public function apply(MenuOrder $o, Voucher $sale, ?User $by): void
     {
-        if (! PackagingCheckout::installed() || ! DishStock::installed()) {
+        if (! DishStock::installed()) {
             return;
         }
-        $rows = OrderPackaging::where('order_id', $o->id)->where('quantity', '>', 0)->get();
-        if ($rows->isEmpty()) {
+        $rows = PackagingCheckout::installed() ? OrderPackaging::where('order_id', $o->id)->where('quantity', '>', 0)->get() : collect();
+        $condiments = Condiments::installed() ? OrderCondiment::where('order_id', $o->id)->where('given', '>', 0)->get() : collect();
+        if ($rows->isEmpty() && $condiments->isEmpty()) {
             return;
         }
         $loc = (int) $o->location_id;
@@ -58,8 +60,23 @@ class PackagingStock
                 $byKind[$kind] = ($byKind[$kind] ?? 0.0) + $cost;
             }
         }
+        foreach ($condiments as $c) {   // the free condiments: what was actually given comes off the shelf
+            $ing = \App\Models\Menus\Ingredient::with('baseUnit', 'altUnit')->find($c->ingredient_id);
+            $qty = $ing ? min((float) $c->given, (float) $this->use->usable($ing, $loc, $date)->sum('qty_left')) : 0.0;
+            if ($ing && $qty < (float) $c->given) {
+                Log::notice("Condiment short on order {$o->number}: {$ing->name} given {$c->given}, had {$qty}.");
+            }
+            if ($qty <= 0) {
+                continue;
+            }
+            $u = $this->use->consume(new DishRecipe(), 1.0, $loc, $ref, $by, ['date' => $date->toDateString(), 'post' => false, 'needs' => [$ing->id => ['ingredient' => $ing, 'qty' => $qty]]]);
+            $uses[] = $u['use_id'];
+            foreach (($u['by_kind'] ?? []) as $kind => $cost) {
+                $byKind[$kind] = ($byKind[$kind] ?? 0.0) + $cost;
+            }
+        }
         if ($uses && array_sum($byKind) > 0) {
-            $journal = $this->use->bookKinds($byKind, 'cost', "Packaging used for {$sale->voucher_number}", $loc, $date, $by);
+            $journal = $this->use->bookKinds($byKind, 'cost', "Packaging and condiments used for {$sale->voucher_number}", $loc, $date, $by);
             StockUse::whereIn('id', $uses)->update(['journal_id' => $journal->id]);
         }
     }
