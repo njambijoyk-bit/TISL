@@ -322,7 +322,7 @@ class MenuOrderService
     /** The Sales Order the books will hold. */
     private function payload(Channel $c, Location $loc, array $lines, ?array $delivery, array $contact, ?int $customerId, Carbon $at, bool $asap, string $notes): array
     {
-        $rows = $this->lineRows($lines, $loc);
+        $rows = array_merge($this->lineRows($lines, $loc), PackagingCheckout::saleRows(app(PackagingCheckout::class)->resolve($lines, true, null)));   // the packaging the rules ask for is sold with the dishes
         if ($delivery) {
             $rows[] = ['type' => 'charge', 'kind' => 'shipping', 'shipping_option_id' => $delivery['option']->id];
         }
@@ -432,6 +432,7 @@ class MenuOrderService
             return;
         }
         $mo->update(['payment' => 'paid', 'sale_id' => $sale->id]);
+        app(PackagingStock::class)->apply($mo->fresh(), $sale, null);
         $this->fireTickets($mo);
         if ($mo->order_type === 'kiosk') {   // paid at the kiosk screen: the kitchen has its ticket; the guest follows the number on the screen
             return;

@@ -186,6 +186,16 @@ With the container compulsory and charged (15), the foil free, as in 0w. Sign in
 4. Swapping the container for the cheaper bag, or taking it to 0, is a waiver of the difference (4 x 15 asked, 4 x 5 charged: 40). Whoever waived is kept on the packaging line with the amount.
 5. A line that is priced but optional, or compulsory but free, can be taken off by anyone.
 
+## 0y. Packaging on the bill and off the shelf
+With the container (priced 15, compulsory, 2 for each dish) and the free foil (1 for each dish) of 0w, and some of each in stock (Menus, Stock, Receive).
+1. Till: take out two meals, **Pay**. The *Food* figure and the total include the 4 containers (60) with their VAT; the free foil adds nothing. Press − on the container: the total drops by 15 plus its VAT.
+2. Take the payment. The sales order and the sale in the books have a line "Packaging: Container", 4 at 15, posted to the packaging account (or the dishes' account if none is set) and taxed as that account is.
+3. Menus, Stock: the container is down by 4 and the foil by 2. In the books there is one journal "Packaging used for INV-…", debiting the account the packaging kind is charged to (Kitchen Supplies Used) and crediting the kind's stock account, for 4 containers and 2 foils at their cost.
+4. Cancel that sale in the books: the containers and the foil are back on the shelf and the journal is reversed.
+5. Run the containers out and sell again: the sale still goes through; what was on the shelf is taken.
+6. A tab: its running total shows the dishes only; when it is paid the packaging is added to the bill. Online and kiosk orders carry the packaging as the rules ask.
+7. Dining in: no packaging at all.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

@@ -63,7 +63,7 @@ trait CreatesCounterWorld
 
         $vouchers = $this->createMock(VoucherService::class);
         $vouchers->method('preview')->willReturnCallback(function (array $d) {
-            $goods = array_sum(array_map(fn ($l) => in_array($l['type'], ['product', 'dish'], true) ? $l['quantity'] * $l['rate'] : 0, $d['lines']));
+            $goods = array_sum(array_map(fn ($l) => in_array($l['type'], ['product', 'dish', 'custom'], true) ? $l['quantity'] * $l['rate'] : 0, $d['lines']));
             $charges = array_sum(array_map(fn ($l) => $l['type'] === 'charge' ? $l['amount'] : 0, $d['lines']));
             $tax = round($goods * 0.16, 2);
 
@@ -71,7 +71,7 @@ trait CreatesCounterWorld
         });
         $vouchers->method('placeOrder')->willReturnCallback(function (array $d) {
             $this->placed[] = $d;
-            $goods = array_sum(array_map(fn ($l) => in_array($l['type'], ['product', 'dish'], true) ? $l['quantity'] * $l['rate'] : 0, $d['lines']));
+            $goods = array_sum(array_map(fn ($l) => in_array($l['type'], ['product', 'dish', 'custom'], true) ? $l['quantity'] * $l['rate'] : 0, $d['lines']));
             $charges = array_sum(array_map(fn ($l) => $l['type'] === 'charge' ? $l['amount'] : 0, $d['lines']));
 
             return Voucher::create(['voucher_type_id' => 1, 'voucher_number' => 'SO-'.count($this->placed), 'currency_id' => $d['currency_id'], 'total_amount' => round($goods * 1.16 + $charges, 2), 'meta' => $d['meta']]);

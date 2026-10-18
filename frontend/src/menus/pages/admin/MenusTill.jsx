@@ -109,7 +109,7 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
                 {quote.packaging_waiver.allowed ? `You are waiving ${money(quote.packaging_waiver.amount)} of packaging that is compulsory (${quote.packaging_waiver.items.join(', ')}). It is logged.` : `${quote.packaging_waiver.items.join(', ')} is compulsory and has a price: only someone who may waive packaging can take it off or reduce it. Put it back, or ask a manager.`}
               </p>
             )}
-            <small style={{ color: '#64748b' }}>Prices come from the packaging price list. The list is kept with the order; charging it on the bill comes with the posting step.</small>
+            <small style={{ color: '#64748b' }}>Prices come from the packaging price list. What is charged is part of the bill, and every item goes off the shelf when it is paid.</small>
           </div>
         )}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}

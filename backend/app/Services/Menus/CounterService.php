@@ -62,7 +62,7 @@ class CounterService
      *
      * @return array{payload: array, subtotal: float, service_charge: float, tip: float, tax_total: float, total: float, tax_breakdown: ?array}
      */
-    public function price(Location $loc, array $lines, string $service, bool $waive = false, float $tip = 0.0, string $label = ''): array
+    public function price(Location $loc, array $lines, string $service, bool $waive = false, float $tip = 0.0, string $label = '', array $packaging = []): array
     {
         $this->service($service);
         $s = MenusSettings::all();
@@ -72,7 +72,7 @@ class CounterService
         if ($tip > 0 && ! MenusSettings::tipLedgerId()) {
             throw new BooksException('Tips are not set up: choose the account they are booked to under Menus → Settings.');
         }
-        $rows = $this->orders->lineRows($lines, $loc);
+        $rows = array_merge($this->orders->lineRows($lines, $loc), PackagingCheckout::saleRows($packaging));   // the packaging that is charged is a sale like the dishes
         $base = ['date' => today()->toDateString(), 'location_id' => $loc->id, 'currency_id' => Currency::getBaseCurrency()?->id, 'customer_id' => null, 'channel' => 'admin',
             'narration' => 'Counter'.($label !== '' ? ' — '.$label : ''), 'meta' => ['contact' => ['name' => $label !== '' ? $label : 'Counter'], 'guest' => true, 'menu_order' => true]];
         $food = $this->vouchers->preview($base + ['lines' => $rows], null);
@@ -111,10 +111,11 @@ class CounterService
     public function quote(array $in, ?Carbon $now = null, ?User $by = null): array
     {
         [, $loc, $lines] = $this->prepare($in, $now);
-        $p = $this->price($loc, $lines, (string) ($in['service'] ?? ''), (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in));
+        $pk = $this->packagingFor($lines, (string) ($in['service'] ?? '') !== 'dine_in', $in, $by);
+        $p = $this->price($loc, $lines, (string) ($in['service'] ?? ''), (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in), $pk['packaging']);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $this->packagingFor($lines, (string) ($in['service'] ?? '') !== 'dine_in', $in, $by);
+            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
     }
 
     /** What a tab comes to now, with the service charge and the tip asked for. */
@@ -122,10 +123,11 @@ class CounterService
     {
         $this->assertTab($o);
         $lines = $this->rebuild($o);
-        $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label);
+        $pk = $this->packagingFor($lines, (string) $o->service !== 'dine_in', $in, $by);
+        $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label, $pk['packaging']);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $this->packagingFor($lines, (string) $o->service !== 'dine_in', $in, $by);
+            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
     }
 
     /** The packaging list at checkout (the rules' list with the cashier's changes) and the items that may be added or swapped in. @return array{packaging: array, packaging_choices: array} */
@@ -166,9 +168,9 @@ class CounterService
     {
         [$channel, $loc, $lines] = $this->prepare($in, $now);
         $service = (string) ($in['service'] ?? '');
-        $p = $this->price($loc, $lines, $service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in));
-        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
         $pack = app(PackagingCheckout::class)->resolve($lines, $service !== 'dine_in', $in['packaging'] ?? null);
+        $p = $this->price($loc, $lines, $service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in), $pack);
+        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
 
         $order = DB::transaction(function () use ($channel, $loc, $lines, $service, $p, $paid, $by, $in, $pack) {
             $order = $this->create($channel, $loc, $service, $by, $this->label($in), 'paid', $p);
@@ -257,9 +259,9 @@ class CounterService
         $this->assertTab($o);
         $loc = Location::findOrFail($o->location_id);
         $lines = $this->rebuild($o);
-        $p = $this->price($loc, $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label);
-        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
         $pack = app(PackagingCheckout::class)->resolve($lines, (string) $o->service !== 'dine_in', $in['packaging'] ?? null);
+        $p = $this->price($loc, $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label, $pack);
+        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
         DB::transaction(function () use ($o, $p, $paid, $by, $pack) {
             app(PackagingCheckout::class)->store($o, $pack, $by);
             $this->book($o, $p, $paid, $by);
@@ -437,9 +439,9 @@ class CounterService
             throw new BooksException('That is not a kiosk order waiting to be paid.');
         }
         $lines = $this->rebuild($o);
-        $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '');
-        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
         $pack = app(PackagingCheckout::class)->resolve($lines, (string) $o->service !== 'dine_in', $in['packaging'] ?? null);
+        $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '', $pack);
+        $paid = $this->tenders((array) ($in['tenders'] ?? []), $p['total']);
         DB::transaction(function () use ($o, $p, $paid, $by, $pack) {
             app(PackagingCheckout::class)->store($o, $pack, $by);
             $this->book($o, $p, $paid, $by);
@@ -527,6 +529,7 @@ class CounterService
         $o->update(['voucher_id' => $voucher->id, 'sale_id' => $sale->id, 'payment' => 'paid', 'subtotal' => $p['subtotal'], 'tax_total' => $p['tax_total'], 'total' => (float) $voucher->total_amount,
             'tax_breakdown' => $p['tax_breakdown'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tendered' => $paid['tendered'], 'change_due' => $paid['change'], 'tenders' => $paid['record'],
             'payment_method_id' => $paid['tenders'][0]['payment_method_id'] ?? null, 'settled_at' => now()]);
+        app(PackagingStock::class)->apply($o->fresh(), $sale, $by);   // the packaging that went out comes off the shelf
     }
 
     public function fire(MenuOrder $o): void

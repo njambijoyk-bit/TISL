@@ -120,7 +120,7 @@ class KioskService
             throw new BooksException('Choose dine in or take out.');
         }
 
-        return [$channel, $loc, $lines, $this->counter->price($loc, $lines, $service, false, 0.0, '')];
+        return [$channel, $loc, $lines, $this->counter->price($loc, $lines, $service, false, 0.0, '', app(PackagingCheckout::class)->resolve($lines, $service !== 'dine_in', null))];
     }
 
     public function quote(Kiosk $k, array $in, ?Carbon $now = null): array

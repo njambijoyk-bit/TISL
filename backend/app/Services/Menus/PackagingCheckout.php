@@ -157,6 +157,30 @@ class PackagingCheckout
         }
     }
 
+    /**
+     * The sale lines for the packaging that is charged: one line for each item, at the price of one unit, posted to the item's sales account (which decides the VAT). Lines taken off, and free
+     * ones, are not sold.
+     *
+     * @param array<int, array<string, mixed>> $resolved
+     * @return array<int, array<string, mixed>> voucher lines
+     */
+    public static function saleRows(array $resolved): array
+    {
+        $rows = [];
+        foreach ($resolved as $l) {
+            if ($l['quantity'] < 1 || ! $l['charged'] || $l['unit_price'] <= 0) {
+                continue;
+            }
+            $ledger = $l['ledger_id'] ?: MenusSettings::packagingSalesLedgerId();
+            if (! $ledger) {
+                throw new BooksException('Choose the sales account packaging is booked to: under Menus, Configuration (the dishes\' sales account, or one for packaging), or on the item\'s price.');
+            }
+            $rows[] = ['type' => 'custom', 'description' => 'Packaging: '.$l['name'], 'quantity' => $l['quantity'], 'rate' => $l['unit_price'], 'ledger_id' => (int) $ledger];
+        }
+
+        return $rows;
+    }
+
     /** The items a cashier may add or swap in: every active item of the packaging kind, with its price on the list (null: free). @return array<int, array{item_id: int, name: string, price: ?float}> */
     public function choices(): array
     {
