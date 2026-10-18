@@ -42,7 +42,7 @@ class Sides
             'recipe_id' => $s->recipe_id ? (int) $s->recipe_id : null, 'ingredient_id' => $s->ingredient_id ? (int) $s->ingredient_id : null,
             'made_from' => $s->recipe_id ? ($s->recipe?->title() ?? 'a recipe') : ($s->ingredient?->name ?? 'an ingredient'), 'kind' => $s->recipe_id ? 'recipe' : 'ready',
             'unit_id' => $s->unit_id ? (int) $s->unit_id : null, 'unit' => $s->unit?->code ?? $this->sourceLabel($s), 'source_unit' => $this->sourceLabel($s), 'dimension' => $source?->dimension,
-            'base_amount' => (float) $s->base_amount,
+            'base_amount' => (float) $s->base_amount, 'task_minutes' => $s->task_minutes ? (int) $s->task_minutes : null,
             'amounts' => $s->amounts->sortBy(fn ($a) => $a->serving?->sort_order ?? 0)->map(fn (SideAmount $a) => ['serving_id' => (int) $a->serving_id, 'serving' => $a->serving?->name, 'amount' => (float) $a->amount])->values()->all(),
         ];
     }
@@ -140,13 +140,23 @@ class Sides
         if (! empty($d['station_id']) && ! Station::whereKey((int) $d['station_id'])->where('is_active', true)->exists()) {
             throw new BooksException('Choose a station that is switched on, or leave it empty.');
         }
+        $task = null;
+        if (array_key_exists('task_minutes', $d) && TicketTimers::installed()) {   // the plating or reheating at the pass (script 214)
+            $task = ($d['task_minutes'] === null || $d['task_minutes'] === '') ? null : (int) $d['task_minutes'];
+            if ($task !== null && ($task < 1 || $task > 240)) {
+                throw new BooksException('Plating or reheating takes between 1 and 240 minutes: leave it empty for none.');
+            }
+        }
         $amounts = $this->cleanAmounts((array) ($d['amounts'] ?? []));
         $note = isset($d['note']) && trim((string) $d['note']) !== '' ? mb_substr(trim((string) $d['note']), 0, 255) : null;
 
-        return DB::transaction(function () use ($side, $name, $recipeId, $ingredientId, $unit, $base, $d, $amounts, $note) {
+        return DB::transaction(function () use ($side, $name, $recipeId, $ingredientId, $unit, $base, $d, $amounts, $note, $task) {
             $side->fill(['name' => $name, 'recipe_id' => $recipeId, 'ingredient_id' => $ingredientId, 'unit_id' => $unit?->id, 'base_amount' => $base, 'station_id' => ! empty($d['station_id']) ? (int) $d['station_id'] : null, 'note' => $note]);
             if (array_key_exists('is_active', $d)) {
                 $side->is_active = (bool) $d['is_active'];
+            }
+            if (array_key_exists('task_minutes', $d) && TicketTimers::installed()) {
+                $side->task_minutes = $task;
             }
             $side->save();
             if (array_key_exists('amounts', $d)) {

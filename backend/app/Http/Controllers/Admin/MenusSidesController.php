@@ -33,7 +33,7 @@ class MenusSidesController extends Controller
         }
 
         return response()->json([
-            'ready' => true, 'sides' => $this->sides->all(), 'servings_ready' => MenusLists::installed(), 'from_dishes' => ['ready' => SidesFromDishes::installed()] + (SidesFromDishes::installed() ? ['pending' => count($this->fromDishes->preview()['pending'])] : ['pending' => 0]),
+            'ready' => true, 'sides' => $this->sides->all(), 'tasks_ready' => \App\Services\Menus\TicketTimers::installed(), 'servings_ready' => MenusLists::installed(), 'from_dishes' => ['ready' => SidesFromDishes::installed()] + (SidesFromDishes::installed() ? ['pending' => count($this->fromDishes->preview()['pending'])] : ['pending' => 0]),
             'recipes' => DishRecipes::has('name') ? DishRecipe::standalone()->with('yieldUnit')->where('is_active', true)->orderBy('name')->get()->map(fn (DishRecipe $r) => [
                 'id' => (int) $r->id, 'name' => $r->name, 'unit_id' => $r->yield_unit_id ? (int) $r->yield_unit_id : null, 'unit' => $r->yieldUnit?->code ?? 'portions', 'dimension' => $r->yieldUnit?->dimension])->values() : [],
             'ingredients' => Ingredient::with(['baseUnit', 'kind'])->where('is_active', true)->orderBy('name')->get()->filter(fn (Ingredient $i) => ! IngredientKinds::installed() || ! $i->kind_id || $i->kind?->sold_as_is)->map(fn (Ingredient $i) => [
@@ -48,7 +48,7 @@ class MenusSidesController extends Controller
     public function save(Request $request, ?int $id = null): JsonResponse
     {
         $d = $request->validate([
-            'name' => 'required|string|max:80', 'recipe_id' => 'nullable|integer', 'ingredient_id' => 'nullable|integer', 'unit_id' => 'nullable|integer', 'base_amount' => 'nullable|numeric', 'station_id' => 'nullable|integer',
+            'name' => 'required|string|max:80', 'recipe_id' => 'nullable|integer', 'ingredient_id' => 'nullable|integer', 'unit_id' => 'nullable|integer', 'base_amount' => 'nullable|numeric', 'station_id' => 'nullable|integer', 'task_minutes' => 'nullable|integer|min:1|max:240',
             'note' => 'nullable|string|max:255', 'is_active' => 'nullable|boolean', 'amounts' => 'nullable|array|max:60', 'amounts.*.serving_id' => 'required|integer', 'amounts.*.amount' => 'nullable|numeric',
         ]);
         if (isset($d['amounts'])) {

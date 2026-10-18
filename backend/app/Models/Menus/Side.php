@@ -12,7 +12,7 @@ class Side extends Model
 {
     protected $table = 'menus_sides';
 
-    protected $fillable = ['name', 'recipe_id', 'ingredient_id', 'from_dish_id', 'unit_id', 'base_amount', 'station_id', 'note', 'sort_order', 'is_active'];
+    protected $fillable = ['name', 'recipe_id', 'ingredient_id', 'from_dish_id', 'unit_id', 'base_amount', 'station_id', 'task_minutes', 'note', 'sort_order', 'is_active'];
 
     protected $casts = ['base_amount' => 'decimal:4', 'sort_order' => 'integer', 'is_active' => 'boolean'];
 

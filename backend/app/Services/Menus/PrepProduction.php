@@ -204,7 +204,7 @@ class PrepProduction
     }
 
     /** Only a recipe of its own, switched on, with something in it, is made in a batch here. */
-    private function check(DishRecipe $r): void
+    public function check(DishRecipe $r): void
     {
         if ($r->dish_id) {
             throw new BooksException("{$r->title()} is a dish's recipe. A dish made ahead is made from its Stock page; prepared food is made from a recipe of its own.");

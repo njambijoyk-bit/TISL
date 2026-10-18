@@ -23,14 +23,90 @@ const small = { ...btnGhost, padding: '4px 10px', fontSize: '0.72rem', marginRig
 const num = (n, dp = 2) => (n == null ? '—' : Number(n).toLocaleString('en-KE', { maximumFractionDigits: dp }));
 const today = () => new Date().toISOString().slice(0, 10);
 
-function MakeBatch({ data, location, onClose, onDone }) {
+/** A timestamp from the server as the value of a datetime-local box (the browser's own time). */
+const localInput = (iso) => { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+const mmss = (s) => `${Math.floor(Math.abs(s) / 60)}:${String(Math.abs(s) % 60).padStart(2, '0')}`;
+
+/** Seconds to go until a time, ticking every second. Negative when it has passed. */
+function useSecondsLeft(iso) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
+
+  return Math.round((new Date(iso).getTime() - now) / 1000);
+}
+
+/** One batch on the stove: what it is, when it is ready, and the clock. */
+function TimerCard({ t, canWrite, onMake, onCancel }) {
+  const left = useSecondsLeft(t.ready_at);
+  const over = left < 0;
+
+  return (
+    <div data-timer={t.id} data-overdue={over ? 'yes' : 'no'} style={{ ...card, padding: 14, display: 'grid', gap: 6, borderColor: over ? '#ef4444' : undefined, borderWidth: over ? 2 : undefined }}>
+      <strong>{t.note ? `${t.note}: ` : ''}{t.recipe}</strong>
+      <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{t.planned} {t.unit}, {t.minutes} min, ready {t.ready_time}{t.chef ? `, ${t.chef}` : ''}</span>
+      <span data-testid="timer-clock" style={{ fontSize: '1.6rem', fontWeight: 900, color: over ? '#b91c1c' : '#047857' }}>{over ? `${mmss(left)} over` : `${mmss(left)} left`}</span>
+      {canWrite && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" style={{ ...btnPrimary, padding: '6px 12px', fontSize: '0.82rem' }} onClick={() => onMake(t)}>Make the batch</button>
+          <button type="button" style={{ ...btnGhost, padding: '6px 12px', fontSize: '0.82rem' }} onClick={() => onCancel(t)}>Switch off</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Start the clock on a batch: the recipe, the size, and how long when the recipe has no time for that size. */
+function StartTimer({ data, location, onClose, onDone }) {
   const [recipeId, setRecipeId] = useState('');
   const [size, setSize] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [chef, setChef] = useState('');
+  const [note, setNote] = useState('');
+  const [expected, setExpected] = useState(undefined);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const recipe = data.recipes.find((r) => String(r.id) === String(recipeId));
+
+  useEffect(() => {
+    setExpected(undefined);
+    if (!recipeId || !(Number(size) > 0)) return undefined;
+    const t = setTimeout(() => { menusAPI.preparedPreview({ recipe_id: recipeId, location_id: location, qty: Number(size) }).then((p) => setExpected(p.expected_minutes ?? null)).catch(() => setExpected(null)); }, 350);
+    return () => clearTimeout(t);
+  }, [recipeId, size, location]);
+
+  const go = async (e) => {
+    e.preventDefault(); setBusy(true); setErr(null);
+    try {
+      const res = await menusAPI.startBatchTimer({ recipe_id: Number(recipeId), location_id: Number(location), qty: Number(size), minutes: minutes === '' ? null : Number(minutes), chef_id: chef ? Number(chef) : null, note: note || null });
+      toast.success(res.message); onDone(res.timers);
+    } catch (x) { setErr(errMsg(x, 'Could not start the timer')); } finally { setBusy(false); }
+  };
+
+  return (
+    <Modal title="Start a batch timer" onClose={onClose} width={520}>
+      <form onSubmit={go}>
+        <FormStack>
+          <FormError message={err} />
+          <Field label="Recipe" htmlFor="pt-recipe"><SelectInput id="pt-recipe" required value={recipeId} onChange={(e) => setRecipeId(e.target.value)}><option value="">Choose a recipe</option>{data.recipes.filter((r) => r.active).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</SelectInput></Field>
+          <Field label={`Batch size${recipe ? ` (${recipe.unit})` : ''}`} htmlFor="pt-size"><NumberInput id="pt-size" required min="0.0001" step="any" value={size} onChange={(e) => setSize(e.target.value)} /></Field>
+          <Field label="Minutes" htmlFor="pt-min" hint={expected === undefined ? 'The recipe\'s own time for this size is used when there is one.' : expected === null ? 'The recipe has no time for this size: type how long it takes.' : `The recipe says ${expected} minutes for this size. Type a number to use another.`}><NumberInput id="pt-min" min="1" max="6000" value={minutes} onChange={(e) => setMinutes(e.target.value)} /></Field>
+          <Field label="What it is doing (optional)" htmlFor="pt-note"><TextInput id="pt-note" maxLength={120} placeholder="Simmer" value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+          {data.chefs.length > 0 && <Field label="Chef (optional)" htmlFor="pt-chef"><SelectInput id="pt-chef" value={chef} onChange={(e) => setChef(e.target.value)}><option value="">Nobody in particular</option>{data.chefs.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</SelectInput></Field>}
+          <ModalActions onCancel={onClose} submitLabel="Start the clock" busy={busy} disabled={!recipeId || !(Number(size) > 0) || (expected === null && minutes === '')} />
+        </FormStack>
+      </form>
+    </Modal>
+  );
+}
+
+function MakeBatch({ data, location, initial = null, onClose, onDone }) {
+  const [recipeId, setRecipeId] = useState(initial?.recipe_id ? String(initial.recipe_id) : '');
+  const [size, setSize] = useState(initial?.planned ? String(initial.planned) : '');
   const [preview, setPreview] = useState(null);
   const [used, setUsed] = useState({});
   const [output, setOutput] = useState('');
-  const [chef, setChef] = useState('');
-  const [started, setStarted] = useState('');
+  const [chef, setChef] = useState(initial?.chef_id ? String(initial.chef_id) : '');
+  const [started, setStarted] = useState(initial?.started_at ? localInput(initial.started_at) : '');   // a batch made from a timer is timed from when the timer started
   const [finished, setFinished] = useState('');
   const [date, setDate] = useState(today());
   const [expiry, setExpiry] = useState('');
@@ -58,7 +134,7 @@ function MakeBatch({ data, location, onClose, onDone }) {
         .map((i) => ({ ingredient_id: i.ingredient_id, qty: Number(used[i.ingredient_id]) }));
       const res = await menusAPI.makePrepared({
         recipe_id: Number(recipeId), location_id: Number(location), qty: Number(size), output_qty: output === '' ? Number(size) : Number(output), date, expiry_date: expiry || null, chef_id: chef ? Number(chef) : null,
-        started_at: started || null, finished_at: finished || null, note: note || null, client_key: key.current, inputs,
+        started_at: started || null, finished_at: finished || null, note: note || null, client_key: key.current, inputs, ...(initial?.id ? { timer_id: initial.id } : {}),
         servings: cut.filter((c) => c.serving_id && Number(c.count) > 0).map((c) => ({ serving_id: Number(c.serving_id), count: Number(c.count) })),
       });
       toast.success(res.message); onDone();
@@ -66,7 +142,7 @@ function MakeBatch({ data, location, onClose, onDone }) {
   };
 
   return (
-    <Modal title="Make a batch" onClose={onClose} width={820}>
+    <Modal title={initial ? `Make the batch: ${initial.recipe}` : 'Make a batch'} onClose={onClose} width={820}>
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
@@ -228,17 +304,23 @@ export default function MenusPrepared() {
   const [data, setData] = useState(null);
   const [loc, setLoc] = useMenusBranch(data?.branches);
   const [modal, setModal] = useState(null);
+  const [timers, setTimers] = useState([]);
   const [loading, setLoading] = useState(true);
   const first = useRef(true);
 
   const load = useCallback(() => {
     setLoading(true);
     menusAPI.preparedFood(loc ? { location_id: loc } : undefined)
-      .then((d) => { setData(d); if (first.current && d.location_id) { first.current = false; setLoc(String(d.location_id)); } })
+      .then((d) => { setData(d); setTimers(d.timers ?? []); if (first.current && d.location_id) { first.current = false; setLoc(String(d.location_id)); } })
       .catch((e) => toast.error(errMsg(e, 'Could not load the prepared food')))
       .finally(() => setLoading(false));
   }, [loc, setLoc]);
   useEffect(() => { load(); }, [load]);
+
+  const dropTimer = async (t) => {
+    if (!window.confirm(`Switch off the timer for ${t.recipe}? Nothing is made or used.`)) return;
+    try { const res = await menusAPI.cancelBatchTimer(t.id); toast.success(res.message); setTimers(res.timers); } catch (x) { toast.error(errMsg(x, 'Could not switch the timer off'), { duration: 8000 }); }
+  };
 
   const undo = async (r) => {
     const reason = window.prompt(`Undo ${r.number}? The ingredients go back on the shelf. Why? (optional)`, '');
@@ -260,9 +342,18 @@ export default function MenusPrepared() {
             <SelectInput aria-label="Branch" value={loc} onChange={(e) => setLoc(e.target.value)}>{(data?.branches ?? []).map((b) => <option key={b.id} value={b.id}>At {b.name}</option>)}</SelectInput>
           </div>
           {canWrite && data?.ready && <button type="button" style={btnPrimary} onClick={() => setModal({ kind: 'make' })}>Make a batch</button>}
+          {canWrite && data?.ready && data.timers_ready && <button type="button" style={btnGhost} onClick={() => setModal({ kind: 'timer' })}>Start a timer</button>}
           {canWrite && data?.ready && data.counts_ready && <button type="button" style={btnGhost} onClick={() => setModal({ kind: 'count' })}>Count the shelf</button>}
         </div>
 
+        {timers.length > 0 && (
+          <section aria-label="On the stove" style={{ margin: '0 0 16px' }} data-testid="timers">
+            <h2 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 800 }}>On the stove · {timers.length}</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 12 }}>
+              {timers.map((t) => <TimerCard key={t.id} t={t} canWrite={canWrite} onMake={(x) => setModal({ kind: 'make', timer: x })} onCancel={dropTimer} />)}
+            </div>
+          </section>
+        )}
         <h2 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 800 }}>On the shelf</h2>
         <div style={{ ...card, padding: 0, overflowX: 'auto' }} data-testid="prepared-shelf">
           {loading && !data ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : !shelf.length ? (
@@ -327,7 +418,8 @@ export default function MenusPrepared() {
         )}
         {data?.ready && <PreparedReports location={loc || String(data.location_id)} recipes={data.recipes} />}
       </div>
-      {modal?.kind === 'make' && data && <MakeBatch data={data} location={loc || String(data.location_id)} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {modal?.kind === 'make' && data && <MakeBatch data={data} location={loc || String(data.location_id)} initial={modal.timer ?? null} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
+      {modal?.kind === 'timer' && data && <StartTimer data={data} location={loc || String(data.location_id)} onClose={() => setModal(null)} onDone={(list) => { setModal(null); setTimers(list); }} />}
       {modal?.kind === 'waste' && data && <WriteOff data={data} location={loc || String(data.location_id)} recipe={modal.recipe} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
       {modal?.kind === 'count' && data && <CountShelf data={data} location={loc || String(data.location_id)} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
     </AdminLayout>

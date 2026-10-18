@@ -358,4 +358,18 @@ class MenusSidesTest extends TestCase
         $this->fails(fn () => $make->make(['name' => 'Wet fry', 'lines' => [['ingredient_id' => $this->ing('Maize flour'), 'quantity' => 1]]]), 'already a recipe called');
         $this->assertSame(1, Side::where('name', 'Wet fry')->count());
     }
+
+    public function test_a_side_may_say_how_long_its_task_at_the_pass_takes_once_script_214_is_run(): void
+    {
+        $side = $this->sides()->save(['name' => 'Wet fry', 'ingredient_id' => $this->soda(), 'task_minutes' => 4]);
+        $this->assertNull($side->fresh()->task_minutes ?? null, 'before script 214 it is not kept');
+        $this->runSqlScripts('214_menus_timers.sql');
+
+        $side = $this->sides()->save(['name' => 'Wet fry', 'ingredient_id' => $side->ingredient_id, 'task_minutes' => 4], $side->id);
+        $this->assertSame([4, 4], [(int) $side->fresh()->task_minutes, $this->sides()->row($side->fresh(['amounts']))['task_minutes']]);
+        $this->assertNull($this->sides()->save(['name' => 'Wet fry', 'ingredient_id' => $side->ingredient_id, 'task_minutes' => null], $side->id)->task_minutes, 'emptied');
+        foreach ([0, 241] as $bad) {
+            $this->fails(fn () => $this->sides()->save(['name' => 'Wet fry', 'ingredient_id' => $side->ingredient_id, 'task_minutes' => $bad], $side->id), 'between 1 and 240');
+        }
+    }
 }

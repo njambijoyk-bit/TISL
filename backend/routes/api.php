@@ -1131,6 +1131,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/stock/sides/{id}', [\App\Http\Controllers\Admin\MenusSidesController::class, 'save'])->whereNumber('id');
             Route::delete('/stock/sides/{id}', [\App\Http\Controllers\Admin\MenusSidesController::class, 'destroy'])->whereNumber('id');
             Route::post('/stock/prepared/runs', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'run']);
+            Route::post('/stock/prepared/timers', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'startTimer']);
+            Route::post('/stock/prepared/timers/{id}/cancel', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'cancelTimer'])->whereNumber('id');
             Route::post('/stock/prepared/waste', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'waste']);
             Route::post('/stock/prepared/counts', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'count']);
             Route::post('/stock/prepared/runs/{id}/cancel', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'cancel'])->whereNumber('id');

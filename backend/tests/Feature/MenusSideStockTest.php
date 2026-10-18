@@ -227,4 +227,14 @@ class MenusSideStockTest extends TestCase
         $this->assertSame([], $stock->short([$this->side['Bread'] => 1.0], 1));
         $this->assertSame([], $stock->short([$this->side['Cake'] => 6.0], 1));
     }
+
+    public function test_a_ready_to_serve_side_is_offered_by_how_many_are_on_the_shelf_and_stops_when_they_run_out(): void
+    {
+        $stock = app(\App\Services\Menus\SideStock::class);
+        $coke = \App\Models\Menus\Side::with('recipe', 'ingredient', 'amounts')->find($this->side['Coke']);
+        $this->assertSame(20.0, $stock->servings($coke, 1), '20 bottles, one to a serving');
+        $this->sell($this->jumbo, [$this->slot['Drink'] => [['side_id' => $this->side['Coke'], 'qty' => 2]]], 10);
+        $this->assertSame(0.0, $stock->servings($coke->fresh(['recipe', 'ingredient', 'amounts']), 1), 'sold out: the guest is not offered it');
+        $this->assertSame(['Coke'], array_keys($stock->short([$this->side['Coke'] => 1.0], 1)));
+    }
 }

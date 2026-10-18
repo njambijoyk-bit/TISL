@@ -29,6 +29,7 @@ function SideModal({ side, data, onClose, onDone }) {
   const [amounts, setAmounts] = useState(Object.fromEntries((side?.amounts ?? []).map((a) => [a.serving_id, a.amount])));
   const [station, setStation] = useState(side?.station_id ?? '');
   const [note, setNote] = useState(side?.note ?? '');
+  const [task, setTask] = useState(side?.task_minutes ?? '');   // plating or reheating at the pass (script 214)
   const [active, setActive] = useState(side?.is_active ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -43,7 +44,7 @@ function SideModal({ side, data, onClose, onDone }) {
     try {
       const res = await menusAPI.saveSide({
         name, ...(source.startsWith('r:') ? { recipe_id: Number(source.slice(2)) } : { ingredient_id: Number(source.slice(2)) }), unit_id: unitId ? Number(unitId) : null, base_amount: Number(base) || 0,
-        station_id: station ? Number(station) : null, note: note || null, is_active: active,
+        station_id: station ? Number(station) : null, ...(data.tasks_ready ? { task_minutes: task === '' ? null : Number(task) } : {}), note: note || null, is_active: active,
         amounts: data.servings.map((s) => ({ serving_id: s.id, amount: amounts[s.id] === undefined || amounts[s.id] === '' ? '' : Number(amounts[s.id]) })),
       }, side?.id);
       toast.success(res.message); onDone();
@@ -88,6 +89,7 @@ function SideModal({ side, data, onClose, onDone }) {
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
             <Field label="Station" htmlFor="sd-station" hint="Where it is usually made."><SelectInput id="sd-station" value={station} onChange={(e) => setStation(e.target.value)}><option value="">Not set</option>{data.stations.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</SelectInput></Field>
+            {data.tasks_ready && <Field label="Plating or reheating (minutes)" htmlFor="sd-task" hint="The short task at the pass. The longest one on a ticket becomes the ticket's own timer on the kitchen screen. Empty: no timer."><NumberInput id="sd-task" min="1" max="240" value={task} onChange={(e) => setTask(e.target.value)} /></Field>}
             <Field label="Note (optional)" htmlFor="sd-note"><TextInput id="sd-note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
           </div>
           <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.86rem' }}><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /> On</label>
@@ -174,7 +176,7 @@ export default function MenusSides() {
               <thead><tr><th style={th}>Side</th><th style={th}>Made from</th><th style={th}>Amount in a serving</th><th style={th}>Station</th><th style={th} /></tr></thead>
               <tbody>{data.sides.map((s) => (
                 <tr key={s.id} style={s.is_active ? undefined : { opacity: 0.55 }}>
-                  <td style={td}><strong>{s.name}</strong>{s.note && <div style={{ color: colors.textMuted }}>{s.note}</div>}</td>
+                  <td style={td}><strong>{s.name}</strong>{s.task_minutes ? <small style={{ color: colors.textMuted }}> · {s.task_minutes} min at the pass</small> : null}{s.note && <div style={{ color: colors.textMuted }}>{s.note}</div>}</td>
                   <td style={td}>{s.made_from}<div style={{ color: colors.textMuted }}>{s.kind === 'recipe' ? 'recipe' : 'ready to serve'}</div></td>
                   <td style={td}>
                     {s.amounts.map((a) => <div key={a.serving_id}>{a.serving}: {num(a.amount)} {s.unit}</div>)}

@@ -16,6 +16,27 @@ const clock = (iso) => new Date(iso).toLocaleTimeString('en-KE', { hour: '2-digi
 const btn = (bg, fg = '#fff') => ({ padding: '10px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.95rem', background: bg, color: fg });
 const STATE = { new: ['#334155', 'NEW'], started: ['#b45309', 'COOKING'], ready: ['#047857', 'READY'] };
 
+/** The ticket's own timer: the longest plating or reheating task on it (Menus, Sides), counting down once the cook has started the ticket. */
+function TaskTimer({ task }) {
+  const [now, setNow] = useState(Date.now());
+  const running = Boolean(task?.due_at);
+  useEffect(() => {
+    if (!running) return undefined;
+    const i = setInterval(() => setNow(Date.now()), 1000);
+
+    return () => clearInterval(i);
+  }, [running]);
+  if (!task) return null;
+  const left = running ? Math.round((new Date(task.due_at).getTime() - now) / 1000) : null;
+  const clockText = (s) => `${Math.floor(Math.abs(s) / 60)}:${String(Math.abs(s) % 60).padStart(2, '0')}`;
+
+  return (
+    <div data-testid="task-timer" data-overdue={left !== null && left < 0 ? 'yes' : 'no'} style={{ margin: '0 12px 8px', padding: '6px 10px', borderRadius: 8, background: left !== null && left < 0 ? '#7f1d1d' : '#312e81', fontWeight: 800 }}>
+      Plate {task.side}: {left === null ? `${task.minutes} min` : left >= 0 ? `${clockText(left)} left` : `${clockText(left)} over`}
+    </div>
+  );
+}
+
 function Ticket({ t, stationName, canAct, onAct, minutes }) {
   const Icon = t.order_type === 'delivery' ? Bike : ShoppingBag;
   const [bg, label] = STATE[t.status];
@@ -29,6 +50,7 @@ function Ticket({ t, stationName, canAct, onAct, minutes }) {
       <div style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#cbd5e1', display: 'flex', gap: 8, alignItems: 'center' }}>
         <Icon size={14} aria-hidden="true" /> {t.service ? `${t.service === 'dine_in' ? 'Dine in' : 'Take out'} · ${t.label ?? t.name}` : t.name} · {t.asap ? 'ASAP' : `for ${clock(t.due_at)}`}
       </div>
+      <TaskTimer task={t.task} />
       <ul style={{ listStyle: 'none', margin: 0, padding: '0 12px 8px', display: 'grid', gap: 8 }}>
         {t.lines.map((l, i) => (
           <li key={i}>

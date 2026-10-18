@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\DB;
 /** Menus → Prepared food: batches made from recipes of their own, and the prepared stock they leave on the shelf. */
 class MenusPreparedController extends Controller
 {
-    public function __construct(private PrepProduction $production, private PrepCounts $counts, private WasteService $waste, private PrepReports $reports)
+    public function __construct(private PrepProduction $production, private PrepCounts $counts, private WasteService $waste, private PrepReports $reports, private \App\Services\Menus\PrepTimers $timers)
     {
     }
 
@@ -50,7 +50,7 @@ class MenusPreparedController extends Controller
         $left = PrepLot::whereIn('id', $runs->pluck('lot_id')->filter())->pluck('qty_left', 'id');
 
         return response()->json([
-            'ready' => true, 'location_id' => $location, 'branches' => $branches, 'recipes' => $recipes,
+            'ready' => true, 'location_id' => $location, 'branches' => $branches, 'recipes' => $recipes, 'timers_ready' => \App\Services\Menus\PrepTimers::installed(), 'timers' => $this->timers->running($location),
             'servings' => MenusLists::installed() ? Serving::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get(['id', 'name'])->map(fn ($x) => ['id' => (int) $x->id, 'name' => $x->name])->values() : [],
             'waste_kinds' => Waste::KINDS, 'counts_ready' => PrepCounts::installed(), 'waste_ready' => \Illuminate\Support\Facades\Schema::hasColumn('menus_waste', 'recipe_id'),
             'counts' => PrepCounts::installed() ? PrepCount::with('lines')->where('location_id', $location)->orderByDesc('counted_on')->orderByDesc('id')->limit(15)->get()->map(fn (PrepCount $c) => [
@@ -111,14 +111,43 @@ class MenusPreparedController extends Controller
     {
         $d = $request->validate([
             'recipe_id' => 'required|integer', 'location_id' => 'required|integer|exists:locations,id', 'qty' => 'required|numeric|gt:0', 'output_qty' => 'nullable|numeric|min:0', 'unit_id' => 'nullable|integer',
-            'date' => 'nullable|date', 'expiry_date' => 'nullable|date', 'chef_id' => 'nullable|integer', 'started_at' => 'nullable|date', 'finished_at' => 'nullable|date',
+            'date' => 'nullable|date', 'expiry_date' => 'nullable|date', 'chef_id' => 'nullable|integer', 'started_at' => 'nullable|date', 'finished_at' => 'nullable|date', 'timer_id' => 'nullable|integer',
             'servings' => 'nullable|array|max:20', 'servings.*.serving_id' => 'nullable|integer', 'servings.*.count' => 'nullable|numeric', 'inputs' => 'nullable|array|max:120', 'inputs.*.ingredient_id' => 'required|integer', 'inputs.*.qty' => 'nullable|numeric', 'note' => 'nullable|string|max:255', 'client_key' => 'nullable|string|max:60',
         ]);
 
         return $this->guard(function () use ($d, $request) {
-            $r = $this->production->run(DishRecipe::with('yieldUnit')->findOrFail($d['recipe_id']), (int) $d['location_id'], (float) $d['qty'], $d, $request->user());
+            $r = DB::transaction(function () use ($d, $request) {
+                $r = $this->production->run(DishRecipe::with('yieldUnit')->findOrFail($d['recipe_id']), (int) $d['location_id'], (float) $d['qty'], $d, $request->user());
+                if (! empty($d['timer_id']) && \App\Services\Menus\PrepTimers::installed()) {   // the batch was made from a timer: the timer is done
+                    $this->timers->finish((int) $d['timer_id'], $r);
+                }
+
+                return $r;
+            });
 
             return response()->json(['message' => "Made. {$r->number} is on the shelf and the ingredients are used.", 'id' => $r->id, 'number' => $r->number, 'cost' => (float) $r->cost], 201);
+        });
+    }
+
+    /** Body: recipe_id, location_id, qty (the batch size), minutes? (when the recipe has no time for it), chef_id?, note?, unit_id?. Start the clock on a batch. */
+    public function startTimer(Request $request): JsonResponse
+    {
+        $d = $request->validate(['recipe_id' => 'required|integer', 'location_id' => 'required|integer|exists:locations,id', 'qty' => 'required|numeric|gt:0', 'minutes' => 'nullable|integer|min:1|max:6000',
+            'chef_id' => 'nullable|integer', 'note' => 'nullable|string|max:120', 'unit_id' => 'nullable|integer']);
+
+        return $this->guard(function () use ($d, $request) {
+            $t = $this->timers->start(DishRecipe::with('yieldUnit')->findOrFail($d['recipe_id']), (int) $d['location_id'], (float) $d['qty'], $d, $request->user());
+
+            return response()->json(['message' => "Timer started: ready at {$t->ready_at->format('H:i')}.", 'timers' => $this->timers->running((int) $d['location_id'])], 201);
+        });
+    }
+
+    public function cancelTimer(Request $request, int $id): JsonResponse
+    {
+        return $this->guard(function () use ($id) {
+            $t = $this->timers->cancel($id);
+
+            return response()->json(['message' => 'Timer switched off.', 'timers' => $this->timers->running((int) $t->location_id)]);
         });
     }
 
