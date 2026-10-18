@@ -16,6 +16,7 @@ use App\Services\Menus\DishRecipes;
 use App\Services\Menus\MenuBranches;
 use App\Services\Menus\MenusLists;
 use App\Services\Menus\PrepCounts;
+use App\Services\Menus\PrepReports;
 use App\Services\Menus\PrepProduction;
 use App\Services\Menus\WasteService;
 use Illuminate\Http\JsonResponse;
@@ -25,7 +26,7 @@ use Illuminate\Support\Facades\DB;
 /** Menus → Prepared food: batches made from recipes of their own, and the prepared stock they leave on the shelf. */
 class MenusPreparedController extends Controller
 {
-    public function __construct(private PrepProduction $production, private PrepCounts $counts, private WasteService $waste)
+    public function __construct(private PrepProduction $production, private PrepCounts $counts, private WasteService $waste, private PrepReports $reports)
     {
     }
 
@@ -63,6 +64,38 @@ class MenusPreparedController extends Controller
                 'servings' => $r->servingsLabel(), 'status' => $r->status, 'left' => (float) ($left[$r->lot_id] ?? 0), 'can_cancel' => $r->status === 'posted' && (float) ($left[$r->lot_id] ?? 0) + 0.00005 >= (float) $r->qty, 'note' => $r->note,
             ])->values(),
         ]);
+    }
+
+    /** Query: location_id, from?, to? (default today), daily? (one table per day, at most 31 days). Opening + made - served - waste +/- count = closing, per recipe. */
+    public function reconciliation(Request $request): JsonResponse
+    {
+        $d = $request->validate(['location_id' => 'required|integer|exists:locations,id', 'from' => 'nullable|date', 'to' => 'nullable|date|after_or_equal:from', 'daily' => 'nullable|boolean']);
+        $to = ! empty($d['to']) ? \Illuminate\Support\Carbon::parse($d['to'])->toDateString() : today()->toDateString();
+        $from = ! empty($d['from']) ? \Illuminate\Support\Carbon::parse($d['from'])->toDateString() : $to;
+        if (! PrepProduction::installed()) {
+            return response()->json(['ready' => false, 'from' => $from, 'to' => $to, 'rows' => [], 'days' => []]);
+        }
+        $loc = (int) $d['location_id'];
+        if ($request->boolean('daily')) {
+            $days = collect(PrepReports::days($from, $to))->map(fn ($day) => ['date' => $day] + $this->reports->reconcile($loc, $day, $day))->values();
+
+            return response()->json(['ready' => true, 'from' => $from, 'to' => $to, 'rows' => [], 'days' => $days]);
+        }
+
+        return response()->json(['ready' => true, 'days' => []] + $this->reports->reconcile($loc, $from, $to));
+    }
+
+    /** Query: location_id, from?, to? (default the last 30 days), recipe_id?. The batches of each recipe by the chef who made them. */
+    public function chefs(Request $request): JsonResponse
+    {
+        $d = $request->validate(['location_id' => 'required|integer|exists:locations,id', 'from' => 'nullable|date', 'to' => 'nullable|date|after_or_equal:from', 'recipe_id' => 'nullable|integer']);
+        $to = ! empty($d['to']) ? \Illuminate\Support\Carbon::parse($d['to'])->toDateString() : today()->toDateString();
+        $from = ! empty($d['from']) ? \Illuminate\Support\Carbon::parse($d['from'])->toDateString() : \Illuminate\Support\Carbon::parse($to)->subDays(30)->toDateString();
+        if (! PrepProduction::installed()) {
+            return response()->json(['ready' => false, 'from' => $from, 'to' => $to, 'rows' => []]);
+        }
+
+        return response()->json(['ready' => true] + $this->reports->chefs((int) $d['location_id'], $from, $to, ! empty($d['recipe_id']) ? (int) $d['recipe_id'] : null));
     }
 
     /** Query: recipe_id, location_id, qty, unit_id?. What a batch of that size would take and cost. */

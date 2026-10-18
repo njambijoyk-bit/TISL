@@ -62,6 +62,11 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 3. **Count the shelf**: enter 1 kg for Ugali when the system says 1.5. Expect the difference shown in red, the count in *Counts*, the shelf at 1 kg, and one journal Dr Food Waste Expense, Cr Prepared Food Inventory for 0.5 kg. Count 2 kg when it says 1.5: a "found" batch of 0.5 kg appears on the shelf, and the journal goes the other way. Counting exactly what is there books nothing. Leave a recipe empty to skip it.
 4. A batch that has been written off or counted short can no longer be undone.
 
+## 0g. Prepared food reports (no new script)
+1. Menus, Prepared food, **Reports**, *Daily reconciliation*: pick a day or a range. Expect each recipe made or on the shelf, with Opening + Made - Served - Thrown away +/- Count found = Closing, and what the made, thrown away and counted amounts were worth. Tick "One table for each day": each day starts from the closing of the day before.
+2. For a range that ends today, the Closing equals the shelf on the Prepared food page. Change a batch outside the screens (a database edit) and the report says the shelf holds something else now.
+3. *Chefs compared*: pick a period (and a recipe). Expect one row per recipe and chef: batches, minutes a batch (from the start and finish you noted), the expected minutes, over or under, minutes per kg, came out against planned, recipe followed (what was really used against what the recipe said), servings per kg (from the servings cut) and cost per kg. A batch with no chef is "Nobody named"; a batch without times is left out of the minutes; an undone batch is left out of everything. Recipes in different units are never added together.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

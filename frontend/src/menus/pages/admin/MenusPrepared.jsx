@@ -10,6 +10,7 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { useMenusBranch } from '../../lib/menusBranch';
+import PreparedReports from '../../components/PreparedReports';
 
 /**
  * Menus → Prepared food: food cooked ahead from a recipe of its own (ugali, a stew base). Making a batch uses the ingredients the chef really used, puts what came out on the shelf and books the
@@ -324,6 +325,7 @@ export default function MenusPrepared() {
             </div>
           </>
         )}
+        {data?.ready && <PreparedReports location={loc || String(data.location_id)} recipes={data.recipes} />}
       </div>
       {modal?.kind === 'make' && data && <MakeBatch data={data} location={loc || String(data.location_id)} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}
       {modal?.kind === 'waste' && data && <WriteOff data={data} location={loc || String(data.location_id)} recipe={modal.recipe} onClose={() => setModal(null)} onDone={() => { setModal(null); load(); }} />}

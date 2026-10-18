@@ -953,6 +953,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock/productions', [\App\Http\Controllers\Admin\MenusRecipesController::class, 'productions']);
         Route::get('/stock/prepared', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'index']);
         Route::get('/stock/prepared/preview', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'preview']);
+        Route::get('/stock/prepared/reconciliation', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'reconciliation']);
+        Route::get('/stock/prepared/chefs', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'chefs']);
         Route::get('/food-tags', [\App\Http\Controllers\Admin\MenusFoodTagsController::class, 'index']);
         Route::get('/lists', [\App\Http\Controllers\Admin\MenusListsController::class, 'index']);
         Route::get('/stock/ingredient-kinds', [\App\Http\Controllers\Admin\MenusIngredientKindsController::class, 'index']);
