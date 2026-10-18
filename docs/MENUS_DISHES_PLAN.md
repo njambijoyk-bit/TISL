@@ -101,5 +101,18 @@ Add: **dishes** (the public page or ordering), **recipes** (the kitchen card or 
 - Lists: servings, audiences, and removal/extra policies (free, fixed fee, percentage of the dish price; exactly one default). Servings and audiences start empty; one policy, Free, is put in.
 - All of it follows `menus.configure`. A customer pays in the voucher's currency, which is the Menus currency.
 
+## 10c. The sub-steps (agreed; each is built, tested and pushed on its own; "SQL" = a numbered script for the owner)
+Decisions taken with the breakdown: (a) **modifier VAT** is a Menus setting: modifier fees may be switched to carry VAT or not, and when they do they follow the dish's own VAT; (b) a Menus setting **switches selling through sides** on and off, so it can be turned back while testing; (c) tips stay at step 6; (d) the order below is the order of building.
+
+**Step 1: Recipes and production.** 1.1 recipes stand alone (SQL 194, **done**); 1.2 yield unit; 1.3 time by batch size (SQL); 1.4 recipes inside recipes (cycle guard, flatten to ingredients); 1.5 prepared stock lots (SQL); 1.6 make-a-batch screen; 1.7 posting a batch (Dr Prepared Food Inventory, Cr ingredient inventory by kind; retry-safe; reversible); 1.8 servings cut; 1.9 prepared stock page with waste and count; 1.10 reports (daily reconciliation, chef comparison); 1.11 docs and manual test. Note for 1.5 to 1.7: made-ahead dishes already have batches and productions (`menus_productions`, `menus_dish_batches`, script 184 and 185); prepared stock builds on those, it does not make a second shelf.
+**Step 2: Servings and sides.** 2.1 sides (SQL); 2.2 amount per serving (SQL); 2.3 migration script (SQL); 2.4 selling reads through the side (behind the Menus switch); 2.5 prepared stock leaves on a sale; 2.6 docs.
+**Step 3: Dishes made of slots.** 3A data and rules: 3.1 slots and choices (SQL); 3.2 servings and prices on the dish, audience (SQL); 3.3 rules service; 3.4 order lines remember what was sold (SQL); 3.5 set meals migrate; 3.6 stock follows the chosen sides. 3B screens: 3.7 till and online ordering; 3.8 tickets, receipts, kitchen screens; 3.9 paid extras; 3.10 guided dish screen; 3.11 public menu; 3.12 docs.
+**Step 4: Modifiers.** 4.1 recipe line flags (SQL); 4.2 policy per item on the dish (SQL), and the VAT switch; 4.3 choosing on an order; 4.4 stock; 4.5 docs.
+**Step 5: Packaging.** 5.1 price list (SQL); 5.2 rules (SQL); 5.3 checkout calculation; 5.4 checkout list; 5.5 waive permission; 5.6 posting; 5.7 receipt and packers' ticket; 5.8 free condiments; 5.9 removal reasons report; 5.10 docs.
+**Step 6: Tips.** 6.1 table (SQL); 6.2 tip box; 6.3 payment posting; 6.4 tips screen; 6.5 Issue with the window; 6.6 own tip; 6.7 reverse; 6.8 reports and docs.
+**Step 7: Currencies.** 7.1 dish currency (SQL); 7.2 lines converted at the date's rate; 7.3 rounding (to settle first); 7.4 customer view; 7.5 test with a foreign-currency dish.
+**Step 8: Ready-to-serve and timers.** 8.1 ready-to-serve as slots; 8.2 batch timers; 8.3 ticket timers.
+**Step 9: QR codes.** 9.1 code types; 9.2 dishes and recipes; 9.3 batch and lot labels; 9.4 kitchen stock variants and scanning; 9.5 supplier barcodes.
+
 ## 11. Still to settle
 - How rounding is shown on a mixed-currency order (the customer pays in the voucher's currency, the Menus currency).

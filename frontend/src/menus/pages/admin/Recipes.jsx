@@ -13,7 +13,7 @@ import { btnGhost, card, colors } from '../../../_shared/theme/tokens';
 import { useMenusBranch } from '../../lib/menusBranch';
 
 /**
- * Menus → Recipes: what each dish is made of, written on ingredients (Menus' own stock): an amount in the ingredient's base or alternate unit, and the waste in preparing it.
+ * Menus → Recipes: what each dish is made of, and recipes of their own (a base or sauce that is not a dish), written on ingredients (Menus' own stock): an amount in the ingredient's base or alternate unit, and the waste in preparing it.
  * It shows what a portion costs and how many portions the shelf could make now. A recipe made to order uses the ingredients when the dish is sold.
  */
 
@@ -35,6 +35,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const [cook, setCook] = useState(r?.cook_minutes ?? '');
   const [visibility, setVisibility] = useState(r?.visibility ?? 'internal');
   const [note, setNote] = useState(r?.note ?? '');
+  const [name, setName] = useState(dish.name ?? '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
   const ing = (id) => options.ingredients.find((i) => String(i.id) === String(id));
@@ -43,20 +44,22 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
-      const res = await menusAPI.saveStockRecipe(dish.id, {
+      const payload = {
         yield_qty: Number(yieldQty), made_to_order: order, note: note || null, visibility, prep_minutes: prep === '' ? null : Number(prep), cook_minutes: cook === '' ? null : Number(cook),
         lines: lines.filter((l) => l.ingredient_id).map((l) => ({ ingredient_id: Number(l.ingredient_id), quantity: Number(l.quantity) || 0, unit: l.unit, waste_pct: l.waste_pct === '' ? 0 : Number(l.waste_pct) })),
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
-      });
+      };
+      const res = dish.standalone ? await menusAPI.saveRecipeBook({ ...payload, name }, dish.id) : await menusAPI.saveStockRecipe(dish.id, payload);
       toast.success(res.message); onDone();
     } catch (x) { setErr(errMsg(x, 'Could not save the recipe')); } finally { setBusy(false); }
   };
 
   return (
-    <Modal title={`Recipe: ${dish.name}`} onClose={onClose} width={820}>
+    <Modal title={dish.id || !dish.standalone ? `Recipe: ${dish.name}` : 'New recipe'} onClose={onClose} width={820}>
       <form onSubmit={go}>
         <FormStack>
           <FormError message={err} />
+          {dish.standalone && <Field label="Name of the recipe" htmlFor="rc-name" hint="A recipe of its own is not a dish: a tomato and onion base, a marinade. Dishes can be made from it later."><TextInput id="rc-name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} /></Field>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
             <Field label="One batch makes (portions)" htmlFor="rc-yield" hint="The amounts below are for this many portions."><NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} /></Field>
             <Field label="How it is made" htmlFor="rc-how">
@@ -109,7 +112,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setSteps((xs) => [...xs, { key: `s${++key.current}`, body: '', minutes: '' }])}><Plus size={12} /> Add a step</button>
           </div>
           <Field label="Note (optional)"><TextInput aria-label="Note" maxLength={255} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
-          <ModalActions onCancel={onClose} submitLabel="Save recipe" busy={busy} disabled={!lines.some((l) => l.ingredient_id && Number(l.quantity) > 0)} />
+          <ModalActions onCancel={onClose} submitLabel="Save recipe" busy={busy} disabled={!lines.some((l) => l.ingredient_id && Number(l.quantity) > 0) || (dish.standalone && !name.trim())} />
         </FormStack>
       </form>
     </Modal>
@@ -138,6 +141,10 @@ export default function Recipes() {
     if (!window.confirm(`Remove the recipe of ${d.name}?`)) return;
     try { const res = await menusAPI.removeStockRecipe(d.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not remove')); }
   };
+  const removeOwn = async (r) => {
+    if (!window.confirm(`Remove the recipe ${r.name}?`)) return;
+    try { const res = await menusAPI.removeRecipeBook(r.id); toast.success(res.message); load(); } catch (x) { toast.error(errMsg(x, 'Could not remove'), { duration: 8000 }); }
+  };
 
   if (!canViewMenus(user)) return <AdminLayout><div style={{ padding: 32 }}><NoAccess what="recipes" /></div></AdminLayout>;
 
@@ -164,6 +171,33 @@ export default function Recipes() {
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     {canWrite && data.installed && <button type="button" style={small} onClick={() => setModal({ dish: d })}>{d.recipe ? 'Edit recipe' : 'Write recipe'}</button>}
                     {canWrite && d.recipe && <button type="button" style={small} onClick={() => remove(d)}>Remove</button>}
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          )}
+        </div>
+        <div style={{ margin: '26px 0 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Recipes of their own</h2>
+            <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: colors.textMuted }}>A base, sauce or marinade that is not a dish. Dishes will be able to use these later.</p>
+          </div>
+          {canWrite && data?.installed && <button type="button" style={small} onClick={() => setModal({ dish: { standalone: true, name: '', recipe: null } })}><Plus size={12} /> Add a recipe</button>}
+        </div>
+        <div style={{ ...card, padding: 0, overflowX: 'auto' }} data-testid="own-recipes">
+          {!data?.standalone?.length ? (
+            <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>None yet.</p>
+          ) : (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={th}>Recipe</th><th style={th}>Made</th><th style={{ ...th, textAlign: 'right' }}>Cost of a batch</th><th style={th} /></tr></thead>
+              <tbody>{data.standalone.map((r) => (
+                <tr key={r.id} style={r.is_active ? undefined : { opacity: 0.55 }}>
+                  <td style={td}><strong>{r.name}</strong></td>
+                  <td style={td}>{r.lines.length} ingredient{r.lines.length === 1 ? '' : 's'} · makes {num(r.yield_qty, 3)} · {r.made_to_order ? 'made to order' : 'made ahead'}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{r.cost?.per_portion != null ? <>{num(r.cost.per_portion * r.yield_qty)}{!r.cost.complete && <span title="Some ingredient has never been bought, so its cost is not in this figure" style={{ color: colors.warning }}> *</span>}</> : '—'}</td>
+                  <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                    {canWrite && <button type="button" style={small} onClick={() => setModal({ dish: { id: r.id, standalone: true, name: r.name, recipe: r } })}>Edit recipe</button>}
+                    {canWrite && <button type="button" style={small} onClick={() => removeOwn(r)}>Remove</button>}
                   </td>
                 </tr>
               ))}</tbody>

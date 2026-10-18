@@ -1090,6 +1090,9 @@ Route::middleware('auth:sanctum')->group(function () {
             $sr = \App\Http\Controllers\Admin\MenusRecipesController::class;
             Route::put('/stock/recipes/{dishId}', [$sr, 'save'])->whereNumber('dishId');
             Route::delete('/stock/recipes/{dishId}', [$sr, 'destroy'])->whereNumber('dishId');
+            Route::post('/stock/recipe-book', [$sr, 'saveBook']);
+            Route::put('/stock/recipe-book/{id}', [$sr, 'saveBook'])->whereNumber('id');
+            Route::delete('/stock/recipe-book/{id}', [$sr, 'destroyBook'])->whereNumber('id');
             Route::post('/stock/receive', [$sk, 'receive']);
             Route::post('/stock/receive/preview', [$sk, 'previewReceive']);
             Route::post('/stock/opening', [$sk, 'opening']);

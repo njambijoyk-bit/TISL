@@ -32,6 +32,54 @@ class DishRecipes
      */
     public function save(Dish $dish, array $d): DishRecipe
     {
+        $c = $this->clean($d);
+
+        return DB::transaction(fn () => $this->store(DishRecipe::firstOrNew(['dish_id' => $dish->id]), $d, $c));
+    }
+
+    /**
+     * A recipe of its own, not tied to a dish. `$d` is the same as for a dish's recipe plus `name`.
+     *
+     * @param array<string, mixed> $d
+     */
+    public function saveStandalone(array $d, ?int $id = null): DishRecipe
+    {
+        $name = mb_substr(trim((string) ($d['name'] ?? '')), 0, 120);
+        if ($name === '') {
+            throw new BooksException('Give the recipe a name.');
+        }
+        $row = $id ? DishRecipe::findOrFail($id) : new DishRecipe();
+        if ($row->dish_id) {
+            throw new BooksException("That is the recipe of {$row->title()}: change it from the dish's row.");
+        }
+        if (DishRecipe::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->when($id, fn ($q) => $q->where('id', '!=', $id))->exists()) {
+            throw new BooksException("There is already a recipe called {$name}.");
+        }
+        $c = $this->clean($d);
+
+        return DB::transaction(fn () => $this->store($row, $d, $c, $name));
+    }
+
+    /** Remove a recipe of its own. A dish's recipe goes with delete(). */
+    public function deleteStandalone(int $id): void
+    {
+        $r = DishRecipe::findOrFail($id);
+        if ($r->dish_id) {
+            throw new BooksException("That is the recipe of {$r->title()}: remove it from the dish's row.");
+        }
+        if (Schema::hasTable('menus_productions') && DB::table('menus_productions')->where('recipe_id', $r->id)->exists()) {
+            throw new BooksException("{$r->title()} has been made in a batch, so it can not be removed. Switch it off instead.");
+        }
+        DB::transaction(function () use ($r) {
+            $r->lines()->delete();
+            $r->steps()->delete();
+            $r->delete();
+        });
+    }
+
+    /** The yield, who may see it and the lines, checked and tidied. @return array{yield: float, visibility: string, lines: array<int, array<string, mixed>>} */
+    private function clean(array $d): array
+    {
         $yield = round((float) ($d['yield_qty'] ?? 1), 4);
         if ($yield <= 0) {
             throw new BooksException('The recipe must make more than nothing: say how many portions one batch makes.');
@@ -79,30 +127,38 @@ class DishRecipes
             throw new BooksException('Add at least one ingredient.');
         }
 
-        return DB::transaction(function () use ($dish, $d, $yield, $visibility, $lines) {
-            $r = DishRecipe::updateOrCreate(['dish_id' => $dish->id], [
-                'yield_qty' => $yield, 'made_to_order' => (bool) ($d['made_to_order'] ?? true), 'visibility' => $visibility, 'is_active' => (bool) ($d['is_active'] ?? true),
-                'note' => isset($d['note']) && trim((string) $d['note']) !== '' ? mb_substr(trim((string) $d['note']), 0, 255) : null,
-                'prep_minutes' => isset($d['prep_minutes']) && $d['prep_minutes'] !== '' ? max(0, (int) $d['prep_minutes']) : null,
-                'cook_minutes' => isset($d['cook_minutes']) && $d['cook_minutes'] !== '' ? max(0, (int) $d['cook_minutes']) : null,
-            ]);
-            $r->lines()->delete();
-            foreach ($lines as $l) {
-                DishRecipeLine::create(['recipe_id' => $r->id] + $l);
-            }
-            if (array_key_exists('steps', $d)) {
-                $r->steps()->delete();
-                $n = 0;
-                foreach ((array) $d['steps'] as $step) {
-                    if (trim((string) ($step['body'] ?? '')) === '') {
-                        continue;
-                    }
-                    DishRecipeStep::create(['recipe_id' => $r->id, 'position' => ++$n, 'body' => trim((string) $step['body']), 'minutes' => $step['minutes'] ?? null, 'image' => $step['image'] ?? null]);
-                }
-            }
+        return ['yield' => $yield, 'visibility' => $visibility, 'lines' => $lines];
+    }
 
-            return $r->load('lines', 'steps');
-        });
+    /** @param array{yield: float, visibility: string, lines: array<int, array<string, mixed>>} $c */
+    private function store(DishRecipe $r, array $d, array $c, ?string $name = null): DishRecipe
+    {
+        $r->fill([
+            'yield_qty' => $c['yield'], 'made_to_order' => (bool) ($d['made_to_order'] ?? true), 'visibility' => $c['visibility'], 'is_active' => (bool) ($d['is_active'] ?? true),
+            'note' => isset($d['note']) && trim((string) $d['note']) !== '' ? mb_substr(trim((string) $d['note']), 0, 255) : null,
+            'prep_minutes' => isset($d['prep_minutes']) && $d['prep_minutes'] !== '' ? max(0, (int) $d['prep_minutes']) : null,
+            'cook_minutes' => isset($d['cook_minutes']) && $d['cook_minutes'] !== '' ? max(0, (int) $d['cook_minutes']) : null,
+        ]);
+        if ($name !== null) {
+            $r->name = $name;
+        }
+        $r->save();
+        $r->lines()->delete();
+        foreach ($c['lines'] as $l) {
+            DishRecipeLine::create(['recipe_id' => $r->id] + $l);
+        }
+        if (array_key_exists('steps', $d)) {
+            $r->steps()->delete();
+            $n = 0;
+            foreach ((array) $d['steps'] as $step) {
+                if (trim((string) ($step['body'] ?? '')) === '') {
+                    continue;
+                }
+                DishRecipeStep::create(['recipe_id' => $r->id, 'position' => ++$n, 'body' => trim((string) $step['body']), 'minutes' => $step['minutes'] ?? null, 'image' => $step['image'] ?? null]);
+            }
+        }
+
+        return $r->load('lines', 'steps');
     }
 
     public function delete(Dish $dish): void

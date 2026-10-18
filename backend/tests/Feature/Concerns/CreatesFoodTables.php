@@ -28,6 +28,13 @@ trait CreatesFoodTables
         // script 190: the kinds of ingredient, and the column that points at one
         $this->runSqlScripts('190_menus_ingredient_kinds.sql');
         Schema::table('menus_ingredients', fn ($t) => $t->unsignedBigInteger('kind_id')->nullable());
+        // script 194: a recipe may stand on its own (no dish), with a name of its own
+        // (the test runner can not turn MODIFY into SQLite, so the empty table is made again with the column that may be empty and the name)
+        Schema::drop('menus_recipes');
+        Schema::create('menus_recipes', function ($t) {
+            $t->id(); $t->unsignedBigInteger('dish_id')->nullable()->unique(); $t->string('name', 120)->nullable()->unique(); $t->decimal('yield_qty', 18, 4)->default(1); $t->boolean('made_to_order')->default(true); $t->string('note')->nullable();
+            $t->string('visibility', 12)->default('internal'); $t->unsignedSmallInteger('prep_minutes')->nullable(); $t->unsignedSmallInteger('cook_minutes')->nullable(); $t->boolean('is_active')->default(true); $t->timestamps();
+        });
         // script 191: the "used up" use and the account a kind is charged to
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->boolean('used_up')->default(false));
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('expense_ledger_id')->nullable());

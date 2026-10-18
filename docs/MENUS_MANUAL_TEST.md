@@ -35,6 +35,12 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 5. Policies: Free is there and is the default (its default box is greyed). Add "Removal fee 10%" as a percentage; tick The default on it: Free loses the default. The default cannot be removed or switched off.
 6. Sign in as a chef: every field and button is read-only.
 
+## 0d. Recipes of their own (after script 194)
+1. Menus, Recipes: below the dishes there is **Recipes of their own**. Add a recipe called "Tomato and onion base" with two ingredients and a method; save. Expect it in the list with its cost of a batch.
+2. Add another with the same name in capitals. Expect: "There is already a recipe called ...".
+3. Edit it: the name is filled in, the lines are the ones you saved. Remove it: it goes.
+4. The dishes above are unchanged: their recipes, costs and "can make now" are as before, and selling a dish still uses its ingredients.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

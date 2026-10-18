@@ -48,7 +48,7 @@ class RecipePublisher
     /** @return array{title: string, body: string, minutes: ?int} */
     public function render(DishRecipe $r): array
     {
-        $title = (string) (DB::table('menus_dishes')->where('id', $r->dish_id)->value('name') ?? 'Recipe');
+        $title = (string) ($r->name ?: (DB::table('menus_dishes')->where('id', $r->dish_id)->value('name') ?? 'Recipe'));
         $items = DB::table('menus_recipe_lines as l')->join('menus_ingredients as i', 'i.id', '=', 'l.ingredient_id')->where('l.recipe_id', $r->id)->orderBy('l.position')->orderBy('l.id')
             ->get(['l.quantity', 'l.unit', 'i.name', 'i.base_unit_id', 'i.alt_unit_id']);
         $units = DB::table('units_of_measure')->whereIn('id', $items->pluck('base_unit_id')->merge($items->pluck('alt_unit_id'))->filter())->pluck('name', 'id');
