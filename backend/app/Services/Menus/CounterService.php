@@ -449,7 +449,7 @@ class CounterService
 
     // ── inside ───────────────────────────────────────────────────────────
 
-    private function assertTab(MenuOrder $o): void
+    public function assertTab(MenuOrder $o): void
     {
         if ($o->order_type !== 'counter' || ! $o->isTab() || ! $o->open()) {
             throw new BooksException('That is not an open tab.');
@@ -472,7 +472,7 @@ class CounterService
     {
         foreach ($lines as $l) {
             $kept = MenuOrderLine::kept($l);   // the size and the sides it was ordered with (a dish with a make-up)
-            MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
+            MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'name' => $l['name'] ?? $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
                 'options' => array_map(fn ($x) => ['id' => $x['id'], 'group' => $x['group'], 'name' => $x['name'], 'price_delta' => $x['price_delta']], $l['options']), 'note' => $l['note'], 'round' => $round,
                 'uses' => $l['uses'] ?: null, 'linked' => array_map(fn ($d) => $d->id, $l['linked']) ?: null] + $kept);
         }

@@ -14,6 +14,11 @@ class DishSlotChoice extends Model
 
     protected $casts = ['upcharge' => 'decimal:2', 'is_default' => 'boolean', 'sort_order' => 'integer'];
 
+    public function slot(): BelongsTo
+    {
+        return $this->belongsTo(DishSlot::class, 'slot_id');
+    }
+
     public function side(): BelongsTo
     {
         return $this->belongsTo(Side::class, 'side_id');

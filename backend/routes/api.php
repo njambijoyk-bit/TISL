@@ -940,6 +940,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/till/tabs/{id}/split', [$tc, 'splitTab'])->whereNumber('id');
         Route::post('/till/tabs/{id}/quote', [$tc, 'quoteTab'])->whereNumber('id');
         Route::post('/till/tabs/{id}/add', [$tc, 'addToTab'])->whereNumber('id');
+        Route::post('/till/tabs/{id}/extras', [$tc, 'addExtra'])->whereNumber('id');
         Route::delete('/till/tabs/{id}/lines/{line}', [$tc, 'voidLine'])->whereNumber(['id', 'line']);
         Route::post('/till/tabs/{id}/settle', [$tc, 'settleTab'])->whereNumber('id');
         Route::post('/till/tabs/{id}/cancel', [$tc, 'cancelTab'])->whereNumber('id');

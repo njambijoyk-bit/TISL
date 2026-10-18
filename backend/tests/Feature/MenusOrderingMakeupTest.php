@@ -37,7 +37,7 @@ class MenusOrderingMakeupTest extends TestCase
         $this->jumbo = DB::table('menus_servings')->insertGetId(['name' => 'Jumbo', 'sort_order' => 1, 'is_active' => true]);
         $this->kids = DB::table('menus_servings')->insertGetId(['name' => 'Kids', 'sort_order' => 2, 'is_active' => true]);
         $this->pantry('Flour', 1000, 0.1);
-        foreach (['Bread', 'Choma', 'Wet fry', 'Kale'] as $name) {
+        foreach (['Bread', 'Choma', 'Wet fry', 'Kale', 'Egg'] as $name) {
             $r = app(DishRecipes::class)->saveStandalone(['name' => $name, 'yield_qty' => 1, 'lines' => [['ingredient_id' => (int) DB::table('menus_ingredients')->where('name', 'Flour')->value('id'), 'quantity' => 10]]]);
             $this->side[$name] = app(Sides::class)->save(['name' => $name, 'recipe_id' => $r->id])->id;
         }
@@ -48,6 +48,7 @@ class MenusOrderingMakeupTest extends TestCase
                 ['name' => 'Bread', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Bread']]]],
                 ['name' => 'Protein', 'kind' => 'choose_one', 'choices' => [['side_id' => $this->side['Choma'], 'is_default' => true], ['side_id' => $this->side['Wet fry'], 'upcharge' => 50]]],
                 ['name' => 'Greens', 'kind' => 'choose_any', 'min' => 0, 'max' => 2, 'choices' => [['side_id' => $this->side['Kale'], 'upcharge' => 20]]],
+                ['name' => 'Extras', 'kind' => 'paid_extra', 'max' => 3, 'choices' => [['side_id' => $this->side['Egg'], 'upcharge' => 40]]],
             ],
         ]);
         foreach (DishSlot::where('dish_id', $this->steak->id)->get() as $s) {
@@ -137,7 +138,7 @@ class MenusOrderingMakeupTest extends TestCase
         $m = $dish()['makeup'];
         $this->assertSame([['Jumbo', 650.0], ['Kids', 350.0]], array_map(fn ($s) => [$s['name'], $s['price']], $m['servings']));
         $this->assertSame([350.0, ['Adults']], [$m['from'], $m['audiences']]);
-        $this->assertSame(['Bread', 'Protein', 'Greens'], array_column($m['slots'], 'name'));
+        $this->assertSame(['Bread', 'Protein', 'Greens', 'Extras'], array_column($m['slots'], 'name'));
         $protein = $m['slots'][1];
         $this->assertSame([['Choma', 0.0, true, true], ['Wet fry', 50.0, false, true]], array_map(fn ($c) => [$c['name'], $c['upcharge'], $c['is_default'], $c['available']], $protein['choices']));
         DB::table('menus_stock_batches')->update(['qty_left' => 0]);
@@ -154,5 +155,50 @@ class MenusOrderingMakeupTest extends TestCase
         $text = app(\App\Services\Menus\ReceiptService::class)->for($o, 32)['text'];
         $this->assertStringContainsString("\n   Jumbo\n   - Bread\n   - Choma\n   - Kale\n", $text);
         $this->assertSame(['Bread', 'Choma', 'Kale'], app(\App\Services\Menus\MenuOrderView::class)->customer($o)['lines'][0]['sides']);
+    }
+
+    // ------------------------------------------------------------ 3.9 paid extras later
+
+    private function tab(array $picks = [], int $qty = 1)
+    {
+        return app(CounterService::class)->openTab(['items' => [$this->item(['quantity' => $qty, 'picks' => $picks])], 'service' => 'take_out', 'label' => 'Amina'], null, $this->now);
+    }
+
+    public function test_an_extra_is_added_to_an_open_tab_as_its_own_line_at_the_extras_price_and_goes_to_the_kitchen(): void
+    {
+        $extras = app(\App\Services\Menus\TabExtras::class);
+        $tab = $this->tab();
+        $parent = MenuOrderLine::where('order_id', $tab->id)->first();
+        $this->assertSame([['side_id' => $this->side['Egg'], 'slot_id' => $this->slot['Extras'], 'name' => 'Egg', 'price' => 40.0, 'left' => 3]], $extras->offered($tab)[(int) $parent->id]);
+        $tab = $extras->add($tab, ['line_id' => $parent->id, 'side_id' => $this->side['Egg'], 'quantity' => 2]);
+        $line = MenuOrderLine::where('order_id', $tab->id)->orderByDesc('id')->first();
+        $this->assertSame(['Egg (extra)', 2.0, 40.0, 2], [$line->name, (float) $line->quantity, (float) $line->unit_price, (int) $line->round]);
+        $this->assertEqualsWithDelta((650 + 80) * 1.16, (float) $tab->total, 0.01);
+        $this->assertNotNull($line->fresh()->ticket_id, 'a new round for the kitchen');
+        $this->assertSame([['mode' => 'side', 'side_id' => $this->side['Egg']]], array_map(fn ($u) => ['mode' => $u['mode'], 'side_id' => $u['side_id']], $line->uses));
+        $this->assertSame([], array_keys($extras->offered($tab)) === [(int) $parent->id] ? [] : ['the extra offers nothing of its own'], 'only the dish offers extras');
+        $this->assertSame(1, $extras->offered($tab)[(int) $parent->id][0]['left'], '3 allowed, 2 added');
+        $this->fails(fn () => $extras->add($tab, ['line_id' => $parent->id, 'side_id' => $this->side['Egg'], 'quantity' => 2]), 'Only 1 more Egg');
+        $this->fails(fn () => $extras->add($tab, ['line_id' => $line->id, 'side_id' => $this->side['Egg']]), 'extras of its own');
+        $this->fails(fn () => $extras->add($tab, ['line_id' => $parent->id, 'side_id' => $this->side['Kale']]), 'not sold with');
+    }
+
+    public function test_the_extra_counts_what_the_dish_was_ordered_with_and_takes_the_stock_of_the_side_alone(): void
+    {
+        $extras = app(\App\Services\Menus\TabExtras::class);
+        $tab = $this->tab([$this->slot['Extras'] => [['side_id' => $this->side['Egg'], 'qty' => 2]]]);
+        $parent = MenuOrderLine::where('order_id', $tab->id)->first();
+        $this->assertSame(1, $extras->offered($tab)[(int) $parent->id][0]['left']);
+        $tab = $extras->add($tab, ['line_id' => $parent->id, 'side_id' => $this->side['Egg']]);
+        $rows = app(MenuOrderService::class)->lineRows(app(CounterService::class)->rebuild($tab), (new \App\Models\Location())->forceFill(['id' => self::BRANCH]));
+        $last = end($rows);
+        $this->assertSame([40.0, 'Extra: Egg — With Steak sandwich'], [(float) $last['rate'], $last['notes']]);
+        $this->assertSame(['Egg'], array_map(fn ($s) => \App\Models\Menus\Side::find($s['side_id'])->name, DishSelection::sidesIn($last['menu_uses'])), 'only the egg is taken, not the sandwich again');
+        $this->fails(fn () => $extras->add($tab, ['line_id' => $parent->id, 'side_id' => $this->side['Egg']]), 'No more Egg');
+        $fresh = $this->tab();
+        $first = MenuOrderLine::where('order_id', $fresh->id)->first();
+        DB::table('menus_stock_batches')->update(['qty_left' => 0]);
+        $this->fails(fn () => $extras->add($fresh, ['line_id' => $first->id, 'side_id' => $this->side['Egg']]), 'Egg has run out');
+        $this->fails(fn () => $extras->add(\App\Models\Menus\MenuOrder::findOrFail($tab->id)->forceFill(['status' => 'cancelled']), ['line_id' => $parent->id, 'side_id' => $this->side['Egg']]), 'not an open tab');
     }
 }

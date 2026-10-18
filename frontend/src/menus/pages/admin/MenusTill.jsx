@@ -195,7 +195,15 @@ export default function MenusTill() {
                       {tab.lines_full.map((l) => (
                         <li key={l.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                           <input type="checkbox" aria-label={`Split off ${l.name}`} checked={splitIds.includes(l.id)} onChange={(e) => setSplitIds((xs) => (e.target.checked ? [...xs, l.id] : xs.filter((x) => x !== l.id)))} />
-                          <span style={{ flex: 1 }}>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: colors.textMuted }}> · {l.options.join(', ')}</small>} <small style={{ color: colors.textMuted }}>(round {l.round})</small><LineMakeup line={l} color={colors.textMuted} /></span>
+                          <span style={{ flex: 1 }}>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: colors.textMuted }}> · {l.options.join(', ')}</small>} <small style={{ color: colors.textMuted }}>(round {l.round})</small><LineMakeup line={l} color={colors.textMuted} />
+                            {(l.extras ?? []).filter((x) => x.left !== 0).length > 0 && (
+                              <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 4 }}>
+                                {l.extras.filter((x) => x.left !== 0).map((x) => (
+                                  <button key={x.side_id} type="button" disabled={busy} aria-label={`Add ${x.name} to ${l.name}`} onClick={() => run(() => menusAPI.addExtra(tab.id, { line_id: l.id, side_id: x.side_id, quantity: 1 }), 'Sent to the kitchen.')} style={{ ...line, borderRadius: 999, padding: '2px 10px', cursor: 'pointer', fontSize: '0.78rem' }}>+ {x.name} {money(x.price)}</button>
+                                ))}
+                              </span>
+                            )}
+                          </span>
                           <button type="button" aria-label={`Take ${l.name} off`} disabled={busy} onClick={() => run(() => menusAPI.voidLine(tab.id, l.id), 'Taken off the tab.')} style={{ ...line, borderRadius: 6, cursor: 'pointer' }}><X size={12} /></button>
                         </li>
                       ))}

@@ -85,6 +85,7 @@ export const menusAPI = {
   openTab: async (payload) => (await api.post('/admin/menus/till/tabs', payload)).data,
   quoteTab: async (id, payload) => (await api.post(`/admin/menus/till/tabs/${id}/quote`, payload)).data,
   addToTab: async (id, payload) => (await api.post(`/admin/menus/till/tabs/${id}/add`, payload)).data,
+  addExtra: async (id, payload) => (await api.post(`/admin/menus/till/tabs/${id}/extras`, payload)).data,
   voidLine: async (id, line) => (await api.delete(`/admin/menus/till/tabs/${id}/lines/${line}`)).data,
   settleTab: async (id, payload) => (await api.post(`/admin/menus/till/tabs/${id}/settle`, payload)).data,
   cancelTab: async (id, reason) => (await api.post(`/admin/menus/till/tabs/${id}/cancel`, { reason })).data,

@@ -13,6 +13,7 @@ use App\Services\Menus\FloorService;
 use App\Services\Menus\MenuOrderView;
 use App\Services\Menus\PublicMenu;
 use App\Services\Menus\ReceiptService;
+use App\Services\Menus\TabExtras;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -59,9 +60,10 @@ class MenusCounterController extends Controller
     private function row(MenuOrder $o): array
     {
         $o->loadMissing('lines');
+        $extras = $o->isTab() && $o->open() ? app(TabExtras::class)->offered($o) : [];
 
         return $this->view->staff($o) + ['short_no' => $o->short_no, 'session_code' => $o->session_code, 'label' => $o->label, 'table_id' => $o->table_id, 'guests' => $o->guests, 'service' => $o->service, 'service_charge' => (float) $o->service_charge, 'tip' => (float) $o->tip,
-            'lines_full' => $o->lines->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'quantity' => (float) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'serving' => $l->serving ?? null, 'sides' => $l->sidesList(), 'note' => $l->note, 'round' => (int) $l->round])->values()->all()];
+            'lines_full' => $o->lines->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'quantity' => (float) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'serving' => $l->serving ?? null, 'sides' => $l->sidesList(), 'note' => $l->note, 'round' => (int) $l->round, 'extras' => $extras[$l->id] ?? []])->values()->all()];
     }
 
     private function rules(): array
@@ -118,6 +120,13 @@ class MenusCounterController extends Controller
         $d = $request->validate($this->rules());
 
         return $this->guard(fn () => response()->json(['order' => $this->row($this->counter->splitTab(MenuOrder::findOrFail($id), (array) ($d['line_ids'] ?? []))), 'message' => 'The dishes are on a new bill.']));
+    }
+
+    public function addExtra(Request $request, int $id): JsonResponse
+    {
+        $d = $request->validate(['line_id' => 'required|integer', 'side_id' => 'required|integer', 'quantity' => 'nullable|integer|min:1|max:50']);
+
+        return $this->guard(fn () => response()->json(['order' => $this->row(app(TabExtras::class)->add(MenuOrder::findOrFail($id), $d, $request->user())), 'message' => 'Sent to the kitchen.']));
     }
 
     public function voidLine(int $id, int $line): JsonResponse

@@ -261,7 +261,8 @@ class MenuOrderService
             $d = $l['dish'];
             $names = array_map(fn ($o) => $o['name'], $l['options']);
             if ($made = DishSelection::describe($l['serving'] ?? null, $l['selection'] ?? null)) {
-                array_unshift($names, $made);
+                $extra = collect($l['selection'] ?? [])->contains(fn ($s) => ! empty($s['parent_line_id']));   // an extra added to the tab later
+                array_unshift($names, ($extra ? 'Extra: ' : '').$made);
             }
             $row = ['type' => 'dish', 'dish_id' => $d->id, 'quantity' => $l['quantity'], 'rate' => $l['unit_price'], 'location_id' => $loc->id,
                 'notes' => trim(implode(', ', $names).($l['note'] ? ($names ? ' — ' : '').$l['note'] : '')) ?: null];
