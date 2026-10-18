@@ -114,17 +114,18 @@ class CounterService
         $p = $this->price($loc, $lines, (string) ($in['service'] ?? ''), (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), $this->label($in));
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])];
+            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol']), 'packaging' => app(PackagingCalc::class)->forLines($lines, (string) ($in['service'] ?? '') !== 'dine_in')];
     }
 
     /** What a tab comes to now, with the service charge and the tip asked for. */
     public function quoteTab(MenuOrder $o, array $in): array
     {
         $this->assertTab($o);
-        $p = $this->price(Location::findOrFail($o->location_id), $this->rebuild($o), (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label);
+        $lines = $this->rebuild($o);
+        $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), (string) $o->label);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])];
+            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol']), 'packaging' => app(PackagingCalc::class)->forLines($lines, (string) $o->service !== 'dine_in')];
     }
 
     private function label(array $in): string

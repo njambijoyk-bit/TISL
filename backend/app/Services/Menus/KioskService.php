@@ -125,9 +125,10 @@ class KioskService
 
     public function quote(Kiosk $k, array $in, ?Carbon $now = null): array
     {
-        [, , , $p] = $this->lines($k, $in, $now);
+        [, , $lines, $p] = $this->lines($k, $in, $now);
 
-        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown']];
+        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
+            'packaging' => app(PackagingCalc::class)->forLines($lines, (string) ($in['service'] ?? '') !== 'dine_in')];
     }
 
     /**

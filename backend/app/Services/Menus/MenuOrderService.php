@@ -346,6 +346,7 @@ class MenuOrderService
 
         return ['subtotal' => $preview['subtotal'], 'delivery_fee' => $preview['delivery_fee'], 'tax_total' => $preview['tax_total'], 'total' => $preview['total'],
             'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol']), 'at' => $p['at']->toIso8601String(), 'asap' => $p['asap'],
+            'packaging' => app(PackagingCalc::class)->forLines($p['lines'], true),
             'lines' => array_map(fn ($l) => ['dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'unit_price' => $l['unit_price'], 'amount' => round($l['unit_price'] * $l['quantity'], 2),
                 'options' => array_column($l['options'], 'name'), 'serving' => $l['serving'] ?? null, 'sides' => array_column($l['selection'] ?? [], 'side')], $p['lines'])];
     }
