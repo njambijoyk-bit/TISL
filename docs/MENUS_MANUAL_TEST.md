@@ -2,7 +2,7 @@
 
 Do the parts in this order: each one needs the one before it. Tick a box only when it did what the "expect" line says. Write down anything that made you stop and think, even if it worked: that is exactly what the automated tests cannot see.
 
-**Where the newer parts are (Steps 1 to 5).** Sections 0c to 0l: recipes, prepared food, sides and the dish make-up. 0m to 0q: stock following sides, ordering with sizes and picks, tickets, paid extras, the guided dish screen. 0r to 0t: what a customer may leave out or add. 0u to 0ab: packaging (prices, rules, the list at the till, waiving, the bill and the shelf, the receipt and packers' ticket, free condiments, the report). The scripts are listed in docs/MENUS_DISHES_PLAN.md under section 6; run them in numerical order.
+**Where the newer parts are (Steps 1 to 6).** Sections 0c to 0l: recipes, prepared food, sides and the dish make-up. 0m to 0q: stock following sides, ordering with sizes and picks, tickets, paid extras, the guided dish screen. 0r to 0t: what a customer may leave out or add. 0u to 0ab: packaging (prices, rules, the list at the till, waiving, the bill and the shelf, the receipt and packers' ticket, free condiments, the report). 0ac: the tips box tables. The scripts are listed in docs/MENUS_DISHES_PLAN.md under section 6; run them in numerical order.
 
 **What to watch for the whole way (the human checks)**
 - Did you ever not know what to press next, or what a word meant (pack, base unit, variant, station, expo, 86)?
@@ -217,6 +217,9 @@ With three rules on the stew: the container (charged, receipt *Never*), the foil
 2. Menus, Operations, **Packaging**: the totals say how many orders, how much was asked for and given, how much was left off, how many lines were changed and swapped. Change the dates or the branch and it follows. Cancel an order and it drops out.
 3. *By item*: the foil asked for, given, left off and on how many orders it was changed; a swap shows as "Container swapped for Bag". *Why it was left off*: "brought their own" counts both orders as one reason; a cut with no reason is "No reason given". *Latest changes* names the order, the reason and, for a waiver, how much and who.
 4. Without scripts 207 to 209 the tab says which to run.
+
+## 0ac. The tips box tables (after script 212)
+Nothing on screen changes yet; this only checks the script. Run `212_menus_tips.sql` part by part. Part A returns no rows the first time, part C returns one row with `tips` 0 and `tip_events` 0. Run it a second time: nothing fails and nothing changes. The tip box at payment (6.2) and the tips screen (6.4) are the next steps.
 
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
