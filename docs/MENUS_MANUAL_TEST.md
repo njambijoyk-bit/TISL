@@ -94,10 +94,37 @@ Do this on test dishes first. The switch is Menus, Configuration, *Selling throu
 4. Menus, Sides: a side that is in a dish's make-up can not be removed or switched off ("take it out there first"). Deleting a dish that was never sold takes its make-up with it.
 5. Nothing in the till changes yet: the till and the online menu still use the dish's own price and Choices. The make-up is what step 3's ordering reads.
 
-## 0l. Dish picks and the order line (after script 203): no screen yet
-The rules and the order line are in place, but nothing in the till or online takes the picks until step 3.7, so there is nothing to click yet. What can be checked now:
+## 0l. Dish picks and the order line (after script 203)
+The rules and the order line behind the sections below. What can be checked with them:
 1. After running script 203, the order lines table has the size and picks columns; orders as they are today are unchanged (a line with no make-up has none).
 2. The backend tests (`MenusDishSelectionTest`) show the rules: a steak sandwich in Jumbo (650) or Kids (350), choose-one protein (wet fry +50), choose-any greens (fewest 1, most 2, spinach +20), free sauces up to 2, paid eggs up to 3 (40 each); and that selling a dish whose line carries side rows takes exactly the same ingredients as before.
+
+## 0m. Stock follows the sides (after scripts 200, 202, 203; sides made from recipes of their own)
+Set up a steak sandwich with the make-up from 0k, each side with a recipe or ingredient and some stock on the shelf.
+1. Sell one in Jumbo with the sides chosen to begin with (till, then the Stock page). Only the sides' ingredients come off the shelf (the bread's, the choma's, the kale's), in the amounts for that size; the dish's own recipe, if it still has one, is not taken as well. Sell one in Kids: the choma amount is smaller.
+2. A side made ahead (Prepared food page: make a batch first): selling it takes prepared portions, soonest use-by first; selling more than the shelf holds is refused with "Not enough ... prepared" and nothing is taken.
+3. A ready-to-serve side (a soda): its stock goes down by the number picked.
+4. Cancel a sale: every side comes back, once; cancelling twice puts nothing back twice.
+5. Menus, Dishes: *Can serve* for a dish with a make-up is how many the sides allow. Run the bread out and it shows 0 and the dish is sold out; run out of one of two choose-one sides and the dish can still be sold with the other.
+
+## 0n. Ordering with a size and picks (no script)
+1. Till: tap the steak sandwich. A box asks the **size** (required) and then each slot: the bread is shown as coming with it; *Protein* is pick one; *Greens* is at least 1 up to 2; sauces and *Extras* have a − and + for how many. A side that has run out is greyed and says "sold out". The button shows the price as it changes (size + what each pick adds), and cannot be pressed while something required is missing.
+2. Add it, add another with different picks: two lines. Send, pay: the receipt and the books' sales order carry the size and the sides.
+3. Make a side run out, then order a dish that needs it (or two dishes that need the same flour): the order is refused with "... has run out: please choose something else" and nothing is sold.
+4. The same picker is used online (Menu page, Choose), at the kiosk and at a table QR, and the price is the same in all of them. A dish with no make-up still goes straight in with one tap.
+
+## 0o. Tickets, receipts and screens
+1. The kitchen screen shows the dish, then the size in bold and each side below it, indented ("- Bread", "- Wet fry", "- Egg x2"). The printed ticket shows the same.
+2. The receipt prints the size and the sides under the dish line, then any choices and the note. The till's tab, Menus, Orders and the customer's order page show them too.
+
+## 0p. Paid extras on an open tab
+1. Open a tab with a steak sandwich. Under its line each paid extra shows a button "+ Egg 40.00". Tap it: the extra is its own line (round 2) in the kitchen, the tab total goes up by 40.00 plus tax, and the egg's stock goes down.
+2. Keep tapping: after the slot's most (counting any eggs ordered with the dish) the button disappears and the till says no more can go with it. An extra can be taken off (X) before the kitchen starts it. An extra has no extras of its own.
+
+## 0q. Guided dish screen and the public menu
+1. Menus, Dishes, **New dish, guided**: name and price, **Next**; sizes and audience, **Next**; *What is in it*: tick sides, or **Make a new side** (name, made to order or ahead, the ingredients and amounts for one serving): the side is made with its recipe at once and ticked; **Next**: the slots; **Next**: choices (a button opens the older choices screen after saving); **Next**: packaging (nothing yet); **Finish** saves the make-up. **Guided** on an existing dish does the same from step 2.
+2. A side whose recipe fails (no ingredient, a name already used) is not made, and no half-made recipe is left behind.
+3. The online Menu page: a dish with sizes shows "from 350" and each size with its price, who it is for, and *What comes with it*. With audiences set, a *For* row appears; choosing Kids hides the dishes meant for Adults only and keeps those for everyone.
 
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
