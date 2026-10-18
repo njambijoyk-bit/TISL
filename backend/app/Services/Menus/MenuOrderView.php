@@ -12,7 +12,7 @@ class MenuOrderView
     {
         $o->loadMissing('lines');
 
-        return $this->base($o) + ['can_cancel' => $o->status === 'placed' && $o->payment !== 'paid', 'steps' => $this->steps($o)];
+        return $this->base($o) + ['packaging' => array_values(array_filter(app(PackagingCheckout::class)->forPackers($o), fn ($p) => $p['shown'])), 'can_cancel' => $o->status === 'placed' && $o->payment !== 'paid', 'steps' => $this->steps($o)];
     }
 
     /** @return array<string, mixed> */
@@ -20,7 +20,7 @@ class MenuOrderView
     {
         $o->loadMissing('lines', 'channel');
 
-        return $this->base($o) + [
+        return $this->base($o) + ['packaging' => app(PackagingCheckout::class)->forPackers($o)] + [
             'id' => $o->id, 'phone' => $o->phone, 'email' => $o->email, 'channel' => $o->channel?->name, 'payment_method_id' => $o->payment_method_id, 'location_id' => $o->location_id,
             'next' => $o->payment === 'pending' ? [] : array_values(array_filter(MenuOrderService::NEXT[$o->status] ?? [], fn ($s) => ! ($s === 'out' && $o->order_type !== 'delivery')
                 && ! ($s === 'completed' && ($o->payment === 'later' || ($o->order_type === 'delivery' && $o->status === 'ready'))))),

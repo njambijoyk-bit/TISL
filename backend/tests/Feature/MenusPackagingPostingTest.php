@@ -173,4 +173,52 @@ class MenusPackagingPostingTest extends TestCase
         $paid = app(CounterService::class)->settleTab($tab, ['tenders' => [['payment_method_id' => 1, 'amount' => 5000]]]);
         $this->assertSame([$sold->id, $paid->id], array_column($calls, 0));
     }
+
+    // ------------------------------------------------------------ 5.7 the receipt and the packers' ticket
+
+    public function test_the_packers_see_every_line_even_the_ones_the_customer_does_not(): void
+    {
+        $this->rules()->save('side', $this->stew->id, [$this->rule($this->box, ['quantity' => 2, 'charged' => true, 'receipt' => 'never']), $this->rule($this->foil, ['receipt' => 'auto']), $this->rule($this->bag, ['receipt' => 'always'])]);
+        $o = app(CounterService::class)->sell(['items' => $this->meal(1), 'service' => 'take_out', 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]]], null, $this->now)->fresh();
+        $text = app(\App\Services\Menus\ReceiptService::class)->for($o, 32)['text'];
+        $this->assertStringNotContainsString('Container', $text, 'charged, but the switch says never');
+        $this->assertStringNotContainsString('Foil', $text, 'free and auto: not shown');
+        $this->assertMatchesRegularExpression('/1  Packaging: Bag\s+free/', $text, 'always: shown, though free');
+        $station = \App\Models\Menus\Station::first();
+        $card = app(\App\Services\Menus\KitchenService::class)->screen($station, $this->now)['tickets'][0];
+        $this->assertSame([['Bag', 1], ['Container', 2], ['Foil', 1]], array_map(fn ($p) => [$p['name'], $p['quantity']], $card['packaging']), 'the packers get the whole list');
+        $this->assertSame(['Bag'], array_column(app(\App\Services\Menus\MenuOrderView::class)->customer($o)['packaging'], 'name'), 'the customer\'s page shows what the receipt shows');
+        $this->assertCount(3, app(\App\Services\Menus\MenuOrderView::class)->staff($o)['packaging']);
+    }
+
+    public function test_a_charged_line_the_receipt_shows_carries_its_amount_and_what_was_taken_off_is_not_listed(): void
+    {
+        $this->ruled();
+        $o = app(CounterService::class)->sell(['items' => $this->meal(), 'service' => 'take_out', 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]], 'packaging' => [['item_id' => $this->foil, 'quantity' => 0, 'reason' => 'own']]], null, $this->now)->fresh();
+        $text = app(\App\Services\Menus\ReceiptService::class)->for($o, 32)['text'];
+        $this->assertMatchesRegularExpression('/4  Packaging: Container\s+60\.00/', $text);
+        $this->assertStringNotContainsString('Foil', $text);
+        $card = app(\App\Services\Menus\KitchenService::class)->screen(\App\Models\Menus\Station::first(), $this->now)['tickets'][0];
+        $this->assertSame(['Container'], array_column($card['packaging'], 'name'), 'taken off: the packers do not pack it');
+    }
+
+    public function test_a_tab_shows_the_packers_what_the_rules_ask_for_and_a_meal_eaten_in_shows_nothing(): void
+    {
+        $this->ruled();
+        app(CounterService::class)->openTab(['items' => $this->meal(1), 'service' => 'take_out', 'label' => 'Amina'], null, $this->now);
+        $card = app(\App\Services\Menus\KitchenService::class)->screen(\App\Models\Menus\Station::first(), $this->now)['tickets'][0];
+        $this->assertSame([['Container', 2], ['Foil', 1]], array_map(fn ($p) => [$p['name'], $p['quantity']], $card['packaging']));
+        app(CounterService::class)->openTab(['items' => $this->meal(1), 'service' => 'dine_in', 'label' => 'Table 5'], null, $this->now);
+        $cards = app(\App\Services\Menus\KitchenService::class)->screen(\App\Models\Menus\Station::first(), $this->now)['tickets'];
+        $this->assertSame([], end($cards)['packaging']);
+    }
+
+    public function test_only_the_first_ticket_of_an_order_carries_the_list(): void
+    {
+        $this->ruled();
+        $tab = app(CounterService::class)->openTab(['items' => $this->meal(1), 'service' => 'take_out', 'label' => 'Amina'], null, $this->now);
+        app(CounterService::class)->addToTab($tab, ['items' => $this->meal(1)], null, $this->now);
+        $cards = app(\App\Services\Menus\KitchenService::class)->screen(\App\Models\Menus\Station::first(), $this->now)['tickets'];
+        $this->assertSame([true, false], array_map(fn ($c) => count($c['packaging']) > 0, $cards), 'two rounds, one list: on the first');
+    }
 }

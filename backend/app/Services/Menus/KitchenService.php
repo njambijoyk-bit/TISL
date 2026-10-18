@@ -198,7 +198,9 @@ class KitchenService
         $o = $t->order;
         $waited = (int) $o->created_at->diffInMinutes($now);
 
-        return ['id' => $t->id, 'status' => $t->status, 'order_id' => $o->id, 'number' => $o->number, 'name' => explode(' ', trim($o->name))[0], 'order_type' => $o->order_type, 'service' => $o->service, 'short_no' => $o->short_no, 'label' => $o->label, 'round' => (int) $t->round, 'tab' => $o->isTab(), 'asap' => $o->asap,
+        $first = Ticket::where('order_id', $o->id)->where('status', '!=', 'cancelled')->min('id') === $t->id;   // the packers read it once, on the order's first ticket
+
+        return ['id' => $t->id, 'status' => $t->status, 'order_id' => $o->id, 'packaging' => $first ? app(PackagingCheckout::class)->forPackers($o) : [], 'number' => $o->number, 'name' => explode(' ', trim($o->name))[0], 'order_type' => $o->order_type, 'service' => $o->service, 'short_no' => $o->short_no, 'label' => $o->label, 'round' => (int) $t->round, 'tab' => $o->isTab(), 'asap' => $o->asap,
             'due_at' => $t->due_at->toIso8601String(), 'waited' => $waited, 'late' => $t->status !== 'ready' && $waited >= $s->target_minutes, 'started_at' => $t->started_at?->toIso8601String(), 'notes' => $o->notes,
             'lines' => $t->lines->map(function ($l) {
                 $dish = Dish::find($l->dish_id);

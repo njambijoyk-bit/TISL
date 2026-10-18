@@ -66,6 +66,11 @@ class ReceiptService
                 $out[] = '   * '.$l->note;
             }
         }
+        foreach (app(PackagingCheckout::class)->forOrder($o) as $p) {   // the packaging the receipt shows: what was sold, or what the switch says to show
+            if ($p['quantity'] > 0 && app(PackagingCheckout::class)->shows($p['receipt'], $p['charged'])) {
+                $out[] = $this->line((string) $p['quantity'], 'Packaging: '.$p['name'], $p['charged'] ? $this->money($p['amount']) : 'free', $width);
+            }
+        }
         $out[] = $rule;
         $out[] = $pair('Subtotal', $this->money((float) $o->subtotal - (float) $o->delivery_fee));
         if ((float) $o->delivery_fee > 0) {

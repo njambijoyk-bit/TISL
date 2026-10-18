@@ -210,6 +210,40 @@ class PackagingCheckout
         });
     }
 
+    /**
+     * What the packers should put in the bag: the list the order was checked out with (what was taken off is left out), else, for a take-out order not paid yet (a tab), what the rules ask for
+     * now. Every line is here, whether or not the receipt shows it to the customer. Nothing for a meal eaten in.
+     *
+     * @return array<int, array{name: string, quantity: int, charged: bool, shown: bool}>
+     */
+    public function forPackers(MenuOrder $o): array
+    {
+        if (! PackagingRules::installed()) {
+            return [];
+        }
+        $stored = self::installed() ? OrderPackaging::where('order_id', $o->id)->count() : 0;
+        if ($stored) {
+            return array_values(array_map(fn ($r) => ['name' => $r['name'], 'quantity' => $r['quantity'], 'charged' => $r['charged'], 'shown' => $this->shows($r['receipt'], $r['charged'])],
+                array_filter($this->forOrder($o), fn ($r) => $r['quantity'] > 0)));
+        }
+        if ($o->service === 'dine_in' || $o->order_type === 'counter' && ! $o->service) {
+            return [];
+        }
+        try {
+            $lines = app(CounterService::class)->rebuild($o);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        return array_values(array_map(fn ($l) => ['name' => $l['name'], 'quantity' => $l['quantity'], 'charged' => $l['charged'], 'shown' => $l['shown']], $this->calc->forLines($lines, true)));
+    }
+
+    /** Does the receipt show a line: always, or when charged (auto), never? */
+    public function shows(string $receipt, bool $charged): bool
+    {
+        return $receipt === 'always' || ($receipt === 'auto' && $charged);
+    }
+
     /** The list an order was checked out with. @return array<int, array<string, mixed>> */
     public function forOrder(MenuOrder $o): array
     {

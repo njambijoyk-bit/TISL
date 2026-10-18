@@ -66,6 +66,7 @@ export default function OrderTrackPage() {
                     <span>{money(l.unit_price * l.quantity)}</span>
                   </li>
                 ))}
+                {(o.packaging ?? []).map((p) => <li key={p.name} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: '0.88rem', color: 'var(--text-tertiary)' }}><span>{p.quantity} × {p.name}</span></li>)}
               </ul>
               <hr style={{ border: 0, borderTop: '1px solid var(--line, #e5e7eb)', margin: '12px 0' }} />
               <dl style={{ margin: 0, display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 12px', fontSize: '0.9rem' }}>

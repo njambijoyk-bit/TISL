@@ -40,6 +40,11 @@ function Ticket({ t, stationName, canAct, onAct, minutes }) {
           </li>
         ))}
       </ul>
+      {(t.packaging ?? []).length > 0 && (
+        <div data-testid="pack-list" style={{ margin: '0 12px 8px', padding: '6px 10px', borderRadius: 8, background: '#1e3a8a', fontWeight: 800 }}>
+          PACK: {t.packaging.map((p) => `${p.quantity} × ${p.name}`).join(', ')}
+        </div>
+      )}
       {t.notes && <div style={{ margin: '0 12px 8px', padding: '6px 10px', borderRadius: 8, background: '#7c2d12', fontWeight: 800 }}>NOTE: {t.notes}</div>}
       <footer style={{ padding: '8px 12px 12px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         {canAct && t.status === 'new' && <button type="button" style={btn('#d97706')} onClick={() => onAct(t, 'start')}>Start</button>}

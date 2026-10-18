@@ -196,6 +196,13 @@ With the container (priced 15, compulsory, 2 for each dish) and the free foil (1
 6. A tab: its running total shows the dishes only; when it is paid the packaging is added to the bill. Online and kiosk orders carry the packaging as the rules ask.
 7. Dining in: no packaging at all.
 
+## 0z. The receipt and the packers' ticket
+With three rules on the stew: the container (charged, receipt *Never*), the foil (free, receipt *When charged*), the bag (free, receipt *Always*).
+1. Till: take out one meal and pay. The receipt shows "Packaging: Bag ... free" and nothing for the container (though it was charged and is in the total) or the foil (free, auto).
+2. The kitchen screen's ticket for that order has a blue line "PACK: 1 × Bag, 2 × Container, 1 × Foil": the packers see all of it. The printed ticket has the same. The Orders board shows "Pack: ...". The customer's order page lists only the bag.
+3. Set the container's receipt to *Auto* and pay again: the receipt now has "4 Packaging: Container 60.00", and the lines add up to the subtotal.
+4. Take the foil off at the till: it is not on the PACK line. Open a tab for a take-out meal: the ticket shows what the rules ask for already; a tab ordered in two rounds shows it on the first ticket only. Dining in shows no PACK line.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.
