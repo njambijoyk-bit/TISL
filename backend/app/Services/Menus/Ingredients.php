@@ -121,6 +121,9 @@ class Ingredients
         if ($id && ! $kind->in_recipes && DishRecipeLine::where('ingredient_id', $id)->exists()) {
             throw new BooksException("It is in a recipe, and {$kind->name} is not used in recipes. Take it out of the recipes first, or choose a kind that is.");
         }
+        if ($id && ! $kind->sold_as_is && ($sides = Sides::usingIngredient($id))) {
+            throw new BooksException('It is the side '.implode(', ', array_slice($sides, 0, 3))." and {$kind->name} is not sold as it is. Remove the side first, or choose a kind that is.");
+        }
 
         return $kind;
     }
@@ -211,6 +214,9 @@ class Ingredients
     /** Recipes arrive on ingredients in a later step; until then nothing uses one. */
     private function assertNotInRecipe(Ingredient $ingredient): void
     {
+        if ($sides = Sides::usingIngredient((int) $ingredient->id)) {
+            throw new BooksException("{$ingredient->name} is the side ".implode(', ', array_slice($sides, 0, 3)).'. Remove the side first, or switch the ingredient off instead.');
+        }
         if (\Illuminate\Support\Facades\Schema::hasTable('menus_recipe_lines') && DB::table('menus_recipe_lines')->where('ingredient_id', $ingredient->id)->exists()) {
             throw new BooksException("{$ingredient->name} is used in a recipe. Take it out of the recipe first, or switch the ingredient off instead.");
         }

@@ -67,6 +67,13 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 2. For a range that ends today, the Closing equals the shelf on the Prepared food page. Change a batch outside the screens (a database edit) and the report says the shelf holds something else now.
 3. *Chefs compared*: pick a period (and a recipe). Expect one row per recipe and chef: batches, minutes a batch (from the start and finish you noted), the expected minutes, over or under, minutes per kg, came out against planned, recipe followed (what was really used against what the recipe said), servings per kg (from the servings cut) and cost per kg. A batch with no chef is "Nobody named"; a batch without times is left out of the minutes; an undone batch is left out of everything. Recipes in different units are never added together.
 
+## 0h. Sides (after script 200; servings after 193)
+1. Menus, **Sides**, Add a side: name *Ugali*, made from the recipe *Ugali* (counted in kg), amounts written in **Gram**, in a serving 250, Jumbo 350, Kids 100. Save. Expect the list to show "Jumbo: 350 g, Kids: 100 g, Other sizes: 250 g".
+2. Add *Coke*, made from a ready-to-serve ingredient, nothing else: "Every size: 1 each". An ingredient of the kind Cooking ingredient is not offered (it is not sold as it is).
+3. A side needs exactly one source. A unit that measures something else (litres for a kg recipe), a zero amount, a serving twice, or the same name twice is refused.
+4. Menus, Recipes: try to remove or switch off the recipe *Ugali*, or change its unit: refused while the side uses it. Menus, Ingredients: the same for Coke. Remove the side and they are free again.
+5. Nothing in the till or on the dishes changes yet: dishes are built from sides in step 3.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

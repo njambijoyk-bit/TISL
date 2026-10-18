@@ -152,6 +152,7 @@ const StockTransfers     = lazy(() => import('./core/pages/admin/stock/StockTran
 const StockCounts        = lazy(() => import('./core/pages/admin/stock/StockCounts'));
 const Recipes            = lazy(() => import('./menus/pages/admin/Recipes'));
 const MenusPrepared      = lazy(() => import('./menus/pages/admin/MenusPrepared'));
+const MenusSides         = lazy(() => import('./menus/pages/admin/MenusSides'));
 const FoodTags           = lazy(() => import('./menus/pages/admin/FoodTags'));
 const MenusOpeningStock   = lazy(() => import('./menus/pages/admin/MenusOpeningStock'));
 const MenusCountStock     = lazy(() => import('./menus/pages/admin/MenusCountStock'));
@@ -920,6 +921,7 @@ function App() {
               <Route path="/admin/menus/stock/opening" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusOpeningStock /></ProtectedRoute>} />
               <Route path="/admin/menus/stock/count" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusCountStock /></ProtectedRoute>} />
               <Route path="/admin/menus/recipes" element={<ProtectedRoute requireAdmin permission="menus.view"><Recipes /></ProtectedRoute>} />
+              <Route path="/admin/menus/sides" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusSides /></ProtectedRoute>} />
               <Route path="/admin/menus/prepared" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusPrepared /></ProtectedRoute>} />
               <Route path="/admin/menus/allergens" element={<ProtectedRoute requireAdmin permission="menus.view"><FoodTags /></ProtectedRoute>} />
               <Route path="/admin/menus/settings" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusSettings /></ProtectedRoute>} />

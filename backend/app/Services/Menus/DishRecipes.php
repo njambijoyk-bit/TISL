@@ -86,6 +86,12 @@ class DishRecipes
         if ($row->exists && array_key_exists('is_active', $d) && ! $d['is_active'] && ($by = $this->usedBy((int) $row->id))) {
             throw new BooksException("{$name} is used in ".implode(', ', array_slice($by, 0, 3)).'. Take it out there before switching it off.');
         }
+        if ($row->exists && array_key_exists('is_active', $d) && ! $d['is_active'] && ($sides = Sides::usingRecipe((int) $row->id))) {
+            throw new BooksException("{$name} is the recipe of the side ".implode(', ', array_slice($sides, 0, 3)).'. Switch the side off or change it before switching the recipe off.');
+        }
+        if ($row->exists && self::has('yield_unit_id') && (int) $row->yield_unit_id !== (int) $c['unit'] && ($sides = Sides::usingRecipe((int) $row->id))) {
+            throw new BooksException("{$name} is the recipe of the side ".implode(', ', array_slice($sides, 0, 3)).', whose amounts are written for its unit: change the side first.');
+        }
         if ($row->exists && self::has('yield_unit_id') && (int) $row->yield_unit_id !== (int) $c['unit'] && self::madeInBatches((int) $row->id)) {
             throw new BooksException("{$name} has been made in a batch, so the unit it is counted in can not change.");
         }
@@ -117,6 +123,9 @@ class DishRecipes
         }
         if (self::madeInBatches((int) $r->id)) {
             throw new BooksException("{$r->title()} has been made in a batch, so it can not be removed. Switch it off instead.");
+        }
+        if ($sides = Sides::usingRecipe((int) $r->id)) {
+            throw new BooksException("{$r->title()} is the recipe of the side ".implode(', ', array_slice($sides, 0, 3)).'. Change or remove the side first.');
         }
         DB::transaction(function () use ($r) {
             $r->lines()->delete();
