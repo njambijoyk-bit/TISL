@@ -5,6 +5,8 @@ namespace App\Services\Menus;
 use App\Models\Menus\Dish;
 use App\Models\Menus\DishRecipe;
 use App\Models\Menus\DishSlot;
+use App\Models\Menus\DishSlotChoice;
+use App\Models\Menus\Side;
 
 /** What can be said about a dish from its recipe: allergens and diets (inherited from the ingredients), whether it can be made now, and what it costs. */
 class DishInfo
@@ -22,7 +24,7 @@ class DishInfo
     public function profile(Dish $dish): array
     {
         $dish->loadMissing('menuRecipe.lines.ingredient');
-        $inherited = $dish->menuRecipe ? $this->ingredients($dish->menuRecipe) : ['allergens' => [], 'tags' => [], 'unknown' => 1];
+        $inherited = $this->inherited($dish);
         $declaredAllergens = $dish->allergens_override !== null;
         $declaredTags = $dish->tags_override !== null;
         $allergens = FoodTags::clean($declaredAllergens ? $dish->allergens_override : $inherited['allergens'], FoodTags::allergens());
@@ -30,6 +32,33 @@ class DishInfo
         $complete = ($declaredAllergens && $declaredTags) || $inherited['unknown'] === 0;
 
         return ['allergens' => $allergens, 'tags' => $tags, 'diets' => $complete ? DietBadges::for($allergens, $tags) : [], 'complete' => $complete, 'declared' => $declaredAllergens || $declaredTags];
+    }
+
+    /**
+     * What the dish inherits: from its own recipe, and, when it is put together from sides, from every side in every slot (any of them can end up on the plate, so a guest avoiding an allergen is
+     * told about a side they might be given). A dish with neither is unknown.
+     *
+     * @return array{allergens: string[], tags: string[], unknown: int}
+     */
+    private function inherited(Dish $dish): array
+    {
+        $out = $dish->menuRecipe ? $this->ingredients($dish->menuRecipe) : ['allergens' => [], 'tags' => [], 'unknown' => 1];
+        if (! DishMakeup::installed() || ! ($slots = DishSlot::where('dish_id', $dish->id)->pluck('id')->all())) {
+            return $out;
+        }
+        $sides = Side::with('recipe', 'ingredient')->whereIn('id', DishSlotChoice::whereIn('slot_id', $slots)->pluck('side_id'))->get();
+        foreach ($sides as $side) {
+            $ings = $side->recipe ? $this->use->ingredientsOf($side->recipe) : collect([$side->ingredient])->filter();   // a side is made from a recipe or is one ready-to-serve ingredient
+            foreach ($ings as $ing) {
+                $out['allergens'] = array_merge($out['allergens'], $ing->allergens ?? []);
+                $out['tags'] = array_merge($out['tags'], $ing->tags ?? []);
+            }
+        }
+        if ($sides->isNotEmpty()) {
+            $out['unknown'] = 0;   // every side says what it is made from
+        }
+
+        return $out;
     }
 
     /** What a recipe written on ingredients inherits: every ingredient says what it contains and what it is, so nothing is unknown. @return array{allergens: string[], tags: string[], unknown: int} */
