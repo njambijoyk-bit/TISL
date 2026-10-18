@@ -53,13 +53,15 @@ class DishInfo
             return 0.0;
         }
         $dish->loadMissing('menuRecipe');
-        $r = $dish->menuRecipe;
+        $sales = app(SideSales::class);
+        $side = $sales->sideFor($dish);   // sold through its side: the side's recipe, for as much as one serving holds
+        $r = $side?->recipe ?? $dish->menuRecipe;
         if (! $r || ! $r->is_active) {
             return 0.0;
         }
         if ($r->made_to_order) {
             try {
-                return $this->use->capacity($r, $locationId);
+                return round($this->use->capacity($r, $locationId) / ($side ? $sales->perPortion($side) : 1.0), 4);
             } catch (\App\Services\Books\BooksException) {
                 return 0.0;   // an ingredient was removed or switched off: it can not be made until the recipe is fixed
             }
@@ -73,8 +75,11 @@ class DishInfo
     {
         $price = $dish->price === null ? null : (float) $dish->price;
         $dish->loadMissing('menuRecipe.lines.ingredient');
-        $c = $dish->menuRecipe ? $this->use->cost($dish->menuRecipe, $locationId) : ['per_portion' => null, 'complete' => false];
-        $cost = $c['per_portion'];
+        $sales = app(SideSales::class);
+        $side = $sales->sideFor($dish);
+        $recipe = $side?->recipe ?? $dish->menuRecipe;
+        $c = $recipe ? $this->use->cost($recipe, $locationId) : ['per_portion' => null, 'complete' => false];
+        $cost = $c['per_portion'] === null || ! $side ? $c['per_portion'] : round($c['per_portion'] * $sales->perPortion($side), 4);
 
         return ['price' => $price, 'cost' => $cost, 'margin' => $price !== null && $cost !== null ? round($price - $cost, 4) : null,
             'food_cost_pct' => $price && $cost !== null ? round($cost / $price * 100, 1) : null, 'complete' => (bool) $c['complete']];

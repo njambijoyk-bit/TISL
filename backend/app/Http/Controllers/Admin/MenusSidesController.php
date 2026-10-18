@@ -14,6 +14,7 @@ use App\Services\Menus\IngredientKinds;
 use App\Services\Menus\MenusLists;
 use App\Services\Menus\Sides;
 use App\Services\Menus\SidesFromDishes;
+use App\Services\Menus\SidesReadiness;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
@@ -59,6 +60,12 @@ class MenusSidesController extends Controller
 
             return response()->json(['message' => "{$s->name} saved.", 'side' => $this->sides->row($s)], $id === null ? 201 : 200);
         });
+    }
+
+    /** Is it safe to switch on selling through sides: copies that differ from their dishes' recipes, dishes without a side, stock on the old shelf. */
+    public function readiness(SidesReadiness $readiness): JsonResponse
+    {
+        return response()->json($readiness->report());
     }
 
     /** What making sides from the dishes' recipes would do now (nothing is changed). */

@@ -26,8 +26,10 @@ export default function MenusSettings() {
   const [busy, setBusy] = useState(false);
   const [currencies, setCurrencies] = useState([]);
   const [kinds, setKinds] = useState([]);
+  const [readiness, setReadiness] = useState(null);
 
   useEffect(() => { currencyAPI.getCurrencies().then((r) => setCurrencies((Array.isArray(r) ? r : r?.data ?? r?.currencies ?? []).filter((c) => c.is_active !== false))).catch(() => {}); }, []);
+  useEffect(() => { menusAPI.sidesReadiness().then(setReadiness).catch(() => {}); }, []);
   useEffect(() => { menusAPI.ingredientKinds().then((r) => setKinds(r.kinds ?? [])).catch(() => {}); }, []);
   useEffect(() => { menusAPI.settings().then((r) => { setS(r.settings); setReady(r.ready); }).catch((e) => toast.error(errMsg(e, 'Could not load the settings'))); }, []);
 
@@ -38,7 +40,7 @@ export default function MenusSettings() {
         prepared_food_ledger_id: s.prepared_food_ledger_id || null, tips_window: s.tips_window ?? 'anytime', tips_from: s.tips_from ?? '00:00', tips_to: s.tips_to ?? '23:59', tips_days: s.tips_days ?? [1, 2, 3, 4, 5, 6, 7], packaging_kind_id: s.packaging_kind_id || null, packaging_sales_ledger_id: s.packaging_sales_ledger_id || null,
         ingredient_stock_ledger_id: s.ingredient_stock_ledger_id || null, food_cost_ledger_id: s.food_cost_ledger_id || null, food_waste_ledger_id: s.food_waste_ledger_id || null,
         tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
-        qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
+        sell_through_sides: Boolean(s.sell_through_sides), qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
         custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0,
         rota_max_week_hours: Number(s.rota_max_week_hours) || 48, rota_min_rest_hours: Number(s.rota_min_rest_hours) || 0,
         rota_ahead_weeks: Number(s.rota_ahead_weeks) || 0, rota_overtime_source: s.rota_overtime_source ?? 'attendance', rota_overtime_grace: Number(s.rota_overtime_grace) || 0,
@@ -74,6 +76,27 @@ export default function MenusSettings() {
               <Field label="A line at the foot of every receipt" htmlFor="ms-footer" hint="For example: Thank you for dining with us. Prices include VAT.">
                 <TextInput id="ms-footer" maxLength={200} value={s.receipt_footer ?? ''} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, receipt_footer: e.target.value }))} />
               </Field>
+              <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid="sell-through-sides">
+                <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Selling through sides</legend>
+                <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}>
+                  <input type="checkbox" checked={Boolean(s.sell_through_sides)} disabled={!canEdit || !ready || (readiness && !readiness.ready)} onChange={(e) => setS((x) => ({ ...x, sell_through_sides: e.target.checked }))} />
+                  A sold dish takes its stock through its side
+                </label>
+                <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>
+                  Off: a dish uses its own recipe, as always. On: a dish that has a side (Menus, Sides) uses the recipe its side is made from, for as much as one serving holds; a dish made ahead sells prepared food (Menus, Prepared food) instead of its old shelf.
+                  A dish with no side keeps selling as before. Switch it off again at any time.
+                </p>
+                {readiness && !readiness.ready && <p role="status" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Run database scripts 200_menus_sides.sql and 201_menus_sides_from_dishes.sql first.</p>}
+                {readiness?.ready && (
+                  <div data-testid="readiness" style={{ fontSize: '0.78rem', color: colors.textMuted, display: 'grid', gap: 4 }}>
+                    <div>{readiness.with_side} of {readiness.dish_recipes} dishes with a recipe have a side.</div>
+                    {readiness.without_side.length > 0 && <div style={{ color: colors.warning }}>No side yet (they keep selling as before): {readiness.without_side.join(', ')}. Make them under Menus, Sides.</div>}
+                    {readiness.differs.map((d) => <div key={d.dish} style={{ color: colors.warning }}>{d.dish}: the side&apos;s recipe differs from the dish&apos;s own ({d.what.join('; ')}). Selling will follow the side&apos;s recipe.</div>)}
+                    {readiness.old_shelf.map((o) => <div key={o.dish} style={{ color: colors.danger }}>{o.dish}: {o.portions} portions are on the old dish shelf. They will not be sold once this is on: sell or write them off first, or make a batch on the Prepared food page.</div>)}
+                    {readiness.without_side.length === 0 && readiness.differs.length === 0 && readiness.old_shelf.length === 0 && <div style={{ color: colors.success }}>Nothing stands in the way.</div>}
+                  </div>
+                )}
+              </fieldset>
               <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
                 <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Ordering from a table&apos;s QR code</legend>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.qr_ordering)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, qr_ordering: e.target.checked }))} /> Guests may order and pay from the table&apos;s QR code</label>

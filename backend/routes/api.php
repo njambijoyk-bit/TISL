@@ -951,6 +951,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock', [\App\Http\Controllers\Admin\MenusStockController::class, 'index']);   // what is on the shelf, per branch
         Route::get('/stock/receipts', [\App\Http\Controllers\Admin\MenusStockController::class, 'receipts']);
         Route::get('/stock/productions', [\App\Http\Controllers\Admin\MenusRecipesController::class, 'productions']);
+        Route::get('/stock/sides/readiness', [\App\Http\Controllers\Admin\MenusSidesController::class, 'readiness']);
         Route::get('/stock/sides/from-dishes', [\App\Http\Controllers\Admin\MenusSidesController::class, 'fromDishes']);
         Route::get('/stock/sides', [\App\Http\Controllers\Admin\MenusSidesController::class, 'index']);
         Route::get('/stock/prepared', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'index']);

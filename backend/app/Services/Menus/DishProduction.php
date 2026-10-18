@@ -28,6 +28,9 @@ class DishProduction
         if ($portions <= 0) {
             throw new BooksException('Enter how many portions were made.');
         }
+        if ($side = app(SideSales::class)->sideFor($dish)) {
+            throw new BooksException("{$dish->name} is sold through its side {$side->name} now, which takes prepared food: make a batch of {$side->recipe->title()} on the Prepared food page.");
+        }
         $recipe = DishRecipe::where('dish_id', $dish->id)->where('is_active', true)->first();
         if (! $recipe) {
             throw new BooksException("{$dish->name} has no recipe, so there is nothing to make it from. Write its recipe first.");

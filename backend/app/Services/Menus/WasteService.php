@@ -65,13 +65,20 @@ class WasteService
         $item = ! empty($in['item_id']) ? IngredientItem::with('ingredient.baseUnit', 'ingredient.altUnit')->find((int) $in['item_id']) : null;
         $dish = ! $item && ! empty($in['dish_id']) ? Dish::find((int) $in['dish_id']) : null;
         $recipe = ! $item && ! $dish && ! empty($in['recipe_id']) ? DishRecipe::with('yieldUnit')->find((int) $in['recipe_id']) : null;
+        // a dish made ahead and sold through its side is written off from the prepared food, as the dish
+        $side = $dish && ! $recipe ? app(SideSales::class)->sideFor($dish) : null;
+        if ($side && ! $side->recipe->made_to_order && Schema::hasColumn('menus_waste', 'recipe_id') && PrepProduction::installed()) {
+            $recipe = $side->recipe;
+            $qty = round($qty * app(SideSales::class)->perPortion($side), 4);
+        }
         if (! $item && ! $dish && ! $recipe) {
             throw new BooksException('Choose what was wasted.');
         }
+        $recipeIsDishCover = $recipe && $dish;   // set above: the dish is written off from its side's prepared food
         if ($recipe && (! Schema::hasColumn('menus_waste', 'recipe_id') || ! PrepProduction::installed())) {
             throw new BooksException('Run database script 199_menus_prepared_waste_counts.sql first: until then prepared food can not be written off.');
         }
-        if ($recipe && $recipe->dish_id) {
+        if ($recipe && $recipe->dish_id && ! $recipeIsDishCover) {
             throw new BooksException("{$recipe->title()} is a dish's recipe: a dish made ahead is written off as the dish.");
         }
         $note = mb_substr(trim((string) ($in['note'] ?? '')), 0, 200) ?: null;
@@ -91,11 +98,11 @@ class WasteService
             if ($item) {
                 $cost = $this->writeOffItem($item, $loc, $base, $w, $date, $by, $onlyLot);
                 $byKind = [(int) ($item->ingredient->kind_id ?? 0) => $cost];
-            } elseif ($dish) {
-                [$cost, $useId, $byKind] = $this->writeOffDish($dish, $loc, $base, $w, $date, $by);
-            } else {
+            } elseif ($recipe) {
                 $cost = $this->writeOffRecipe($recipe, $loc, $base, $w, $date, $by, $onlyLot);
                 $byKind = [];
+            } else {
+                [$cost, $useId, $byKind] = $this->writeOffDish($dish, $loc, $base, $w, $date, $by);
             }
             $cost = round($cost, 2);
             $what = $item ? trim($item->ingredient->name.' '.$item->name) : ($dish ? $dish->name : $recipe->title());
