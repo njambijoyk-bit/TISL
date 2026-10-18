@@ -129,6 +129,13 @@ Set up a steak sandwich with the make-up from 0k, each side with a recipe or ing
 2. A side whose recipe fails (no ingredient, a name already used) is not made, and no half-made recipe is left behind.
 3. The online Menu page: a dish with sizes shows "from 350" and each size with its price, who it is for, and *What comes with it*. With audiences set, a *For* row appears; choosing Kids hides the dishes meant for Adults only and keeps those for everyone.
 
+## 0r. What a customer may leave out or add (after script 205)
+1. Menus, Recipes, open the recipe of a burger (made to order). Under each ingredient line there are two ticks: *The customer may leave it out* and *The customer may ask for extra*. Tick *leave it out* on the onion and both on the cheese. Save, open it again: they are as left.
+2. A line that is another recipe (a tomato base) has no ticks: it is taken whole.
+3. Switch the recipe to *Made ahead in batches*: the ticks are cleared and greyed, with a note why. A recipe saved that way cannot carry them.
+4. Without script 205 the ticks are not there and a note says which script to run; recipes save as before.
+5. Nothing changes on an order yet: what a removal or an extra costs comes in 4.2, and choosing them in 4.3.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

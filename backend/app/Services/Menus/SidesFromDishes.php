@@ -104,7 +104,7 @@ class SidesFromDishes
             'visibility' => $orig->visibility, 'prep_minutes' => $orig->prep_minutes, 'cook_minutes' => $orig->cook_minutes, 'is_active' => $orig->is_active]);
         foreach ($orig->lines as $l) {
             DishRecipeLine::create(['recipe_id' => $copy->id, 'ingredient_id' => $l->ingredient_id, 'quantity' => $l->quantity, 'unit' => $l->unit, 'waste_pct' => $l->waste_pct, 'position' => $l->position]
-                + (DishRecipes::hasSubLines() ? ['sub_recipe_id' => $l->sub_recipe_id] : []));
+                + (DishRecipes::hasSubLines() ? ['sub_recipe_id' => $l->sub_recipe_id] : []) + (DishRecipes::hasFlags() ? ['removable' => (bool) $l->removable, 'extra_allowed' => (bool) $l->extra_allowed] : []));
         }
         foreach ($orig->steps as $st) {
             DishRecipeStep::create(['recipe_id' => $copy->id, 'position' => $st->position, 'body' => $st->body, 'minutes' => $st->minutes, 'image' => $st->image]);

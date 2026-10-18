@@ -46,6 +46,8 @@ trait CreatesFoodTables
             $t->unsignedSmallInteger('position')->default(1); $t->timestamps();
         });
         $this->runSqlScripts('197_menus_recipes_in_recipes.sql');
+        // script 205: the flags on a line (may be removed, may have extra)
+        $this->runSqlScripts('205_menus_recipe_line_flags.sql');
         // script 191: the "used up" use and the account a kind is charged to
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->boolean('used_up')->default(false));
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('expense_ledger_id')->nullable());

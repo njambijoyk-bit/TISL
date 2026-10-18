@@ -26,7 +26,7 @@ const num = (n, dp = 2) => (n == null ? '—' : Number(n).toLocaleString('en-KE'
 function RecipeModal({ dish, options, onClose, onDone }) {
   const r = dish.recipe;
   const key = useRef(0);
-  const mk = (l) => ({ key: `k${++key.current}`, ref: l?.recipe_id ? `r:${l.recipe_id}` : l?.ingredient_id ? `i:${l.ingredient_id}` : '', quantity: l?.quantity ?? '', unit: l?.unit ?? 'base', waste_pct: l?.waste_pct ?? '' });
+  const mk = (l) => ({ key: `k${++key.current}`, ref: l?.recipe_id ? `r:${l.recipe_id}` : l?.ingredient_id ? `i:${l.ingredient_id}` : '', quantity: l?.quantity ?? '', unit: l?.unit ?? 'base', waste_pct: l?.waste_pct ?? '', removable: Boolean(l?.removable), extra_allowed: Boolean(l?.extra_allowed) });
   const [yieldQty, setYieldQty] = useState(r?.yield_qty ?? 1);
   const [yieldUnit, setYieldUnit] = useState(r?.yield_unit_id ?? '');
   const [order, setOrder] = useState(r?.made_to_order ?? true);
@@ -45,13 +45,14 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const sub = (ref) => (ref.startsWith('r:') ? (options.recipes ?? []).find((x) => `r:${x.id}` === ref) : undefined);
   const usable = (options.recipes ?? []).filter((x) => !(dish.standalone && dish.id && x.id === dish.id));
   const patch = (k, p) => setLines((xs) => xs.map((x) => (x.key === k ? { ...x, ...p } : x)));
+  const canFlag = order && Boolean(options.flags_installed);   // only a recipe made to order can lose or add an ingredient
 
   const go = async (e) => {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const payload = {
         yield_qty: Number(yieldQty), ...(dish.standalone ? { yield_unit_id: yieldUnit === '' ? null : Number(yieldUnit) } : {}), made_to_order: order, note: note || null, visibility, prep_minutes: prep === '' ? null : Number(prep), cook_minutes: cook === '' ? null : Number(cook),
-        lines: lines.filter((l) => l.ref).map((l) => ({ ...(l.ref.startsWith('r:') ? { recipe_id: Number(l.ref.slice(2)) } : { ingredient_id: Number(l.ref.slice(2)) }), quantity: Number(l.quantity) || 0, unit: l.unit, waste_pct: l.waste_pct === '' ? 0 : Number(l.waste_pct) })),
+        lines: lines.filter((l) => l.ref).map((l) => ({ ...(l.ref.startsWith('r:') ? { recipe_id: Number(l.ref.slice(2)) } : { ingredient_id: Number(l.ref.slice(2)), ...(options.flags_installed ? { removable: order && l.removable, extra_allowed: order && l.extra_allowed } : {}) }), quantity: Number(l.quantity) || 0, unit: l.unit, waste_pct: l.waste_pct === '' ? 0 : Number(l.waste_pct) })),
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
         ...(options.times_installed ? { times: times.filter((t) => t.up_to !== '' || t.minutes !== '').map((t) => ({ up_to: t.up_to === '' ? 0 : Number(t.up_to), minutes: t.minutes === '' ? 0 : Number(t.minutes) })) } : {}),
       };
@@ -83,7 +84,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
               <Field label="One batch makes (portions)" htmlFor="rc-yield" hint="The amounts below are for this many portions. A dish's recipe counts portions; to count a batch in kilograms or litres, add a recipe of its own on the Recipes page."><NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} /></Field>
             )}
             <Field label="How it is made" htmlFor="rc-how">
-              <SelectInput id="rc-how" value={order ? 'order' : 'ahead'} onChange={(e) => setOrder(e.target.value === 'order')}>
+              <SelectInput id="rc-how" value={order ? 'order' : 'ahead'} onChange={(e) => { const toOrder = e.target.value === 'order'; setOrder(toOrder); if (!toOrder) setLines((xs) => xs.map((x) => ({ ...x, removable: false, extra_allowed: false }))); }}>
                 <option value="order">Made to order (a sale uses the ingredients)</option>
                 <option value="ahead">Made ahead in batches (make a batch on the Stock page; sales then take from the dish's own shelf)</option>
               </SelectInput>
@@ -109,11 +110,19 @@ function RecipeModal({ dish, options, onClose, onDone }) {
                     <Field label="In"><SelectInput aria-label="Unit" value={l.unit} onChange={(e) => patch(l.key, { unit: e.target.value })}><option value="base">{x ? x.unit : i?.base_unit ?? 'base unit'}</option>{i?.alt_unit && <option value="alt">{i.alt_unit}</option>}</SelectInput></Field>
                     <Field label="Waste %" hint="lost in preparing"><NumberInput aria-label="Waste percent" min="0" max="90" step="any" value={l.waste_pct} onChange={(e) => patch(l.key, { waste_pct: e.target.value })} /></Field>
                     <button type="button" aria-label="Remove ingredient" style={iconBtn} onClick={() => setLines((xs) => (xs.length > 1 ? xs.filter((y) => y.key !== l.key) : xs))}><Trash2 size={15} /></button>
+                    {i && (
+                      <div data-testid="recipe-line-flags" style={{ gridColumn: '1 / -1', display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: '0.76rem', color: colors.textMuted, marginTop: -2 }}>
+                        <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}><input type="checkbox" aria-label={`${i.name} may be left out`} disabled={!canFlag} checked={canFlag && l.removable} onChange={(e) => patch(l.key, { removable: e.target.checked })} /> The customer may leave it out</label>
+                        <label style={{ display: 'flex', gap: 5, alignItems: 'center' }}><input type="checkbox" aria-label={`${i.name} may have extra`} disabled={!canFlag} checked={canFlag && l.extra_allowed} onChange={(e) => patch(l.key, { extra_allowed: e.target.checked })} /> The customer may ask for extra</label>
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={() => setLines((xs) => [...xs, mk()])}><Plus size={12} /> Add an ingredient or recipe</button>
+            {!options.flags_installed && <p role="status" data-testid="recipe-flags-missing" style={{ margin: '8px 0 0', fontSize: '0.76rem', color: colors.textMuted }}>What a customer may leave out or add: run database script 205_menus_recipe_line_flags.sql to add it here.</p>}
+            {options.flags_installed && !order && <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: colors.textFaint }}>A recipe made ahead in batches cannot lose an ingredient once it is cooked, so nothing can be left out or added to. Make it to order to allow that.</p>}
           </div>
 
           {!options.times_installed ? (

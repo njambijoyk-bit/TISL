@@ -167,12 +167,14 @@ class DishRecipes
         }
         $lines = [];
         $seen = [];
+        $toOrder = (bool) ($d['made_to_order'] ?? true);
         foreach (array_values($d['lines'] ?? []) as $i => $l) {
             $row = $i + 1;
             $qty = round((float) ($l['quantity'] ?? 0), 4);
             if ($qty <= 0) {
                 continue;   // an empty line is just left out
             }
+            $flags = $this->flags($l, $row, $toOrder, empty($l['ingredient_id']) && ! empty($l['recipe_id']));
             if (empty($l['ingredient_id']) && ! empty($l['recipe_id'])) {
                 $lines[] = $this->subLine($row, (int) $l['recipe_id'], $qty, round((float) ($l['waste_pct'] ?? 0), 2), $self, $seen, count($lines) + 1);
                 continue;
@@ -202,13 +204,40 @@ class DishRecipes
             if ($waste < 0 || $waste > 90) {
                 throw new BooksException("Line {$row}: waste must be between 0 and 90 percent.");
             }
-            $lines[] = ['ingredient_id' => $ing->id, 'quantity' => $qty, 'unit' => $unit, 'waste_pct' => $waste, 'position' => count($lines) + 1];
+            $lines[] = ['ingredient_id' => $ing->id, 'quantity' => $qty, 'unit' => $unit, 'waste_pct' => $waste, 'position' => count($lines) + 1] + $flags;
         }
         if (! $lines) {
             throw new BooksException('Add at least one ingredient.');
         }
 
         return ['yield' => $yield, 'unit' => $yieldUnit?->id, 'times' => $times, 'visibility' => $visibility, 'lines' => $lines];
+    }
+
+    /**
+     * The "may be removed" and "may have extra" flags of a line, checked: only an ingredient line of a recipe made to order can carry them (a cooked pot cannot lose its beef, and a recipe
+     * inside a recipe is taken whole). Nothing is returned for a line that sets neither, so a recipe saved before script 205 is unaffected.
+     *
+     * @param array<string, mixed> $l
+     * @return array{removable?: bool, extra_allowed?: bool}
+     */
+    private function flags(array $l, int $row, bool $toOrder, bool $isRecipe): array
+    {
+        $removable = ! empty($l['removable']);
+        $extra = ! empty($l['extra_allowed']);
+        if (! $removable && ! $extra) {
+            return self::hasFlags() ? ['removable' => false, 'extra_allowed' => false] : [];
+        }
+        if (! self::hasFlags()) {
+            throw new BooksException('Run database script 205_menus_recipe_line_flags.sql first: until then a line can not say it may be removed or have extra.');
+        }
+        if ($isRecipe) {
+            throw new BooksException("Line {$row}: a recipe inside this recipe is taken as a whole. Only an ingredient can be left out or added to.");
+        }
+        if (! $toOrder) {
+            throw new BooksException("Line {$row}: a recipe made ahead in batches cannot lose an ingredient once it is cooked. Make it to order, or untick it.");
+        }
+
+        return ['removable' => $removable, 'extra_allowed' => $extra];
     }
 
     /** What a recipe line that is another recipe looks like once it is checked. @param array<string, bool> $seen */
@@ -243,6 +272,16 @@ class DishRecipes
         }
 
         return ['ingredient_id' => null, 'sub_recipe_id' => $sub->id, 'quantity' => $qty, 'unit' => 'base', 'waste_pct' => $waste, 'position' => $position];
+    }
+
+    /** Has script 205 been run: can a recipe line say it may be removed or have extra? */
+    public static function hasFlags(): bool
+    {
+        if (app()->runningUnitTests()) {
+            return Schema::hasColumn('menus_recipe_lines', 'removable');
+        }
+
+        return self::$columns['@flags'] ??= Schema::hasColumn('menus_recipe_lines', 'removable');
     }
 
     /** Has script 197 been run? */
