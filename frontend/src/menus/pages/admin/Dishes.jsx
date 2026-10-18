@@ -12,6 +12,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import DishMakeupBuild from '../../components/DishMakeupBuild';
 import DishMakeupModal from '../../components/DishMakeupModal';
 import DishOptionsModal from '../../components/DishOptionsModal';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
@@ -152,6 +153,7 @@ export default function Dishes() {
           {canWrite && <button type="button" style={btnPrimary} onClick={() => setModal({ dish: null })} disabled={!data?.settings_ready}><Plus size={14} /> New dish</button>}
         </div>
 
+        {canWrite && <DishMakeupBuild onDone={load} />}
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
           {loading && !data ? <p style={{ padding: 20, color: colors.textMuted }}>Loading…</p> : !(data?.dishes?.length) ? (
             <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>No dishes yet. Add your first, then give it a recipe.</p>

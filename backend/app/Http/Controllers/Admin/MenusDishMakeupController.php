@@ -10,13 +10,14 @@ use App\Models\Menus\Serving;
 use App\Models\Menus\Side;
 use App\Services\Books\BooksException;
 use App\Services\Menus\DishMakeup;
+use App\Services\Menus\DishSlotsFromSides;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /** Menus → Dishes → Make-up: the sizes a dish is sold in and their prices, who it is for, and the slots filled with sides. */
 class MenusDishMakeupController extends Controller
 {
-    public function __construct(private DishMakeup $makeup)
+    public function __construct(private DishMakeup $makeup, private DishSlotsFromSides $fromSides)
     {
     }
 
@@ -62,5 +63,27 @@ class MenusDishMakeupController extends Controller
         }
 
         return response()->json(['message' => 'Saved.', 'makeup' => $made]);
+    }
+
+    /** What building make-ups from the sides and the set meals would do now (nothing is changed). */
+    public function buildPreview(): JsonResponse
+    {
+        return response()->json($this->fromSides->preview());
+    }
+
+    /** Give each dish with a side its own slot and turn set-meal groups of choices into slots; the old groups are kept and marked as replaced. */
+    public function buildRun(): JsonResponse
+    {
+        try {
+            $r = $this->fromSides->run();
+        } catch (BooksException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+        $says = [];
+        $r['own'] && $says[] = $r['own'].' dish'.($r['own'] === 1 ? '' : 'es').' given a slot of their own side';
+        $r['groups'] && $says[] = $r['groups'].' set-meal group'.($r['groups'] === 1 ? '' : 's').' turned into slots';
+        $r['skipped'] && $says[] = $r['skipped'].' left as they are';
+
+        return response()->json(['message' => $says ? 'Done: '.implode(', ', $says).'.' : 'Nothing to do: every dish already has what it can be given.'] + $r);
     }
 }

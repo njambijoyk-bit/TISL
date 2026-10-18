@@ -967,6 +967,7 @@ Route::middleware('auth:sanctum')->group(function () {
         $mc = \App\Http\Controllers\Admin\MenusMenuController::class;
         Route::get('/menus', [$mc, 'index']);
         Route::get('/dishes/{id}/options', [$mc, 'options'])->whereNumber('id');
+        Route::get('/dishes/makeup/build', [\App\Http\Controllers\Admin\MenusDishMakeupController::class, 'buildPreview']);
         Route::get('/dishes/{id}/makeup', [\App\Http\Controllers\Admin\MenusDishMakeupController::class, 'show'])->whereNumber('id');
         Route::get('/dishes', [$dc, 'index']);
         Route::get('/settings', [$dc, 'settings']);
@@ -1085,6 +1086,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/menus/{id}', [$mc, 'save'])->whereNumber('id');
             Route::delete('/menus/{id}', [$mc, 'destroy'])->whereNumber('id');
             Route::put('/dishes/{id}/options', [$mc, 'saveOptions'])->whereNumber('id');
+            Route::post('/dishes/makeup/build', [\App\Http\Controllers\Admin\MenusDishMakeupController::class, 'buildRun']);
             Route::put('/dishes/{id}/makeup', [\App\Http\Controllers\Admin\MenusDishMakeupController::class, 'update'])->whereNumber('id');
             Route::post('/dishes', [$dc, 'save']);
             Route::put('/dishes/{id}', [$dc, 'save'])->whereNumber('id');

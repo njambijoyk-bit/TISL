@@ -91,6 +91,29 @@ class DishMakeup
         return $this->show($dish->fresh());
     }
 
+    /** Check one slot as saving would (throws with the reason). @param array<string, mixed> $slot */
+    public function validateSlot(array $slot): void
+    {
+        $this->slots([$slot]);
+    }
+
+    /**
+     * Add one slot to a dish, checked like the others, first or last. Used by the tools that build a make-up from what is there (own side, set meals).
+     *
+     * @param array<string, mixed> $slot name, kind, min?, max?, choices[{side_id, upcharge?, is_default?}]
+     */
+    public function appendSlot(Dish $dish, array $slot, bool $first = false): DishSlot
+    {
+        [$s] = $this->slots([$slot]);
+        $order = $first ? (int) DishSlot::where('dish_id', $dish->id)->min('sort_order') - 1 : (int) DishSlot::where('dish_id', $dish->id)->max('sort_order') + 1;
+        $row = DishSlot::create(['dish_id' => $dish->id, 'name' => $s['name'], 'kind' => $s['kind'], 'min_choices' => $s['min'], 'max_choices' => $s['max'], 'sort_order' => $order]);
+        foreach ($s['choices'] as $j => $c) {
+            DishSlotChoice::create(['slot_id' => $row->id, 'side_id' => $c['side_id'], 'upcharge' => $c['upcharge'], 'is_default' => $c['is_default'], 'sort_order' => $j + 1]);
+        }
+
+        return $row;
+    }
+
     /** Take away every slot of a dish and what is in them (a dish is being removed, or its make-up rewritten). */
     public function deleteSlots(int $dishId): void
     {

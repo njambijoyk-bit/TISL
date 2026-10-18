@@ -21,7 +21,7 @@ class DishPricing
     public function resolve(Dish $dish, array $chosen): array
     {
         $chosen = array_values(array_unique(array_map('intval', $chosen)));
-        $groups = OptionGroup::with(['options' => fn ($q) => $q->where('is_active', true), 'options.uses'])->where('dish_id', $dish->id)->orderBy('sort_order')->get();
+        $groups = OptionGroup::with(['options' => fn ($q) => $q->where('is_active', true), 'options.uses'])->offered()->where('dish_id', $dish->id)->orderBy('sort_order')->get();
         $known = $groups->flatMap(fn ($g) => $g->options)->keyBy('id');
         if ($stray = array_diff($chosen, $known->keys()->all())) {
             throw new BooksException('One of the choices is not on '.$dish->name.' (any more).');

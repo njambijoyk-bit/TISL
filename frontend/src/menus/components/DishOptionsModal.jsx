@@ -50,7 +50,8 @@ export default function DishOptionsModal({ dish, onClose, onDone }) {
           <FormError message={err} />
           {!data && !err && <p style={{ color: colors.textMuted, fontSize: '0.82rem' }}>Loading…</p>}
           {data && groups.map((g, gi) => (
-            <div key={g.id ?? `new${gi}`} data-testid="option-group" style={{ border: `1px solid ${colors.tint(0.16)}`, borderRadius: 12, padding: 12 }}>
+            <div key={g.id ?? `new${gi}`} data-testid="option-group" style={{ border: `1px solid ${colors.tint(0.16)}`, borderRadius: 12, padding: 12, ...(g.replaced_by_slot ? { opacity: 0.7 } : {}) }}>
+              {g.replaced_by_slot && <p role="status" data-testid="replaced-note" style={{ margin: '0 0 8px', fontSize: '0.76rem', color: colors.textMuted }}>This group has been turned into a slot (Make-up) and is no longer offered when ordering. It is kept here, unchanged.</p>}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 70px 70px auto', gap: 8, alignItems: 'end' }}>
                 <Field label="Group" htmlFor={`g${gi}-name`}><TextInput id={`g${gi}-name`} maxLength={120} value={g.name} placeholder="Size, Side, Extras…" onChange={(e) => patchGroup(gi, { name: e.target.value })} /></Field>
                 <Field label="People" htmlFor={`g${gi}-kind`}><SelectInput id={`g${gi}-kind`} value={g.kind} onChange={(e) => patchGroup(gi, { kind: e.target.value })}><option value="single">Pick one</option><option value="multiple">Pick several</option></SelectInput></Field>

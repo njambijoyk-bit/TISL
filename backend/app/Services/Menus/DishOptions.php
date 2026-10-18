@@ -61,7 +61,7 @@ class DishOptions
     public function forDish(Dish $dish): array
     {
         return OptionGroup::with('options.uses')->where('dish_id', $dish->id)->orderBy('sort_order')->orderBy('id')->get()->map(fn (OptionGroup $g) => [
-            'id' => $g->id, 'name' => $g->name, 'kind' => $g->kind, 'min_choices' => $g->min_choices, 'max_choices' => $g->max_choices,
+            'id' => $g->id, 'name' => $g->name, 'kind' => $g->kind, 'min_choices' => $g->min_choices, 'max_choices' => $g->max_choices, 'replaced_by_slot' => (bool) ($g->slot_id ?? null),
             'options' => $g->options->map(fn (Option $o) => [
                 'id' => $o->id, 'name' => $o->name, 'price_delta' => (float) $o->price_delta, 'is_default' => $o->is_default, 'charge_removal' => $o->charge_removal, 'linked_dish_id' => $o->linked_dish_id, 'is_active' => $o->is_active,
                 'uses' => $o->uses->map(fn (OptionUse $u) => ['mode' => $u->mode, 'ingredient_id' => $u->ingredient_id, 'quantity' => $u->quantity === null ? null : (float) $u->quantity, 'unit' => $u->unit ?: 'base'])->values()->all(),

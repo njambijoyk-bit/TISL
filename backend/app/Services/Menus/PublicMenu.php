@@ -72,7 +72,7 @@ class PublicMenu
     /** @return array<int, array<string, mixed>> */
     private function options(Dish $d): array
     {
-        return OptionGroup::with(['options' => fn ($q) => $q->where('is_active', true)])->where('dish_id', $d->id)->orderBy('sort_order')->get()->map(fn (OptionGroup $g) => [
+        return OptionGroup::with(['options' => fn ($q) => $q->where('is_active', true)])->offered()->where('dish_id', $d->id)->orderBy('sort_order')->get()->map(fn (OptionGroup $g) => [
             'id' => $g->id, 'name' => $g->name, 'kind' => $g->kind, 'min_choices' => $g->min_choices, 'max_choices' => $g->kind === 'single' ? 1 : $g->max_choices,
             'options' => $g->options->map(fn ($o) => ['id' => $o->id, 'name' => $o->name, 'price_delta' => (float) $o->price_delta, 'is_default' => $o->is_default,
                 'dish' => $o->linked_dish_id ? Dish::whereKey($o->linked_dish_id)->value('name') : null])->values()->all(),
