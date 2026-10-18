@@ -17,6 +17,7 @@ export default function DishPicker({ dish, onAdd, onClose }) {
   const [sides, setSides] = useState(() => (makeup ? startPicks(makeup) : {}));
   const [note, setNote] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [mods, setMods] = useState([]);   // what the guest leaves out or asks extra of: [{ ingredient_id, kind }]
 
   const size = makeup?.servings?.find((s) => s.id === serving) ?? null;
   const base = size ? Number(size.price) : (dish.price ?? 0);
@@ -51,8 +52,14 @@ export default function DishPicker({ dish, onAdd, onClose }) {
     if (n < g.min_choices) return [g.min_choices > 1 ? `${g.name}: choose at least ${g.min_choices}.` : `${g.name}: please choose one.`];
     return [];
   }), ...sideProblems, ...(makeup?.servings?.length && !serving ? ['Please choose a size.'] : [])], [dish, picked, sideProblems, makeup, serving]);
+  const offered = dish.modifiers ?? [];
+  const feeOf = (m) => (m.fee.kind === 'fixed' ? Number(m.fee.amount) : m.fee.kind === 'percent' ? (base * Number(m.fee.amount)) / 100 : 0);
+  const modOn = (m) => mods.some((x) => x.ingredient_id === m.ingredient_id && x.kind === m.kind);
+  const toggleMod = (m) => setMods((xs) => (modOn(m) ? xs.filter((x) => !(x.ingredient_id === m.ingredient_id && x.kind === m.kind)) : [...xs.filter((x) => x.ingredient_id !== m.ingredient_id), { ingredient_id: m.ingredient_id, kind: m.kind }]));
+  const modNames = offered.filter(modOn).map((m) => `${m.kind === 'remove' ? 'No' : 'Extra'} ${m.name.toLowerCase()}`);
+  const modFees = offered.filter(modOn).reduce((n, m) => n + feeOf(m), 0);
   const chosen = dish.options.flatMap((g) => g.options.filter((o) => (picked[g.id] ?? []).includes(o.id)));
-  const delta = chosen.reduce((n, o) => n + Number(o.price_delta), 0) + sideDelta;
+  const delta = chosen.reduce((n, o) => n + Number(o.price_delta), 0) + sideDelta + modFees;
 
   const toggle = (g, o) => setPicked((p) => {
     const now = p[g.id] ?? [];
@@ -108,6 +115,18 @@ export default function DishPicker({ dish, onAdd, onClose }) {
             })}
           </fieldset>
         ))}
+        {offered.length > 0 && (
+          <fieldset data-testid="picker-mods" style={{ border: '1px solid var(--line, #e5e7eb)', borderRadius: 12, padding: '8px 12px 10px', margin: 0 }}>
+            <legend style={{ fontWeight: 800, fontSize: '0.88rem', padding: '0 6px' }}>Leave out or add <span style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}>optional</span></legend>
+            {offered.map((m) => (
+              <label key={`${m.ingredient_id}:${m.kind}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', cursor: 'pointer', fontSize: '0.88rem' }}>
+                <input type="checkbox" checked={modOn(m)} onChange={() => toggleMod(m)} />
+                <span style={{ flex: 1 }}>{m.kind === 'remove' ? `No ${m.name.toLowerCase()}` : `Extra ${m.name.toLowerCase()}`}</span>
+                {feeOf(m) > 0 && <span style={{ color: 'var(--text-secondary)' }}>+{money(feeOf(m))}</span>}
+              </label>
+            ))}
+          </fieldset>
+        )}
         {dish.options.map((g) => (
           <fieldset key={g.id} style={{ border: '1px solid var(--line, #e5e7eb)', borderRadius: 12, padding: '8px 12px 10px', margin: 0 }}>
             <legend style={{ fontWeight: 800, fontSize: '0.88rem', padding: '0 6px' }}>{g.name} <span style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}>{g.min_choices > 0 ? 'required' : 'optional'}{g.kind === 'multiple' && g.max_choices ? `, up to ${g.max_choices}` : ''}</span></legend>
@@ -136,7 +155,8 @@ export default function DishPicker({ dish, onAdd, onClose }) {
           </div>
           <button type="button" disabled={problems.length > 0} onClick={() => onAdd(dish, {
               option_ids: chosen.map((o) => o.id),
-              option_names: [...(size ? [size.name] : []), ...sideNames, ...chosen.map((o) => o.name)],
+              option_names: [...(size ? [size.name] : []), ...sideNames, ...modNames, ...chosen.map((o) => o.name)],
+              ...(mods.length ? { mods } : {}),
               option_delta: delta, note, quantity,
               ...(makeup ? { serving_id: serving, price: base, picks: Object.fromEntries(Object.entries(sides).map(([id, list]) => [id, list.map((p) => ({ side_id: p.side_id, qty: p.qty }))])) } : {}),
             })}

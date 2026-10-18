@@ -55,7 +55,7 @@ class MenusOrderController extends Controller
     private function rules(): array
     {
         return ['channel' => 'required|string|max:30', 'location_id' => 'nullable|integer', 'fulfil' => 'nullable|string|max:40',
-            'items' => 'required|array|min:1|max:60', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:50', 'items.*.serving_id' => 'nullable|integer', 'items.*.picks' => 'nullable|array', 'items.*.picks.*' => 'array', 'items.*.option_ids' => 'nullable|array|max:40',
+            'items' => 'required|array|min:1|max:60', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:50', 'items.*.mods' => 'nullable|array|max:30', 'items.*.mods.*.ingredient_id' => 'required|integer', 'items.*.mods.*.kind' => 'required|string|in:remove,extra', 'items.*.serving_id' => 'nullable|integer', 'items.*.picks' => 'nullable|array', 'items.*.picks.*' => 'array', 'items.*.option_ids' => 'nullable|array|max:40',
             'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200', 'address' => 'nullable|string|max:500', 'shipping_option_id' => 'nullable|integer',
             'name' => 'nullable|string|max:160', 'email' => 'nullable|email|max:190', 'phone' => 'nullable|string|max:40', 'notes' => 'nullable|string|max:500',
             'payment_mode' => 'nullable|string|in:online,later', 'payment_method_id' => 'nullable|integer'];

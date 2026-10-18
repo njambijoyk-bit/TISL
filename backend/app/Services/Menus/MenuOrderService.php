@@ -30,6 +30,9 @@ class MenuOrderService
 {
     private const MAX_PER_LINE = 50;
 
+    /** A fee for leaving something out or adding extra that is kept apart from the dish starts its line with this, so it is not taken for a delivery charge. */
+    public const FEE_PREFIX = 'Modifier fee: ';
+
     public function __construct(private VoucherService $vouchers, private GatewayPaymentService $gateway, private DishInfo $info, private DishPricing $pricing,
         private OrderSlots $slots, private MenuOrderNotices $notices, private KitchenService $kitchen)
     {
@@ -65,7 +68,7 @@ class MenuOrderService
     /**
      * The dishes asked for, checked and priced: on a menu the channel shows at that time, enough to make them (set-meal sides too), the choices allowed.
      *
-     * @param array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string, serving_id?: ?int, picks?: array}> $wanted
+     * @param array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string, serving_id?: ?int, picks?: array, mods?: array}> $wanted
      * @return array{0: array, 1: array<int, Dish>} the lines and the dishes by id
      */
     public function dishLines(Channel $channel, Location $location, Carbon $at, array $wanted): array
@@ -75,6 +78,7 @@ class MenuOrderService
 
         $need = [];     // dish id => portions needed in all
         $sideNeed = []; // side id => how much is needed in all, for the dishes put together from sides
+        $extraAlt = []; // ingredient id => base amount the order needs of an ingredient that is asked for extra (the extras and what the dishes themselves take)
         $lines = [];
         $dishes = [];
         foreach ($wanted as $w) {
@@ -93,9 +97,11 @@ class MenuOrderService
             }
             $made = [];   // the size and picks, when the dish has a make-up
             $uses = $p['uses'];
+            $feeBase = (float) $base;   // what a percentage fee is of: the price of the size chosen
             if (DishSelection::applies($dish)) {
                 $sel = app(DishSelection::class)->resolve($dish, $w['serving_id'] ?? null, $w['picks'] ?? []);
                 $base = $sel['unit_price'];
+                $feeBase = (float) $sel['base_price'];
                 $made = app(DishSelection::class)->orderLine($sel);
                 $uses = array_merge($sel['uses'], $uses);
                 if ($dish->sold_out_on && $dish->sold_out_on->isToday()) {
@@ -108,6 +114,19 @@ class MenuOrderService
             if (! $made || ! DishSelection::sidesIn($uses)) {   // the dishes put together from sides are checked by their sides below
                 $need[$dish->id] = ($need[$dish->id] ?? 0) + $w['quantity'];
             }
+            $mod = app(DishModifiers::class)->resolve($dish, $w['mods'] ?? [], $feeBase);   // what was left out or added, and what that costs
+            if ($mod['fee_apart'] > 0 && ! MenusSettings::modifierFeeLedgerId()) {
+                throw new BooksException('Fees for leaving something out or adding extra are kept apart from the dish, but no account is set for them: choose one under Menus, Configuration.');
+            }
+            $uses = array_merge($uses, $mod['uses']);
+            foreach ($mod['uses'] as $u) {   // an extra comes off the same shelf as the recipe: count both, per ingredient, for the whole order
+                if ($u['mode'] === 'add' && ($ing = \App\Models\Menus\Ingredient::with('baseUnit', 'altUnit')->find($u['ingredient_id']))) {
+                    $r = ! DishSelection::sidesIn($uses) ? \App\Models\Menus\DishRecipe::where('dish_id', $dish->id)->where('is_active', true)->where('made_to_order', true)->first() : null;
+                    $extraAlt[$u['ingredient_id']] = ($extraAlt[$u['ingredient_id']] ?? 0.0) + ($r
+                        ? (app(IngredientUse::class)->needs($r, (float) $w['quantity'], $mod['uses'])[$u['ingredient_id']]['qty'] ?? 0.0)   // the recipe's own need with the extras and removals applied
+                        : $ing->toBase((float) $u['quantity'], (string) ($u['unit'] ?? 'base')) * $w['quantity']);
+                }
+            }
             $linked = [];
             foreach ($p['linked_dishes'] as $lid) {
                 $ld = $dishes[$lid] ??= Dish::find($lid);
@@ -117,7 +136,7 @@ class MenuOrderService
                 $need[$ld->id] = ($need[$ld->id] ?? 0) + $w['quantity'];
                 $linked[] = $ld;
             }
-            $lines[] = ['dish' => $dish, 'quantity' => $w['quantity'], 'base_price' => (float) $base, 'unit_price' => round($base + $p['price_delta'], 2), 'options' => $p['options'], 'uses' => $uses,
+            $lines[] = ['dish' => $dish, 'quantity' => $w['quantity'], 'base_price' => (float) $base, 'unit_price' => round($base + $p['price_delta'] + $mod['fee_in_price'], 2), 'options' => array_merge($p['options'], $mod['options']), 'uses' => $uses,
                 'linked' => $linked, 'note' => $w['note']] + $made;
         }
         foreach ($need as $id => $n) {
@@ -126,6 +145,7 @@ class MenuOrderService
                 throw new BooksException($have > 0 ? "Only ".(int) floor($have)." of {$dishes[$id]->name} left." : "{$dishes[$id]->name} is sold out.");
             }
         }
+        $this->checkExtras($extraAlt, (int) $location->id);
         if ($sideNeed && ($short = app(SideStock::class)->short($sideNeed, (int) $location->id))) {
             throw new BooksException(count($short) === 1 ? array_key_first($short).' has run out: please choose something else.' : implode(', ', array_keys($short)).' have run out: please choose something else.');
         }
@@ -171,7 +191,7 @@ class MenuOrderService
         return [$at, false];
     }
 
-    /** @return array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string, serving_id: ?int, picks: array}> */
+    /** @return array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string, serving_id: ?int, picks: array, mods: array}> */
     public function wanted(mixed $items): array
     {
         $out = [];
@@ -186,7 +206,8 @@ class MenuOrderService
             }
             $note = trim((string) ($it['note'] ?? ''));
             $out[] = ['dish_id' => $dish, 'quantity' => $qty, 'option_ids' => array_map('intval', (array) ($it['option_ids'] ?? [])), 'note' => $note === '' ? null : mb_substr($note, 0, 200),
-                'serving_id' => ! empty($it['serving_id']) ? (int) $it['serving_id'] : null, 'picks' => is_array($it['picks'] ?? null) ? $it['picks'] : []];
+                'serving_id' => ! empty($it['serving_id']) ? (int) $it['serving_id'] : null, 'picks' => is_array($it['picks'] ?? null) ? $it['picks'] : [],
+                'mods' => array_values(array_filter(array_map(fn ($m) => is_array($m) ? ['ingredient_id' => (int) ($m['ingredient_id'] ?? 0), 'kind' => (string) ($m['kind'] ?? '')] : null, (array) ($it['mods'] ?? [])))) ];
         }
         if (! $out) {
             throw new BooksException('Your basket is empty.');
@@ -252,6 +273,22 @@ class MenuOrderService
         return ['mode' => 'online', 'method' => $method];
     }
 
+    /**
+     * The extras asked for (more cheese) must be on the shelf: the amounts for the whole order, counted per ingredient. The sale itself takes what is really there and refuses when it is short;
+     * this says so before the guest pays.
+     *
+     * @param array<int, float> $extras ingredient id => base amount needed
+     */
+    private function checkExtras(array $extras, int $locationId): void
+    {
+        foreach ($extras as $ingId => $need) {
+            $ing = \App\Models\Menus\Ingredient::find($ingId);
+            if ($ing && $need > (float) app(IngredientUse::class)->usable($ing, $locationId)->sum('qty_left') + 0.0001) {
+                throw new BooksException("There is not enough {$ing->name} left for the extra: please choose something else.");
+            }
+        }
+    }
+
     /** The Sales Order's dish lines for dishes ordered: the dish at its price with the choices, and a set meal's sides as free lines (so what they are made of is taken). */
     public function lineRows(array $lines, Location $loc): array
     {
@@ -270,6 +307,10 @@ class MenuOrderService
                 $row['menu_uses'] = $l['uses'];
             }
             $rows[] = $row;
+            $apart = round(array_sum(array_map(fn ($o) => ! empty($o['apart']) ? (float) $o['price_delta'] : 0.0, $l['options'])) * (float) $l['quantity'], 2);
+            if ($apart > 0) {   // a fee that carries no VAT: a line of its own, posted to its own account
+                $rows[] = ['type' => 'charge', 'kind' => 'other', 'description' => self::FEE_PREFIX.$d->name, 'ledger_id' => MenusSettings::modifierFeeLedgerId(), 'amount' => $apart];
+            }
             foreach ($l['linked'] as $ld) {   // a set meal's side: its own line at no charge, so its stock is taken
                 $rows[] = ['type' => 'dish', 'dish_id' => $ld->id, 'quantity' => $l['quantity'], 'rate' => 0, 'location_id' => $loc->id, 'notes' => 'Part of '.$d->name];
             }
@@ -315,7 +356,7 @@ class MenuOrderService
         $pre = $this->vouchers->preview($p['payload'], null);
         $fee = 0.0;
         foreach ($pre['lines'] as $l) {
-            if (($l['item_type'] ?? null) === 'charge') {
+            if (($l['item_type'] ?? null) === 'charge' && ! str_starts_with((string) ($l['description'] ?? ''), self::FEE_PREFIX)) {   // the delivery charge, not a fee for a dish's changes
                 $fee += (float) $l['amount'];
             }
         }
@@ -356,7 +397,7 @@ class MenuOrderService
             $order->update(['number' => 'MO-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
             foreach ($p['lines'] as $l) {
                 MenuOrderLine::create(['order_id' => $order->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'],
-                    'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'], 'options' => array_map(fn ($o) => ['id' => $o['id'], 'group' => $o['group'], 'name' => $o['name'], 'price_delta' => $o['price_delta']], $l['options']), 'note' => $l['note']] + MenuOrderLine::kept($l));
+                    'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'], 'options' => MenuOrderLine::optionRows($l['options']), 'note' => $l['note']] + MenuOrderLine::kept($l));
             }
             $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menu_order_id' => $order->id])]);
             if ($later) {

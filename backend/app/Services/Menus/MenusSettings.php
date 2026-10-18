@@ -17,6 +17,7 @@ final class MenusSettings
         'receipt_footer' => '',          // a line printed at the foot of every receipt
         'tip_ledger_id' => null,         // where tips are booked (money held for staff); empty = the books' own Tips Payable account
         'service_charge_ledger_id' => null,
+        'modifier_fee_ledger_id' => null, // where a fee kept apart from the dish is booked (empty: the account the dish sales go to)
         'modifier_fees_vatable' => true, // a fee for leaving something out or adding extra is part of the dish's price and carries the dish's own VAT; off: it is kept apart, without VAT
         'sell_through_sides' => false,   // a sold dish takes its stock through its side (the recipe the side is made from) instead of the dish's own recipe; off until it has been tested
         'qr_ordering' => true,           // guests may order from the table's QR code
@@ -69,6 +70,14 @@ final class MenusSettings
         $own = self::all()['tip_ledger_id'] ?? null;
 
         return $own ? (int) $own : self::booksLedger('tips_payable_ledger_id');
+    }
+
+    /** Where a fee for leaving something out or adding extra is booked when it is kept apart from the dish: its own account, else the sales account for dishes. */
+    public static function modifierFeeLedgerId(): ?int
+    {
+        $s = self::all();
+
+        return (int) ($s['modifier_fee_ledger_id'] ?: $s['sales_ledger_id']) ?: null;
     }
 
     /** One of the books' default accounts, or null when the books do not hold it (yet). */
@@ -203,7 +212,7 @@ final class MenusSettings
                 $cur[$key] = mb_substr(trim((string) $in[$key]), 0, $max);
             }
         }
-        foreach (['tip_ledger_id', 'service_charge_ledger_id', 'ingredient_stock_ledger_id', 'food_cost_ledger_id', 'food_waste_ledger_id', 'prepared_food_ledger_id'] as $key) {
+        foreach (['modifier_fee_ledger_id', 'tip_ledger_id', 'service_charge_ledger_id', 'ingredient_stock_ledger_id', 'food_cost_ledger_id', 'food_waste_ledger_id', 'prepared_food_ledger_id'] as $key) {
             if (array_key_exists($key, $in)) {
                 $id = $in[$key] ? (int) $in[$key] : null;
                 if ($id && ! DB::table('ledgers')->where('id', $id)->exists()) {

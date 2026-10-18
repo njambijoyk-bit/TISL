@@ -35,7 +35,8 @@ class DishModifiers
             foreach ($recipe->lines()->with('ingredient')->whereNotNull('ingredient_id')->orderBy('position')->get() as $l) {
                 foreach (['remove' => $l->removable, 'extra' => $l->extra_allowed] as $kind => $on) {
                     if ($on && $l->ingredient) {
-                        $found[$l->ingredient_id.':'.$kind]['row'] ??= ['ingredient_id' => (int) $l->ingredient_id, 'ingredient' => $l->ingredient->name, 'kind' => $kind, 'kind_label' => DishModifier::KINDS[$kind]];
+                        $found[$l->ingredient_id.':'.$kind]['row'] ??= ['ingredient_id' => (int) $l->ingredient_id, 'ingredient' => $l->ingredient->name, 'kind' => $kind, 'kind_label' => DishModifier::KINDS[$kind],
+                            'quantity' => (float) $l->quantity, 'unit' => (string) $l->unit];   // an extra is one more of this amount
                         $found[$l->ingredient_id.':'.$kind]['in'][$source] = true;
                     }
                 }
@@ -138,6 +139,43 @@ class DishModifiers
     public function priceOf(Dish $dish, int $ingredientId, string $kind, float $dishPrice): float
     {
         return self::fee($this->policyFor($dish, $ingredientId, $kind), $dishPrice);
+    }
+
+    /**
+     * What a guest's removals and extras mean on an order line of this dish: the choices as option rows (name, fee), the stock rows (a removed ingredient is not used, an extra is one more of the
+     * recipe line's amount), and the fees. A fee is a percentage of `$feeBase`, the price of the size chosen. With the Menus setting "a fee carries the dish's VAT" on, the fee is part of the
+     * line's price; off, it is kept apart and posted to its own account.
+     *
+     * @param array<int, array{ingredient_id?: mixed, kind?: mixed}> $mods
+     * @return array{options: array<int, array<string, mixed>>, uses: array<int, array<string, mixed>>, fee_in_price: float, fee_apart: float}
+     */
+    public function resolve(Dish $dish, array $mods, float $feeBase): array
+    {
+        $out = ['options' => [], 'uses' => [], 'fee_in_price' => 0.0, 'fee_apart' => 0.0];
+        if (! $mods) {
+            return $out;
+        }
+        $offered = collect($this->candidates($dish))->keyBy(fn ($c) => $c['ingredient_id'].':'.$c['kind']);
+        $vat = (bool) (MenusSettings::all()['modifier_fees_vatable'] ?? true);
+        $seen = [];
+        foreach ($mods as $m) {
+            $ing = (int) ($m['ingredient_id'] ?? 0);
+            $kind = (string) ($m['kind'] ?? '');
+            $item = $offered->get("{$ing}:{$kind}") ?? throw new BooksException("{$dish->name} can not be changed that way any more.");
+            if (isset($seen[$ing])) {
+                throw new BooksException("{$item['ingredient']} can not be both left out and added to.");
+            }
+            $seen[$ing] = true;
+            $fee = $this->priceOf($dish, $ing, $kind, $feeBase);
+            $out['options'][] = ['id' => null, 'group' => $kind === 'remove' ? 'Left out' : 'Extra', 'name' => ($kind === 'remove' ? 'No ' : 'Extra ').mb_strtolower($item['ingredient']), 'price_delta' => $fee,
+                'apart' => ! $vat && $fee > 0, 'mod' => ['kind' => $kind, 'ingredient_id' => $ing]];
+            $out['uses'][] = $kind === 'remove' ? ['mode' => 'remove', 'ingredient_id' => $ing] : ['mode' => 'add', 'ingredient_id' => $ing, 'quantity' => $item['quantity'], 'unit' => $item['unit']];
+            $out[$vat ? 'fee_in_price' : 'fee_apart'] += $fee;
+        }
+        $out['fee_in_price'] = round($out['fee_in_price'], 2);
+        $out['fee_apart'] = round($out['fee_apart'], 2);
+
+        return $out;
     }
 
     /** How many dishes use a policy of their own (so it can not be deleted from under them). */

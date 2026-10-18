@@ -144,6 +144,15 @@ Set up a steak sandwich with the make-up from 0k, each side with a recipe or ing
 5. The guided screen's *Modifiers* step shows the same list (the make-up is saved when you press Next from *What comes with it*).
 6. Nothing is charged on an order yet: choosing a removal or an extra, and its fee, comes in 4.3.
 
+## 0t. Leaving out and extra on an order (after scripts 205 and 206)
+Set up the burger of 0s: *Ten percent* on the extra cheese, *Fee 20* on leaving out the onion.
+1. Till (or the online menu, kiosk, table QR): tap the burger. The box has *Leave out or add*: "No cheese", "Extra cheese +50", "No onion +20" at a price of 500. Ticking "Extra cheese" while "No cheese" is ticked swaps them. The button shows 570 with the extra cheese and no onion.
+2. Add it and pay. The kitchen ticket and the receipt show "Extra cheese" and "No onion" under the dish, with the fees. Stock afterwards: the onion is not used; the cheese goes down by the recipe's 20 g plus 20 g more for the extra.
+3. With a size (Jumbo 650), the extra cheese costs 10% of 650, not of the dish's own price and not of what sides add.
+4. Menus, Configuration: switch *A fee carries the dish's VAT* off. Choose an income account with no tax under *Fees kept apart are booked to*. Order the same burger: the dish is 500 and the fees are a second line "Modifier fee: Burger" on the order and in the books, posted to that account; the total is the same, but the fee carries no VAT. With no account of its own it uses the dish sales account (which carries tax), and with no sales account either the order says to choose one.
+5. Order more extra cheese than the shelf holds (the recipe's need plus the extras): the order is refused with "There is not enough Cheese left for the extra".
+6. The tab: a tab keeps the choices and fees; adding to it, splitting it and paying it all give the same totals.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

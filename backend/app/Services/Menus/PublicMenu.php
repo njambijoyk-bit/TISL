@@ -52,8 +52,27 @@ class PublicMenu
             'price' => (float) $d->price, 'price_incl' => $this->inclusive($d),
             'available' => $portions > 0, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'allergens' => $profile['allergens'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'],
-            'options' => $this->options($d), 'chef' => $this->chefName($d), 'makeup' => $this->makeup($d, $location),
+            'options' => $this->options($d), 'chef' => $this->chefName($d), 'makeup' => $this->makeup($d, $location), 'modifiers' => $this->modifiers($d),
         ];
+    }
+
+    /**
+     * What a guest may leave out of the dish or ask extra of (scripts 205 and 206), each with the policy that prices it: a fixed fee, or a percentage the screen works out at the size chosen.
+     *
+     * @return array<int, array{ingredient_id: int, name: string, kind: string, fee: array{kind: string, amount: float}}>
+     */
+    private function modifiers(Dish $d): array
+    {
+        if (! DishModifiers::installed()) {
+            return [];
+        }
+        $svc = app(DishModifiers::class);
+
+        return array_map(function ($c) use ($d, $svc) {
+            $p = $svc->policyFor($d, $c['ingredient_id'], $c['kind']);
+
+            return ['ingredient_id' => $c['ingredient_id'], 'name' => $c['ingredient'], 'kind' => $c['kind'], 'fee' => ['kind' => $p?->kind ?? 'free', 'amount' => (float) ($p?->amount ?? 0)]];
+        }, $svc->candidates($d));
     }
 
     /**

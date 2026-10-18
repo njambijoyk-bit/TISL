@@ -27,7 +27,7 @@ class MenusKioskController extends Controller
     private function rules(): array
     {
         return ['service' => 'required|string|in:dine_in,take_out', 'items' => 'required|array|min:1|max:60', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:20',
-            'items.*.serving_id' => 'nullable|integer', 'items.*.picks' => 'nullable|array', 'items.*.picks.*' => 'array', 'items.*.option_ids' => 'nullable|array|max:40', 'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200'];
+            'items.*.mods' => 'nullable|array|max:30', 'items.*.mods.*.ingredient_id' => 'required|integer', 'items.*.mods.*.kind' => 'required|string|in:remove,extra', 'items.*.serving_id' => 'nullable|integer', 'items.*.picks' => 'nullable|array', 'items.*.picks.*' => 'array', 'items.*.option_ids' => 'nullable|array|max:40', 'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200'];
     }
 
     public function show(string $token): JsonResponse

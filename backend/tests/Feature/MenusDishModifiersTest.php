@@ -145,4 +145,14 @@ class MenusDishModifiersTest extends TestCase
         $this->assertCount(3, $this->svc()->candidates($this->burger));
         $this->assertSame(0, DishModifiers::usedBy($this->fee));
     }
+
+    public function test_what_a_guest_chose_decides_what_the_sale_takes_from_the_shelf(): void
+    {
+        $r = $this->svc()->resolve($this->burger, [['ingredient_id' => $this->ing('Cheese'), 'kind' => 'extra'], ['ingredient_id' => $this->ing('Onion'), 'kind' => 'remove']], 500.0);
+        $this->assertSame([0.0, 0.0], [$r['fee_in_price'], $r['fee_apart']], 'both are on the default policy, Free');
+        $v = $this->sale([['dish' => $this->burger, 'qty' => 2, 'uses' => $r['uses']]]);
+        app(\App\Services\Menus\DishStock::class)->apply($v, null);
+        $left = fn (string $n) => (float) \App\Models\Menus\StockBatch::whereIn('item_id', DB::table('menus_ingredient_items')->where('ingredient_id', $this->ing($n))->pluck('id'))->sum('qty_left');
+        $this->assertSame([800.0, 920.0, 1000.0], [$left('Flour'), $left('Cheese'), $left('Onion')], 'flour 2 x 100; cheese 2 x (20 + 20 extra); the onion was left out');
+    }
 }

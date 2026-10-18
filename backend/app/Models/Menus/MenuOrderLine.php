@@ -35,6 +35,19 @@ class MenuOrderLine extends Model
         return ['serving_id' => $l['serving_id'] ?? null, 'serving' => $l['serving'] ?? null, 'selection' => $l['selection'] ?? null];
     }
 
+    /** The choices of a line as they are kept: what was chosen, its price, whether the fee is kept apart from the dish's price, and which ingredient was left out or added. @param array<int, array<string, mixed>> $options */
+    public static function optionRows(array $options): array
+    {
+        return array_map(fn ($x) => ['id' => $x['id'] ?? null, 'group' => $x['group'], 'name' => $x['name'], 'price_delta' => $x['price_delta']]
+            + (! empty($x['apart']) ? ['apart' => true] : []) + (! empty($x['mod']) ? ['mod' => $x['mod']] : []), $options);
+    }
+
+    /** What the line's choices cost that is kept apart from the dish's price (a fee that carries no VAT), for one of it. */
+    public function apartFee(): float
+    {
+        return round(array_sum(array_map(fn ($o) => ! empty($o['apart']) ? (float) $o['price_delta'] : 0.0, (array) ($this->options ?? []))), 2);
+    }
+
     /** The sides this line came with, as they are written on a ticket or a receipt: "Choma", "Egg x2". @return string[] */
     public function sidesList(): array
     {

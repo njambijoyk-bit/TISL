@@ -39,7 +39,7 @@ export default function MenusSettings() {
       const r = await menusAPI.saveSettings({ currency_id: s.currency_id || null, sales_ledger_id: s.sales_ledger_id || null, purchase_ledger_id: s.purchase_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
         prepared_food_ledger_id: s.prepared_food_ledger_id || null, tips_window: s.tips_window ?? 'anytime', tips_from: s.tips_from ?? '00:00', tips_to: s.tips_to ?? '23:59', tips_days: s.tips_days ?? [1, 2, 3, 4, 5, 6, 7], packaging_kind_id: s.packaging_kind_id || null, packaging_sales_ledger_id: s.packaging_sales_ledger_id || null,
         ingredient_stock_ledger_id: s.ingredient_stock_ledger_id || null, food_cost_ledger_id: s.food_cost_ledger_id || null, food_waste_ledger_id: s.food_waste_ledger_id || null,
-        tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
+        modifier_fee_ledger_id: s.modifier_fee_ledger_id || null, tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
         modifier_fees_vatable: s.modifier_fees_vatable !== false, sell_through_sides: Boolean(s.sell_through_sides), qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
         custom_orders: Boolean(s.custom_orders), custom_deposit_pct: Number(s.custom_deposit_pct) || 0, custom_quote_days: Number(s.custom_quote_days) || 7, custom_lead_hours: Number(s.custom_lead_hours) || 0, chef_lead_hours: Number(s.chef_lead_hours) || 0,
         rota_max_week_hours: Number(s.rota_max_week_hours) || 48, rota_min_rest_hours: Number(s.rota_min_rest_hours) || 0,
@@ -83,6 +83,9 @@ export default function MenusSettings() {
                   A fee carries the dish's VAT
                 </label>
                 <p style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>On: the fee is part of the dish's price and is taxed as the dish is. Off: it is kept apart and carries no VAT. What each item costs is chosen on the dish (Menus, Dishes, Modifiers), from the policies in the lists further down this page.</p>
+                {s.modifier_fees_vatable === false && (
+                  <LedgerSelect id="ms-modfee" label="Fees kept apart are booked to" value={s.modifier_fee_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, modifier_fee_ledger_id: v }))} hint="An income account with no tax on it. Empty: the account the dishes are sold to, which carries tax, so choose one of its own." />
+                )}
               </fieldset>
               <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid="sell-through-sides">
                 <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Selling through sides</legend>
