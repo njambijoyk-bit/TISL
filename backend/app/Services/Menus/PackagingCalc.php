@@ -49,31 +49,44 @@ class PackagingCalc
                 }
             }
         }
-        $to = Currency::getBaseCurrency();   // the order's voucher is written in the base currency
         $out = [];
         foreach ($info as $id => $i) {
             $qty = (int) ceil(($perDish[$id] ?? 0) + ($perOrder[$id] ?? 0));
             if ($qty < 1) {
                 continue;
             }
-            $price = $i['charged'] ? $this->prices->priceOf($id) : null;
-            $unit = 0.0;
-            if ($price) {   // a price in another currency than the order's is converted; one in the order's currency (or the base, with no currency named) is used as it is
-                $unit = $price['price'];
-                if ($to && $price['currency_id'] && (int) $price['currency_id'] !== (int) $to->id) {
-                    $unit = $this->money->convert($price['price'], $this->money->resolveCurrency($price['currency_id']), $to);
-                }
-            }
-            $charged = $price !== null;   // a rule that wants it charged but whose price has since left the list is free
-            $receipt = isset($i['receipts']['always']) ? 'always' : (isset($i['receipts']['auto']) ? 'auto' : 'never');
-            $item = IngredientItem::with('ingredient')->find($id);
-            $out[] = ['item_id' => (int) $id, 'name' => $item ? $item->ingredient->name.($item->name !== $item->ingredient->name ? ' - '.$item->name : '') : 'Packaging', 'quantity' => $qty, 'compulsory' => $i['compulsory'], 'charged' => $charged,
-                'needs_waive' => $i['compulsory'] && $charged, 'unit_price' => $unit, 'amount' => round($unit * $qty, 2), 'currency_id' => $to?->id, 'ledger_id' => $price['ledger_id'] ?? null, 'receipt' => $receipt,
-                'shown' => $receipt === 'always' || ($receipt === 'auto' && $charged), 'from' => array_keys($i['from'])];
+            $out[] = $this->line((int) $id, $qty, $i['compulsory'], $i['charged'], $i['receipts'], array_keys($i['from']));
         }
         usort($out, fn ($a, $b) => strcasecmp($a['name'], $b['name']));
 
         return $out;
+    }
+
+    /**
+     * One packaging line for a count of an item: priced from the list when it is to be charged and has a price there (converted to the order's currency), else free.
+     *
+     * @param array<string, bool> $receipts the receipt switches of the rules that asked for it ('auto', 'always', 'never')
+     * @param string[] $from
+     * @return array{item_id: int, name: string, quantity: int, compulsory: bool, charged: bool, needs_waive: bool, unit_price: float, amount: float, currency_id: ?int, ledger_id: ?int, receipt: string, shown: bool, from: string[]}
+     */
+    public function line(int $id, int $qty, bool $compulsory, bool $wantsCharge, array $receipts, array $from = []): array
+    {
+        $to = Currency::getBaseCurrency();   // the order's voucher is written in the base currency
+        $price = $wantsCharge ? $this->prices->priceOf($id) : null;
+        $unit = 0.0;
+        if ($price) {   // a price in another currency than the order's is converted; one in the order's currency (or the base, with no currency named) is used as it is
+            $unit = $price['price'];
+            if ($to && $price['currency_id'] && (int) $price['currency_id'] !== (int) $to->id) {
+                $unit = $this->money->convert($price['price'], $this->money->resolveCurrency($price['currency_id']), $to);
+            }
+        }
+        $charged = $price !== null;   // a rule that wants it charged but whose price has since left the list is free
+        $receipt = isset($receipts['always']) ? 'always' : (isset($receipts['auto']) ? 'auto' : 'never');
+        $item = IngredientItem::with('ingredient')->find($id);
+
+        return ['item_id' => $id, 'name' => $item ? $item->ingredient->name.($item->name !== $item->ingredient->name ? ' - '.$item->name : '') : 'Packaging', 'quantity' => $qty, 'compulsory' => $compulsory, 'charged' => $charged,
+            'needs_waive' => $compulsory && $charged, 'unit_price' => $unit, 'amount' => round($unit * $qty, 2), 'currency_id' => $to?->id, 'ledger_id' => $price['ledger_id'] ?? null, 'receipt' => $receipt,
+            'shown' => $receipt === 'always' || ($receipt === 'auto' && $charged), 'from' => $from];
     }
 
     /** The sides a dish line was ordered with, or the dish's own side when sales go through sides. @return int[] */

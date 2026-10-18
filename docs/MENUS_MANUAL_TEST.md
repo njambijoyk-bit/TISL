@@ -170,6 +170,14 @@ With the container (priced 15) and the bag (priced 5) from 0u, and a foil sheet 
 6. The guided screen's last step is *Packaging* and shows the same rules for the dish.
 7. Nothing is added to an order yet: the checkout list comes in 5.3 and 5.4.
 
+## 0w. The packaging list at the till (after scripts 207 to 209)
+With the stew's rule from 0v (container, 2 for each dish, compulsory, charged; foil, 1 for each dish, free).
+1. Till: take out two meals, **Pay**. The payment box has a *Packaging* part: Container 4 (15 each, compulsory) and Foil 2 (free). Dining in shows no packaging at all.
+2. Press − on the container: 3. Take the foil down to 0: the line stays, greyed, with a *Why? (optional)* box: type "brought their own". Add a Bag from *Add packaging* (its price is shown). Use *Change to…* on the container to swap it for the bag: the count stays and the price becomes the bag's. No price can be typed anywhere.
+3. Take the payment. The order keeps the list: what it ended with, what the rules had asked for, and the reason for the foil.
+4. A tab: its list is worked out when it is paid, from all its rounds together. A per-order rule counts once for the whole tab.
+5. Nothing is charged for packaging yet, and the receipt does not show it: those come with the permission to waive (5.5), the posting (5.6) and the receipt (5.7).
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

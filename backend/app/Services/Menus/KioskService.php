@@ -128,7 +128,7 @@ class KioskService
         [, , $lines, $p] = $this->lines($k, $in, $now);
 
         return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
-            'packaging' => app(PackagingCalc::class)->forLines($lines, (string) ($in['service'] ?? '') !== 'dine_in')];
+            'packaging' => app(PackagingCheckout::class)->resolve($lines, (string) ($in['service'] ?? '') !== 'dine_in', null)];
     }
 
     /**
@@ -159,6 +159,7 @@ class KioskService
         return DB::transaction(function () use ($k, $channel, $loc, $lines, $p, $pay, $method, $service, $session, $in) {
             $o = $this->counter->create($channel, $loc, $service, null, '', $pay === 'screen' ? 'pending' : 'open', $p, ['kiosk_id' => $k->id, 'session_code' => $session]);
             $this->counter->addLines($o, $lines, 1);
+            app(PackagingCheckout::class)->store($o, app(PackagingCheckout::class)->resolve($lines, $service !== 'dine_in', null), null);   // as the rules ask: the cashier may change it when it is paid
             if ($pay === 'counter') {
                 return ['order' => $o->fresh()];
             }

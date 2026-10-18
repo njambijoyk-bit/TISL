@@ -29,14 +29,15 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
   const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState(false);
   const [problem, setProblem] = useState(null);
+  const [edits, setEdits] = useState([]);   // the cashier's changes to the packaging list: [{ item_id, quantity?, reason?, replaces? }]
 
   useEffect(() => {
     let live = true;
     const t = setTimeout(() => {
-      askQuote({ tip: Number(tip) || 0, waive_service: waive }).then((q) => { if (live) { setQuote(q); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'Could not price this')); } });
+      askQuote({ tip: Number(tip) || 0, waive_service: waive, ...(edits.length ? { packaging: edits } : {}) }).then((q) => { if (live) { setQuote(q); setProblem(null); } }).catch((e) => { if (live) { setQuote(null); setProblem(errMsg(e, 'Could not price this')); } });
     }, 250);
     return () => { live = false; clearTimeout(t); };
-  }, [tip, waive]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tip, waive, edits]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const due = quote?.total ?? total;
   const handed = rows.reduce((n, r) => n + (Number(r.amount) || 0), 0);
@@ -44,11 +45,20 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
   const short = Math.max(0, due - handed);
   const set = (i, p) => setRows((xs) => xs.map((r, n) => (n === i ? { ...r, ...p } : r)));
   const method = (r) => data.payment_methods.find((m) => String(m.id) === String(r.payment_method_id));
+  // packaging: every change is an entry for the item as it stands now; the server sends the list back with the changes applied
+  const putEdit = (entry, key = entry.item_id) => setEdits((xs) => [...xs.filter((x) => (x.replaces ?? x.item_id) !== key && x.item_id !== key), entry]);
+  const setCount = (l, q) => {
+    if (l.source === 'swapped') putEdit({ item_id: l.item_id, replaces: l.replaces_item_id, quantity: q, ...(q === 0 ? { reason: l.reason ?? '' } : {}) }, l.replaces_item_id);
+    else putEdit({ item_id: l.item_id, quantity: q, ...(q === 0 ? { reason: l.reason ?? '' } : {}) });
+  };
+  const setReason = (l, reason) => (l.source === 'swapped' ? putEdit({ item_id: l.item_id, replaces: l.replaces_item_id, quantity: 0, reason }, l.replaces_item_id) : putEdit({ item_id: l.item_id, quantity: 0, reason }));
+  const swapTo = (l, id) => { if (!id) return; const base = l.source === 'swapped' ? l.replaces_item_id : l.item_id; if (l.source === 'added') setEdits((xs) => [...xs.filter((x) => x.item_id !== l.item_id), { item_id: id, quantity: l.quantity }]); else putEdit({ item_id: id, replaces: base, quantity: l.quantity }, base); };
+  const addItem = (id) => id && setEdits((xs) => [...xs, { item_id: id, quantity: 1 }]);
 
   const go = async () => {
     setBusy(true);
     try {
-      await onPay({ tip: Number(tip) || 0, waive_service: waive, tenders: rows.filter((r) => Number(r.amount) > 0).map((r) => ({ payment_method_id: Number(r.payment_method_id), amount: Number(r.amount), reference: r.reference || undefined })) });
+      await onPay({ tip: Number(tip) || 0, waive_service: waive, ...(edits.length ? { packaging: edits } : {}), tenders: rows.filter((r) => Number(r.amount) > 0).map((r) => ({ payment_method_id: Number(r.payment_method_id), amount: Number(r.amount), reference: r.reference || undefined })) });
     } catch (e) { toast.error(errMsg(e, 'Could not take the payment'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
@@ -64,6 +74,37 @@ function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay
             {quote.tip > 0 && <><dt>Tip</dt><dd style={{ margin: 0, textAlign: 'right' }}>{money(quote.tip)}</dd></>}
             <dt style={{ fontSize: '1.2rem', fontWeight: 900 }}>Total</dt><dd style={{ margin: 0, textAlign: 'right', fontSize: '1.2rem', fontWeight: 900 }} data-testid="due">{money(quote.total)}</dd>
           </dl>
+        )}
+        {(quote?.packaging?.length > 0 || (quote?.packaging_choices?.length > 0)) && (
+          <div data-testid="packaging-list" style={{ display: 'grid', gap: 6, borderTop: '1px solid var(--line, #cbd5e1)', paddingTop: 8 }}>
+            <strong style={{ fontSize: '0.85rem' }}>Packaging</strong>
+            {quote.packaging.map((l) => (
+              <div key={l.item_id} data-testid="packaging-line" data-removed={l.removed ? 'yes' : 'no'} style={{ display: 'grid', gap: 4, opacity: l.removed ? 0.6 : 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <span style={{ flex: 1, minWidth: 120 }}>{l.name}{l.compulsory && <small style={{ color: '#b45309' }}> compulsory</small>}{l.charged ? <small style={{ color: '#64748b' }}> {money(l.unit_price)} each</small> : <small style={{ color: '#64748b' }}> free</small>}</span>
+                  <button type="button" aria-label={`Fewer ${l.name}`} disabled={l.quantity < 1} onClick={() => setCount(l, l.quantity - 1)} style={{ ...line, width: 32, height: 32, borderRadius: 8, cursor: 'pointer' }}>−</button>
+                  <strong aria-label={`${l.name} count`} style={{ minWidth: 22, textAlign: 'center' }}>{l.quantity}</strong>
+                  <button type="button" aria-label={`More ${l.name}`} disabled={l.quantity >= 99} onClick={() => setCount(l, l.quantity + 1)} style={{ ...line, width: 32, height: 32, borderRadius: 8, cursor: 'pointer' }}>+</button>
+                  <span style={{ minWidth: 60, textAlign: 'right' }}>{l.charged ? money(l.amount) : ''}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                  <select aria-label={`Change ${l.name} to`} value="" onChange={(e) => swapTo(l, Number(e.target.value))} style={{ padding: 6, borderRadius: 8, fontSize: '0.8rem', ...line }}>
+                    <option value="">Change to…</option>
+                    {quote.packaging_choices.filter((c) => !quote.packaging.some((x) => x.item_id === c.item_id)).map((c) => <option key={c.item_id} value={c.item_id}>{c.name}{c.price ? ` (${money(c.price)})` : ''}</option>)}
+                  </select>
+                  {l.removed && <input aria-label={`Why no ${l.name}`} placeholder="Why? (optional)" maxLength={200} defaultValue={l.reason ?? ''} onBlur={(e) => setReason(l, e.target.value)} style={{ flex: 1, minWidth: 140, padding: 6, borderRadius: 8, fontSize: '0.8rem', ...line }} />}
+                  {l.source !== 'rule' && <small style={{ color: '#64748b' }}>{l.source === 'added' ? 'added' : 'swapped'}</small>}
+                </div>
+              </div>
+            ))}
+            {quote.packaging_choices.filter((c) => !quote.packaging.some((x) => x.item_id === c.item_id)).length > 0 && (
+              <select aria-label="Add packaging" value="" onChange={(e) => addItem(Number(e.target.value))} style={{ padding: 8, borderRadius: 8, ...line }}>
+                <option value="">Add packaging…</option>
+                {quote.packaging_choices.filter((c) => !quote.packaging.some((x) => x.item_id === c.item_id)).map((c) => <option key={c.item_id} value={c.item_id}>{c.name}{c.price ? ` (${money(c.price)})` : ' (free)'}</option>)}
+              </select>
+            )}
+            <small style={{ color: '#64748b' }}>Prices come from the packaging price list. The list is kept with the order; charging it on the bill comes with the posting step.</small>
+          </div>
         )}
         {problem && <p role="alert" style={{ margin: 0, color: '#b91c1c' }}>{problem}</p>}
         {rules.service_charge_on && service === 'dine_in' && <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={waive} onChange={(e) => setWaive(e.target.checked)} /> Waive the {rules.service_charge_pct}% service charge</label>}
@@ -315,7 +356,7 @@ export default function MenusTill() {
       {kioskPay && data && (
         <PayModal data={data} rules={{ ...data.rules, tips_on: false, service_charge_on: false }} service={kioskPay.service} total={kioskPay.total} onClose={() => setKioskPay(null)}
           quote={() => Promise.resolve({ subtotal: kioskPay.subtotal, tax_total: kioskPay.tax_total, service_charge: kioskPay.service_charge, tip: 0, total: kioskPay.total })}
-          onPay={async (extra) => { const r = await menusAPI.settleKiosk(kioskPay.id, { tenders: extra.tenders }); setKioskPay(null); await load(); setReceipt(r.order); }} />
+          onPay={async (extra) => { const r = await menusAPI.settleKiosk(kioskPay.id, { tenders: extra.tenders, ...(extra.packaging ? { packaging: extra.packaging } : {}) }); setKioskPay(null); await load(); setReceipt(r.order); }} />
       )}
       {receipt && <ReceiptModal order={receipt} onClose={() => setReceipt(null)} />}
     </AdminLayout>

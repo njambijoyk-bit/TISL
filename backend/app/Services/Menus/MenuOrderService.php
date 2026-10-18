@@ -346,7 +346,7 @@ class MenuOrderService
 
         return ['subtotal' => $preview['subtotal'], 'delivery_fee' => $preview['delivery_fee'], 'tax_total' => $preview['tax_total'], 'total' => $preview['total'],
             'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol']), 'at' => $p['at']->toIso8601String(), 'asap' => $p['asap'],
-            'packaging' => app(PackagingCalc::class)->forLines($p['lines'], true),
+            'packaging' => app(PackagingCheckout::class)->resolve($p['lines'], true, null),
             'lines' => array_map(fn ($l) => ['dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'unit_price' => $l['unit_price'], 'amount' => round($l['unit_price'] * $l['quantity'], 2),
                 'options' => array_column($l['options'], 'name'), 'serving' => $l['serving'] ?? null, 'sides' => array_column($l['selection'] ?? [], 'side')], $p['lines'])];
     }
@@ -396,6 +396,7 @@ class MenuOrderService
                 'notes' => $p['notes'], 'placed_at' => now(),
             ]);
             $order->update(['number' => 'MO-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
+            app(PackagingCheckout::class)->store($order, app(PackagingCheckout::class)->resolve($p['lines'], true, null), $user);
             foreach ($p['lines'] as $l) {
                 MenuOrderLine::create(['order_id' => $order->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'],
                     'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'], 'options' => MenuOrderLine::optionRows($l['options']), 'note' => $l['note']] + MenuOrderLine::kept($l));
