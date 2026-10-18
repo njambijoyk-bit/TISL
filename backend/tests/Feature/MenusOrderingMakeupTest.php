@@ -137,7 +137,8 @@ class MenusOrderingMakeupTest extends TestCase
         $dish = fn () => app(\App\Services\Menus\PublicMenu::class)->build($this->now, self::BRANCH)['menus'][0]['sections'][0]['dishes'][0];
         $m = $dish()['makeup'];
         $this->assertSame([['Jumbo', 650.0], ['Kids', 350.0]], array_map(fn ($s) => [$s['name'], $s['price']], $m['servings']));
-        $this->assertSame([350.0, ['Adults']], [$m['from'], $m['audiences']]);
+        $this->assertSame([350.0, ['Adults'], [$aud]], [$m['from'], $m['audiences'], $m['audience_ids']]);
+        $this->assertSame([['id' => $aud, 'name' => 'Adults']], app(\App\Services\Menus\PublicMenu::class)->build($this->now, self::BRANCH)['audiences'], 'the menu says who it can be filtered for');
         $this->assertSame(['Bread', 'Protein', 'Greens', 'Extras'], array_column($m['slots'], 'name'));
         $protein = $m['slots'][1];
         $this->assertSame([['Choma', 0.0, true, true], ['Wet fry', 50.0, false, true]], array_map(fn ($c) => [$c['name'], $c['upcharge'], $c['is_default'], $c['available']], $protein['choices']));

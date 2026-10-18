@@ -82,6 +82,7 @@ export default function MenuPage() {
   const [error, setError] = useState(false);
   const [current, setCurrent] = useState(null);
   const [diet, setDiet] = useState('');
+  const [audience, setAudience] = useState(null);   // who the dishes are for: a dish that names no one is for everyone
   const [avoid, setAvoid] = useState([]);
   const basket = useBasket();
   const [ordering, setOrdering] = useState(false);   // is any way to order switched on?
@@ -92,7 +93,7 @@ export default function MenuPage() {
   const addDish = (d) => (needsChoice(d) ? setPicking(d) : basket.add(d));
   useEffect(() => { menusPublicAPI.get().then((r) => { setData(r); setCurrent((c) => c ?? (r.menus.find((m) => m.serving_now) ?? r.menus[0])?.id ?? null); }).catch(() => setError(true)); }, []);
   const menu = data?.menus.find((m) => m.id === current);
-  const sections = useMemo(() => (menu?.sections ?? []).map((s) => ({ ...s, dishes: s.dishes.filter((d) => (!diet || d.diets.includes(diet)) && !d.allergens.some((a) => avoid.includes(a))) })).filter((s) => s.dishes.length), [menu, diet, avoid]);
+  const sections = useMemo(() => (menu?.sections ?? []).map((s) => ({ ...s, dishes: s.dishes.filter((d) => (!diet || d.diets.includes(diet)) && !d.allergens.some((a) => avoid.includes(a)) && (!audience || !d.makeup?.audience_ids?.length || d.makeup.audience_ids.includes(audience))) })).filter((s) => s.dishes.length), [menu, diet, avoid, audience]);
   const hidden = menu ? menu.sections.reduce((n, s) => n + s.dishes.length, 0) - sections.reduce((n, s) => n + s.dishes.length, 0) : 0;
 
   return (
@@ -117,6 +118,12 @@ export default function MenuPage() {
               <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>Show only</span>
               {Object.entries(data.diets).map(([k, name]) => <button key={k} type="button" aria-pressed={diet === k} onClick={() => setDiet(diet === k ? '' : k)} style={chipBtn(diet === k)}>{name}</button>)}
             </div>
+            {(data.audiences ?? []).length > 0 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 6 }} aria-label="Who it is for">
+                <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>For</span>
+                {data.audiences.map((a) => <button key={a.id} type="button" aria-pressed={audience === a.id} onClick={() => setAudience(audience === a.id ? null : a.id)} style={chipBtn(audience === a.id)}>{a.name}</button>)}
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }} aria-label="Allergens to avoid">
               <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)' }}>Avoid</span>
               {Object.entries(data.allergens).map(([k, name]) => <button key={k} type="button" aria-pressed={avoid.includes(k)} onClick={() => setAvoid((xs) => (xs.includes(k) ? xs.filter((x) => x !== k) : [...xs, k]))} style={chipBtn(avoid.includes(k))}>{name}</button>)}

@@ -30,7 +30,15 @@ class PublicMenu
             ];
         })->filter(fn ($m) => $m['sections'])->values()->all();
 
-        return ['menus' => $menus, 'allergens' => FoodTags::allergens(), 'diets' => DietBadges::LABELS, 'note' => MenusSettings::all()['allergen_note'], 'now' => $now->toIso8601String()];
+        return ['menus' => $menus, 'audiences' => $this->audiences($menus), 'allergens' => FoodTags::allergens(), 'diets' => DietBadges::LABELS, 'note' => MenusSettings::all()['allergen_note'], 'now' => $now->toIso8601String()];
+    }
+
+    /** Who the dishes on the menu are for, when any of them says so: [{id, name}], to filter by. @param array<int, array<string, mixed>> $menus @return array<int, array{id: int, name: string}> */
+    private function audiences(array $menus): array
+    {
+        $ids = collect($menus)->flatMap(fn ($m) => $m['sections'])->flatMap(fn ($s) => $s['dishes'])->flatMap(fn ($d) => $d['makeup']['audience_ids'] ?? [])->unique()->values()->all();
+
+        return $ids ? \Illuminate\Support\Facades\DB::table('menus_audiences')->whereIn('id', $ids)->where('is_active', true)->orderBy('sort_order')->get(['id', 'name'])->map(fn ($a) => ['id' => (int) $a->id, 'name' => $a->name])->all() : [];
     }
 
     /** @return array<string, mixed> */
@@ -68,6 +76,7 @@ class PublicMenu
             'servings' => $servings,
             'from' => $servings ? min(array_column($servings, 'price')) : null,
             'audiences' => $m['audience_ids'] ? \Illuminate\Support\Facades\DB::table('menus_audiences')->whereIn('id', $m['audience_ids'])->orderBy('sort_order')->pluck('name')->all() : [],
+            'audience_ids' => $m['audience_ids'],
             'slots' => array_map(fn ($slot) => [
                 'id' => $slot['id'], 'name' => $slot['name'], 'kind' => $slot['kind'], 'min' => $slot['min'], 'max' => $slot['max'],
                 'choices' => array_map(fn ($c) => ['side_id' => $c['side_id'], 'name' => $c['side'], 'upcharge' => $c['upcharge'], 'is_default' => $c['is_default'],
