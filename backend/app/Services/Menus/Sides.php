@@ -88,6 +88,9 @@ class Sides
         if ($name === '') {
             throw new BooksException('Give the side a name.');
         }
+        if ($id && array_key_exists('is_active', $d) && ! $d['is_active'] && ($dishes = DishMakeup::dishesUsingSide($id))) {
+            throw new BooksException("{$name} is in the make-up of ".implode(', ', array_slice($dishes, 0, 3)).'. Take it out there before switching it off.');
+        }
         if (Side::whereRaw('LOWER(name) = ?', [mb_strtolower($name)])->when($id, fn ($q) => $q->where('id', '!=', $id))->exists()) {
             throw new BooksException("There is already a side called {$name}.");
         }
@@ -185,6 +188,9 @@ class Sides
     public function delete(int $id): void
     {
         $side = Side::findOrFail($id);
+        if ($dishes = DishMakeup::dishesUsingSide($id)) {
+            throw new BooksException("{$side->name} is in the make-up of ".implode(', ', array_slice($dishes, 0, 3)).(count($dishes) > 3 ? ' and more' : '').'. Take it out there first.');
+        }
         DB::transaction(function () use ($side) {
             $side->amounts()->delete();
             $side->delete();

@@ -87,6 +87,13 @@ Do this on test dishes first. The switch is Menus, Configuration, *Selling throu
 4. The till's "can make now" and the dish cost follow the side while the switch is on. With the switch on, making a batch of that dish on the Stock page is refused (use the Prepared food page); writing the dish off comes off the prepared batches and shows under the dish's name in the waste log.
 5. A dish with no side, or a side that is switched off, sells exactly as before even with the switch on. Turn the switch off again: everything goes back to the dish's own recipe and the old shelf.
 
+## 0k. Dish make-up (after script 202; needs sides from 200 and sizes and audiences from 193)
+1. Menus, Dishes, a dish, **Make-up**. *Sizes and their prices*: give Jumbo 650 and Kids 350; leave a size empty and the dish is not sold in it. *Who it is for*: tick Adults.
+2. Add slots to a steak sandwich: **Bread** (always included, the side Bread); **Protein** (choose one: Choma, to begin with, and Wet fry adding 50); **Sauces** (free extra, most 2: Ketchup, Mayo); **Extras** (paid extra: Egg at 40). Save, close and open it again: everything is as left, in the same order. Slots move up and down.
+3. An always-included or free side shows "no extra charge". A choose-one slot needs two sides and only one chosen to begin with; a paid extra needs a price; a side twice in a slot, a switched-off side, a fewest above the most, or more chosen to begin with than allowed is refused with a message, and nothing is changed.
+4. Menus, Sides: a side that is in a dish's make-up can not be removed or switched off ("take it out there first"). Deleting a dish that was never sold takes its make-up with it.
+5. Nothing in the till changes yet: the till and the online menu still use the dish's own price and Choices. The make-up is what step 3's ordering reads.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

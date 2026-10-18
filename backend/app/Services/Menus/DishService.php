@@ -103,6 +103,7 @@ class DishService
                 Option::whereIn('id', $ids)->delete();
                 $g->delete();
             }
+            app(DishMakeup::class)->deleteAll((int) $dish->id);
             DB::table('menus_section_dishes')->where('dish_id', $dish->id)->delete();
             $dish->delete();
         });

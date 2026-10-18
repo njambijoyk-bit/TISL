@@ -12,6 +12,7 @@ import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
+import DishMakeupModal from '../../components/DishMakeupModal';
 import DishOptionsModal from '../../components/DishOptionsModal';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
 import { useMenusBranch } from '../../lib/menusBranch';
@@ -178,6 +179,7 @@ export default function Dishes() {
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ dish: d })}>Edit</button>}
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ options: d })}>Choices</button>}
+                    {canWrite && <button type="button" style={small} onClick={() => setModal({ makeup: d })}>Make-up</button>}
                     <Link to="/admin/menus/recipes" style={{ ...small, display: 'inline-block', textDecoration: 'none' }}>Recipe</Link>
                     {canWrite && <button type="button" style={small} onClick={() => toggleSoldOut(d)}>{d.sold_out_today ? 'Available again' : 'Sold out today'}</button>}
                     {canWrite && <button type="button" style={small} onClick={() => remove(d)}>Delete</button>}
@@ -190,7 +192,8 @@ export default function Dishes() {
         {data?.settings?.allergen_note && <p style={{ fontSize: '0.74rem', color: colors.textFaint, marginTop: 12 }}>{data.settings.allergen_note}</p>}
       </div>
       {modal?.options && <DishOptionsModal dish={modal.options} onClose={() => setModal(null)} onDone={done} />}
-      {modal && !modal.options && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
+      {modal?.makeup && <DishMakeupModal dish={modal.makeup} onClose={() => setModal(null)} onDone={done} />}
+      {modal && !modal.options && !modal.makeup && data && <DishModal dish={modal.dish} data={data} onClose={() => setModal(null)} onDone={done} />}
     </AdminLayout>
   );
 }
