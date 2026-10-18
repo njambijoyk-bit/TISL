@@ -15,6 +15,7 @@ import ChannelsCard from '../../components/ChannelsCard';
 import StationsCard from '../../components/StationsCard';
 import KiosksCard from '../../components/KiosksCard';
 import ClockPlacesCard from '../../components/ClockPlacesCard';
+import ListsCard from '../../components/ListsCard';
 
 /** Menus → Configuration: the sales account dishes are booked under (it decides the tax), the allergen wording and the receipt footer. Tips and service charge are ledgers, managed in the books. */
 export default function MenusSettings() {
@@ -24,14 +25,17 @@ export default function MenusSettings() {
   const [ready, setReady] = useState(true);
   const [busy, setBusy] = useState(false);
   const [currencies, setCurrencies] = useState([]);
+  const [kinds, setKinds] = useState([]);
 
   useEffect(() => { currencyAPI.getCurrencies().then((r) => setCurrencies((Array.isArray(r) ? r : r?.data ?? r?.currencies ?? []).filter((c) => c.is_active !== false))).catch(() => {}); }, []);
+  useEffect(() => { menusAPI.ingredientKinds().then((r) => setKinds(r.kinds ?? [])).catch(() => {}); }, []);
   useEffect(() => { menusAPI.settings().then((r) => { setS(r.settings); setReady(r.ready); }).catch((e) => toast.error(errMsg(e, 'Could not load the settings'))); }, []);
 
   const save = async () => {
     setBusy(true);
     try {
       const r = await menusAPI.saveSettings({ currency_id: s.currency_id || null, sales_ledger_id: s.sales_ledger_id || null, purchase_ledger_id: s.purchase_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
+        prepared_food_ledger_id: s.prepared_food_ledger_id || null, tips_window: s.tips_window ?? 'anytime', tips_from: s.tips_from ?? '00:00', tips_to: s.tips_to ?? '23:59', tips_days: s.tips_days ?? [1, 2, 3, 4, 5, 6, 7], packaging_kind_id: s.packaging_kind_id || null, packaging_sales_ledger_id: s.packaging_sales_ledger_id || null,
         ingredient_stock_ledger_id: s.ingredient_stock_ledger_id || null, food_cost_ledger_id: s.food_cost_ledger_id || null, food_waste_ledger_id: s.food_waste_ledger_id || null,
         tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
         qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
@@ -75,11 +79,51 @@ export default function MenusSettings() {
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.qr_ordering)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, qr_ordering: e.target.checked }))} /> Guests may order and pay from the table&apos;s QR code</label>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.qr_open_by_scan)} disabled={!canEdit || !ready || !s.qr_ordering} onChange={(e) => setS((x) => ({ ...x, qr_open_by_scan: e.target.checked }))} /> A scan may open an empty table (otherwise staff seat the guests first)</label>
               </fieldset>
-              <LedgerSelect id="ms-tip" label="Tips are booked to" value={s.tip_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, tip_ledger_id: v }))} hint="Usually money held for staff. Empty: the till takes no tips. Set up the account in the books (Chart of accounts)." />
+              <LedgerSelect id="ms-tip" label="Tips are booked to" value={s.tip_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, tip_ledger_id: v }))} hint="Money held for staff until it is handed out. Empty: the books' own Tips Payable account. Set up accounts in the books (Chart of accounts)." />
+              <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid="tips-window">
+                <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>When tips may be handed out</legend>
+                <Field label="Handing out is allowed" htmlFor="ms-tw" hint="Tips never expire: they wait in the tips box until they are handed out. This only limits when a person with the right may do it.">
+                  <SelectInput id="ms-tw" value={s.tips_window ?? 'anytime'} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, tips_window: e.target.value }))}>
+                    <option value="anytime">At any time</option>
+                    <option value="daily">Every day, between two times</option>
+                    <option value="days">On chosen days, between two times</option>
+                    <option value="never">Never (tips are only collected)</option>
+                  </SelectInput>
+                </Field>
+                {['daily', 'days'].includes(s.tips_window) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 14 }}>
+                    <Field label="From" htmlFor="ms-tf"><TextInput id="ms-tf" type="time" value={s.tips_from ?? '00:00'} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, tips_from: e.target.value }))} /></Field>
+                    <Field label="To" htmlFor="ms-tt" hint="A time before “From” runs past midnight."><TextInput id="ms-tt" type="time" value={s.tips_to ?? '23:59'} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, tips_to: e.target.value }))} /></Field>
+                  </div>
+                )}
+                {s.tips_window === 'days' && (
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', fontSize: '0.86rem' }}>
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d, i) => (
+                      <label key={d} style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+                        <input type="checkbox" checked={(s.tips_days ?? []).includes(i + 1)} disabled={!canEdit || !ready}
+                          onChange={(e) => setS((x) => ({ ...x, tips_days: e.target.checked ? [...new Set([...(x.tips_days ?? []), i + 1])].sort() : (x.tips_days ?? []).filter((n) => n !== i + 1) }))} /> {d}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </fieldset>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <LedgerSelect id="ms-svc" label="Service charge is booked to" value={s.service_charge_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, service_charge_ledger_id: v }))} />
                 <Field label="Service charge on dine-in (%)" htmlFor="ms-pct" hint="0 = none. The cashier may waive it for a bill."><NumberInput id="ms-pct" min="0" max="30" step="any" value={s.service_charge_pct ?? 0} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, service_charge_pct: e.target.value }))} /></Field>
               </div>
+              <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid="packaging-config">
+                <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Packaging</legend>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                  <Field label="Packaging kind" htmlFor="ms-pk" hint="The kind of ingredient that is packaging (boxes, bags). Packaging on a takeaway order is chosen from items of this kind. Only one kind at a time.">
+                    <SelectInput id="ms-pk" value={s.packaging_kind_id ?? ''} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, packaging_kind_id: e.target.value ? Number(e.target.value) : null }))}>
+                      <option value="">None chosen</option>
+                      {kinds.filter((k) => k.packaging || k.id === s.packaging_kind_id).map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                    </SelectInput>
+                  </Field>
+                  <SalesAccountSelect kind="sales" scope="product" label="Packaging sales account" value={s.packaging_sales_ledger_id} disabled={!canEdit || !ready}
+                    onChange={(v) => setS((x) => ({ ...x, packaging_sales_ledger_id: v }))} hint="Where packaging charged to a customer is booked. Empty: the dishes' sales account, else the books' default sales account." />
+                </div>
+              </fieldset>
               <fieldset style={{ border: 'none', margin: 0, padding: 0, display: 'grid', gap: 10 }}>
                 <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Cakes and catering</legend>
                 <label style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: '0.88rem' }}><input type="checkbox" checked={Boolean(s.custom_orders)} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, custom_orders: e.target.checked }))} /> Take requests for cakes, catering and a private chef online (page /menu/custom)</label>
@@ -94,6 +138,7 @@ export default function MenusSettings() {
                 <legend style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textMuted, marginBottom: 4 }}>Ingredient accounts</legend>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                   <LedgerSelect id="ms-inv" label="Ingredient stock" hint="Where ingredients on the shelf are carried. Empty: Food Ingredients Inventory." value={s.ingredient_stock_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, ingredient_stock_ledger_id: v }))} />
+                  <LedgerSelect id="ms-prep" label="Prepared food" hint="Where food that is cooked ahead is carried until it is sold. Empty: Prepared Food Inventory." value={s.prepared_food_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, prepared_food_ledger_id: v }))} />
                   <LedgerSelect id="ms-cos" label="Cost of food" hint="The cost of what dishes use. Empty: Food Cost of Sales." value={s.food_cost_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, food_cost_ledger_id: v }))} />
                   <LedgerSelect id="ms-waste" label="Food waste" hint="Ingredients thrown away. Empty: Food Waste Expense." value={s.food_waste_ledger_id} disabled={!canEdit || !ready} onChange={(v) => setS((x) => ({ ...x, food_waste_ledger_id: v }))} />
                 </div>
@@ -146,6 +191,7 @@ export default function MenusSettings() {
             </FormStack>
           </div>
         )}
+        {s && <ListsCard canEdit={canEdit} />}
         {s && <ChannelsCard canEdit={canEdit} />}
         {s && <StationsCard canEdit={canEdit} />}
         {s && <KiosksCard canEdit={canEdit} />}

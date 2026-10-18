@@ -158,6 +158,10 @@ export const menusAPI = {
   quoteCooking: async (id, payload) => (await api.post(`/admin/menus/custom/${id}/quote`, payload)).data,
   setCookingStatus: async (id, to, reason) => (await api.post(`/admin/menus/custom/${id}/status`, { to, reason })).data,
   payCooking: async (id, tenders) => (await api.post(`/admin/menus/custom/${id}/pay`, { tenders })).data,
+  lists: async () => (await api.get('/admin/menus/lists')).data,
+  saveListRow: async (type, payload, id) => (id ? (await api.put(`/admin/menus/lists/${type}/${id}`, payload)) : (await api.post(`/admin/menus/lists/${type}`, payload))).data,
+  removeListRow: async (type, id) => (await api.delete(`/admin/menus/lists/${type}/${id}`)).data,
+  orderList: async (type, ids) => (await api.post(`/admin/menus/lists/${type}/order`, { ids })).data,
   settings: async () => (await api.get('/admin/menus/settings')).data,
   saveSettings: async (payload) => (await api.put('/admin/menus/settings', payload)).data,
 };

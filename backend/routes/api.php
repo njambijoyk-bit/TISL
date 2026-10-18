@@ -952,6 +952,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock/receipts', [\App\Http\Controllers\Admin\MenusStockController::class, 'receipts']);
         Route::get('/stock/productions', [\App\Http\Controllers\Admin\MenusRecipesController::class, 'productions']);
         Route::get('/food-tags', [\App\Http\Controllers\Admin\MenusFoodTagsController::class, 'index']);
+        Route::get('/lists', [\App\Http\Controllers\Admin\MenusListsController::class, 'index']);
         Route::get('/stock/ingredient-kinds', [\App\Http\Controllers\Admin\MenusIngredientKindsController::class, 'index']);
         Route::get('/stock/expiring', [\App\Http\Controllers\Admin\MenusStockController::class, 'expiring']);
         Route::get('/stock/counts', [\App\Http\Controllers\Admin\MenusStockController::class, 'counts']);
@@ -1094,6 +1095,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/stock/opening', [$sk, 'opening']);
             Route::post('/stock/productions', [$sr, 'produce']);
             Route::post('/stock/productions/{id}/cancel', [$sr, 'cancelRun'])->whereNumber('id');
+            $ml = \App\Http\Controllers\Admin\MenusListsController::class;
+            Route::post('/lists/{type}', [$ml, 'save'])->where('type', 'servings|audiences|policies')->middleware('permission:menus.configure');
+            Route::put('/lists/{type}/{id}', [$ml, 'save'])->where('type', 'servings|audiences|policies')->whereNumber('id')->middleware('permission:menus.configure');
+            Route::delete('/lists/{type}/{id}', [$ml, 'destroy'])->where('type', 'servings|audiences|policies')->whereNumber('id')->middleware('permission:menus.configure');
+            Route::post('/lists/{type}/order', [$ml, 'order'])->where('type', 'servings|audiences|policies')->middleware('permission:menus.configure');
             $ik = \App\Http\Controllers\Admin\MenusIngredientKindsController::class;
             Route::post('/stock/ingredient-kinds', [$ik, 'store']);
             Route::post('/stock/ingredient-kinds/order', [$ik, 'order']);

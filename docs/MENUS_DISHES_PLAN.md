@@ -85,7 +85,7 @@ Add: **dishes** (the public page or ordering), **recipes** (the kitchen card or 
 `menus.view`, `menus.manage` (recipes, dishes, production) and `menus.till` are as before. A chef holds `menus.view` and `menus.manage` only, so a chef no longer changes the Menus configuration unless a role is given `menus.configure`.
 
 ## 10. Build order (each step tested and pushed)
-0. Foundation: the permissions above (done), then the Menus configuration (the settings the steps below read: Prepared Food Inventory account, tips payable account and issue window, packaging kind and sales account, default removal policy and the named policies, servings, audience).
+0. Foundation: the permissions above (done), then the Menus configuration (**done**, script 193; the settings the steps below read: Prepared Food Inventory account, tips payable account and issue window, packaging kind and sales account, default removal policy and the named policies, servings, audience).
 1. Recipes can use recipes; batch yield unit; production record (chef, times, actual inputs and output, servings cut); prepared stock; Prepared Food Inventory account and its journals; the daily reconciliation report.
 2. Servings table; sides (with amounts per serving, station, packaging); today's recipes migrate: each dish's recipe becomes a recipe, a side of the same name and a dish with one slot.
 3. Dishes made of slots (fixed, choose one, choose any, free and paid extras), servings and prices per serving, audience; "Choose a side" set meals become choose-one slots; the guided dish flow.
@@ -96,7 +96,10 @@ Add: **dishes** (the public page or ordering), **recipes** (the kitchen card or 
 8. Ready-to-serve items as slots (sold as it is); timers on the batch and ticket screens.
 9. QR codes.
 
+## 10b. Configuration foundation (built; script 193)
+- Settings: Prepared Food Inventory account (empty: the ledger of that name), tips account (empty: the books' Tips Payable), tips window (any time, daily between two times, chosen days between two times, never; overnight windows allowed), packaging kind (one at a time) and packaging sales account (empty: the dishes' sales account, else the books' default sales account).
+- Lists: servings, audiences, and removal/extra policies (free, fixed fee, percentage of the dish price; exactly one default). Servings and audiences start empty; one policy, Free, is put in.
+- All of it follows `menus.configure`. A customer pays in the voucher's currency, which is the Menus currency.
+
 ## 11. Still to settle
-- Whether pending tips expire, and what happens to the money.
 - How rounding is shown on a mixed-currency order (the customer pays in the voucher's currency, the Menus currency).
-- Who may name the packaging kind and the tips setting (Menus configuration permission, as the other settings).

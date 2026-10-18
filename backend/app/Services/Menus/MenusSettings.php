@@ -15,7 +15,7 @@ final class MenusSettings
         'category_id' => null,           // the category the hidden products behind dishes sit in
         'allergen_note' => 'Please tell us about any allergy before you order. Allergen information is given in good faith from our ingredients; our kitchen also handles nuts, milk, eggs, wheat and other allergens.',
         'receipt_footer' => '',          // a line printed at the foot of every receipt
-        'tip_ledger_id' => null,         // where tips are booked (usually money held for staff); empty = the till takes no tips
+        'tip_ledger_id' => null,         // where tips are booked (money held for staff); empty = the books' own Tips Payable account
         'service_charge_ledger_id' => null,
         'qr_ordering' => true,           // guests may order from the table's QR code
         'qr_open_by_scan' => false,      // may a scan open an empty table? (off: staff seat the guests first)
@@ -46,6 +46,13 @@ final class MenusSettings
         'plans_bill_ahead_days' => 3,    // a week is billed this many days before it starts
         'rota_no_show_alerts' => true,   // managers are told when a rostered chef has not signed in
         'rota_min_rest_hours' => 10,     // ...and when the rest between one day's work and the next is shorter than this
+        'prepared_food_ledger_id' => null,      // where cooked food waiting to be sold is carried (empty: the account called Prepared Food Inventory)
+        'tips_window' => 'anytime',             // when tips may be handed over: anytime | daily (between two times) | days (on chosen days between two times) | never (they are held)
+        'tips_from' => '00:00',                 // the window opens at this time (HH:MM)
+        'tips_to' => '23:59',                   // and closes at this one; a window that closes before it opens runs over midnight
+        'tips_days' => [1, 2, 3, 4, 5, 6, 7],   // the days of the week for the days window (1 Monday to 7 Sunday)
+        'packaging_kind_id' => null,            // the kind of ingredient that is takeaway packaging (one at a time)
+        'packaging_sales_ledger_id' => null,    // where charged packaging is booked (empty: the sales account for dishes, else the books' default sales account)
         'currency_id' => null,                  // the currency the kitchen's vouchers are written in (empty: the system's base currency)
         'purchase_ledger_id' => null,           // the purchase account ingredients are bought under when they have none of their own (it decides the VAT; empty: the books' default purchase account)
         'ingredient_stock_ledger_id' => null,   // where ingredient stock is carried (empty: the account called Food Ingredients Inventory)
@@ -53,6 +60,52 @@ final class MenusSettings
         'food_waste_ledger_id' => null,         // ingredients thrown away (empty: Food Waste Expense)
         'service_charge_pct' => 0,       // 0 = no service charge; otherwise added to dine-in orders (the cashier may waive it)
     ];
+
+    /** Where tips are booked: the Menus account, else the books' own Tips Payable. */
+    public static function tipLedgerId(): ?int
+    {
+        $own = self::all()['tip_ledger_id'] ?? null;
+
+        return $own ? (int) $own : self::booksLedger('tips_payable_ledger_id');
+    }
+
+    /** One of the books' default accounts, or null when the books do not hold it (yet). */
+    private static function booksLedger(string $column): ?int
+    {
+        if (! \Illuminate\Support\Facades\Schema::hasColumn('accounting_settings', $column)) {
+            return null;
+        }
+
+        return \App\Models\Books\AccountingSetting::current()->{$column} ?: null;
+    }
+
+    /** Where charged packaging is booked: its own account, else the sales account for dishes, else the books' default sales account. */
+    public static function packagingSalesLedgerId(): ?int
+    {
+        $s = self::all();
+
+        return (int) ($s['packaging_sales_ledger_id'] ?: $s['sales_ledger_id'] ?: self::booksLedger('default_sales_ledger_id')) ?: null;
+    }
+
+    /** May tips be handed over at this moment, by the window in the settings? */
+    public static function tipsMayBeIssued(?\Carbon\Carbon $at = null): bool
+    {
+        $s = self::all();
+        $at ??= now();
+        $mode = $s['tips_window'];
+        if ($mode === 'never') {
+            return false;
+        }
+        if ($mode === 'anytime') {
+            return true;
+        }
+        if ($mode === 'days' && ! in_array((int) $at->isoWeekday(), array_map('intval', (array) $s['tips_days']), true)) {
+            return false;
+        }
+        $now = $at->format('H:i');
+
+        return $s['tips_from'] <= $s['tips_to'] ? ($now >= $s['tips_from'] && $now <= $s['tips_to']) : ($now >= $s['tips_from'] || $now <= $s['tips_to']);
+    }
 
     public static function ready(): bool
     {
@@ -92,6 +145,43 @@ final class MenusSettings
             }
             $cur['currency_id'] = $id;
         }
+        if (array_key_exists('tips_window', $in)) {
+            $mode = (string) $in['tips_window'];
+            if (! in_array($mode, ['anytime', 'daily', 'days', 'never'], true)) {
+                throw new BooksException('Choose when tips may be handed over: any time, every day between two times, on chosen days, or never.');
+            }
+            $cur['tips_window'] = $mode;
+        }
+        foreach (['tips_from', 'tips_to'] as $key) {
+            if (array_key_exists($key, $in)) {
+                if (! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', (string) $in[$key])) {
+                    throw new BooksException('Write the time as hours and minutes, like 18:00.');
+                }
+                $cur[$key] = (string) $in[$key];
+            }
+        }
+        if (array_key_exists('tips_days', $in)) {
+            $days = array_values(array_unique(array_filter(array_map('intval', (array) $in['tips_days']), fn ($d) => $d >= 1 && $d <= 7)));
+            sort($days);
+            $cur['tips_days'] = $days;
+        }
+        if (($cur['tips_window'] ?? 'anytime') === 'days' && ! ($cur['tips_days'] ?? [])) {
+            throw new BooksException('Choose at least one day tips may be handed over.');
+        }
+        if (array_key_exists('packaging_kind_id', $in)) {
+            $id = $in['packaging_kind_id'] ? (int) $in['packaging_kind_id'] : null;
+            if ($id && ! \App\Models\Menus\IngredientKind::whereKey($id)->exists()) {
+                throw new BooksException('That kind of ingredient does not exist.');
+            }
+            $cur['packaging_kind_id'] = $id;
+        }
+        if (array_key_exists('packaging_sales_ledger_id', $in)) {
+            $id = $in['packaging_sales_ledger_id'] ? (int) $in['packaging_sales_ledger_id'] : null;
+            if ($id && ($problem = TradingAccounts::problem($id, 'sales'))) {
+                throw new BooksException($problem);
+            }
+            $cur['packaging_sales_ledger_id'] = $id;
+        }
         if (array_key_exists('purchase_ledger_id', $in)) {
             $id = $in['purchase_ledger_id'] ? (int) $in['purchase_ledger_id'] : null;
             if ($id && ($problem = TradingAccounts::problem($id, 'purchase'))) {
@@ -111,7 +201,7 @@ final class MenusSettings
                 $cur[$key] = mb_substr(trim((string) $in[$key]), 0, $max);
             }
         }
-        foreach (['tip_ledger_id', 'service_charge_ledger_id', 'ingredient_stock_ledger_id', 'food_cost_ledger_id', 'food_waste_ledger_id'] as $key) {
+        foreach (['tip_ledger_id', 'service_charge_ledger_id', 'ingredient_stock_ledger_id', 'food_cost_ledger_id', 'food_waste_ledger_id', 'prepared_food_ledger_id'] as $key) {
             if (array_key_exists($key, $in)) {
                 $id = $in[$key] ? (int) $in[$key] : null;
                 if ($id && ! DB::table('ledgers')->where('id', $id)->exists()) {

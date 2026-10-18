@@ -52,7 +52,7 @@ class CounterService
         $s = MenusSettings::all();
         $on = (float) $s['service_charge_pct'] > 0 && $s['service_charge_ledger_id'];
 
-        return ['service_charge_pct' => $on ? (float) $s['service_charge_pct'] : 0.0, 'service_charge_on' => (bool) $on, 'tips_on' => (bool) $s['tip_ledger_id']];
+        return ['service_charge_pct' => $on ? (float) $s['service_charge_pct'] : 0.0, 'service_charge_on' => (bool) $on, 'tips_on' => (bool) MenusSettings::tipLedgerId()];
     }
 
     // ── pricing ──────────────────────────────────────────────────────────
@@ -69,7 +69,7 @@ class CounterService
         if ($tip < 0) {
             throw new BooksException('A tip can not be less than nothing.');
         }
-        if ($tip > 0 && ! $s['tip_ledger_id']) {
+        if ($tip > 0 && ! MenusSettings::tipLedgerId()) {
             throw new BooksException('Tips are not set up: choose the account they are booked to under Menus → Settings.');
         }
         $rows = $this->orders->lineRows($lines, $loc);
@@ -82,7 +82,7 @@ class CounterService
             $rows[] = ['type' => 'charge', 'kind' => 'other', 'description' => 'Service charge', 'ledger_id' => (int) $s['service_charge_ledger_id'], 'amount' => $svc];
         }
         if ($tip > 0) {
-            $rows[] = ['type' => 'charge', 'kind' => 'other', 'description' => 'Tip', 'ledger_id' => (int) $s['tip_ledger_id'], 'amount' => round($tip, 2)];
+            $rows[] = ['type' => 'charge', 'kind' => 'other', 'description' => 'Tip', 'ledger_id' => (int) MenusSettings::tipLedgerId(), 'amount' => round($tip, 2)];
         }
         $pre = ($svc > 0 || $tip > 0) ? $this->vouchers->preview($base + ['lines' => $rows], null) : $food;
 

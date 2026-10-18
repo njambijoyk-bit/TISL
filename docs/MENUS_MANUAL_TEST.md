@@ -27,6 +27,14 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 1. Menus, Configuration: the **Currency** list offers the active currencies, and empty means the system's base currency. Pick a foreign one with a rate set under Currencies. Expect: Menus, Stock, Receive stock says "prices in" that currency, and so does the Opening stock sheet.
 2. Receive a delivery and record some waste. Expect: the purchase voucher and the waste journal are in that currency at the rate of their date; the Books amounts in the base currency are what the lots cost. Set it back to empty and everything is in the base currency again.
 
+## 0c. Menus configuration (after script 193)
+1. Menus, Configuration: under Ingredient accounts there is **Prepared food**; empty uses Prepared Food Inventory (script 193 makes it). Tips: with no account chosen, a till tip posts to the books' Tips Payable.
+2. Tips window: choose "On chosen days, between two times": the time boxes and the weekday ticks appear; "At any time" and "Never" hide them. Save and reload: the choice stays.
+3. Packaging: only kinds that are marked as packaging are offered. The packaging sales account is empty by default.
+4. Lists (below the settings): add servings Jumbo and Kids, audiences Adults and Kids; a repeated name is refused; Up and Down change the order; Remove deletes.
+5. Policies: Free is there and is the default (its default box is greyed). Add "Removal fee 10%" as a percentage; tick The default on it: Free loses the default. The default cannot be removed or switched off.
+6. Sign in as a chef: every field and button is read-only.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

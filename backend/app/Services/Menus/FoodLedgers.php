@@ -97,6 +97,18 @@ final class FoodLedgers
         return array_values($lines);
     }
 
+    /** Where cooked food waiting to be sold is carried (Menus configuration, else the account called Prepared Food Inventory). */
+    public static function prepared(): int
+    {
+        $chosen = MenusSettings::all()['prepared_food_ledger_id'] ?? null;
+        if ($chosen && Ledger::whereKey($chosen)->where('is_active', true)->exists()) {
+            return (int) $chosen;
+        }
+
+        return (int) (Ledger::where('name', 'Prepared Food Inventory')->where('is_active', true)->value('id')
+            ?: throw new BooksException('The account "Prepared Food Inventory" does not exist yet. Run database script 193_menus_config_foundation.sql, or choose the account under Menus, Configuration.'));
+    }
+
     public static function waste(): int
     {
         return self::resolve('food_waste_ledger_id');
