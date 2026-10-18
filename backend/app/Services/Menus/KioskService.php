@@ -191,7 +191,7 @@ class KioskService
         $o = $this->find($k, $session)->loadMissing('lines');
 
         return ['number' => $o->short_no, 'session' => $o->session_code, 'status' => $o->status, 'payment' => $o->payment, 'service' => $o->service, 'total' => (float) $o->total,
-            'lines' => $o->lines->map(fn ($l) => ['name' => $l->name, 'quantity' => (float) $l->quantity, 'options' => array_column($l->options ?? [], 'name')])->all()];
+            'lines' => $o->lines->map(fn ($l) => ['name' => $l->name, 'quantity' => (float) $l->quantity, 'options' => array_column($l->options ?? [], 'name'), 'serving' => $l->serving ?? null, 'sides' => $l->sidesList()])->all()];
     }
 
     /** The guest backed out, or the payment did not go through. Only while it is not paid. */

@@ -143,4 +143,16 @@ class MenusOrderingMakeupTest extends TestCase
         DB::table('menus_stock_batches')->update(['qty_left' => 0]);
         $this->assertSame([false, false], array_column($dish()['makeup']['slots'][1]['choices'], 'available'));
     }
+
+    public function test_the_ticket_the_receipt_and_the_customers_view_show_the_size_and_sides_under_the_dish(): void
+    {
+        $o = app(CounterService::class)->sell(['service' => 'take_out', 'items' => [$this->item(['quantity' => 2, 'picks' => [$this->slot['Greens'] => [$this->side['Kale']]]])], 'tenders' => [['payment_method_id' => 1, 'amount' => 5000]]], null, $this->now);
+        $o = $o->fresh();
+        $station = \App\Models\Menus\Station::first();
+        $card = app(\App\Services\Menus\KitchenService::class)->screen($station, $this->now)['tickets'][0]['lines'][0];
+        $this->assertSame(['Jumbo', ['Bread', 'Choma', 'Kale']], [$card['serving'], $card['sides']]);
+        $text = app(\App\Services\Menus\ReceiptService::class)->for($o, 32)['text'];
+        $this->assertStringContainsString("\n   Jumbo\n   - Bread\n   - Choma\n   - Kale\n", $text);
+        $this->assertSame(['Bread', 'Choma', 'Kale'], app(\App\Services\Menus\MenuOrderView::class)->customer($o)['lines'][0]['sides']);
+    }
 }

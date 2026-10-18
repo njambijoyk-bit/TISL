@@ -9,6 +9,7 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import { printTicket } from '../../lib/ticketPrint';
+import LineMakeup from '../../components/LineMakeup';
 
 const POLL_MS = 6000;
 const clock = (iso) => new Date(iso).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -32,6 +33,7 @@ function Ticket({ t, stationName, canAct, onAct, minutes }) {
         {t.lines.map((l, i) => (
           <li key={i}>
             <div style={{ fontSize: '1.15rem', fontWeight: 800 }}>{l.quantity} × {l.name}</div>
+            <LineMakeup line={l} color="#e2e8f0" size="0.95rem" />
             {l.options.length > 0 && <div style={{ color: '#fde68a', fontWeight: 700 }}>{l.options.join(' · ')}</div>}
             {l.note && <div style={{ color: '#93c5fd' }}>“{l.note}”</div>}
             {l.allergens.length > 0 && <div style={{ color: '#fca5a5', fontWeight: 800, fontSize: '0.82rem' }}>CONTAINS {l.allergens.join(', ').toUpperCase()}</div>}

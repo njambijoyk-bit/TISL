@@ -355,7 +355,7 @@ class MenuOrderService
             $order->update(['number' => 'MO-'.str_pad((string) $order->id, 6, '0', STR_PAD_LEFT)]);
             foreach ($p['lines'] as $l) {
                 MenuOrderLine::create(['order_id' => $order->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'],
-                    'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'], 'options' => array_map(fn ($o) => ['id' => $o['id'], 'group' => $o['group'], 'name' => $o['name'], 'price_delta' => $o['price_delta']], $l['options']), 'note' => $l['note']]);
+                    'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'], 'options' => array_map(fn ($o) => ['id' => $o['id'], 'group' => $o['group'], 'name' => $o['name'], 'price_delta' => $o['price_delta']], $l['options']), 'note' => $l['note']] + MenuOrderLine::kept($l));
             }
             $voucher->update(['meta' => array_merge($voucher->meta ?? [], ['menu_order_id' => $order->id])]);
             if ($later) {

@@ -471,13 +471,7 @@ class CounterService
     public function addLines(MenuOrder $o, array $lines, int $round): void
     {
         foreach ($lines as $l) {
-            $kept = [];
-            if (! empty($l['serving_id']) || ! empty($l['selection'])) {   // the size and the sides it was ordered with (a dish with a make-up)
-                if (! MenuOrderLine::keepsSelection()) {
-                    throw new BooksException('Run database script 203_menus_order_lines_selection.sql first: until then an order can not keep the size and sides picked.');
-                }
-                $kept = ['serving_id' => $l['serving_id'] ?? null, 'serving' => $l['serving'] ?? null, 'selection' => $l['selection'] ?? null];
-            }
+            $kept = MenuOrderLine::kept($l);   // the size and the sides it was ordered with (a dish with a make-up)
             MenuOrderLine::create(['order_id' => $o->id, 'dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'base_price' => $l['base_price'], 'unit_price' => $l['unit_price'],
                 'options' => array_map(fn ($x) => ['id' => $x['id'], 'group' => $x['group'], 'name' => $x['name'], 'price_delta' => $x['price_delta']], $l['options']), 'note' => $l['note'], 'round' => $round,
                 'uses' => $l['uses'] ?: null, 'linked' => array_map(fn ($d) => $d->id, $l['linked']) ?: null] + $kept);

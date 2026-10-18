@@ -35,7 +35,7 @@ class MenuOrderView
             'number' => $o->number, 'status' => $o->status, 'status_label' => MenuOrder::STATUSES[$o->status] ?? $o->status, 'order_type' => $o->order_type, 'payment' => $o->payment, 'name' => $o->name,
             'asap' => $o->asap, 'fulfil_at' => $o->fulfil_at?->toIso8601String(), 'delivery_address' => $o->delivery_address, 'notes' => $o->notes, 'cancel_reason' => $o->cancel_reason,
             'delivery_fee' => (float) $o->delivery_fee, 'subtotal' => (float) $o->subtotal, 'tax_total' => (float) $o->tax_total, 'total' => (float) $o->total, 'placed_at' => $o->placed_at?->toIso8601String(),
-            'lines' => $o->lines->map(fn ($l) => ['name' => $l->name, 'quantity' => (int) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'note' => $l->note])->all(),
+            'lines' => $o->lines->map(fn ($l) => ['name' => $l->name, 'quantity' => (int) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'serving' => $l->serving ?? null, 'sides' => $l->sidesList(), 'note' => $l->note])->all(),
         ];
     }
 

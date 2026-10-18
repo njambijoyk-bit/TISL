@@ -7,6 +7,7 @@ import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
 import menusPublicAPI from '../../../_shared/api/menusPublic';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
+import LineMakeup from '../../components/LineMakeup';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const POLL_MS = 15000;
@@ -61,7 +62,7 @@ export default function OrderTrackPage() {
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6 }}>
                 {o.lines.map((l, i) => (
                   <li key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: '0.92rem' }}>
-                    <span>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: 'var(--text-tertiary)' }}> · {l.options.join(', ')}</small>}{l.note && <small style={{ color: 'var(--text-tertiary)' }}> · “{l.note}”</small>}</span>
+                    <span>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: 'var(--text-tertiary)' }}> · {l.options.join(', ')}</small>}{l.note && <small style={{ color: 'var(--text-tertiary)' }}> · “{l.note}”</small>}<LineMakeup line={l} color="var(--text-tertiary)" /></span>
                     <span>{money(l.unit_price * l.quantity)}</span>
                   </li>
                 ))}

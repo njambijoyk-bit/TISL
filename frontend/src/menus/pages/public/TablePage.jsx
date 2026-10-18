@@ -9,6 +9,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import DishPicker from '../../components/DishPicker';
 import { useBasket, basketItems, needsChoice } from '../../lib/basket';
 import { DishCard } from './MenuPage';
+import LineMakeup from '../../components/LineMakeup';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const card = { background: 'var(--surface-card, #fff)', borderRadius: 14, border: '1px solid var(--line, #e5e7eb)', padding: 16 };
@@ -83,7 +84,7 @@ export default function TablePage() {
         <section aria-label="Your tab" style={card} data-testid="tab">
           <h2 style={{ margin: '0 0 8px', fontSize: '1rem', fontWeight: 800 }}>Your order so far</h2>
           <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 4, fontSize: '0.92rem' }}>
-            {tab.lines.map((l, i) => <li key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: 'var(--text-tertiary)' }}> · {l.options.join(', ')}</small>}</span><span>{money(l.amount)}</span></li>)}
+            {tab.lines.map((l, i) => <li key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}><span>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: 'var(--text-tertiary)' }}> · {l.options.join(', ')}</small>}<LineMakeup line={l} color="var(--text-tertiary)" /></span><span>{money(l.amount)}</span></li>)}
           </ul>
           <p style={{ margin: '8px 0 0', fontWeight: 800 }}>Total so far (with tax): {money(tab.total)}</p>
           {tab.service_charge_pct > 0 && <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>A {tab.service_charge_pct}% service charge is added to the bill.</p>}

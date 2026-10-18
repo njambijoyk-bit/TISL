@@ -204,7 +204,7 @@ class KitchenService
                 $dish = Dish::find($l->dish_id);
                 $codes = $dish ? $this->info->profile($dish)['allergens'] : [];
 
-                return ['quantity' => (int) $l->quantity, 'name' => $l->name, 'options' => array_column($l->options ?? [], 'name'), 'note' => $l->note, 'allergens' => array_map(fn ($c) => (FoodTags::allergens()[$c] ?? $c), $codes)];
+                return ['quantity' => (int) $l->quantity, 'name' => $l->name, 'options' => array_column($l->options ?? [], 'name'), 'serving' => $l->serving ?? null, 'sides' => $l->sidesList(), 'note' => $l->note, 'allergens' => array_map(fn ($c) => (FoodTags::allergens()[$c] ?? $c), $codes)];
             })->values()->all()];
     }
 }

@@ -68,7 +68,7 @@ class TableGuest
         $rules = $this->counter->rules();
 
         return ['table' => ['name' => $primary->name], 'allowed' => $this->allowed($t), 'menu' => $menu, 'bill_asked' => (bool) $primary->bill_asked_at,
-            'tab' => $tab ? ['total' => (float) $tab->total, 'payment' => $tab->payment, 'lines' => $tab->lines->map(fn ($l) => ['name' => $l->name, 'quantity' => (float) $l->quantity, 'options' => array_column($l->options ?? [], 'name'), 'amount' => round((float) $l->unit_price * (float) $l->quantity, 2)])->values()->all(),
+            'tab' => $tab ? ['total' => (float) $tab->total, 'payment' => $tab->payment, 'lines' => $tab->lines->map(fn ($l) => ['name' => $l->name, 'quantity' => (float) $l->quantity, 'options' => array_column($l->options ?? [], 'name'), 'serving' => $l->serving ?? null, 'sides' => $l->sidesList(), 'amount' => round((float) $l->unit_price * (float) $l->quantity, 2)])->values()->all(),
                 'service_charge_pct' => $rules['service_charge_on'] ? $rules['service_charge_pct'] : 0, 'paid' => false] : null,
             'tips_on' => $rules['tips_on'], 'payment_methods' => PaymentMethod::offeredAtCheckout()->orderBy('sort_order')->get(['id', 'name', 'kind', 'gateway'])->filter(fn ($m) => GatewayPaymentService::isAutomatic($m))->values()->all()];
     }

@@ -61,7 +61,7 @@ class MenusCounterController extends Controller
         $o->loadMissing('lines');
 
         return $this->view->staff($o) + ['short_no' => $o->short_no, 'session_code' => $o->session_code, 'label' => $o->label, 'table_id' => $o->table_id, 'guests' => $o->guests, 'service' => $o->service, 'service_charge' => (float) $o->service_charge, 'tip' => (float) $o->tip,
-            'lines_full' => $o->lines->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'quantity' => (float) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'note' => $l->note, 'round' => (int) $l->round])->values()->all()];
+            'lines_full' => $o->lines->map(fn ($l) => ['id' => $l->id, 'name' => $l->name, 'quantity' => (float) $l->quantity, 'unit_price' => (float) $l->unit_price, 'options' => array_column($l->options ?? [], 'name'), 'serving' => $l->serving ?? null, 'sides' => $l->sidesList(), 'note' => $l->note, 'round' => (int) $l->round])->values()->all()];
     }
 
     private function rules(): array

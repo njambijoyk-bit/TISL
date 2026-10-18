@@ -52,6 +52,12 @@ class ReceiptService
         foreach ($o->lines as $l) {
             $qty = (float) $l->quantity;
             $out[] = $this->line((string) rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.'), $l->name, $this->money((float) $l->base_price * $qty), $width);
+            if ($l->serving) {   // the size and what comes with it, under the dish
+                $out[] = '   '.$l->serving;
+            }
+            foreach ($l->sidesList() as $side) {
+                $out[] = '   - '.$side;
+            }
             foreach ($l->options ?? [] as $opt) {
                 $delta = (float) ($opt['price_delta'] ?? 0);
                 $out[] = $delta != 0.0 ? $this->pair('   - '.$opt['name'], $this->money($delta * $qty), $width) : '   - '.$opt['name'];

@@ -13,6 +13,7 @@ import { colors } from '../../../_shared/theme/tokens';
 import DishPicker from '../../components/DishPicker';
 import { useBasket, lineTotal, basketItems, needsChoice, shownPrice } from '../../lib/basket';
 import { printReceipt } from '../../lib/receiptPrint';
+import LineMakeup from '../../components/LineMakeup';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const big = (bg, fg = '#fff') => ({ padding: '12px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.95rem', background: bg, color: fg });
@@ -194,7 +195,7 @@ export default function MenusTill() {
                       {tab.lines_full.map((l) => (
                         <li key={l.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                           <input type="checkbox" aria-label={`Split off ${l.name}`} checked={splitIds.includes(l.id)} onChange={(e) => setSplitIds((xs) => (e.target.checked ? [...xs, l.id] : xs.filter((x) => x !== l.id)))} />
-                          <span style={{ flex: 1 }}>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: colors.textMuted }}> · {l.options.join(', ')}</small>} <small style={{ color: colors.textMuted }}>(round {l.round})</small></span>
+                          <span style={{ flex: 1 }}>{l.quantity} × {l.name}{l.options.length > 0 && <small style={{ color: colors.textMuted }}> · {l.options.join(', ')}</small>} <small style={{ color: colors.textMuted }}>(round {l.round})</small><LineMakeup line={l} color={colors.textMuted} /></span>
                           <button type="button" aria-label={`Take ${l.name} off`} disabled={busy} onClick={() => run(() => menusAPI.voidLine(tab.id, l.id), 'Taken off the tab.')} style={{ ...line, borderRadius: 6, cursor: 'pointer' }}><X size={12} /></button>
                         </li>
                       ))}

@@ -11,6 +11,7 @@ import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
+import LineMakeup from '../../components/LineMakeup';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const hhmm = (iso) => new Date(iso).toLocaleString('en-KE', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
@@ -70,7 +71,7 @@ export default function MenusOrders() {
         </div>
         <div style={{ fontSize: '0.84rem' }}>{o.name} · <a href={`tel:${o.phone}`}>{o.phone}</a></div>
         <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: '0.88rem', display: 'grid', gap: 2 }}>
-          {o.lines.map((l, i) => <li key={i}><strong>{l.quantity} ×</strong> {l.name}{l.options.length > 0 && <em style={{ color: colors.textMuted }}> — {l.options.join(', ')}</em>}{l.note && <em style={{ color: '#b45309' }}> — “{l.note}”</em>}</li>)}
+          {o.lines.map((l, i) => <li key={i}><strong>{l.quantity} ×</strong> {l.name}{l.options.length > 0 && <em style={{ color: colors.textMuted }}> — {l.options.join(', ')}</em>}{l.note && <em style={{ color: '#b45309' }}> — “{l.note}”</em>}<LineMakeup line={l} color={colors.textMuted} /></li>)}
         </ul>
         {o.notes && <p style={{ margin: 0, fontSize: '0.8rem', color: '#b45309' }}>Note: {o.notes}</p>}
         {o.delivery_address && <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>To: {o.delivery_address}</p>}
