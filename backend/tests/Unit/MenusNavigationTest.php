@@ -39,4 +39,13 @@ class MenusNavigationTest extends TestCase
         $keys = array_column($tabs, 'key', 'title');
         $this->assertSame(['W', 'S', 'B'], [$keys['Stock'], $keys['Sides'], $keys['Prepared food']]);
     }
+
+    public function test_every_menus_page_that_is_an_item_of_its_own_shows_the_tab_row_of_dishes(): void
+    {
+        $js = file_get_contents(dirname(__DIR__, 3).'/frontend/src/_shared/navigation/adminNav.js');
+        $this->assertSame(1, preg_match("/id: 'menus',\n    label: 'Menus',(.*?)\n    \],\n  \},/s", $js, $block));
+        preg_match_all("/\{\s*id: '([^']+)',( inTabsOf: 'dishes',)?/", $block[1], $m, PREG_SET_ORDER);
+        $without = array_values(array_filter(array_map(fn ($r) => empty($r[2]) ? $r[1] : null, $m)));
+        $this->assertSame(['dishes'], $without, 'only Dishes holds the tabs; every other page names it, or the strip is lost when it comes before Dishes in the list');
+    }
 }
