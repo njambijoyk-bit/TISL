@@ -163,7 +163,7 @@ class StockTransferService
     /** @param array<int, float> $byKind what went missing, by kind of ingredient (0: none) */
     private function writeOffKitchenShortfall(StockTransfer $t, array $byKind, ?User $user): void
     {
-        $entries = FoodLedgers::entries($byKind, 'loss');
+        $entries = FoodLedgers::entries($byKind, 'loss', app(\App\Services\Menus\MenuMoney::class)->converter(today()));
         if (! $entries) {
             return;   // less than a cent
         }
@@ -173,7 +173,7 @@ class StockTransferService
             'narration' => "Short delivery of ingredients on transfer {$t->number}",
             'meta' => ['transfer_shortfall' => ['transfer_id' => $t->id, 'ingredients' => true]],
             'entries' => $entries,
-        ], $user);
+        ] + app(\App\Services\Menus\MenuMoney::class)->voucher(today()), $user);
     }
 
     private function writeOffShortfall(StockTransfer $t, float $cost, ?User $user): void

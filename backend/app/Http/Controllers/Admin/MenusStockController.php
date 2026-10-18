@@ -56,7 +56,7 @@ class MenusStockController extends Controller
         })->values();
 
         return response()->json([
-            'location_id' => $location, 'branches' => $branches, 'ingredients' => $rows, 'installed' => IngredientStock::installed(),
+            'location_id' => $location, 'branches' => $branches, 'ingredients' => $rows, 'installed' => IngredientStock::installed(), 'currency' => app(\App\Services\Menus\MenuMoney::class)->currency()->only(['id', 'code', 'symbol']),
             'kinds' => IngredientKinds::installed() ? \App\Models\Menus\IngredientKind::orderBy('sort_order')->orderBy('id')->get(['id', 'name'])->map(fn ($k) => ['id' => (int) $k->id, 'name' => $k->name])->all() : [],
             'suppliers' => $this->suppliers(), 'payment_methods' => $this->paymentMethods(),
         ]);

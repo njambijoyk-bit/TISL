@@ -46,6 +46,7 @@ final class MenusSettings
         'plans_bill_ahead_days' => 3,    // a week is billed this many days before it starts
         'rota_no_show_alerts' => true,   // managers are told when a rostered chef has not signed in
         'rota_min_rest_hours' => 10,     // ...and when the rest between one day's work and the next is shorter than this
+        'currency_id' => null,                  // the currency the kitchen's vouchers are written in (empty: the system's base currency)
         'purchase_ledger_id' => null,           // the purchase account ingredients are bought under when they have none of their own (it decides the VAT; empty: the books' default purchase account)
         'ingredient_stock_ledger_id' => null,   // where ingredient stock is carried (empty: the account called Food Ingredients Inventory)
         'food_cost_ledger_id' => null,          // cost of the ingredients a dish used (empty: Food Cost of Sales)
@@ -83,6 +84,13 @@ final class MenusSettings
                 throw new BooksException($problem);
             }
             $cur['sales_ledger_id'] = $id;
+        }
+        if (array_key_exists('currency_id', $in)) {
+            $id = $in['currency_id'] ? (int) $in['currency_id'] : null;
+            if ($id && ! \App\Models\Currency::whereKey($id)->where('is_active', true)->exists()) {
+                throw new BooksException('That currency is not available. Choose an active one, or leave it empty for the base currency.');
+            }
+            $cur['currency_id'] = $id;
         }
         if (array_key_exists('purchase_ledger_id', $in)) {
             $id = $in['purchase_ledger_id'] ? (int) $in['purchase_ledger_id'] : null;

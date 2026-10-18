@@ -96,7 +96,7 @@ export default function ReceiveIngredients({ data, locationId, onClose, onDone }
   return (
     <Modal title="Receive stock" onClose={onClose} width={1040}>
       <form onSubmit={go} style={{ display: 'grid', gap: 14 }}>
-        <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Stock you buy. It goes on the branch's shelf at the cost you enter, and is owed to the supplier (or paid for at once). The tax follows each ingredient's purchase account.</p>
+        <p style={{ margin: 0, fontSize: '0.8rem', color: colors.textMuted }}>Stock you buy{data.currency?.code ? ` (prices in ${data.currency.code})` : ''}. It goes on the branch's shelf at the cost you enter, and is owed to the supplier (or paid for at once). The tax follows each ingredient's purchase account.</p>
         <div style={{ ...card, padding: 14, display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
           <div>
             <label style={label}>{paidNow ? 'Supplier (optional)' : 'Supplier'}</label>

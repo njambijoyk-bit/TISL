@@ -52,7 +52,7 @@ const Row = memo(function Row({ v, e, idx, error, onEdit, onEnter, readOnly }) {
   );
 });
 
-export default function OpeningStockGrid({ ingredients, kinds = [], locationId, onSave, readOnly = false }) {
+export default function OpeningStockGrid({ ingredients, kinds = [], currency, locationId, onSave, readOnly = false }) {
   const [edits, setEdits] = useState(() => readDraft(locationId));
   const [q, setQ] = useState('');
   const [only, setOnly] = useState('');
@@ -138,7 +138,7 @@ export default function OpeningStockGrid({ ingredients, kinds = [], locationId, 
           {[['all', 'All'], ['touched', 'Touched'], ['untouched', 'Not touched']].map(([k, l], i, a) => <button key={k} type="button" aria-pressed={show === k} onClick={() => setShow(k)} style={{ ...seg(show === k), borderRadius: i === 0 ? '8px 0 0 8px' : i === a.length - 1 ? '0 8px 8px 0' : 0, marginLeft: i ? -1 : 0 }}>{l}</button>)}
         </div>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: '0.78rem', color: colors.textMuted }} data-testid="dirty-count">{dirtyIds.length ? `${dirtyIds.length} row${dirtyIds.length === 1 ? '' : 's'} changed · ${num(total)} before tax` : 'Nothing typed yet'}</span>
+        <span style={{ fontSize: '0.78rem', color: colors.textMuted }} data-testid="dirty-count">{dirtyIds.length ? `${dirtyIds.length} row${dirtyIds.length === 1 ? '' : 's'} changed · ${num(total)}${currency ? ` ${currency}` : ''} before tax` : `Nothing typed yet${currency ? ` · prices in ${currency}` : ''}`}</span>
         {!readOnly && <button type="button" style={btnGhost} disabled={!dirtyIds.length || busy} onClick={discard}>Discard changes</button>}
         {!readOnly && <button type="button" data-hotkey="Save" style={{ ...btnPrimary, opacity: !dirtyIds.length || busy ? 0.55 : 1 }} disabled={!dirtyIds.length || busy} onClick={saveAll}>{busy ? 'Saving…' : `Save all (${dirtyIds.length})`}</button>}
       </div>

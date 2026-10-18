@@ -5,6 +5,7 @@ import HubHeader, { NoAccess } from '../../../core/components/admin/ui/HubHeader
 import { Field, FormStack, NumberInput, SelectInput, TextArea, TextInput } from '../../../core/components/admin/ui/Form';
 import SalesAccountSelect from '../../../core/components/admin/tax/SalesAccountSelect';
 import menusAPI from '../../../_shared/api/menus';
+import currencyAPI from '../../../_shared/api/currency';
 import useAuthStore from '../../../_shared/store/authStore';
 import { canViewMenus, canManageMenus } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
@@ -22,13 +23,15 @@ export default function MenusSettings() {
   const [s, setS] = useState(null);
   const [ready, setReady] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [currencies, setCurrencies] = useState([]);
 
+  useEffect(() => { currencyAPI.getCurrencies().then((r) => setCurrencies((Array.isArray(r) ? r : r?.data ?? r?.currencies ?? []).filter((c) => c.is_active !== false))).catch(() => {}); }, []);
   useEffect(() => { menusAPI.settings().then((r) => { setS(r.settings); setReady(r.ready); }).catch((e) => toast.error(errMsg(e, 'Could not load the settings'))); }, []);
 
   const save = async () => {
     setBusy(true);
     try {
-      const r = await menusAPI.saveSettings({ sales_ledger_id: s.sales_ledger_id || null, purchase_ledger_id: s.purchase_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
+      const r = await menusAPI.saveSettings({ currency_id: s.currency_id || null, sales_ledger_id: s.sales_ledger_id || null, purchase_ledger_id: s.purchase_ledger_id || null, allergen_note: s.allergen_note ?? '', receipt_footer: s.receipt_footer ?? '',
         ingredient_stock_ledger_id: s.ingredient_stock_ledger_id || null, food_cost_ledger_id: s.food_cost_ledger_id || null, food_waste_ledger_id: s.food_waste_ledger_id || null,
         tip_ledger_id: s.tip_ledger_id || null, service_charge_ledger_id: s.service_charge_ledger_id || null, service_charge_pct: Number(s.service_charge_pct) || 0,
         qr_ordering: Boolean(s.qr_ordering), qr_open_by_scan: Boolean(s.qr_open_by_scan),
@@ -51,6 +54,12 @@ export default function MenusSettings() {
           <div style={{ ...card, padding: 20 }}>
             {!ready && <p role="status" style={{ margin: '0 0 14px', fontSize: '0.8rem', color: colors.textMuted }}>Run database script 134_menus_dishes.sql first: until then these settings can be read but not saved.</p>}
             <FormStack gap={18}>
+              <Field label="Currency" htmlFor="ms-currency" hint="The currency the kitchen's own vouchers are written in: ingredient purchases, opening stock, and what the kitchen uses, wastes and counts. Empty: the system's base currency. Amounts are converted at the rate of the day, so nothing mixes.">
+                <SelectInput id="ms-currency" value={s.currency_id ?? ''} disabled={!canEdit || !ready} onChange={(e) => setS((x) => ({ ...x, currency_id: e.target.value ? Number(e.target.value) : null }))}>
+                  <option value="">{`System base currency${currencies.find((c) => c.is_base) ? ` (${currencies.find((c) => c.is_base).code})` : ''}`}</option>
+                  {currencies.filter((c) => !c.is_base).map((c) => <option key={c.id} value={c.id}>{c.code} {c.name ? `· ${c.name}` : ''}</option>)}
+                </SelectInput>
+              </Field>
               <SalesAccountSelect kind="sales" scope="product" label="Sales account for dishes" value={s.sales_ledger_id} disabled={!canEdit || !ready}
                 onChange={(v) => setS((x) => ({ ...x, sales_ledger_id: v }))} hint="Every new dish is booked here unless you choose another. The account decides the tax." />
               <SalesAccountSelect kind="purchase" label="Purchase account for ingredients" value={s.purchase_ledger_id} disabled={!canEdit || !ready}

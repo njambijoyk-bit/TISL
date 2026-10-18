@@ -263,20 +263,20 @@ class IngredientUse
         $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
 
         return $this->vouchers->create([
-            'voucher_type_id' => $type->id, 'date' => $on->toDateString(), 'currency_id' => $this->money->getBaseCurrency()->id, 'narration' => $narration, 'location_id' => $locationId,
-            'entries' => FoodLedgers::entries($byKind, $debit),
-        ], $by);
+            'voucher_type_id' => $type->id, 'date' => $on->toDateString(), 'narration' => $narration, 'location_id' => $locationId,
+            'entries' => FoodLedgers::entries($byKind, $debit, app(MenuMoney::class)->converter($on)),
+        ] + app(MenuMoney::class)->voucher($on), $by);
     }
 
-    /** A two-line journal in the base currency, debiting one account and crediting another. */
+    /** A two-line journal, in the Menus currency, debiting one account and crediting another. */
     public function book(int $debit, int $credit, float $amount, string $narration, int $locationId, Carbon $on, ?User $by): Voucher
     {
         $type = VoucherType::byBase(VoucherType::JOURNAL) ?? throw new BooksException('The Journal voucher type is switched off.');
 
         return $this->vouchers->create([
-            'voucher_type_id' => $type->id, 'date' => $on->toDateString(), 'currency_id' => $this->money->getBaseCurrency()->id, 'narration' => $narration, 'location_id' => $locationId,
-            'entries' => [['ledger_id' => $debit, 'side' => 'D', 'amount' => $amount], ['ledger_id' => $credit, 'side' => 'C', 'amount' => $amount]],
-        ], $by);
+            'voucher_type_id' => $type->id, 'date' => $on->toDateString(), 'narration' => $narration, 'location_id' => $locationId,
+            'entries' => [['ledger_id' => $debit, 'side' => 'D', 'amount' => ($shown = app(MenuMoney::class)->fromBase($amount, $on))], ['ledger_id' => $credit, 'side' => 'C', 'amount' => $shown]],
+        ] + app(MenuMoney::class)->voucher($on), $by);
     }
 
     private function fmt(mixed $n): string

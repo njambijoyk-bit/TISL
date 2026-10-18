@@ -18,6 +18,10 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 - [ ] Two test people: one **manager** (menus.view and menus.manage) and one **cashier or waiter** (menus.till only, no menus.manage). Sign in as each in a different browser.
 - [ ] A branch exists and is set to sell to customers. Payment methods exist: Cash, and M-Pesa if you want to try the kiosk.
 
+## 0b. Menus currency (after the Currency setting)
+1. Menus, Configuration: the **Currency** list offers the active currencies, and empty means the system's base currency. Pick a foreign one with a rate set under Currencies. Expect: Menus, Stock, Receive stock says "prices in" that currency, and so does the Opening stock sheet.
+2. Receive a delivery and record some waste. Expect: the purchase voucher and the waste journal are in that currency at the rate of their date; the Books amounts in the base currency are what the lots cost. Set it back to empty and everything is in the base currency again.
+
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?
 2. **Allergens** (G, then A): add a tag, rename it, change what it rules out and try to remove one that is in use. Expect: the dish badges follow at once, and a clear refusal for the one in use.

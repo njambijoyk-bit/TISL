@@ -59,7 +59,7 @@ class IngredientReceiving
             'paid_ledger_id' => $d['paid_ledger_id'] ?? null, 'payment_method_id' => $d['payment_method_id'] ?? null, 'supplier_invoice_no' => $d['supplier_invoice_no'] ?? null,
             'reference_no' => $d['reference_no'] ?? null, 'due_date' => $d['due_date'] ?? null, 'narration' => $d['narration'] ?? 'Ingredients received',
             'lines' => array_map(fn ($l) => $this->voucherLine($l), $lines),
-        ], fn ($v) => $v !== null);
+        ] + app(MenuMoney::class)->voucher($d['date'] ?? today()->toDateString()), fn ($v) => $v !== null);
     }
 
     /**
@@ -87,7 +87,7 @@ class IngredientReceiving
 
             return array_map(fn ($l) => $this->vouchers->create([
                 'voucher_type_id' => $type->id, 'date' => $date, 'location_id' => $location, 'narration' => $d['narration'] ?? 'Opening stock of ingredients', 'lines' => [$this->voucherLine($l)],
-            ], $by), $lines);
+            ] + app(MenuMoney::class)->voucher($date), $by), $lines);
         });
     }
 

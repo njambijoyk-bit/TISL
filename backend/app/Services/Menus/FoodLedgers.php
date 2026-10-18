@@ -49,13 +49,14 @@ final class FoodLedgers
      * the credit is the account the kind's stock is carried on. Lines on the same account are added up.
      *
      * @param array<int, float> $byKind
+     * @param callable|null $convert turns each kind's base-currency amount into the voucher's currency (so a kind's debit and credit stay equal)
      * @return array<int, array{ledger_id: int, side: string, amount: float}>
      */
-    public static function entries(array $byKind, string $debit = 'cost'): array
+    public static function entries(array $byKind, string $debit = 'cost', ?callable $convert = null): array
     {
         $lines = [];
         foreach ($byKind as $kindId => $amount) {
-            $amount = round((float) $amount, 2);
+            $amount = round($convert ? $convert((float) $amount) : (float) $amount, 2);
             if ($amount <= 0) {
                 continue;
             }
@@ -76,11 +77,11 @@ final class FoodLedgers
      * @param array<int, float> $byKind
      * @return array<int, array{ledger_id: int, side: string, amount: float}>
      */
-    public static function countEntries(array $byKind): array
+    public static function countEntries(array $byKind, ?callable $convert = null): array
     {
         $lines = [];
         foreach ($byKind as $kindId => $value) {
-            $abs = round(abs((float) $value), 2);
+            $abs = round($convert ? $convert(abs((float) $value)) : abs((float) $value), 2);
             if ($abs < 0.01) {
                 continue;
             }

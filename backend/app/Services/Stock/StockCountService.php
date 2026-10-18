@@ -202,7 +202,8 @@ class StockCountService
      */
     private function bookIngredients(StockCount $c, array $byKind, string $date, ?User $user): ?int
     {
-        $entries = FoodLedgers::countEntries($byKind);
+        $on = Carbon::parse($date);
+        $entries = FoodLedgers::countEntries($byKind, app(\App\Services\Menus\MenuMoney::class)->converter($on));
         if (! $entries) {
             return null;
         }
@@ -214,7 +215,7 @@ class StockCountService
             'narration' => "Stock count {$c->number} (ingredients): " . ($net < 0 ? 'stock missing' : 'stock found'),
             'meta' => ['stock_count' => ['count_id' => $c->id, 'ingredients' => true]],
             'entries' => $entries,
-        ], $user)->id;
+        ] + app(\App\Services\Menus\MenuMoney::class)->voucher($on), $user)->id;
     }
 
     public function cancel(StockCount $c): StockCount
