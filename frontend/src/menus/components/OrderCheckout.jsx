@@ -6,6 +6,7 @@ import menusPublicAPI from '../../_shared/api/menusPublic';
 import checkoutAPI from '../../_shared/api/checkout';
 import useAuthStore from '../../_shared/store/authStore';
 import { errMsg } from '../../_shared/store/helpers/apiState';
+import { basketItems } from '../lib/basket';
 
 const POLL_MS = 3000;
 const GIVE_UP = 60;
@@ -52,7 +53,7 @@ export default function OrderCheckout({ basket, onClose }) {
     channel: channel.code, location_id: f.location_id || undefined, fulfil: f.fulfil || undefined, address: channel.order_type === 'delivery' ? f.address : undefined,
     shipping_option_id: channel.order_type === 'delivery' && f.shipping_option_id ? Number(f.shipping_option_id) : undefined, notes: f.notes || undefined,
     name: f.name || undefined, email: f.email || undefined, phone: f.phone || undefined, payment_mode: f.payment_mode, payment_method_id: f.payment_mode === 'online' && f.payment_method_id ? Number(f.payment_method_id) : undefined,
-    items: basket.lines.map((l) => ({ dish_id: l.dish_id, quantity: l.quantity, option_ids: l.option_ids, note: l.note || undefined })),
+    items: basketItems(basket.lines),
   }), [channel, f, basket.lines]);
 
   // the price is worked out by the server whenever the basket, the time or the delivery changes

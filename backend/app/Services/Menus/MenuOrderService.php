@@ -65,7 +65,7 @@ class MenuOrderService
     /**
      * The dishes asked for, checked and priced: on a menu the channel shows at that time, enough to make them (set-meal sides too), the choices allowed.
      *
-     * @param array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string}> $wanted
+     * @param array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string, serving_id?: ?int, picks?: array}> $wanted
      * @return array{0: array, 1: array<int, Dish>} the lines and the dishes by id
      */
     public function dishLines(Channel $channel, Location $location, Carbon $at, array $wanted): array
@@ -74,6 +74,7 @@ class MenuOrderService
         $onMenu = $menus ? DB::table('menus_section_dishes as sd')->join('menus_sections as s', 's.id', '=', 'sd.section_id')->whereIn('s.menu_id', $menus)->pluck('sd.dish_id')->map(fn ($i) => (int) $i)->all() : [];
 
         $need = [];     // dish id => portions needed in all
+        $sideNeed = []; // side id => how much is needed in all, for the dishes put together from sides
         $lines = [];
         $dishes = [];
         foreach ($wanted as $w) {
@@ -90,7 +91,23 @@ class MenuOrderService
             if ($base === null) {
                 throw new BooksException("{$dish->name} has no price yet.");
             }
-            $need[$dish->id] = ($need[$dish->id] ?? 0) + $w['quantity'];
+            $made = [];   // the size and picks, when the dish has a make-up
+            $uses = $p['uses'];
+            if (DishSelection::applies($dish)) {
+                $sel = app(DishSelection::class)->resolve($dish, $w['serving_id'] ?? null, $w['picks'] ?? []);
+                $base = $sel['unit_price'];
+                $made = app(DishSelection::class)->orderLine($sel);
+                $uses = array_merge($sel['uses'], $uses);
+                if ($dish->sold_out_on && $dish->sold_out_on->isToday()) {
+                    throw new BooksException("{$dish->name} is sold out.");
+                }
+                foreach ($sel['sides'] as $s) {
+                    $sideNeed[$s['side_id']] = ($sideNeed[$s['side_id']] ?? 0.0) + $s['amount'] * $w['quantity'];
+                }
+            }
+            if (! $made || ! DishSelection::sidesIn($uses)) {   // the dishes put together from sides are checked by their sides below
+                $need[$dish->id] = ($need[$dish->id] ?? 0) + $w['quantity'];
+            }
             $linked = [];
             foreach ($p['linked_dishes'] as $lid) {
                 $ld = $dishes[$lid] ??= Dish::find($lid);
@@ -100,14 +117,17 @@ class MenuOrderService
                 $need[$ld->id] = ($need[$ld->id] ?? 0) + $w['quantity'];
                 $linked[] = $ld;
             }
-            $lines[] = ['dish' => $dish, 'quantity' => $w['quantity'], 'base_price' => (float) $base, 'unit_price' => round($base + $p['price_delta'], 2), 'options' => $p['options'], 'uses' => $p['uses'],
-                'linked' => $linked, 'note' => $w['note']];
+            $lines[] = ['dish' => $dish, 'quantity' => $w['quantity'], 'base_price' => (float) $base, 'unit_price' => round($base + $p['price_delta'], 2), 'options' => $p['options'], 'uses' => $uses,
+                'linked' => $linked, 'note' => $w['note']] + $made;
         }
         foreach ($need as $id => $n) {
             $have = $this->info->portions($dishes[$id], (int) $location->id);
             if ($have + 0.00001 < $n) {
                 throw new BooksException($have > 0 ? "Only ".(int) floor($have)." of {$dishes[$id]->name} left." : "{$dishes[$id]->name} is sold out.");
             }
+        }
+        if ($sideNeed && ($short = app(SideStock::class)->short($sideNeed, (int) $location->id))) {
+            throw new BooksException(count($short) === 1 ? array_key_first($short).' has run out: please choose something else.' : implode(', ', array_keys($short)).' have run out: please choose something else.');
         }
 
         return [$lines, $dishes];
@@ -151,7 +171,7 @@ class MenuOrderService
         return [$at, false];
     }
 
-    /** @return array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string}> */
+    /** @return array<int, array{dish_id: int, quantity: int, option_ids: int[], note: ?string, serving_id: ?int, picks: array}> */
     public function wanted(mixed $items): array
     {
         $out = [];
@@ -165,7 +185,8 @@ class MenuOrderService
                 throw new BooksException('For more than '.self::MAX_PER_LINE.' of one dish, please call us.');
             }
             $note = trim((string) ($it['note'] ?? ''));
-            $out[] = ['dish_id' => $dish, 'quantity' => $qty, 'option_ids' => array_map('intval', (array) ($it['option_ids'] ?? [])), 'note' => $note === '' ? null : mb_substr($note, 0, 200)];
+            $out[] = ['dish_id' => $dish, 'quantity' => $qty, 'option_ids' => array_map('intval', (array) ($it['option_ids'] ?? [])), 'note' => $note === '' ? null : mb_substr($note, 0, 200),
+                'serving_id' => ! empty($it['serving_id']) ? (int) $it['serving_id'] : null, 'picks' => is_array($it['picks'] ?? null) ? $it['picks'] : []];
         }
         if (! $out) {
             throw new BooksException('Your basket is empty.');
@@ -239,6 +260,9 @@ class MenuOrderService
             /** @var Dish $d */
             $d = $l['dish'];
             $names = array_map(fn ($o) => $o['name'], $l['options']);
+            if ($made = DishSelection::describe($l['serving'] ?? null, $l['selection'] ?? null)) {
+                array_unshift($names, $made);
+            }
             $row = ['type' => 'dish', 'dish_id' => $d->id, 'quantity' => $l['quantity'], 'rate' => $l['unit_price'], 'location_id' => $loc->id,
                 'notes' => trim(implode(', ', $names).($l['note'] ? ($names ? ' — ' : '').$l['note'] : '')) ?: null];
             if ($l['uses']) {
@@ -281,7 +305,7 @@ class MenuOrderService
         return ['subtotal' => $preview['subtotal'], 'delivery_fee' => $preview['delivery_fee'], 'tax_total' => $preview['tax_total'], 'total' => $preview['total'],
             'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol']), 'at' => $p['at']->toIso8601String(), 'asap' => $p['asap'],
             'lines' => array_map(fn ($l) => ['dish_id' => $l['dish']->id, 'name' => $l['dish']->name, 'quantity' => $l['quantity'], 'unit_price' => $l['unit_price'], 'amount' => round($l['unit_price'] * $l['quantity'], 2),
-                'options' => array_column($l['options'], 'name')], $p['lines'])];
+                'options' => array_column($l['options'], 'name'), 'serving' => $l['serving'] ?? null, 'sides' => array_column($l['selection'] ?? [], 'side')], $p['lines'])];
     }
 
     /** @return array{subtotal: float, delivery_fee: float, tax_total: float, total: float} the books' own figures; the minimum order is checked on the food alone */

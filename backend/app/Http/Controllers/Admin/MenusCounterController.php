@@ -67,7 +67,7 @@ class MenusCounterController extends Controller
     private function rules(): array
     {
         return ['table_id' => 'nullable|integer', 'guests' => 'nullable|integer|min:1|max:200', 'line_ids' => 'nullable|array|max:80', 'line_ids.*' => 'integer', 'location_id' => 'nullable|integer', 'service' => 'nullable|string|in:dine_in,take_out', 'label' => 'nullable|string|max:80', 'tip' => 'nullable|numeric|min:0|max:10000000', 'waive_service' => 'nullable|boolean',
-            'items' => 'nullable|array|max:80', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:50', 'items.*.option_ids' => 'nullable|array|max:40', 'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200',
+            'items' => 'nullable|array|max:80', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:50', 'items.*.serving_id' => 'nullable|integer', 'items.*.picks' => 'nullable|array', 'items.*.picks.*' => 'array', 'items.*.option_ids' => 'nullable|array|max:40', 'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200',
             'tenders' => 'nullable|array|max:6', 'tenders.*.payment_method_id' => 'required|integer', 'tenders.*.amount' => 'required|numeric|min:0', 'tenders.*.reference' => 'nullable|string|max:100'];
     }
 

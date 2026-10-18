@@ -6,7 +6,7 @@ import kioskAPI from '../../../_shared/api/kiosk';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import DishPicker from '../../components/DishPicker';
-import { useBasket, lineTotal } from '../../lib/basket';
+import { useBasket, lineTotal, basketItems, needsChoice, shownPrice } from '../../lib/basket';
 import { printReceipt } from '../../lib/receiptPrint';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,7 +52,7 @@ export default function KioskPage() {
     return () => clearInterval(t);
   }, [cfg, step, reset]);
 
-  const items = useMemo(() => basket.lines.map((l) => ({ dish_id: l.dish_id, quantity: l.quantity, option_ids: l.option_ids, note: l.note || undefined })), [basket.lines]);
+  const items = useMemo(() => basketItems(basket.lines), [basket.lines]);
   useEffect(() => {
     if (step !== 'review' && step !== 'pay') return undefined;
     let live = true;
@@ -235,12 +235,12 @@ export default function KioskPage() {
                 const ok = d.available && menu.serving_now && d.price != null;
 
                 return (
-                  <button key={d.id} type="button" data-dish={d.name} disabled={!ok} onClick={() => (d.options.length ? setPicking(d) : basket.add(d))}
+                  <button key={d.id} type="button" data-dish={d.name} disabled={!ok} onClick={() => (needsChoice(d) ? setPicking(d) : basket.add(d))}
                     style={{ border: 'none', borderRadius: 20, background: '#fff', cursor: ok ? 'pointer' : 'not-allowed', opacity: ok ? 1 : 0.4, boxShadow: '0 2px 10px rgba(0,0,0,.12)', padding: 0, overflow: 'hidden', textAlign: 'left', fontFamily: 'inherit', touchAction: 'manipulation' }}>
                     {d.photo && <img src={d.photo} alt="" style={{ width: '100%', height: 140, objectFit: 'cover' }} />}
                     <span style={{ display: 'grid', gap: 6, padding: 16 }}>
                       <strong style={{ fontSize: '1.35rem' }}>{d.name}</strong>
-                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#047857' }}>{d.available ? money(d.price_incl ?? d.price) : 'Sold out'}</span>
+                      <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#047857' }}>{d.available ? `${shownPrice(d).from ? 'from ' : ''}${money(shownPrice(d).amount)}` : 'Sold out'}</span>
                       {d.allergens.length > 0 && <small style={{ color: '#b45309', fontWeight: 700 }}>Contains {d.allergens.map((a) => cfg.menu.allergens[a] ?? a).join(', ')}</small>}
                     </span>
                   </button>

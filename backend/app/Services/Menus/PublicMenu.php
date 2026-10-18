@@ -44,7 +44,35 @@ class PublicMenu
             'price' => (float) $d->price, 'price_incl' => $this->inclusive($d),
             'available' => $portions > 0, 'sold_out_today' => (bool) ($d->sold_out_on && $d->sold_out_on->isToday()),
             'allergens' => $profile['allergens'], 'diets' => $profile['diets'], 'info_complete' => $profile['complete'],
-            'options' => $this->options($d), 'chef' => $this->chefName($d),
+            'options' => $this->options($d), 'chef' => $this->chefName($d), 'makeup' => $this->makeup($d, $location),
+        ];
+    }
+
+    /**
+     * The sizes and the sides to pick from (script 202), for a dish that has them: the price of each size, each slot with what can be chosen in it and whether that side can be served at the branch now,
+     * and who the dish is for. Null for a dish with no make-up, which is ordered as it always was.
+     *
+     * @return ?array<string, mixed>
+     */
+    private function makeup(Dish $d, int $location): ?array
+    {
+        if (! DishSelection::applies($d)) {
+            return null;
+        }
+        $m = app(DishMakeup::class)->show($d);
+        $stock = app(SideStock::class);
+        $sides = \App\Models\Menus\Side::with('recipe', 'ingredient', 'amounts')->whereIn('id', collect($m['slots'])->flatMap(fn ($s) => array_column($s['choices'], 'side_id'))->all())->get()->keyBy('id');
+        $servings = array_map(fn ($s) => ['id' => $s['serving_id'], 'name' => $s['serving'], 'price' => $s['price'], 'price_incl' => $this->inclusive($d, $s['price'])], $m['servings']);
+
+        return [
+            'servings' => $servings,
+            'from' => $servings ? min(array_column($servings, 'price')) : null,
+            'audiences' => $m['audience_ids'] ? \Illuminate\Support\Facades\DB::table('menus_audiences')->whereIn('id', $m['audience_ids'])->orderBy('sort_order')->pluck('name')->all() : [],
+            'slots' => array_map(fn ($slot) => [
+                'id' => $slot['id'], 'name' => $slot['name'], 'kind' => $slot['kind'], 'min' => $slot['min'], 'max' => $slot['max'],
+                'choices' => array_map(fn ($c) => ['side_id' => $c['side_id'], 'name' => $c['side'], 'upcharge' => $c['upcharge'], 'is_default' => $c['is_default'],
+                    'available' => isset($sides[$c['side_id']]) && $stock->servings($sides[$c['side_id']], $location) > 0], $slot['choices']),
+            ], $m['slots']),
         ];
     }
 
@@ -58,12 +86,12 @@ class PublicMenu
         return \App\Models\Menus\Chef::where('id', $d->chef_id)->where('is_public', true)->where('is_active', true)->value('display_name');
     }
 
-    private function inclusive(Dish $d): ?float
+    private function inclusive(Dish $d, ?float $price = null): ?float
     {
         try {
             $ledger = MenusSettings::all()['sales_ledger_id'] ?? null;
 
-            return $ledger ? (float) \App\Services\Books\PriceTax::split((float) $d->price, \App\Services\Books\PriceTax::forAccount((int) $ledger))['gross'] : null;
+            return $ledger ? (float) \App\Services\Books\PriceTax::split($price ?? (float) $d->price, \App\Services\Books\PriceTax::forAccount((int) $ledger))['gross'] : null;
         } catch (\Throwable) {
             return null;   // no tax figure can be worked out (no tax set on the account yet): the screen shows the price before tax
         }

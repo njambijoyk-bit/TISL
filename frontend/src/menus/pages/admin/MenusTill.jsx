@@ -11,13 +11,13 @@ import { canViewMenus, canRunFoodTill } from '../../../_shared/lib/roles';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { colors } from '../../../_shared/theme/tokens';
 import DishPicker from '../../components/DishPicker';
-import { useBasket, lineTotal } from '../../lib/basket';
+import { useBasket, lineTotal, basketItems, needsChoice, shownPrice } from '../../lib/basket';
 import { printReceipt } from '../../lib/receiptPrint';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const big = (bg, fg = '#fff') => ({ padding: '12px 18px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.95rem', background: bg, color: fg });
 const line = { border: '1.5px solid var(--line, #cbd5e1)', background: 'transparent', color: 'inherit' };
-const items = (b) => b.lines.map((l) => ({ dish_id: l.dish_id, quantity: l.quantity, option_ids: l.option_ids, note: l.note || undefined }));
+const items = (b) => basketItems(b.lines);
 
 /** What it comes to, and how it is paid: cash (with the change), M-Pesa or card with a reference, split across ways. */
 function PayModal({ total, data, rules, service, quote: askQuote, onClose, onPay }) {
@@ -139,7 +139,7 @@ export default function MenusTill() {
     return () => { live = false; clearTimeout(t); };
   }, [payload, tab, basket.lines.length]);
 
-  const add = (d) => (d.options.length ? setPicking(d) : basket.add(d));
+  const add = (d) => (needsChoice(d) ? setPicking(d) : basket.add(d));
   const run = async (fn, ok) => {
     setBusy(true);
     try { const r = await fn(); if (ok) toast.success(ok); await load(); return r; } catch (e) { toast.error(errMsg(e, 'That did not work'), { duration: 8000 }); return null; } finally { setBusy(false); }
@@ -177,7 +177,7 @@ export default function MenusTill() {
                       <button key={d.id} type="button" data-dish={d.name} disabled={!canAct || !d.available || !menu.serving_now || d.price == null} onClick={() => add(d)}
                         style={{ ...line, minHeight: 78, padding: 10, borderRadius: 12, textAlign: 'left', cursor: 'pointer', fontFamily: 'inherit', display: 'grid', alignContent: 'space-between', opacity: d.available && menu.serving_now ? 1 : 0.45 }}>
                         <strong style={{ fontSize: '0.92rem' }}>{d.name}</strong>
-                        <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{d.available ? money(d.price) : 'Sold out'}{d.options.length > 0 ? ' · choices' : ''}</span>
+                        <span style={{ fontSize: '0.8rem', color: colors.textMuted }}>{d.available ? `${shownPrice(d).from ? 'from ' : ''}${money(d.makeup?.servings?.length ? Math.min(...d.makeup.servings.map((s) => s.price)) : d.price)}` : 'Sold out'}{needsChoice(d) ? ' · choices' : ''}</span>
                       </button>
                     ))}
                   </div>

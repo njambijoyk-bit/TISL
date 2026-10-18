@@ -92,18 +92,50 @@ class SideStock
     }
 
     /**
-     * What an order of these sides lacks: [side name => how much more is wanted than there is] for the sides that are short. `$wanted` is each side's amount for the whole order, in its source's unit.
+     * What an order of these sides lacks, as the names of the sides that can not be served in full. `$wanted` is each side's amount for the whole order, in its source's unit. Sides made to
+     * order and ready-to-serve sides are counted together by the ingredients they take (two recipes that both use flour share the flour); sides made ahead by their prepared food.
      *
      * @param array<int, float> $wanted side id => amount
-     * @return array<string, float>
+     * @return array<string, float> side name => (for a prepared side) how much more is wanted than there is; 0 for the others
      */
     public function short(array $wanted, int $locationId): array
     {
         $out = [];
+        $ing = [];   // ingredient id => ['ingredient' => ..., 'qty' => needed in all, 'sides' => names]
         foreach (Side::with('recipe', 'ingredient')->whereIn('id', array_keys($wanted))->get() as $side) {
-            $have = $this->available($side, $locationId);
-            if ($wanted[$side->id] > $have + 0.0001) {
-                $out[$side->name] = round($wanted[$side->id] - $have, 4);
+            $amount = (float) $wanted[$side->id];
+            if (! $side->is_active) {
+                $out[$side->name] = $amount;
+
+                continue;
+            }
+            if ($side->recipe_id && $side->recipe && ! $side->recipe->made_to_order) {
+                $have = $this->sales->preparedQty($side, $locationId);
+                if ($amount > $have + 0.0001) {
+                    $out[$side->name] = round($amount - $have, 4);
+                }
+
+                continue;
+            }
+            try {
+                $needs = $side->recipe_id ? $this->use->needs($side->recipe ?? throw new BooksException('removed'), $amount)
+                    : ($side->ingredient ? [$side->ingredient->id => ['ingredient' => $side->ingredient, 'qty' => $amount]] : throw new BooksException('removed'));
+            } catch (BooksException) {
+                $out[$side->name] = $amount;   // a recipe or ingredient behind it was removed or switched off
+
+                continue;
+            }
+            foreach ($needs as $id => $n) {
+                $ing[$id] ??= ['ingredient' => $n['ingredient'], 'qty' => 0.0, 'sides' => []];
+                $ing[$id]['qty'] += $n['qty'];
+                $ing[$id]['sides'][$side->name] = true;
+            }
+        }
+        foreach ($ing as $row) {
+            if ($row['qty'] > (float) $this->use->usable($row['ingredient'], $locationId)->sum('qty_left') + 0.0001) {
+                foreach (array_keys($row['sides']) as $name) {
+                    $out[$name] ??= 0.0;
+                }
             }
         }
 

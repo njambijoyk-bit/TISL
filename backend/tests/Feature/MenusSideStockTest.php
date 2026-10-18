@@ -219,7 +219,12 @@ class MenusSideStockTest extends TestCase
         $this->assertSame(0.0, $stock->available($cake, 1));
         app(PrepProduction::class)->run($this->cakeRecipe, 1, 6, ['date' => '2026-10-17']);
         $this->assertSame(6.0, $stock->available($cake, 1));
-        $this->assertSame(['Cake' => 2.0], $stock->short([$this->side['Cake'] => 8.0, $this->side['Bread'] => 10.0], 1));
+        $this->assertSame(['Cake' => 2.0], $stock->short([$this->side['Cake'] => 8.0, $this->side['Bread'] => 1.0], 1));
+        $this->assertSame([], $stock->short([$this->side['Bread'] => 1.0, $this->side['Kale'] => 1.0], 1));
+        \App\Models\Menus\StockBatch::query()->update(['qty_left' => 15]);   // 15 g of flour: bread (10) and kale (10) are each possible but not together
+        $this->shelve('Coke 500ml', 5, 30);
+        $this->assertSame(['Bread' => 0.0, 'Kale' => 0.0], $stock->short([$this->side['Bread'] => 1.0, $this->side['Kale'] => 1.0], 1));
+        $this->assertSame([], $stock->short([$this->side['Bread'] => 1.0], 1));
         $this->assertSame([], $stock->short([$this->side['Cake'] => 6.0], 1));
     }
 }

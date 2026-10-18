@@ -7,7 +7,7 @@ import menusPublicAPI from '../../../_shared/api/menusPublic';
 import checkoutAPI from '../../../_shared/api/checkout';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import DishPicker from '../../components/DishPicker';
-import { useBasket } from '../../lib/basket';
+import { useBasket, basketItems, needsChoice } from '../../lib/basket';
 import { DishCard } from './MenuPage';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -38,7 +38,7 @@ export default function TablePage() {
   const send = async () => {
     setBusy(true);
     try {
-      const r = await menusPublicAPI.tableOrder(qr, { items: basket.lines.map((l) => ({ dish_id: l.dish_id, quantity: l.quantity, option_ids: l.option_ids, note: l.note || undefined })) });
+      const r = await menusPublicAPI.tableOrder(qr, { items: basketItems(basket.lines) });
       setData(r); basket.clear(); toast.success(r.message);
     } catch (e) { toast.error(errMsg(e, 'We could not send that. Please ask a member of staff.'), { duration: 8000 }); } finally { setBusy(false); }
   };
@@ -114,7 +114,7 @@ export default function TablePage() {
           {menu?.sections.map((s) => (
             <div key={s.id} style={{ marginBottom: 20 }}>
               <h2 style={{ margin: '0 0 8px', fontSize: '1.1rem', fontWeight: 800 }}>{s.name}</h2>
-              <div style={{ display: 'grid', gap: 10 }}>{s.dishes.map((d) => <DishCard key={d.id} d={d} avoid={[]} data={data.menu} ordering={ok && menu.serving_now} onAdd={(x) => (x.options.length ? setPicking(x) : basket.add(x))} />)}</div>
+              <div style={{ display: 'grid', gap: 10 }}>{s.dishes.map((d) => <DishCard key={d.id} d={d} avoid={[]} data={data.menu} ordering={ok && menu.serving_now} onAdd={(x) => (needsChoice(x) ? setPicking(x) : basket.add(x))} />)}</div>
             </div>
           ))}
           {data.menu.note && <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{data.menu.note}</p>}

@@ -85,6 +85,18 @@ class DishSelection
     }
 
     /**
+     * A line's size and sides as short text (Jumbo: Bread, Choma, Kale, Ketchup x2), for the note on a voucher line.
+     *
+     * @param ?array<int, array<string, mixed>> $selection what orderLine() kept
+     */
+    public static function describe(?string $serving, ?array $selection): string
+    {
+        $sides = array_map(fn ($l) => $l['side'].((int) ($l['qty'] ?? 1) > 1 ? ' x'.(int) $l['qty'] : ''), $selection ?? []);
+
+        return trim(($serving ?? '').($serving && $sides ? ': ' : '').implode(', ', $sides));
+    }
+
+    /**
      * The side rows a line carries in its `menu_uses` (the rest of the list is what the choices change in the recipe).
      *
      * @param mixed $menuUses what a voucher line holds

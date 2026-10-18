@@ -8,7 +8,7 @@ import menusPublicAPI from '../../../_shared/api/menusPublic';
 import { AllergenChips, DietChips, Pill } from '../../components/FoodChips';
 import DishPicker from '../../components/DishPicker';
 import OrderCheckout from '../../components/OrderCheckout';
-import { useBasket } from '../../lib/basket';
+import { useBasket, needsChoice, shownPrice } from '../../lib/basket';
 
 const money = (n) => Number(n).toLocaleString('en-KE', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 const chipBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.8rem', fontWeight: 700, border: `1.5px solid ${on ? 'var(--color-primary-500)' : 'var(--line, #e5e7eb)'}`, background: on ? 'color-mix(in srgb, var(--color-primary-500) 14%, transparent)' : 'transparent', color: on ? 'var(--color-primary-600)' : 'var(--text-secondary)' });
@@ -16,7 +16,9 @@ const chipBtn = (on) => ({ padding: '6px 14px', borderRadius: 999, cursor: 'poin
 export function DishCard({ d, avoid, data, ordering, onAdd }) {
   const hit = d.allergens.filter((a) => avoid.includes(a));
   const unsure = avoid.length > 0 && !d.info_complete;
-  const price = d.price_incl ?? d.price;
+  const { amount: price, from } = shownPrice(d);
+  const m = d.makeup;
+  const taxNote = (m?.servings?.length ? m.servings[0].price_incl : d.price_incl) == null;
 
   return (
     <article data-dish={d.name} style={{ display: 'grid', gridTemplateColumns: d.photo ? '96px 1fr' : '1fr', gap: 14, padding: 14, borderRadius: 14, border: '1px solid var(--line, #e5e7eb)', background: 'var(--surface-card, #fff)', opacity: d.available ? 1 : 0.65 }}>
@@ -24,10 +26,17 @@ export function DishCard({ d, avoid, data, ordering, onAdd }) {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
           <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>{d.name}</h3>
-          {price != null && <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{money(price)}{d.price_incl == null && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}> + tax</small>}</span>}
+          {price != null && <span style={{ fontWeight: 800, whiteSpace: 'nowrap' }}>{from && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}>from </small>}{money(price)}{taxNote && <small style={{ fontWeight: 500, color: 'var(--text-tertiary)' }}> + tax</small>}</span>}
         </div>
         {d.chef && <p style={{ margin: '2px 0 0', fontSize: '0.78rem', color: 'var(--text-tertiary)', fontStyle: 'italic' }} data-testid="by-chef">by {d.chef}</p>}
         {d.description && <p style={{ margin: '4px 0 6px', fontSize: '0.84rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{d.description}</p>}
+        {m && (m.servings.length > 1 || m.audiences.length > 0) && (
+          <p data-testid="makeup-summary" style={{ margin: '2px 0 6px', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+            {m.servings.length > 1 && m.servings.map((s) => `${s.name} ${money(s.price_incl ?? s.price)}`).join(' · ')}
+            {m.servings.length > 1 && m.audiences.length > 0 && ' · '}
+            {m.audiences.length > 0 && `For ${m.audiences.join(', ')}`}
+          </p>
+        )}
         <div>
           {!d.available && <Pill tone="danger">{d.sold_out_today ? 'Sold out today' : 'Not available right now'}</Pill>}
           {hit.length > 0 && <Pill tone="danger">Contains {hit.map((a) => data.allergens[a] ?? a).join(', ')}</Pill>}
@@ -37,8 +46,19 @@ export function DishCard({ d, avoid, data, ordering, onAdd }) {
         <div style={{ marginTop: 2 }}><AllergenChips codes={d.allergens} names={data.allergens} /></div>
         {ordering && d.available && d.price != null && (
           <button type="button" onClick={() => onAdd(d)} aria-label={`Add ${d.name}`} style={{ marginTop: 8, padding: '7px 16px', borderRadius: 999, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 800, fontSize: '0.8rem', color: '#fff', background: 'linear-gradient(135deg, var(--color-primary-500), var(--color-primary-600))' }}>
-            {d.options.length ? 'Choose' : 'Add'}
+            {needsChoice(d) ? 'Choose' : 'Add'}
           </button>
+        )}
+        {m && m.slots.length > 0 && (
+          <details style={{ marginTop: 6, fontSize: '0.8rem' }}>
+            <summary style={{ cursor: 'pointer', color: 'var(--color-primary-600)', fontWeight: 700 }}>What comes with it</summary>
+            {m.slots.map((s) => (
+              <div key={s.id} style={{ margin: '6px 0' }}>
+                <strong>{s.name}</strong> <span style={{ color: 'var(--text-tertiary)' }}>{s.kind === 'fixed' ? 'included' : s.kind === 'choose_one' ? 'choose one' : s.kind === 'choose_any' ? `choose ${s.min > 0 ? `${s.min} to ` : 'up to '}${s.max ?? 'any'}` : 'extra'}</span>
+                <div style={{ color: 'var(--text-secondary)' }}>{s.choices.map((c) => `${c.name}${c.upcharge ? ` (${c.upcharge > 0 ? '+' : ''}${money(c.upcharge)})` : ''}`).join(' · ')}</div>
+              </div>
+            ))}
+          </details>
         )}
         {d.options.length > 0 && (
           <details style={{ marginTop: 6, fontSize: '0.8rem' }}>
@@ -69,7 +89,7 @@ export default function MenuPage() {
   const [checkout, setCheckout] = useState(false);
 
   useEffect(() => { menusPublicAPI.channels().then((r) => setOrdering(r.channels.length > 0)).catch(() => setOrdering(false)); }, []);
-  const addDish = (d) => (d.options.length ? setPicking(d) : basket.add(d));
+  const addDish = (d) => (needsChoice(d) ? setPicking(d) : basket.add(d));
   useEffect(() => { menusPublicAPI.get().then((r) => { setData(r); setCurrent((c) => c ?? (r.menus.find((m) => m.serving_now) ?? r.menus[0])?.id ?? null); }).catch(() => setError(true)); }, []);
   const menu = data?.menus.find((m) => m.id === current);
   const sections = useMemo(() => (menu?.sections ?? []).map((s) => ({ ...s, dishes: s.dishes.filter((d) => (!diet || d.diets.includes(diet)) && !d.allergens.some((a) => avoid.includes(a))) })).filter((s) => s.dishes.length), [menu, diet, avoid]);

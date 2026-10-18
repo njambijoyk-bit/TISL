@@ -32,7 +32,7 @@ class MenusTableController extends Controller
 
     public function order(Request $request, string $qr): JsonResponse
     {
-        $d = $request->validate(['items' => 'required|array|min:1|max:40', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:20', 'items.*.option_ids' => 'nullable|array|max:40',
+        $d = $request->validate(['items' => 'required|array|min:1|max:40', 'items.*.dish_id' => 'required|integer', 'items.*.quantity' => 'required|integer|min:1|max:20', 'items.*.serving_id' => 'nullable|integer', 'items.*.picks' => 'nullable|array', 'items.*.picks.*' => 'array', 'items.*.option_ids' => 'nullable|array|max:40',
             'items.*.option_ids.*' => 'integer', 'items.*.note' => 'nullable|string|max:200', 'guests' => 'nullable|integer|min:1|max:50']);
 
         return $this->guard(function () use ($d, $qr) {
