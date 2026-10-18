@@ -164,6 +164,7 @@ const MenuCards          = lazy(() => import('./menus/pages/admin/MenuCards'));
 const PublicMenuPage     = lazy(() => import('./menus/pages/public/MenuPage'));
 const MenuOrderTrack     = lazy(() => import('./menus/pages/public/OrderTrackPage'));
 const KioskPage          = lazy(() => import('./menus/pages/public/KioskPage'));
+const MenusTips          = lazy(() => import('./menus/pages/admin/MenusTips'));
 const MenusOperations    = lazy(() => import('./menus/pages/admin/MenusOperations'));
 const MenusChefs         = lazy(() => import('./menus/pages/admin/MenusChefs'));
 const CoursesOfferings  = lazy(() => import('./courses/pages/admin/CoursesOfferings'));
@@ -904,6 +905,7 @@ function App() {
               <Route path="/admin/courses/:id" element={<ProtectedRoute requireAdmin permission="courses.view"><CourseBuilder /></ProtectedRoute>} />
               <Route path="/admin/menus" element={<Navigate to="/admin/menus/dishes" replace />} />
               <Route path="/admin/menus/dishes" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusDishes /></ProtectedRoute>} />
+              <Route path="/admin/menus/tips" element={<ProtectedRoute requireAdmin permission="menus.tips.view"><MenusTips /></ProtectedRoute>} />
               <Route path="/admin/menus/operations" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusOperations /></ProtectedRoute>} />
               <Route path="/admin/menus/chefs" element={<ProtectedRoute requireAdmin permission="menus.view"><MenusChefs /></ProtectedRoute>} />
               <Route path="/admin/menus/floor" element={<ProtectedRoute requireAdmin permission="menus.view,menus.till"><MenusFloor /></ProtectedRoute>} />

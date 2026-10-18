@@ -919,6 +919,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // RECIPES & PRODUCTION (Menus) — see: finance, managers; act: finance, admins
     // The food till and the floor: for anyone who may run them (menus.till), as well as those who see or manage Menus. No recipes, costs or setup here.
+    Route::middleware(['module:menus', 'permission:menus.tips.view'])->prefix('admin/menus')->group(function () {
+        $tp = \App\Http\Controllers\Admin\MenusTipsController::class;
+        Route::get('/tips', [$tp, 'show']);
+        Route::post('/tips/{id}/issue', [$tp, 'issue'])->whereNumber('id')->middleware('permission:menus.tips.issue');   // handing it over is checked again in the service, with the window
+    });
     Route::middleware(['module:menus', 'permission:menus.till,menus.view,menus.manage'])->prefix('admin/menus')->group(function () {
         $tc = \App\Http\Controllers\Admin\MenusCounterController::class;
         $fc = \App\Http\Controllers\Admin\MenusFloorController::class;
