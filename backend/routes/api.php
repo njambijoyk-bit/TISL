@@ -932,6 +932,7 @@ Route::middleware('auth:sanctum')->group(function () {
         $fc = \App\Http\Controllers\Admin\MenusFloorController::class;
         $oc = \App\Http\Controllers\Admin\MenusOrderAdminController::class;
         Route::post('/floor/tables/{id}/{action}', [$fc, 'act'])->whereNumber('id')->where('action', 'seat|clear|bill|merge|unmerge|renew-qr');   // renewing a table's QR code is checked in the controller: it stays with menus.manage
+        Route::post('/till/kiosk/{id}/quote', [$tc, 'quoteKiosk'])->whereNumber('id');
         Route::post('/till/kiosk/{id}/settle', [$tc, 'settleKiosk'])->whereNumber('id');
         Route::post('/till/quote', [$tc, 'quote']);
         Route::post('/till/sell', [$tc, 'sell']);

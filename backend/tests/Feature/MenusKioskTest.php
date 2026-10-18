@@ -155,6 +155,21 @@ class MenusKioskTest extends TestCase
         $this->fails(fn () => $this->counter()->settleKiosk($paid->fresh(), ['tenders' => [['payment_method_id' => 1, 'amount' => 2000]]]), 'not a kiosk order waiting');
     }
 
+    public function test_the_cashier_can_quote_a_waiting_kiosk_order_and_only_a_kiosk_order(): void
+    {
+        $d = $this->dish();
+        $o = $this->kiosks()->place($this->kiosk, $this->in($d), $this->now)['order'];
+
+        $q = $this->counter()->quoteKiosk($o->fresh(), []);
+        $this->assertSame(1160.0, $q['total'], 'the same bill the guest saw');
+        $this->assertArrayHasKey('packaging', $q);
+        $this->assertArrayHasKey('packaging_choices', $q);
+        $this->assertArrayHasKey('condiments', $q);
+
+        $paid = $this->counter()->settleKiosk($o->fresh(), ['tenders' => [['payment_method_id' => 1, 'amount' => 1160]]]);
+        $this->fails(fn () => $this->counter()->quoteKiosk($paid->fresh(), []), 'not a kiosk order waiting');
+    }
+
     public function test_the_cashier_must_take_the_full_amount_and_only_for_kiosk_orders(): void
     {
         $d = $this->dish();

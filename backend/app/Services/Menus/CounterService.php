@@ -130,6 +130,20 @@ class CounterService
             'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
     }
 
+    /** What a kiosk order waiting at the till comes to, with the packaging and condiments the cashier has changed. */
+    public function quoteKiosk(MenuOrder $o, array $in, ?User $by = null): array
+    {
+        if ($o->order_type !== 'kiosk' || $o->payment !== 'open' || ! $o->open()) {
+            throw new BooksException('That is not a kiosk order waiting to be paid.');
+        }
+        $lines = $this->rebuild($o);
+        $pk = $this->packagingFor($lines, (string) $o->service !== 'dine_in', $in, $by);
+        $p = $this->price(Location::findOrFail($o->location_id), $lines, (string) $o->service, (bool) ($in['waive_service'] ?? false), (float) ($in['tip'] ?? 0), '', $pk['packaging']);
+
+        return ['subtotal' => $p['subtotal'], 'service_charge' => $p['service_charge'], 'tip' => $p['tip'], 'tax_total' => $p['tax_total'], 'total' => $p['total'], 'tax_breakdown' => $p['tax_breakdown'],
+            'currency' => Currency::getBaseCurrency()?->only(['id', 'code', 'symbol'])] + $pk;
+    }
+
     /** The packaging list at checkout (the rules' list with the cashier's changes) and the items that may be added or swapped in. @return array{packaging: array, packaging_choices: array} */
     private function packagingFor(array $lines, bool $takeaway, array $in, ?User $by = null): array
     {

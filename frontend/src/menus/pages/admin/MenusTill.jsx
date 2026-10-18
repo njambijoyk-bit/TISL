@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Minus, Plus, Printer, Receipt, X } from 'lucide-react';
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
@@ -232,6 +232,13 @@ export default function MenusTill() {
               <div role="tablist" aria-label="Menus" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                 {data.menu.menus.map((m) => <button key={m.id} type="button" role="tab" aria-selected={m.id === menuId} onClick={() => setMenuId(m.id)} style={{ ...big(m.id === menuId ? '#0f172a' : 'transparent', m.id === menuId ? '#fff' : 'inherit'), ...line }}>{m.name}{m.serving_now ? '' : ' · later'}</button>)}
               </div>
+              {data.menu.menus.length === 0 && (
+                <div role="status" data-testid="till-empty" style={{ padding: 16, borderRadius: 12, border: '1.5px dashed var(--line, #cbd5e1)', display: 'grid', gap: 6, fontSize: '0.9rem' }}>
+                  <strong>There are no dishes to sell here yet.</strong>
+                  <span>A dish shows on the till once it is switched on, sits in a section of a menu that is switched on, and that menu is allowed on the counter (Menus, Configuration, Ways to order). Sizes, sides, leave out and add, packaging and condiments appear when you pick such a dish.</span>
+                  <span><Link to="/admin/menus/menus">Open the menus</Link> · <Link to="/admin/menus/dishes">Open the dishes</Link></span>
+                </div>
+              )}
               {menu && !menu.serving_now && <p role="status" style={{ color: '#b45309' }}>{menu.name} is not being served right now ({menu.serves}).</p>}
               {menu?.sections.map((s) => (
                 <div key={s.id} style={{ marginBottom: 16 }}>
@@ -337,6 +344,8 @@ export default function MenusTill() {
                 </div>
               </div>
 
+              {!(data.kiosk?.length > 0) && <p data-testid="kiosk-hint" style={{ margin: 0, fontSize: '0.78rem', color: colors.textMuted }}>Kiosk orders that guests pay for at the counter show up here. The kiosk screens themselves are set up under <Link to="/admin/menus/settings">Menus, Configuration, Kiosks</Link>.</p>}
+
                       {data.kiosk?.length > 0 && (
                 <div style={{ border: '2px solid #f59e0b', borderRadius: 14, padding: 12 }} data-testid="kiosk-orders">
                   <h2 style={{ margin: '0 0 8px', fontSize: '0.9rem', fontWeight: 800 }}>Kiosk orders to pay · {data.kiosk.length}</h2>
@@ -377,8 +386,8 @@ export default function MenusTill() {
       )}
       {kioskPay && data && (
         <PayModal data={data} rules={{ ...data.rules, tips_on: false, service_charge_on: false }} service={kioskPay.service} total={kioskPay.total} onClose={() => setKioskPay(null)}
-          quote={() => Promise.resolve({ subtotal: kioskPay.subtotal, tax_total: kioskPay.tax_total, service_charge: kioskPay.service_charge, tip: 0, total: kioskPay.total })}
-          onPay={async (extra) => { const r = await menusAPI.settleKiosk(kioskPay.id, { tenders: extra.tenders, ...(extra.packaging ? { packaging: extra.packaging } : {}) }); setKioskPay(null); await load(); setReceipt(r.order); }} />
+          quote={(extra) => menusAPI.quoteKiosk(kioskPay.id, extra)}
+          onPay={async (extra) => { const r = await menusAPI.settleKiosk(kioskPay.id, { tenders: extra.tenders, ...(extra.packaging ? { packaging: extra.packaging } : {}), ...(extra.condiments ? { condiments: extra.condiments } : {}) }); setKioskPay(null); await load(); setReceipt(r.order); }} />
       )}
       {receipt && <ReceiptModal order={receipt} onClose={() => setReceipt(null)} />}
     </AdminLayout>
