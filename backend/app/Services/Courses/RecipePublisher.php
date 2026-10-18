@@ -59,7 +59,7 @@ class RecipePublisher
         }
         $steps = DB::table('menus_recipe_steps')->where('recipe_id', $r->id)->orderBy('position')->orderBy('id')->get();
         $out = [];
-        $meta = array_filter([$r->yield_qty > 0 ? 'Makes '.$this->num((float) $r->yield_qty) : null, $r->prep_minutes ? 'Prep '.$r->prep_minutes.' min' : null, $r->cook_minutes ? 'Cook '.$r->cook_minutes.' min' : null]);
+        $meta = array_filter([$r->yield_qty > 0 ? 'Makes '.$this->num((float) $r->yield_qty).($r->yieldUnit ? ' '.$r->yieldUnit->code : '') : null, $r->prep_minutes ? 'Prep '.$r->prep_minutes.' min' : null, $r->cook_minutes ? 'Cook '.$r->cook_minutes.' min' : null]);
         if ($meta) {
             $out[] = implode(' · ', $meta);
         }

@@ -7,6 +7,7 @@ use App\Models\Menus\DishRecipe;
 use App\Models\Menus\DishRecipeLine;
 use App\Models\Menus\DishRecipeStep;
 use App\Models\Menus\Ingredient;
+use App\Models\UnitOfMeasure;
 use App\Services\Books\BooksException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -14,6 +15,9 @@ use Illuminate\Support\Facades\Schema;
 /** Writing a dish's recipe on ingredients (Menus' own stock): the amounts for one batch, the waste in preparing each, and the method. */
 class DishRecipes
 {
+    /** What a batch may be counted in (the units table's dimensions). */
+    public const YIELD_DIMENSIONS = ['mass', 'volume', 'count'];
+
     private static ?bool $installed = null;
 
     /** Has script 183 been run? Until it has, dishes keep using the older recipes. */
@@ -27,11 +31,14 @@ class DishRecipes
     }
 
     /**
-     * @param array{yield_qty?: float, made_to_order?: bool, note?: ?string, visibility?: string, prep_minutes?: ?int, cook_minutes?: ?int, is_active?: bool,
+     * @param array{yield_qty?: float, yield_unit_id?: ?int, made_to_order?: bool, note?: ?string, visibility?: string, prep_minutes?: ?int, cook_minutes?: ?int, is_active?: bool,
      *              lines: array<int, array{ingredient_id: int, quantity: float, unit?: string, waste_pct?: float}>, steps?: array<int, array{body: string, minutes?: ?int, image?: ?string}>} $d
      */
     public function save(Dish $dish, array $d): DishRecipe
     {
+        if (! empty($d['yield_unit_id'])) {
+            throw new BooksException("{$dish->name}'s recipe counts portions. A unit (kilograms, litres, pieces) is for a recipe of its own.");
+        }
         $c = $this->clean($d);
 
         return DB::transaction(fn () => $this->store(DishRecipe::firstOrNew(['dish_id' => $dish->id]), $d, $c));
@@ -77,12 +84,19 @@ class DishRecipes
         });
     }
 
-    /** The yield, who may see it and the lines, checked and tidied. @return array{yield: float, visibility: string, lines: array<int, array<string, mixed>>} */
+    /** The yield, who may see it and the lines, checked and tidied. @return array{yield: float, unit: ?int, visibility: string, lines: array<int, array<string, mixed>>} */
     private function clean(array $d): array
     {
         $yield = round((float) ($d['yield_qty'] ?? 1), 4);
         if ($yield <= 0) {
             throw new BooksException('The recipe must make more than nothing: say how many portions one batch makes.');
+        }
+        $yieldUnit = null;
+        if (! empty($d['yield_unit_id'])) {
+            $yieldUnit = UnitOfMeasure::find((int) $d['yield_unit_id']);
+            if (! $yieldUnit || ! $yieldUnit->is_active || ! in_array($yieldUnit->dimension, self::YIELD_DIMENSIONS, true)) {
+                throw new BooksException('Count a batch in a weight, a volume or a number of pieces: choose one of the units offered, or leave it as portions.');
+            }
         }
         $visibility = $d['visibility'] ?? 'internal';
         if (! array_key_exists($visibility, DishRecipe::VISIBILITY)) {
@@ -127,14 +141,14 @@ class DishRecipes
             throw new BooksException('Add at least one ingredient.');
         }
 
-        return ['yield' => $yield, 'visibility' => $visibility, 'lines' => $lines];
+        return ['yield' => $yield, 'unit' => $yieldUnit?->id, 'visibility' => $visibility, 'lines' => $lines];
     }
 
-    /** @param array{yield: float, visibility: string, lines: array<int, array<string, mixed>>} $c */
+    /** @param array{yield: float, unit: ?int, visibility: string, lines: array<int, array<string, mixed>>} $c */
     private function store(DishRecipe $r, array $d, array $c, ?string $name = null): DishRecipe
     {
         $r->fill([
-            'yield_qty' => $c['yield'], 'made_to_order' => (bool) ($d['made_to_order'] ?? true), 'visibility' => $c['visibility'], 'is_active' => (bool) ($d['is_active'] ?? true),
+            'yield_qty' => $c['yield'], 'yield_unit_id' => $c['unit'], 'made_to_order' => (bool) ($d['made_to_order'] ?? true), 'visibility' => $c['visibility'], 'is_active' => (bool) ($d['is_active'] ?? true),
             'note' => isset($d['note']) && trim((string) $d['note']) !== '' ? mb_substr(trim((string) $d['note']), 0, 255) : null,
             'prep_minutes' => isset($d['prep_minutes']) && $d['prep_minutes'] !== '' ? max(0, (int) $d['prep_minutes']) : null,
             'cook_minutes' => isset($d['cook_minutes']) && $d['cook_minutes'] !== '' ? max(0, (int) $d['cook_minutes']) : null,

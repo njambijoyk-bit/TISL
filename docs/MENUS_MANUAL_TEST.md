@@ -40,6 +40,8 @@ Do the parts in this order: each one needs the one before it. Tick a box only wh
 2. Add another with the same name in capitals. Expect: "There is already a recipe called ...".
 3. Edit it: the name is filled in, the lines are the ones you saved. Remove it: it goes.
 4. The dishes above are unchanged: their recipes, costs and "can make now" are as before, and selling a dish still uses its ingredients.
+5. (after script 195) Add "Ugali" as a recipe of its own: **One batch makes** 2.5, counted in **Kilogram**; flour 800 g. Save. Expect "makes 2.5 kg", and the cost shown per batch and "per kg". Edit it and choose "portions": it goes back to portions.
+6. The units offered are weights, volumes and pieces only (no metres), and a dish's own recipe has no unit box: it counts portions.
 
 ## 1. Recipes, allergens, dishes and menus (manager)
 1. **Recipes**: make a recipe for a dish (amounts in g or kg, waste %, method steps, how many portions a batch makes). Expect: cost per portion shows, and "can make" counts portions from the shelf. Watch: does the allergen from an ingredient show where you would look for it?

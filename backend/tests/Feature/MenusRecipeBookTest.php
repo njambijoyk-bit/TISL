@@ -135,4 +135,66 @@ class MenusRecipeBookTest extends TestCase
         $this->assertMatchesRegularExpression('/ADD COLUMN name VARCHAR\(120\) NULL/', $sql);
         $this->assertStringContainsString('uq_menus_recipe_name', $sql);
     }
+
+    // ------------------------------------------------------------ 1.2 the yield unit
+
+    public function test_a_recipe_of_its_own_may_count_a_batch_in_a_unit(): void
+    {
+        $r = $this->svc()->saveStandalone(['name' => 'Ugali', 'yield_qty' => 2.5, 'yield_unit_id' => $this->kg, 'lines' => $this->lines()]);
+        $this->assertSame($this->kg, (int) $r->yield_unit_id);
+        $this->assertSame('2.5 kg', $r->fresh()->yieldLabel());
+        $none = $this->svc()->saveStandalone(['name' => 'Soup', 'yield_qty' => 1, 'lines' => $this->lines()]);
+        $this->assertNull($none->yield_unit_id);
+        $this->assertSame('1 portion', $none->fresh()->yieldLabel());
+        $this->assertSame('4 portions', $this->svc()->saveStandalone(['name' => 'Stew', 'yield_qty' => 4, 'lines' => $this->lines()])->fresh()->yieldLabel());
+        $back = $this->svc()->saveStandalone(['name' => 'Ugali', 'yield_qty' => 2, 'yield_unit_id' => null, 'lines' => $this->lines()], $r->id);
+        $this->assertNull($back->yield_unit_id, 'it can go back to portions');
+    }
+
+    public function test_the_unit_must_be_a_weight_a_volume_or_a_count_that_is_switched_on(): void
+    {
+        $len = DB::table('units_of_measure')->insertGetId(['code' => 'm', 'name' => 'Metre', 'dimension' => 'length', 'to_base_factor' => 1]);
+        $off = DB::table('units_of_measure')->insertGetId(['code' => 'oz', 'name' => 'Ounce', 'dimension' => 'mass', 'to_base_factor' => 28, 'is_active' => false]);
+        foreach ([$len, $off, 99999] as $bad) {
+            $this->fails(fn () => $this->svc()->saveStandalone(['name' => 'Base', 'yield_unit_id' => $bad, 'lines' => $this->lines()]), 'weight, a volume or a number of pieces');
+        }
+        $this->assertSame(0, DishRecipe::count());
+    }
+
+    public function test_a_dishs_recipe_counts_portions_only(): void
+    {
+        $dish = $this->dish('Pancakes');
+        $this->fails(fn () => $this->svc()->save($dish, ['yield_unit_id' => $this->kg, 'lines' => $this->lines()]), 'counts portions');
+        $this->assertSame(0, DishRecipe::count());
+    }
+
+    public function test_the_stock_maths_scales_by_the_amount_made_in_the_recipes_unit(): void
+    {
+        $this->pantry('Maize flour', 10000, 0.1);
+        $r = $this->svc()->saveStandalone(['name' => 'Ugali', 'yield_qty' => 2, 'yield_unit_id' => $this->kg, 'lines' => $this->lines([['Maize flour', 800]])]);
+        $use = app(\App\Services\Menus\IngredientUse::class);
+        $this->assertEqualsWithDelta(800.0, $use->needs($r, 2.0)[(int) DB::table('menus_ingredients')->where('name', 'Maize flour')->value('id')]['qty'], 0.001, 'one batch is 2 kg');
+        $this->assertEqualsWithDelta(2000.0, $use->needs($r, 5.0)[(int) DB::table('menus_ingredients')->where('name', 'Maize flour')->value('id')]['qty'], 0.001, '5 kg is two and a half batches');
+        $this->assertEqualsWithDelta(40.0, $use->cost($r, 1)['per_portion'], 0.0001, '800 g at 0.1 a gram is 80 for the batch, so 40 for each kg made');
+    }
+
+    public function test_the_page_offers_the_units_and_shows_a_recipes_unit(): void
+    {
+        $c = app(\App\Http\Controllers\Admin\MenusRecipesController::class);
+        $res = $c->saveBook(\Illuminate\Http\Request::create('/x', 'POST', ['name' => 'Ugali', 'yield_qty' => 2, 'yield_unit_id' => $this->kg, 'lines' => $this->lines()]));
+        $this->assertSame('kg', $res->getData(true)['recipe']['yield_unit']);
+        $page = $c->index(\Illuminate\Http\Request::create('/x', 'GET', ['location_id' => 1]))->getData(true);
+        $this->assertSame('2 kg', $page['standalone'][0]['yield_label']);
+        $codes = array_column($page['units'], 'code');
+        $this->assertContains('kg', $codes);
+        $this->assertContains('each', $codes);
+    }
+
+    public function test_script_195_adds_the_unit_column_with_a_foreign_key(): void
+    {
+        $sql = file_get_contents(base_path('database/sql/195_menus_recipe_yield_unit.sql'));
+        $this->assertStringContainsString('ADD COLUMN yield_unit_id BIGINT UNSIGNED NULL', $sql);
+        $this->assertStringContainsString('fk_menus_recipes_yield_unit', $sql);
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn('menus_recipes', 'yield_unit_id'), 'the test world is built from the script');
+    }
 }

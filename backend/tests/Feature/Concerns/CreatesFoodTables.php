@@ -35,6 +35,8 @@ trait CreatesFoodTables
             $t->id(); $t->unsignedBigInteger('dish_id')->nullable()->unique(); $t->string('name', 120)->nullable()->unique(); $t->decimal('yield_qty', 18, 4)->default(1); $t->boolean('made_to_order')->default(true); $t->string('note')->nullable();
             $t->string('visibility', 12)->default('internal'); $t->unsignedSmallInteger('prep_minutes')->nullable(); $t->unsignedSmallInteger('cook_minutes')->nullable(); $t->boolean('is_active')->default(true); $t->timestamps();
         });
+        // script 195: the unit a batch is counted in (the column it adds is read from the script itself)
+        $this->runSqlScripts('195_menus_recipe_yield_unit.sql');
         // script 191: the "used up" use and the account a kind is charged to
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->boolean('used_up')->default(false));
         Schema::table('menus_ingredient_kinds', fn ($t) => $t->unsignedBigInteger('expense_ledger_id')->nullable());

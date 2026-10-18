@@ -28,6 +28,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
   const key = useRef(0);
   const mk = (l) => ({ key: `k${++key.current}`, ingredient_id: l?.ingredient_id ?? '', quantity: l?.quantity ?? '', unit: l?.unit ?? 'base', waste_pct: l?.waste_pct ?? '' });
   const [yieldQty, setYieldQty] = useState(r?.yield_qty ?? 1);
+  const [yieldUnit, setYieldUnit] = useState(r?.yield_unit_id ?? '');
   const [order, setOrder] = useState(r?.made_to_order ?? true);
   const [lines, setLines] = useState(r ? r.lines.map(mk) : [mk()]);
   const [steps, setSteps] = useState((r?.steps ?? []).map((s) => ({ key: `s${++key.current}`, body: s.body, minutes: s.minutes ?? '' })));
@@ -45,7 +46,7 @@ function RecipeModal({ dish, options, onClose, onDone }) {
     e.preventDefault(); setBusy(true); setErr(null);
     try {
       const payload = {
-        yield_qty: Number(yieldQty), made_to_order: order, note: note || null, visibility, prep_minutes: prep === '' ? null : Number(prep), cook_minutes: cook === '' ? null : Number(cook),
+        yield_qty: Number(yieldQty), ...(dish.standalone ? { yield_unit_id: yieldUnit === '' ? null : Number(yieldUnit) } : {}), made_to_order: order, note: note || null, visibility, prep_minutes: prep === '' ? null : Number(prep), cook_minutes: cook === '' ? null : Number(cook),
         lines: lines.filter((l) => l.ingredient_id).map((l) => ({ ingredient_id: Number(l.ingredient_id), quantity: Number(l.quantity) || 0, unit: l.unit, waste_pct: l.waste_pct === '' ? 0 : Number(l.waste_pct) })),
         steps: steps.map((s) => ({ body: s.body, minutes: s.minutes === '' ? null : Number(s.minutes) })),
       };
@@ -61,7 +62,21 @@ function RecipeModal({ dish, options, onClose, onDone }) {
           <FormError message={err} />
           {dish.standalone && <Field label="Name of the recipe" htmlFor="rc-name" hint="A recipe of its own is not a dish: a tomato and onion base, a marinade. Dishes can be made from it later."><TextInput id="rc-name" required maxLength={120} value={name} onChange={(e) => setName(e.target.value)} /></Field>}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 10 }}>
-            <Field label="One batch makes (portions)" htmlFor="rc-yield" hint="The amounts below are for this many portions."><NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} /></Field>
+            {dish.standalone ? (
+              <Field label="One batch makes" htmlFor="rc-yield" hint="The amounts below are for this much.">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} />
+                  <SelectInput aria-label="Counted in" value={yieldUnit} onChange={(e) => setYieldUnit(e.target.value)}>
+                    <option value="">portions</option>
+                    {['mass', 'volume', 'count'].map((dim) => (options.units ?? []).some((u) => u.dimension === dim) && (
+                      <optgroup key={dim} label={{ mass: 'Weight', volume: 'Volume', count: 'Pieces' }[dim]}>{options.units.filter((u) => u.dimension === dim).map((u) => <option key={u.id} value={u.id}>{u.name} ({u.code})</option>)}</optgroup>
+                    ))}
+                  </SelectInput>
+                </div>
+              </Field>
+            ) : (
+              <Field label="One batch makes (portions)" htmlFor="rc-yield" hint="The amounts below are for this many portions."><NumberInput id="rc-yield" required min="0.0001" step="any" value={yieldQty} onChange={(e) => setYieldQty(e.target.value)} /></Field>
+            )}
             <Field label="How it is made" htmlFor="rc-how">
               <SelectInput id="rc-how" value={order ? 'order' : 'ahead'} onChange={(e) => setOrder(e.target.value === 'order')}>
                 <option value="order">Made to order (a sale uses the ingredients)</option>
@@ -189,12 +204,13 @@ export default function Recipes() {
             <p style={{ padding: 20, margin: 0, color: colors.textMuted, fontSize: '0.85rem' }}>None yet.</p>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={th}>Recipe</th><th style={th}>Made</th><th style={{ ...th, textAlign: 'right' }}>Cost of a batch</th><th style={th} /></tr></thead>
+              <thead><tr><th style={th}>Recipe</th><th style={th}>Made</th><th style={{ ...th, textAlign: 'right' }}>Cost of a batch</th><th style={{ ...th, textAlign: 'right' }}>Cost of each</th><th style={th} /></tr></thead>
               <tbody>{data.standalone.map((r) => (
                 <tr key={r.id} style={r.is_active ? undefined : { opacity: 0.55 }}>
                   <td style={td}><strong>{r.name}</strong></td>
-                  <td style={td}>{r.lines.length} ingredient{r.lines.length === 1 ? '' : 's'} · makes {num(r.yield_qty, 3)} · {r.made_to_order ? 'made to order' : 'made ahead'}</td>
+                  <td style={td}>{r.lines.length} ingredient{r.lines.length === 1 ? '' : 's'} · makes {r.yield_label} · {r.made_to_order ? 'made to order' : 'made ahead'}</td>
                   <td style={{ ...td, textAlign: 'right' }}>{r.cost?.per_portion != null ? <>{num(r.cost.per_portion * r.yield_qty)}{!r.cost.complete && <span title="Some ingredient has never been bought, so its cost is not in this figure" style={{ color: colors.warning }}> *</span>}</> : '—'}</td>
+                  <td style={{ ...td, textAlign: 'right' }}>{r.cost?.per_portion != null ? `${num(r.cost.per_portion)} per ${r.yield_unit ?? 'portion'}` : '—'}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     {canWrite && <button type="button" style={small} onClick={() => setModal({ dish: { id: r.id, standalone: true, name: r.name, recipe: r } })}>Edit recipe</button>}
                     {canWrite && <button type="button" style={small} onClick={() => removeOwn(r)}>Remove</button>}

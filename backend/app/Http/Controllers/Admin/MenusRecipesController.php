@@ -27,7 +27,7 @@ class MenusRecipesController extends Controller
     {
         $branches = app(\App\Services\Menus\MenuBranches::class)->narrow(DB::table('locations')->where('is_active', 1))->orderByDesc('is_default')->orderBy('name')->get(['id', 'name']);
         $location = $request->integer('location_id') ?: (int) ($branches->first()->id ?? 0);
-        $with = ['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps'];
+        $with = ['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit'];
         $recipes = DishRecipe::with($with)->whereNotNull('dish_id')->get()->keyBy('dish_id');
 
         return response()->json([
@@ -37,6 +37,7 @@ class MenusRecipesController extends Controller
             ])->values(),
             'ingredients' => Ingredient::with(['baseUnit:id,code', 'altUnit:id,code'])->where('is_active', true)->orderBy('name')->get()->filter(fn ($i) => IngredientKinds::allowedInRecipe($i))->map(fn ($i) => ['id' => $i->id, 'name' => $i->name, 'base_unit' => $i->baseUnit?->code, 'alt_unit' => $i->altUnit?->code])->values(),
             'standalone' => DishRecipe::standalone()->with($with)->orderBy('name')->get()->map(fn (DishRecipe $r) => $this->row($r, $location))->values(),
+            'units' => \App\Models\UnitOfMeasure::active()->whereIn('dimension', DishRecipes::YIELD_DIMENSIONS)->orderBy('dimension')->orderBy('to_base_factor')->get(['id', 'code', 'name', 'dimension']),
             'visibility' => DishRecipe::VISIBILITY,
         ]);
     }
@@ -49,7 +50,7 @@ class MenusRecipesController extends Controller
         return $this->guard(function () use ($d, $dishId) {
             $r = $this->recipes->save(Dish::findOrFail($dishId), $d);
 
-            return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r->load(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps']), null)]);
+            return response()->json(['message' => 'Recipe saved.', 'recipe' => $this->row($r->load(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit']), null)]);
         });
     }
 
@@ -61,7 +62,7 @@ class MenusRecipesController extends Controller
         return $this->guard(function () use ($d, $id) {
             $r = $this->recipes->saveStandalone($d, $id);
 
-            return response()->json(['message' => "{$r->name} saved.", 'recipe' => $this->row($r->load(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps']), null)], $id === null ? 201 : 200);
+            return response()->json(['message' => "{$r->name} saved.", 'recipe' => $this->row($r->load(['lines.ingredient.baseUnit', 'lines.ingredient.altUnit', 'steps', 'yieldUnit']), null)], $id === null ? 201 : 200);
         });
     }
 
@@ -125,7 +126,7 @@ class MenusRecipesController extends Controller
     private function rules(): array
     {
         return [
-            'yield_qty' => 'required|numeric|gt:0', 'made_to_order' => 'nullable|boolean', 'note' => 'nullable|string|max:255', 'visibility' => 'nullable|string|max:12',
+            'yield_qty' => 'required|numeric|gt:0', 'yield_unit_id' => 'nullable|integer', 'made_to_order' => 'nullable|boolean', 'note' => 'nullable|string|max:255', 'visibility' => 'nullable|string|max:12',
             'prep_minutes' => 'nullable|integer|min:0|max:6000', 'cook_minutes' => 'nullable|integer|min:0|max:6000', 'is_active' => 'nullable|boolean',
             'lines' => 'required|array|min:1|max:80', 'lines.*.ingredient_id' => 'required|integer', 'lines.*.quantity' => 'required|numeric|min:0', 'lines.*.unit' => 'nullable|in:base,alt', 'lines.*.waste_pct' => 'nullable|numeric|min:0|max:90',
             'steps' => 'nullable|array|max:60', 'steps.*.body' => 'nullable|string|max:2000', 'steps.*.minutes' => 'nullable|integer|min:0|max:6000',
@@ -137,7 +138,7 @@ class MenusRecipesController extends Controller
         $cost = $location ? $this->use->cost($r, $location) : null;
 
         return [
-            'id' => $r->id, 'dish_id' => $r->dish_id ? (int) $r->dish_id : null, 'name' => $r->name, 'yield_qty' => (float) $r->yield_qty, 'made_to_order' => (bool) $r->made_to_order, 'note' => $r->note, 'visibility' => $r->visibility,
+            'id' => $r->id, 'dish_id' => $r->dish_id ? (int) $r->dish_id : null, 'name' => $r->name, 'yield_qty' => (float) $r->yield_qty, 'yield_unit_id' => $r->yield_unit_id ? (int) $r->yield_unit_id : null, 'yield_unit' => $r->yieldUnit?->code, 'yield_label' => $r->yieldLabel(), 'made_to_order' => (bool) $r->made_to_order, 'note' => $r->note, 'visibility' => $r->visibility,
             'prep_minutes' => $r->prep_minutes, 'cook_minutes' => $r->cook_minutes, 'is_active' => (bool) $r->is_active,
             'lines' => $r->lines->map(fn ($l) => [
                 'ingredient_id' => (int) $l->ingredient_id, 'name' => $l->ingredient?->name, 'quantity' => (float) $l->quantity, 'unit' => $l->unit, 'waste_pct' => (float) $l->waste_pct,

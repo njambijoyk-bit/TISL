@@ -16,7 +16,7 @@ class DishRecipe extends Model
 
     protected $table = 'menus_recipes';
 
-    protected $fillable = ['dish_id', 'name', 'yield_qty', 'made_to_order', 'note', 'visibility', 'prep_minutes', 'cook_minutes', 'is_active'];
+    protected $fillable = ['dish_id', 'name', 'yield_qty', 'yield_unit_id', 'made_to_order', 'note', 'visibility', 'prep_minutes', 'cook_minutes', 'is_active'];
 
     protected $casts = ['yield_qty' => 'decimal:4', 'made_to_order' => 'boolean', 'is_active' => 'boolean'];
 
@@ -29,6 +29,20 @@ class DishRecipe extends Model
     public function scopeStandalone($q)
     {
         return $q->whereNull('dish_id');
+    }
+
+    /** The unit a batch is counted in; empty means portions. */
+    public function yieldUnit(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\UnitOfMeasure::class, 'yield_unit_id');
+    }
+
+    /** What one batch makes, in words: "2 kg" or "4 portions". */
+    public function yieldLabel(): string
+    {
+        $n = rtrim(rtrim(number_format((float) $this->yield_qty, 3, '.', ''), '0'), '.');
+
+        return $n.' '.($this->yieldUnit?->code ?? ((float) $this->yield_qty === 1.0 ? 'portion' : 'portions'));
     }
 
     public function dish(): BelongsTo
