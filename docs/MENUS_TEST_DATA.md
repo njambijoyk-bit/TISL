@@ -4,7 +4,7 @@ A small Nairobi kitchen, made so the numbers can be checked by hand. Menus now h
 
 **units, accounts, ingredients, opening stock, dishes, recipes, menus, meal plan.**
 
-Prices are made up. Run database scripts 181 to 192 first (190 to 192 are the kinds of ingredient, the account each kind is charged to, and the account each kind's stock is carried on). Every number below was checked by running this exact data through the system.
+Prices are made up. Run database scripts 181 to 192 first for sections 0 to 8 (190 to 192 are the kinds of ingredient, the account each kind is charged to, and the account each kind's stock is carried on). **Section 9 is the data for the later work** (recipes of their own, sides, sizes and make-up, leaving out and extra, packaging, free condiments, tips, a dish in another currency, timers and codes): it needs scripts 193 to 214, in order, and everything above it entered first. The figures in sections 0 to 8 were checked by running this exact data through the system. The figures in section 9 are the ones the automated tests assert for the same prices (the test is named beside each one), or plain arithmetic from them; the whole of section 9 typed in by hand has not been run end to end, so if a figure does not come out, that is worth writing down.
 
 ## 0. Before you start
 - **Units** (Settings, Units): g and kg (mass), ml and L (volume), each (count). Add any that are missing. The alternate unit must be of the same kind as the base unit (kg for g, L for ml).
@@ -25,7 +25,7 @@ Press **New ingredient** once per row of table 1A, then add its variants from ta
 | Purchase account (decides the VAT) | The account the tax on buying this ingredient follows, as a product's purchase account does: **Purchases - exempt** for maize flour, milk and eggs, **Purchases** (VAT-able) for cooking oil and packaged goods, **Purchases - zero rated** for zero-rated goods. Empty uses the one in Menus, Configuration. The stock is still carried on Food Ingredients Inventory and costed before tax. Opening stock is never taxed. |
 | When there are several variants | How the kitchen picks: **the preferred one first** (top of the list, then the next), **the cheapest first**, or **the one that expires first**. |
 | Variant name | The version you buy ("Exe 2 kg"). Variants are listed in order of preference; the arrows move them. |
-| Code (optional) | Your own reference (supplier code, SKU). It is only kept for your records; nothing uses it yet. |
+| Code (optional) | Your own reference, or the supplier's **barcode** off the crate or bottle. A scanner on the Receive, Count and What to buy screens finds the item by it (section 9G). A retail barcode must have its check digit right and nothing else may have the code; a code you replace still scans, marked as an old code. |
 | Pack holds | How much one pack holds, with the unit beside it (kg, g, L, ml). It lets you receive and count in **packs**: 10 packs of 2 kg is 20 kg. Empty means no pack: you type kg or g instead. |
 | may be used | Untick to keep the stock but never use it in a dish, not even as a substitute. |
 | expires | Receiving it then asks for an expiry date. Expired stock is never used and appears on the Stock page's expiry list. |
@@ -266,5 +266,146 @@ The nine new rows together are **16,410.00** (the Opening stock vouchers add up 
 - **Expiry:** Menus, Stock shows the Fanta crates in "Expired or expiring this week" (5 days). The Cola and the ketchup do not appear.
 - **What to buy:** waste 250 gloves as Other: gloves are at 50 each, under the 100 you keep, so Operations, What to buy asks for a box.
 - **Branches:** send 1 crate of Cola to the second branch: it arrives with its cost (50 each) and expiry.
-- **Selling a drink (not built yet):** there is no "sold as it is" yet, so the till cannot sell Cola straight from the shelf. To see a sale move stock now, edit the **Ready to serve** kind and tick **Used in recipes**, then make a dish "Cola" with a recipe of 1 each of Cola (the cheapest pick rule takes the crate, 50 each). Sell 1: the crate goes to 71 each and Food Cost of Sales gets 50.00. Untick it again afterwards.
-- **Not built yet, so not a bug:** nothing uses up boxes or bags on a takeaway order, and a sold dish does not use a sachet yet (that is the dish work).
+- **Selling a drink:** a ready-to-serve item is sold as a **side** (Menus, Sides, *Made from* a ready-to-serve ingredient), see 9C and 9D: a Cola in a dish's *Drink* slot takes 1 each off the shelf and books its cost to Food Cost of Sales. The older way still works too: edit the **Ready to serve** kind and tick **Used in recipes**, then make a dish "Cola" with a recipe of 1 each of Cola (the cheapest pick rule takes the crate, 50 each). Sell 1: the crate goes to 71 each and Food Cost of Sales gets 50.00. Untick it again afterwards.
+- **Packaging and condiments on an order** are built: the takeaway box, the paper bag and a ketchup sachet or bottle come off the shelf when a take-out order is paid, if a dish or side says so (9E and 9F).
+
+## 9. The later work: sides, sizes, leaving out and extra, packaging, tips, currencies, timers and codes
+
+Enter this after sections 0 to 8, with database scripts **193 to 214** run in order (each says which it needs; `php artisan access:seed` too, for the permissions). Where the manual test (`docs/MENUS_MANUAL_TEST.md`, sections 0c to 0am) says *Coke* use **Cola**, *Container* is the **Takeaway box**, *Bag* is the **Paper bag**, *Ketchup* is **Tomato ketchup**, *fries* are **Chips**, and *a burger* and *a steak sandwich* are the two dishes below. "(test)" after a figure means an automated test asserts it for the same prices (named in 9I); the rest is arithmetic, and the VAT used is 16%.
+
+### 9A. Four more ingredients (Menus, Ingredients) and their stock
+
+| Ingredient | Kind | Base unit | Alternate unit | Variants | Opening stock (Menus, Stock, Opening stock) |
+|---|---|---|---|---|---|
+| Cheddar cheese | Cooking ingredient | g | kg | Block 1 kg (1 kg, expires ✓) | 3 packs at 900, expiry today + 30 days (3,000 g) |
+| Burger bun | Cooking ingredient | each | none | Pack of 6 (6 each, expires ✓) | 10 packs at 120, expiry today + 5 days (60 each) |
+| Mayonnaise | Condiment or extra | ml | L | Jar 1 L (1 L, expires ✓) | 2 packs at 450, expiry today + 90 days (2,000 ml) |
+| Foil sheet | Packaging | each | none | Roll of 100 (100 each) | 2 packs at 250 (200 each); **no price on the packaging price list**, on purpose |
+
+Purchase account **Purchases** for all four. Give the **Cola** variants their supplier barcodes now (section 9G) or later.
+
+### 9B. Recipes of their own (Menus, Recipes, *Recipes of their own*)
+
+Counted in portions unless it says otherwise. Quantities are for one portion (or one batch where it says so).
+
+| Recipe | One batch makes | Lines | Notes |
+|---|---|---|---|
+| Ugali | **2 kg** (counted in Kilogram) | Maize flour 800 g | Made ahead in batches. **Times:** up to 1 kg 15 min, up to 2 kg 20 min, up to 5 kg 40 min. Method: 1 Boil the water (5 min). 2 Stir in the flour (20 min). |
+| Tomato and onion base | 2 kg | Onions 400 g, Tomatoes 600 g | |
+| Stew | 4 portions | the recipe *Tomato and onion base* 1 kg; Beef 800 g | the base has no leave-out ticks: a recipe inside a recipe is taken whole |
+| Bread | 1 | Wheat flour 60 g | |
+| Choma | 1 | Beef 150 g, Salt 2 g | |
+| Wet fry | 1 | Beef 120 g, Onions 30 g, Cooking oil 15 ml | |
+| Kale | 1 | Kale 100 g, Onions 20 g | named *Kale*, like the ingredient: a recipe and an ingredient may share a name |
+| Egg | 1 | Eggs 1 | |
+| Ketchup portion | 1 | Tomato ketchup 30 ml | |
+| Mayo portion | 1 | Mayonnaise 20 ml | |
+
+And one dish's own recipe, **Burger** (made to order, one portion), written under *Dishes' recipes*: Burger bun 1, Beef 120 g, **Cheddar cheese 20 g** (tick *may be left out* **and** *may be asked for extra*), **Onions 10 g** (tick *may be left out* only), Cooking oil 5 ml.
+
+### 9C. Lists and sides (Menus, Configuration, then Menus, Sides)
+
+**Lists** (Configuration, below the settings): servings **Jumbo, Medium, Kids**; audiences **Adults, Kids**; policies **Free** (the default), **Fee 20** (a fixed fee, 20) and **Ten percent** (a percentage, 10).
+
+**Sides.** *Amounts* are in the side's own unit; "in a serving" is the amount for any size that has none of its own.
+
+| Side | Made from | In a serving | Jumbo | Kids | Plating or reheating (minutes) |
+|---|---|---|---|---|---|
+| Ugali | recipe Ugali, written in **Gram** | 250 g | 350 g | 100 g | 3 |
+| Bread | recipe Bread | 1 | | | |
+| Choma | recipe Choma | 2 | | 1 | **5** |
+| Wet fry | recipe Wet fry | 1 | | | 4 |
+| Kale | recipe Kale | 1 | | | |
+| Egg | recipe Egg | 1 | | | |
+| Ketchup | recipe Ketchup portion | 1 | | | |
+| Mayo | recipe Mayo portion | 1 | | | |
+| Stew | recipe Stew | 1 | | | |
+| Cola | the ready-to-serve ingredient Cola | 1 each | | | |
+
+An ingredient of the kind Cooking ingredient (flour, beef) is not offered as a side: it is not sold as it is.
+
+### 9D. Dishes with sizes, make-up, leaving out and extra (Menus, Dishes)
+
+Add these to section 3's dishes. Put them on the **Lunch & dinner** menu, section **Mains**.
+
+| Dish | Price | Made at | Make-up and rules |
+|---|---|---|---|
+| **Steak sandwich** | 500 | Hot kitchen | *Sizes:* Jumbo 650, Kids 350. *For:* Adults and Kids. *Slots:* **Bread** (always included: Bread); **Protein** (choose one: Choma to begin with, Wet fry **+50**); **Greens** (choose any, fewest 0, most 2: Kale **+20**); **Sauces** (free extra, most 2: Ketchup, Mayo); **Drink** (free extra, most 2: Cola); **Extras** (paid extra, most 3: Egg **+40**). |
+| **Burger** | 500 | Hot kitchen | Recipe from 9B. *For:* Adults only. *Modifiers:* **extra Cheddar cheese → Ten percent**; **leave out Onions → Fee 20**. |
+| **Stew meal** | 650 | Hot kitchen | *Slots:* **Main** (always included: Stew); **Starch** (always included: Ugali). No sizes. For the packaging tests. |
+
+What to expect (the steak sandwich figures are asserted by `MenusOrderingMakeupTest`, the burger's by `MenusOrderingModifiersTest`):
+- Steak sandwich, **Jumbo** with the first protein: **650**. With **Wet fry** and **Kale**: **720** (650 + 50 + 20). With two **Eggs** as well: **800**. **Kids**: **350**.
+- Burger with **Extra cheese** and **No onion**: **570** (500, plus 10% of 500 for the cheese, plus 20 for the onion). On a dish sold in sizes the percentage is of the size's price, not of the dish's own price.
+- Online, the Menu page shows the steak sandwich "from 350", with each size's price and who it is for; choosing **Kids** under *For* hides the Burger (Adults only) and keeps the steak sandwich and the Chips (for everyone).
+- A ticket for the steak sandwich in Jumbo shows `Jumbo`, then `- Bread`, `- Choma`, `- Egg x2`. Stock follows the sides picked: a Jumbo takes Choma's recipe twice (the side's amount is 2), a Kids once; the Cola, if picked, takes 1 each off the shelf.
+- Paid extras on a tab: after the third Egg the button goes. Cola: 1 each comes off the shelf for each one picked.
+
+### 9E. Packaging and free condiments (Menus, Configuration; Menus, Sides; Menus, Dishes)
+
+- **Menus, Configuration:** choose **Packaging** as the packaging kind. Packaging prices (one unit each): **Takeaway box 15**, **Paper bag 5**; leave the currency on Menus and the account on the dishes' account. The Foil sheet has **no price**. Keep *A fee carries the dish's VAT* on.
+- **Rules to enter first** (Menus, Sides, Edit **Stew**, *Packaging*): **Takeaway box**, 2, *For each dish*, compulsory, charged, receipt *When charged*; **Foil sheet**, 1, *For each dish*, free, receipt *When charged*.
+- **Rules to add during the tests** (manual 0v and 0z): on the dish **Stew meal**, **Paper bag**, 1, *Once for the order* (free, receipt *Always*); then a **Takeaway box**, 1, on the dish itself (it replaces what the side says about the box for that dish). For 0z set the box's receipt to *Never*.
+- **Free condiments** (Menus, Dishes, **Chips**, *Packaging*, *Free condiments*): **Tomato ketchup 2**, **Mayonnaise 1**.
+- **People:** a **cashier** whose role does *not* hold "Waive or remove takeaway packaging that is compulsory and has a price", and a **manager** whose role does.
+
+What to expect (the packaging figures are asserted by `MenusPackagingPostingTest` and `MenusPackagingCheckoutTest`):
+- Take out **two Stew meals**: Container **4** (2 each, 15 each = **60**), Foil **2** (free). Before tax: **1,300** (two meals) **+ 60 = 1,360**; with 16% VAT **1,577.60**. Dining in: no packaging list.
+- Cashier presses − on the container: refused, red note. Manager: amber note, **Take** works, **15.00** waived and logged. Swapping the container for the bag (4 × 15 asked, 4 × 5 charged) waives **40**.
+- After the sale the shelf is down by **4** boxes and **2** foil sheets, in one journal "Packaging used for ..." (Dr Kitchen Supplies Used, Cr Kitchen Supplies Inventory).
+- Three **Chips** with the free condiments: **Ketchup 6** and **Mayonnaise 3** allowed. Give 9 ketchup: a warning "9 Ketchup given, 6 allowed", not a block; the shelf loses 9 ketchup (what was given).
+- The kitchen ticket: `PACK: ...` (blue) and `GIVE: ...` (green) lines; Operations, *Packaging* report: orders, asked, given, left off, waived.
+
+### 9F. Tips (Menus, Configuration; Menus, Tips)
+
+- **Menus, Configuration:** tips account empty (the books' Tips Payable). Tips window **At any time** to begin with; for 0af step 4 change it to **Every day between** two times that do not include now, and back.
+- **People:** *Cashier Jo* (`menus.till`, See the tips, Hand tips over to other people), *Waiter Wanjiku* (`menus.till`, a user, so tips can be handed to them), *Manager Mo* (all of those, plus Hand one's own tip over and Undo a tip handed over), and the owner. A fourth, *Viewer*, with See the tips only.
+- **Payment method with an account:** Cash must have its cash ledger set (Settings, Payment methods) or the Tips screen offers nothing to pay out of.
+- **Tips to make** (Till, **Take out**, pay in cash): 1. two Burgers, label **Window**, tip **200**, hand over 1,400 (bill 1,160). 2. a tab **Table 4** with one Chips (300) paid at the end with tip **50**. 3. one Burger with **no tip**. After 1 and 2, Menus, Tips, *Pending* lists two tips (200 and 50), *Today* the same.
+
+What to expect (asserted by `MenusCounterTest`, `MenusTipsIssueTest` and `MenusTipsReportTest`):
+- A bill of **1,160** (two Burgers, 1,000 + 16%). Tip **100**: Bill 1,160, Tip 100, Total **1,260**. Hand over **1,200**: refused, "the tip can be at most **40.00**". Hand over **1,300**: change **40.00**. The same 1,300 with no tip: change **140.00**.
+- A tip is credited to tips payable on the sale; its line reads like `Tip, MO-000012, Window`. Pending tips never expire.
+- **Issue** the 200 to Waiter Wanjiku out of Cash with the narration "Weekend share": one journal, Dr tips payable 200, Cr Cash 200; it moves from Pending to Today. A second press from another tab says it was already handed over, no second journal.
+- Outside the window: the Issue buttons are greyed and it says when the window opens.
+- Hand a tip to *yourself* as Manager Mo: the box wants a narration. The cashier choosing themselves is refused.
+- **Take back** the 200 with the reason "Wrong person": the journal is cancelled, the tip is Pending again, and it can be handed over again. The *Report* tab then shows Taken back **1**.
+
+### 9G. Dishes in another currency (Settings, Currencies; Menus, Dishes)
+
+**Read first:** script 213 writes orders in the Menus currency. Leave **Menus, Configuration, Currency empty** (or on the currency you sell in) before you run it.
+
+- **Currencies:** add **USD** with a rate of **130** (1 USD = 130 in the base currency), and **EUR** at 140. For the history test give USD **120** from the first of this month and **135** from tomorrow.
+- **Dishes** (put them on Lunch & dinner, Mains; *Price currency* is on the dish form once 213 is run): **Imported steak**, price **10**, currency **USD**; **Tart**, price **3.33**, currency **USD**; **Wine**, price **20**, currency **EUR**; **Chapati plate**, price **200**, no currency of its own.
+- **Packaging price in a foreign currency:** give the Paper bag **0.04** in **USD** (the Takeaway box stays 15 in the Menus currency).
+
+What to expect (asserted by `MenusDishCurrencyTest` and `MenusPackagingCalcTest`):
+- The Till shows `USD 10.00` on Imported steak. A basket of Imported steak and Chapati plate: Food **1,500** (10 USD at 130 = **1,300**, plus **200**), with the note "Prices in USD are converted at today's rate (1 USD = 130 KES)". The receipt shows `USD 10.00 at 130` under the line.
+- **Rounding:** with USD at **130.456**, one Tart is 3.33 × 130.456 = **434.42** (rounded once, as it is converted); three are **1,303.26**; there is no rounding line.
+- **History:** with USD at 120 on the day, a tab's first Imported steak is **1,200**; add another when the rate is 135 and it is **1,350**, the first stays 1,200; the tab is **2,550** before tax.
+- Imported steak and Wine together: the note lists both USD and EUR with their rates.
+- Paper bag at 0.04 USD on a shilling order: **5.20**. On a USD menu a bag priced at 5 shillings is 0.04.
+- On the Dishes page a dish's margin is worked out in the base currency. Meal plans and Cakes & catering stay in the base currency.
+
+### 9H. Timers and codes (Menus, Prepared food; Menus, Kitchen; Admin, Codes)
+
+- **A chef:** Menus, Chefs, **Chef Wanjiru** (active, shown to the public if you like).
+- **Batch timers** (Prepared food, *Start a timer*): Ugali **2 kg** → says **20 minutes**; **1 kg** → **15**; **5 kg** → **40**; **6 kg** has no time row, so the box asks for minutes (type **45**). Typed minutes win over the recipe's (type 30 for 2 kg). Make the 2 kg batch from its timer with Chef Wanjiru, use-by **today + 3 days**: the timer closes and the batch is timed from when the timer started. (Asserted by `MenusPrepTimersTest`.)
+- **Ticket timers:** order a **Steak sandwich** in Jumbo with the default **Choma** (5 min): the kitchen ticket shows **Plate Choma: 5 min**, counts down once the cook starts it, and goes red and says *over* when it runs out. Order another with **Wet fry** (4 min) instead: **Plate Wet fry: 4 min**. Add **Kale** (no task time) to either: nothing changes; the longest task on the ticket is its timer, not the sum. A **Chips** order has no ticket timer. (Asserted by `MenusTicketTimersTest`.)
+- **Supplier barcodes** (all with a correct check digit; type them in Menus, Ingredients, *Barcode or code*): Cola **Crate of 24** `6001234560012`; Cola **Single bottle** `6001234560029`; Fanta **Crate of 24** `6001234560036`; Bottled water **Pack of 12** `6001234560043`. A wrong one to try: `6001234567890` (refused, check digit). The same code on two items is refused.
+- **Scan at the stock screens** (type the code in the box and press Enter): Receive stock, scan `6001234560012` twice: Cola crate, quantity **2**. Scan `6001234560050` (a valid barcode nothing has): the screen asks which item it is. Count the shelf: scan the single bottle three times: counted **3**. What to buy: scan the Fanta crate: it is added to the order by the pack.
+- **Codes page** (Admin, Codes, with Menus on): tabs **Dishes, Recipes, Prepared batches, Ingredient lots, Kitchen stock**. Codes are made from the number: the first dish is `DSH00000001`, a recipe `RCP...`, a prepared batch `PBL...`, an ingredient lot `ILT...`, a kitchen stock item without a barcode gets `KIT...` on *Give a code*. Print a QR label for **Steak sandwich**; scan it (or paste its link): the public menu opens at that dish. Print the **Ugali** recipe's QR: it opens the kitchen card (staff signed in). Print the label of the Ugali batch: `Made <day> 14:30, Chef Wanjiru`, `Batch ... use by ...`.
+- **Reserved shapes:** give a kitchen item the code `DSH00000001`: refused, already used.
+
+### 9I. Which automated test asserts which figure
+
+| Figures | Test |
+|---|---|
+| Steak sandwich 650, 720, 800, Kids 350; Jumbo choma, kale, wet fry | `MenusOrderingMakeupTest`, `MenusDishSelectionTest` |
+| Burger 570; fees kept apart; extra cheese stock | `MenusOrderingModifiersTest`, `MenusDishModifiersTest` |
+| Packaging 4 × 15 = 60; waiver 15 and 40; shelf down 4 and 2; condiments 6 and 3 allowed | `MenusPackagingCheckoutTest`, `MenusPackagingPostingTest`, `MenusPackagingStockTest`, `MenusCondimentsTest` |
+| Tip 100 on 1,160: max 40, change 40, change 140 | `MenusCounterTest` |
+| Hand over, window, own tip, take back, report | `MenusTipsIssueTest`, `MenusTipsReportTest` |
+| USD 10 at 130 = 1,300; 3.33 at 130.456 = 434.42; history 1,200 and 1,350; bag 5.20 and 0.04 | `MenusDishCurrencyTest`, `MenusPackagingCalcTest` |
+| Ugali 20, 15 and 40 minutes; typed minutes win; ticket timer 5 minutes | `MenusPrepTimersTest`, `MenusTicketTimersTest` |
+| Codes DSH, RCP, PBL, ILT, KIT; links; labels; scanning; barcodes | `MenusCodeTypesTest`, `MenusStockScanTest` |
