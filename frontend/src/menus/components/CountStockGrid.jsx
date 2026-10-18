@@ -4,6 +4,7 @@ import { SelectInput, TextInput } from '../../core/components/admin/ui/Form';
 import { btnGhost, btnPrimary, card, colors } from '../../_shared/theme/tokens';
 import { useMenusKind } from '../lib/menusKind';
 import KindFilter from './KindFilter';
+import StockScanBar from './StockScanBar';
 
 /**
  * The count sheet: every variant of every ingredient in one table with what the books say is there, filtered by a search or by ingredient. The counted quantity (in packs, the bigger unit
@@ -102,6 +103,12 @@ export default function CountStockGrid({ ingredients, kinds = [], locationId, on
     });
     setErrors((x) => (x[id] ? { ...x, [id]: undefined } : x));
   }, []);
+  // a scan counts one more of that item, in the unit the row is counted in, and takes you to the row
+  const scanned = useCallback((v) => {
+    const have = edits[v.id];
+    edit(v.id, { quantity: (Number(have?.quantity) || 0) + 1 });
+    setTimeout(() => document.querySelector(`[data-row-variant="${v.id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 50);
+  }, [edits, edit]);
   const enter = useCallback((idx) => { document.querySelector(`[data-col="quantity"][data-row="${idx + 1}"]`)?.focus(); }, []);
 
   const discard = () => {
@@ -131,6 +138,7 @@ export default function CountStockGrid({ ingredients, kinds = [], locationId, on
 
   return (
     <div data-testid="count-grid">
+      {!readOnly && <div style={{ marginBottom: 10 }}><StockScanBar variants={variants} onItem={scanned} label="Count by scanning" /></div>}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: 360 }}>
           <Search size={14} aria-hidden="true" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: colors.textFaint, pointerEvents: 'none' }} />

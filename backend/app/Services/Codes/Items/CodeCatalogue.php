@@ -146,7 +146,7 @@ final class CodeCatalogue
     public function taken(string $code, ?string $exceptType = null, ?int $exceptId = null): bool
     {
         foreach (self::STORE as $type => [$table, $col]) {
-            if (($type === 'pack' && ! self::packsReady()) || ($type === 'kitchen_item' && ! MenusCodeItems::ready($type))) {
+            if (($type === 'pack' && ! self::packsReady()) || ($type === 'kitchen_item' && ! MenusCodeItems::ready($type)) || ! Schema::hasTable($table)) {   // a table that is not there (a module not installed) holds no codes
                 continue;
             }
             $q = DB::table($table)->where($col, $code);
@@ -337,7 +337,7 @@ final class CodeCatalogue
                 $add($made[0], $made[1]);
             }
             if (MenusCodeItems::ready('kitchen_item')) {
-                foreach (DB::table('menus_ingredient_items')->where('code', $t)->pluck('id') as $id) {
+                foreach (DB::table('menus_ingredient_items')->whereRaw('LOWER(code) = ?', [strtolower($t)])->pluck('id') as $id) {
                     $add('kitchen_item', $id);
                 }
             }

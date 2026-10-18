@@ -94,7 +94,7 @@ final class MenusCodeItems
                     ->addSelect('ch.display_name as chef', DB::raw('COALESCE(run.finished_at, run.started_at, l.created_at) as cooked_at')), fn ($q) => $q->addSelect(DB::raw('NULL as chef'), 'l.created_at as cooked_at'))
                 ->addSelect('l.id', DB::raw((Schema::hasColumn('menus_recipes', 'name') ? 'COALESCE(r.name, d.name)' : 'd.name').' as product'), 'l.lot_no as batch_no', 'l.expiry_date', 'l.made_on'),
             'stock_lot' => DB::table('menus_stock_batches as b')->join('menus_ingredient_items as i', 'i.id', '=', 'b.item_id')->join('menus_ingredients as g', 'g.id', '=', 'i.ingredient_id')
-                ->select('b.id', 'g.name as product', 'i.name as variant', 'b.batch_no', 'b.expiry_date', 'b.received_on as made_on', 'b.received_on as cooked_at'),
+                ->select('b.id', 'b.item_id', 'g.name as product', 'i.name as variant', 'b.batch_no', 'b.expiry_date', 'b.received_on as made_on', 'b.received_on as cooked_at'),
             'kitchen_item' => DB::table('menus_ingredient_items as i')->join('menus_ingredients as g', 'g.id', '=', 'i.ingredient_id')
                 ->select('i.id', 'g.name as product', 'i.name as variant', 'i.code', 'i.ingredient_id'),
         };
@@ -132,7 +132,7 @@ final class MenusCodeItems
         return ['type' => $type, 'id' => (int) $r->id, 'variant_id' => null, 'product_id' => null, 'pack_units' => null, 'label' => $label, 'sku' => null, 'code' => $code, 'derived' => isset(self::DERIVED[$type]),
             'price' => isset($r->price) && $r->price !== null ? (float) $r->price : null, 'currency' => $r->currency ?? null,
             'batch_no' => $r->batch_no ?? null, 'expiry' => isset($r->expiry_date) && $r->expiry_date ? substr((string) $r->expiry_date, 0, 10) : null, 'name' => $name,
-            'ingredient_id' => isset($r->ingredient_id) ? (int) $r->ingredient_id : null, 'dish_id' => isset($r->dish_id) && $r->dish_id ? (int) $r->dish_id : null,
+            'ingredient_id' => isset($r->ingredient_id) ? (int) $r->ingredient_id : null, 'item_id' => $type === 'kitchen_item' ? (int) $r->id : (isset($r->item_id) ? (int) $r->item_id : null), 'dish_id' => isset($r->dish_id) && $r->dish_id ? (int) $r->dish_id : null,
             'payload' => self::link($type, $r), 'made' => $made, 'expiry_label' => in_array($type, ['prep_lot', 'stock_lot'], true) ? 'use by' : null];
     }
 

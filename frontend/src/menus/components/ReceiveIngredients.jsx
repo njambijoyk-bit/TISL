@@ -5,6 +5,7 @@ import Modal from '../../core/components/admin/ui/Modal';
 import menusAPI from '../../_shared/api/menus';
 import { errMsg } from '../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors, input } from '../../_shared/theme/tokens';
+import StockScanBar from './StockScanBar';
 
 /**
  * Receive ingredients, laid out like a Purchase (Purchases, New purchase): who it came from and how it was paid, then the items, then what the books will post. The items are found by
@@ -63,6 +64,8 @@ export default function ReceiveIngredients({ data, locationId, onClose, onDone }
   const set = (p) => setH((x) => ({ ...x, ...p }));
   const patch = (k, p) => setLines((xs) => xs.map((x) => (x.key === k ? { ...x, ...p } : x)));
   const add = (v) => setLines((xs) => [...xs, { key: key(), v, quantity: 1, unit: firstUnit(v), rate: suggest(v, firstUnit(v)), rate_auto: suggest(v, firstUnit(v)) !== '', discount: '', batch_no: '', expiry_date: '' }]);
+  // a scan adds the item, or one more of it when it is already on the list
+  const scanned = (v) => setLines((xs) => (xs.some((x) => x.v.id === v.id) ? xs.map((x) => (x.v.id === v.id ? { ...x, quantity: (Number(x.quantity) || 0) + 1 } : x)) : [...xs, { key: key(), v, quantity: 1, unit: firstUnit(v), rate: suggest(v, firstUnit(v)), rate_auto: suggest(v, firstUnit(v)) !== '', discount: '', batch_no: '', expiry_date: '' }]));
   const paidNow = Boolean(h.method);
   const subtotal = lines.reduce((s, l) => s + lineAmount(l), 0);
 
@@ -123,6 +126,7 @@ export default function ReceiveIngredients({ data, locationId, onClose, onDone }
 
         <div style={{ ...card, padding: 14 }}>
           <div style={{ marginBottom: 10 }}><ItemSearch variants={variants} onPick={add} /></div>
+          <div style={{ marginBottom: 10 }}><StockScanBar variants={variants} onItem={scanned} label="Or scan what came in" /></div>
           {lines.length === 0 ? <p style={{ fontSize: '0.8rem', color: colors.textMuted, margin: 0 }}>No items yet. Search above.</p> : (
             <div style={{ display: 'grid', gap: 10 }}>
               {lines.map((l) => (

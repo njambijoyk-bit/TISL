@@ -141,7 +141,7 @@ function IngredientModal({ ingredient, initialName = '', initialKind = '', optio
                 <div key={x.key} data-testid="ingredient-item" style={{ ...card, padding: 10, display: 'grid', gridTemplateColumns: '22px 1.4fr 0.8fr 1fr auto', gap: 8, alignItems: 'center' }}>
                   <span style={{ fontSize: '0.72rem', fontWeight: 800, color: colors.textFaint }}>{i + 1}</span>
                   <TextInput aria-label="Variant name" maxLength={120} value={x.name} onChange={(e) => patch(x.key, { name: e.target.value })} placeholder="Exe 2 kg" />
-                  <TextInput aria-label="Code" maxLength={40} value={x.code ?? ''} onChange={(e) => patch(x.key, { code: e.target.value })} placeholder="Code" />
+                  <TextInput aria-label="Code" maxLength={40} value={x.code ?? ''} onChange={(e) => patch(x.key, { code: e.target.value })} placeholder="Barcode or code" />
                   <div style={{ display: 'flex', gap: 4 }}>
                     <NumberInput aria-label="Pack size" min="0" step="any" value={x.pack_size} onChange={(e) => patch(x.key, { pack_size: e.target.value })} placeholder="Pack size" />
                     {packUnits.length > 1
@@ -170,6 +170,9 @@ function IngredientModal({ ingredient, initialName = '', initialKind = '', optio
             <button type="button" style={{ ...small, marginTop: 8 }} onClick={add}><Plus size={12} /> Add a variant</button>
             <p style={{ margin: '8px 0 0', fontSize: '0.72rem', color: colors.textFaint }}>
               The pack size is how much one pack holds{alt ? ` (in ${alt.code}, or ${base?.code})` : base ? ` (in ${base.code})` : ''}: an Exe 2 kg pack of a {base?.code ?? 'gram'} ingredient is 2{alt ? ` ${alt.code}` : ''}. With it, stock can be counted in packs: 10 packs of 2 kg is 20 kg.
+            </p>
+            <p style={{ margin: '4px 0 0', fontSize: '0.72rem', color: colors.textFaint }}>
+              The code can be the supplier's barcode off the crate or bottle: a scanner then finds the item when stock is received, counted or ordered. A barcode must be a real one (its check digit is checked) and nothing else may have it; a code you replace still scans, as an old code.
             </p>
           </div>
 

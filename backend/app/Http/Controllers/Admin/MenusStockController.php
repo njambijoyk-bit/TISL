@@ -40,7 +40,7 @@ class MenusStockController extends Controller
                 $pack = $v->pack_size ? (float) $v->pack_size : null;
 
                 return [
-                    'id' => (int) $v->id, 'name' => $v->name, 'is_active' => (bool) $v->is_active, 'track_expiry' => (bool) $v->track_expiry, 'pack_size_base' => $pack, 'reorder_level' => $v->reorder_level === null ? null : (float) $v->reorder_level,
+                    'id' => (int) $v->id, 'name' => $v->name, 'code' => $v->code, 'is_active' => (bool) $v->is_active, 'track_expiry' => (bool) $v->track_expiry, 'pack_size_base' => $pack, 'reorder_level' => $v->reorder_level === null ? null : (float) $v->reorder_level,
                     'qty_base' => $lv['qty'], 'qty_alt' => $i->altUnit ? round($i->baseUnit->convertTo($i->altUnit, $lv['qty']), 4) : null,
                     'packs' => $pack ? round($lv['qty'] / $pack, 4) : null, 'value' => $lv['value'], 'next_expiry' => $lv['next_expiry'],
                     'book_qty' => round((float) ($every[$v->id]->q ?? 0), 4), 'book_cost' => isset($every[$v->id]) && (float) $every[$v->id]->q > 0 ? round((float) $every[$v->id]->v / (float) $every[$v->id]->q, 6) : null,

@@ -963,6 +963,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/stock/sides/readiness', [\App\Http\Controllers\Admin\MenusSidesController::class, 'readiness']);
         Route::get('/stock/sides/from-dishes', [\App\Http\Controllers\Admin\MenusSidesController::class, 'fromDishes']);
         Route::get('/stock/sides', [\App\Http\Controllers\Admin\MenusSidesController::class, 'index']);
+        Route::get('/stock/scan', [\App\Http\Controllers\Admin\MenusStockScanController::class, 'scan']);
         Route::get('/stock/prepared', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'index']);
         Route::get('/stock/prepared/preview', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'preview']);
         Route::get('/stock/prepared/reconciliation', [\App\Http\Controllers\Admin\MenusPreparedController::class, 'reconciliation']);
@@ -1112,6 +1113,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::put('/settings', [$dc, 'saveSettings'])->middleware('permission:menus.configure');
             $si = \App\Http\Controllers\Admin\MenusIngredientsController::class;
             Route::post('/stock/ingredients', [$si, 'save']);
+            Route::post('/stock/items/{id}/code', [\App\Http\Controllers\Admin\MenusStockScanController::class, 'setCode'])->whereNumber('id');
             Route::put('/stock/ingredients/{id}', [$si, 'save'])->whereNumber('id');
             Route::delete('/stock/ingredients/{id}', [$si, 'destroy'])->whereNumber('id');
             $sk = \App\Http\Controllers\Admin\MenusStockController::class;

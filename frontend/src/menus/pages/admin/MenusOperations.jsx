@@ -11,6 +11,7 @@ import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { btnGhost, btnPrimary, card, colors } from '../../../_shared/theme/tokens';
 import { Pill } from '../../components/FoodChips';
 import { useMenusBranch } from '../../lib/menusBranch';
+import StockScanBar from '../../components/StockScanBar';
 
 const money = (n) => Number(n || 0).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const num = (n) => Number(n).toLocaleString('en-KE', { maximumFractionDigits: 2 });
@@ -160,12 +161,19 @@ function Buy({ branch, canAct }) {
   const [data, setData] = useState(null);
   const [picked, setPicked] = useState({});
   const [made, setMade] = useState(null);
+  const [extra, setExtra] = useState([]);   // items added by scanning that the shelf did not ask for: { item_id, name, quantity, unit }
   const [busy, setBusy] = useState(false);
   useEffect(() => { setMade(null); menusAPI.reorder({ days, ...(branch ? { location_id: branch } : {}) }).then((r) => { setData(r); setPicked(Object.fromEntries(r.rows.filter((x) => x.supplier_id).map((x) => [x.item_id, true]))); }).catch((e) => toast.error(errMsg(e, 'Could not work out what to buy'))); }, [days, branch]);
   const chosen = useMemo(() => (data?.rows ?? []).filter((x) => picked[x.item_id]), [data, picked]);
+  const total = chosen.length + extra.filter((x) => Number(x.quantity) > 0).length;
+  const scanned = (v, m) => {
+    const asked = (data?.rows ?? []).find((x) => x.item_id === v.id);
+    if (asked) { if (asked.supplier_id) setPicked((p) => ({ ...p, [v.id]: true })); else toast.error(`${asked.name} has no supplier yet.`); return; }   // the shelf already asks for it: tick it
+    setExtra((xs) => (xs.some((x) => x.item_id === v.id) ? xs.map((x) => (x.item_id === v.id ? { ...x, quantity: Number(x.quantity) + 1 } : x)) : [...xs, { item_id: v.id, name: m.label, quantity: 1, unit: m.unit_kind }]));
+  };
   const make = async () => {
     setBusy(true);
-    try { setMade(await menusAPI.makeOrders(chosen.map((x) => ({ item_id: x.item_id, quantity: x.quantity, unit: x.unit_kind })), branch || undefined)); } catch (e) { toast.error(errMsg(e, 'Could not make the orders'), { duration: 8000 }); } finally { setBusy(false); }
+    try { setMade(await menusAPI.makeOrders([...chosen.map((x) => ({ item_id: x.item_id, quantity: x.quantity, unit: x.unit_kind })), ...extra.filter((x) => Number(x.quantity) > 0).map((x) => ({ item_id: x.item_id, quantity: Number(x.quantity), unit: x.unit }))], branch || undefined)); } catch (e) { toast.error(errMsg(e, 'Could not make the orders'), { duration: 8000 }); } finally { setBusy(false); }
   };
 
   return (
@@ -186,13 +194,31 @@ function Buy({ branch, canAct }) {
               ))}
             </tbody>
           </table>
-          {canAct && <div style={{ marginTop: 12 }}><button type="button" style={{ ...btnPrimary, opacity: busy || chosen.length === 0 ? 0.55 : 1 }} disabled={busy || chosen.length === 0} onClick={make}>{busy ? 'Making…' : `Make orders for ${chosen.length} item${chosen.length === 1 ? '' : 's'}`}</button></div>}
+          {canAct && <div style={{ marginTop: 12 }}><button type="button" style={{ ...btnPrimary, opacity: busy || total === 0 ? 0.55 : 1 }} disabled={busy || total === 0} onClick={make}>{busy ? 'Making…' : `Make orders for ${total} item${total === 1 ? '' : 's'}`}</button></div>}
           {made && (
             <div role="status" data-testid="made" style={{ marginTop: 12, fontSize: '0.88rem' }}>
               {made.created.map((o) => <p key={o.voucher_id} style={{ margin: '2px 0' }}>Purchase order {o.number} to {o.supplier}: {o.lines} item{o.lines === 1 ? '' : 's'}. Check and send it from Books.</p>)}
               {made.skipped.length > 0 && <p style={{ margin: '6px 0 0', color: colors.textMuted }}>Not ordered, no supplier known yet: {made.skipped.join(', ')}.</p>}
             </div>
           )}
+        </section>
+      )}
+      {canAct && data && (
+        <section aria-label="Add by scanning" data-testid="buy-scan" style={{ ...card, padding: 14, display: 'grid', gap: 10 }}>
+          <StockScanBar variants={null} onItem={scanned} label="Add something by scanning" />
+          {extra.length > 0 && (
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={th}>Added by scanning</th><th style={th}>How many</th><th style={th} /></tr></thead>
+              <tbody>{extra.map((x) => (
+                <tr key={x.item_id} data-extra={x.name}>
+                  <td style={td}><strong>{x.name}</strong></td>
+                  <td style={td}><input type="number" min="0" step="any" aria-label={`How many ${x.name}`} value={x.quantity} onChange={(e) => setExtra((xs) => xs.map((y) => (y.item_id === x.item_id ? { ...y, quantity: e.target.value } : y)))} style={{ width: 80, padding: '5px 8px', borderRadius: 6, border: '1.5px solid var(--line, #d1d5db)' }} /> {x.unit === 'pack' ? 'packs' : x.unit === 'alt' ? 'bigger units' : 'units'}</td>
+                  <td style={td}><button type="button" style={{ ...btnGhost, padding: '3px 9px', fontSize: '0.74rem' }} onClick={() => setExtra((xs) => xs.filter((y) => y.item_id !== x.item_id))}>Remove</button></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          )}
+          {data.rows.length === 0 && extra.length > 0 && <div><button type="button" style={{ ...btnPrimary, opacity: busy || total === 0 ? 0.55 : 1 }} disabled={busy || total === 0} onClick={make}>{busy ? 'Making…' : `Make orders for ${total} item${total === 1 ? '' : 's'}`}</button></div>}
         </section>
       )}
     </div>

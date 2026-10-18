@@ -68,6 +68,7 @@ class Ingredients
                 throw new BooksException('One of the variants does not belong to this ingredient.');
             }
         }
+        $this->checkCodes($variants, $existing);
         $keep = array_values(array_filter(array_column($variants, 'id')));
         foreach ($existing->except($keep) as $gone) {
             $this->assertCanRemove($gone);
@@ -93,6 +94,7 @@ class Ingredients
                     $row['reorder_level'] = $v['reorder_level'];
                 }
                 if ($v['id']) {
+                    $this->retireCode($existing[$v['id']] ?? null, $v['code']);
                     IngredientItem::whereKey($v['id'])->update($row + ['updated_at' => now()]);
                 } else {
                     IngredientItem::create($row);
@@ -164,6 +166,44 @@ class Ingredients
         }
 
         return $out;
+    }
+
+    /**
+     * The codes typed on the variants (a supplier's barcode, or our own): each must be one nothing else has (the Codes page's rules, so a barcode with a wrong check digit is refused and a code
+     * made from a number, like DSH00000001, is kept for what it belongs to), and none twice on this ingredient. A code a variant already has is left alone.
+     *
+     * @param array<int, array<string, mixed>> $variants
+     */
+    private function checkCodes(array $variants, $existing): void
+    {
+        $seen = [];
+        foreach ($variants as $v) {
+            $code = $v['code'];
+            if ($code === null) {
+                continue;
+            }
+            if (isset($seen[mb_strtolower($code)])) {
+                throw new BooksException("The code {$code} is on two variants of this item.");
+            }
+            $seen[mb_strtolower($code)] = true;
+            if ($v['id'] && ($existing[$v['id']]->code ?? null) === $code) {
+                continue;
+            }
+            try {
+                app(\App\Services\Codes\Items\CodeCatalogue::class)->assertUsable($code, 'kitchen_item', (int) ($v['id'] ?? 0));
+            } catch (\App\Services\Codes\CodeException $e) {
+                throw new BooksException("{$v['name']}: ".$e->getMessage());
+            }
+        }
+    }
+
+    /** A variant's code is being replaced: the old one stays findable (labels already stuck on shelves and crates still scan). */
+    private function retireCode(?IngredientItem $was, ?string $now): void
+    {
+        if (! $was || ! $was->code || $was->code === $now || ! Schema::hasTable('code_aliases')) {
+            return;
+        }
+        DB::table('code_aliases')->insert(['item_type' => 'kitchen_item', 'item_id' => $was->id, 'code' => $was->code, 'reason' => $now ? 'Replaced by '.$now : 'Code removed', 'retired_by' => auth()->id(), 'created_at' => now(), 'updated_at' => now()]);
     }
 
     /** The least to keep on the shelf, in the base unit (empty for no level). */
