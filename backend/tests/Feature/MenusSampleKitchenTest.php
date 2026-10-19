@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Menus\Dish;
 use App\Models\Menus\DishRecipe;
+use App\Models\Menus\DishSlot;
 use App\Models\Menus\IngredientKind;
 use App\Models\Menus\PrepLot;
 use App\Models\Menus\StockBatch;
@@ -13,6 +14,7 @@ use App\Services\Menus\DishModifiers;
 use App\Services\Menus\DishRecipes;
 use App\Services\Menus\DishSelection;
 use App\Services\Menus\DishStock;
+use App\Services\Menus\MenusLists;
 use App\Services\Menus\IngredientUse;
 use App\Services\Menus\PrepProduction;
 use App\Services\Menus\Sides;
@@ -39,6 +41,9 @@ class MenusSampleKitchenTest extends TestCase
     private array $dish = [];
     private int $medium;
     private int $jumbo;
+    private int $kids;
+    /** @var array<string, int> */
+    private array $slot = [];
 
     protected function setUp(): void
     {
@@ -132,17 +137,21 @@ class MenusSampleKitchenTest extends TestCase
         $this->recipeOf('Egg', 1, [['Eggs', 1]]);
         $this->recipeOf('Ketchup portion', 1, [['Tomato ketchup', 30]]);
         $this->recipeOf('Mayo portion', 1, [['Mayonnaise', 20]]);
+        $this->recipeOf('Burger', 1, [['Burger bun', 1], ['Beef', 120], ['Cheddar cheese', 20, 0, ['removable' => true, 'extra_allowed' => true]], ['Onions', 10, 0, ['removable' => true]], ['Cooking oil', 5]]);
     }
 
     /** section 5 of the data. */
     private function sides(): void
     {
         $svc = app(Sides::class);
-        foreach (['Beef stew & ugali', 'Chicken pilau', 'Sukuma wiki & ugali', 'Pancakes', 'Masala chai', 'Chocolate cake', 'Bread', 'Choma', 'Wet fry', 'Kale', 'Egg'] as $n) {
+        foreach (['Beef stew & ugali', 'Chicken pilau', 'Sukuma wiki & ugali', 'Pancakes', 'Masala chai', 'Chocolate cake', 'Bread', 'Choma', 'Wet fry', 'Kale', 'Egg', 'Burger'] as $n) {
             $this->side[$n] = $svc->save(['name' => $n, 'recipe_id' => $this->recipe[$n]])->id;
         }
         $this->side['Chips'] = $svc->save(['name' => 'Chips', 'recipe_id' => $this->recipe['Chips'], 'base_amount' => 1, 'amounts' => [['serving_id' => $this->jumbo, 'amount' => 1.5]]])->id;
         $this->side['Ugali'] = $svc->save(['name' => 'Ugali', 'recipe_id' => $this->recipe['Ugali'], 'unit_id' => $this->g, 'base_amount' => 250, 'amounts' => [['serving_id' => $this->jumbo, 'amount' => 350]]])->id;
+        foreach (['Ketchup' => 'Ketchup portion', 'Mayo' => 'Mayo portion'] as $n => $r) {
+            $this->side[$n] = $svc->save(['name' => $n, 'recipe_id' => $this->recipe[$r]])->id;
+        }
         $this->side['Cola'] = $svc->save(['name' => 'Cola', 'ingredient_id' => $this->ing('Cola')])->id;
     }
 
@@ -164,6 +173,23 @@ class MenusSampleKitchenTest extends TestCase
         $this->plate('Masala chai', 150, 'Masala chai');
         $this->plate('Chocolate cake slice', 400, 'Chocolate cake');
         $this->plate('Chips', 300, 'Chips', ['servings' => [['serving_id' => $this->medium, 'price' => 300], ['serving_id' => $this->jumbo, 'price' => 400]]]);
+        $lists = app(MenusLists::class);
+        $lists->save('policies', ['name' => 'Free', 'kind' => 'free']);
+        $fee = $lists->save('policies', ['name' => 'Fee 20', 'kind' => 'fixed', 'amount' => 20])->id;
+        $pct = $lists->save('policies', ['name' => 'Ten percent', 'kind' => 'percent', 'amount' => 10])->id;
+        $burger = $this->plate('Burger', 500, 'Burger');
+        app(DishModifiers::class)->save($burger, [['ingredient_id' => $this->ing('Cheddar cheese'), 'kind' => 'extra', 'policy_id' => $pct], ['ingredient_id' => $this->ing('Onions'), 'kind' => 'remove', 'policy_id' => $fee]]);
+        $kids = DB::table('menus_servings')->insertGetId(['name' => 'Kids', 'sort_order' => 3, 'is_active' => true]);
+        $steak = $this->plate('Steak sandwich', 500, 'Bread', ['servings' => [['serving_id' => $this->jumbo, 'price' => 650], ['serving_id' => $kids, 'price' => 350]], 'slots' => [
+            ['name' => 'Bread', 'kind' => 'fixed', 'choices' => [['side_id' => $this->side['Bread']]]],
+            ['name' => 'Protein', 'kind' => 'choose_one', 'choices' => [['side_id' => $this->side['Choma'], 'is_default' => true], ['side_id' => $this->side['Wet fry'], 'upcharge' => 50]]],
+            ['name' => 'Greens', 'kind' => 'choose_any', 'min' => 0, 'max' => 2, 'choices' => [['side_id' => $this->side['Kale'], 'upcharge' => 20]]],
+            ['name' => 'Sauces', 'kind' => 'free_extra', 'max' => 2, 'choices' => [['side_id' => $this->side['Ketchup']], ['side_id' => $this->side['Mayo']]]],
+            ['name' => 'Drink', 'kind' => 'free_extra', 'max' => 2, 'choices' => [['side_id' => $this->side['Cola']]]],
+            ['name' => 'Extras', 'kind' => 'paid_extra', 'max' => 3, 'choices' => [['side_id' => $this->side['Egg'], 'upcharge' => 40]]],
+        ]]);
+        $this->slot = DishSlot::where('dish_id', $steak->id)->pluck('id', 'name')->all();
+        $this->kids = $kids;
     }
 
     /** Sell qty of a dish the way the till does and book the stock for it, all inside a transaction like the books'. */
@@ -276,5 +302,40 @@ class MenusSampleKitchenTest extends TestCase
 
         $bare = Dish::create(['name' => 'Bare', 'slug' => 'bare', 'price' => 10, 'is_active' => true]);
         $this->assertFalse($info->profile($bare->fresh())['complete'], 'no recipe and no sides: nothing is known, so no diet is claimed');
+    }
+
+    private function priced(string $dish, ?int $serving, array $picks = [], array $mods = []): float
+    {
+        $sel = app(DishSelection::class)->resolve($this->dish[$dish], $serving, $picks);
+        $m = app(DishModifiers::class)->resolve($this->dish[$dish], $mods, (float) $sel['base_price']);
+
+        return round($sel['unit_price'] + $m['fee_in_price'], 2);
+    }
+
+    public function test_the_steak_sandwich_prices_of_the_document(): void
+    {
+        $wet = $this->side['Wet fry'];
+        $this->assertSame(650.0, $this->priced('Steak sandwich', $this->jumbo), 'Jumbo with the default Choma');
+        $this->assertSame(720.0, $this->priced('Steak sandwich', $this->jumbo, [$this->slot['Protein'] => [$wet], $this->slot['Greens'] => [$this->side['Kale']]]), '650 + 50 + 20');
+        $this->assertSame(800.0, $this->priced('Steak sandwich', $this->jumbo, [$this->slot['Protein'] => [$wet], $this->slot['Greens'] => [$this->side['Kale']], $this->slot['Extras'] => [['side_id' => $this->side['Egg'], 'qty' => 2]]]), '720 + 2 x 40');
+        $this->assertSame(350.0, $this->priced('Steak sandwich', $this->kids));
+    }
+
+    public function test_the_burger_with_extra_cheese_and_no_onion_is_570_and_takes_the_cheese_and_onion_accordingly(): void
+    {
+        $mods = [['kind' => 'extra', 'ingredient_id' => $this->ing('Cheddar cheese')], ['kind' => 'remove', 'ingredient_id' => $this->ing('Onions')]];
+        $this->assertSame(570.0, $this->priced('Burger', null, [], $mods), '500 + 10% of 500 for the cheese + 20 for leaving the onion out');
+        $this->assertSame(500.0, $this->priced('Burger', null));
+        $this->sell('Burger', 1, null, $mods);
+        $this->assertSame([2960.0, 8000.0, 59.0, 5880.0], [$this->left('Block 1 kg'), $this->left('Onions 1 kg'), $this->left('Pack of 6'), $this->left('Stewing meat 1 kg')], 'cheese 40 g (20 + 20 extra), no onion, one bun, 120 g beef');
+    }
+
+    public function test_a_cola_and_a_ketchup_picked_on_the_steak_sandwich_come_off_the_shelf(): void
+    {
+        $d = $this->dish['Steak sandwich'];
+        $sel = app(DishSelection::class)->resolve($d, $this->jumbo, [$this->slot['Drink'] => [$this->side['Cola']], $this->slot['Sauces'] => [$this->side['Ketchup']]]);
+        $this->assertSame(650.0, $sel['unit_price'], 'free extras cost nothing');
+        DB::transaction(fn () => app(DishStock::class)->apply($this->sale([['dish' => $d, 'qty' => 1, 'uses' => $sel['uses']]]), null));
+        $this->assertSame([71.0, 6.0, 2970.0], [$this->left('Crate of 24'), $this->left('Single bottle'), $this->left('Ketchup bottle 1 L')], 'the cheapest Cola (the crate, 50 each) and 30 ml of ketchup');
     }
 }
