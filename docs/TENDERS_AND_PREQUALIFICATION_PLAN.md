@@ -64,6 +64,11 @@ Bodies carry merge fields, filled from the tender and company profile when the n
 
 **Requirement library** (`requirements`): `code`, `label`, `description`, `applies_to_category`, `document_type`, `needs_expiry`, `is_default`, `sort`. Seeded from the notice: registration/incorporation certificate, valid tax compliance certificate, NCA registration and practising licence (works only), form of tender signed and stamped, CR12 (not older than a date), single business permit, confidential business questionnaire, past work experience, AGPO certificate (Youth / Women / PWD), e-GP registration, and "tape bound and serialised" as a tick-box rule. The **same library** feeds PQ required documents, so a vendor uploads a certificate once and it can be reused (with its expiry) across tenders.
 
+**Requirement parameters and submission format rules** (both visible in the NG-CDF notice, which a second copy of the same file confirmed):
+- A requirement can carry a rule: CR12 or registry records "held from 1st January 2026 to the date of tender opening" is a `must_be_dated_on_or_after` date; the bidder's uploaded document is checked against it. Others: valid on the closing date (tax compliance, single business permit, NCA licence), signed, stamped.
+- Physical submissions have format rules recorded on the tender, not buried in text: **number of copies** ("original and copy"), **binding** ("tape bound; spiral bound will be rejected"), **serialised pages**, **envelope marking** (tender number on the right-hand corner, no tenderer's mark), tender box location, and where **bulky documents** are received. At opening, the bid register records for each physical bid whether each rule was met, so a rejection has a recorded reason.
+- Dates in notices are typed by people ("Wensday 21ST October"): the notice generator writes the day name and date from the stored closing date, so the printed text can never disagree with the data.
+
 **Tender templates** (`tender_templates`): category, method, submission method, reservation scheme, validity days, fee, which blocks in which order, which requirements are ticked, and date offsets ("closes 14 days after publishing"). "New tender from template" copies it; nothing stays linked.
 
 ## 2. Addenda and clarifications
