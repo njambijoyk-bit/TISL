@@ -254,13 +254,14 @@ li { margin: 0.2rem 0; }
 <h4>Contents</h4>
 <ol class="toc">
   <li><a href="#current">1. What exists today</a></li>
-  <li><a href="#affiliates">2. Affiliates in the Extras module</a></li>
-  <li><a href="#vendor-portal">3. Vendor login &amp; registration</a></li>
-  <li><a href="#tendering">4. Tendering system</a></li>
-  <li><a href="#prequalification">5. Vendor pre-qualification</a></li>
-  <li><a href="#permissions">6. New permissions &amp; catalog changes</a></li>
-  <li><a href="#phases">7. Phased delivery plan</a></li>
-  <li><a href="#schema">8. Migration &amp; schema reference</a></li>
+  <li><a href="#architecture">2. Architecture decisions</a></li>
+  <li><a href="#affiliates">3. Affiliates in the Extras module</a></li>
+  <li><a href="#vendor-portal">4. Vendor login &amp; registration</a></li>
+  <li><a href="#tendering">5. Tendering system</a></li>
+  <li><a href="#prequalification">6. Vendor pre-qualification</a></li>
+  <li><a href="#permissions">7. New permissions &amp; catalog changes</a></li>
+  <li><a href="#phases">8. Phased delivery plan</a></li>
+  <li><a href="#schema">9. Migration &amp; schema reference</a></li>
 </ol>
 
 <hr class="divider">
@@ -310,7 +311,98 @@ li { margin: 0.2rem 0; }
 <hr class="divider">
 
 <!-- ─── SECTION 2 ─── -->
-<h2 id="affiliates">2. Affiliates in the Extras module</h2>
+<h2 id="architecture">2. Architecture decisions</h2>
+
+<div class="card">
+  <h3>Core vs Extras: what lives where</h3>
+  <p>The vendor <em>ledger</em> (Sundry Creditors) is a books concept and stays in <strong>Core</strong>. It already works: <code>VendorController</code> creates a vendor + ledger, purchases post against it, nothing changes. The new vendor-facing features &mdash; portal login, self-registration, tendering, pre-qualification, and affiliates &mdash; all live in the <strong>Extras</strong> module and are only available when Extras is licensed and switched on.</p>
+
+  <table>
+    <tr><th>Feature</th><th>Module</th><th>Gate</th></tr>
+    <tr><td>Vendor model + admin CRUD</td><td><strong>Core</strong></td><td>Permissions: <code>vendors.view</code>, <code>vendors.manage</code></td></tr>
+    <tr><td>Sundry Creditors ledger</td><td><strong>Core</strong></td><td>Created on vendor store (admin) or on approval (self-reg)</td></tr>
+    <tr><td>Vendor orders (renamed PO model)</td><td><strong>Core</strong></td><td>Permissions: <code>vendors.view</code></td></tr>
+    <tr><td>Vendor self-registration + portal login</td><td><strong>Extras</strong></td><td><code>middleware('module:extras')</code></td></tr>
+    <tr><td>Vendor portal pages (dashboard, profile, orders, invoices)</td><td><strong>Extras</strong></td><td><code>middleware('module:extras', 'account:vendor')</code></td></tr>
+    <tr><td>Tendering + bids</td><td><strong>Extras</strong></td><td><code>middleware('module:extras')</code> + permissions</td></tr>
+    <tr><td>Pre-qualification</td><td><strong>Extras</strong></td><td><code>middleware('module:extras')</code> + permissions</td></tr>
+    <tr><td>Affiliates</td><td><strong>Extras</strong></td><td><code>middleware('module:extras')</code> + permissions</td></tr>
+  </table>
+
+  <p>The <code>EnsureModuleActive</code> middleware already returns 404 when a module is not licensed/on, so the pattern is established. The frontend uses <code>isModuleActive('extras')</code> to hide nav links and routes.</p>
+</div>
+
+<div class="card">
+  <h3>Rename: PurchaseOrder &rarr; VendorOrder</h3>
+  <p>The existing <code>PurchaseOrder</code> model causes confusion with the books <code>purchase_order</code> voucher type (a completely separate concept). Rename it to reduce ambiguity:</p>
+
+  <table>
+    <tr><th>Before</th><th>After</th></tr>
+    <tr><td><code>App\Models\PurchaseOrder</code></td><td><code>App\Models\VendorOrder</code></td></tr>
+    <tr><td><code>App\Models\PurchaseOrderItem</code></td><td><code>App\Models\VendorOrderItem</code></td></tr>
+    <tr><td>DB table: <code>purchase_orders</code></td><td>DB table: <code>vendor_orders</code></td></tr>
+    <tr><td>DB table: <code>purchase_order_items</code></td><td>DB table: <code>vendor_order_items</code></td></tr>
+    <tr><td><code>PO-2026-0001</code></td><td><code>VO-2026-0001</code> (number prefix)</td></tr>
+  </table>
+
+  <h4>What changes</h4>
+  <ul>
+    <li><code>Vendor.php</code> &mdash; relationships <code>purchaseOrders()</code> renamed to <code>vendorOrders()</code>, <code>openPurchaseOrders()</code> &rarr; <code>openVendorOrders()</code>, column <code>total_purchase_orders</code> &rarr; <code>total_vendor_orders</code></li>
+    <li><code>ModuleTables.php</code> &mdash; backup table list updated</li>
+    <li>Migration: <code>rename_purchase_orders_to_vendor_orders</code> (renames both tables + FK columns)</li>
+    <li>Frontend vendor API updated to match new endpoint names</li>
+  </ul>
+
+  <h4>What does NOT change</h4>
+  <ul>
+    <li>The books <code>VoucherType::PURCHASE_ORDER</code> (<code>'purchase_order'</code>) and its voucher flows &mdash; that is a financial document, not this model</li>
+    <li><code>DashboardService</code>, <code>CostCentreService</code> &mdash; they reference the voucher base type string <code>'purchase_order'</code>, not the model</li>
+    <li>Preorder supply &mdash; references <code>purchase_order</code> voucher type strings, not the PO model</li>
+  </ul>
+</div>
+
+<div class="card">
+  <h3>Route structure</h3>
+  <p>How the backend routes split between Core and Extras:</p>
+<pre>// Core (always available) — existing, no change
+Route::middleware('permission:vendors.view')
+  ->prefix('admin/vendors')->group(...)       // Admin CRUD + ledger
+
+// Extras (gated) — all new
+Route::middleware('module:extras')->group(function () {
+
+  // Public (no auth): vendor self-registration
+  Route::post('register/vendor', ...);
+
+  // Vendor portal (auth + account type)
+  Route::middleware(['auth:sanctum', 'account:vendor'])
+    ->prefix('portal/vendor')->group(...)    // dashboard, profile, orders...
+
+  // Vendor portal: tendering + PQ
+  Route::prefix('portal/vendor')->group(function () {
+    Route::get('tenders', ...);              // browse open tenders
+    Route::post('tenders/{id}/bid', ...);    // submit bid
+    Route::resource('prequalifications', ...);
+  });
+
+  // Admin: tender + PQ management
+  Route::middleware('permission:tenders.view')
+    ->prefix('admin/procurement')->group(...);
+
+  // Admin: affiliate management
+  Route::middleware('permission:affiliates.view')
+    ->prefix('admin/extras/affiliates')->group(...);
+
+  // Portal: affiliate dashboard (customer OR vendor)
+  Route::middleware('auth:sanctum')
+    ->prefix('portal/affiliates')->group(...);
+});</pre>
+</div>
+
+<hr class="divider">
+
+<!-- ─── SECTION 3 ─── -->
+<h2 id="affiliates">3. Affiliates in the Extras module</h2>
 
 <p>The core idea: <strong>any customer or vendor can become an affiliate</strong> &mdash; they get a unique referral code, a dashboard showing their referrals and commissions, and payouts tracked through the books.</p>
 
@@ -419,8 +511,8 @@ li { margin: 0.2rem 0; }
 
 <hr class="divider">
 
-<!-- ─── SECTION 3 ─── -->
-<h2 id="vendor-portal">3. Vendor login &amp; registration</h2>
+<!-- ─── SECTION 4 ─── -->
+<h2 id="vendor-portal">4. Vendor login &amp; registration</h2>
 
 <p>Vendors can already log in through the standard <code>/login</code> endpoint, but there is no self-registration and no portal pages. This section adds both.</p>
 
@@ -500,8 +592,8 @@ Route::prefix('portal/vendor')
 
 <hr class="divider">
 
-<!-- ─── SECTION 4 ─── -->
-<h2 id="tendering">4. Tendering system</h2>
+<!-- ─── SECTION 5 ─── -->
+<h2 id="tendering">5. Tendering system</h2>
 
 <p>Staff post a tender (request for proposal/quotation), approved vendors see it in their portal, and submit bids. Staff evaluate, score and award. The flow mirrors how purchase orders already work but adds a competitive bidding layer before a PO is raised.</p>
 
@@ -675,8 +767,8 @@ Route::prefix('portal/vendor')
 
 <hr class="divider">
 
-<!-- ─── SECTION 5 ─── -->
-<h2 id="prequalification">5. Vendor pre-qualification</h2>
+<!-- ─── SECTION 6 ─── -->
+<h2 id="prequalification">6. Vendor pre-qualification</h2>
 
 <p>Before vendors can bid on certain tenders, they fill out a pre-qualification document. Staff configure which sections/questions appear, vendors submit with supporting documents, and staff evaluate. A qualified vendor gets a category and expiry date. This mirrors the <code>Application</code>/<code>ApplicationDocument</code> pattern from the careers module.</p>
 
@@ -817,8 +909,8 @@ Route::prefix('portal/vendor')
 
 <hr class="divider">
 
-<!-- ─── SECTION 6 ─── -->
-<h2 id="permissions">6. New permissions &amp; catalog changes</h2>
+<!-- ─── SECTION 7 ─── -->
+<h2 id="permissions">7. New permissions &amp; catalog changes</h2>
 
 <div class="card">
   <h3>Catalog v18 additions <span class="tag tag-backend">Backend</span></h3>
@@ -863,8 +955,24 @@ export const canApproveVendors = (user) =>
 
 <hr class="divider">
 
-<!-- ─── SECTION 7 ─── -->
-<h2 id="phases">7. Phased delivery plan</h2>
+<!-- ─── SECTION 8 ─── -->
+<h2 id="phases">8. Phased delivery plan</h2>
+
+<div class="card">
+  <div class="phase-header"><span class="phase-num">0</span><h3 style="margin:0">Groundwork: rename PO model &amp; module gating</h3></div>
+  <p><strong>Goal:</strong> Clean separation between Core vendor (ledger) and Extras vendor (portal). No new features, just housekeeping.</p>
+  <ul>
+    <li>Migration: rename <code>purchase_orders</code> &rarr; <code>vendor_orders</code>, <code>purchase_order_items</code> &rarr; <code>vendor_order_items</code></li>
+    <li>Rename models: <code>PurchaseOrder</code> &rarr; <code>VendorOrder</code>, <code>PurchaseOrderItem</code> &rarr; <code>VendorOrderItem</code></li>
+    <li>Update <code>Vendor.php</code> relationships and stat columns (<code>total_purchase_orders</code> &rarr; <code>total_vendor_orders</code>)</li>
+    <li>Update <code>ModuleTables.php</code> backup table list</li>
+    <li>Update number prefix: <code>PO-</code> &rarr; <code>VO-</code></li>
+    <li>Frontend: rename <code>vendors.js</code> API references if any use PO endpoints</li>
+    <li>Add <code>middleware('module:extras')</code> route group stubs for all upcoming vendor portal routes</li>
+    <li>Frontend: gate vendor portal nav behind <code>isModuleActive('extras')</code></li>
+    <li>Tests: existing vendor + books tests still pass, voucher type <code>'purchase_order'</code> unchanged</li>
+  </ul>
+</div>
 
 <div class="card">
   <div class="phase-header"><span class="phase-num">1</span><h3 style="margin:0">Vendor self-registration &amp; portal shell</h3></div>
@@ -955,12 +1063,18 @@ export const canApproveVendors = (user) =>
 
 <hr class="divider">
 
-<!-- ─── SECTION 8 ─── -->
-<h2 id="schema">8. Migration &amp; schema reference</h2>
+<!-- ─── SECTION 9 ─── -->
+<h2 id="schema">9. Migration &amp; schema reference</h2>
 
 <div class="card">
   <h3>New migrations (in order)</h3>
-<pre>── Affiliates ──
+<pre>── Phase 0: rename ──
+0. rename_purchase_orders_to_vendor_orders
+   └── Renames tables + FK columns
+   └── Also renames vendor.total_purchase_orders
+       → total_vendor_orders
+
+── Affiliates ──
 1. create_affiliates_table
 2. add_affiliate_columns_to_referral_codes
    └── Adds: affiliate_id, source_type, campaign
@@ -985,8 +1099,9 @@ export const canApproveVendors = (user) =>
     <tr><th>Table</th><th>Change</th></tr>
     <tr><td><code>referral_codes</code></td><td>Add <code>affiliate_id</code>, <code>source_type</code>, <code>campaign</code></td></tr>
     <tr><td><code>users</code></td><td>No changes needed</td></tr>
-    <tr><td><code>vendors</code></td><td>No changes needed (already has user_id, status, is_verified)</td></tr>
-    <tr><td><code>purchase_orders</code></td><td>Add nullable <code>tender_bid_id</code> (links PO to winning bid)</td></tr>
+    <tr><td><code>vendors</code></td><td>Rename column <code>total_purchase_orders</code> &rarr; <code>total_vendor_orders</code></td></tr>
+    <tr><td><code>purchase_orders</code> &rarr; <code>vendor_orders</code></td><td>Rename table + add nullable <code>tender_bid_id</code></td></tr>
+    <tr><td><code>purchase_order_items</code> &rarr; <code>vendor_order_items</code></td><td>Rename table + FK column</td></tr>
   </table>
 </div>
 
@@ -1024,6 +1139,8 @@ Tender ──┬── TenderDocuments
     <div>
       <h4>New files</h4>
       <ul>
+        <li><code>Models/VendorOrder.php</code> (renamed from PurchaseOrder)</li>
+        <li><code>Models/VendorOrderItem.php</code> (renamed from PurchaseOrderItem)</li>
         <li><code>Models/Affiliate.php</code></li>
         <li><code>Models/AffiliateReferral.php</code></li>
         <li><code>Models/AffiliatePayout.php</code></li>
