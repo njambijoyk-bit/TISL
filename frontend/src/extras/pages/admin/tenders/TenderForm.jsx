@@ -55,7 +55,7 @@ export default function TenderForm() {
     setSaving(true); setErrors({}); setFormError(null);
     const payload = {
       ...form,
-      submission_deadline: form.submission_deadline || null,
+      submission_deadline: form.submission_deadline,
       tender_fee: form.tender_fee === '' ? 0 : form.tender_fee,
       lots: form.lots.map(l => ({ ...l, description: l.description || null, reservation_group: l.reservation_group || null })),
       ...Object.fromEntries(BLANK_TO_NULL.map(k => [k, form[k] === '' ? null : form[k]])),
@@ -132,7 +132,7 @@ export default function TenderForm() {
           <Field label="Tender validity (days)" error={err('validity_days')}><NumberInput value={form.validity_days} onChange={set('validity_days')} error={err('validity_days')} /></Field>
         </div>
         <Field label="Public link" hint="Where the notice is also published, if anywhere" error={err('public_link')}><TextInput type="url" value={form.public_link} onChange={set('public_link')} error={err('public_link')} /></Field>
-        <Field label="Close date and time" error={err('submission_deadline')}><TextInput type="datetime-local" value={form.submission_deadline} onChange={set('submission_deadline')} error={err('submission_deadline')} /></Field>
+        <Field label="Close date and time" hint="Required" error={err('submission_deadline')}><TextInput required type="datetime-local" value={form.submission_deadline} onChange={set('submission_deadline')} error={err('submission_deadline')} /></Field>
 
         <div style={{ borderTop: `1px solid ${colors.tint(0.1)}`, paddingTop: 14, display: 'grid', gap: 10 }}>
           <div>

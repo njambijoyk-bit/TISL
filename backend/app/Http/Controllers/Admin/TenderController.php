@@ -99,7 +99,7 @@ class TenderController extends Controller
             'currency'            => 'nullable|string|size:3',
             'requirements'        => 'nullable|array',
             'visibility'          => 'required|in:' . implode(',', Tender::VISIBILITIES),
-            'submission_deadline' => 'nullable|date',
+            'submission_deadline' => 'required|date',
             'opening_date'        => 'nullable|date',
             'tender_number'       => 'nullable|string|max:60|unique:tenders,tender_number',
         ] + $this->noticeRules());
@@ -118,7 +118,7 @@ class TenderController extends Controller
                 'currency'            => $d['currency'] ?? 'KES',
                 'requirements'        => $d['requirements'] ?? null,
                 'visibility'          => $d['visibility'],
-                'submission_deadline' => $d['submission_deadline'] ?? null,
+                'submission_deadline' => $d['submission_deadline'],
                 'opening_date'        => $d['opening_date'] ?? null,
                 'notice_type'         => $d['notice_type'] ?? 'tender',
                 'procuring_entity'    => $d['procuring_entity'] ?? null,
@@ -148,7 +148,7 @@ class TenderController extends Controller
             'currency'            => 'nullable|string|size:3',
             'requirements'        => 'nullable|array',
             'visibility'          => 'sometimes|in:' . implode(',', Tender::VISIBILITIES),
-            'submission_deadline' => 'nullable|date',
+            'submission_deadline' => 'sometimes|required|date',
             'opening_date'        => 'nullable|date',
         ] + $this->noticeRules());
 
