@@ -314,6 +314,8 @@ const DeliveryInsightsPage     = lazy(() => import('./extras/pages/admin/deliver
 
 // ── Vendor Portal & Tendering (Extras) ───────────────────────────────────────
 const VendorRegister     = lazy(() => import('./extras/pages/auth/VendorRegister'));
+const PublicTenders      = lazy(() => import('./extras/pages/public/PublicTenders'));
+const PublicTenderDetail = lazy(() => import('./extras/pages/public/PublicTenderDetail'));
 const VendorDashboard    = lazy(() => import('./extras/pages/vendor-portal/VendorDashboard'));
 const VendorTenders      = lazy(() => import('./extras/pages/vendor-portal/VendorTenders'));
 const VendorBids         = lazy(() => import('./extras/pages/vendor-portal/VendorBids'));
@@ -638,6 +640,8 @@ function App() {
             <Route path="/reminders/stop/:token" element={<ReminderStop />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/vendor-register" element={<ModuleRoute module="extras"><VendorRegister /></ModuleRoute>} />
+            <Route path="/tenders" element={<ModuleRoute module="extras"><PublicTenders /></ModuleRoute>} />
+            <Route path="/tenders/:id" element={<ModuleRoute module="extras"><PublicTenderDetail /></ModuleRoute>} />
 
             {/* ── Vendor Portal (Extras) ───────────────────────────────────── */}
             <Route path="/vendor-portal" element={<ProtectedRoute><ModuleRoute module="extras"><VendorDashboard /></ModuleRoute></ProtectedRoute>} />

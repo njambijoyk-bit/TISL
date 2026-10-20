@@ -52,6 +52,22 @@ class TenderController extends Controller
         return response()->json($tender);
     }
 
+    private function noticeRules(): array
+    {
+        return [
+            'ocid'                  => 'nullable|string|max:100',
+            'procurement_method'    => 'nullable|in:' . implode(',', Tender::PROCUREMENT_METHODS),
+            'submission_method'     => 'nullable|in:' . implode(',', Tender::SUBMISSION_METHODS),
+            'reservation_scheme'    => 'nullable|string|max:100',
+            'has_preference_scheme' => 'nullable|boolean',
+            'opening_venue'         => 'nullable|string|max:255',
+            'tender_fee'            => 'nullable|numeric|min:0',
+            'validity_days'         => 'nullable|integer|min:1|max:1000',
+            'financial_year'        => ['nullable', 'regex:/^\d{4}\/\d{4}$/'],
+            'public_link'           => 'nullable|url|max:500',
+        ];
+    }
+
     public function store(Request $request): JsonResponse
     {
         $d = $request->validate([
@@ -67,10 +83,11 @@ class TenderController extends Controller
             'visibility'          => 'required|in:all_vendors,prequalified,invited',
             'submission_deadline' => 'nullable|date|after:now',
             'opening_date'        => 'nullable|date',
-        ]);
+            'tender_number'       => 'nullable|string|max:60|unique:tenders,tender_number',
+        ] + $this->noticeRules());
 
         $tender = Tender::create([
-            'tender_number'       => Tender::generateTenderNumber(),
+            'tender_number'       => $d['tender_number'] ?? Tender::generateTenderNumber(),
             'title'               => $d['title'],
             'description'         => $d['description'] ?? null,
             'category'            => $d['category'],
@@ -83,6 +100,7 @@ class TenderController extends Controller
             'visibility'          => $d['visibility'],
             'submission_deadline' => $d['submission_deadline'] ?? null,
             'opening_date'        => $d['opening_date'] ?? null,
+            ...collect($d)->only(Tender::NOTICE_FIELDS)->reject(fn ($v) => $v === null)->all(),
             'status'              => 'draft',
             'created_by'          => $request->user()->id,
         ]);
@@ -111,7 +129,14 @@ class TenderController extends Controller
             'visibility'          => 'sometimes|in:all_vendors,prequalified,invited',
             'submission_deadline' => 'nullable|date',
             'opening_date'        => 'nullable|date',
-        ]);
+        ] + $this->noticeRules());
+
+        // these columns can't be NULL: leave them as they are when the form sends nothing
+        foreach (['procurement_method', 'submission_method', 'has_preference_scheme', 'tender_fee'] as $k) {
+            if (array_key_exists($k, $d) && $d[$k] === null) {
+                unset($d[$k]);
+            }
+        }
 
         $tender->update($d);
 

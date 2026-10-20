@@ -26,6 +26,8 @@ Steps marked **[API]** are done with curl or Postman (setup in section 2).
 # run in order, on your MySQL database
 database/sql/215_vendor_orders_rename.sql
 database/sql/216_vendor_portal.sql
+database/sql/217_tender_notice_fields.sql   # the notice columns (OCID, method, fee, ...)
+database/sql/218_tenders_nav_link.sql        # the public "Tenders" menu link
 
 php artisan access:seed
 ```
@@ -157,6 +159,14 @@ SELECT id, email, role, status FROM users WHERE role='vendor';
 1. Create T1, T2, T3 at `/admin/tenders/new`. **Expect:** each opens its detail page as `draft` with a tender number.
 2. Publish T1 and T2. **Expect:** status `published`. Publishing a tender with no deadline is refused.
 3. [API] T3 is invited only: `POST /admin/tenders/{T3}/invite` `{"vendor_ids":[<C id>]}`, then publish T3.
+
+### 4.4b Public tender notices (no login)
+1. Create a tender with the notice fields filled (admin form): number `KEFRI/1074/0003/2026-27`, OCID `ocds-5whusi-308866-KEFRI/1074/0003/2026-27`, category Works, method Open Tender, submission Electronic, reservation scheme `AGPO - Youth`, preference scheme ticked, opening venue `KEFRI HQ - SCM OFFICE`, fee 0, validity 154, financial year `2026/2027`, public link `https://tenders.go.ke/tenders/308866`, deadline a few days ahead. Upload a file as an attachment [API], then publish.
+2. Open a private window (not signed in) and go to `/tenders`. **Expect:** the notice is listed as Open; the storefront menu shows **Tenders**.
+3. Open it. **Expect:** OCID, tender number, title, procurement method/category, submission methods, reservation scheme, opening venue, published date, close date and time, tender fee, validity, financial year, preference scheme YES, public link, and the attachment (click it to download).
+4. **Expect not to see:** an `invited` tender, a `draft` or `cancelled` tender, or any budget figures.
+5. Close the tender. **Expect:** it moves to the Closed filter on `/tenders`.
+6. Switch Extras off. **Expect:** `/tenders` and `/api/public/tenders` stop working and the menu link disappears.
 
 ### 4.5 Visibility (vendor side, `/vendor-portal/tenders`)
 

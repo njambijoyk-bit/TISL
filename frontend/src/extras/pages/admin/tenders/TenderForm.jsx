@@ -4,10 +4,16 @@ import { ArrowLeft, Save } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary, btnGhost, card } from '../../../../_shared/theme/tokens';
-import { Field, TextInput, NumberInput, SelectInput, TextArea } from '../../../../core/components/admin/ui/Form';
+import { Field, TextInput, NumberInput, SelectInput, TextArea, CheckboxRow } from '../../../../core/components/admin/ui/Form';
 import { AdminPage, Heading, Loading } from '../../../components/procurement/ui';
+import { METHOD_LABELS, SUBMISSION_LABELS } from '../../../components/procurement/format';
 
-const BLANK = { title: '', description: '', category: 'goods', budget_min: '', budget_max: '', submission_deadline: '', visibility: 'all_vendors', requirements: '', evaluation_criteria: '' };
+const BLANK = {
+  title: '', description: '', category: 'goods', budget_min: '', budget_max: '', submission_deadline: '', visibility: 'all_vendors', requirements: '', evaluation_criteria: '',
+  tender_number: '', ocid: '', procurement_method: 'open_tender', submission_method: 'electronic', reservation_scheme: '', has_preference_scheme: false,
+  opening_venue: '', tender_fee: '', validity_days: '', financial_year: '', public_link: '',
+};
+const BLANK_TO_NULL = ['ocid', 'reservation_scheme', 'opening_venue', 'financial_year', 'public_link', 'validity_days'];
 
 export default function TenderForm() {
   const { id } = useParams();
@@ -28,6 +34,9 @@ export default function TenderForm() {
         visibility: t.visibility || 'all_vendors',
         requirements: (t.requirements || []).map(r => r.label || r).join('\n'),
         evaluation_criteria: (t.evaluation_criteria || []).map(c => c.criterion || c).join('\n'),
+        ocid: t.ocid || '', procurement_method: t.procurement_method || 'open_tender', submission_method: t.submission_method || 'electronic',
+        reservation_scheme: t.reservation_scheme || '', has_preference_scheme: !!t.has_preference_scheme, opening_venue: t.opening_venue || '',
+        tender_fee: Number(t.tender_fee) || '', validity_days: t.validity_days || '', financial_year: t.financial_year || '', public_link: t.public_link || '',
       }))
       .catch(() => toast.error('Failed to load tender'))
       .finally(() => setFetching(false));
@@ -46,7 +55,10 @@ export default function TenderForm() {
       submission_deadline: form.submission_deadline || null,
       requirements: form.requirements.split('\n').filter(Boolean).map(label => ({ label })),
       evaluation_criteria: form.evaluation_criteria.split('\n').filter(Boolean).map(criterion => ({ criterion })),
+      tender_fee: form.tender_fee === '' ? 0 : form.tender_fee,
+      ...Object.fromEntries(BLANK_TO_NULL.map(k => [k, form[k] === '' ? null : form[k]])),
     };
+    if (isEdit || !form.tender_number) delete payload.tender_number;
     try {
       if (isEdit) { await tendersAPI.update(id, payload); toast.success('Tender updated'); navigate(`/admin/tenders/${id}`); }
       else { const r = await tendersAPI.create(payload); toast.success('Tender created'); navigate(`/admin/tenders/${r.id}`); }
@@ -82,6 +94,31 @@ export default function TenderForm() {
           <Field label="Budget min (KES)" error={err('budget_min')}><NumberInput value={form.budget_min} onChange={set('budget_min')} error={err('budget_min')} /></Field>
           <Field label="Budget max (KES)" error={err('budget_max')}><NumberInput value={form.budget_max} onChange={set('budget_max')} error={err('budget_max')} /></Field>
         </div>
+        {!isEdit && <Field label="Tender number" hint="Leave blank to number it automatically" error={err('tender_number')}><TextInput value={form.tender_number} onChange={set('tender_number')} placeholder="e.g. KEFRI/1074/0003/2026-27" error={err('tender_number')} /></Field>}
+        <Field label="OCID" error={err('ocid')}><TextInput value={form.ocid} onChange={set('ocid')} error={err('ocid')} /></Field>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          <Field label="Procurement method" error={err('procurement_method')}>
+            <SelectInput value={form.procurement_method} onChange={set('procurement_method')}>
+              {Object.entries(METHOD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </SelectInput>
+          </Field>
+          <Field label="Submission method" error={err('submission_method')}>
+            <SelectInput value={form.submission_method} onChange={set('submission_method')}>
+              {Object.entries(SUBMISSION_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </SelectInput>
+          </Field>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          <Field label="Reservation scheme" hint="e.g. AGPO - Youth" error={err('reservation_scheme')}><TextInput value={form.reservation_scheme} onChange={set('reservation_scheme')} error={err('reservation_scheme')} /></Field>
+          <Field label="Financial year" hint="e.g. 2026/2027" error={err('financial_year')}><TextInput value={form.financial_year} onChange={set('financial_year')} placeholder="2026/2027" error={err('financial_year')} /></Field>
+        </div>
+        <CheckboxRow checked={form.has_preference_scheme} onChange={(v) => setForm(f => ({ ...f, has_preference_scheme: v }))} label="Preference and reservation scheme applies" />
+        <Field label="Opening venue" error={err('opening_venue')}><TextInput value={form.opening_venue} onChange={set('opening_venue')} error={err('opening_venue')} /></Field>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+          <Field label="Tender fee (KES)" hint="0 = free" error={err('tender_fee')}><NumberInput value={form.tender_fee} onChange={set('tender_fee')} error={err('tender_fee')} /></Field>
+          <Field label="Tender validity (days)" error={err('validity_days')}><NumberInput value={form.validity_days} onChange={set('validity_days')} error={err('validity_days')} /></Field>
+        </div>
+        <Field label="Public link" hint="Where the notice is also published, if anywhere" error={err('public_link')}><TextInput type="url" value={form.public_link} onChange={set('public_link')} error={err('public_link')} /></Field>
         <Field label="Submission deadline" error={err('submission_deadline')}><TextInput type="datetime-local" value={form.submission_deadline} onChange={set('submission_deadline')} error={err('submission_deadline')} /></Field>
         <Field label="Requirements" hint="One per line"><TextArea value={form.requirements} onChange={set('requirements')} rows={3} /></Field>
         <Field label="Evaluation criteria" hint="One per line"><TextArea value={form.evaluation_criteria} onChange={set('evaluation_criteria')} rows={3} /></Field>

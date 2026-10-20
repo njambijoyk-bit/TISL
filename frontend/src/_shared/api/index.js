@@ -44,4 +44,5 @@ export { publicApi, applicantAuth, portalApi, adminCareersApi } from './careersA
 export { default as vendorsAPI } from './vendors';
 export { default as vendorPortalAPI } from './vendorPortal';
 export { default as tendersAPI } from './tenders';
+export { default as publicTendersAPI } from './publicTenders';
 export { default as prequalificationAPI } from './prequalification';

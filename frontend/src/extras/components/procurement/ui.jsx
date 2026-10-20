@@ -1,6 +1,6 @@
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import { colors, card, radius } from '../../../_shared/theme/tokens';
-import { th } from './format';
+import { th, linkStyle, fmtLongDate, fmtDateTime, fmtFee, METHOD_LABELS, SUBMISSION_LABELS, CATEGORY_LABELS, DOC_TYPE_LABELS } from './format';
 
 const TONES = {
   neutral: { bg: colors.neutralBg, text: colors.neutralText },
@@ -82,6 +82,63 @@ export function Table({ head, children }) {
         <thead><tr>{head.map((h, i) => <th key={i} style={th}>{h}</th>)}</tr></thead>
         <tbody>{children}</tbody>
       </table>
+    </div>
+  );
+}
+
+/**
+ * The notice details of a tender, as a procurement notice lays them out.
+ * `extra` adds rows ([label, value]) after the standard ones; `documentUrl(doc)` makes the attachments downloadable.
+ */
+export function NoticeDetails({ tender: t, extra = [], documentUrl }) {
+  const rows = [
+    ['OCID', t.ocid],
+    ['Tender number', t.tender_number],
+    ['Title', t.title],
+    ['Procurement method', METHOD_LABELS[t.procurement_method] || t.procurement_method],
+    ['Procurement category', CATEGORY_LABELS[t.category] || t.category],
+    ['Submission methods', SUBMISSION_LABELS[t.submission_method] || t.submission_method],
+    ['Reservation scheme', t.reservation_scheme],
+    ['Opening venue', t.opening_venue],
+    ['Published date', fmtLongDate(t.published_at)],
+    ['Close date and time', fmtDateTime(t.submission_deadline)],
+    ['Tender fee', fmtFee(t.tender_fee, t.currency)],
+    ['Tender validity in days', t.validity_days],
+    ['Financial year', t.financial_year],
+    ['Preference and reservation scheme', t.has_preference_scheme ? 'YES' : 'NO'],
+    ['Public link', t.public_link && <a href={t.public_link} target="_blank" rel="noopener noreferrer" style={{ ...linkStyle, wordBreak: 'break-all' }}>{t.public_link}</a>],
+    ...extra,
+  ].filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== false);
+
+  const docs = t.documents || [];
+
+  return (
+    <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
+      {rows.map(([label, value], i) => (
+        <div key={label} style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '11px 18px', borderTop: i ? `1px solid ${colors.tint(0.08)}` : 'none' }}>
+          <div style={{ flex: '0 0 220px', maxWidth: '100%', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, paddingTop: 2 }}>{label}</div>
+          <div style={{ flex: '1 1 260px', minWidth: 0, fontSize: '0.85rem', color: colors.text, overflowWrap: 'anywhere' }}>{value}</div>
+        </div>
+      ))}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '11px 18px', borderTop: `1px solid ${colors.tint(0.08)}` }}>
+        <div style={{ flex: '0 0 220px', maxWidth: '100%', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, paddingTop: 2 }}>Attachments</div>
+        <div style={{ flex: '1 1 260px', minWidth: 0, display: 'grid', gap: 8 }}>
+          {docs.length === 0 && <span style={{ fontSize: '0.85rem', color: colors.textMuted }}>None</span>}
+          {docs.map(d => {
+            const url = documentUrl?.(d);
+            const when = d.uploaded_at || d.created_at;
+            return (
+              <div key={d.id} style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', fontSize: '0.82rem', color: colors.text }}>
+                <span style={{ fontWeight: 600 }}>{DOC_TYPE_LABELS[d.document_type] || 'Tender document'}</span>
+                {url
+                  ? <a href={url} style={{ ...linkStyle, overflowWrap: 'anywhere' }}>{d.name}</a>
+                  : <span style={{ overflowWrap: 'anywhere' }}>{d.name}</span>}
+                <span style={{ color: colors.textMuted }}>{fmtDateTime(when)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -12,8 +12,31 @@ class Tender extends Model
 {
     use HasFactory, SoftDeletes;
 
+    public const PROCUREMENT_METHODS = [
+        'open_tender', 'restricted_tender', 'request_for_quotation', 'request_for_proposal',
+        'expression_of_interest', 'direct_procurement', 'framework_agreement',
+    ];
+
+    public const SUBMISSION_METHODS = ['electronic', 'physical', 'both'];
+
+    /** The notice details an admin sets on a tender (script 217). */
+    public const NOTICE_FIELDS = [
+        'ocid', 'procurement_method', 'submission_method', 'reservation_scheme', 'has_preference_scheme',
+        'opening_venue', 'tender_fee', 'validity_days', 'financial_year', 'public_link',
+    ];
+
     protected $fillable = [
         'tender_number',
+        'ocid',
+        'procurement_method',
+        'submission_method',
+        'reservation_scheme',
+        'has_preference_scheme',
+        'opening_venue',
+        'tender_fee',
+        'validity_days',
+        'financial_year',
+        'public_link',
         'title',
         'description',
         'category',
@@ -41,6 +64,9 @@ class Tender extends Model
         'metadata'            => 'array',
         'budget_min'          => 'decimal:2',
         'budget_max'          => 'decimal:2',
+        'tender_fee'          => 'decimal:2',
+        'validity_days'       => 'integer',
+        'has_preference_scheme' => 'boolean',
         'published_at'        => 'datetime',
         'submission_deadline' => 'datetime',
         'opening_date'        => 'datetime',
@@ -88,6 +114,13 @@ class Tender extends Model
     public function scopePublished($query)
     {
         return $query->where('status', 'published');
+    }
+
+    /** What the public may see: published, closed and awarded notices, never invite-only ones. */
+    public function scopePublicNotice($query)
+    {
+        return $query->whereIn('status', ['published', 'closed', 'awarded'])
+            ->where('visibility', '!=', 'invited');
     }
 
     public function scopeOpen($query)

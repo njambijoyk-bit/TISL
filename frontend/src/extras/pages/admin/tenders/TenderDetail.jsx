@@ -4,7 +4,7 @@ import { ArrowLeft, FileText, Send, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
-import { AdminPage, Loading, Empty, Tabs, Table, StatusBadge } from '../../../components/procurement/ui';
+import { AdminPage, Loading, Empty, Tabs, Table, StatusBadge, NoticeDetails } from '../../../components/procurement/ui';
 import { td, mono, kes, fmtDate } from '../../../components/procurement/format';
 
 export default function TenderDetail() {
@@ -33,12 +33,9 @@ export default function TenderDetail() {
   if (loading) return <AdminPage><Loading /></AdminPage>;
   if (!tender) return <AdminPage><Empty>Tender not found</Empty></AdminPage>;
 
-  const facts = [
-    ['Category', tender.category],
+  const extra = [
     ['Visibility', tender.visibility?.replace(/_/g, ' ')],
-    ['Budget', tender.budget_min || tender.budget_max ? `${kes(tender.budget_min)} – ${kes(tender.budget_max)}` : '—'],
-    ['Published', fmtDate(tender.published_at)],
-    ['Deadline', tender.submission_deadline ? new Date(tender.submission_deadline).toLocaleString() : '—'],
+    ['Budget (internal)', tender.budget_min || tender.budget_max ? `${kes(tender.budget_min)} – ${kes(tender.budget_max)}` : null],
   ];
   const lbl = { fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.primaryDeep, marginBottom: 3 };
 
@@ -64,15 +61,15 @@ export default function TenderDetail() {
       <Tabs value={tab} onChange={setTab} tabs={[['details', 'Details'], ['bids', `Bids (${bids.length})`], ['documents', 'Documents']]} />
 
       {tab === 'details' && (
-        <div style={{ ...card, padding: 22 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 18 }}>
-            {facts.map(([l, v]) => (
-              <div key={l}><div style={lbl}>{l}</div><div style={{ fontSize: '0.88rem', fontWeight: 600, color: colors.text, textTransform: l === 'Category' ? 'capitalize' : undefined }}>{v || '—'}</div></div>
-            ))}
-          </div>
-          {tender.description && <div style={{ marginTop: 18 }}><div style={lbl}>Description</div><p style={{ fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody, margin: 0 }}>{tender.description}</p></div>}
-          {(tender.requirements || []).length > 0 && <div style={{ marginTop: 18 }}><div style={lbl}>Requirements</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.requirements.map((r, i) => <li key={i}>{r.label || r}</li>)}</ul></div>}
-          {(tender.evaluation_criteria || []).length > 0 && <div style={{ marginTop: 18 }}><div style={lbl}>Evaluation criteria</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.evaluation_criteria.map((c, i) => <li key={i}>{c.criterion || c}</li>)}</ul></div>}
+        <div style={{ display: 'grid', gap: 14 }}>
+          <NoticeDetails tender={tender} extra={extra} />
+          {(tender.description || (tender.requirements || []).length > 0 || (tender.evaluation_criteria || []).length > 0) && (
+            <div style={{ ...card, padding: 22, display: 'grid', gap: 18 }}>
+              {tender.description && <div><div style={lbl}>Description</div><p style={{ fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody, margin: 0 }}>{tender.description}</p></div>}
+              {(tender.requirements || []).length > 0 && <div><div style={lbl}>Requirements</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.requirements.map((r, i) => <li key={i}>{r.label || r}</li>)}</ul></div>}
+              {(tender.evaluation_criteria || []).length > 0 && <div><div style={lbl}>Evaluation criteria</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: '0.85rem', color: colors.textBody }}>{tender.evaluation_criteria.map((c, i) => <li key={i}>{c.criterion || c}</li>)}</ul></div>}
+            </div>
+          )}
         </div>
       )}
 

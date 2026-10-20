@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Gavel, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
@@ -30,7 +31,9 @@ export default function VendorTenders() {
           {tenders.map(t => (
             <div key={t.id} style={{ ...card, padding: '16px 20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.text }}>{t.title}</div>
+                {t.visibility === 'invited'
+                  ? <div style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.text }}>{t.title}</div>
+                  : <Link to={`/tenders/${t.id}`} style={{ fontSize: '0.95rem', fontWeight: 700, color: colors.text, textDecoration: 'none' }}>{t.title}</Link>}
                 <StatusBadge status="published" label={t.category} />
               </div>
               <div style={{ fontSize: '0.76rem', marginTop: 6, display: 'flex', gap: 14, flexWrap: 'wrap', color: colors.textMuted }}>

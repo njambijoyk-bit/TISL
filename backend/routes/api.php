@@ -3308,6 +3308,15 @@ Route::middleware(['auth:sanctum', 'permission:appearance.manage'])->group(funct
 // Vendor self-registration (public, gated by module:extras)
 Route::post('/auth/vendor-register', [AuthController::class, 'registerVendor'])->middleware(['module:extras', 'throttle:sign-up']);
 
+// Public tender notices: anyone can read them, Extras on
+Route::middleware(['module:extras', 'throttle:60,1'])->prefix('public/tenders')->group(function () {
+    $pt = \App\Http\Controllers\Api\PublicTenderController::class;
+
+    Route::get('/',                            [$pt, 'index']);
+    Route::get('/{id}',                        [$pt, 'show'])->whereNumber('id');
+    Route::get('/{id}/documents/{docId}',      [$pt, 'download'])->whereNumber('id')->whereNumber('docId');
+});
+
 // Vendor portal — logged-in vendor, Extras on
 Route::middleware(['auth:sanctum', 'module:extras'])->prefix('vendor-portal')->group(function () {
     $vp = \App\Http\Controllers\Api\VendorPortalController::class;
