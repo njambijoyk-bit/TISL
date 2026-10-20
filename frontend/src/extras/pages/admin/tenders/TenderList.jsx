@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Gavel } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary } from '../../../../_shared/theme/tokens';
 import { TextInput, SelectInput } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Heading, Loading, Empty, Table, StatusBadge, GroupBadge } from '../../../components/procurement/ui';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { AdminPage, Heading, Loading, Empty, Table, StatusBadge, GroupBadge, ErrorBanner } from '../../../components/procurement/ui';
 import { td, mono, linkStyle, fmtDateTime, NOTICE_TYPE_LABELS } from '../../../components/procurement/format';
 
 const WHO = { public: 'Public', all_vendors: 'Vendors', prequalified: 'Pre-qualified', invited: 'Invited' };
@@ -16,13 +16,14 @@ export default function TenderList() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [who, setWho] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     setLoading(true);
     const t = setTimeout(() => {
       tendersAPI.list({ search: search || undefined, status: statusFilter || undefined, visibility: who || undefined })
-        .then(r => setTenders(r.rows || []))
-        .catch(() => toast.error('Failed to load tenders'))
+        .then(r => { setTenders(r.rows || []); setError(null); })
+        .catch(e => { setTenders([]); setError(errMsg(e, 'Failed to load tenders')); })
         .finally(() => setLoading(false));
     }, search ? 250 : 0);
     return () => clearTimeout(t);
@@ -45,7 +46,8 @@ export default function TenderList() {
         </SelectInput>
       </div>
 
-      {loading ? <Loading /> : tenders.length === 0 ? <Empty icon={Gavel}>No tenders found</Empty> : (
+      <ErrorBanner message={error} />
+      {loading ? <Loading /> : error ? null : tenders.length === 0 ? <Empty icon={Gavel}>No tenders found</Empty> : (
         <Table head={['Tender', 'Title', 'Who sees it', 'Status', 'Closes', 'Files', 'Lots']}>
           {tenders.map(t => (
             <tr key={t.id}>

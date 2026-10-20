@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Gavel, Lock, ClipboardCheck, Package, Building, ArrowRight } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors } from '../../../_shared/theme/tokens';
-import { Page, Heading, Loading, StatusBadge } from '../../components/procurement/ui';
+import { errMsg } from '../../../_shared/store/helpers/apiState';
+import { Page, Heading, Loading, StatusBadge, ErrorBanner } from '../../components/procurement/ui';
 
 function StatCard({ icon: Icon, label, value, to }) {
   return (
@@ -24,13 +24,14 @@ function StatCard({ icon: Icon, label, value, to }) {
 export default function VendorDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    vendorPortalAPI.dashboard().then(setData).catch(() => toast.error('Failed to load dashboard')).finally(() => setLoading(false));
+    vendorPortalAPI.dashboard().then(setData).catch(e => setError(errMsg(e, 'Failed to load dashboard'))).finally(() => setLoading(false));
   }, []);
 
   if (loading) return <Page width={900}><Loading /></Page>;
-  if (!data) return null;
+  if (!data) return <Page width={900}><ErrorBanner message={error} /></Page>;
   const v = data.vendor;
 
   return (

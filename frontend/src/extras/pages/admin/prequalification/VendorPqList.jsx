@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { ClipboardCheck } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { vendorPrequalificationsAPI } from '../../../../_shared/api/index';
 import { TextInput, SelectInput } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Heading, Loading, Empty, Table, StatusBadge } from '../../../components/procurement/ui';
+import { AdminPage, Heading, Loading, Empty, Table, StatusBadge, ErrorBanner } from '../../../components/procurement/ui';
 import { td, fmtLongDate, CATEGORY_LABELS } from '../../../components/procurement/format';
 
 export default function VendorPqList() {
@@ -12,12 +12,13 @@ export default function VendorPqList() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [expiring, setExpiring] = useState('');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     setLoading(true);
     const t = setTimeout(() => {
       vendorPrequalificationsAPI.list({ search: search || undefined, category: category || undefined, expiring: expiring || undefined })
-        .then(r => setRows(r.rows || [])).catch(() => toast.error('Failed to load')).finally(() => setLoading(false));
+        .then(r => { setRows(r.rows || []); setError(null); }).catch(e => { setRows([]); setError(errMsg(e, 'Failed to load')); }).finally(() => setLoading(false));
     }, search ? 250 : 0);
     return () => clearTimeout(t);
   }, [search, category, expiring]);
@@ -35,7 +36,8 @@ export default function VendorPqList() {
           <option value="">Any expiry</option><option value="30">Expiring in 30 days</option><option value="90">Expiring in 90 days</option>
         </SelectInput>
       </div>
-      {loading ? <Loading /> : rows.length === 0 ? <Empty icon={ClipboardCheck}>Nothing recorded</Empty> : (
+      <ErrorBanner message={error} />
+      {loading ? <Loading /> : error ? null : rows.length === 0 ? <Empty icon={ClipboardCheck}>Nothing recorded</Empty> : (
         <Table head={['Vendor', 'Category', 'Status', 'From', 'Valid until', 'Reason', 'By']}>
           {rows.map(r => (
             <tr key={r.id}>

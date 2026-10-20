@@ -4,7 +4,8 @@ import { Gavel, Download, MoreVertical, Share2, Eye, Copy, Mail, MessageCircle }
 import toast from 'react-hot-toast';
 import { card, colors, btnGhost, radius } from '../../../_shared/theme/tokens';
 import { TextInput, SelectInput } from '../../../core/components/admin/ui/Form';
-import { Loading, Empty, StatusBadge, GroupBadge } from './ui';
+import { errMsg } from '../../../_shared/store/helpers/apiState';
+import { Loading, Empty, StatusBadge, GroupBadge, ErrorBanner } from './ui';
 import { th, td, linkStyle, fmtLongDate, fmtDateTime, timeToClose, METHOD_LABELS, CATEGORY_LABELS } from './format';
 
 const ALL_TABS = [['active', 'Active'], ['closed', 'Closed'], ['agpo', 'AGPO'], ['terminated', 'Terminated'], ['all', 'All']];
@@ -101,7 +102,7 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
   const [page, setPage] = useState(1);
   const [data, setData] = useState({ rows: [], meta: null, counts: {}, show_entity: true });
   const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState(null);
   const [now, setNow] = useState(Date.now());
   const debounced = useDebounced(filters);
 
@@ -116,8 +117,8 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
   useEffect(() => {
     setLoading(true);
     fetchList(params())
-      .then(r => { setData(r); setFailed(false); })
-      .catch(() => setFailed(true))
+      .then(r => { setData(r); setFailed(null); })
+      .catch(e => setFailed(errMsg(e, 'Tenders could not be loaded. Please try again shortly.')))
       .finally(() => setLoading(false));
   }, [fetchList, params]);
 
@@ -133,7 +134,7 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
       const a = document.createElement('a');
       a.href = url; a.download = 'tenders.xlsx'; a.click();
       URL.revokeObjectURL(url);
-    } catch { toast.error('Could not download the list'); }
+    } catch (e) { toast.error(errMsg(e, 'Could not download the list')); }
   };
 
   const rows = data.rows || [];
@@ -168,7 +169,7 @@ export default function TenderBoard({ fetchList, exportList, basePath, tabs = AL
         </div>
       )}
 
-      {loading && rows.length === 0 ? <Loading /> : failed ? <Empty icon={Gavel}>Tenders could not be loaded. Please try again shortly.</Empty>
+      {loading && rows.length === 0 ? <Loading /> : failed ? <ErrorBanner message={failed} />
         : narrow ? (
           rows.length === 0 ? <Empty icon={Gavel}>{emptyText}</Empty> : (
             <div style={{ display: 'grid', gap: 10 }}>

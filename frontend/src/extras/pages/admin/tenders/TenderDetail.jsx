@@ -6,13 +6,13 @@ import { tendersAPI, vendorsAPI } from '../../../../_shared/api/index';
 import { errMsg } from '../../../../_shared/store/helpers/apiState';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import { Field, TextInput, SelectInput, CheckboxRow } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Loading, Empty, Tabs, StatusBadge, NoticeDetails, AttachmentRow, GroupBadge } from '../../../components/procurement/ui';
+import { AdminPage, Loading, Empty, Tabs, StatusBadge, NoticeDetails, AttachmentRow, GroupBadge, ErrorBanner } from '../../../components/procurement/ui';
 import { mono, fmtDateTime, DOC_TYPE_LABELS, GROUP_LABELS, VISIBILITY_LABELS } from '../../../components/procurement/format';
 import { goToFile } from '../../../components/procurement/openDocument';
 
 const box = { ...card, padding: 18, display: 'grid', gap: 12 };
 
-function Attachments({ tender, reload }) {
+function Attachments({ tender, reload, onError }) {
   const fileRef = useRef(null);
   const [file, setFile] = useState(null);
   const [type, setType] = useState('tender_document');
@@ -23,7 +23,7 @@ function Attachments({ tender, reload }) {
   const published = tender.status === 'published';
 
   const open = async (d, inline) => {
-    try { goToFile((await tendersAPI.documentLink(tender.id, d.id, inline)).url, inline); } catch (x) { toast.error(errMsg(x, 'Could not open the file')); }
+    try { goToFile((await tendersAPI.documentLink(tender.id, d.id, inline)).url, inline); } catch (x) { onError(errMsg(x, 'Could not open the file')); }
   };
   const upload = async (e) => {
     e.preventDefault();
@@ -39,12 +39,12 @@ function Attachments({ tender, reload }) {
       setFile(null); setName(''); setNote(''); setNotify(false);
       if (fileRef.current) fileRef.current.value = '';
       reload();
-    } catch (x) { toast.error(errMsg(x, 'Upload failed')); } finally { setBusy(false); }
+    } catch (x) { onError(errMsg(x, 'Upload failed')); } finally { setBusy(false); }
   };
-  const retype = async (d, v) => { try { await tendersAPI.updateDocument(tender.id, d.id, { document_type: v }); reload(); } catch (x) { toast.error(errMsg(x, 'Could not change it')); } };
+  const retype = async (d, v) => { try { await tendersAPI.updateDocument(tender.id, d.id, { document_type: v }); reload(); } catch (x) { onError(errMsg(x, 'Could not change it')); } };
   const remove = async (d) => {
     if (!window.confirm(`Remove "${d.name}"? Vendors and the public will no longer see it.`)) return;
-    try { await tendersAPI.deleteDocument(tender.id, d.id); toast.success('File removed'); reload(); } catch (x) { toast.error(errMsg(x, 'Could not remove it')); }
+    try { await tendersAPI.deleteDocument(tender.id, d.id); toast.success('File removed'); reload(); } catch (x) { onError(errMsg(x, 'Could not remove it')); }
   };
 
   return (
@@ -84,7 +84,7 @@ function Attachments({ tender, reload }) {
   );
 }
 
-function Audience({ tender, reload }) {
+function Audience({ tender, reload, onError }) {
   const [eligible, setEligible] = useState(null);
   const [note, setNote] = useState('');
   const [kind, setKind] = useState('notice');
@@ -104,13 +104,13 @@ function Audience({ tender, reload }) {
 
   const invite = async () => {
     try { const res = await tendersAPI.invite(tender.id, { vendor_ids: picked, group: group || undefined }); toast.success(res.message); setPicked([]); setGroup(''); reload(); }
-    catch (x) { toast.error(errMsg(x, 'Could not invite')); }
+    catch (x) { onError(errMsg(x, 'Could not invite')); }
   };
-  const uninvite = async (vid) => { try { await tendersAPI.uninvite(tender.id, vid); reload(); } catch (x) { toast.error(errMsg(x, 'Could not remove')); } };
+  const uninvite = async (vid) => { try { await tendersAPI.uninvite(tender.id, vid); reload(); } catch (x) { onError(errMsg(x, 'Could not remove')); } };
   const send = async () => {
     setBusy(true);
     try { const res = await tendersAPI.email(tender.id, { note: note || undefined, kind }); toast.success(res.message); setNote(''); reload(); }
-    catch (x) { toast.error(errMsg(x, 'Could not send')); } finally { setBusy(false); }
+    catch (x) { onError(errMsg(x, 'Could not send')); } finally { setBusy(false); }
   };
 
   const draft = tender.status === 'draft';
@@ -177,6 +177,8 @@ export default function TenderDetail() {
   const { id } = useParams();
   const [tender, setTender] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const [tab, setTab] = useState('details');
   const [publishing, setPublishing] = useState(false);
   const [notifyOnPublish, setNotifyOnPublish] = useState(true);
@@ -184,19 +186,19 @@ export default function TenderDetail() {
   const [newClose, setNewClose] = useState('');
 
   const load = useCallback(async () => {
-    try { setTender(await tendersAPI.show(id)); } catch { toast.error('Failed to load tender'); } finally { setLoading(false); }
+    try { setTender(await tendersAPI.show(id)); setLoadError(null); } catch (e) { setLoadError(errMsg(e, 'Failed to load tender')); } finally { setLoading(false); }
   }, [id]);
   useEffect(() => { load(); }, [load]);
 
   const act = (fn, ok) => async () => {
-    try { const r = await fn(); toast.success(r?.message || ok); load(); } catch (e) { toast.error(errMsg(e, 'Could not do that')); }
+    try { setActisetActionError(null); const r = await fn(); toast.success(r?.message || ok); load(); } catch (e) { onError(errMsg(e, 'Could not do that')); }
   };
   const open = async (d, inline) => {
-    try { goToFile((await tendersAPI.documentLink(id, d.id, inline)).url, inline); } catch (x) { toast.error(errMsg(x, 'Could not open the file')); }
+    try { goToFile((await tendersAPI.documentLink(id, d.id, inline)).url, inline); } catch (x) { setActionError(errMsg(x, 'Could not open the file')); }
   };
 
   if (loading) return <AdminPage><Loading /></AdminPage>;
-  if (!tender) return <AdminPage><Empty>Tender not found</Empty></AdminPage>;
+  if (!tender) return <AdminPage><ErrorBanner message={loadError} /><Empty>Tender not found</Empty></AdminPage>;
 
   const shown = { ...tender, documents: (tender.documents || []).map(d => ({ ...d, type: d.document_type, uploaded_at: d.created_at, size: d.file_size, filename: d.original_filename })) };
   const st = tender.status;
@@ -238,6 +240,7 @@ export default function TenderDetail() {
         </div>
       )}
 
+      <ErrorBanner message={actionError} />
       <Tabs value={tab} onChange={setTab} tabs={[['details', 'Details'], ['files', `Files (${(tender.documents || []).length})`], ['vendors', 'Vendors and email']]} />
 
       {tab === 'details' && (
@@ -246,8 +249,8 @@ export default function TenderDetail() {
           {tender.description && <div style={{ ...card, padding: 22 }}><div style={lbl}>Description</div><p style={{ fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody, margin: 0 }}>{tender.description}</p></div>}
         </div>
       )}
-      {tab === 'files' && <Attachments tender={tender} reload={load} />}
-      {tab === 'vendors' && <Audience tender={tender} reload={load} />}
+      {tab === 'files' && <Attachments tender={tender} reload={load} onError={setActionError} />}
+      {tab === 'vendors' && <Audience tender={tender} reload={load} onError={setActionError} />}
     </AdminPage>
   );
 }

@@ -5,7 +5,8 @@ import toast from 'react-hot-toast';
 import { tendersAPI } from '../../../../_shared/api/index';
 import { btnPrimary, btnGhost, card, colors } from '../../../../_shared/theme/tokens';
 import { Field, TextInput, NumberInput, SelectInput, TextArea, CheckboxRow } from '../../../../core/components/admin/ui/Form';
-import { AdminPage, Heading, Loading } from '../../../components/procurement/ui';
+import { errMsg } from '../../../../_shared/store/helpers/apiState';
+import { AdminPage, Heading, Loading, ErrorBanner } from '../../../components/procurement/ui';
 import { METHOD_LABELS, SUBMISSION_LABELS, GROUP_LABELS, VISIBILITY_LABELS, NOTICE_TYPE_LABELS } from '../../../components/procurement/format';
 
 const BLANK = {
@@ -23,6 +24,7 @@ export default function TenderForm() {
   const [form, setForm] = useState(BLANK);
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState(null);
   const [fetching, setFetching] = useState(isEdit);
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export default function TenderForm() {
         tender_fee: Number(t.tender_fee) || '', validity_days: t.validity_days || '', financial_year: t.financial_year || '', public_link: t.public_link || '',
         lots: (t.lots || []).map(l => ({ code: l.code, title: l.title, description: l.description || '', reservation_group: l.reservation_group || '' })),
       }))
-      .catch(() => toast.error('Failed to load tender'))
+      .catch(x => setFormError(errMsg(x, 'Failed to load tender')))
       .finally(() => setFetching(false));
   }, [id, isEdit]);
 
@@ -50,7 +52,7 @@ export default function TenderForm() {
 
   const submit = async (e) => {
     e.preventDefault();
-    setSaving(true); setErrors({});
+    setSaving(true); setErrors({}); setFormError(null);
     const payload = {
       ...form,
       submission_deadline: form.submission_deadline || null,
@@ -63,8 +65,9 @@ export default function TenderForm() {
       if (isEdit) { await tendersAPI.update(id, payload); toast.success('Tender updated'); navigate(`/admin/tenders/${id}`); }
       else { const r = await tendersAPI.create(payload); toast.success('Tender created. Add its files next.'); navigate(`/admin/tenders/${r.id}`); }
     } catch (x) {
-      if (x.response?.status === 422) { setErrors(x.response.data.errors || {}); toast.error(x.response.data.message || 'Check the form'); }
-      else toast.error(x.response?.data?.message || 'Failed to save tender');
+      if (x.response?.status === 422) setErrors(x.response.data.errors || {});
+      setFormError(errMsg(x, 'Failed to save tender'));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } finally { setSaving(false); }
   };
 
@@ -75,6 +78,7 @@ export default function TenderForm() {
       <Link to={isEdit ? `/admin/tenders/${id}` : '/admin/tenders'} style={{ ...btnGhost, textDecoration: 'none', marginBottom: 16, padding: '5px 12px', fontSize: '0.75rem' }}><ArrowLeft size={13} /> Back</Link>
       <Heading title={isEdit ? 'Edit tender' : 'New tender'} description="Fill in the notice. Upload the tender document and other files on the next page. It stays a draft until you publish it." />
 
+      <ErrorBanner message={formError} />
       <form onSubmit={submit} style={{ ...card, padding: 22, display: 'grid', gap: 14 }}>
         <Field label="Title" error={err('title')}><TextInput value={form.title} onChange={set('title')} error={err('title')} /></Field>
         <Field label="Description" error={err('description')}><TextArea value={form.description} onChange={set('description')} rows={4} /></Field>

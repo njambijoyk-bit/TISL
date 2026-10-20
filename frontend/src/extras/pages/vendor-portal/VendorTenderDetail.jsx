@@ -3,7 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors, btnGhost } from '../../../_shared/theme/tokens';
-import { Page, Loading, Empty, StatusBadge, NoticeDetails } from '../../components/procurement/ui';
+import { errMsg } from '../../../_shared/store/helpers/apiState';
+import { Page, Loading, Empty, StatusBadge, NoticeDetails, ErrorBanner } from '../../components/procurement/ui';
 import { VISIBILITY_LABELS } from '../../components/procurement/format';
 import { goToFile } from '../../components/procurement/openDocument';
 
@@ -12,10 +13,11 @@ export default function VendorTenderDetail() {
   const [tender, setTender] = useState(null);
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     setLoading(true);
-    vendorPortalAPI.showTender(id).then(setTender).catch(() => setMissing(true)).finally(() => setLoading(false));
+    vendorPortalAPI.showTender(id).then(setTender).catch(e => { setMissing(true); setError(errMsg(e, 'This tender could not be loaded')); }).finally(() => setLoading(false));
   }, [id]);
 
   const open = async (d, inline) => {
@@ -23,7 +25,7 @@ export default function VendorTenderDetail() {
   };
 
   if (loading) return <Page width={900}><Loading /></Page>;
-  if (missing || !tender) return <Page width={900}><Empty>This tender is not available to you.</Empty></Page>;
+  if (missing || !tender) return <Page width={900}><ErrorBanner message={error} /><Empty>This tender is not available to you.</Empty></Page>;
 
   return (
     <Page width={900}>

@@ -47,6 +47,16 @@ export function Heading({ title, description, action }) {
   );
 }
 
+/** A server error shown on the page itself (the message the server sent), not only in the network tab. */
+export function ErrorBanner({ message }) {
+  if (!message) return null;
+  return (
+    <p role="alert" style={{ margin: '0 0 14px', padding: '10px 14px', borderRadius: radius.sm, fontSize: '0.8rem', lineHeight: 1.5, background: colors.dangerBg, color: colors.dangerText, overflowWrap: 'anywhere' }}>
+      {message}
+    </p>
+  );
+}
+
 export function Loading() {
   return <p style={{ padding: 32, textAlign: 'center', color: colors.textMuted, margin: 0 }}>Loading…</p>;
 }
