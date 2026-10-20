@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import { AuthBrandBar, AuthBrandPanel } from './AuthBrand';
 import { useAuthBrand } from './useAuthBrand';
+import { isModuleActive } from '../../../_shared/navigation/modules';
 
 // ── Reusable field renderer (must be OUTSIDE Register to preserve focus) ──
 function Field({ name, label, type = 'text', placeholder, icon: Icon, onChange, rightEl, error: fieldError, value, focused, setFocused, handleChange }) {
@@ -275,6 +276,14 @@ export default function Register() {
             Already have an account?{' '}
             <Link to="/login" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Sign in</Link>
           </p>
+          {isModuleActive('extras') && (
+            <p style={{ textAlign: 'center', fontSize: '0.78rem', marginTop: 8 }} className="text-gray-500 dark:text-gray-400">
+              A supplier?{' '}
+              <Link to="/login" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Sign in as vendor</Link>
+              {' '}or{' '}
+              <Link to="/vendor-register" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>register as a vendor</Link>
+            </p>
+          )}
         </div>
       </div>
 
