@@ -637,8 +637,11 @@ export default function VoucherForm({ api = booksAPI, mode = 'books' }) {
                   <label style={{ ...label, ...(!h.party_ledger_id && !(base === 'purchase' && cashPurchase) ? { color: '#b91c1c' } : {}) }}>{isMoney ? 'Party' : 'Supplier'}{!h.party_ledger_id && (base === 'purchase' && cashPurchase ? <span style={{ fontWeight: 600 }}> — optional</span> : <span style={{ fontWeight: 600 }}> — choose one</span>)}{h.party_ledger_id && <button type="button" onClick={clearParty} style={CLEAR_BTN}>Clear</button>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => { setAlloc({}); setAllocTouched(false); setH((x) => ({ ...x, party_ledger_id: e.target.value, customer: null })); }} style={small}>
                     <option value="">Choose a ledger…</option>
-                    {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : (isMoney && !allParties ? partyLedgers : ledgers)).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    {(type?.party_kind === 'supplier' ? partyLedgers.filter((l) => l.group?.name === 'Sundry Creditors') : (isMoney && !allParties ? partyLedgers : ledgers)).map((l) => <option key={l.id} value={l.id}>{l.supplier_status === 'suspended' ? `${l.name}  (SUSPENDED)` : l.name}</option>)}
                   </select>
+                  {ledgers.find((l) => String(l.id) === String(h.party_ledger_id))?.supplier_status === 'suspended' && (
+                    <span style={{ display: 'inline-block', marginTop: 6, fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 8px', borderRadius: 6, background: colors.dangerBg, color: colors.dangerText }}>Suspended vendor</span>
+                  )}
                   {h.party_ledger_id && <button type="button" onClick={clearParty} style={CHANGE_LINK}>{isMoney ? 'Select another party' : 'Select another supplier'}</button>}
                   {isMoney && <label style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 6, fontSize: '0.72rem', color: colors.textMuted, cursor: 'pointer' }}><input type="checkbox" checked={allParties} onChange={(e) => setAllParties(e.target.checked)} /> Show every ledger (expenses, other accounts)</label>}
                 </div>
