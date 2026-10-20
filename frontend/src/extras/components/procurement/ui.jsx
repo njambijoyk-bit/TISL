@@ -1,8 +1,8 @@
 import AdminLayout from '../../../_shared/components/layout/AdminLayout';
 import Header from '../../../_shared/components/layout/Header';
 import Footer from '../../../_shared/components/layout/Footer';
-import { colors, card, radius } from '../../../_shared/theme/tokens';
-import { th, linkStyle, fmtLongDate, fmtDateTime, fmtFee, fmtSize, METHOD_LABELS, SUBMISSION_LABELS, CATEGORY_LABELS, DOC_TYPE_LABELS, GROUP_LABELS, NOTICE_TYPE_LABELS } from './format';
+import { colors, card, radius, btnPrimary, btnGhost } from '../../../_shared/theme/tokens';
+import { th, td, linkStyle, fmtLongDate, fmtDateTime, fmtFee, fmtSize, METHOD_LABELS, SUBMISSION_LABELS, CATEGORY_LABELS, DOC_TYPE_LABELS, GROUP_LABELS, NOTICE_TYPE_LABELS } from './format';
 
 const TONES = {
   neutral: { bg: colors.neutralBg, text: colors.neutralText },
@@ -114,8 +114,6 @@ export function GroupBadge({ group }) {
   return <span style={{ fontSize: '0.66rem', fontWeight: 700, padding: '2px 8px', borderRadius: radius.sm, background: colors.infoBg, color: colors.infoText, whiteSpace: 'nowrap' }}>{GROUP_LABELS[group] || group}</span>;
 }
 
-const rowLabel = { flex: '0 0 220px', maxWidth: '100%', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, paddingTop: 2 };
-const rowBox = (first) => ({ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', padding: '11px 18px', borderTop: first ? 'none' : `1px solid ${colors.tint(0.08)}` });
 const miniBtn = { background: 'none', border: 'none', padding: 0, fontFamily: 'inherit', fontSize: '0.8rem', cursor: 'pointer', ...linkStyle };
 
 /** One attachment: its type, name, upload date and time, and Open (PDF and HTML) / Download. `onOpen(doc, inline)` fetches the file. */
@@ -134,65 +132,104 @@ export function AttachmentRow({ doc: d, onOpen, extra }) {
   );
 }
 
+const cell = { ...card, padding: '16px 20px', minWidth: 0 };
+const cellLabel = { fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: colors.primaryDeep, paddingBottom: 8, marginBottom: 10, borderBottom: `1px solid ${colors.tint(0.1)}` };
+const chip = { display: 'inline-block', fontSize: '0.8rem', fontWeight: 600, padding: '5px 14px', borderRadius: 999, background: colors.tint(0.1), color: colors.primaryDeep };
+
+function copyText(text) {
+  Promise.resolve(navigator.clipboard?.writeText(text)).catch(() => {});
+}
+
 /**
- * The notice details of a tender, as a procurement notice lays them out, then its lots and attachments.
- * `extra` adds rows ([label, value]); `onOpen(doc, inline)` opens or downloads an attachment.
+ * The notice details of a tender as a set of cards (two to a row, one on a phone), then the lots and an attachments table.
+ * `extra` adds cards ([label, value]); `onOpen(doc, inline)` opens or downloads an attachment.
  */
 export function NoticeDetails({ tender: t, extra = [], onOpen }) {
-  const rows = [
+  const cards = [
     ['OCID', t.ocid],
     ['Tender number', t.tender_number],
     ['Notice type', t.notice_type && t.notice_type !== 'tender' ? NOTICE_TYPE_LABELS[t.notice_type] : null],
-    ['Title', t.title],
+    ['Title', t.title, true],
     ['Procuring entity', t.procuring_entity],
     ['Procurement method', METHOD_LABELS[t.procurement_method] || t.procurement_method],
     ['Procurement category', CATEGORY_LABELS[t.category] || t.category],
-    ['Submission methods', SUBMISSION_LABELS[t.submission_method] || t.submission_method],
-    ['Reservation scheme', t.reservation_scheme && (GROUP_LABELS[t.reservation_scheme] || t.reservation_scheme)],
+    ['Submission methods', SUBMISSION_LABELS[t.submission_method] && <span style={chip}>{SUBMISSION_LABELS[t.submission_method]}</span>],
+    ['Reservation scheme', t.reservation_scheme && <span style={chip}>{GROUP_LABELS[t.reservation_scheme] || t.reservation_scheme}</span>],
     ['Opening venue', t.opening_venue],
-    ['Published date', fmtLongDate(t.published_at)],
+    ['Published date', t.published_at ? fmtLongDate(t.published_at) : null],
     ['Close date and time', fmtDateTime(t.submission_deadline)],
     ['Tender fee', fmtFee(t.tender_fee, t.currency)],
     ['Tender validity in days', t.validity_days],
     ['Financial year', t.financial_year],
     ['Preference and reservation scheme', t.has_preference_scheme ? 'YES' : 'NO'],
-    ['Public link', t.public_link && <a href={t.public_link} target="_blank" rel="noopener noreferrer" style={{ ...linkStyle, wordBreak: 'break-all' }}>{t.public_link}</a>],
+    ['Public link', t.public_link && (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <a href={t.public_link} target="_blank" rel="noopener noreferrer" style={{ ...linkStyle, wordBreak: 'break-all' }}>{t.public_link}</a>
+        <button type="button" onClick={() => copyText(t.public_link)} style={{ ...btnPrimary, padding: '6px 14px', fontSize: '0.72rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Copy URL</button>
+      </span>
+    )],
     ...extra,
   ].filter(([, v]) => v !== undefined && v !== null && v !== '' && v !== false);
 
   const docs = t.documents || [];
   const lots = t.lots || [];
+  const sectionTitle = { fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.14em', color: colors.text, margin: '22px 4px 10px' };
 
   return (
-    <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-      {rows.map(([label, value], i) => (
-        <div key={label} style={rowBox(i === 0)}>
-          <div style={rowLabel}>{label}</div>
-          <div style={{ flex: '1 1 260px', minWidth: 0, fontSize: '0.85rem', color: colors.text, overflowWrap: 'anywhere' }}>{value}</div>
-        </div>
-      ))}
-      {lots.length > 0 && (
-        <div style={rowBox(false)}>
-          <div style={rowLabel}>Lots</div>
-          <div style={{ flex: '1 1 260px', minWidth: 0, display: 'grid', gap: 8 }}>
-            {lots.map(l => (
-              <div key={l.code} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '2px 10px', fontSize: '0.85rem', color: colors.text }}>
-                <strong>Lot {l.code}</strong>
-                <span style={{ overflowWrap: 'anywhere' }}>{l.title}</span>
-                <GroupBadge group={l.reservation_group} />
-                {l.description && <span style={{ flexBasis: '100%', color: colors.textMuted, fontSize: '0.8rem' }}>{l.description}</span>}
-              </div>
-            ))}
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: 14 }}>
+        {cards.map(([label, value, wide]) => (
+          <div key={label} style={{ ...cell, ...(wide ? { gridColumn: '1 / -1' } : {}) }}>
+            <div style={cellLabel}>{label}</div>
+            <div style={{ fontSize: wide ? '0.95rem' : '0.9rem', color: colors.text, overflowWrap: 'anywhere', lineHeight: 1.5 }}>{value}</div>
           </div>
+        ))}
+      </div>
+
+      {lots.length > 0 && (
+        <>
+          <div style={sectionTitle}>Lots</div>
+          <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr>{['Lot', 'Title', 'Reserved for'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+              <tbody>
+                {lots.map(l => (
+                  <tr key={l.code}>
+                    <td style={{ ...td, fontWeight: 700 }}>{l.code}</td>
+                    <td style={{ ...td, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{l.title}{l.description && <div style={{ color: colors.textMuted, fontSize: '0.76rem' }}>{l.description}</div>}</td>
+                    <td style={td}>{l.reservation_group ? <GroupBadge group={l.reservation_group} /> : 'Open to all'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      <div style={sectionTitle}>Attachments</div>
+      {docs.length === 0 ? <div style={{ ...card, padding: 18, fontSize: '0.85rem', color: colors.textMuted }}>None</div> : (
+        <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+            <thead><tr>{['Document type', 'Description', 'Date uploaded', 'Action'].map(h => <th key={h} style={{ ...th, padding: '14px 16px', fontSize: '0.74rem' }}>{h}</th>)}</tr></thead>
+            <tbody>
+              {docs.map(d => {
+                const canView = ['pdf', 'html', 'htm'].includes(String(d.extension || '').toLowerCase());
+                return (
+                  <tr key={d.id}>
+                    <td style={{ ...td, padding: '14px 16px', fontSize: '0.85rem' }}>{DOC_TYPE_LABELS[d.type || d.document_type] || 'Other'}</td>
+                    <td style={{ ...td, padding: '14px 16px', fontSize: '0.85rem', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{d.name}{(d.size || d.file_size) ? <span style={{ color: colors.textMuted }}> · {fmtSize(d.size || d.file_size)}</span> : null}</td>
+                    <td style={{ ...td, padding: '14px 16px', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>{fmtDateTime(d.uploaded_at || d.created_at)}</td>
+                    <td style={{ ...td, padding: '14px 16px', whiteSpace: 'nowrap' }}>
+                      {canView && <button type="button" onClick={() => onOpen(d, true)} style={{ ...btnPrimary, padding: '6px 16px', fontSize: '0.72rem', letterSpacing: '0.06em', textTransform: 'uppercase', marginRight: 8 }}>View</button>}
+                      <button type="button" onClick={() => onOpen(d, false)} style={{ ...btnGhost, padding: '6px 14px', fontSize: '0.72rem' }}>Download</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
-      <div style={rowBox(false)}>
-        <div style={rowLabel}>Attachments</div>
-        <div style={{ flex: '1 1 260px', minWidth: 0, display: 'grid', gap: 10 }}>
-          {docs.length === 0 && <span style={{ fontSize: '0.85rem', color: colors.textMuted }}>None</span>}
-          {docs.map(d => <AttachmentRow key={d.id} doc={d} onOpen={onOpen} />)}
-        </div>
-      </div>
     </div>
   );
 }

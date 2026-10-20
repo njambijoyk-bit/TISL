@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { Gavel, Download, MoreVertical, Share2, Eye, Copy, Mail, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -49,26 +50,43 @@ function ShareMenu({ url, title, onDone }) {
 }
 
 function ActionsMenu({ tender, basePath }) {
-  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
   const [sharing, setSharing] = useState(false);
-  const ref = useRef(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!open) return undefined;
-    const away = (e) => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setSharing(false); } };
-    document.addEventListener('mousedown', away);
-    return () => document.removeEventListener('mousedown', away);
-  }, [open]);
+  const close = () => { setPos(null); setSharing(false); };
 
-  const close = () => { setOpen(false); setSharing(false); };
+  const toggle = () => {
+    if (pos) { close(); return; }
+    const r = btnRef.current.getBoundingClientRect();
+    setPos({ top: r.bottom + 4, bottom: window.innerHeight - r.top + 4, right: Math.max(8, window.innerWidth - r.right), up: window.innerHeight - r.bottom < 190 });
+  };
+
+  useEffect(() => {
+    if (!pos) return undefined;
+    const away = (e) => { if (!menuRef.current?.contains(e.target) && !btnRef.current?.contains(e.target)) close(); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('mousedown', away);
+    document.addEventListener('keydown', onKey);
+    window.addEventListener('scroll', close, true);
+    window.addEventListener('resize', close);
+    return () => {
+      document.removeEventListener('mousedown', away);
+      document.removeEventListener('keydown', onKey);
+      window.removeEventListener('scroll', close, true);
+      window.removeEventListener('resize', close);
+    };
+  }, [pos]);
+
   const item = { display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 12px', background: 'none', border: 'none', fontFamily: 'inherit', fontSize: '0.8rem', color: colors.text, cursor: 'pointer', textAlign: 'left' };
 
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button type="button" aria-label="Actions" aria-expanded={open} onClick={() => setOpen(o => !o)} style={{ ...btnGhost, padding: '4px 8px' }}><MoreVertical size={15} /></button>
-      {open && (
-        <div role="menu" style={{ ...card, position: 'absolute', right: 0, top: '100%', zIndex: 20, minWidth: 170, padding: 4, marginTop: 4 }}>
+    <>
+      <button ref={btnRef} type="button" aria-label="Actions" aria-expanded={!!pos} onClick={toggle} style={{ ...btnGhost, padding: '4px 8px' }}><MoreVertical size={15} /></button>
+      {pos && createPortal(
+        <div ref={menuRef} role="menu" style={{ ...card, position: 'fixed', zIndex: 1000, right: pos.right, ...(pos.up ? { bottom: pos.bottom } : { top: pos.top }), minWidth: 170, padding: 4 }}>
           {sharing
             ? <ShareMenu url={`${window.location.origin}${basePath}/${tender.slug}`} title={tender.title} onDone={close} />
             : (
@@ -77,9 +95,10 @@ function ActionsMenu({ tender, basePath }) {
                 <button type="button" style={item} onClick={() => { close(); navigate(`${basePath}/${tender.slug}`); }}><Eye size={14} /> More details</button>
               </>
             )}
-        </div>
+        </div>,
+        document.body,
       )}
-    </div>
+    </>
   );
 }
 

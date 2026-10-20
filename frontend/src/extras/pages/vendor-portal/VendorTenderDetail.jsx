@@ -5,7 +5,6 @@ import { vendorPortalAPI } from '../../../_shared/api/index';
 import { card, colors, btnGhost } from '../../../_shared/theme/tokens';
 import { errMsg } from '../../../_shared/store/helpers/apiState';
 import { SitePage, Loading, Empty, StatusBadge, NoticeDetails, ErrorBanner } from '../../components/procurement/ui';
-import { VISIBILITY_LABELS } from '../../components/procurement/format';
 import { goToFile } from '../../components/procurement/openDocument';
 
 export default function VendorTenderDetail() {
@@ -37,7 +36,7 @@ export default function VendorTenderDetail() {
         </div>
         <StatusBadge status={tender.status} />
       </div>
-      <NoticeDetails tender={tender} onOpen={open} extra={[['Who can see this', VISIBILITY_LABELS[tender.visibility]]]} />
+      <NoticeDetails tender={tender} onOpen={open} />
       {tender.description && (
         <div style={{ ...card, padding: 20, marginTop: 14 }}>
           <p style={{ margin: 0, fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap', color: colors.textBody }}>{tender.description}</p>
