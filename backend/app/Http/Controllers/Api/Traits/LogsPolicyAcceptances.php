@@ -69,6 +69,26 @@ trait LogsPolicyAcceptances
         return (int) $lastMajor < $policy->major_version;
     }
 
+    /** The same question for someone with no customer record (a vendor): what their login has accepted. */
+    protected function needsReacceptanceByUser(User $user, string $policyKey): bool
+    {
+        $policy = Policy::where('key', $policyKey)
+            ->where('is_active', true)
+            ->first();
+        if (!$policy) return false;
+
+        $lastAccepted = PolicyAcceptance::where('user_id', $user->id)
+            ->where('policy_key', $policyKey)
+            ->where('response', 'accepted')
+            ->latest('accepted_at')
+            ->first();
+
+        if (!$lastAccepted) return true;
+
+        [$lastMajor] = explode('.', $lastAccepted->policy_version);
+        return (int) $lastMajor < $policy->major_version;
+    }
+
     protected function flagCustomerForPolicy(Customer $customer, string $policyKey, string $version): void
     {
         $customer->update([

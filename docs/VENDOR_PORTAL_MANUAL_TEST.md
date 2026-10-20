@@ -150,6 +150,12 @@ SELECT id, email, role, status FROM users WHERE role='vendor';
 5. Back on the vendor click **Reset password**. **Expect:** a new password; the vendor's open sessions end; they must choose their own again at next sign-in.
 6. **Suspend** that vendor. **Expect:** their login is refused (see 4.9b). **Activate** lifts it.
 
+### 4.1c Policy acceptances are recorded for vendors
+1. Register a vendor with the consent box ticked, then open Settings > Policies > Acceptances for Terms of Use and Privacy Policy. **Expect:** a `vendor register` row in each, naming the vendor with a **Vendor** tag.
+2. Sign out and sign in as that vendor with the consent box ticked. **Expect:** a `login` row in each policy for the vendor, every time (the same as customers).
+3. Bump the major version of Terms of Use. Sign in as the vendor without ticking the box. **Expect:** "Please accept the updated policies to continue"; ticking it and signing in again records a new `login` row.
+4. A vendor made by an admin (4.1b) has no acceptances yet, so their first sign-in asks for them the same way.
+
 ### 4.2 Portal
 1. Log in as vendor A, open `/vendor-portal`. **Expect:** dashboard with vendor number, counts at 0.
 2. `/vendor-portal/profile`: change phone, add website `https://acme.test`, save. **Expect:** saved toast, values persist after refresh.

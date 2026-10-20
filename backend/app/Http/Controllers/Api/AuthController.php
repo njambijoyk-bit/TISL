@@ -344,20 +344,22 @@ class AuthController extends Controller
     }
 
     /**
-     * Customers only: the policies they must have accepted (terms, privacy). Returns the answer to send back when they still have to accept or have refused; null to carry on.
+     * Customers and vendors: the policies they must have accepted (terms, privacy). Returns the answer to send back when they still have to accept or have refused; null to carry on.
      * The same gate guards every way of signing in (password, passkey).
      */
     public function policyGate(Request $request, User $user): ?\Illuminate\Http\JsonResponse
     {
-        if ($user->isCustomer() && $user->customer) {
-            $customer = $user->customer;
+        $customer = $user->isCustomer() && $user->customer ? $user->customer : null;
+        $vendor   = ! $customer && $user->isVendor() ? $user->vendor : null;
+
+        if ($customer || $vendor) {
             $policyAcceptances = $request->input('policy_acceptances', []);
 
             // If no acceptances sent, check if re-acceptance needed
             if (empty($policyAcceptances)) {
                 $needsReaccept = [];
                 foreach (['terms_of_use', 'privacy_policy'] as $key) {
-                    if ($this->needsReacceptance($customer, $key)) {
+                    if ($customer ? $this->needsReacceptance($customer, $key) : $this->needsReacceptanceByUser($user, $key)) {
                         $policy = \App\Models\Policy::where('key', $key)->where('is_active', true)->first();
                         $needsReaccept[] = [
                             'key'                      => $key,
@@ -399,11 +401,12 @@ class AuthController extends Controller
                     user:           $user,
                     disagreeReason: $reason,
                     wasSuccessful:  $response === 'accepted',
-                    request:        $request
+                    request:        $request,
+                    vendor:         $vendor
                 );
 
                 if ($response === 'disagreed') {
-                    if ($isCritical) {
+                    if ($isCritical && $customer) {
                         // Flag the account
                         $this->flagCustomerForPolicy($customer, $policyKey, $policy?->version ?? 'unknown');
 
@@ -440,7 +443,7 @@ class AuthController extends Controller
                 }
 
                 // Accepted — clear flag if this was the flagged policy
-                if ($customer->policy_flagged && $customer->policy_flagged_policy_key === $policyKey) {
+                if ($customer && $customer->policy_flagged && $customer->policy_flagged_policy_key === $policyKey) {
                     $this->clearPolicyFlag($customer);
                 }
             }
