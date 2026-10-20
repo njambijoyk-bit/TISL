@@ -78,6 +78,14 @@ class VendorController extends Controller
 
         return DB::transaction(function () use ($v, $d) {
             $v->update($d);
+            // a vendor with a portal login: suspending the vendor suspends the login (sign-in is refused and open sessions end at once); activating lifts it
+            if (array_key_exists('status', $d) && $v->user_id && ($user = \App\Models\User::find($v->user_id))) {
+                if ($d['status'] === 'suspended' && $user->status !== 'suspended') {
+                    $user->forceFill(['status' => 'suspended'])->save();
+                } elseif ($d['status'] === 'active' && $user->status === 'suspended') {
+                    $user->forceFill(['status' => 'active'])->save();
+                }
+            }
             // an active vendor is someone we can buy from, so it needs its Sundry Creditors ledger (self-registered vendors get theirs here, once approved)
             if ($v->status === 'active') {
                 $this->ledgers->vendorLedger($v);

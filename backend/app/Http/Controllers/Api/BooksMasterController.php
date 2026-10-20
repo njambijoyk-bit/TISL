@@ -99,6 +99,10 @@ class BooksMasterController extends Controller
         $modes = app(\App\Services\Books\PaymentModeService::class)->modesFor($rows->pluck('id')->all());
         $rows->each(fn ($l) => $l->setAttribute('checkout_mode', $modes[$l->id] ?? 'details'));
         // a bank ledger is one under the Bank Accounts group (any depth) — the same test the server uses when it records a cheque or transfer
+        // a vendor's ledger says whether the vendor is suspended, so the Purchase form can flag it (the ledger stays usable)
+        $supplierIds = $rows->pluck('supplier_id')->filter()->unique()->values()->all();
+        $supplierStatus = $supplierIds ? \App\Models\Vendor::whereIn('id', $supplierIds)->pluck('status', 'id') : collect();
+        $rows->each(fn ($l) => $l->setAttribute('supplier_status', $l->supplier_id ? ($supplierStatus[$l->supplier_id] ?? null) : null));
         $bankGroupIds = LedgerGroup::where('name', 'Bank Accounts')->first()?->selfAndDescendantIds() ?? [];
         $rows->each(fn ($l) => $l->setAttribute('is_bank', in_array($l->group_id, $bankGroupIds, true)));
 

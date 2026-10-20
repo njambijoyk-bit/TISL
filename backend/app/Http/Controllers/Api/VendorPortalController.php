@@ -380,6 +380,7 @@ class VendorPortalController extends Controller
     {
         $user = $request->user();
         $vendor = Vendor::where('user_id', $user->id)->firstOrFail();
+        abort_if($vendor->status === 'suspended', 403, 'Your vendor account is suspended. Please contact us.');
 
         return $vendor;
     }

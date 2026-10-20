@@ -28,6 +28,7 @@ database/sql/215_vendor_orders_rename.sql
 database/sql/216_vendor_portal.sql
 database/sql/217_tender_notice_fields.sql   # the notice columns (OCID, method, fee, ...)
 database/sql/218_tenders_nav_link.sql        # the public "Tenders" menu link
+database/sql/219_vendors_status_column.sql   # lets vendors.status hold 'suspended'
 
 php artisan access:seed
 ```
@@ -206,6 +207,12 @@ SELECT id, po_number, vendor_id, status, total, tender_bid_id FROM vendor_orders
 ### 4.9 Permissions
 1. Create an admin with the **manager** role. **Expect:** can open `/admin/tenders` and `/admin/prequalification/submissions`; cannot create a tender or open PQ templates.
 2. A plain **customer** account hitting `/api/vendor-portal/dashboard`. **Expect:** 404 (no vendor record).
+
+### 4.9b Suspend and activate a vendor
+1. Register a vendor (e.g. Citrus), then in Admin > Vendors click **Activate**. **Expect:** status `active`, and the vendor now appears in Books > Purchases > New purchase > Supplier (a Sundry Creditors ledger was created). For vendors activated earlier, run `php artisan vendors:ledgers` once.
+2. While that vendor is signed in on another browser, click **Suspend**. **Expect:** the Vendors row shows a red `suspended` badge; the vendor's open session ends at once; signing in again is refused with a message that the account is suspended; `/api/vendor-portal/*` returns 403.
+3. Open New purchase. **Expect:** the suspended vendor is still in the Supplier list, labelled `(SUSPENDED)`, and a red "Suspended vendor" badge shows when it is chosen. Purchases and payments to it still work.
+4. Click **Activate**. **Expect:** the vendor can sign in again; the label and badge disappear.
 
 ### 4.10 Core is unchanged
 Admin `/admin/vendors` still creates a vendor and its Sundry Creditor ledger exactly as before, with Extras on or off.

@@ -403,8 +403,11 @@ export default function PurchaseForm({ kind = 'purchase' }) {
                   <label style={{ ...label, ...(!h.party_ledger_id && !h.payment_method_id ? { color: '#b91c1c' } : {}) }}>{h.payment_method_id ? 'Supplier (optional)' : 'Supplier'}{!h.party_ledger_id && !h.payment_method_id && <span style={{ fontWeight: 600 }}> — choose one</span>}{h.party_ledger_id && <button type="button" onClick={() => setH((x) => ({ ...x, party_ledger_id: '' }))} style={CLEAR_BTN}>Clear</button>}</label>
                   <select value={h.party_ledger_id} onChange={(e) => setH((x) => ({ ...x, party_ledger_id: e.target.value }))} style={small}>
                     <option value="">{h.payment_method_id ? 'Not a vendor…' : 'Choose…'}</option>
-                    {suppliers.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+                    {suppliers.map((l) => <option key={l.id} value={l.id}>{l.supplier_status === 'suspended' ? `${l.name}  (SUSPENDED)` : l.name}</option>)}
                   </select>
+                  {suppliers.find((l) => String(l.id) === String(h.party_ledger_id))?.supplier_status === 'suspended' && (
+                    <span style={{ display: 'inline-block', marginTop: 6, fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '2px 8px', borderRadius: 6, background: colors.dangerBg, color: colors.dangerText }}>Suspended vendor</span>
+                  )}
                   {h.party_ledger_id && <button type="button" onClick={() => setH((x) => ({ ...x, party_ledger_id: '' }))} style={CHANGE_LINK}>Select another supplier</button>}
                 </div>
               )}

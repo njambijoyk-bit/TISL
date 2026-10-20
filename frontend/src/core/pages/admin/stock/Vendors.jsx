@@ -122,7 +122,14 @@ export default function Vendors() {
                 <tr key={r.id}>
                   <td style={td}><strong>{r.company_name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.vendor_number}</div></td>
                   <td style={td}>{r.contact_name}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{[r.phone, r.email].filter(Boolean).join(' · ')}</div></td>
-                  <td style={td}>{r.status.replace('_', ' ')}</td>
+                  <td style={td}>
+                    {r.status === 'active' ? 'active' : (
+                      <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap',
+                        background: r.status === 'suspended' ? colors.dangerBg : colors.warningBg, color: r.status === 'suspended' ? colors.dangerText : colors.warningText }}>
+                        {String(r.status || '').replace(/_/g, ' ')}
+                      </span>
+                    )}
+                  </td>
                   <td style={{ ...td, textAlign: 'right' }}>{money(r.owed)}</td>
                   <td style={{ ...td, whiteSpace: 'nowrap' }}>
                     <button type="button" style={small} onClick={() => setModal({ kind: 'detail', id: r.id })}>View</button>
