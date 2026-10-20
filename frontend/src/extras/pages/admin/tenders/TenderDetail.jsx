@@ -103,9 +103,9 @@ export default function TenderDetail() {
             {[
               ['Category', tender.category],
               ['Visibility', tender.visibility?.replace(/_/g, ' ')],
-              ['Budget', tender.estimated_budget ? `KES ${Number(tender.estimated_budget).toLocaleString()}` : '—'],
+              ['Budget', tender.budget_min || tender.budget_max ? `KES ${Number(tender.budget_min || 0).toLocaleString()} – ${Number(tender.budget_max || 0).toLocaleString()}` : '—'],
               ['Published', tender.published_at ? new Date(tender.published_at).toLocaleDateString() : '—'],
-              ['Closing', tender.closing_date ? new Date(tender.closing_date).toLocaleDateString() : '—'],
+              ['Deadline', tender.submission_deadline ? new Date(tender.submission_deadline).toLocaleString() : '—'],
             ].map(([l, v]) => (
               <div key={l}>
                 <div style={{ fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 3 }} className="text-gray-400">{l}</div>

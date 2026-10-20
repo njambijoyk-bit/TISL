@@ -10,8 +10,8 @@ export default function TenderForm() {
   const isEdit = !!id;
 
   const [form, setForm] = useState({
-    title: '', description: '', category: '', reference_number: '',
-    estimated_budget: '', closing_date: '', visibility: 'all_vendors',
+    title: '', description: '', category: 'goods',
+    budget_min: '', budget_max: '', submission_deadline: '', visibility: 'all_vendors',
     requirements: '', evaluation_criteria: '',
   });
   const [errors, setErrors] = useState({});
@@ -24,11 +24,12 @@ export default function TenderForm() {
       .then(r => {
         const t = r.data || r;
         setForm({
-          title: t.title || '', description: t.description || '', category: t.category || '',
-          reference_number: t.reference_number || '', estimated_budget: t.estimated_budget || '',
-          closing_date: t.closing_date ? t.closing_date.slice(0, 10) : '',
-          visibility: t.visibility || 'all_vendors', requirements: Array.isArray(t.requirements) ? t.requirements.join('\n') : (t.requirements || ''),
-          evaluation_criteria: Array.isArray(t.evaluation_criteria) ? t.evaluation_criteria.join('\n') : (t.evaluation_criteria || ''),
+          title: t.title || '', description: t.description || '', category: t.category || 'goods',
+          budget_min: t.budget_min || '', budget_max: t.budget_max || '',
+          submission_deadline: t.submission_deadline ? t.submission_deadline.replace(' ', 'T').slice(0, 16) : '',
+          visibility: t.visibility || 'all_vendors',
+          requirements: (t.requirements || []).map(r => r.label || r).join('\n'),
+          evaluation_criteria: (t.evaluation_criteria || []).map(c => c.criterion || c).join('\n'),
         });
       })
       .catch(() => toast.error('Failed to load tender'))
@@ -48,8 +49,11 @@ export default function TenderForm() {
     try {
       const payload = {
         ...form,
-        requirements: form.requirements ? form.requirements.split('\n').filter(Boolean) : [],
-        evaluation_criteria: form.evaluation_criteria ? form.evaluation_criteria.split('\n').filter(Boolean) : [],
+        budget_min: form.budget_min || null,
+        budget_max: form.budget_max || null,
+        submission_deadline: form.submission_deadline || null,
+        requirements: form.requirements.split('\n').filter(Boolean).map(label => ({ label })),
+        evaluation_criteria: form.evaluation_criteria.split('\n').filter(Boolean).map(criterion => ({ criterion })),
       };
       if (isEdit) {
         await tendersAPI.update(id, payload);
@@ -104,14 +108,16 @@ export default function TenderForm() {
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <Field name="title" label="Title *" />
         <Field name="description" label="Description" as="textarea" />
+        <Field name="category" label="Category" as="select">
+          <option value="goods">Goods</option>
+          <option value="services">Services</option>
+          <option value="works">Works</option>
+        </Field>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field name="category" label="Category" />
-          <Field name="reference_number" label="Reference number" />
+          <Field name="budget_min" label="Budget min (KES)" type="number" />
+          <Field name="budget_max" label="Budget max (KES)" type="number" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <Field name="estimated_budget" label="Estimated budget (KES)" type="number" />
-          <Field name="closing_date" label="Closing date" type="date" />
-        </div>
+        <Field name="submission_deadline" label="Submission deadline" type="datetime-local" />
         <Field name="visibility" label="Visibility" as="select">
           <option value="all_vendors">All vendors</option>
           <option value="invited">Invited only</option>

@@ -100,7 +100,7 @@ export default function TenderList() {
                   <td style={{ padding: '12px 14px' }} className="text-gray-500 dark:text-gray-400">{t.category || '—'}</td>
                   <td style={{ padding: '12px 14px' }}><Badge status={t.status} /></td>
                   <td style={{ padding: '12px 14px', fontSize: '0.78rem' }} className="text-gray-500 dark:text-gray-400">
-                    {t.closing_date ? new Date(t.closing_date).toLocaleDateString() : '—'}
+                    {t.submission_deadline ? new Date(t.submission_deadline).toLocaleDateString() : '—'}
                   </td>
                   <td style={{ padding: '12px 14px', fontWeight: 600 }} className="text-gray-700 dark:text-gray-300">{t.bids_count ?? 0}</td>
                   <td style={{ padding: '12px 14px' }}>

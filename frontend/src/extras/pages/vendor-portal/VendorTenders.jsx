@@ -47,9 +47,9 @@ export default function VendorTenders() {
                   <div style={{ fontSize: '0.78rem', marginTop: 4, display: 'flex', gap: 14, flexWrap: 'wrap' }} className="text-gray-500 dark:text-gray-400">
                     <span>{t.tender_number}</span>
                     {t.category && <span>{t.category}</span>}
-                    {t.closing_date && (
+                    {t.submission_deadline && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                        <Calendar size={12} /> Closes {new Date(t.closing_date).toLocaleDateString()}
+                        <Calendar size={12} /> Closes {new Date(t.submission_deadline).toLocaleDateString()}
                       </span>
                     )}
                   </div>
