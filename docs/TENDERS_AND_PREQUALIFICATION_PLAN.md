@@ -1,263 +1,80 @@
-# Tenders, addenda and pre-qualification documents (DRAFT v2: planned, nothing built yet)
+# Tenders and pre-qualification as a notice board (DRAFT v3: planned, nothing new built yet)
 
-Extras module. Builds on what exists (vendor portal, tenders, bids, PQ templates, public notices at `/tenders`).
+**The decision:** the website is a way to **communicate**, not a tool to create or run tenders. Procurement writes the tender document elsewhere (Word, PDF), uploads it, and the website shows it to the right people. Vendors bid, and winners are chosen and told, **offline**. This replaces the earlier full e-procurement design (kept in `TENDERS_FULL_EPROCUREMENT_SHELVED.md`).
 
-**What changed from v1:** you sent the full Mosop NG-CDF tender document (6,500 lines, the **PPRA Standard Tender Document for Goods, amended per Circular 02/2022**). It is far richer than the notices and changes the design: a tender is not a notice plus a form, it is a **standard text plus a parameter sheet**, with an exact lifecycle written into it. v2 is built around that. Sources used: the NG-CDF Tharaka notice (twice), the 2007 PPOA prequalification document, the Mosop advert, the full Mosop tender document. (`tender.zip` arrived empty; the `.txt` of it is what was read.)
+The price schedules and forms in the sample documents (price and completion schedule, goods price schedule with PPRA levy and VAT) stay **inside the tender PDF**; nothing in the system needs to understand them.
 
-## 1. What the documents teach
+## 1. What a tender is on the website
 
-### 1.1 The pattern that repeats: standard text + parameter sheet
+**A notice record** with the fields from the government tender portal (already built unless marked new):
+OCID, tender number, title, procurement method, procurement category, submission methods, reservation scheme, preference and reservation (YES/NO), opening venue, published date, close date and time, tender fee, validity in days, financial year, public link. **New:** `procuring_entity` (defaults to the company, so a column only shows if tenders from others are ever posted), `notice_type` (tender, prequalification, expression of interest), `commencement_date` if wanted.
 
-| Standard text (fixed, versioned, reused) | Parameter sheet (per tender, wins over the text) |
+**Attachments** (a tender can hold several), each with a **type**, its original name, and the date and time it was uploaded: Tender document, Tender notice, Advertisement, Addendum, Clarification, Notice of award, Other. PDF opens in the browser; **HTML is allowed** and shown in a sandbox (no scripts run), so an uploaded page cannot touch the site.
+
+**Who can see it** (one choice per tender):
+
+| Level | Who sees the tender and its files |
 |---|---|
-| Section I **Instructions to Tenderers (ITT)**, clauses 1 to 48 | Section II **Tender Data Sheet (TDS)**, rows keyed by ITT clause number ("whenever there is a conflict, the provisions herein shall prevail") |
-| Section VI **General Conditions of Contract (GCC)** | Section VII **Special Conditions of Contract (SCC)**, rows keyed by GCC clause |
-| 2007 PQ: **Instructions to Candidates** (2.1 to 2.10) | **Appendix to Instructions to Candidates** (wins where it differs) |
+| **Public** | Everyone, including customers and visitors not signed in |
+| **Vendors** | Any signed-in vendor (customers cannot see it) |
+| **Pre-qualified vendors** | Only vendors currently pre-qualified (for the category) |
+| **Invited** | Only the vendors you pick |
 
-So the reusable "intros" are not a handful of paragraphs: they are whole standard documents. We keep the standard text once (versioned, e.g. "PPRA STD Goods 2022"), and each tender stores only its parameter values. Nothing is retyped, so nothing can drift.
+The public list shows **only Public** tenders. Vendors see the other three in their portal, according to their rights.
 
-### 1.2 Anatomy of the full tender document
+**Status:** Draft, Published, **Closed** (automatic once the close time passes), **Awarded**, **Terminated** (cancelled).
 
-- **Cover**: entity, tender name and number, issue date, closing date and time, category (open), PE officers.
-- **Preface and guidelines** (notes for the issuer, deleted before issue).
-- **Invitation to Tender**: entity, contract name, method ("national open competitive"), where documents are downloaded (free, from the government portal and the entity site; bidders who download must **email their particulars so they get clarifications and addenda**), serialisation rule, deadline, "electronic tenders shall not be permitted", public opening, late tenders rejected, three addresses (information, submission with tender box location, opening), authorised official.
-- **Part 1, Tendering procedures**: Section I ITT (48 clauses), Section II TDS, Section III **Evaluation and Qualification Criteria**, Section IV **Tendering forms**.
-- **Part 2, Supply requirements**: Section V **Schedule of Requirements** (list of goods and delivery schedule, related services, technical specifications, drawings, inspections and tests).
-- **Part 3, Contract**: Section VI GCC, Section VII SCC, Section VIII **Contract forms** (notification of intention to award, request for review, letter of award, contract agreement, performance security in two options, advance payment security, beneficial ownership disclosure).
+**Lots** (the cups, plates and spoons case): a tender can list its lots (A cups, B plates, C spoons) as rows in the notice. Bidding is offline, so lots only matter for describing the tender and **recording who won what**.
 
-### 1.3 The TDS is the parameter list (Mosop values in brackets)
+**Addenda:** an admin adds *Addendum 1, 2...* to a tender: a title, a note, the date, one or more files, and optionally a **new closing date**, which updates the tender and is shown as "Closing date changed from X to Y (Addendum 1)". The list shows an **Addendum** column.
 
-| Group | Parameters (ITT clause) |
+**Award record (optional, after you decide offline):** per lot, the winner (a vendor from the list or typed name), amount and date, plus a Notice of award attachment, shown on the page once the tender is Awarded. A vendor can win all lots, some or none; the record is just a list of rows.
+
+## 2. What the screens look like
+
+**Public tenders list**, in the style of the government portal you showed:
+- Tabs: **Active**, **Closed**, **AGPO** (reservation-scheme tenders), **Terminated**, **All**; plus **Restricted** for a signed-in vendor, showing the vendors-only, pre-qualified and invited tenders they may see.
+- Columns: Description, Procuring entity, Method, Category, Close date, **Time to close** ("Closes in 5 days"), Publish date, **Addendum**, **Actions**.
+- A **search box in each column** and a general search; a **Download Excel** button for the filtered list.
+- **Actions menu:** *Share* (copy link, WhatsApp, email, the phone's share sheet) and *More details*.
+- Fixes the portal's weakness: the description column is wide and wraps properly (in your screenshots it is cut off at the left edge), and on a phone each tender becomes a card.
+
+**More details page:** the **Tender Notice Details** block exactly as in your Nyamira example, then **Attachments** listing type, name and upload date and time, each with Open and Download, and the addenda timeline.
+
+**Admin:** the existing tender form, plus an **Attachments** panel (drag and drop, choose the type, delete, reorder), **Addenda**, **Lots and award**, buttons to Publish, Close, Terminate and Award, the **visibility** choice, and an optional **Notify eligible vendors** tick when publishing or adding an addendum (uses the existing in-app and email notifications).
+
+## 3. Pre-qualification, offline
+
+1. **The call:** a notice of type *prequalification* with the prequalification document attached. It uses the same list, details page, attachments and visibility as a tender.
+2. **Vendors** download the document, fill it, scan it and send it to you by email or whatever channel you use.
+3. **You review offline.** If you approve, you record it **on the vendor's page**: categories qualified (goods, services, works), qualified from, **valid until**, the scanned documents attached, and a note. You can also mark a vendor **expired** or **revoked**. **Approving or refusing requires a written reason**, saved with your name and the time.
+4. **The website updates itself:** the vendor now sees pre-qualified-only tenders, and their portal shows "Pre-qualified for goods, valid until 31 Mar 2027". Expiry reminders (30 days before) go to you and to the vendor.
+
+The earlier idea of a **machine pre-check with a reason** still fits here, on a smaller scale: when you record a pre-qualification or approve a new vendor registration, the system flags what it can prove from the data (tax PIN missing, a certificate date already expired, no attachment) as "flagged by machine" with a reason, and a human decides with a reason. There are no bid answers to check any more.
+
+## 4. What exists now and what changes
+
+| Today | Change |
 |---|---|
-| General | reference number and name (1.1), lots (1.1), e-procurement system and what it is used for (1.2a), unfair-advantage information (2.3), max JV members (3.1), debarred-firms list link (3.7), registration with government bodies (3.11) |
-| Clarifications | where to send enquiries and by when (6.1, [13 Oct]), where the answer is published (6.1b), pre-tender conference yes/no (6.2 [no]), question deadline (6.3), minutes link (6.5) |
-| Preparing | extra documents (10j), alternative tenders (12.1 [no]), price adjustment during contract (13.5 [no]), minimum % of lot and item quantities priced (13.6), place of final destination (13.8), foreign currency allowed (14.2), spare-parts period (15.4), manufacturer's authorisation (16.2a [required]), after-sales service (16.2b [required]), **tender validity 90 days** (17.1), extension up to 30 days with price adjustment (17.3), **tender security [required, 3% of total quoted sum]** and a **tender-securing declaration** (18.1), number of copies (19.1 [N/A]), authorisation to sign (19.3 [power of attorney]) |
-| Submission and opening | where bulky packages go (20.3), submission address and deadline and **electronic option [not allowed]** (21.1), opening place and time (24.1), number of PE signatories (24.6) |
-| Evaluation | rectifying non-material non-conformities (29.3), evaluation currency (31.1 [KES]), **margin of preference/reservation [not applied]** (32.3), additional factors (33.2d), adjustment factors: delivery, payment, spares, after-sales, life cycle, performance (33.6) |
-| Award | quantity variation % (41.1), performance security (47.3), complaints procedure and who receives it (49.1) |
-
-Many of these are already **fields on a tender** (deadline, opening venue, validity, fee, submission method, security). The TDS is generated from those fields plus a few extra parameters, never typed a second time.
-
-### 1.4 Rules and timings written into the standard (become defaults, editable in settings)
-
-| Rule | Where |
-|---|---|
-| Clarification answers go to **all who acquired the documents**, with the question described **without naming its source**; also published if the TDS says so; if it changes essential elements, issue an addendum | ITT 6.1 |
-| Pre-tender meeting is optional; minutes are anonymised and published; changes **only by addendum, never through minutes** | ITT 6.3 to 6.5 |
-| **Addenda** may be issued any time before the deadline; they are part of the tender document; sent in writing to all who obtained it and published; the deadline may be extended and then "all rights and obligations... shall thereafter be subject to the deadline as extended" | ITT 7, 21.2 |
-| The invitation notice **is not part** of the tender document; the entity is not responsible for completeness unless the bidder obtained it from the entity | ITT 5.3 |
-| Tender security: cash, bank guarantee, IRA-listed insurer's guarantee, letter of credit, or a guarantee by a micro-finance institution, Sacco, Youth or Women Enterprise Fund; valid **30 days beyond** tender validity; unsuccessful ones returned promptly (and at once if proceedings end, all bids are non-responsive, or a bidder declines to extend); forfeited if a bidder withdraws during validity or the winner fails to sign or furnish performance security; a **securing declaration** that is executed leads to a debarment recommendation to PPRA; a tenderer may not guarantee itself; a JV's security is in the JV's name | ITT 18 |
-| Packaging: one outer sealed envelope; inside, separate sealed **ORIGINAL**, **COPIES** and (if allowed) **ALTERNATIVE** envelopes, each with entity name and address, tenderer name and address, tender name and reference; bulky packages are recorded and a **receipt note with date and time** is issued | ITT 19, 20 |
-| **Late tenders** are rejected and returned unopened | ITT 22 |
-| **Withdraw, substitute or modify** only before the deadline, by a signed notice with power of attorney, in an envelope marked WITHDRAWAL, SUBSTITUTION or MODIFICATION; not allowed between the deadline and end of validity | ITT 23 |
-| **Opening** is public: withdrawals first, then substitutions, then modifications, then each remaining tender is opened and read out (**name, any modification, total price per lot with discounts, alternatives, presence of security, number of pages**); the Form of Tender and price pages are initialled by committee members; a signed **opening record** is kept; a copy of the register goes to any tenderer who asks; the entity may reject nothing at opening except late tenders | ITT 24 |
-| Evaluation is confidential until the notice of intention; contact only in writing; the entity may ask a tenderer for a clarification, but **no change of price or substance** except arithmetic corrections | ITT 25 to 27, 30 |
-| Defined terms: **deviation, reservation, omission**; a tender is *substantially responsive* if it has no **material** one | ITT 27, 28 |
-| **Abnormally low** tender: written clarification and price analysis, reject if capability is not shown. **Abnormally high**: check the estimate and the specifications; reject all and retender if the documents caused it; if competition is compromised, reject all and investigate | ITT 35, 36 |
-| **Post-qualification** of the lowest evaluated tenderer, go/no-go; if no, move to the next lowest | ITT 37 |
-| **Reservations**: a contract may be reserved to one group only (SMEs, Women, Youth, persons with disabilities); it must say so in the invitation; never more than one group; not for international tenders | ITT 32.5 |
-| **Notification of intention to enter into a contract** to **all** tenderers: successful name and address, price, why the recipient lost, standstill expiry, how to request a debrief or complain | ITT 41 |
-| **Standstill 14 days** (not applied when only one tender was received); **debrief within 5 days** of a request | ITT 42, 43 |
-| **Letter of award** after the standstill and before validity ends; performance security **within 21 days**; contract **signed within 14 days** of receipt; failure means annul the award, forfeit the tender security, offer the next lowest | ITT 44 to 46 |
-| **Publish the awarded contract within 14 days** of signing (notice board, entity site, PPRA site): entity, contract name and number and scope, method, winner, price and duration, signature and start and end dates, and **all tenderers and the prices read out at opening** | ITT 47 |
-| Margin of preference 15% for goods made in Kenya (local content at least 40%) when the TDS says so; tenders grouped A, B, C; imported (group C) priced up by 15% for comparison | Section III 3 |
-| Price schedule adds **PPRA levy 0.03%** and **VAT 16%** as computed lines | Section IV |
-
-### 1.5 Evaluation in this document (Section III), three stages
-
-1. **Preliminary (mandatory, yes/no each)**: any "no" is non-responsive and goes no further. The Mosop list is the 15 items: trading licence, registration certificate, VAT/tax compliance (verified on the KRA checker), CR12 not older than 6 months **or** IDs for sole proprietors, power of attorney, tender security form, Form of Quotation on letterhead, schedule of requirements, KEBS certification, Certificate of Independent Tender Determination, SD1, SD2, confidential business questionnaire, disclosure of interest, pages serialised.
-2. **Technical, scored**: parameters with **bands of marks** and a pass mark. Mosop: audited accounts for two years (turnover at least 1.5 times the project cost = 20 marks, at least the project cost = 10, below = 0); financial resources (equal or above the cost = 20, 50% = 10, below 50% = 5, none shown = 0); specific experience (similar goods, same size = 15, lower value = 5, none = 0); conformity to specification (30, with photos of three recent buses) plus warranty letter (10) plus certified safety documents (10); manufacturing programme (adequate = 15, none = 0). **Total 100, pass mark 80** to reach the financial stage.
-3. **Financial**: lowest evaluated price after discounts, currency conversion, non-material corrections, and the additional factors named in the TDS (delivery schedule adjustment, payment schedule, spares, after-sales availability, life cycle cost, performance); multiple lots by one of two award options; alternatives rules; margin of preference groups.
-4. **Post-qualification** of the lowest evaluated tenderer, go/no-go: financial capability (liquid assets for the cash flow, minimum average turnover about 2.5 times the tender price), experience and technical capacity, usage evidence, non-performance history, pending litigation, litigation history; a supplier relying on a manufacturer's authorisation shows its own criteria and the manufacturer shows the others.
-
-### 1.6 The forms (Section IV and VIII)
-
-- **Form of Tender**: a list of declarations a) to s): no reservations to the document including addenda, eligibility and no conflict, not suspended by a securing declaration, conformity, **total price in words and figures** (one lot or per lot), discounts and their method, validity, performance security commitment, one tender per tenderer, no suspension or debarment, state-owned enterprise status, commissions paid, binding contract, entity not bound to accept the lowest, anti-corruption, code of ethics, non-collusion, beneficial ownership commitment, and the list of forms signed. Signed by an authorised person with a **power of attorney**; "on the tenderer's letterhead".
-- **Certificate of Independent Tender Determination**: statements 1 to 8, with a choice **(a)** independent or **(b)** consulted competitors, with the details attached.
-- **Self-declarations SD1** (not debarred) and **SD2** (no corrupt practice) and the **Code of Ethics declaration**, all with the tenderer, tender number and entity filled in.
-- **Tenderer Information Form** and **Confidential Business Questionnaire**: legal name, registration country and year, address, **authorised representative**, documents attached; then sole proprietor / partnership (partners with nationality, citizenship, % shares) / company (private or public, nominal and issued capital, directors with % shares), trade licence number and expiry, maximum value of business handled, **disclosure of interest** (anyone at the entity with an interest in the firm), and a **conflict-of-interest table** (controlled by another tenderer, subsidy from another tenderer, same legal representative, relationship that can influence a tender). Plus the JV members form.
-- **Price schedules**: goods made in Kenya (groups A and B), made abroad and to be imported, made abroad and already imported, and related services. Columns: line, description, delivery date, quantity and unit, EXW unit price, total, inland transport and services to destination, **local content %**, taxes, total per line. Then "PPRA levy 0.03%", sub-total, "VAT 16%", total. Name, signature, date, stamp.
-- **Tender security forms**: demand bank guarantee, insurance guarantee, tender-securing declaration; **Manufacturer's Authorization**.
-- **Schedule of Requirements**: list of goods with quantity, unit, final destination, **earliest and latest delivery date and the tenderer's offered date**; the **technical specification is a compliance matrix** of numbered clauses with the **required** value (some marked mandatory, some "approx." with figures) and a column for what the **tenderer offers** (Make, Model, Country of origin, each value or Y/N).
-- **Contract forms**: Notification of Intention to Award, Request for Review, Letter of Award, Contract Agreement, Performance Security (guarantee or bond), Advance Payment Security, Beneficial Ownership Disclosure. The **SCC** holds payment terms (for example 10% advance against a guarantee, 80% on delivery, 10% on acceptance), performance security %, liquidated damages % per week and cap, warranty period, inspection and test places, insurance and transport responsibilities.
-
-### 1.7 Errors in the real documents (why single-source data matters)
-
-| Found | Where |
-|---|---|
-| The advert's table gives closing **21 October 2026** for all four tenders; its paragraph says received by **Wednesday 14 October 2026**. | adv.pdf |
-| The **TDS reference number** is the ACK Bishop Kogo tender (`.../ACKBKOGOCHEPTILSCH/BUS1/ONT/01/...`) in the document for St Augustine Muruto (`.../STAUGUSTMURUTOSCH/BUS/ONT/02/...`): a copied number never changed. | TDS 1.1 |
-| ITT 18.1 says a tender security and a securing declaration are alternatives ("and vice versa"); the TDS requires **both**. | TDS 18.1 |
-| The postal address is **Kabiyet** in the invitation and **Sindo** in TDS 21.1 and 49.1. | Invitation, TDS |
-| Wrong cross-references: "Section VII, Schedule of Requirements" (it is Section V), "Section X, Contract Forms" (it is Section VIII), "extended by five (3) days". | ITT 28, ITT 46, Form No. 1 |
-| "Wensday 21ST October" typed in the notice. | NG-CDF Tharaka notice |
-
-The design answer: every repeated value (tender number, entity address, dates, security) is stored once and merged everywhere; clause cross-references are **links to a clause, never typed numbers**; and a **pre-publish check** lists conflicts (dates that differ between notice and TDS, security alternatives both ticked, a TDS reference different from the tender's own number, mandatory parameters left blank).
-
-## 2. What the research found (and could not)
-
-Page fetching was blocked here, so this is from search summaries.
-- **Addenda in Kenya** cite section 75 of the Public Procurement and Asset Disposal Act 2015. They extend closing dates, correct references or answer bidders' questions in a table, and state that all other conditions remain; published on the entity's site and the government tender portal. The standard document (ITT 6, 7, 21.2) now gives the exact procedure, which this plan follows.
-- **Open Contracting Data Standard**: your KEFRI OCID is an OCDS identifier. Published notices are **immutable**: an amendment is a new release. Method codes `open`, `selective`, `limited`, `direct`.
-- **Kenya's e-GP system** (egpkenya.go.ke) is where suppliers register and bid on government tenders; we are the company's own tendering, not that system.
-- **Other e-tender systems** (GePNIC, Bids & Tenders): templates and clause libraries; clarification Q&A to everyone; addenda to registered bidders with audit trail and document versions; single or multi-cover bids (technical envelope first, financial sealed until it passes); evaluator templates with conflict-of-interest declarations.
-
-## 3. Decisions (all 12 agreed: "I agree with your choices")
-
-| # | Question | Recommendation |
-|---|---|---|
-| 1 | Who is the procuring entity? | **The company only** (the repo decided: one company, one set of books). Letterhead from the company profile. |
-| 2 | Electronic bids, physical, or both? | **Both, chosen per tender** (the TDS has the switch; Mosop forbids electronic). Staff record physical bids in the same opening register. |
-| 3 | Follow the Kenyan timings strictly? | **Defaults taken from the standard** (standstill 14, debrief 5, performance security 21, contract signed 14, publish 14, security valid 30 beyond validity), **as warnings** you can edit, so private procurement works too. |
-| 4 | Pre-qualification: standing, per project, or both? | **Both, one engine.** |
-| 5 | Publishing needs a second person's approval? | **Optional switch.** |
-| 6 | Addenda notification channels | **In-app plus email when mail is set up.** |
-| 7 | People without an account who download documents | **Yes: "register interest"** (the standard makes the list of who *acquired* the document the list that must receive addenda, and Mosop asks for it by email). |
-| 8 | Tender security in v1 | **Yes** (answered by the samples). |
-| 9 | One advert for several tenders | **Yes** (answered by the Mosop advert). |
-| 10 | Seed the PPRA Standard Tender Document for Goods as the first standard text? | **Yes.** It is a public standard; it becomes an editable, versioned template. Works, services and RFQ standards are added later the same way. |
-| 11 | Reservation scheme | **A single choice** (none, SMEs, Women, Youth, persons with disabilities), because the standard allows only one group per tender. |
-| 12 | Evaluation depth in the first version | **Mandatory yes/no, scored technical with bands and pass mark, and price with the named adjustments**; post-qualification as a checklist. Margin of preference and multi-lot award options later. |
-
-## 4. Design
-
-### 4.1 Standard documents and parameter sheets (the engine)
-
-- `standard_documents` (`key`, `title`, `version`, `kind` = tender | prequalification, `procurement_category`, `source_note`): e.g. "PPRA Standard Tender Document: Goods (Circular 02/2022)".
-- `standard_clauses` (`standard_id`, `part` = ITT | GCC | ITC | ..., `number`, `title`, `body`, `parent`, `sort`): the fixed texts, numbered, with **internal links** to other clauses by id.
-- `standard_parameters` (`standard_id`, `clause_number`, `key`, `label`, `type` text | longtext | number | money | date | datetime | yes_no | select | multi | address | table, `options`, `default`, `allow_na`, `maps_to` a tender field or null, `guidance`): the TDS and SCC rows with the issuer's notes.
-- `tender_parameters` (`tender_id`, `parameter_key`, `value`, `is_na`): the values; a parameter that maps to a tender field is read from and written to the field.
-- **Snapshot on publish**: the tender stores the standard's version and the resolved text, so changing the standard later never changes a published tender.
-- **Rendering**: the full document (cover, contents, invitation, ITT, TDS, criteria, forms, schedule, GCC, SCC, contract forms) as HTML and PDF through the installed `dompdf`, letterhead from the company profile; the guidance notes ("delete before issue") are shown to the author and left out of the output.
-
-### 4.2 Reusable library (the "intros")
-
-- **Content blocks**: invitation intro, how to obtain documents, eligibility note, sealed submission, public opening, price validity, price basis ("inclusive of all taxes"), no-lowest-bidder, technical note, late bids, bulky documents, signoff. Merge fields `{entity_name} {tender_number} {tender_title} {closing_datetime} {opening_venue} {validity_days} {tender_fee} {addressee} {office_address} {portal_url} {contact_phone}`. Seed text from the notices (see v1 wording kept in the seed script).
-- **Requirement library** (`requirements`): `code`, `label`, `description`, `document_type`, `applies_to_category`, `applies_to_business_type` (company / partnership / sole proprietor, which gives the CR12-**or**-IDs alternative), `rule` (`dated_on_or_after`, `not_older_than_months`, `valid_on_closing`, `signed`, `stamped`, `certified_copy`), `verification_note` and link (the KRA checker), `sort`. One pool feeds **tender mandatory lists and PQ required documents**.
-- **Declaration and form library** (`bidder_forms`): Form of Tender, Certificate of Independent Tender Determination, SD1, SD2, Code of Ethics, Confidential Business Questionnaire, Tenderer Information, JV members, Manufacturer's Authorization, power of attorney. Each is a template with merge fields (tenderer, tender number, entity), a way to complete it (**tick and sign in the portal**: declaration items, typed name, title, date; or **download, sign, upload**), and a status per bid.
-- **Vendor business profile** (`vendor_profile` fields on the vendor): business type, registration country and year, authorised representative, directors or partners with % shares (this is also the **beneficial ownership** list), trade licence number and expiry, capital, maximum business value. It prefills the Tenderer Information and Questionnaire forms; a bid stores a **snapshot** of what was submitted.
-- **Tender templates** and **tender-number format** as in v1 (tokens, still typeable).
-
-### 4.3 The tender document builder
-
-Authoring a tender is a guided form in this order, each step saving to the fields above:
-1. **Basics**: title, number (proposed), category, method, financial year, commencement and closing dates, lots.
-2. **Notice and invitation**: blocks chosen from the library, the three addresses.
-3. **TDS**: the parameter list grouped A to F with the standard's guidance beside each, defaults filled, "N/A" allowed where the standard allows.
-4. **Requirements and evaluation**: mandatory checklist from the library; technical criteria with **bands** and pass mark; price adjustments chosen from the named factors; post-qualification criteria.
-5. **Schedule of requirements**: goods lines (quantity, unit, destination, earliest and latest delivery), related services, **technical specification rows** (clause, required value, mandatory flag, how the bid answers: text, number with unit, Y/N), inspections and tests, drawings as files.
-6. **Contract terms (SCC)**: parameters (payment terms, performance security %, liquidated damages, warranty).
-7. **Check and publish**: the consistency check from section 1.7, preview of the full PDF, optional approval, publish. Publishing snapshots the document and creates the public notice and the "register interest" list.
-
-### 4.4 Clarifications, addenda and who is told
-
-Follows ITT 6, 7 and 21.2.
-- `tender_followers` (`tender_id`, `vendor_id` nullable, `email`, `name`, `company`, `source` = downloaded | registered | bid): the **acquirer register**; the list every clarification and addendum goes to. Downloading the documents (public or portal) asks for name, email and company, or uses the signed-in vendor.
-- `tender_clarifications`: question (with its asker kept privately), **anonymised** question text as published, answer, dates, `addendum_id` if it changed essential elements. Enquiry deadline from TDS 6.1.
-- Optional **pre-tender meeting**: date, place, attendance, minutes (anonymised, published); a modification arising from it can only be made by an addendum, and the system says so.
-- `tender_addenda`: numbered per tender, `kind` clarification | amendment | extension | correction, `changes` (field, label, from, to) applied in one transaction on publish, optional **new deadline** (extending applies the "all rights and obligations move to the new deadline" rule to everyone), replaced or added documents (`tender_documents` gains `addendum_id`, `version`, `supersedes_id`), published text and printable PDF ("ADDENDUM No. N... all other terms and conditions remain unchanged").
-- Bids already in: a material addendum puts them in **needs confirmation**; the vendor confirms, revises or withdraws before the deadline; the Form of Tender declaration "no reservations to the tendering document **including addenda**" is re-asked.
-- Public timeline under the notice; list badges ("Addendum issued", "Deadline extended"); notifications through the existing notification system; optional acknowledgement per addendum.
-- **A bad advert is fixed by an addendum**, not by editing: that is how the 14 vs 21 October conflict would be corrected, with a visible trail.
-
-### 4.5 Submitting a bid
-
-- **Electronic** (when the TDS allows): the portal bid has the same parts as the paper envelope. **Original** (the full bid), **Copies** and **Alternative** (when allowed) become tabs; the mandatory checklist with uploads and expiry checks against the rules; Form of Tender declarations; questionnaire and information forms prefilled from the vendor profile; price schedule with the **PPRA levy and VAT computed**; **technical compliance matrix** (Make, Model, Country, each requirement's offered value with automatic comparison to the required value and a flag on mismatches); tender security or securing declaration; manufacturer's authorisation; delivery date offered; review and submit. Validity from the tender. A submitted bid is **sealed**: staff see only the count until opening.
-- **Physical**: staff record each bid at receipt: time and date, who delivered, envelope condition and marking, whether the original and copies envelopes are present, a **receipt note** to the tenderer (also for bulky packages). Late bids are logged and marked returned unopened.
-- **Withdraw, substitute, modify** before the deadline only; after it, not until validity ends. Electronic: allowed in the portal before the deadline; physical: a notice record linked to the bid.
-- **Tender security**: type, issuer, number, amount, expiry (checked against validity plus 30 days), scan; staff verify; released or returned under the rules in 1.4, with reminders; a forfeiture record.
-
-### 4.6 Opening
-
-An **Open bids** action at the opening time, by users holding `tenders.open`, runs the read-out in the standard's order: withdrawals, substitutions, modifications, then each tender (name, modification flag, total price with discounts, alternatives, security present or not, number of pages). It produces the **opening record** (PDF), lets the attendees' names and signatures be recorded, and keeps a register. Opening rejects nothing except late bids. **Two-envelope** tenders open the technical envelope only; the financial envelope opens later for those who pass.
-
-### 4.7 Evaluation
-
-- Stages as in 1.5; each stage is a sheet per evaluator and a combined sheet; every evaluator declares **conflict of interest** first.
-- **Preliminary**: the checklist, yes/no per requirement per bid with a reason; any "no" stops that bid.
-- **Technical**: the author's scoring table is checked as it is built (the maximum of each parameter is summed and compared with the stated total, and a pass mark above the total is refused); each parameter shows its bands; where the answer is numeric (turnover against project cost, financial resources) the system **suggests the band**; the evaluator confirms or overrides with a reason; total and pass mark.
-- **Financial**: arithmetic corrections (recorded, per ITT 30), discount application, adjustments from the factors the TDS selected, comparison; **abnormally low or high** flags with a clarification record; margin-of-preference groups later.
-- **Post-qualification** of the lowest evaluated bid as a go/no-go list; on "no", the next lowest.
-- **Evaluation report** (PDF): per the "Standard Tender Evaluation Report for Goods and Works" the document points to; we start with a faithful summary and replace it with the official layout if you send it.
-
-### 4.8 Award chain
-
-`Notification of Intention` to all tenderers (generated per recipient: winner, price, the recipient's reasons) starts a **standstill** clock (14 days, none for a single bid) with a **debrief** and **complaint** record; then the **Letter of Award**; contract agreement and **performance security** tracking (21 and 14 day clocks, forfeiture and next-lowest path); **beneficial ownership disclosure** from the winner's directors list; then the **published contract notice** (within 14 days, with all tenderers and read-out prices) for the public site. The existing award creating a vendor order stays; it moves to the end of this chain. **Request for Review** and complaint are records with dates, not workflows, in v1.
-
-### 4.9 Pre-qualification (from v1, unchanged in substance)
-
-The 2007 standard for works is the model for forms and pass/fail criteria (form schema with repeating tables and cards, criteria with thresholds, suggested pass/fail with evaluator override, standing and per-project exercises, shortlist feeding restricted tenders). It predates the 2015 Act: **check it against the current PPRA prequalification document** before seeding. It uses the same engine as 4.1: standard text (Instructions to Candidates), parameter sheet (the Appendix), forms.
-
-### 4.10 Public and open data
-
-Public list: Addendum and deadline-extended badges, "closing soon", reservation group filter, group adverts. Public detail: the full notice, requirements, timeline, documents with register-interest download. **OCDS export** later (our fields map to `tenderPeriod`, `procurementMethod`, `mainProcurementCategory`, `submissionMethod`, documents, amendments); the OCID stays a typed field.
-
-### 4.11 Permissions and numbering
-
-- New catalog permissions: `tenders.library` (standard texts, blocks, requirements, forms, templates), `tenders.addenda`, `tenders.open`, `tenders.evaluate` (exists), `tenders.award`. Vendors need `vendors.portal`.
-- Database scripts from 221, one concern each, safe to re-run, with the guards used so far: 221 standard documents, clauses, parameters; 222 blocks, requirements, bidder forms, templates; 223 tender parameters, adverts, commencement and security columns; 224 followers, clarifications, addenda, document versions; 225 bid parts, receipts, security records; 226 opening records; 227 evaluation sheets and criteria; 228 award chain; 229 vendor business profile; 230 PQ forms and criteria; plus lots (`tender_lots`, `tender_bid_lots`, `tender_awards`, `lot_id` columns) with 223, and `form_answers` and `review_items` with 225.
-
-### 4.12 Lots: one tender, several contracts (cups, plates, spoons)
-
-One tender document and one tender number, with **Lot A cups, Lot B plates, Lot C spoons**; each lot ends in its own contract. (Not the same as the Mosop advert, which was four **separate tenders**, each with its own number and document, grouped in one notice. Both are supported.)
-
-- **One code path.** Every tender has at least one lot; a plain tender has a single hidden lot. `tender_lots` (`tender_id`, `code`, `title`, `description`, `status` = open | evaluating | awarded | no_award | cancelled, internal estimate, optional security amount, `sort`). The schedule of goods and delivery, the technical specification rows, the price schedule and requirements that apply only to one lot (say a food-grade certificate for cups) carry a `lot_id`; null means the whole tender.
-- **A bidder chooses the lots:** A only, A and C, or all three. One bid per vendor per tender, with a **lot bid** inside it for each lot chosen (`tender_bid_lots`: price, answers, scores). Tender-wide forms and documents are given once; lot-specific ones per lot. The Form of Tender states the price **per lot and the total of the lots bid** (the standard's "multiple lots" option); the tender security is one per bid, sized on the total quoted.
-- **Evaluation is per lot.** The mandatory checklist (tender-wide items plus that lot's), technical scoring and price comparison run lot by lot, so a bidder can be responsive for Lot A and non-responsive for Lot B. The evaluation screen is a **matrix: bidders across, lots down**, each cell showing price, technical score, rank and flags.
-- **Award is per lot** (`tender_awards`: `tender_id`, `lot_id`, `bid_id`, `vendor_id`, `amount`, status, `vendor_order_id`). This replaces the single `awarded_vendor_id` on the tender; existing awards are migrated as the one hidden lot.
-
-| Outcome | What happens |
-|---|---|
-| Vendor A wins all of A, B, C | Three lot awards and contracts; A's qualification is checked against the **sum** of the minimum requirements of the three lots (the standard adds lot minimums together). |
-| Vendor A wins A and C, vendor B wins B | Two vendors, three awards; each gets contracts only for the lots they won; A's qualification is checked for A + C together. |
-| A vendor wins none | Receives the notice of intention with the reason **per lot** bid. |
-| No responsive bid for one lot | That lot is `no_award` and can be re-advertised as its own tender while the other lots proceed. |
-| Combination pricing ("cheaper if I get A and C") | Listed combinations with their total evaluated price, so the lowest combined price can be chosen (the standard has two award options for multiple contracts: award each lot to its lowest evaluated bidder, or pick the combination with the lowest total). Whether conditional discounts are allowed is set in the tender data sheet. |
-
-- **Award chain per lot:** one notification of intention lists the recipient's result for each lot they bid, one standstill for the tender, then a letter of award, contract, performance security and vendor order **per lot won**. The tender is "awarded" when every lot has concluded (awarded, no award or cancelled).
-- **Opening** reads out the price per lot. **Addenda** can name the lot they change; everyone who acquired the document is still notified. **Withdrawing one lot** before the deadline is a modification of the bid.
-
-### 4.13 Answers as data, review screens and the machine check
-
-**Principle: everything a vendor enters is stored as an individual answer**, not only inside a form or a PDF, so it can be filtered, compared and checked on its own.
-
-- `form_answers` (`subject_type` = bid | pq | vendor_profile, `subject_id`, `lot_id`, `form_code`, `field_key`, `question` (the label as it was when asked), `required_value` (what the tender required, copied), `value`, `unit`, `file_id`, `source` = typed | prefilled | uploaded, who and when, `version`): one row per field, one per cell of a table. A printable PDF of the bid is still made from the answers for the paper record.
-- **The Q&A views** (in the approval and evaluation screens, so nobody opens the whole document):
-  - **By bidder:** all questions and answers of one bid, grouped like the form, each with a status chip and file preview. Filters: blank, failed, mandatory only, changed since an addendum, by form, by lot, by reviewer; search.
-  - **By question (compare):** one question across all bidders side by side with the required value, sortable and filterable (offered delivery date, turnover, country of origin, a measurement against its range, pass or fail).
-  - **Documents:** uploaded files by requirement with expiry, verification and the rule they were checked against.
-  - Saved filters and CSV export.
-- **One review engine** for every approval: `review_items` (`subject_type`, `subject_id`, `stage`, `item_key`, `lot_id`, `verdict` = pass | fail | clarify | not_applicable, `decided_by` = machine | human, `user_id`, `rule_key`, `reason`, `decided_at`, `supersedes_id`). It is **append-only**: the latest verdict counts and earlier ones stay in the history. The same engine serves **bid evaluation stages, pre-qualification review, vendor approval** (pending to active) and **tender publishing approval**.
-- **Machine checks** run at three moments: while the vendor prepares (advice only, so they can fix gaps before the deadline), at submission (the advice is saved with the bid), and when evaluation starts after opening (these create **machine verdicts**). A machine verdict reads, for example: **"Disapproved by machine: CR12 certificate dated 3 Mar 2026 is older than 6 months before the submission date (limit 14 Apr 2026)."** Each rule has a severity set when the tender is authored, with defaults: `disapprove`, `flag` (needs a human), `info`.
-- **What a machine can prove from the data:** a required answer or document is missing; a document is expired or outside its date rule; a declaration is not ticked, or signed by someone with no power of attorney attached; tender security missing, below the required percentage of the total, or expiring before validity plus 30 days; offered validity shorter than required; price schedule arithmetic (line totals, PPRA levy 0.03%, VAT 16%, grand total), zero or negative prices, quantities different from the schedule; offered delivery date outside the earliest and latest dates; a mandatory specification row answered "no" or blank, or a number outside the required range; a conflict-of-interest "yes" with no details; the same legal representative or director appearing in two competing bids (flag only).
-- **What it cannot do** (not promised): read a scanned document to tell whether a certificate is genuine, judge a signature or stamp, or query the KRA checker. Those stay human, with the verification note and link beside the item.
-- **The machine never approves a bid or an award on its own.** A bid whose items all pass shows "Passed automatic checks" and a human still decides each stage. A machine disapproval **stands** (the item shows as failed) until a human overrides it with a reason, and the machine verdict stays in the history.
-- **A human approval or disapproval always requires a reason** (text, minimum length), saved with name and time; an override is a human decision and needs one too. Reasons feed the notification of intention (the reasons an unsuccessful bidder is told). Optional: a second person confirms each stage outcome.
-- **Confidentiality:** bidders see machine advice only about their own bid while preparing it; evaluation verdicts are not shown to bidders until the notification of intention, as the standard requires.
+| Notice fields, public list and details page | Keep the details page; **rebuild the list** as the table above; add `procuring_entity`, `notice_type`, the Terminated status |
+| Visibility: all vendors, pre-qualified, invited | Add **Public**; the public list shows only Public; the vendors option stays as "Vendors" |
+| Public sees tenders that are all-vendors or pre-qualified | **Stop:** only Public tenders are public; vendor portal shows the rest |
+| Attachments: admin upload exists as an API only, public download only | **Admin attachments panel**, new types, upload date shown, inline PDF and sandboxed HTML, a **download for signed-in vendors** on restricted tenders |
+| Addenda: none | **Add** (section 1) |
+| Vendor bids (API), bid evaluation, award that creates a vendor order | **Hide** from the screens (kept in the database, unused). The award record in section 1 replaces it |
+| Vendor-filled pre-qualification templates and submissions (API) | **Hide**; replaced by the admin-recorded pre-qualification on the vendor (section 3). The existing pre-qualification table can hold the record |
+| Vendor portal: dashboard, tenders, bids, PQ, orders, profile | Keep **dashboard, tenders, profile, PQ status**; remove **My bids** and the PQ application pages from the menu |
 
 ## 5. Build order
 
-1. **Phase 1, the engine and the notice** (tender lots exist from the start, a plain tender having one hidden lot): standard documents with the PPRA Goods text and parameter sheet (TDS first), the consistency check, content blocks, requirement library, tender document PDF and notice, register interest, clarifications and addenda with the public timeline.
-2. **Phase 2, bidding** (answers stored per field, the Q&A views, machine advice while preparing a bid, bids per lot): vendor business profile, bidder forms with tick-and-sign, vendor bid screen with the original/copies parts, requirement checks, price schedule with levy and VAT, technical compliance matrix, tender security, physical bid receipts, sealed opening and the opening record.
-3. **Phase 3, evaluation and award** (the review engine with machine verdicts and human reasons, the bidders-by-lots matrix, award per lot): the three stages with bands and suggestions, post-qualification, evaluation report, notification of intention, standstill, letter of award, performance security tracking, contract publication.
-4. **Phase 4, pre-qualification forms and criteria**, tender templates, works and services standards, OCDS export, e-signatures, request-for-review workflow, supplier document wallet with expiry reminders.
+1. **Phase 1, publishing and visibility:** the Public level and the privacy fix; admin attachments panel with types and sandboxed viewing; the new public table with tabs, per-column search, time to close, share and Excel; the vendor-portal list with downloads.
+2. **Phase 2, addenda and results:** addenda with the optional new closing date and the column and timeline; lots; the award record; Terminated and Awarded states; the Notify tick.
+3. **Phase 3, pre-qualification:** the call as a notice type; the vendor's recorded pre-qualification with reasons, expiry and reminders; the portal status; the machine flags.
 
-## 6. Not decided, to check
+## 6. Plain questions (my default in bold)
 
-- Whether conditional (combination) discounts across lots are allowed, and how a tender security is forfeited when a winner signs one lot but not another.
-
-- The Act's exact rules on addenda timing, minimum tender periods and the standstill (we use the standard's numbers as editable defaults).
-- Whether to offer the **Works**, **Non-consultancy services** and **Request for Quotation** standards next (they use the same engine; you would send those documents).
-- The official **Standard Tender Evaluation Report** layout (referenced, not provided).
-- Whether the 2007 prequalification forms still match the current PPRA standard.
-- Tender security details for your own private procurement (percentage, accepted forms): confirm with whoever runs procurement.
-
-## Words used in this plan
-
-- **Mosop**: a constituency in Kenya (the addresses in your documents are around Kabiyet). "Mosop NG-CDF" is the constituency office that issued the bus tender in your `adv.pdf` and `tender.txt`; it is only the name of your **sample**, not a system or a product.
-- **NG-CDF**: National Government Constituencies Development Fund, the public fund that issued both of your notices (Tharaka and Mosop constituencies).
-- **PPRA**: Public Procurement Regulatory Authority, which publishes the standard tender documents. **PPOA** was its older name (the 2007 document).
-- **ITT** (Instructions to Tenderers), **TDS** (Tender Data Sheet), **GCC** and **SCC** (General and Special Conditions of Contract): the standard text and its per-tender parameter sheets (section 1.1).
-- **PE**: procuring entity, the organisation buying. **Tenderer, bidder**: the vendor responding.
-- **AGPO**: the reservation scheme for Youth, Women and persons with disabilities. **OCDS** and **OCID**: the open contracting data standard and its identifier.
-- **Lot**: one part of a tender that is awarded on its own (cups, plates, spoons).
+1. Should customers who are signed in ever see vendors-only tenders? **No.**
+2. For a pre-qualified-only tender, is a vendor pre-qualified for the tender's **category** (goods, services, works)? **Yes.**
+3. Do you want an **email to eligible vendors** when you publish a restricted tender or add an addendum? **Yes, as a tick you control each time.**
+4. Should the award record (winner and amount) be **shown publicly**? **Yes, once the tender is Awarded, and you can leave it off for a tender.**
+5. Keep the old bid and pre-qualification-application code in the database, only hidden? **Yes.**
