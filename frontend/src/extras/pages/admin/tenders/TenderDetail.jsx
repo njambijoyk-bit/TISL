@@ -23,10 +23,10 @@ export default function TenderDetail() {
   const load = async () => {
     try {
       const t = await tendersAPI.show(id);
-      setTender(t.data || t);
-      if (t.data?.status !== 'draft') {
+      setTender(t);
+      if (t.status !== 'draft') {
         const b = await tendersAPI.bids(id);
-        setBids(b.data || []);
+        setBids(b.rows || []);
       }
     } catch { toast.error('Failed to load tender'); }
     finally { setLoading(false); }

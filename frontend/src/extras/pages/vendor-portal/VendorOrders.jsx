@@ -10,7 +10,7 @@ export default function VendorOrders() {
 
   useEffect(() => {
     vendorPortalAPI.orders()
-      .then(r => setOrders(r.data || r))
+      .then(r => setOrders(r.rows || []))
       .catch(() => toast.error('Failed to load orders'))
       .finally(() => setLoading(false));
   }, []);
@@ -40,7 +40,7 @@ export default function VendorOrders() {
             <tbody>
               {orders.map(o => (
                 <tr key={o.id} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                  <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.78rem' }} className="text-gray-700 dark:text-gray-300">{o.order_number}</td>
+                  <td style={{ padding: '12px 14px', fontFamily: 'monospace', fontWeight: 600, fontSize: '0.78rem' }} className="text-gray-700 dark:text-gray-300">{o.po_number}</td>
                   <td style={{ padding: '12px 14px', fontSize: '0.78rem' }} className="text-gray-500 dark:text-gray-400">{o.created_at ? new Date(o.created_at).toLocaleDateString() : '—'}</td>
                   <td style={{ padding: '12px 14px', fontWeight: 600 }} className="text-gray-700 dark:text-gray-300">KES {Number(o.total || 0).toLocaleString()}</td>
                   <td style={{ padding: '12px 14px' }}>

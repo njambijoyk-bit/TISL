@@ -22,7 +22,7 @@ export default function TenderForm() {
     if (!isEdit) return;
     tendersAPI.show(id)
       .then(r => {
-        const t = r.data || r;
+        const t = r;
         setForm({
           title: t.title || '', description: t.description || '', category: t.category || 'goods',
           budget_min: t.budget_min || '', budget_max: t.budget_max || '',
@@ -61,7 +61,7 @@ export default function TenderForm() {
       } else {
         const r = await tendersAPI.create(payload);
         toast.success('Tender created');
-        navigate(`/admin/tenders/${r.data?.id || r.id}`);
+        navigate(`/admin/tenders/${r.id}`);
         return;
       }
       navigate(`/admin/tenders/${id}`);

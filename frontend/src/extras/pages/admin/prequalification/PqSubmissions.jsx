@@ -19,7 +19,7 @@ export default function PqSubmissions() {
 
   useEffect(() => {
     prequalificationAPI.submissions({ status: statusFilter || undefined })
-      .then(r => setSubmissions(r.data || r))
+      .then(r => setSubmissions(r.rows || []))
       .catch(() => toast.error('Failed to load submissions'))
       .finally(() => setLoading(false));
   }, [statusFilter]);

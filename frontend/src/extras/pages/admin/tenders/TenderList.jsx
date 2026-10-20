@@ -26,18 +26,16 @@ export default function TenderList() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState(null);
 
   const load = () => {
     setLoading(true);
-    tendersAPI.list({ search, status: statusFilter || undefined, page })
-      .then(r => { setTenders(r.data); setMeta(r.meta || r); })
+    tendersAPI.list({ search, status: statusFilter || undefined })
+      .then(r => setTenders(r.rows || []))
       .catch(() => toast.error('Failed to load tenders'))
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { load(); }, [search, statusFilter, page]);
+  useEffect(() => { load(); }, [search, statusFilter]);
 
   return (
     <div style={{ maxWidth: 1100, margin: '0 auto', padding: '32px 20px' }}>
@@ -55,12 +53,12 @@ export default function TenderList() {
       <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Search size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} className="text-gray-400" />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+          <input value={search} onChange={e => { setSearch(e.target.value); }}
             placeholder="Search tenders…"
             style={{ width: '100%', padding: '9px 12px 9px 34px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.82rem', outline: 'none' }}
             className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white" />
         </div>
-        <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+        <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); }}
           style={{ padding: '9px 14px', borderRadius: 8, border: '1.5px solid #e5e7eb', fontSize: '0.82rem', outline: 'none' }}
           className="bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white">
           <option value="">All statuses</option>
@@ -110,19 +108,6 @@ export default function TenderList() {
               ))}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {meta?.last_page > 1 && (
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 20 }}>
-          {Array.from({ length: meta.last_page }, (_, i) => (
-            <button key={i} onClick={() => setPage(i + 1)}
-              style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #e5e7eb', fontSize: '0.78rem', fontWeight: page === i + 1 ? 700 : 400, cursor: 'pointer',
-                background: page === i + 1 ? 'var(--color-primary-500)' : 'transparent', color: page === i + 1 ? '#fff' : undefined }}
-              className={page !== i + 1 ? 'text-gray-600 dark:text-gray-400 dark:border-gray-600' : ''}>
-              {i + 1}
-            </button>
-          ))}
         </div>
       )}
     </div>

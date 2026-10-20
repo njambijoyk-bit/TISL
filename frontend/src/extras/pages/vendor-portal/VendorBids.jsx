@@ -19,7 +19,7 @@ export default function VendorBids() {
 
   useEffect(() => {
     vendorPortalAPI.myBids()
-      .then(r => setBids(r.data || r))
+      .then(r => setBids(r.rows || []))
       .catch(() => toast.error('Failed to load bids'))
       .finally(() => setLoading(false));
   }, []);

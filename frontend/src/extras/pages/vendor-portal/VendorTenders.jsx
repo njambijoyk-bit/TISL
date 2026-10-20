@@ -11,7 +11,7 @@ export default function VendorTenders() {
 
   useEffect(() => {
     vendorPortalAPI.tenders({ search: search || undefined })
-      .then(r => setTenders(r.data || r))
+      .then(r => setTenders(r.rows || []))
       .catch(() => toast.error('Failed to load tenders'))
       .finally(() => setLoading(false));
   }, [search]);

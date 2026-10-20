@@ -10,7 +10,7 @@ export default function PqTemplates() {
 
   useEffect(() => {
     prequalificationAPI.templates()
-      .then(r => setTemplates(r.data || r))
+      .then(r => setTemplates(r.rows || []))
       .catch(() => toast.error('Failed to load PQ templates'))
       .finally(() => setLoading(false));
   }, []);

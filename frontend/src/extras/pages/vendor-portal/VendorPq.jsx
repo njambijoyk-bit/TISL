@@ -20,8 +20,8 @@ export default function VendorPq() {
 
   useEffect(() => {
     Promise.all([
-      vendorPortalAPI.myPqs().then(r => setPqs(r.data || r)),
-      vendorPortalAPI.pqTemplates().then(r => setTemplates(r.data || r)),
+      vendorPortalAPI.myPqs().then(r => setPqs(r.rows || [])),
+      vendorPortalAPI.pqTemplates().then(r => setTemplates(r.rows || [])),
     ])
       .catch(() => toast.error('Failed to load PQ data'))
       .finally(() => setLoading(false));
