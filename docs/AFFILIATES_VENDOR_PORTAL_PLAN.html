@@ -240,8 +240,8 @@ li { margin: 0.2rem 0; }
 
 <div class="container">
 
-<h1>TISL: Affiliates Module & Vendor Portal</h1>
-<p class="subtitle">Implementation plan &mdash; Extras module affiliates for customers &amp; vendors, plus vendor self-registration and portal login. October 2026.</p>
+<h1>TISL: Affiliates, Vendor Portal & Procurement</h1>
+<p class="subtitle">Implementation plan &mdash; Extras module affiliates for customers &amp; vendors, vendor self-registration and portal, tendering system, and vendor pre-qualification. October 2026.</p>
 
 <div class="legend">
   <span class="tag tag-exists">Exists</span>
@@ -256,9 +256,11 @@ li { margin: 0.2rem 0; }
   <li><a href="#current">1. What exists today</a></li>
   <li><a href="#affiliates">2. Affiliates in the Extras module</a></li>
   <li><a href="#vendor-portal">3. Vendor login &amp; registration</a></li>
-  <li><a href="#permissions">4. New permissions &amp; catalog changes</a></li>
-  <li><a href="#phases">5. Phased delivery plan</a></li>
-  <li><a href="#schema">6. Migration &amp; schema reference</a></li>
+  <li><a href="#tendering">4. Tendering system</a></li>
+  <li><a href="#prequalification">5. Vendor pre-qualification</a></li>
+  <li><a href="#permissions">6. New permissions &amp; catalog changes</a></li>
+  <li><a href="#phases">7. Phased delivery plan</a></li>
+  <li><a href="#schema">8. Migration &amp; schema reference</a></li>
 </ol>
 
 <hr class="divider">
@@ -499,21 +501,346 @@ Route::prefix('portal/vendor')
 <hr class="divider">
 
 <!-- ─── SECTION 4 ─── -->
-<h2 id="permissions">4. New permissions &amp; catalog changes</h2>
+<h2 id="tendering">4. Tendering system</h2>
+
+<p>Staff post a tender (request for proposal/quotation), approved vendors see it in their portal, and submit bids. Staff evaluate, score and award. The flow mirrors how purchase orders already work but adds a competitive bidding layer before a PO is raised.</p>
+
+<div class="card">
+  <h3>Tender lifecycle</h3>
+  <div class="flow-diagram">
+    <span class="flow-step">Staff creates tender</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Published</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Vendors submit bids</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Bidding closes</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Evaluation</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Awarded</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">PO raised</span>
+  </div>
+</div>
+
+<div class="card">
+  <h3>Data model <span class="tag tag-backend">Backend</span></h3>
+
+  <h4>New: <code>tenders</code> table</h4>
+<pre>tenders
+├── id
+├── tender_number       → unique, e.g. TND-2026-0001
+├── title
+├── description         → rich text / markdown
+├── category            → 'goods' | 'services' | 'works'
+├── branch_id           → nullable (for a specific location)
+├── budget_min / budget_max  → nullable range
+├── currency
+├── requirements        → JSON (list of what vendors must provide)
+├── evaluation_criteria → JSON [{criterion, weight, description}]
+├── status              → 'draft' | 'published' | 'closed' |
+│                          'evaluating' | 'awarded' | 'cancelled'
+├── visibility          → 'all_vendors' | 'prequalified' | 'invited'
+├── published_at
+├── submission_deadline
+├── opening_date        → when bids are opened (can differ from close)
+├── created_by          → users.id (staff)
+├── approved_by         → users.id (staff, nullable)
+├── awarded_vendor_id   → vendors.id (nullable, set on award)
+├── awarded_at
+├── metadata            → JSON
+└── timestamps + soft deletes</pre>
+
+  <h4>New: <code>tender_documents</code> table</h4>
+  <p>Attachments on the tender itself (specs, drawings, BOQs, terms).</p>
+<pre>tender_documents
+├── id
+├── tender_id           → tenders.id
+├── name / original_filename
+├── mime_type / extension / file_path / file_size
+├── document_type       → 'specification' | 'terms' | 'boq' |
+│                          'drawing' | 'other'
+├── uploaded_by
+└── timestamps</pre>
+
+  <h4>New: <code>tender_invitations</code> table</h4>
+  <p>For <code>visibility = 'invited'</code> tenders &mdash; which vendors may see and bid.</p>
+<pre>tender_invitations
+├── id
+├── tender_id     → tenders.id
+├── vendor_id     → vendors.id
+├── invited_by    → users.id
+├── responded     → boolean
+├── declined_reason → nullable
+└── timestamps</pre>
+
+  <h4>New: <code>tender_bids</code> table</h4>
+<pre>tender_bids
+├── id
+├── tender_id           → tenders.id
+├── vendor_id           → vendors.id
+├── bid_number          → unique per tender
+├── total_amount
+├── currency
+├── delivery_timeline_days
+├── cover_letter        → text
+├── technical_proposal  → text / nullable
+├── status              → 'draft' | 'submitted' | 'withdrawn' |
+│                          'under_review' | 'shortlisted' |
+│                          'awarded' | 'rejected'
+├── submitted_at
+├── evaluation_score    → decimal, nullable (filled during evaluation)
+├── evaluation_notes    → text, nullable (staff notes)
+├── metadata            → JSON
+└── timestamps + soft deletes</pre>
+
+  <h4>New: <code>tender_bid_items</code> table</h4>
+  <p>Line-by-line pricing against the tender's requirements.</p>
+<pre>tender_bid_items
+├── id
+├── tender_bid_id  → tender_bids.id
+├── description
+├── quantity
+├── unit_price
+├── line_total
+├── notes
+└── timestamps</pre>
+
+  <h4>New: <code>tender_bid_documents</code> table</h4>
+  <p>Supporting documents the vendor attaches to their bid (same pattern as <code>ApplicationDocument</code>).</p>
+<pre>tender_bid_documents
+├── id
+├── tender_bid_id  → tender_bids.id
+├── name / original_filename
+├── mime_type / extension / file_path / file_size
+├── document_type  → 'proposal' | 'certificate' | 'reference' |
+│                     'sample' | 'other'
+└── timestamps</pre>
+</div>
+
+<div class="card">
+  <h3>Backend services <span class="tag tag-backend">Backend</span></h3>
+  <h4><code>TenderService</code> (new)</h4>
+  <ul>
+    <li><code>create(data, user)</code> &mdash; staff creates tender in draft</li>
+    <li><code>publish(tender, approver)</code> &mdash; sets status to published, notifies eligible vendors</li>
+    <li><code>eligibleVendors(tender)</code> &mdash; returns vendors who can see this tender based on visibility + pre-qualification status</li>
+    <li><code>submitBid(tender, vendor, data)</code> &mdash; validates deadline, creates/updates bid</li>
+    <li><code>closeBidding(tender)</code> &mdash; auto or manual, no more bids accepted</li>
+    <li><code>evaluate(tender, scores)</code> &mdash; staff scores bids against evaluation criteria</li>
+    <li><code>award(tender, bid)</code> &mdash; marks winner, optionally auto-raises a PO via <code>PurchaseOrder::generatePoNumber()</code></li>
+    <li><code>notifyResult(tender)</code> &mdash; notifies all bidders of outcome</li>
+  </ul>
+
+  <h4>Controllers</h4>
+  <table>
+    <tr><th>Endpoint</th><th>Who</th><th>What</th></tr>
+    <tr><td><code>GET /admin/tenders</code></td><td>Staff</td><td>List all tenders</td></tr>
+    <tr><td><code>POST /admin/tenders</code></td><td>Staff</td><td>Create tender</td></tr>
+    <tr><td><code>PUT /admin/tenders/{id}</code></td><td>Staff</td><td>Edit / publish / close / award</td></tr>
+    <tr><td><code>GET /admin/tenders/{id}/bids</code></td><td>Staff</td><td>See all bids for a tender</td></tr>
+    <tr><td><code>PUT /admin/tenders/{id}/bids/{bid}/evaluate</code></td><td>Staff</td><td>Score a bid</td></tr>
+    <tr><td colspan="3" style="padding-top:0.75rem"><strong>Vendor portal</strong></td></tr>
+    <tr><td><code>GET /portal/vendor/tenders</code></td><td>Vendor</td><td>Open tenders they can bid on</td></tr>
+    <tr><td><code>GET /portal/vendor/tenders/{id}</code></td><td>Vendor</td><td>Tender detail + documents</td></tr>
+    <tr><td><code>POST /portal/vendor/tenders/{id}/bid</code></td><td>Vendor</td><td>Submit or update their bid</td></tr>
+    <tr><td><code>GET /portal/vendor/bids</code></td><td>Vendor</td><td>Their bid history + outcomes</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Frontend pages <span class="tag tag-frontend">Frontend</span></h3>
+  <div class="cols">
+    <div>
+      <h4>Admin (staff)</h4>
+      <ul>
+        <li><code>/admin/procurement/tenders</code> &mdash; list with filters (status, category)</li>
+        <li><code>/admin/procurement/tenders/new</code> &mdash; create form with rich editor, file uploads, evaluation criteria builder</li>
+        <li><code>/admin/procurement/tenders/{id}</code> &mdash; detail: timeline, documents, bids, scoring panel</li>
+        <li><code>/admin/procurement/tenders/{id}/evaluate</code> &mdash; side-by-side bid comparison with weighted scoring</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Vendor portal</h4>
+      <ul>
+        <li><code>/portal/vendor/tenders</code> &mdash; open tenders they can bid on</li>
+        <li><code>/portal/vendor/tenders/{id}</code> &mdash; tender detail + download docs</li>
+        <li><code>/portal/vendor/tenders/{id}/bid</code> &mdash; bid form: line items, cover letter, file uploads</li>
+        <li><code>/portal/vendor/bids</code> &mdash; their bid history and outcomes</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ─── SECTION 5 ─── -->
+<h2 id="prequalification">5. Vendor pre-qualification</h2>
+
+<p>Before vendors can bid on certain tenders, they fill out a pre-qualification document. Staff configure which sections/questions appear, vendors submit with supporting documents, and staff evaluate. A qualified vendor gets a category and expiry date. This mirrors the <code>Application</code>/<code>ApplicationDocument</code> pattern from the careers module.</p>
+
+<div class="card">
+  <h3>How it works</h3>
+  <div class="flow-diagram">
+    <span class="flow-step">Staff builds PQ template</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Vendor fills form</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Uploads documents</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Staff reviews</span>
+    <span class="flow-arrow">&rarr;</span>
+    <span class="flow-step">Qualified / Rejected</span>
+  </div>
+  <p>Qualified vendors can bid on tenders with <code>visibility = 'prequalified'</code>. Qualification is per category and expires, so vendors re-qualify periodically.</p>
+</div>
+
+<div class="card">
+  <h3>Data model <span class="tag tag-backend">Backend</span></h3>
+
+  <h4>New: <code>prequalification_templates</code> table</h4>
+  <p>Staff define what the PQ form asks. Multiple templates for different categories.</p>
+<pre>prequalification_templates
+├── id
+├── name                → e.g. "General Supplies PQ"
+├── category            → 'goods' | 'services' | 'works'
+├── description
+├── sections            → JSON [{title, description, fields: [
+│                            {key, label, type, required, options}
+│                          ]}]
+│                          types: text, textarea, number, select,
+│                          checkbox, file, date
+├── required_documents  → JSON ['tax_compliance', 'registration',
+│                          'insurance', 'financial_statement',
+│                          'reference_letter', 'other']
+├── validity_months     → how long a qualification lasts
+├── is_active           → boolean
+├── created_by
+└── timestamps</pre>
+
+  <h4>New: <code>prequalifications</code> table</h4>
+  <p>A vendor's submission against a template.</p>
+<pre>prequalifications
+├── id
+├── template_id          → prequalification_templates.id
+├── vendor_id            → vendors.id
+├── pq_number            → unique, e.g. PQ-2026-0001
+├── responses            → JSON (answers keyed by section.field.key)
+├── status               → 'draft' | 'submitted' | 'under_review' |
+│                           'qualified' | 'rejected' |
+│                           'expired' | 'suspended'
+├── submitted_at
+├── reviewed_by          → users.id (staff)
+├── reviewed_at
+├── qualified_at
+├── expires_at           → date (template.validity_months from qualified_at)
+├── score                → decimal, nullable
+├── review_notes         → text
+├── rejection_reason     → text, nullable
+├── categories_qualified → JSON (can qualify for multiple categories)
+└── timestamps + soft deletes</pre>
+
+  <h4>New: <code>prequalification_documents</code> table</h4>
+  <p>Same pattern as <code>ApplicationDocument</code>: typed file uploads.</p>
+<pre>prequalification_documents
+├── id
+├── prequalification_id  → prequalifications.id
+├── document_type        → 'tax_compliance' | 'registration' |
+│                           'insurance' | 'financial_statement' |
+│                           'reference_letter' | 'bank_reference' |
+│                           'past_work' | 'other'
+├── original_filename
+├── disk / path / mime_type / size_bytes
+├── verified             → boolean (staff checked authenticity)
+├── verified_by / verified_at
+└── timestamps</pre>
+
+  <h4>Linking to tenders</h4>
+  <p>When a tender has <code>visibility = 'prequalified'</code>, the system checks:</p>
+<pre>Vendor can bid IF:
+  prequalifications.vendor_id = vendor.id
+  AND status = 'qualified'
+  AND expires_at > now()
+  AND categories_qualified includes tender.category</pre>
+</div>
+
+<div class="card">
+  <h3>Backend services <span class="tag tag-backend">Backend</span></h3>
+  <h4><code>PrequalificationService</code> (new)</h4>
+  <ul>
+    <li><code>startApplication(vendor, template)</code> &mdash; creates a draft PQ submission</li>
+    <li><code>submit(prequalification)</code> &mdash; validates all required fields and documents, moves to submitted</li>
+    <li><code>review(prequalification, staff, score, notes)</code> &mdash; staff evaluates</li>
+    <li><code>qualify(prequalification, categories)</code> &mdash; sets qualified status + expiry date</li>
+    <li><code>reject(prequalification, reason)</code> &mdash; with reason, vendor can reapply</li>
+    <li><code>checkExpiry()</code> &mdash; scheduled job: expires qualifications past their date, notifies vendors to reapply</li>
+    <li><code>isQualified(vendor, category)</code> &mdash; quick check for tender eligibility</li>
+  </ul>
+
+  <h4>Controllers</h4>
+  <table>
+    <tr><th>Endpoint</th><th>Who</th><th>What</th></tr>
+    <tr><td><code>GET /admin/procurement/prequalifications</code></td><td>Staff</td><td>List all PQ submissions</td></tr>
+    <tr><td><code>GET /admin/procurement/prequalifications/{id}</code></td><td>Staff</td><td>Review a submission + documents</td></tr>
+    <tr><td><code>PUT /admin/procurement/prequalifications/{id}/review</code></td><td>Staff</td><td>Score and qualify/reject</td></tr>
+    <tr><td><code>CRUD /admin/procurement/pq-templates</code></td><td>Staff</td><td>Manage PQ templates</td></tr>
+    <tr><td colspan="3" style="padding-top:0.75rem"><strong>Vendor portal</strong></td></tr>
+    <tr><td><code>GET /portal/vendor/prequalifications</code></td><td>Vendor</td><td>Their PQ status &amp; history</td></tr>
+    <tr><td><code>POST /portal/vendor/prequalifications</code></td><td>Vendor</td><td>Start a new PQ application</td></tr>
+    <tr><td><code>PUT /portal/vendor/prequalifications/{id}</code></td><td>Vendor</td><td>Save / submit their responses</td></tr>
+    <tr><td><code>POST /portal/vendor/prequalifications/{id}/documents</code></td><td>Vendor</td><td>Upload supporting documents</td></tr>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Frontend pages <span class="tag tag-frontend">Frontend</span></h3>
+  <div class="cols">
+    <div>
+      <h4>Admin (staff)</h4>
+      <ul>
+        <li><code>/admin/procurement/pq-templates</code> &mdash; template builder (drag-drop sections, field types)</li>
+        <li><code>/admin/procurement/prequalifications</code> &mdash; submissions list with status filters</li>
+        <li><code>/admin/procurement/prequalifications/{id}</code> &mdash; review page: responses, uploaded docs (with inline preview for PDFs/images), score, approve/reject</li>
+      </ul>
+    </div>
+    <div>
+      <h4>Vendor portal</h4>
+      <ul>
+        <li><code>/portal/vendor/prequalification</code> &mdash; PQ status dashboard (qualified categories, expiry dates)</li>
+        <li><code>/portal/vendor/prequalification/apply</code> &mdash; pick template, multi-step form with file upload per section</li>
+        <li><code>/portal/vendor/prequalification/{id}</code> &mdash; view their submission + result</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- ─── SECTION 6 ─── -->
+<h2 id="permissions">6. New permissions &amp; catalog changes</h2>
 
 <div class="card">
   <h3>Catalog v18 additions <span class="tag tag-backend">Backend</span></h3>
-  <p>These go into <code>Services/Access/Catalog.php</code> under the Extras module group.</p>
+  <p>These go into <code>Services/Access/Catalog.php</code>. The version bumps from 17 to 18.</p>
 
   <table>
-    <tr><th>Permission</th><th>Description</th><th>Default roles</th></tr>
-    <tr><td><code>affiliates.view</code></td><td>View affiliate list &amp; stats</td><td>manager, admin, super_admin</td></tr>
-    <tr><td><code>affiliates.manage</code></td><td>Approve/suspend affiliates</td><td>admin, super_admin</td></tr>
-    <tr><td><code>affiliates.payouts</code></td><td>Generate &amp; approve payouts</td><td>senior_accountant, admin, super_admin</td></tr>
-    <tr><td><code>vendors.approve</code></td><td>Approve vendor registrations</td><td>manager, admin, super_admin</td></tr>
-    <tr><td><code>vendors.portal</code></td><td>Configure vendor portal settings</td><td>admin, super_admin</td></tr>
+    <tr><th>Permission</th><th>Group</th><th>Description</th><th>Default roles</th></tr>
+    <tr><td colspan="4" style="font-weight:600;color:var(--accent);border-bottom:2px solid var(--border)">Affiliates (Extras module)</td></tr>
+    <tr><td><code>affiliates.view</code></td><td>Marketing</td><td>View affiliate list &amp; stats</td><td>manager, admin, super_admin</td></tr>
+    <tr><td><code>affiliates.manage</code></td><td>Marketing</td><td>Approve/suspend affiliates</td><td>admin, super_admin</td></tr>
+    <tr><td><code>affiliates.payouts</code></td><td>Marketing</td><td>Generate &amp; approve payouts</td><td>senior_accountant, admin, super_admin</td></tr>
+    <tr><td colspan="4" style="font-weight:600;color:var(--accent);border-bottom:2px solid var(--border)">Tendering &amp; procurement</td></tr>
+    <tr><td><code>tenders.view</code></td><td>Purchases</td><td>See tenders and bids</td><td>finance, manager, admin, super_admin</td></tr>
+    <tr><td><code>tenders.manage</code></td><td>Purchases</td><td>Create, publish, close tenders</td><td>manager, admin, super_admin</td></tr>
+    <tr><td><code>tenders.evaluate</code></td><td>Purchases</td><td>Score bids and award tenders</td><td>manager, admin, super_admin</td></tr>
+    <tr><td><code>prequalification.view</code></td><td>Purchases</td><td>See PQ submissions</td><td>finance, manager, admin, super_admin</td></tr>
+    <tr><td><code>prequalification.manage</code></td><td>Purchases</td><td>Review and qualify/reject vendors</td><td>manager, admin, super_admin</td></tr>
+    <tr><td><code>prequalification.templates</code></td><td>Purchases</td><td>Create and edit PQ form templates</td><td>admin, super_admin</td></tr>
+    <tr><td colspan="4" style="font-weight:600;color:var(--accent);border-bottom:2px solid var(--border)">Vendor portal config</td></tr>
+    <tr><td><code>vendors.portal</code></td><td>Purchases</td><td>Configure vendor portal settings</td><td>admin, super_admin</td></tr>
   </table>
-  <p><code>vendors.view</code> and <code>vendors.manage</code> already exist. <code>vendors.approve</code> is new for the self-registration approval flow.</p>
+  <p><strong>Already exist:</strong> <code>vendors.view</code>, <code>vendors.manage</code>, <code>vendors.approve</code> (added in Catalog v3), and <code>purchase.approve</code> (in APPROVALS). No changes to those.</p>
 
   <h4>Portal-side: no permission changes</h4>
   <p>Affiliates who are customers/vendors still hold no permissions (clearance 0). Their affiliate dashboard is a portal page gated by <code>account:customer</code> or <code>account:vendor</code> middleware plus a check that an <code>affiliates</code> record exists. The Authorizer doesn't need to change.</p>
@@ -536,8 +863,8 @@ export const canApproveVendors = (user) =>
 
 <hr class="divider">
 
-<!-- ─── SECTION 5 ─── -->
-<h2 id="phases">5. Phased delivery plan</h2>
+<!-- ─── SECTION 7 ─── -->
+<h2 id="phases">7. Phased delivery plan</h2>
 
 <div class="card">
   <div class="phase-header"><span class="phase-num">1</span><h3 style="margin:0">Vendor self-registration &amp; portal shell</h3></div>
@@ -594,32 +921,72 @@ export const canApproveVendors = (user) =>
   </ul>
 </div>
 
+<div class="card">
+  <div class="phase-header"><span class="phase-num">5</span><h3 style="margin:0">Pre-qualification system</h3></div>
+  <p><strong>Goal:</strong> Vendors fill a structured form to qualify as suppliers, with document uploads.</p>
+  <ul>
+    <li>Migrations: <code>prequalification_templates</code>, <code>prequalifications</code>, <code>prequalification_documents</code></li>
+    <li><code>PrequalificationService</code>: application, review, qualify/reject, expiry check</li>
+    <li>Admin: PQ template builder (sections, fields, required docs)</li>
+    <li>Admin: submissions list with review/approve/reject</li>
+    <li>Vendor portal: PQ status dashboard, multi-step form, file uploads</li>
+    <li>Scheduled command to expire old qualifications and notify vendors</li>
+    <li>Permissions: <code>prequalification.view</code>, <code>prequalification.manage</code>, <code>prequalification.templates</code></li>
+    <li>Tests: application flow, document validation, expiry, review</li>
+  </ul>
+</div>
+
+<div class="card">
+  <div class="phase-header"><span class="phase-num">6</span><h3 style="margin:0">Tendering &amp; bid management</h3></div>
+  <p><strong>Goal:</strong> Staff post tenders, vendors bid competitively, staff evaluate and award.</p>
+  <ul>
+    <li>Migrations: <code>tenders</code>, <code>tender_documents</code>, <code>tender_invitations</code>, <code>tender_bids</code>, <code>tender_bid_items</code>, <code>tender_bid_documents</code></li>
+    <li><code>TenderService</code>: create, publish, close, evaluate, award</li>
+    <li>Admin: tender creation with rich editor, evaluation criteria builder</li>
+    <li>Admin: bid comparison and weighted scoring panel</li>
+    <li>Vendor portal: browse tenders, submit bids with line items and documents</li>
+    <li>Award &rarr; PO generation (links to existing <code>PurchaseOrder</code> model)</li>
+    <li>Visibility rules: all vendors / prequalified only / invited vendors</li>
+    <li>Notifications: new tender published, bid deadline approaching, award result</li>
+    <li>Permissions: <code>tenders.view</code>, <code>tenders.manage</code>, <code>tenders.evaluate</code></li>
+    <li>Tests: full lifecycle from draft &rarr; published &rarr; bids &rarr; evaluate &rarr; award &rarr; PO</li>
+  </ul>
+</div>
+
 <hr class="divider">
 
-<!-- ─── SECTION 6 ─── -->
-<h2 id="schema">6. Migration &amp; schema reference</h2>
+<!-- ─── SECTION 8 ─── -->
+<h2 id="schema">8. Migration &amp; schema reference</h2>
 
 <div class="card">
   <h3>New migrations (in order)</h3>
-<pre>1. create_affiliates_table
-   └── After: existing users + vendors tables
-
+<pre>── Affiliates ──
+1. create_affiliates_table
 2. add_affiliate_columns_to_referral_codes
    └── Adds: affiliate_id, source_type, campaign
-   └── After: affiliates table exists
-
 3. create_affiliate_referrals_table
-   └── After: affiliates + referral_codes
-
 4. create_affiliate_payouts_table
-   └── After: affiliates table</pre>
+
+── Pre-qualification ──
+5. create_prequalification_templates_table
+6. create_prequalifications_table
+7. create_prequalification_documents_table
+
+── Tendering ──
+8.  create_tenders_table
+9.  create_tender_documents_table
+10. create_tender_invitations_table
+11. create_tender_bids_table
+12. create_tender_bid_items_table
+13. create_tender_bid_documents_table</pre>
 
   <h3>Existing tables touched</h3>
   <table>
     <tr><th>Table</th><th>Change</th></tr>
     <tr><td><code>referral_codes</code></td><td>Add <code>affiliate_id</code>, <code>source_type</code>, <code>campaign</code></td></tr>
     <tr><td><code>users</code></td><td>No changes needed</td></tr>
-    <tr><td><code>vendors</code></td><td>No changes needed (already has user_id, status)</td></tr>
+    <tr><td><code>vendors</code></td><td>No changes needed (already has user_id, status, is_verified)</td></tr>
+    <tr><td><code>purchase_orders</code></td><td>Add nullable <code>tender_bid_id</code> (links PO to winning bid)</td></tr>
   </table>
 </div>
 
@@ -631,10 +998,24 @@ export const canApproveVendors = (user) =>
        │                    └── AffiliatePayouts
        │
        └── Vendor ────── Affiliate (via user_id)
-                            ├── ReferralCodes
-                            ├── AffiliateReferrals
-                            └── AffiliatePayouts</pre>
-  <p>The <code>Affiliate</code> model ties to <code>User</code> (not to Customer or Vendor directly). The <code>affiliate_type</code> column records which portal type they are, but the foreign key is <code>user_id</code>. This keeps the model simple and lets the same affiliate system work for future portal types.</p>
+            │               ├── ReferralCodes
+            │               ├── AffiliateReferrals
+            │               └── AffiliatePayouts
+            │
+            ├── Prequalifications
+            │     └── PrequalificationDocuments
+            │
+            ├── TenderBids
+            │     ├── TenderBidItems
+            │     └── TenderBidDocuments
+            │
+            └── PurchaseOrders (existing)
+                  └── (optional) ← TenderBid.awarded
+
+Tender ──┬── TenderDocuments
+         ├── TenderInvitations → Vendor
+         └── TenderBids → Vendor</pre>
+  <p>The <code>Affiliate</code> model ties to <code>User</code> (not to Customer or Vendor directly). The <code>affiliate_type</code> column records which portal type they are, but the foreign key is <code>user_id</code>. Tenders and pre-qualifications tie to <code>Vendor</code> directly since they are procurement-specific.</p>
 </div>
 
 <div class="card">
@@ -646,15 +1027,32 @@ export const canApproveVendors = (user) =>
         <li><code>Models/Affiliate.php</code></li>
         <li><code>Models/AffiliateReferral.php</code></li>
         <li><code>Models/AffiliatePayout.php</code></li>
+        <li><code>Models/Tender.php</code></li>
+        <li><code>Models/TenderDocument.php</code></li>
+        <li><code>Models/TenderInvitation.php</code></li>
+        <li><code>Models/TenderBid.php</code></li>
+        <li><code>Models/TenderBidItem.php</code></li>
+        <li><code>Models/TenderBidDocument.php</code></li>
+        <li><code>Models/PrequalificationTemplate.php</code></li>
+        <li><code>Models/Prequalification.php</code></li>
+        <li><code>Models/PrequalificationDocument.php</code></li>
         <li><code>Services/AffiliateService.php</code></li>
+        <li><code>Services/TenderService.php</code></li>
+        <li><code>Services/PrequalificationService.php</code></li>
         <li><code>Controllers/Api/AffiliateController.php</code></li>
         <li><code>Controllers/Api/VendorPortalController.php</code></li>
+        <li><code>Controllers/Admin/TenderController.php</code></li>
+        <li><code>Controllers/Admin/PrequalificationController.php</code></li>
         <li><code>Events/VendorRegistered.php</code></li>
-        <li>4 migration files</li>
+        <li><code>Console/Commands/ExpirePrequalifications.php</code></li>
+        <li>13 migration files</li>
         <li><code>frontend: api/affiliates.js</code></li>
         <li><code>frontend: api/vendorPortal.js</code></li>
+        <li><code>frontend: api/tenders.js</code></li>
+        <li><code>frontend: api/prequalifications.js</code></li>
         <li><code>frontend: portal/vendor/* pages</code></li>
         <li><code>frontend: portal/affiliates/* pages</code></li>
+        <li><code>frontend: admin/procurement/* pages</code></li>
         <li><code>frontend: auth/RegisterVendor.jsx</code></li>
       </ul>
     </div>
@@ -662,12 +1060,15 @@ export const canApproveVendors = (user) =>
       <h4>Changed files</h4>
       <ul>
         <li><code>AuthController.php</code> (add registerVendor)</li>
-        <li><code>Catalog.php</code> (v17 → v18, new permissions)</li>
+        <li><code>Catalog.php</code> (v17 → v18, 10 new permissions)</li>
         <li><code>Authorizer.php</code> (affiliate flag in summary)</li>
         <li><code>User.php</code> (affiliate relationship)</li>
+        <li><code>Vendor.php</code> (prequalifications, tenderBids relationships)</li>
+        <li><code>PurchaseOrder.php</code> (optional tender_bid_id)</li>
         <li><code>ReferralCode.php</code> (affiliate relationship)</li>
-        <li><code>routes/api.php</code> (vendor portal + affiliate routes)</li>
-        <li><code>frontend: App.jsx</code> (vendor portal routes)</li>
+        <li><code>routes/api.php</code> (vendor portal + affiliate + procurement routes)</li>
+        <li><code>frontend: App.jsx</code> (vendor portal + procurement routes)</li>
+        <li><code>frontend: adminNav.js</code> (procurement section)</li>
         <li><code>frontend: roles.js</code> (new helpers)</li>
       </ul>
     </div>
