@@ -3,6 +3,8 @@ import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, KeyRound, Stamp, Send } from 'lucide-react';
 import { authAPI } from '../../../_shared/api/index';
 import { useAuthStore, useModuleStore } from '../../../_shared/store/index';
+import { isModuleActive } from '../../../_shared/navigation/modules';
+import { isVendor } from '../../../_shared/lib/roles';
 import toast from 'react-hot-toast';
 import PolicyConsentCheckbox from '../../../_shared/components/legal/shared/PolicyConsentCheckbox';
 import { autofillSupported, passkeyProblem, passkeysSupported } from '../../../_shared/lib/webauthn';
@@ -70,7 +72,8 @@ export default function Login() {
     // a till operator (sells, but has no Books) lands on the till, not the admin home
     const perms = response.access?.permissions ?? [];
     const tillOnly = perms.includes('pos.sell') && !perms.includes('books.view');
-    navigate(!searchParams.get('redirect') && tillOnly ? '/admin/pos' : redirect);
+    const vendorHome = !searchParams.get('redirect') && isVendor(response.user, response.access);
+    navigate(vendorHome ? '/vendor-portal' : !searchParams.get('redirect') && tillOnly ? '/admin/pos' : redirect);
     return true;
   };
 
@@ -408,6 +411,12 @@ export default function Login() {
             Don't have an account?{' '}
             <Link to="/register" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Sign up free</Link>
           </p>
+          {isModuleActive('extras') && (
+            <p style={{ textAlign: 'center', fontSize: '0.82rem', marginTop: 8 }} className="text-gray-500 dark:text-gray-400">
+              A supplier?{' '}
+              <Link to="/vendor-register" style={{ color: 'var(--color-primary-500)', fontWeight: 700, textDecoration: 'none' }}>Register as a vendor</Link>
+            </p>
+          )}
         </div>
       </div>
 
