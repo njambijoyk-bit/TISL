@@ -63,10 +63,10 @@ UPDATE tenders SET reservation_scheme = CASE
     WHEN LOWER(reservation_scheme) LIKE '%pwd%' OR LOWER(reservation_scheme) LIKE '%disab%' THEN 'pwd'
     WHEN LOWER(reservation_scheme) LIKE '%sme%' OR LOWER(reservation_scheme) LIKE '%small%' THEN 'sme'
     ELSE NULL END
- WHERE reservation_scheme IS NOT NULL AND reservation_scheme NOT IN ('youth', 'women', 'pwd', 'sme');
+ WHERE id > 0 AND reservation_scheme IS NOT NULL AND reservation_scheme NOT IN ('youth', 'women', 'pwd', 'sme');
 
 -- B4. old document types become the new ones
-UPDATE tender_documents SET document_type = 'tender_document' WHERE document_type IN ('specification', 'terms', 'boq', 'drawing');
+UPDATE tender_documents SET document_type = 'tender_document' WHERE id > 0 AND document_type IN ('specification', 'terms', 'boq', 'drawing');
 
 -- B5. lots
 CREATE TABLE IF NOT EXISTS tender_lots (
