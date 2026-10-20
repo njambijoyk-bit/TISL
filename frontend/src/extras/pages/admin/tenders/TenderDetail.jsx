@@ -191,7 +191,7 @@ export default function TenderDetail() {
   useEffect(() => { load(); }, [load]);
 
   const act = (fn, ok) => async () => {
-    try { setActisetActionError(null); const r = await fn(); toast.success(r?.message || ok); load(); } catch (e) { onError(errMsg(e, 'Could not do that')); }
+    try { setActionError(null); const r = await fn(); toast.success(r?.message || ok); load(); } catch (e) { setActionError(errMsg(e, 'Could not do that')); }
   };
   const open = async (d, inline) => {
     try { goToFile((await tendersAPI.documentLink(id, d.id, inline)).url, inline); } catch (x) { setActionError(errMsg(x, 'Could not open the file')); }
