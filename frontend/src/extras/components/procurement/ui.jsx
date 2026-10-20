@@ -206,6 +206,53 @@ export function NoticeDetails({ tender: t, extra = [], onOpen }) {
         </>
       )}
 
+      {(t.addenda || []).length > 0 && (
+        <>
+          <div style={sectionTitle}>Addenda</div>
+          <div style={{ display: 'grid', gap: 10 }}>
+            {t.addenda.map(a => {
+              const files = (t.documents || []).filter(d => d.addendum_id === a.id);
+              return (
+                <div key={a.id} style={{ ...card, padding: '14px 18px' }}>
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'baseline' }}>
+                    <strong style={{ color: colors.text }}>Addendum {a.number}: {a.title}</strong>
+                    <span style={{ fontSize: '0.76rem', color: colors.textMuted }}>{fmtDateTime(a.created_at)}</span>
+                  </div>
+                  {a.new_deadline && <div style={{ fontSize: '0.82rem', marginTop: 6, color: colors.warningText }}>Closing date changed{a.previous_deadline ? ` from ${fmtDateTime(a.previous_deadline)}` : ''} to {fmtDateTime(a.new_deadline)}.</div>}
+                  {a.note && <p style={{ margin: '6px 0 0', fontSize: '0.84rem', lineHeight: 1.55, whiteSpace: 'pre-wrap', color: colors.textBody }}>{a.note}</p>}
+                  {files.length > 0 && (
+                    <div style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {files.map(f => <button key={f.id} type="button" onClick={() => onOpen(f, ['pdf', 'html', 'htm'].includes(String(f.extension || '').toLowerCase()))} style={{ ...btnGhost, padding: '4px 12px', fontSize: '0.74rem' }}>{f.name}</button>)}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {(t.awards || []).length > 0 && (
+        <>
+          <div style={sectionTitle}>Award</div>
+          <div style={{ ...card, padding: 0, overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr>{['Lot', 'Awarded to', 'Amount', 'Date'].map(h => <th key={h} style={{ ...th, padding: '12px 16px' }}>{h}</th>)}</tr></thead>
+              <tbody>
+                {t.awards.map((w, i) => (
+                  <tr key={i}>
+                    <td style={{ ...td, padding: '12px 16px' }}>{w.lot_code ? `${w.lot_code}${w.lot_title ? `: ${w.lot_title}` : ''}` : 'Whole tender'}</td>
+                    <td style={{ ...td, padding: '12px 16px', fontWeight: 600 }}>{w.winner}</td>
+                    <td style={{ ...td, padding: '12px 16px' }}>{w.amount != null && w.amount !== '' ? `${w.currency || 'KES'} ${Number(w.amount).toLocaleString()}` : '—'}</td>
+                    <td style={{ ...td, padding: '12px 16px', whiteSpace: 'nowrap' }}>{w.awarded_on ? fmtLongDate(w.awarded_on) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       <div style={sectionTitle}>Attachments</div>
       {docs.length === 0 ? <div style={{ ...card, padding: 18, fontSize: '0.85rem', color: colors.textMuted }}>None</div> : (
         <div style={{ ...card, padding: 0, overflowX: 'auto' }}>

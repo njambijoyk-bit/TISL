@@ -206,6 +206,11 @@ export default function Vendors() {
                   <td style={td}><strong>{r.company_name}</strong><div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{r.vendor_number}</div></td>
                   <td style={td}>{r.contact_name}<div style={{ fontSize: '0.7rem', color: colors.textFaint }}>{[r.phone, r.email].filter(Boolean).join(' · ')}</div></td>
                   <td style={td}>
+                    {(r.flags || []).length > 0 && (
+                      <div title={r.flags.map((f) => f.text).join('\n')} style={{ fontSize: '0.66rem', fontWeight: 700, marginBottom: 3, color: colors.warningText }}>
+                        Flagged by the system ({r.flags.length}): {r.flags[0].text}
+                      </div>
+                    )}
                     {r.status === 'active' ? 'active' : (
                       <span style={{ fontSize: '0.68rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap',
                         background: r.status === 'suspended' ? colors.dangerBg : colors.warningBg, color: r.status === 'suspended' ? colors.dangerText : colors.warningText }}>

@@ -41,6 +41,7 @@ class Tender extends Model
 
     protected $fillable = [
         'tender_number',
+        'show_award',
         'notice_type',
         'procuring_entity',
         'ocid',
@@ -119,6 +120,16 @@ class Tender extends Model
     public function lots()
     {
         return $this->hasMany(TenderLot::class)->orderBy('sort_order')->orderBy('code');
+    }
+
+    public function addenda()
+    {
+        return $this->hasMany(TenderAddendum::class)->orderBy('number');
+    }
+
+    public function awards()
+    {
+        return $this->hasMany(TenderAward::class)->orderBy('lot_code');
     }
 
     public function mailings()

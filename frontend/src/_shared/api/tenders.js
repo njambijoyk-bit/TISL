@@ -18,6 +18,10 @@ const tendersAPI = {
   deleteDocument: async (id, docId) => (await api.delete(`/admin/tenders/${id}/documents/${docId}`)).data,
   documentLink: async (id, docId, inline) => (await api.get(`/admin/tenders/${id}/documents/${docId}/link`, { params: { inline: inline ? 1 : 0 } })).data,
 
+  // Addenda and the award (recorded after the offline decision)
+  addAddendum: async (id, formData) => (await api.post(`/admin/tenders/${id}/addenda`, formData, form)).data,
+  award: async (id, data) => (await api.post(`/admin/tenders/${id}/award`, data)).data,
+
   // Invitations (visibility = invited)
   invite: async (id, data) => (await api.post(`/admin/tenders/${id}/invite`, data)).data,
   uninvite: async (id, vendorId) => (await api.delete(`/admin/tenders/${id}/invite/${vendorId}`)).data,

@@ -3375,6 +3375,8 @@ Route::middleware(['auth:sanctum', 'module:extras'])->prefix('admin/tenders')->g
         Route::post('/{id}/invite',         [$tc, 'invite'])->whereNumber('id');
         Route::delete('/{id}/invite/{vendorId}', [$tc, 'uninvite'])->whereNumber('id')->whereNumber('vendorId');
         Route::post('/{id}/email',          [$tc, 'email'])->whereNumber('id');
+        Route::post('/{id}/addenda',        [$tc, 'addAddendum'])->whereNumber('id');
+        Route::post('/{id}/award',          [$tc, 'award'])->whereNumber('id');
     });
 });
 

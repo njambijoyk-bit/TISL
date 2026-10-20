@@ -1,4 +1,4 @@
-# Tenders and pre-qualification as a notice board (v4: Phase 1 built)
+# Tenders and pre-qualification as a notice board (v5: Phases 1 to 3 built)
 
 **The decision:** the website is a way to **communicate**, not a tool to create or run tenders. Procurement writes the tender document elsewhere (Word, PDF), uploads it, and the website shows it to the right people. Vendors bid, and winners are chosen and told, **offline**. This replaces the earlier full e-procurement design (kept in `TENDERS_FULL_EPROCUREMENT_SHELVED.md`).
 
@@ -85,4 +85,4 @@ The earlier idea of a **machine pre-check with a reason** still fits here, on a 
 
 ## 7. Status
 
-**Phase 1 is built:** Public level, attachments with types and sandboxed HTML, the public list (tabs, per-column search, time to close, share, Excel, phone cards), the details page, the vendor portal list and details with signed file links, people categories and lots, emailing through notifications, recorded pre-qualification with reasons, removal of the online bidding code. SQL scripts 221 and 222. Test steps are in `VENDOR_PORTAL_MANUAL_TEST.md`. Phases 2 and 3 are still to do.
+**Phase 1 is built:** Public level, attachments with types and sandboxed HTML, the public list (tabs, per-column search, time to close, share, Excel, phone cards), the details page, the vendor portal list and details with signed file links, people categories and lots, emailing through notifications, recorded pre-qualification with reasons, removal of the online bidding code. SQL scripts 221 and 222. Test steps are in `VENDOR_PORTAL_MANUAL_TEST.md`. **Phases 2 and 3 are built** (script 223): addenda with an optional new closing date and file history, the award record per lot with a public on/off switch, the 30-day pre-qualification expiry reminder (`php artisan tenders:pq-reminders`, daily 07:30) to the vendor and to staff, the dashboard warning, and machine flags (missing tax PIN or registration number, unverified or suspended vendor, expired or missing people-category certificate, a valid-until already past or over 3 years) shown to the person recording the decision. A flag never decides anything.

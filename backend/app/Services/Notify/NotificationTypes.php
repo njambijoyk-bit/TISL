@@ -73,6 +73,8 @@ class NotificationTypes
         // tenders posted on the website (Services/Tenders/TenderNotices): a business message to the vendors a tender is meant for, sent only when staff choose to
         'tender_notice' => ['A new tender for vendors', true, 'customer'],
         'tender_addendum' => ['An addendum to a tender', true, 'customer'],
+        'prequalification_expiring' => ['Your pre-qualification is about to expire', true, 'customer'],
+        'prequalification_expiring_staff' => ['A vendor\'s pre-qualification is about to expire', false, 'staff'],
     ];
 
     /**

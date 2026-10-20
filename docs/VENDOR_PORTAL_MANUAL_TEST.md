@@ -18,6 +18,7 @@ database/sql/218_tenders_nav_link.sql        # the public "Tenders" menu link
 database/sql/219_vendors_status_column.sql   # lets vendors.status hold 'suspended'
 database/sql/220_policy_acceptance_vendor.sql # vendor_id / vendor_number on policy acceptances
 database/sql/221_tender_notice_board.sql     # notice type, lots, people categories, recorded pre-qualification, mailings
+database/sql/223_tender_addenda_awards_pq_flags.sql # addenda, awards, pre-qualification checks and reminders
 database/sql/222_remove_online_bidding.sql   # DESTRUCTIVE: drops the old bid and PQ-application tables. Read Part A first.
 
 php artisan access:seed
@@ -155,6 +156,23 @@ Also check: opening a vendor-only file link from the portal works for those vend
 3. T5 (reserved for Youth): **Expect:** only Youth vendors are counted.
 4. T4 with lots A (Youth) and B (Women) and C (open): **Expect:** everyone who can see it is counted, because lot C is open.
 
+### 4.7b Addenda
+1. Published tender > **Addenda** tab > add "Clarification on site visit", a note, a **new close date**, one file, tick "Tell eligible vendors". **Expect:** "Addendum 1 added"; the tender's close date changes; a draft tender refuses ("Publish it first").
+2. Public page of that tender. **Expect:** an **Addenda** section: "Addendum 1: ..." with "Closing date changed from X to Y", the note and the file. The list's **Addendum** column shows 1; the Addendum filter "Has" finds it.
+3. A closed tender given an addendum with a new date. **Expect:** it is open again.
+4. On the Files tab, the type list has no "Addendum" (use the Addenda tab).
+
+### 4.7c Award
+1. Tender T4 (with lots) > **Award** tab. Pick a vendor for lot A with an amount, type a name for lot B, leave lot C empty. **Expect:** "Award recorded"; the tender is **Awarded**.
+2. Public page. **Expect:** an **Award** table with lot, winner, amount and date; lot C is absent. Untick "Show the winners on the public tender page", save again. **Expect:** the table disappears from the public page (admins still see it).
+3. Try an award on a draft tender. **Expect:** refused.
+
+### 4.7d Pre-qualification checks and reminders
+1. A vendor with no tax PIN > **Pre-qualification**. **Expect:** a yellow "Flagged by the system" box ("The tax PIN is missing" and so on). Record a decision anyway with a reason. **Expect:** it is saved, and the record shows "Flagged by the system when recorded: ...". The flag never blocks you.
+2. Record a Qualified decision with a valid-until date already past. **Expect:** flagged "already in the past".
+3. In Admin > Vendors a vendor that is not active shows "Flagged by the system (n)" under its status.
+4. Reminders: record a Qualified decision valid until 10 days from now, then run `php artisan tenders:pq-reminders`. **Expect:** "1 reminder(s) sent"; the vendor gets a bell notification (and email) and the vendor portal dashboard shows an expiry warning; staff who can manage pre-qualification get a bell notification. Running it again sends nothing. **Extend** the record, then run it again with a date inside 30 days. **Expect:** a new reminder. The command runs daily at 07:30 when the scheduler is running.
+
 ### 4.8 Module gating (the key licensing test)
 1. Switch **Extras off** in Module Center and refresh.
 2. **Expect:** `/vendor-register`, `/vendor-portal/*`, `/admin/tenders*`, `/admin/prequalification/*`, `/tenders*` redirect away; the API routes return 404.
@@ -178,7 +196,6 @@ Admin `/admin/vendors` still creates a vendor and its Sundry Creditor ledger exa
 ## 5. Known gaps
 
 - **Approval is not enforced in the portal.** A vendor in `pending_approval` can already log in and browse. Approval is recorded but nothing blocks the unapproved.
-- Not built yet (Phase 2 and 3 of `TENDERS_AND_PREQUALIFICATION_PLAN.md`): addendum records with a new closing date, awarded lots and winners, the Awarded state from the screens, expiry reminders, machine flags.
 - Pre-qualified visibility reads the new `vendor_prequalifications` table, so old PQ data is not carried over.
 
 ## 6. Reset test data

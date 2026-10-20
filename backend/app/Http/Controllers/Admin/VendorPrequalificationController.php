@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Extras\VendorPrequalification;
 use App\Models\Vendor;
+use App\Services\Tenders\VendorChecks;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,12 +15,14 @@ use Illuminate\Http\Request;
  */
 class VendorPrequalificationController extends Controller
 {
+    public function __construct(private VendorChecks $checks) {}
+
     private function row(VendorPrequalification $p): array
     {
         return [
             'id' => $p->id, 'vendor_id' => $p->vendor_id, 'vendor' => $p->relationLoaded('vendor') ? $p->vendor?->only(['id', 'vendor_number', 'company_name']) : null,
             'category' => $p->category, 'status' => $p->status, 'current' => $p->isCurrent(), 'qualified_from' => $p->qualified_from?->toDateString(), 'valid_until' => $p->valid_until?->toDateString(),
-            'reason' => $p->reason, 'notes' => $p->notes, 'recorded_by' => $p->recorder?->name, 'created_at' => $p->created_at,
+            'machine_flags' => $p->machine_flags ?? [], 'reason' => $p->reason, 'notes' => $p->notes, 'recorded_by' => $p->recorder?->name, 'created_at' => $p->created_at,
         ];
     }
 
@@ -47,16 +50,16 @@ class VendorPrequalificationController extends Controller
 
     public function forVendor(int $vendorId): JsonResponse
     {
-        Vendor::findOrFail($vendorId);
+        $vendor = Vendor::findOrFail($vendorId);
         $rows = VendorPrequalification::with('recorder:id,name')->where('vendor_id', $vendorId)->orderByDesc('created_at')->get();
 
-        return response()->json(['rows' => $rows->map(fn ($p) => $this->row($p))->values()]);
+        return response()->json(['rows' => $rows->map(fn ($p) => $this->row($p))->values(), 'vendor_flags' => $this->checks->flags($vendor)]);
     }
 
     /** Body: category, status (qualified | refused), qualified_from?, valid_until (needed when qualified), reason, notes?. */
     public function store(Request $request, int $vendorId): JsonResponse
     {
-        Vendor::findOrFail($vendorId);
+        $vendor = Vendor::findOrFail($vendorId);
         $d = $request->validate([
             'category'       => 'required|in:' . implode(',', VendorPrequalification::CATEGORIES),
             'status'         => 'required|in:qualified,refused',
@@ -66,9 +69,10 @@ class VendorPrequalificationController extends Controller
             'notes'          => 'nullable|string|max:2000',
         ], ['reason.required' => 'Write why: every decision needs a reason.', 'reason.min' => 'Write why: every decision needs a reason.']);
 
-        $p = VendorPrequalification::create($d + ['vendor_id' => $vendorId, 'qualified_from' => $d['qualified_from'] ?? now()->toDateString(), 'recorded_by' => $request->user()->id]);
+        $flags = $this->checks->forDecision($vendor, $d['status'], $d['valid_until'] ?? null);
+        $p = VendorPrequalification::create($d + ['machine_flags' => $flags, 'vendor_id' => $vendorId, 'qualified_from' => $d['qualified_from'] ?? now()->toDateString(), 'recorded_by' => $request->user()->id]);
 
-        return response()->json(['message' => $d['status'] === 'qualified' ? 'Pre-qualification recorded.' : 'Refusal recorded.', 'id' => $p->id], 201);
+        return response()->json(['message' => ($d['status'] === 'qualified' ? 'Pre-qualification recorded.' : 'Refusal recorded.') . ($flags ? ' The system flagged ' . count($flags) . ' point(s) for you to double-check.' : ''), 'id' => $p->id, 'flags' => $flags], 201);
     }
 
     /** Body: reason (required), and any of status (revoked), valid_until (extend), notes. The earlier reason is kept in the notes. */
@@ -82,6 +86,9 @@ class VendorPrequalificationController extends Controller
             'reason'      => 'required|string|min:5|max:2000',
         ], ['reason.required' => 'Write why: every change needs a reason.', 'reason.min' => 'Write why: every change needs a reason.']);
 
+        if (array_key_exists('valid_until', $d)) {
+            $d['reminded_at'] = null;   // a new date earns a new reminder
+        }
         $history = trim((string) $p->notes . "\n[" . now()->format('Y-m-d H:i') . ' ' . ($request->user()->name ?? 'staff') . '] Earlier reason: ' . $p->reason);
         $p->update(collect($d)->except('notes')->all() + ['notes' => array_key_exists('notes', $d) && $d['notes'] ? $d['notes'] . "\n" . $history : $history, 'recorded_by' => $request->user()->id]);
 

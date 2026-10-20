@@ -16,12 +16,13 @@ const BLANK = { category: 'goods', status: 'qualified', qualified_from: '', vali
  */
 export default function VendorPqModal({ vendor, canManage, onClose }) {
   const [rows, setRows] = useState(null);
+  const [vendorFlags, setVendorFlags] = useState([]);
   const [f, setF] = useState(BLANK);
   const [change, setChange] = useState(null);   // { row, action: 'revoke' | 'extend', reason, valid_until }
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
 
-  const load = useCallback(() => vendorPrequalificationsAPI.forVendor(vendor.id).then(r => setRows(r.rows || [])).catch(() => setRows([])), [vendor.id]);
+  const load = useCallback(() => vendorPrequalificationsAPI.forVendor(vendor.id).then(r => { setRows(r.rows || []); setVendorFlags(r.vendor_flags || []); }).catch(() => setRows([])), [vendor.id]);
   useEffect(() => { load(); }, [load]);
 
   const set = (k) => (e) => setF(x => ({ ...x, [k]: e.target.value }));
@@ -49,6 +50,13 @@ export default function VendorPqModal({ vendor, canManage, onClose }) {
     <Modal title="Pre-qualification" subtitle={vendor.company_name} onClose={onClose} width={720}>
       <FormStack>
         <FormError message={err} />
+        {vendorFlags.length > 0 && (
+          <div role="note" style={{ padding: '10px 12px', borderRadius: 8, fontSize: '0.78rem', background: colors.warningBg, color: colors.warningText }}>
+            <strong>Flagged by the system:</strong>
+            <ul style={{ margin: '4px 0 0', paddingLeft: 18 }}>{vendorFlags.map(f => <li key={f.code}>{f.text}</li>)}</ul>
+            <span style={{ display: 'block', marginTop: 4 }}>These are checks on the data only. You decide, and write why.</span>
+          </div>
+        )}
         {rows === null ? <p style={{ margin: 0, color: colors.textMuted }}>Loading…</p> : rows.length === 0 ? (
           <p style={{ margin: 0, fontSize: '0.82rem', color: colors.textMuted }}>Nothing recorded yet. The vendor sends the filled form by email or another channel; record the decision here.</p>
         ) : (
@@ -61,6 +69,7 @@ export default function VendorPqModal({ vendor, canManage, onClose }) {
                   <span style={{ color: colors.textMuted }}>{fmtLongDate(r.qualified_from)}{r.valid_until ? ` to ${fmtLongDate(r.valid_until)}` : ''}</span>
                 </div>
                 <div style={{ marginTop: 4, overflowWrap: 'anywhere' }}>{r.reason}</div>
+                {(r.machine_flags || []).length > 0 && <div style={{ marginTop: 4, fontSize: '0.72rem', color: colors.warningText }}>Flagged by the system when recorded: {r.machine_flags.map(f => f.text).join(' ')}</div>}
                 <div style={{ fontSize: '0.7rem', color: colors.textFaint, marginTop: 2 }}>Recorded by {r.recorded_by || 'staff'}</div>
                 {canManage && r.status === 'qualified' && (
                   <div style={{ marginTop: 6 }}>

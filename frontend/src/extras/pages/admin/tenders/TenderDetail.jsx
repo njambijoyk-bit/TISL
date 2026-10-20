@@ -9,6 +9,7 @@ import { Field, TextInput, SelectInput, CheckboxRow } from '../../../../core/com
 import { AdminPage, Loading, Empty, Tabs, StatusBadge, NoticeDetails, AttachmentRow, GroupBadge, ErrorBanner } from '../../../components/procurement/ui';
 import { mono, fmtDateTime, DOC_TYPE_LABELS, GROUP_LABELS, VISIBILITY_LABELS } from '../../../components/procurement/format';
 import { goToFile } from '../../../components/procurement/openDocument';
+import { AddendaPanel, AwardPanel } from './TenderAddendaAward';
 
 const box = { ...card, padding: 18, display: 'grid', gap: 12 };
 
@@ -54,7 +55,7 @@ function Attachments({ tender, reload, onError }) {
         <p style={{ margin: 0, fontSize: '0.75rem', color: colors.textMuted }}>PDF and HTML open in the browser (HTML runs in a sandbox with no scripts). Other types download. Up to 50 MB.</p>
         <input ref={fileRef} type="file" onChange={e => setFile(e.target.files?.[0] || null)} aria-label="File to upload" style={{ fontSize: '0.8rem', color: colors.text }} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-          <Field label="Type"><SelectInput value={type} onChange={e => setType(e.target.value)}>{Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput></Field>
+          <Field label="Type"><SelectInput value={type} onChange={e => setType(e.target.value)}>{Object.entries(DOC_TYPE_LABELS).filter(([k]) => k !== 'addendum').map(([k, v]) => <option key={k} value={k}>{v}</option>)}</SelectInput></Field>
           <Field label="Name shown" hint="Blank = the file's name"><TextInput value={name} onChange={e => setName(e.target.value)} /></Field>
         </div>
         {published && (
@@ -72,7 +73,7 @@ function Attachments({ tender, reload, onError }) {
             <AttachmentRow key={d.id} doc={d} onOpen={open} extra={
               <>
                 <select aria-label="Change type" value={d.document_type} onChange={e => retype(d, e.target.value)} style={{ fontSize: '0.74rem', color: colors.text, background: 'transparent', border: `1px solid ${colors.tint(0.2)}`, borderRadius: 6, padding: '2px 4px' }}>
-                  {Object.entries(DOC_TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  {Object.entries(DOC_TYPE_LABELS).filter(([k]) => k !== 'addendum' || d.document_type === 'addendum').map(([k, v]) => <option key={k} value={k} disabled={k === 'addendum'}>{v}</option>)}
                 </select>
                 <button type="button" aria-label={`Remove ${d.name}`} onClick={() => remove(d)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.danger, padding: 0 }}><Trash2 size={14} /></button>
               </>
@@ -200,7 +201,8 @@ export default function TenderDetail() {
   if (loading) return <AdminPage><Loading /></AdminPage>;
   if (!tender) return <AdminPage><ErrorBanner message={loadError} /><Empty>Tender not found</Empty></AdminPage>;
 
-  const shown = { ...tender, documents: (tender.documents || []).map(d => ({ ...d, type: d.document_type, uploaded_at: d.created_at, size: d.file_size, filename: d.original_filename })) };
+  const st0 = tender.status;
+  const shown = { ...tender, published_at: tender.published_at, awards: st0 === 'awarded' ? (tender.awards || []).map(w => ({ lot_code: w.lot_code, lot_title: (tender.lots || []).find(l => l.code === w.lot_code)?.title, winner: w.winner_name, amount: w.amount, currency: w.currency, awarded_on: w.awarded_on })) : [], documents: (tender.documents || []).map(d => ({ ...d, type: d.document_type, uploaded_at: d.created_at, size: d.file_size, filename: d.original_filename })) };
   const st = tender.status;
   const lbl = { fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: colors.primaryDeep, marginBottom: 3 };
 
@@ -241,7 +243,7 @@ export default function TenderDetail() {
       )}
 
       <ErrorBanner message={actionError} />
-      <Tabs value={tab} onChange={setTab} tabs={[['details', 'Details'], ['files', `Files (${(tender.documents || []).length})`], ['vendors', 'Vendors and email']]} />
+      <Tabs value={tab} onChange={setTab} tabs={[['details', 'Details'], ['files', `Files (${(tender.documents || []).length})`], ['addenda', `Addenda (${(tender.addenda || []).length})`], ['award', 'Award'], ['vendors', 'Vendors and email']]} />
 
       {tab === 'details' && (
         <div style={{ display: 'grid', gap: 14 }}>
@@ -250,6 +252,8 @@ export default function TenderDetail() {
         </div>
       )}
       {tab === 'files' && <Attachments tender={tender} reload={load} onError={setActionError} />}
+      {tab === 'addenda' && <AddendaPanel tender={tender} reload={load} onError={setActionError} />}
+      {tab === 'award' && <AwardPanel key={st} tender={tender} reload={load} onError={setActionError} />}
       {tab === 'vendors' && <Audience tender={tender} reload={load} onError={setActionError} />}
     </AdminPage>
   );

@@ -44,6 +44,11 @@ export default function VendorDashboard() {
         <StatCard icon={ClipboardCheck} label="Pre-qualified categories" value={(data.prequalifications || []).length} to="/vendor-portal/pq" />
         <StatCard icon={Package} label="Vendor orders" value={data.vendor_orders} to="/vendor-portal/orders" />
       </div>
+      {(data.prequalifications || []).filter(p => p.valid_until && (new Date(p.valid_until) - Date.now()) / 86400000 <= 30).map(p => (
+        <div key={p.category} style={{ padding: 14, borderRadius: 10, fontSize: '0.85rem', marginBottom: 12, background: colors.warningBg, color: colors.warningText, border: `1px solid ${colors.warning}` }}>
+          <strong>Your {p.category} pre-qualification expires on {new Date(p.valid_until).toLocaleDateString()}.</strong> Send us your renewal documents to stay pre-qualified.
+        </div>
+      ))}
       {v.status === 'pending_approval' && (
         <div style={{ padding: 16, borderRadius: 10, fontSize: '0.85rem', background: colors.warningBg, color: colors.warningText, border: `1px solid ${colors.warning}` }}>
           <strong>Account pending approval.</strong> An administrator will review your registration.

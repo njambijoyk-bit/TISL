@@ -13,9 +13,9 @@ class VendorPrequalification extends Model
 {
     public const CATEGORIES = ['goods', 'services', 'works'];
 
-    protected $fillable = ['vendor_id', 'category', 'status', 'qualified_from', 'valid_until', 'reason', 'notes', 'recorded_by'];
+    protected $fillable = ['vendor_id', 'category', 'status', 'qualified_from', 'valid_until', 'reason', 'notes', 'recorded_by', 'machine_flags', 'reminded_at'];
 
-    protected $casts = ['qualified_from' => 'date', 'valid_until' => 'date'];
+    protected $casts = ['qualified_from' => 'date', 'valid_until' => 'date', 'machine_flags' => 'array', 'reminded_at' => 'datetime'];
 
     public function vendor()
     {

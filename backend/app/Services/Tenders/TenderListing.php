@@ -75,9 +75,9 @@ class TenderListing
             $q->where('notice_type', $d['notice_type']);
         }
         if (($d['addendum'] ?? null) === 'yes') {
-            $q->whereHas('documents', fn ($x) => $x->where('document_type', 'addendum'));
+            $q->whereHas('addenda');
         } elseif (($d['addendum'] ?? null) === 'no') {
-            $q->whereDoesntHave('documents', fn ($x) => $x->where('document_type', 'addendum'));
+            $q->whereDoesntHave('addenda');
         }
 
         return $q;
@@ -104,7 +104,7 @@ class TenderListing
     public function withRowData(Builder $q): Builder
     {
         return $q->with('lots:id,tender_id,reservation_group')
-            ->withCount(['documents as addendum_count' => fn ($d) => $d->where('document_type', 'addendum')]);
+            ->withCount('addenda as addendum_count');
     }
 
     public function row(Tender $t): array
@@ -133,7 +133,7 @@ class TenderListing
     /** The full notice for the details page (the same for the public and for a vendor). */
     public function detail(Tender $t): array
     {
-        $t->loadMissing(['lots', 'documents']);
+        $t->loadMissing(['lots', 'documents', 'addenda', 'awards']);
 
         return $this->row($t) + [
             'ocid'                  => $t->ocid,
@@ -148,11 +148,20 @@ class TenderListing
             'currency'              => $t->currency,
             'requirements'          => $t->requirements ?? [],
             'lots'                  => $t->lots->map(fn ($l) => ['code' => $l->code, 'title' => $l->title, 'description' => $l->description, 'reservation_group' => $l->reservation_group])->values(),
+            'addenda'               => $t->addenda->map(fn ($a) => [
+                'id' => $a->id, 'number' => $a->number, 'title' => $a->title, 'note' => $a->note,
+                'previous_deadline' => $a->previous_deadline, 'new_deadline' => $a->new_deadline, 'created_at' => $a->created_at,
+            ])->values(),
+            'awards'                => ($t->status === 'awarded' && $t->show_award) ? $t->awards->map(fn ($w) => [
+                'lot_code' => $w->lot_code, 'lot_title' => $w->lot_code ? $t->lots->firstWhere('code', $w->lot_code)?->title : null,
+                'winner' => $w->winner_name, 'amount' => $w->amount, 'currency' => $w->currency, 'awarded_on' => $w->awarded_on?->toDateString(),
+            ])->values() : [],
             'documents'             => $t->documents->map(fn ($d) => [
                 'id'          => $d->id,
                 'name'        => $d->name,
                 'filename'    => $d->original_filename,
                 'type'        => $d->document_type,
+                'addendum_id' => $d->addendum_id,
                 'extension'   => $d->extension,
                 'size'        => $d->file_size,
                 'uploaded_at' => $d->created_at,

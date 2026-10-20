@@ -12,6 +12,7 @@ class TenderDocument extends Model
 
     protected $fillable = [
         'tender_id',
+        'addendum_id',
         'name',
         'original_filename',
         'mime_type',

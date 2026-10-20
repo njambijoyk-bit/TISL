@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Extras\Tender;
+use App\Models\Extras\TenderAddendum;
 use App\Models\Extras\TenderDocument;
 use App\Models\Extras\TenderInvitation;
 use App\Models\Vendor;
@@ -57,7 +58,7 @@ class TenderController extends Controller
 
     public function show(int $id): JsonResponse
     {
-        $tender = Tender::with(['documents.uploader:id,name', 'lots', 'invitations.vendor:id,company_name,vendor_number,special_group', 'mailings.sender:id,name', 'creator:id,name'])
+        $tender = Tender::with(['documents.uploader:id,name', 'lots', 'addenda', 'awards', 'invitations.vendor:id,company_name,vendor_number,special_group', 'mailings.sender:id,name', 'creator:id,name'])
             ->findOrFail($id);
         $tender->setAttribute('display_status', $tender->displayStatus());
 
@@ -272,27 +273,14 @@ class TenderController extends Controller
 
         $request->validate([
             'file'          => 'required|file|max:51200|extensions:' . implode(',', TenderFile::allowedExtensions()),
-            'document_type' => 'nullable|in:' . implode(',', Tender::DOCUMENT_TYPES),
+            'document_type' => 'nullable|in:' . implode(',', array_diff(Tender::DOCUMENT_TYPES, ['addendum'])),
             'name'          => 'nullable|string|max:255',
             'notify'        => 'nullable|boolean',
             'note'          => 'nullable|string|max:255',
         ]);
 
-        $file = $request->file('file');
-        $path = $file->store("tenders/{$tender->id}", 'local');
         $type = $request->input('document_type', 'other');
-
-        $doc = TenderDocument::create([
-            'tender_id'         => $tender->id,
-            'name'              => trim((string) $request->input('name')) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
-            'original_filename' => $file->getClientOriginalName(),
-            'mime_type'         => $file->getMimeType(),
-            'extension'         => strtolower($file->getClientOriginalExtension()),
-            'file_path'         => $path,
-            'file_size'         => $file->getSize(),
-            'document_type'     => $type,
-            'uploaded_by'       => $request->user()->id,
-        ]);
+        $doc = $this->storeFile($tender, $request->file('file'), $type, $request->input('name'), $request->user()->id);
 
         $told = null;
         if ($request->boolean('notify') && $tender->status === 'published') {
@@ -302,12 +290,28 @@ class TenderController extends Controller
         return response()->json(['message' => 'Document uploaded.' . ($told !== null ? " {$told} vendor(s) were told." : ''), 'id' => $doc->id, 'notified' => $told], 201);
     }
 
+    private function storeFile(Tender $tender, $file, string $type, ?string $name, int $userId, ?int $addendumId = null): TenderDocument
+    {
+        return TenderDocument::create([
+            'tender_id'         => $tender->id,
+            'addendum_id'       => $addendumId,
+            'name'              => trim((string) $name) ?: pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME),
+            'original_filename' => $file->getClientOriginalName(),
+            'mime_type'         => $file->getMimeType(),
+            'extension'         => strtolower($file->getClientOriginalExtension()),
+            'file_path'         => $file->store("tenders/{$tender->id}", 'local'),
+            'file_size'         => $file->getSize(),
+            'document_type'     => $type,
+            'uploaded_by'       => $userId,
+        ]);
+    }
+
     public function updateDocument(Request $request, int $tenderId, int $docId): JsonResponse
     {
         $doc = TenderDocument::where('tender_id', $tenderId)->findOrFail($docId);
         $d = $request->validate([
             'name'          => 'sometimes|required|string|max:255',
-            'document_type' => 'sometimes|in:' . implode(',', Tender::DOCUMENT_TYPES),
+            'document_type' => 'sometimes|in:' . implode(',', array_diff(Tender::DOCUMENT_TYPES, ['addendum'])),
         ]);
         $doc->update($d);
 
@@ -321,6 +325,106 @@ class TenderController extends Controller
         $doc->delete();
 
         return response()->json(['message' => 'Document removed.']);
+    }
+
+    // =========================================================================
+    // ADDENDA
+    // =========================================================================
+
+    /** Body: title, note?, new_deadline? (moves the closing date), files[]?, notify?. Numbers itself: Addendum 1, 2... */
+    public function addAddendum(Request $request, int $tenderId): JsonResponse
+    {
+        $tender = Tender::findOrFail($tenderId);
+        if ($tender->status === 'draft') {
+            return response()->json(['message' => 'Publish the tender first: an addendum changes a published tender. Until then, just edit it.'], 422);
+        }
+        $d = $request->validate([
+            'title'        => 'required|string|max:255',
+            'note'         => 'nullable|string|max:5000',
+            'new_deadline' => 'nullable|date|after:now',
+            'files'        => 'nullable|array|max:10',
+            'files.*'      => 'file|max:51200|extensions:' . implode(',', TenderFile::allowedExtensions()),
+            'notify'       => 'nullable|boolean',
+        ]);
+
+        $addendum = DB::transaction(function () use ($tender, $d, $request) {
+            $a = TenderAddendum::create([
+                'tender_id' => $tender->id, 'number' => (int) TenderAddendum::where('tender_id', $tender->id)->max('number') + 1,
+                'title' => $d['title'], 'note' => $d['note'] ?? null, 'created_by' => $request->user()->id,
+                'previous_deadline' => ! empty($d['new_deadline']) ? $tender->submission_deadline : null, 'new_deadline' => $d['new_deadline'] ?? null,
+            ]);
+            if (! empty($d['new_deadline'])) {
+                $tender->update(['submission_deadline' => $d['new_deadline'], 'status' => $tender->status === 'closed' ? 'published' : $tender->status]);
+            }
+            foreach ($request->file('files', []) as $file) {
+                $this->storeFile($tender, $file, 'addendum', null, $request->user()->id, $a->id);
+            }
+
+            return $a;
+        });
+
+        $told = null;
+        if ($request->boolean('notify') && $tender->fresh()->status === 'published') {
+            $told = $this->notices->send($tender->fresh(), 'addendum', trim("Addendum {$addendum->number}: {$addendum->title}. " . ($d['note'] ?? '')), $request->user());
+        }
+
+        return response()->json(['message' => "Addendum {$addendum->number} added." . ($told !== null ? " {$told} vendor(s) were told." : ''), 'id' => $addendum->id, 'notified' => $told], 201);
+    }
+
+    // =========================================================================
+    // AWARD (the decision was made offline; this records it and tells the public)
+    // =========================================================================
+
+    /**
+     * Body: awards[] ({lot_code?, vendor_id?, winner_name?, amount?, awarded_on?, notes?}), show_award?.
+     * Marks the tender Awarded. A lot with no row simply had no winner. Sending it again replaces the earlier record.
+     */
+    public function award(Request $request, int $tenderId): JsonResponse
+    {
+        $tender = Tender::with('lots')->findOrFail($tenderId);
+        if (! in_array($tender->status, ['published', 'closed', 'awarded'], true)) {
+            return response()->json(['message' => 'Only a published or closed tender can be awarded.'], 422);
+        }
+        $d = $request->validate([
+            'awards'               => 'required|array|min:1|max:60',
+            'awards.*.lot_code'    => 'nullable|string|max:10',
+            'awards.*.vendor_id'   => 'nullable|integer|exists:vendors,id',
+            'awards.*.winner_name' => 'nullable|string|max:255',
+            'awards.*.amount'      => 'nullable|numeric|min:0',
+            'awards.*.awarded_on'  => 'nullable|date',
+            'awards.*.notes'       => 'nullable|string|max:255',
+            'show_award'           => 'nullable|boolean',
+        ]);
+
+        $lotCodes = $tender->lots->pluck('code')->map(fn ($c) => strtoupper($c))->all();
+        $rows = [];
+        foreach ($d['awards'] as $i => $a) {
+            $code = isset($a['lot_code']) && $a['lot_code'] !== '' ? strtoupper($a['lot_code']) : null;
+            if ($code && ! in_array($code, $lotCodes, true)) {
+                throw ValidationException::withMessages(["awards.{$i}.lot_code" => "This tender has no lot {$code}."]);
+            }
+            $vendor = ! empty($a['vendor_id']) ? Vendor::find($a['vendor_id']) : null;
+            $name = trim((string) ($a['winner_name'] ?? '')) ?: $vendor?->company_name;
+            if (! $name) {
+                throw ValidationException::withMessages(["awards.{$i}.winner_name" => 'Choose a vendor or type the winner\'s name.']);
+            }
+            $rows[] = ['lot_code' => $code, 'vendor_id' => $vendor?->id, 'winner_name' => $name, 'amount' => $a['amount'] ?? null, 'currency' => $tender->currency ?: 'KES',
+                'awarded_on' => $a['awarded_on'] ?? now()->toDateString(), 'notes' => $a['notes'] ?? null, 'created_by' => $request->user()->id];
+        }
+
+        DB::transaction(function () use ($tender, $rows, $d) {
+            $tender->awards()->delete();
+            foreach ($rows as $r) {
+                $tender->awards()->create($r);
+            }
+            $single = collect($rows)->whereNull('lot_code')->first();
+            $tender->forceFill([
+                'status' => 'awarded', 'awarded_at' => now(), 'show_award' => (bool) ($d['show_award'] ?? true),
+                'awarded_vendor_id' => $single['vendor_id'] ?? null,
+            ])->save();
+        });
+
+        return response()->json(['message' => 'Award recorded. The tender is now Awarded.' . ($tender->show_award ? ' Winners are shown on the tender page.' : ' Winners are not shown publicly.')]);
     }
 
     /** A link that opens or downloads the file for ten minutes without needing the sign-in header (a browser tab cannot send it). */
